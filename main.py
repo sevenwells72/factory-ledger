@@ -28,11 +28,12 @@ class CommandRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "status": "online",
         "endpoints": {
             "GET /health": "Health check (real DB check)",
             "GET /inventory/{item_name}": "Get current inventory (requires API key)",
+            "GET /products/search": "Search products by name or code (requires API key)",
             "POST /command/preview": "Preview a command (requires API key)",
             "POST /command/commit": "Execute a command and write to ledger (requires API key)",
         },
@@ -122,6 +123,57 @@ def get_inventory(item_name: str, authorization: str = Header(None)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/products/search")
+def search_products(q: str, authorization: str = Header(None)):
+    verify_api_key(authorization)
+
+    if not q or len(q.strip()) < 2:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Query must be at least 2 characters"}
+        )
+
+    query = q.strip()
+
+    try:
+        with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Search by exact odoo_code first
+                if query.isdigit():
+                    cur.execute(
+                        """
+                        SELECT name, odoo_code, type
+                        FROM products
+                        WHERE odoo_code = %s
+                        LIMIT 5
+                        """,
+                        (query,),
+                    )
+                    results = cur.fetchall()
+                    if results:
+                        return {"query": query, "matches": results}
+
+                # Fuzzy search on name
+                cur.execute(
+                    """
+                    SELECT name, odoo_code, type
+                    FROM products
+                    WHERE name ILIKE %s
+                    ORDER BY 
+                        CASE WHEN LOWER(name) = LOWER(%s) THEN 0 ELSE 1 END,
+                        LENGTH(name) ASC
+                    LIMIT 5
+                    """,
+                    (f"%{query}%", query),
+                )
+                results = cur.fetchall()
+
+        return {"query": query, "matches": results}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.post("/command/preview")
 def preview_command(request: CommandRequest, authorization: str = Header(None)):
     verify_api_key(authorization)
@@ -141,7 +193,7 @@ def preview_command(request: CommandRequest, authorization: str = Header(None)):
 
 
 # -----------------------------
-# COMMIT IMPLEMENTATION (MVP)
+# COMMIT IMPLEMENTATION
 # -----------------------------
 
 MAKE_RE = re.compile(
@@ -149,8 +201,10 @@ MAKE_RE = re.compile(
     re.IGNORECASE,
 )
 
+
 def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", s.strip())
+
 
 def get_or_create_lot(cur, product_id: int, lot_code: str) -> int:
     cur.execute(
@@ -166,19 +220,56 @@ def get_or_create_lot(cur, product_id: int, lot_code: str) -> int:
     )
     return cur.fetchone()["id"]
 
+
 def find_product(cur, token: str):
     """
-    Accept either:
-      - exact Odoo code (all digits) -> match products.odoo_code
-      - otherwise -> match products.name (case-insensitive exact)
+    Find product by odoo_code (if digits) or name match.
+    Returns: (product_row, all_matches)
+    - If exactly 1 match: (product, [product])
+    - If multiple matches: (None, [matches])
+    - If no matches: (None, [])
     """
     t = _norm(token)
+    
+    # Try exact odoo_code match first
     if t.isdigit():
-        cur.execute("SELECT id, name, odoo_code, default_batch_lb, type FROM products WHERE odoo_code=%s LIMIT 1", (t,))
-        return cur.fetchone()
+        cur.execute(
+            "SELECT id, name, odoo_code, default_batch_lb, type FROM products WHERE odoo_code=%s LIMIT 1",
+            (t,)
+        )
+        row = cur.fetchone()
+        if row:
+            return (row, [row])
 
-    cur.execute("SELECT id, name, odoo_code, default_batch_lb, type FROM products WHERE LOWER(name)=LOWER(%s) LIMIT 1", (t,))
-    return cur.fetchone()
+    # Try exact name match (case-insensitive)
+    cur.execute(
+        "SELECT id, name, odoo_code, default_batch_lb, type FROM products WHERE LOWER(name)=LOWER(%s) LIMIT 1",
+        (t,)
+    )
+    row = cur.fetchone()
+    if row:
+        return (row, [row])
+
+    # Fuzzy search - find candidates
+    cur.execute(
+        """
+        SELECT id, name, odoo_code, default_batch_lb, type 
+        FROM products 
+        WHERE name ILIKE %s
+        ORDER BY LENGTH(name) ASC
+        LIMIT 5
+        """,
+        (f"%{t}%",)
+    )
+    matches = cur.fetchall()
+    
+    if len(matches) == 1:
+        return (matches[0], matches)
+    elif len(matches) > 1:
+        return (None, matches)  # Ambiguous
+    else:
+        return (None, [])  # Not found
+
 
 @app.post("/command/commit")
 def commit_command(request: CommandRequest, authorization: str = Header(None)):
@@ -205,14 +296,45 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
         conn.autocommit = False
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # 1) identify batch product
-            batch = find_product(cur, batch_token)
+            # 1) identify batch product (with disambiguation)
+            batch, matches = find_product(cur, batch_token)
+
+            # Handle ambiguous matches
+            if not batch and len(matches) > 1:
+                conn.close()
+                return JSONResponse(
+                    status_code=409,
+                    content={
+                        "error": "Multiple products match. Please specify using Odoo code.",
+                        "query": batch_token,
+                        "matches": [
+                            {"name": m["name"], "odoo_code": m["odoo_code"], "type": m["type"]}
+                            for m in matches
+                        ],
+                    },
+                )
+
+            # Handle no matches
             if not batch:
-                raise Exception(f"Batch product not found: {batch_token}")
+                conn.close()
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "error": f"Batch product not found: {batch_token}",
+                        "suggestion": "Try searching with /products/search?q=..."
+                    },
+                )
 
             # yield per batch must be set
             if batch.get("default_batch_lb") is None:
-                raise Exception(f"default_batch_lb is NULL for batch '{batch['name']}' (set it in products.default_batch_lb).")
+                conn.close()
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "error": f"default_batch_lb is NULL for batch '{batch['name']}'",
+                        "suggestion": "Set default_batch_lb in products table for this batch."
+                    },
+                )
 
             yield_lb = float(batch["default_batch_lb"])
             output_qty = n_batches * yield_lb
@@ -230,7 +352,14 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
             )
             bom_lines = cur.fetchall()
             if not bom_lines:
-                raise Exception(f"No BOM found in batch_formulas for batch '{batch['name']}'.")
+                conn.close()
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "error": f"No BOM found in batch_formulas for batch '{batch['name']}'",
+                        "suggestion": "Add BOM lines to batch_formulas table for this product."
+                    },
+                )
 
             # 3) create transaction header
             cur.execute(
@@ -243,7 +372,6 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
             batch_lot_id = get_or_create_lot(cur, batch["id"], output_lot_code)
 
             # Ingredient lots default to UNKNOWN (MVP)
-            # Ensure UNKNOWN lots exist and write negative consumption lines
             consumed = []
             for line in bom_lines:
                 ing_id = int(line["ingredient_product_id"])
