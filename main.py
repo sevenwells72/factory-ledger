@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from typing import Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
@@ -28,12 +29,13 @@ class CommandRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "status": "online",
         "endpoints": {
             "GET /health": "Health check (real DB check)",
             "GET /inventory/{item_name}": "Get current inventory (requires API key)",
             "GET /products/search": "Search products by name or code (requires API key)",
+            "GET /transactions/history": "Get transaction history (requires API key)",
             "POST /command/preview": "Preview a command (requires API key)",
             "POST /command/commit": "Execute a command and write to ledger (requires API key)",
         },
@@ -169,6 +171,120 @@ def search_products(q: str, authorization: str = Header(None)):
                 results = cur.fetchall()
 
         return {"query": query, "matches": results}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/transactions/history")
+def get_transaction_history(
+    authorization: str = Header(None),
+    limit: int = Query(default=10, ge=1, le=100, description="Number of transactions to return"),
+    type: Optional[str] = Query(default=None, description="Filter by transaction type: make, receive, adjust"),
+    product: Optional[str] = Query(default=None, description="Filter by product name or Odoo code"),
+):
+    """
+    Get transaction history with optional filters.
+    - limit: Number of transactions (default 10, max 100)
+    - type: Filter by type (make, receive, adjust)
+    - product: Filter by product name or Odoo code
+    """
+    verify_api_key(authorization)
+
+    try:
+        with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                
+                # Base query
+                query = """
+                    SELECT 
+                        t.id as transaction_id,
+                        t.type,
+                        t.timestamp,
+                        t.notes,
+                        json_agg(
+                            json_build_object(
+                                'product', p.name,
+                                'odoo_code', p.odoo_code,
+                                'lot', l.lot_code,
+                                'quantity_lb', tl.quantity_lb
+                            ) ORDER BY tl.id
+                        ) as lines
+                    FROM transactions t
+                    LEFT JOIN transaction_lines tl ON tl.transaction_id = t.id
+                    LEFT JOIN products p ON p.id = tl.product_id
+                    LEFT JOIN lots l ON l.id = tl.lot_id
+                """
+                
+                conditions = []
+                params = []
+                
+                # Filter by type
+                if type:
+                    conditions.append("t.type = %s")
+                    params.append(type.lower())
+                
+                # Filter by product
+                if product:
+                    if product.isdigit():
+                        conditions.append("""
+                            t.id IN (
+                                SELECT DISTINCT tl2.transaction_id 
+                                FROM transaction_lines tl2 
+                                JOIN products p2 ON p2.id = tl2.product_id 
+                                WHERE p2.odoo_code = %s
+                            )
+                        """)
+                        params.append(product)
+                    else:
+                        conditions.append("""
+                            t.id IN (
+                                SELECT DISTINCT tl2.transaction_id 
+                                FROM transaction_lines tl2 
+                                JOIN products p2 ON p2.id = tl2.product_id 
+                                WHERE p2.name ILIKE %s
+                            )
+                        """)
+                        params.append(f"%{product}%")
+                
+                # Add WHERE clause if conditions exist
+                if conditions:
+                    query += " WHERE " + " AND ".join(conditions)
+                
+                # Group and order
+                query += """
+                    GROUP BY t.id, t.type, t.timestamp, t.notes
+                    ORDER BY t.timestamp DESC, t.id DESC
+                    LIMIT %s
+                """
+                params.append(limit)
+                
+                cur.execute(query, params)
+                transactions = cur.fetchall()
+
+        # Format the response
+        result = []
+        for tx in transactions:
+            # Filter out null lines (from LEFT JOIN)
+            lines = [line for line in (tx["lines"] or []) if line.get("product")]
+            
+            result.append({
+                "transaction_id": tx["transaction_id"],
+                "type": tx["type"],
+                "timestamp": tx["timestamp"].isoformat() if tx["timestamp"] else None,
+                "notes": tx["notes"],
+                "lines": lines,
+            })
+
+        return {
+            "count": len(result),
+            "filters": {
+                "limit": limit,
+                "type": type,
+                "product": product,
+            },
+            "transactions": result,
+        }
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
