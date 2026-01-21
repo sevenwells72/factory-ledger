@@ -60,22 +60,63 @@ def get_inventory(item_name: str, authorization: str = Header(None)):
     verify_api_key(authorization)
 
     try:
-        conn = psycopg2.connect(DATABASE_URL, connect_timeout=5)
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(
-                """
-                SELECT COALESCE(SUM(tl.quantity_lb), 0) AS total
-                FROM transaction_lines tl
-                JOIN products p ON tl.product_id = p.id
-                WHERE LOWER(p.name) = LOWER(%s)
-                """,
-                (item_name,),
-            )
-            result = cur.fetchone()
-        conn.close()
+        with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
 
-        total = float(result["total"]) if result and result.get("total") is not None else 0.0
-        return {"item": item_name, "on_hand_lb": total}
+                if item_name.isdigit():
+                    cur.execute(
+                        """
+                        SELECT p.name, p.odoo_code, COALESCE(SUM(tl.quantity_lb), 0) AS total
+                        FROM products p
+                        LEFT JOIN transaction_lines tl ON tl.product_id = p.id
+                        WHERE p.odoo_code = %s
+                        GROUP BY p.id
+                        """,
+                        (item_name,),
+                    )
+                    result = cur.fetchone()
+
+                else:
+                    # 1) exact case-insensitive match
+                    cur.execute(
+                        """
+                        SELECT p.name, p.odoo_code, COALESCE(SUM(tl.quantity_lb), 0) AS total
+                        FROM products p
+                        LEFT JOIN transaction_lines tl ON tl.product_id = p.id
+                        WHERE LOWER(p.name) = LOWER(%s)
+                        GROUP BY p.id
+                        """,
+                        (item_name,),
+                    )
+                    result = cur.fetchone()
+
+                    # 2) fallback: forgiving match
+                    if not result:
+                        cur.execute(
+                            """
+                            SELECT p.name, p.odoo_code, COALESCE(SUM(tl.quantity_lb), 0) AS total
+                            FROM products p
+                            LEFT JOIN transaction_lines tl ON tl.product_id = p.id
+                            WHERE p.name ILIKE %s
+                            GROUP BY p.id
+                            ORDER BY LENGTH(p.name) ASC
+                            LIMIT 1
+                            """,
+                            (f"%{item_name}%",),
+                        )
+                        result = cur.fetchone()
+
+        if not result:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Product not found", "query": item_name},
+            )
+
+        return {
+            "item": result["name"],
+            "odoo_code": result["odoo_code"],
+            "on_hand_lb": float(result["total"]),
+        }
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
