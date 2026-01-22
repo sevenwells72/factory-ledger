@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Query
+from fastapi import FastAPI, HTTPException, Header, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -13,10 +13,10 @@ DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
 
 
-def verify_api_key(authorization: str = Header(None)):
-    if not authorization:
+def verify_api_key(x_api_key: str = Header(None, alias="X-API-Key")):
+    if not x_api_key:
         raise HTTPException(status_code=401, detail="API key required")
-    if authorization != f"Bearer {API_KEY}":
+    if x_api_key != API_KEY:
         raise HTTPException(status_code=403, detail="Invalid API key")
     return True
 
@@ -29,7 +29,7 @@ class CommandRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.4.0",
+        "version": "0.4.1",
         "status": "online",
         "endpoints": {
             "GET /health": "Health check (real DB check)",
@@ -59,13 +59,10 @@ def health_check():
 
 
 @app.get("/inventory/{item_name}")
-def get_inventory(item_name: str, authorization: str = Header(None)):
-    verify_api_key(authorization)
-
+def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
     try:
         with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-
                 if item_name.isdigit():
                     cur.execute(
                         """
@@ -78,9 +75,7 @@ def get_inventory(item_name: str, authorization: str = Header(None)):
                         (item_name,),
                     )
                     result = cur.fetchone()
-
                 else:
-                    # 1) exact case-insensitive match
                     cur.execute(
                         """
                         SELECT p.name, p.odoo_code, COALESCE(SUM(tl.quantity_lb), 0) AS total
@@ -92,8 +87,6 @@ def get_inventory(item_name: str, authorization: str = Header(None)):
                         (item_name,),
                     )
                     result = cur.fetchone()
-
-                    # 2) fallback: forgiving match
                     if not result:
                         cur.execute(
                             """
@@ -126,9 +119,7 @@ def get_inventory(item_name: str, authorization: str = Header(None)):
 
 
 @app.get("/products/search")
-def search_products(q: str, authorization: str = Header(None)):
-    verify_api_key(authorization)
-
+def search_products(q: str, _: bool = Depends(verify_api_key)):
     if not q or len(q.strip()) < 2:
         return JSONResponse(
             status_code=400,
@@ -140,7 +131,6 @@ def search_products(q: str, authorization: str = Header(None)):
     try:
         with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Search by exact odoo_code first
                 if query.isdigit():
                     cur.execute(
                         """
@@ -155,7 +145,6 @@ def search_products(q: str, authorization: str = Header(None)):
                     if results:
                         return {"query": query, "matches": results}
 
-                # Fuzzy search on name
                 cur.execute(
                     """
                     SELECT name, odoo_code, type
@@ -178,24 +167,14 @@ def search_products(q: str, authorization: str = Header(None)):
 
 @app.get("/transactions/history")
 def get_transaction_history(
-    authorization: str = Header(None),
+    _: bool = Depends(verify_api_key),
     limit: int = Query(default=10, ge=1, le=100, description="Number of transactions to return"),
     type: Optional[str] = Query(default=None, description="Filter by transaction type: make, receive, adjust"),
     product: Optional[str] = Query(default=None, description="Filter by product name or Odoo code"),
 ):
-    """
-    Get transaction history with optional filters.
-    - limit: Number of transactions (default 10, max 100)
-    - type: Filter by type (make, receive, adjust)
-    - product: Filter by product name or Odoo code
-    """
-    verify_api_key(authorization)
-
     try:
         with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                
-                # Base query
                 query = """
                     SELECT 
                         t.id as transaction_id,
@@ -219,12 +198,10 @@ def get_transaction_history(
                 conditions = []
                 params = []
                 
-                # Filter by type
                 if type:
                     conditions.append("t.type = %s")
                     params.append(type.lower())
                 
-                # Filter by product
                 if product:
                     if product.isdigit():
                         conditions.append("""
@@ -247,11 +224,9 @@ def get_transaction_history(
                         """)
                         params.append(f"%{product}%")
                 
-                # Add WHERE clause if conditions exist
                 if conditions:
                     query += " WHERE " + " AND ".join(conditions)
                 
-                # Group and order
                 query += """
                     GROUP BY t.id, t.type, t.timestamp, t.notes
                     ORDER BY t.timestamp DESC, t.id DESC
@@ -262,12 +237,9 @@ def get_transaction_history(
                 cur.execute(query, params)
                 transactions = cur.fetchall()
 
-        # Format the response
         result = []
         for tx in transactions:
-            # Filter out null lines (from LEFT JOIN)
             lines = [line for line in (tx["lines"] or []) if line.get("product")]
-            
             result.append({
                 "transaction_id": tx["transaction_id"],
                 "type": tx["type"],
@@ -278,11 +250,7 @@ def get_transaction_history(
 
         return {
             "count": len(result),
-            "filters": {
-                "limit": limit,
-                "type": type,
-                "product": product,
-            },
+            "filters": {"limit": limit, "type": type, "product": product},
             "transactions": result,
         }
 
@@ -291,9 +259,7 @@ def get_transaction_history(
 
 
 @app.post("/command/preview")
-def preview_command(request: CommandRequest, authorization: str = Header(None)):
-    verify_api_key(authorization)
-
+def preview_command(request: CommandRequest, _: bool = Depends(verify_api_key)):
     text = request.raw_text.lower().strip()
     if "receive" in text:
         return {"status": "ready", "type": "receive", "preview": f"Ready to receive: {request.raw_text}"}
@@ -338,16 +304,8 @@ def get_or_create_lot(cur, product_id: int, lot_code: str) -> int:
 
 
 def find_product(cur, token: str):
-    """
-    Find product by odoo_code (if digits) or name match.
-    Returns: (product_row, all_matches)
-    - If exactly 1 match: (product, [product])
-    - If multiple matches: (None, [matches])
-    - If no matches: (None, [])
-    """
     t = _norm(token)
     
-    # Try exact odoo_code match first
     if t.isdigit():
         cur.execute(
             "SELECT id, name, odoo_code, default_batch_lb, type FROM products WHERE odoo_code=%s LIMIT 1",
@@ -357,7 +315,6 @@ def find_product(cur, token: str):
         if row:
             return (row, [row])
 
-    # Try exact name match (case-insensitive)
     cur.execute(
         "SELECT id, name, odoo_code, default_batch_lb, type FROM products WHERE LOWER(name)=LOWER(%s) LIMIT 1",
         (t,)
@@ -366,7 +323,6 @@ def find_product(cur, token: str):
     if row:
         return (row, [row])
 
-    # Fuzzy search - find candidates
     cur.execute(
         """
         SELECT id, name, odoo_code, default_batch_lb, type 
@@ -382,15 +338,13 @@ def find_product(cur, token: str):
     if len(matches) == 1:
         return (matches[0], matches)
     elif len(matches) > 1:
-        return (None, matches)  # Ambiguous
+        return (None, matches)
     else:
-        return (None, [])  # Not found
+        return (None, [])
 
 
 @app.post("/command/commit")
-def commit_command(request: CommandRequest, authorization: str = Header(None)):
-    verify_api_key(authorization)
-
+def commit_command(request: CommandRequest, _: bool = Depends(verify_api_key)):
     raw = request.raw_text.strip()
     m = MAKE_RE.match(raw)
     if not m:
@@ -412,10 +366,8 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
         conn.autocommit = False
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            # 1) identify batch product (with disambiguation)
             batch, matches = find_product(cur, batch_token)
 
-            # Handle ambiguous matches
             if not batch and len(matches) > 1:
                 conn.close()
                 return JSONResponse(
@@ -430,7 +382,6 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
                     },
                 )
 
-            # Handle no matches
             if not batch:
                 conn.close()
                 return JSONResponse(
@@ -441,7 +392,6 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
                     },
                 )
 
-            # yield per batch must be set
             if batch.get("default_batch_lb") is None:
                 conn.close()
                 return JSONResponse(
@@ -455,7 +405,6 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
             yield_lb = float(batch["default_batch_lb"])
             output_qty = n_batches * yield_lb
 
-            # 2) load BOM lines
             cur.execute(
                 """
                 SELECT bf.ingredient_product_id, bf.quantity_lb, p.name AS ingredient_name, p.odoo_code AS ingredient_odoo_code
@@ -477,17 +426,14 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
                     },
                 )
 
-            # 3) create transaction header
             cur.execute(
                 "INSERT INTO transactions (type, notes) VALUES ('make', %s) RETURNING id",
                 (f"commit: {raw}",),
             )
             tx_id = cur.fetchone()["id"]
 
-            # 4) lots
             batch_lot_id = get_or_create_lot(cur, batch["id"], output_lot_code)
 
-            # Ingredient lots default to UNKNOWN (MVP)
             consumed = []
             for line in bom_lines:
                 ing_id = int(line["ingredient_product_id"])
@@ -506,7 +452,6 @@ def commit_command(request: CommandRequest, authorization: str = Header(None)):
                 )
                 consumed.append({"ingredient": ing_name, "qty_lb": abs(qty), "lot": "UNKNOWN"})
 
-            # 5) write output line (+)
             cur.execute(
                 """
                 INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
