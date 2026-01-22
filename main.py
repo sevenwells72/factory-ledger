@@ -391,7 +391,7 @@ def get_bom(
                         }
                     )
                 
-                return {
+                result = {
                     "product": batch["name"],
                     "odoo_code": batch["odoo_code"],
                     "batch_size_lb": float(batch["default_batch_lb"]) if batch["default_batch_lb"] else None,
@@ -403,9 +403,15 @@ def get_bom(
                             "quantity_lb": float(ing["quantity_lb"])
                         }
                         for ing in ingredients
-                    ],
-                    **expand_bom(cur, ingredients, batch.get("default_batch_lb")) if expand else {}
+                    ]
                 }
+                
+                if expand:
+                    expanded = expand_bom(cur, ingredients, batch.get("default_batch_lb"))
+                    if expanded:
+                        result["expanded_ingredients"] = expanded.get("expanded_ingredients")
+                
+                return result
                 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
