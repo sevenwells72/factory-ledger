@@ -29,7 +29,7 @@ class CommandRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.5.2",
+        "version": "0.6.0",
         "status": "online",
         "endpoints": {
             "GET /health": "Health check (real DB check)",
@@ -260,7 +260,11 @@ def get_transaction_history(
 
 
 @app.get("/bom/{product}")
-def get_bom(product: str, _: bool = Depends(verify_api_key)):
+def get_bom(
+    product: str, 
+    expand: bool = Query(default=False, description="Expand sub-batches to show raw ingredients"),
+    _: bool = Depends(verify_api_key)
+):
     """
     Get the Bill of Materials (recipe) for a batch product.
     Accepts product name or Odoo code.
@@ -399,7 +403,8 @@ def get_bom(product: str, _: bool = Depends(verify_api_key)):
                             "quantity_lb": float(ing["quantity_lb"])
                         }
                         for ing in ingredients
-                    ]
+                    ],
+                    **expand_bom(cur, ingredients, batch.get("default_batch_lb")) if expand else {}
                 }
                 
     except Exception as e:
@@ -434,6 +439,65 @@ MAKE_RE = re.compile(
 
 def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", s.strip())
+
+
+def expand_bom(cur, ingredients, parent_batch_size):
+    """
+    Expand any batch ingredients to show their raw materials.
+    Returns a dict with 'expanded_ingredients' if any batches were found.
+    """
+    expanded = []
+    has_batches = False
+    
+    for ing in ingredients:
+        # Check if this ingredient is itself a batch product with a BOM
+        cur.execute(
+            """
+            SELECT bf.quantity_lb, p.name, p.odoo_code, parent.default_batch_lb
+            FROM batch_formulas bf
+            JOIN products p ON p.id = bf.ingredient_product_id
+            JOIN products parent ON parent.id = bf.product_id
+            WHERE bf.product_id = (
+                SELECT id FROM products WHERE odoo_code = %s OR name = %s LIMIT 1
+            )
+            ORDER BY bf.quantity_lb DESC
+            """,
+            (ing["ingredient_code"], ing["ingredient"])
+        )
+        sub_ingredients = cur.fetchall()
+        
+        if sub_ingredients:
+            has_batches = True
+            # This is a batch - expand it
+            sub_batch_size = float(sub_ingredients[0]["default_batch_lb"]) if sub_ingredients[0]["default_batch_lb"] else 1
+            scale_factor = float(ing["quantity_lb"]) / sub_batch_size if sub_batch_size else 1
+            
+            expanded.append({
+                "parent": ing["ingredient"],
+                "parent_odoo_code": ing["ingredient_code"],
+                "parent_qty_lb": float(ing["quantity_lb"]),
+                "raw_ingredients": [
+                    {
+                        "name": sub["name"],
+                        "odoo_code": sub["odoo_code"],
+                        "quantity_lb": round(float(sub["quantity_lb"]) * scale_factor, 2)
+                    }
+                    for sub in sub_ingredients
+                    if float(sub["quantity_lb"]) > 0  # Skip zero-qty ingredients
+                ]
+            })
+        else:
+            # Not a batch - it's a raw ingredient or packaging
+            expanded.append({
+                "name": ing["ingredient"],
+                "odoo_code": ing["ingredient_code"],
+                "quantity_lb": float(ing["quantity_lb"]),
+                "is_raw": True
+            })
+    
+    if has_batches:
+        return {"expanded_ingredients": expanded}
+    return {}
 
 
 def get_or_create_lot(cur, product_id: int, lot_code: str) -> int:
