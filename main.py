@@ -29,13 +29,14 @@ class CommandRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.4.1",
+        "version": "0.5.0",
         "status": "online",
         "endpoints": {
             "GET /health": "Health check (real DB check)",
             "GET /inventory/{item_name}": "Get current inventory (requires API key)",
             "GET /products/search": "Search products by name or code (requires API key)",
             "GET /transactions/history": "Get transaction history (requires API key)",
+            "GET /bom/{product}": "Get BOM/recipe for a batch product (requires API key)",
             "POST /command/preview": "Preview a command (requires API key)",
             "POST /command/commit": "Execute a command and write to ledger (requires API key)",
         },
@@ -254,6 +255,92 @@ def get_transaction_history(
             "transactions": result,
         }
 
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/bom/{product}")
+def get_bom(product: str, _: bool = Depends(verify_api_key)):
+    """
+    Get the Bill of Materials (recipe) for a batch product.
+    Accepts product name or Odoo code.
+    """
+    try:
+        with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Find the product
+                if product.isdigit():
+                    cur.execute(
+                        "SELECT id, name, odoo_code, default_batch_lb FROM products WHERE odoo_code = %s",
+                        (product,)
+                    )
+                else:
+                    cur.execute(
+                        "SELECT id, name, odoo_code, default_batch_lb FROM products WHERE LOWER(name) = LOWER(%s)",
+                        (product,)
+                    )
+                batch = cur.fetchone()
+                
+                # Fallback to fuzzy search
+                if not batch:
+                    cur.execute(
+                        """
+                        SELECT id, name, odoo_code, default_batch_lb 
+                        FROM products 
+                        WHERE name ILIKE %s AND name ILIKE 'Batch%%'
+                        ORDER BY LENGTH(name) ASC
+                        LIMIT 1
+                        """,
+                        (f"%{product}%",)
+                    )
+                    batch = cur.fetchone()
+                
+                if not batch:
+                    return JSONResponse(
+                        status_code=404,
+                        content={"error": f"Batch product not found: {product}"}
+                    )
+                
+                # Get BOM lines
+                cur.execute(
+                    """
+                    SELECT 
+                        p.name AS ingredient,
+                        p.odoo_code AS ingredient_code,
+                        bf.quantity_lb
+                    FROM batch_formulas bf
+                    JOIN products p ON p.id = bf.ingredient_product_id
+                    WHERE bf.product_id = %s
+                    ORDER BY bf.quantity_lb DESC
+                    """,
+                    (batch["id"],)
+                )
+                ingredients = cur.fetchall()
+                
+                if not ingredients:
+                    return JSONResponse(
+                        status_code=404,
+                        content={
+                            "error": f"No BOM found for: {batch['name']}",
+                            "suggestion": "This product may not have a recipe in batch_formulas."
+                        }
+                    )
+                
+                return {
+                    "product": batch["name"],
+                    "odoo_code": batch["odoo_code"],
+                    "batch_size_lb": float(batch["default_batch_lb"]) if batch["default_batch_lb"] else None,
+                    "ingredient_count": len(ingredients),
+                    "ingredients": [
+                        {
+                            "name": ing["ingredient"],
+                            "odoo_code": ing["ingredient_code"],
+                            "quantity_lb": float(ing["quantity_lb"])
+                        }
+                        for ing in ingredients
+                    ]
+                }
+                
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
