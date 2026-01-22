@@ -29,7 +29,7 @@ class CommandRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.5.0",
+        "version": "0.5.1",
         "status": "online",
         "endpoints": {
             "GET /health": "Health check (real DB check)",
@@ -264,24 +264,30 @@ def get_bom(product: str, _: bool = Depends(verify_api_key)):
     """
     Get the Bill of Materials (recipe) for a batch product.
     Accepts product name or Odoo code.
+    Returns suggestions if no exact match found.
     """
     try:
         with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Find the product
+                batch = None
+                
+                # Try exact odoo_code match
                 if product.isdigit():
                     cur.execute(
                         "SELECT id, name, odoo_code, default_batch_lb FROM products WHERE odoo_code = %s",
                         (product,)
                     )
-                else:
+                    batch = cur.fetchone()
+                
+                # Try exact name match
+                if not batch:
                     cur.execute(
                         "SELECT id, name, odoo_code, default_batch_lb FROM products WHERE LOWER(name) = LOWER(%s)",
                         (product,)
                     )
-                batch = cur.fetchone()
+                    batch = cur.fetchone()
                 
-                # Fallback to fuzzy search
+                # Try fuzzy search - single match
                 if not batch:
                     cur.execute(
                         """
@@ -289,19 +295,80 @@ def get_bom(product: str, _: bool = Depends(verify_api_key)):
                         FROM products 
                         WHERE name ILIKE %s AND name ILIKE 'Batch%%'
                         ORDER BY LENGTH(name) ASC
-                        LIMIT 1
+                        LIMIT 5
                         """,
                         (f"%{product}%",)
                     )
-                    batch = cur.fetchone()
+                    matches = cur.fetchall()
+                    
+                    if len(matches) == 1:
+                        batch = matches[0]
+                    elif len(matches) > 1:
+                        # Multiple matches - return suggestions
+                        return JSONResponse(
+                            status_code=300,
+                            content={
+                                "error": "Multiple products match your query",
+                                "query": product,
+                                "message": "Please specify using one of these Odoo codes or exact names:",
+                                "suggestions": [
+                                    {"name": m["name"], "odoo_code": m["odoo_code"]}
+                                    for m in matches
+                                ]
+                            }
+                        )
                 
+                # Still no match - try broader search for suggestions
                 if not batch:
-                    return JSONResponse(
-                        status_code=404,
-                        content={"error": f"Batch product not found: {product}"}
-                    )
+                    # Extract keywords (handle "batch nine", "granola 9", "#9", etc.)
+                    search_terms = []
+                    for word in product.lower().replace('#', '').split():
+                        if word not in ('batch', 'the', 'a', 'an', 'in', 'for'):
+                            # Convert number words to digits
+                            number_map = {'one': '1', 'two': '2', 'three': '3', 'four': '4', 
+                                         'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 
+                                         'nine': '9', 'ten': '10'}
+                            search_terms.append(number_map.get(word, word))
+                    
+                    # Search for any batch products matching keywords
+                    suggestions = []
+                    if search_terms:
+                        # Build search pattern
+                        patterns = [f"%{term}%" for term in search_terms]
+                        query = """
+                            SELECT DISTINCT name, odoo_code 
+                            FROM products 
+                            WHERE name ILIKE 'Batch%%' AND (
+                        """
+                        query += " OR ".join(["name ILIKE %s"] * len(patterns))
+                        query += ") ORDER BY name LIMIT 5"
+                        
+                        cur.execute(query, patterns)
+                        suggestions = cur.fetchall()
+                    
+                    if suggestions:
+                        return JSONResponse(
+                            status_code=300,
+                            content={
+                                "error": "No exact match found",
+                                "query": product,
+                                "message": "Did you mean one of these?",
+                                "suggestions": [
+                                    {"name": s["name"], "odoo_code": s["odoo_code"]}
+                                    for s in suggestions
+                                ]
+                            }
+                        )
+                    else:
+                        return JSONResponse(
+                            status_code=404,
+                            content={
+                                "error": f"No batch products found matching: {product}",
+                                "suggestion": "Try /products/search?q=... to find the product, or use the Odoo code directly."
+                            }
+                        )
                 
-                # Get BOM lines
+                # Found a batch - get BOM lines
                 cur.execute(
                     """
                     SELECT 
