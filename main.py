@@ -29,7 +29,7 @@ class CommandRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.5.1",
+        "version": "0.5.2",
         "status": "online",
         "endpoints": {
             "GET /health": "Health check (real DB check)",
@@ -304,19 +304,16 @@ def get_bom(product: str, _: bool = Depends(verify_api_key)):
                     if len(matches) == 1:
                         batch = matches[0]
                     elif len(matches) > 1:
-                        # Multiple matches - return suggestions
-                        return JSONResponse(
-                            status_code=300,
-                            content={
-                                "error": "Multiple products match your query",
-                                "query": product,
-                                "message": "Please specify using one of these Odoo codes or exact names:",
-                                "suggestions": [
-                                    {"name": m["name"], "odoo_code": m["odoo_code"]}
-                                    for m in matches
-                                ]
-                            }
-                        )
+                        # Multiple matches - return suggestions (200 so GPT can read it)
+                        return {
+                            "status": "multiple_matches",
+                            "query": product,
+                            "message": "Multiple products match. Please specify using one of these Odoo codes:",
+                            "suggestions": [
+                                {"name": m["name"], "odoo_code": m["odoo_code"]}
+                                for m in matches
+                            ]
+                        }
                 
                 # Still no match - try broader search for suggestions
                 if not batch:
@@ -347,18 +344,15 @@ def get_bom(product: str, _: bool = Depends(verify_api_key)):
                         suggestions = cur.fetchall()
                     
                     if suggestions:
-                        return JSONResponse(
-                            status_code=300,
-                            content={
-                                "error": "No exact match found",
-                                "query": product,
-                                "message": "Did you mean one of these?",
-                                "suggestions": [
-                                    {"name": s["name"], "odoo_code": s["odoo_code"]}
-                                    for s in suggestions
-                                ]
-                            }
-                        )
+                        return {
+                            "status": "suggestions",
+                            "query": product,
+                            "message": "No exact match found. Did you mean one of these?",
+                            "suggestions": [
+                                {"name": s["name"], "odoo_code": s["odoo_code"]}
+                                for s in suggestions
+                            ]
+                        }
                     else:
                         return JSONResponse(
                             status_code=404,
