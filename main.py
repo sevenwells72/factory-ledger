@@ -280,12 +280,12 @@ def generate_packing_slip_html(product_name, odoo_code, quantity_lb, customer_na
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.9.0",
+        "version": "0.9.1",
         "status": "online",
         "endpoints": {
             "GET /health": "Health check",
             "GET /inventory/{item_name}": "Get current inventory",
-            "GET /products/search": "Search products",
+            "GET /products/search": "Search products (supports ?limit=)",
             "GET /transactions/history": "Transaction history",
             "GET /bom/{product}": "Get BOM/recipe",
             "POST /command/preview": "Preview command",
@@ -334,7 +334,7 @@ def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
 
 
 @app.get("/products/search")
-def search_products(q: str, _: bool = Depends(verify_api_key)):
+def search_products(q: str, limit: int = Query(default=20, ge=1, le=100), _: bool = Depends(verify_api_key)):
     if not q or len(q.strip()) < 2:
         return JSONResponse(status_code=400, content={"error": "Query must be at least 2 characters"})
     query = q.strip()
@@ -342,11 +342,19 @@ def search_products(q: str, _: bool = Depends(verify_api_key)):
         with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 if query.isdigit():
-                    cur.execute("SELECT name, odoo_code, type FROM products WHERE odoo_code = %s LIMIT 5", (query,))
+                    cur.execute("SELECT name, odoo_code, type FROM products WHERE odoo_code = %s LIMIT %s", (query, limit))
                     results = cur.fetchall()
                     if results:
                         return {"query": query, "matches": results}
-                cur.execute("SELECT name, odoo_code, type FROM products WHERE name ILIKE %s ORDER BY CASE WHEN LOWER(name) = LOWER(%s) THEN 0 ELSE 1 END, LENGTH(name) ASC LIMIT 5", (f"%{query}%", query))
+                cur.execute("""
+                    SELECT name, odoo_code, type 
+                    FROM products 
+                    WHERE name ILIKE %s 
+                    ORDER BY 
+                        CASE WHEN LOWER(name) = LOWER(%s) THEN 0 ELSE 1 END,
+                        LENGTH(name) ASC 
+                    LIMIT %s
+                """, (f"%{query}%", query, limit))
                 results = cur.fetchall()
         return {"query": query, "matches": results}
     except Exception as e:
