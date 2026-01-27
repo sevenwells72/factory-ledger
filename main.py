@@ -1384,33 +1384,73 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
 
 @app.get("/trace/ingredient/{lot_code}")
 def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
+    """
+    Trace which batches used a given ingredient lot.
+    Returns ALL products that have this lot code (lot codes aren't globally unique).
+    """
     try:
         with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT l.id, l.lot_code, p.name as product_name, p.odoo_code FROM lots l JOIN products p ON p.id = l.product_id WHERE l.lot_code = %s", (lot_code,))
-                lot_info = cur.fetchone()
-                if not lot_info:
-                    return JSONResponse(status_code=404, content={"error": f"Lot {lot_code} not found"})
+                # Find ALL lots with this lot_code (could be multiple products)
                 cur.execute("""
-                    SELECT DISTINCT t.id as transaction_id, t.timestamp, t.type,
-                           output_product.name as batch_name, output_product.odoo_code as batch_odoo_code,
-                           output_lot.lot_code as batch_lot, output_tl.quantity_lb as batch_produced_lb,
-                           ilc.quantity_lb as ingredient_used_lb
-                    FROM ingredient_lot_consumption ilc
-                    JOIN transactions t ON t.id = ilc.transaction_id
-                    JOIN transaction_lines output_tl ON output_tl.transaction_id = t.id AND output_tl.quantity_lb > 0
-                    JOIN lots output_lot ON output_lot.id = output_tl.lot_id
-                    JOIN products output_product ON output_product.id = output_tl.product_id
-                    WHERE ilc.ingredient_lot_id = %s
-                    ORDER BY t.timestamp DESC
-                """, (lot_info["id"],))
-                batches = cur.fetchall()
+                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name, p.odoo_code
+                    FROM lots l
+                    JOIN products p ON p.id = l.product_id
+                    WHERE l.lot_code = %s
+                """, (lot_code,))
+                lots = cur.fetchall()
+                
+                if not lots:
+                    return JSONResponse(status_code=404, content={"error": f"No lots found with code '{lot_code}'"})
+                
+                products_traced = []
+                total_batch_count = 0
+                
+                for lot in lots:
+                    lot_id = lot["id"]
+                    
+                    # Find all batches that consumed from this specific lot
+                    cur.execute("""
+                        SELECT ilc.quantity_lb, ilc.transaction_id, t.timestamp,
+                               output_lot.lot_code as batch_lot,
+                               output_product.name as batch_name,
+                               output_product.odoo_code as batch_odoo_code
+                        FROM ingredient_lot_consumption ilc
+                        JOIN transactions t ON t.id = ilc.transaction_id
+                        JOIN transaction_lines output_tl ON output_tl.transaction_id = t.id AND output_tl.quantity_lb > 0
+                        JOIN lots output_lot ON output_lot.id = output_tl.lot_id
+                        JOIN products output_product ON output_product.id = output_tl.product_id
+                        WHERE ilc.ingredient_lot_id = %s
+                        ORDER BY t.timestamp DESC
+                    """, (lot_id,))
+                    consumption = cur.fetchall()
+                    
+                    batches_used = []
+                    for c in consumption:
+                        date_str, time_str = format_timestamp(c["timestamp"])
+                        batches_used.append({
+                            "batch_lot": c["batch_lot"],
+                            "batch_product": c["batch_name"],
+                            "batch_odoo_code": c["batch_odoo_code"],
+                            "quantity_lb": float(c["quantity_lb"]),
+                            "transaction_id": c["transaction_id"],
+                            "timestamp": f"{date_str} {time_str}"
+                        })
+                    
+                    products_traced.append({
+                        "ingredient": lot["product_name"],
+                        "odoo_code": lot["odoo_code"],
+                        "lot_id": lot_id,
+                        "used_in_batches": batches_used,
+                        "batch_count": len(batches_used)
+                    })
+                    total_batch_count += len(batches_used)
+                
                 return {
-                    "ingredient_lot": lot_code,
-                    "ingredient": lot_info["product_name"],
-                    "odoo_code": lot_info["odoo_code"],
-                    "used_in_batches": [{"batch_product": b["batch_name"], "batch_odoo_code": b["batch_odoo_code"], "batch_lot": b["batch_lot"], "produced_lb": float(b["batch_produced_lb"]), "ingredient_used_lb": float(b["ingredient_used_lb"]), "transaction_type": b["type"], "produced_at": f"{format_timestamp(b['timestamp'])[0]} {format_timestamp(b['timestamp'])[1]}"} for b in batches],
-                    "batch_count": len(batches)
+                    "lot_code": lot_code,
+                    "products_with_lot": len(products_traced),
+                    "products": products_traced,
+                    "total_batch_count": total_batch_count
                 }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
