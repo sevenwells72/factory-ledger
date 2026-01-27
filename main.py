@@ -1383,7 +1383,7 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
 
 
 @app.get("/trace/ingredient/{lot_code}")
-def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
+def trace_ingredient(lot_code: str, used_only: bool = Query(default=False), _: bool = Depends(verify_api_key)):
     """
     Trace which batches used a given ingredient lot.
     Returns ALL products that have this lot code (lot codes aren't globally unique).
@@ -1445,8 +1445,12 @@ def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
                         "batch_count": len(batches_used)
                     })
                     total_batch_count += len(batches_used)
+# Filter to only products that were actually used in batches
+                if used_only:
+                    products_traced = [p for p in products_traced if p["batch_count"] > 0]
                 
-                return {
+                return {                
+              
                     "lot_code": lot_code,
                     "products_with_lot": len(products_traced),
                     "products": products_traced,
