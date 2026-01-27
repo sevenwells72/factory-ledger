@@ -136,11 +136,15 @@ class IngredientAllocation(BaseModel):
     allocated_lots: List[IngredientLotAllocation]
     sufficient: bool
 
+class IngredientLotOverride(BaseModel):
+    lot_code: str
+    use_lb: float
+
 class MakeRequest(BaseModel):
     product_name: str
     batches: float
     lot_code: str
-    ingredient_lot_overrides: Optional[dict] = None
+    ingredient_lot_overrides: Optional[dict[str, List[IngredientLotOverride]]] = None  # keyed by odoo_code
 
 class MakePreviewResponse(BaseModel):
     batch_product_id: int
@@ -237,6 +241,74 @@ def allocate_from_lots(available_lots: list, required_lb: float) -> tuple[list, 
         remaining -= use_lb
     is_sufficient = remaining <= 0.001
     return allocations, is_sufficient
+
+
+def allocate_with_overrides(cur, product_id: int, odoo_code: str, required_lb: float, overrides: Optional[List] = None) -> tuple[list, bool, str]:
+    """
+    Allocate lots for an ingredient, using overrides first then FIFO for remainder.
+    Returns (allocations, is_sufficient, error_message)
+    """
+    allocations = []
+    remaining = required_lb
+    used_lot_ids = set()
+    error_msg = None
+    
+    # Step 1: Apply overrides first
+    if overrides:
+        for override in overrides:
+            lot_code = override.lot_code if hasattr(override, 'lot_code') else override['lot_code']
+            use_lb = override.use_lb if hasattr(override, 'use_lb') else override['use_lb']
+            
+            # Find this lot
+            cur.execute("""
+                SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available_lb
+                FROM lots l
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE l.product_id = %s AND l.lot_code = %s
+                GROUP BY l.id, l.lot_code
+            """, (product_id, lot_code))
+            lot = cur.fetchone()
+            
+            if not lot:
+                error_msg = f"Override lot '{lot_code}' not found for product {odoo_code}"
+                continue
+            
+            available = float(lot["available_lb"])
+            if available < use_lb:
+                error_msg = f"Override lot '{lot_code}' has {available:.0f} lb, requested {use_lb:.0f} lb"
+                use_lb = min(available, use_lb)  # Use what's available
+            
+            if use_lb > 0:
+                allocations.append({
+                    "lot_code": lot["lot_code"],
+                    "lot_id": lot["lot_id"],
+                    "available_lb": available,
+                    "use_lb": round(use_lb, 2),
+                    "override": True
+                })
+                used_lot_ids.add(lot["lot_id"])
+                remaining -= use_lb
+    
+    # Step 2: Fill remainder with FIFO (excluding already-used lots)
+    if remaining > 0.001:
+        available_lots = get_available_lots_fifo(cur, product_id)
+        for lot in available_lots:
+            if lot["lot_id"] in used_lot_ids:
+                continue
+            if remaining <= 0:
+                break
+            use_lb = min(float(lot["available_lb"]), remaining)
+            allocations.append({
+                "lot_code": lot["lot_code"],
+                "lot_id": lot["lot_id"],
+                "available_lb": float(lot["available_lb"]),
+                "use_lb": round(use_lb, 2),
+                "override": False
+            })
+            remaining -= use_lb
+    
+    is_sufficient = remaining <= 0.001
+    return allocations, is_sufficient, error_msg
 
 
 # --- Receipt/Slip Generators ---
@@ -386,7 +458,7 @@ def generate_packing_slip_html(product_name, odoo_code, quantity_lb, customer_na
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "status": "online",
         "timezone": f"{PLANT_TIMEZONE} ({TIMEZONE_LABEL})",
         "endpoints": {
@@ -825,21 +897,41 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     raise HTTPException(status_code=400, detail=f"No BOM/recipe found for '{batch['name']}'")
                 ingredients = []
                 all_sufficient = True
+                override_warnings = []
+                
                 for line in bom_lines:
                     required_lb = float(line["quantity_lb"]) * req.batches
                     product_id = line["ingredient_product_id"]
-                    available_lots = get_available_lots_fifo(cur, product_id)
-                    allocations, sufficient = allocate_from_lots(available_lots, required_lb)
+                    odoo_code = line["ingredient_odoo_code"]
+                    
+                    # Check for overrides for this ingredient
+                    overrides = None
+                    if req.ingredient_lot_overrides and odoo_code in req.ingredient_lot_overrides:
+                        overrides = req.ingredient_lot_overrides[odoo_code]
+                    
+                    allocations, sufficient, error_msg = allocate_with_overrides(
+                        cur, product_id, odoo_code, required_lb, overrides
+                    )
+                    
+                    if error_msg:
+                        override_warnings.append(error_msg)
                     if not sufficient:
                         all_sufficient = False
+                    
                     ingredients.append(IngredientAllocation(
                         product_name=line["ingredient_name"],
                         product_id=product_id,
-                        odoo_code=line["ingredient_odoo_code"],
+                        odoo_code=odoo_code,
                         required_lb=round(required_lb, 2),
-                        allocated_lots=[IngredientLotAllocation(**a) for a in allocations],
+                        allocated_lots=[IngredientLotAllocation(
+                            lot_code=a["lot_code"],
+                            lot_id=a["lot_id"],
+                            available_lb=a["available_lb"],
+                            use_lb=a["use_lb"]
+                        ) for a in allocations],
                         sufficient=sufficient
                     ))
+                
                 ing_lines = []
                 for ing in ingredients:
                     status = "✓" if ing.sufficient else "⚠️ INSUFFICIENT"
@@ -847,7 +939,12 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     if not lot_details:
                         lot_details = "NO INVENTORY"
                     ing_lines.append(f"  • {ing.product_name}: {ing.required_lb} lb {status}\n    Lots: {lot_details}")
+                
                 status_line = "✓ All ingredients available" if all_sufficient else "⚠️ INSUFFICIENT INVENTORY - cannot proceed"
+                warning_line = ""
+                if override_warnings:
+                    warning_line = "\n⚠️ Override warnings:\n  " + "\n  ".join(override_warnings) + "\n"
+                
                 preview_message = f"""�icing PRODUCTION PREVIEW
 ────────────────────────────────
 Product:      {batch['name']} ({batch['odoo_code']})
@@ -856,7 +953,7 @@ Output Lot:   {req.lot_code}
 ────────────────────────────────
 INGREDIENTS TO CONSUME:
 {chr(10).join(ing_lines)}
-────────────────────────────────
+────────────────────────────────{warning_line}
 {status_line}
 ────────────────────────────────
 ✓ Say "confirm" to proceed"""
@@ -905,31 +1002,57 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
         bom_lines = cur.fetchall()
         if not bom_lines:
             raise HTTPException(status_code=400, detail=f"No BOM/recipe found for '{batch['name']}'")
+        
+        # Verify all ingredients have sufficient inventory (with overrides)
         for line in bom_lines:
             required_lb = float(line["quantity_lb"]) * req.batches
-            available_lots = get_available_lots_fifo(cur, line["ingredient_product_id"])
-            total_available = sum(float(lot["available_lb"]) for lot in available_lots)
-            if total_available < required_lb:
-                raise HTTPException(status_code=400, detail=f"Insufficient {line['ingredient_name']}: need {required_lb:,.0f} lb, have {total_available:,.0f} lb")
+            odoo_code = line["ingredient_odoo_code"]
+            overrides = None
+            if req.ingredient_lot_overrides and odoo_code in req.ingredient_lot_overrides:
+                overrides = req.ingredient_lot_overrides[odoo_code]
+            allocations, sufficient, _ = allocate_with_overrides(
+                cur, line["ingredient_product_id"], odoo_code, required_lb, overrides
+            )
+            if not sufficient:
+                total_allocated = sum(a["use_lb"] for a in allocations)
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Insufficient {line['ingredient_name']}: need {required_lb:,.0f} lb, can allocate {total_allocated:,.0f} lb"
+                )
+        
         cur.execute("INSERT INTO transactions (type, notes) VALUES ('make', %s) RETURNING id", (f"Make {req.batches} batch(es) {batch['name']} lot {req.lot_code}",))
         tx_id = cur.fetchone()["id"]
         output_lot_id = get_or_create_lot(cur, batch["id"], req.lot_code)
+        
         consumed = []
         for line in bom_lines:
             required_lb = float(line["quantity_lb"]) * req.batches
             product_id = line["ingredient_product_id"]
-            remaining = required_lb
-            available_lots = get_available_lots_fifo(cur, product_id)
+            odoo_code = line["ingredient_odoo_code"]
+            
+            # Get overrides for this ingredient
+            overrides = None
+            if req.ingredient_lot_overrides and odoo_code in req.ingredient_lot_overrides:
+                overrides = req.ingredient_lot_overrides[odoo_code]
+            
+            # Allocate with overrides
+            allocations, _, _ = allocate_with_overrides(cur, product_id, odoo_code, required_lb, overrides)
+            
             lots_used = []
-            for lot in available_lots:
-                if remaining <= 0:
-                    break
-                use_lb = min(float(lot["available_lb"]), remaining)
-                cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, product_id, lot["lot_id"], -use_lb))
-                cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, product_id, lot["lot_id"], use_lb))
-                lots_used.append({"lot": lot["lot_code"], "qty_lb": round(use_lb, 2)})
-                remaining -= use_lb
-            consumed.append({"ingredient": line["ingredient_name"], "odoo_code": line["ingredient_odoo_code"], "total_lb": round(required_lb, 2), "lots": lots_used})
+            for alloc in allocations:
+                use_lb = alloc["use_lb"]
+                lot_id = alloc["lot_id"]
+                lot_code = alloc["lot_code"]
+                
+                # Deduct from this lot
+                cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, product_id, lot_id, -use_lb))
+                # Record traceability
+                cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, product_id, lot_id, use_lb))
+                
+                lots_used.append({"lot": lot_code, "qty_lb": round(use_lb, 2)})
+            
+            consumed.append({"ingredient": line["ingredient_name"], "odoo_code": odoo_code, "total_lb": round(required_lb, 2), "lots": lots_used})
+        
         cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, batch["id"], output_lot_id, total_yield_lb))
         conn.commit()
         cur.close()
