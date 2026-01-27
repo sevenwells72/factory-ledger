@@ -221,7 +221,7 @@ def get_available_lots_fifo(cur, product_id: int) -> list:
         WHERE l.product_id = %s
         GROUP BY l.id, l.lot_code
         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-        ORDER BY l.lot_code ASC
+        ORDER BY l.id ASC
     """, (product_id,))
     return cur.fetchall()
 
