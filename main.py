@@ -774,7 +774,7 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
         if not product:
             raise HTTPException(status_code=404, detail=f"Product not found: {req.product_name}")
         shipper_code = req.shipper_code_override.upper()[:5] if req.shipper_code_override else generate_shipper_code(req.shipper_name)
-        lot_code = generate_lot_code(shipper_code)
+        lot_code = generate_lot_code_with_sequence(cur, product["id"], shipper_code)
         total_lb = req.cases * req.case_size_lb
         timestamp = datetime.now()
         cur.execute("SELECT id FROM lots WHERE lot_code = %s AND product_id = %s", (lot_code, product["id"]))
