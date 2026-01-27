@@ -189,9 +189,44 @@ def generate_shipper_code(shipper_name: str) -> str:
     return code[:5]
 
 def generate_lot_code(shipper_code: str, receive_date: date = None) -> str:
+    """Generate base lot code without sequence number (for display in preview)"""
     if receive_date is None:
         receive_date = date.today()
     return f"{receive_date.strftime('%y-%m-%d')}-{shipper_code}"
+
+def generate_lot_code_with_sequence(cur, product_id: int, shipper_code: str, receive_date: date = None) -> str:
+    """Generate lot code with sequence number to prevent collisions"""
+    if receive_date is None:
+        receive_date = date.today()
+    
+    base_code = f"{receive_date.strftime('%y-%m-%d')}-{shipper_code}"
+    
+    # Find existing lots with this base code pattern for this product
+    cur.execute("""
+        SELECT lot_code FROM lots 
+        WHERE product_id = %s AND lot_code LIKE %s
+        ORDER BY lot_code DESC
+    """, (product_id, f"{base_code}%"))
+    existing = cur.fetchall()
+    
+    if not existing:
+        return f"{base_code}-001"
+    
+    # Find highest sequence number
+    max_seq = 0
+    for row in existing:
+        code = row["lot_code"]
+        # Check if it has a sequence suffix
+        if code == base_code:
+            max_seq = max(max_seq, 0)
+        elif code.startswith(base_code + "-"):
+            try:
+                seq = int(code.split("-")[-1])
+                max_seq = max(max_seq, seq)
+            except ValueError:
+                pass
+    
+    return f"{base_code}-{max_seq + 1:03d}"
 
 def localize_timestamp(dt: datetime) -> datetime:
     if dt is None:
