@@ -190,11 +190,12 @@ def localize_timestamp(dt: datetime) -> datetime:
     if dt is None:
         return None
     if dt.tzinfo is None:
-        return dt
+        # Assume naive datetime from database is UTC
+        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
     return dt.astimezone(PLANT_TIMEZONE)
 
 def format_timestamp(dt: datetime) -> tuple[str, str]:
-    local_dt = localize_timestamp(dt) if dt.tzinfo else dt
+    local_dt = localize_timestamp(dt)
     date_str = local_dt.strftime('%B %d, %Y')
     time_str = f"{local_dt.strftime('%I:%M %p')} {TIMEZONE_LABEL}"
     return date_str, time_str
@@ -202,7 +203,7 @@ def format_timestamp(dt: datetime) -> tuple[str, str]:
 def format_history_timestamp(ts):
     if ts is None:
         return None
-    local_ts = localize_timestamp(ts) if ts.tzinfo else ts
+    local_ts = localize_timestamp(ts)
     return {
         "iso": local_ts.isoformat(),
         "display": f"{local_ts.strftime('%b %d, %Y %I:%M %p')} {TIMEZONE_LABEL}"
