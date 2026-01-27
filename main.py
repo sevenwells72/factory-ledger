@@ -14,7 +14,6 @@ app = FastAPI(title="Factory Ledger System")
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
 
-# Timezone configuration
 PLANT_TIMEZONE = ZoneInfo("America/New_York")
 TIMEZONE_LABEL = "ET"
 
@@ -64,6 +63,12 @@ class ReceiveCommitResponse(BaseModel):
     receipt_html: str
     message: str
 
+class ShipLotAllocation(BaseModel):
+    lot_code: str
+    lot_id: int
+    available_lb: float
+    use_lb: float
+
 class ShipRequest(BaseModel):
     product_name: str
     quantity_lb: float
@@ -78,17 +83,17 @@ class ShipPreviewResponse(BaseModel):
     quantity_lb: float
     customer_name: str
     order_reference: str
-    lot_code: str
-    lot_id: int
-    available_lb: float
-    lot_selection: str
+    allocated_lots: List[ShipLotAllocation]
+    total_allocated_lb: float
+    sufficient: bool
+    multi_lot: bool
     preview_message: str
 
 class ShipCommitResponse(BaseModel):
     success: bool
     transaction_id: int
-    lot_code: str
-    quantity_lb: float
+    lots_shipped: List[dict]
+    total_quantity_lb: float
     slip_text: str
     slip_html: str
     message: str
@@ -120,8 +125,6 @@ class AdjustCommitResponse(BaseModel):
     reason: str
     message: str
 
-# --- Phase 1B: Make Models ---
-
 class IngredientLotAllocation(BaseModel):
     lot_code: str
     lot_id: int
@@ -144,7 +147,7 @@ class MakeRequest(BaseModel):
     product_name: str
     batches: float
     lot_code: str
-    ingredient_lot_overrides: Optional[dict[str, List[IngredientLotOverride]]] = None  # keyed by odoo_code
+    ingredient_lot_overrides: Optional[dict[str, List[IngredientLotOverride]]] = None
 
 class MakePreviewResponse(BaseModel):
     batch_product_id: int
@@ -194,7 +197,6 @@ def localize_timestamp(dt: datetime) -> datetime:
     if dt is None:
         return None
     if dt.tzinfo is None:
-        # Assume naive datetime from database is UTC
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
     return dt.astimezone(PLANT_TIMEZONE)
 
@@ -244,22 +246,16 @@ def allocate_from_lots(available_lots: list, required_lb: float) -> tuple[list, 
 
 
 def allocate_with_overrides(cur, product_id: int, odoo_code: str, required_lb: float, overrides: Optional[List] = None) -> tuple[list, bool, str]:
-    """
-    Allocate lots for an ingredient, using overrides first then FIFO for remainder.
-    Returns (allocations, is_sufficient, error_message)
-    """
     allocations = []
     remaining = required_lb
     used_lot_ids = set()
     error_msg = None
     
-    # Step 1: Apply overrides first
     if overrides:
         for override in overrides:
             lot_code = override.lot_code if hasattr(override, 'lot_code') else override['lot_code']
             use_lb = override.use_lb if hasattr(override, 'use_lb') else override['use_lb']
             
-            # Find this lot
             cur.execute("""
                 SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available_lb
                 FROM lots l
@@ -276,7 +272,7 @@ def allocate_with_overrides(cur, product_id: int, odoo_code: str, required_lb: f
             available = float(lot["available_lb"])
             if available < use_lb:
                 error_msg = f"Override lot '{lot_code}' has {available:.0f} lb, requested {use_lb:.0f} lb"
-                use_lb = min(available, use_lb)  # Use what's available
+                use_lb = min(available, use_lb)
             
             if use_lb > 0:
                 allocations.append({
@@ -289,7 +285,6 @@ def allocate_with_overrides(cur, product_id: int, odoo_code: str, required_lb: f
                 used_lot_ids.add(lot["lot_id"])
                 remaining -= use_lb
     
-    # Step 2: Fill remainder with FIFO (excluding already-used lots)
     if remaining > 0.001:
         available_lots = get_available_lots_fifo(cur, product_id)
         for lot in available_lots:
@@ -451,6 +446,105 @@ def generate_packing_slip_html(product_name, odoo_code, quantity_lb, customer_na
 </body>
 </html>"""
 
+def generate_packing_slip_text_multi(product_name, odoo_code, lots_shipped, customer_name, order_reference, timestamp):
+    date_str, time_str = format_timestamp(timestamp)
+    total_lb = sum(l["quantity_lb"] for l in lots_shipped)
+    
+    if len(lots_shipped) == 1:
+        lot_section = f"║  Lot Code:    {lots_shipped[0]['lot_code']:<32}║"
+    else:
+        lot_lines = ["║  Lot Codes:                                      ║"]
+        for lot in lots_shipped:
+            line = f"║    • {lot['lot_code']}: {lot['quantity_lb']:,.0f} lb"
+            line = line + " " * (51 - len(line)) + "║"
+            lot_lines.append(line)
+        lot_section = "\n".join(lot_lines)
+    
+    return f"""
+╔══════════════════════════════════════════════════╗
+║         CNS CONFECTIONERY PRODUCTS               ║
+║                PACKING SLIP                      ║
+╠══════════════════════════════════════════════════╣
+║  Date:        {date_str:<32}║
+║  Time:        {time_str:<32}║
+╠══════════════════════════════════════════════════╣
+║  SHIP TO:     {customer_name:<32}║
+║  Order Ref:   {order_reference:<32}║
+╠══════════════════════════════════════════════════╣
+║  Product:     {product_name:<32}║
+║  Odoo Code:   {odoo_code:<32}║
+║  Quantity:    {f'{total_lb:,.0f} lb':<32}║
+{lot_section}
+╠══════════════════════════════════════════════════╣
+║  ☐ Verify quantity                               ║
+║  ☐ Check lot labels match                        ║
+║  ☐ Load and secure                               ║
+╚══════════════════════════════════════════════════╝
+""".strip()
+
+
+def generate_packing_slip_html_multi(product_name, odoo_code, lots_shipped, customer_name, order_reference, timestamp):
+    date_str, time_str = format_timestamp(timestamp)
+    total_lb = sum(l["quantity_lb"] for l in lots_shipped)
+    
+    if len(lots_shipped) == 1:
+        lot_html = f'<div class="lot-code"><div>LOT CODE</div><span>{lots_shipped[0]["lot_code"]}</span></div>'
+    else:
+        lot_items = "".join([
+            f'<div class="lot-item"><span class="lot-name">{lot["lot_code"]}</span><span class="lot-qty">{lot["quantity_lb"]:,.0f} lb</span></div>' 
+            for lot in lots_shipped
+        ])
+        lot_html = f'<div class="lot-codes"><div class="lot-header">LOT CODES</div>{lot_items}</div>'
+    
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; max-width: 400px; margin: 20px auto; }}
+        .slip {{ border: 2px solid #333; padding: 20px; }}
+        .header {{ text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }}
+        .header h1 {{ margin: 0; font-size: 16px; }}
+        .header h2 {{ margin: 5px 0 0 0; font-size: 14px; font-weight: normal; }}
+        .customer {{ background: #f0f0f0; padding: 15px; margin: 15px 0; border: 1px solid #333; }}
+        .customer .name {{ font-size: 20px; font-weight: bold; }}
+        .customer .ref {{ font-size: 14px; color: #666; margin-top: 5px; }}
+        .details {{ margin: 15px 0; }}
+        .row {{ display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #ccc; }}
+        .label {{ font-weight: bold; }}
+        .lot-code {{ background: #fff3cd; padding: 10px; text-align: center; margin: 15px 0; border: 1px solid #333; }}
+        .lot-code span {{ font-size: 20px; font-weight: bold; font-family: monospace; }}
+        .lot-codes {{ background: #fff3cd; padding: 10px; margin: 15px 0; border: 1px solid #333; }}
+        .lot-codes .lot-header {{ text-align: center; font-weight: bold; margin-bottom: 10px; }}
+        .lot-codes .lot-item {{ display: flex; justify-content: space-between; padding: 5px 10px; font-family: monospace; }}
+        .lot-codes .lot-name {{ font-weight: bold; }}
+        .checklist {{ margin-top: 20px; padding-top: 15px; border-top: 2px solid #333; }}
+        .checklist div {{ margin: 8px 0; }}
+        .checkbox {{ display: inline-block; width: 16px; height: 16px; border: 1px solid #333; margin-right: 10px; }}
+    </style>
+</head>
+<body>
+    <div class="slip">
+        <div class="header"><h1>CNS CONFECTIONERY PRODUCTS</h1><h2>PACKING SLIP</h2></div>
+        <div class="details">
+            <div class="row"><span class="label">Date:</span><span>{date_str}</span></div>
+            <div class="row"><span class="label">Time:</span><span>{time_str}</span></div>
+        </div>
+        <div class="customer"><div class="name">{customer_name}</div><div class="ref">Order: {order_reference}</div></div>
+        <div class="details">
+            <div class="row"><span class="label">Product:</span><span>{product_name}</span></div>
+            <div class="row"><span class="label">Odoo Code:</span><span>{odoo_code}</span></div>
+            <div class="row"><span class="label">Quantity:</span><span>{total_lb:,.0f} lb</span></div>
+        </div>
+        {lot_html}
+        <div class="checklist">
+            <div><span class="checkbox"></span>Verify quantity</div>
+            <div><span class="checkbox"></span>Check lot labels match</div>
+            <div><span class="checkbox"></span>Load and secure</div>
+        </div>
+    </div>
+</body>
+</html>"""
+
 
 # --- API Endpoints ---
 
@@ -458,7 +552,7 @@ def generate_packing_slip_html(product_name, odoo_code, quantity_lb, customer_na
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "status": "online",
         "timezone": f"{PLANT_TIMEZONE} ({TIMEZONE_LABEL})",
         "endpoints": {
@@ -469,8 +563,8 @@ def root():
             "GET /bom/{product}": "Get BOM/recipe",
             "POST /receive/preview": "Preview receive",
             "POST /receive/commit": "Commit receive",
-            "POST /ship/preview": "Preview ship",
-            "POST /ship/commit": "Commit ship",
+            "POST /ship/preview": "Preview ship (supports multi-lot)",
+            "POST /ship/commit": "Commit ship (supports multi-lot)",
             "POST /adjust/preview": "Preview adjustment",
             "POST /adjust/commit": "Commit adjustment",
             "POST /make/preview": "Preview production",
@@ -672,36 +766,117 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
         if conn: conn.close()
 
 
-# --- SHIP ENDPOINTS ---
+# --- SHIP ENDPOINTS (Multi-Lot) ---
 
 @app.post("/ship/preview", response_model=ShipPreviewResponse)
 def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
     try:
         with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, name, odoo_code FROM products WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) = LOWER(%s) LIMIT 5", (f"%{req.product_name}%", req.product_name))
+                cur.execute("""
+                    SELECT id, name, odoo_code FROM products 
+                    WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) = LOWER(%s) 
+                    LIMIT 5
+                """, (f"%{req.product_name}%", req.product_name))
                 products = cur.fetchall()
+                
                 if not products:
                     raise HTTPException(status_code=404, detail=f"Product not found: {req.product_name}")
                 if len(products) > 1:
-                    raise HTTPException(status_code=400, detail=f"Multiple products match '{req.product_name}'. Please be more specific:\n" + "\n".join([f"• {p['name']} ({p['odoo_code']})" for p in products]))
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Multiple products match '{req.product_name}'. Please be more specific:\n" + 
+                               "\n".join([f"• {p['name']} ({p['odoo_code']})" for p in products])
+                    )
                 product = products[0]
+                
                 lots_with_inventory = get_available_lots_fifo(cur, product["id"])
+                
                 if not lots_with_inventory:
                     raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
+                
                 if req.lot_code:
                     selected_lot = next((l for l in lots_with_inventory if l["lot_code"] == req.lot_code), None)
                     if not selected_lot:
-                        raise HTTPException(status_code=400, detail=f"Lot '{req.lot_code}' not found or has no inventory. Available lots:\n" + "\n".join([f"• {l['lot_code']} ({l['available_lb']:,.0f} lb)" for l in lots_with_inventory]))
-                    lot_selection = "manual"
+                        raise HTTPException(
+                            status_code=400, 
+                            detail=f"Lot '{req.lot_code}' not found or has no inventory. Available lots:\n" + 
+                                   "\n".join([f"• {l['lot_code']} ({l['available_lb']:,.0f} lb)" for l in lots_with_inventory])
+                        )
+                    
+                    if float(selected_lot["available_lb"]) < req.quantity_lb:
+                        raise HTTPException(
+                            status_code=400, 
+                            detail=f"Insufficient inventory in lot {selected_lot['lot_code']}. "
+                                   f"Requested: {req.quantity_lb:,.0f} lb, Available: {selected_lot['available_lb']:,.0f} lb.\n\n"
+                                   f"Remove lot specification to allow multi-lot shipping, or choose from:\n" + 
+                                   "\n".join([f"• {l['lot_code']} ({l['available_lb']:,.0f} lb)" for l in lots_with_inventory])
+                        )
+                    
+                    allocations = [ShipLotAllocation(
+                        lot_code=selected_lot["lot_code"],
+                        lot_id=selected_lot["lot_id"],
+                        available_lb=float(selected_lot["available_lb"]),
+                        use_lb=req.quantity_lb
+                    )]
+                    multi_lot = False
                 else:
-                    selected_lot = lots_with_inventory[0]
-                    lot_selection = "fifo"
-                if float(selected_lot["available_lb"]) < req.quantity_lb:
-                    raise HTTPException(status_code=400, detail=f"Insufficient inventory in lot {selected_lot['lot_code']}. Requested: {req.quantity_lb:,.0f} lb, Available: {selected_lot['available_lb']:,.0f} lb.\n\nAvailable lots:\n" + "\n".join([f"• {l['lot_code']} ({l['available_lb']:,.0f} lb)" for l in lots_with_inventory]))
-        lot_note = "(auto-selected, FIFO)" if lot_selection == "fifo" else "(specified)"
-        preview_message = f"📦 SHIP PREVIEW\n────────────────────────────────\nProduct:      {product['name']} ({product['odoo_code']})\nQuantity:     {req.quantity_lb:,.0f} lb\nCustomer:     {req.customer_name}\nOrder Ref:    {req.order_reference}\nLot:          {selected_lot['lot_code']} {lot_note}\nAvailable:    {selected_lot['available_lb']:,.0f} lb in this lot\n────────────────────────────────\n✓ Say \"confirm\" to proceed\n✎ Or specify a different lot"
-        return ShipPreviewResponse(product_id=product["id"], product_name=product["name"], odoo_code=product["odoo_code"], quantity_lb=req.quantity_lb, customer_name=req.customer_name, order_reference=req.order_reference, lot_code=selected_lot["lot_code"], lot_id=selected_lot["lot_id"], available_lb=float(selected_lot["available_lb"]), lot_selection=lot_selection, preview_message=preview_message)
+                    allocations = []
+                    remaining = req.quantity_lb
+                    
+                    for lot in lots_with_inventory:
+                        if remaining <= 0:
+                            break
+                        use_lb = min(float(lot["available_lb"]), remaining)
+                        allocations.append(ShipLotAllocation(
+                            lot_code=lot["lot_code"],
+                            lot_id=lot["lot_id"],
+                            available_lb=float(lot["available_lb"]),
+                            use_lb=round(use_lb, 2)
+                        ))
+                        remaining -= use_lb
+                    
+                    multi_lot = len(allocations) > 1
+                
+                total_allocated = sum(a.use_lb for a in allocations)
+                sufficient = total_allocated >= req.quantity_lb - 0.001
+                
+                if multi_lot:
+                    lot_lines = "\n".join([f"    • {a.lot_code}: {a.use_lb:,.0f} lb (of {a.available_lb:,.0f} lb)" for a in allocations])
+                    lot_section = f"Lots (FIFO):\n{lot_lines}"
+                else:
+                    a = allocations[0]
+                    lot_note = "(specified)" if req.lot_code else "(FIFO)"
+                    lot_section = f"Lot:          {a.lot_code} {lot_note}\nAvailable:    {a.available_lb:,.0f} lb in this lot"
+                
+                if sufficient:
+                    status = "✓ Say \"confirm\" to proceed"
+                else:
+                    status = f"⚠️ INSUFFICIENT: Need {req.quantity_lb:,.0f} lb, can only allocate {total_allocated:,.0f} lb"
+                
+                preview_message = f"""📦 SHIP PREVIEW
+────────────────────────────────
+Product:      {product['name']} ({product['odoo_code']})
+Quantity:     {req.quantity_lb:,.0f} lb
+Customer:     {req.customer_name}
+Order Ref:    {req.order_reference}
+{lot_section}
+────────────────────────────────
+{status}"""
+
+                return ShipPreviewResponse(
+                    product_id=product["id"],
+                    product_name=product["name"],
+                    odoo_code=product["odoo_code"],
+                    quantity_lb=req.quantity_lb,
+                    customer_name=req.customer_name,
+                    order_reference=req.order_reference,
+                    allocated_lots=allocations,
+                    total_allocated_lb=total_allocated,
+                    sufficient=sufficient,
+                    multi_lot=multi_lot,
+                    preview_message=preview_message
+                )
     except HTTPException:
         raise
     except Exception as e:
@@ -715,30 +890,103 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
         conn = psycopg2.connect(DATABASE_URL, connect_timeout=5)
         conn.autocommit = False
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT id, name, odoo_code FROM products WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) = LOWER(%s) LIMIT 1", (f"%{req.product_name}%", req.product_name))
+        
+        cur.execute("""
+            SELECT id, name, odoo_code FROM products 
+            WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) = LOWER(%s) 
+            LIMIT 1
+        """, (f"%{req.product_name}%", req.product_name))
         product = cur.fetchone()
+        
         if not product:
             raise HTTPException(status_code=404, detail=f"Product not found: {req.product_name}")
+        
         lots_with_inventory = get_available_lots_fifo(cur, product["id"])
+        
         if not lots_with_inventory:
             raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
+        
         if req.lot_code:
             selected_lot = next((l for l in lots_with_inventory if l["lot_code"] == req.lot_code), None)
             if not selected_lot:
                 raise HTTPException(status_code=400, detail=f"Lot '{req.lot_code}' not found or has no inventory")
+            if float(selected_lot["available_lb"]) < req.quantity_lb:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Insufficient inventory in lot {selected_lot['lot_code']}. "
+                           f"Requested: {req.quantity_lb:,.0f} lb, Available: {selected_lot['available_lb']:,.0f} lb"
+                )
+            allocations = [{
+                "lot_code": selected_lot["lot_code"],
+                "lot_id": selected_lot["lot_id"],
+                "use_lb": req.quantity_lb
+            }]
         else:
-            selected_lot = lots_with_inventory[0]
-        if float(selected_lot["available_lb"]) < req.quantity_lb:
-            raise HTTPException(status_code=400, detail=f"Insufficient inventory in lot {selected_lot['lot_code']}. Requested: {req.quantity_lb:,.0f} lb, Available: {selected_lot['available_lb']:,.0f} lb")
+            allocations = []
+            remaining = req.quantity_lb
+            
+            for lot in lots_with_inventory:
+                if remaining <= 0:
+                    break
+                use_lb = min(float(lot["available_lb"]), remaining)
+                allocations.append({
+                    "lot_code": lot["lot_code"],
+                    "lot_id": lot["lot_id"],
+                    "use_lb": round(use_lb, 2)
+                })
+                remaining -= use_lb
+            
+            if remaining > 0.001:
+                total_allocated = sum(a["use_lb"] for a in allocations)
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Insufficient total inventory. Need {req.quantity_lb:,.0f} lb, only {total_allocated:,.0f} lb available."
+                )
+        
         timestamp = datetime.now()
-        cur.execute("INSERT INTO transactions (type, customer_name, order_reference) VALUES ('ship', %s, %s) RETURNING id", (req.customer_name, req.order_reference))
+        
+        cur.execute("""
+            INSERT INTO transactions (type, customer_name, order_reference) 
+            VALUES ('ship', %s, %s) RETURNING id
+        """, (req.customer_name, req.order_reference))
         transaction_id = cur.fetchone()["id"]
-        cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (transaction_id, product["id"], selected_lot["lot_id"], -req.quantity_lb))
+        
+        lots_shipped = []
+        for alloc in allocations:
+            cur.execute("""
+                INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) 
+                VALUES (%s, %s, %s, %s)
+            """, (transaction_id, product["id"], alloc["lot_id"], -alloc["use_lb"]))
+            lots_shipped.append({
+                "lot_code": alloc["lot_code"],
+                "quantity_lb": alloc["use_lb"]
+            })
+        
         conn.commit()
         cur.close()
-        slip_text = generate_packing_slip_text(product["name"], product["odoo_code"], req.quantity_lb, req.customer_name, selected_lot["lot_code"], req.order_reference, timestamp)
-        slip_html = generate_packing_slip_html(product["name"], product["odoo_code"], req.quantity_lb, req.customer_name, selected_lot["lot_code"], req.order_reference, timestamp)
-        return ShipCommitResponse(success=True, transaction_id=transaction_id, lot_code=selected_lot["lot_code"], quantity_lb=req.quantity_lb, slip_text=slip_text, slip_html=slip_html, message=f"✅ Shipped {req.quantity_lb:,.0f} lb {product['name']} to {req.customer_name} from lot {selected_lot['lot_code']}")
+        
+        total_shipped = sum(l["quantity_lb"] for l in lots_shipped)
+        
+        slip_text = generate_packing_slip_text_multi(
+            product["name"], product["odoo_code"], lots_shipped, 
+            req.customer_name, req.order_reference, timestamp
+        )
+        slip_html = generate_packing_slip_html_multi(
+            product["name"], product["odoo_code"], lots_shipped,
+            req.customer_name, req.order_reference, timestamp
+        )
+        
+        lot_summary = ", ".join([f"{l['lot_code']} ({l['quantity_lb']:,.0f} lb)" for l in lots_shipped])
+        
+        return ShipCommitResponse(
+            success=True,
+            transaction_id=transaction_id,
+            lots_shipped=lots_shipped,
+            total_quantity_lb=total_shipped,
+            slip_text=slip_text,
+            slip_html=slip_html,
+            message=f"✅ Shipped {total_shipped:,.0f} lb {product['name']} to {req.customer_name}\nLots: {lot_summary}"
+        )
     except HTTPException:
         if conn: conn.rollback()
         raise
@@ -830,7 +1078,7 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
         if conn: conn.close()
 
 
-# --- MAKE ENDPOINTS (Phase 1B) ---
+# --- MAKE ENDPOINTS ---
 
 def _norm(s): return re.sub(r"\s+", " ", s.strip())
 
@@ -904,7 +1152,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     product_id = line["ingredient_product_id"]
                     odoo_code = line["ingredient_odoo_code"]
                     
-                    # Check for overrides for this ingredient
                     overrides = None
                     if req.ingredient_lot_overrides and odoo_code in req.ingredient_lot_overrides:
                         overrides = req.ingredient_lot_overrides[odoo_code]
@@ -1003,7 +1250,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
         if not bom_lines:
             raise HTTPException(status_code=400, detail=f"No BOM/recipe found for '{batch['name']}'")
         
-        # Verify all ingredients have sufficient inventory (with overrides)
         for line in bom_lines:
             required_lb = float(line["quantity_lb"]) * req.batches
             odoo_code = line["ingredient_odoo_code"]
@@ -1030,12 +1276,10 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
             product_id = line["ingredient_product_id"]
             odoo_code = line["ingredient_odoo_code"]
             
-            # Get overrides for this ingredient
             overrides = None
             if req.ingredient_lot_overrides and odoo_code in req.ingredient_lot_overrides:
                 overrides = req.ingredient_lot_overrides[odoo_code]
             
-            # Allocate with overrides
             allocations, _, _ = allocate_with_overrides(cur, product_id, odoo_code, required_lb, overrides)
             
             lots_used = []
@@ -1044,9 +1288,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 lot_id = alloc["lot_id"]
                 lot_code = alloc["lot_code"]
                 
-                # Deduct from this lot
                 cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, product_id, lot_id, -use_lb))
-                # Record traceability
                 cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, product_id, lot_id, use_lb))
                 
                 lots_used.append({"lot": lot_code, "qty_lb": round(use_lb, 2)})
