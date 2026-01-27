@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
 import psycopg2
@@ -16,7 +16,7 @@ API_KEY = (os.getenv("API_KEY") or "").strip()
 
 # Timezone configuration
 PLANT_TIMEZONE = ZoneInfo("America/New_York")
-TIMEZONE_LABEL = "ET"  # Eastern Time
+TIMEZONE_LABEL = "ET"
 
 
 def verify_api_key(x_api_key: str = Header(None, alias="X-API-Key")):
@@ -120,6 +120,51 @@ class AdjustCommitResponse(BaseModel):
     reason: str
     message: str
 
+# --- Phase 1B: Make Models ---
+
+class IngredientLotAllocation(BaseModel):
+    lot_code: str
+    lot_id: int
+    available_lb: float
+    use_lb: float
+
+class IngredientAllocation(BaseModel):
+    product_name: str
+    product_id: int
+    odoo_code: str
+    required_lb: float
+    allocated_lots: List[IngredientLotAllocation]
+    sufficient: bool
+
+class MakeRequest(BaseModel):
+    product_name: str
+    batches: float
+    lot_code: str
+    ingredient_lot_overrides: Optional[dict] = None
+
+class MakePreviewResponse(BaseModel):
+    batch_product_id: int
+    batch_product_name: str
+    batch_odoo_code: str
+    batches: float
+    batch_size_lb: float
+    total_yield_lb: float
+    output_lot_code: str
+    ingredients: List[IngredientAllocation]
+    all_sufficient: bool
+    preview_message: str
+
+class MakeCommitResponse(BaseModel):
+    success: bool
+    transaction_id: int
+    batch_product_name: str
+    batch_odoo_code: str
+    batches: float
+    produced_lb: float
+    output_lot_code: str
+    consumed: List[dict]
+    message: str
+
 
 # --- Helper Functions ---
 
@@ -141,26 +186,20 @@ def generate_lot_code(shipper_code: str, receive_date: date = None) -> str:
         receive_date = date.today()
     return f"{receive_date.strftime('%y-%m-%d')}-{shipper_code}"
 
-
 def localize_timestamp(dt: datetime) -> datetime:
-    """Convert UTC datetime to plant local time."""
     if dt is None:
         return None
     if dt.tzinfo is None:
         return dt
     return dt.astimezone(PLANT_TIMEZONE)
 
-
 def format_timestamp(dt: datetime) -> tuple[str, str]:
-    """Return (date_str, time_str) in local timezone with label."""
     local_dt = localize_timestamp(dt) if dt.tzinfo else dt
     date_str = local_dt.strftime('%B %d, %Y')
     time_str = f"{local_dt.strftime('%I:%M %p')} {TIMEZONE_LABEL}"
     return date_str, time_str
 
-
 def format_history_timestamp(ts):
-    """Format timestamp for history API response."""
     if ts is None:
         return None
     local_ts = localize_timestamp(ts) if ts.tzinfo else ts
@@ -168,6 +207,35 @@ def format_history_timestamp(ts):
         "iso": local_ts.isoformat(),
         "display": f"{local_ts.strftime('%b %d, %Y %I:%M %p')} {TIMEZONE_LABEL}"
     }
+
+def get_available_lots_fifo(cur, product_id: int) -> list:
+    cur.execute("""
+        SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available_lb
+        FROM lots l
+        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+        WHERE l.product_id = %s
+        GROUP BY l.id, l.lot_code
+        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+        ORDER BY l.lot_code ASC
+    """, (product_id,))
+    return cur.fetchall()
+
+def allocate_from_lots(available_lots: list, required_lb: float) -> tuple[list, bool]:
+    allocations = []
+    remaining = required_lb
+    for lot in available_lots:
+        if remaining <= 0:
+            break
+        use_lb = min(float(lot["available_lb"]), remaining)
+        allocations.append({
+            "lot_code": lot["lot_code"],
+            "lot_id": lot["lot_id"],
+            "available_lb": float(lot["available_lb"]),
+            "use_lb": round(use_lb, 2)
+        })
+        remaining -= use_lb
+    is_sufficient = remaining <= 0.001
+    return allocations, is_sufficient
 
 
 # --- Receipt/Slip Generators ---
@@ -317,23 +385,25 @@ def generate_packing_slip_html(product_name, odoo_code, quantity_lb, customer_na
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.9.2",
+        "version": "1.0.0",
         "status": "online",
         "timezone": f"{PLANT_TIMEZONE} ({TIMEZONE_LABEL})",
         "endpoints": {
             "GET /health": "Health check",
             "GET /inventory/{item_name}": "Get current inventory",
-            "GET /products/search": "Search products (supports ?limit=)",
+            "GET /products/search": "Search products",
             "GET /transactions/history": "Transaction history",
             "GET /bom/{product}": "Get BOM/recipe",
-            "POST /command/preview": "Preview command",
-            "POST /command/commit": "Execute make command",
             "POST /receive/preview": "Preview receive",
             "POST /receive/commit": "Commit receive",
             "POST /ship/preview": "Preview ship",
             "POST /ship/commit": "Commit ship",
             "POST /adjust/preview": "Preview adjustment",
             "POST /adjust/commit": "Commit adjustment",
+            "POST /make/preview": "Preview production",
+            "POST /make/commit": "Commit production",
+            "GET /trace/batch/{lot}": "Trace batch ingredients",
+            "GET /trace/ingredient/{lot}": "Trace ingredient usage",
         },
     }
 
@@ -463,18 +533,6 @@ def get_bom(product: str, expand: bool = Query(default=False), _: bool = Depends
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.post("/command/preview")
-def preview_command(request: CommandRequest, _: bool = Depends(verify_api_key)):
-    text = request.raw_text.lower().strip()
-    if "receive" in text:
-        return {"status": "ready", "type": "receive", "preview": f"Ready to receive: {request.raw_text}"}
-    if "make" in text or "batch" in text:
-        return {"status": "ready", "type": "make", "preview": f"Ready to manufacture: {request.raw_text}"}
-    if "adjust" in text:
-        return {"status": "ready", "type": "adjust", "preview": f"Ready to adjust: {request.raw_text}"}
-    return {"status": "error", "message": "Unknown command."}
-
-
 # --- RECEIVE ENDPOINTS ---
 
 @app.post("/receive/preview", response_model=ReceivePreviewResponse)
@@ -555,8 +613,7 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 if len(products) > 1:
                     raise HTTPException(status_code=400, detail=f"Multiple products match '{req.product_name}'. Please be more specific:\n" + "\n".join([f"• {p['name']} ({p['odoo_code']})" for p in products]))
                 product = products[0]
-                cur.execute("SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available_lb FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id WHERE l.product_id = %s GROUP BY l.id, l.lot_code HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.lot_code ASC", (product["id"],))
-                lots_with_inventory = cur.fetchall()
+                lots_with_inventory = get_available_lots_fifo(cur, product["id"])
                 if not lots_with_inventory:
                     raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
                 if req.lot_code:
@@ -567,7 +624,7 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 else:
                     selected_lot = lots_with_inventory[0]
                     lot_selection = "fifo"
-                if selected_lot["available_lb"] < req.quantity_lb:
+                if float(selected_lot["available_lb"]) < req.quantity_lb:
                     raise HTTPException(status_code=400, detail=f"Insufficient inventory in lot {selected_lot['lot_code']}. Requested: {req.quantity_lb:,.0f} lb, Available: {selected_lot['available_lb']:,.0f} lb.\n\nAvailable lots:\n" + "\n".join([f"• {l['lot_code']} ({l['available_lb']:,.0f} lb)" for l in lots_with_inventory]))
         lot_note = "(auto-selected, FIFO)" if lot_selection == "fifo" else "(specified)"
         preview_message = f"📦 SHIP PREVIEW\n────────────────────────────────\nProduct:      {product['name']} ({product['odoo_code']})\nQuantity:     {req.quantity_lb:,.0f} lb\nCustomer:     {req.customer_name}\nOrder Ref:    {req.order_reference}\nLot:          {selected_lot['lot_code']} {lot_note}\nAvailable:    {selected_lot['available_lb']:,.0f} lb in this lot\n────────────────────────────────\n✓ Say \"confirm\" to proceed\n✎ Or specify a different lot"
@@ -589,8 +646,7 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
         product = cur.fetchone()
         if not product:
             raise HTTPException(status_code=404, detail=f"Product not found: {req.product_name}")
-        cur.execute("SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available_lb FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id WHERE l.product_id = %s GROUP BY l.id, l.lot_code HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.lot_code ASC", (product["id"],))
-        lots_with_inventory = cur.fetchall()
+        lots_with_inventory = get_available_lots_fifo(cur, product["id"])
         if not lots_with_inventory:
             raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
         if req.lot_code:
@@ -599,7 +655,7 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 raise HTTPException(status_code=400, detail=f"Lot '{req.lot_code}' not found or has no inventory")
         else:
             selected_lot = lots_with_inventory[0]
-        if selected_lot["available_lb"] < req.quantity_lb:
+        if float(selected_lot["available_lb"]) < req.quantity_lb:
             raise HTTPException(status_code=400, detail=f"Insufficient inventory in lot {selected_lot['lot_code']}. Requested: {req.quantity_lb:,.0f} lb, Available: {selected_lot['available_lb']:,.0f} lb")
         timestamp = datetime.now()
         cur.execute("INSERT INTO transactions (type, customer_name, order_reference) VALUES ('ship', %s, %s) RETURNING id", (req.customer_name, req.order_reference))
@@ -701,9 +757,7 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
         if conn: conn.close()
 
 
-# --- MAKE COMMAND ---
-
-MAKE_RE = re.compile(r"^\s*make\s+(?P<n>\d+(?:\.\d+)?)\s+batch\s+(?P<batch>.+?)\s+lot\s+(?P<lot>[A-Za-z0-9\-_]+)\s*$", re.IGNORECASE)
+# --- MAKE ENDPOINTS (Phase 1B) ---
 
 def _norm(s): return re.sub(r"\s+", " ", s.strip())
 
@@ -742,51 +796,238 @@ def find_product(cur, token):
     elif len(matches) > 1: return (None, matches)
     return (None, [])
 
-@app.post("/command/commit")
-def commit_command(request: CommandRequest, _: bool = Depends(verify_api_key)):
-    raw = request.raw_text.strip()
-    m = MAKE_RE.match(raw)
-    if not m:
-        return JSONResponse(status_code=400, content={"error": "Unsupported command format.", "expected": "Make 1 batch <Name OR Code> lot <LOT>"})
-    n_batches, batch_token, output_lot_code = float(m.group("n")), m.group("batch"), m.group("lot")
+
+@app.post("/make/preview", response_model=MakePreviewResponse)
+def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
+    try:
+        with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                batch, matches = find_product(cur, req.product_name)
+                if not batch and len(matches) > 1:
+                    raise HTTPException(status_code=400, detail=f"Multiple products match '{req.product_name}'. Please be more specific:\n" + "\n".join([f"• {m['name']} ({m['odoo_code']})" for m in matches]))
+                if not batch:
+                    raise HTTPException(status_code=404, detail=f"Product not found: {req.product_name}")
+                if batch.get("default_batch_lb") is None:
+                    raise HTTPException(status_code=400, detail=f"No batch size defined for '{batch['name']}'")
+                batch_size_lb = float(batch["default_batch_lb"])
+                total_yield_lb = req.batches * batch_size_lb
+                cur.execute("""
+                    SELECT bf.ingredient_product_id, bf.quantity_lb, 
+                           p.name as ingredient_name, p.odoo_code as ingredient_odoo_code
+                    FROM batch_formulas bf
+                    JOIN products p ON p.id = bf.ingredient_product_id
+                    WHERE bf.product_id = %s
+                    ORDER BY bf.quantity_lb DESC
+                """, (batch["id"],))
+                bom_lines = cur.fetchall()
+                if not bom_lines:
+                    raise HTTPException(status_code=400, detail=f"No BOM/recipe found for '{batch['name']}'")
+                ingredients = []
+                all_sufficient = True
+                for line in bom_lines:
+                    required_lb = float(line["quantity_lb"]) * req.batches
+                    product_id = line["ingredient_product_id"]
+                    available_lots = get_available_lots_fifo(cur, product_id)
+                    allocations, sufficient = allocate_from_lots(available_lots, required_lb)
+                    if not sufficient:
+                        all_sufficient = False
+                    ingredients.append(IngredientAllocation(
+                        product_name=line["ingredient_name"],
+                        product_id=product_id,
+                        odoo_code=line["ingredient_odoo_code"],
+                        required_lb=round(required_lb, 2),
+                        allocated_lots=[IngredientLotAllocation(**a) for a in allocations],
+                        sufficient=sufficient
+                    ))
+                ing_lines = []
+                for ing in ingredients:
+                    status = "✓" if ing.sufficient else "⚠️ INSUFFICIENT"
+                    lot_details = ", ".join([f"{a.lot_code}: {a.use_lb} lb" for a in ing.allocated_lots])
+                    if not lot_details:
+                        lot_details = "NO INVENTORY"
+                    ing_lines.append(f"  • {ing.product_name}: {ing.required_lb} lb {status}\n    Lots: {lot_details}")
+                status_line = "✓ All ingredients available" if all_sufficient else "⚠️ INSUFFICIENT INVENTORY - cannot proceed"
+                preview_message = f"""�icing PRODUCTION PREVIEW
+────────────────────────────────
+Product:      {batch['name']} ({batch['odoo_code']})
+Batches:      {req.batches} × {batch_size_lb:,.0f} lb = {total_yield_lb:,.0f} lb
+Output Lot:   {req.lot_code}
+────────────────────────────────
+INGREDIENTS TO CONSUME:
+{chr(10).join(ing_lines)}
+────────────────────────────────
+{status_line}
+────────────────────────────────
+✓ Say "confirm" to proceed"""
+                return MakePreviewResponse(
+                    batch_product_id=batch["id"],
+                    batch_product_name=batch["name"],
+                    batch_odoo_code=batch.get("odoo_code", ""),
+                    batches=req.batches,
+                    batch_size_lb=batch_size_lb,
+                    total_yield_lb=total_yield_lb,
+                    output_lot_code=req.lot_code,
+                    ingredients=ingredients,
+                    all_sufficient=all_sufficient,
+                    preview_message=preview_message
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/make/commit", response_model=MakeCommitResponse)
+def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
     conn = None
     try:
         conn = psycopg2.connect(DATABASE_URL, connect_timeout=5)
         conn.autocommit = False
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        batch, matches = find_product(cur, batch_token)
+        batch, matches = find_product(cur, req.product_name)
         if not batch and len(matches) > 1:
-            conn.close()
-            return JSONResponse(status_code=409, content={"error": "Multiple products match.", "matches": [{"name": m["name"], "odoo_code": m["odoo_code"]} for m in matches]})
+            raise HTTPException(status_code=400, detail=f"Multiple products match '{req.product_name}'")
         if not batch:
-            conn.close()
-            return JSONResponse(status_code=404, content={"error": f"Batch not found: {batch_token}"})
+            raise HTTPException(status_code=404, detail=f"Product not found: {req.product_name}")
         if batch.get("default_batch_lb") is None:
-            conn.close()
-            return JSONResponse(status_code=400, content={"error": f"default_batch_lb is NULL for '{batch['name']}'"})
-        yield_lb = float(batch["default_batch_lb"])
-        output_qty = n_batches * yield_lb
-        cur.execute("SELECT bf.ingredient_product_id, bf.quantity_lb, p.name AS ingredient_name, p.odoo_code AS ingredient_odoo_code FROM batch_formulas bf JOIN products p ON p.id = bf.ingredient_product_id WHERE bf.product_id = %s ORDER BY p.name", (batch["id"],))
+            raise HTTPException(status_code=400, detail=f"No batch size defined for '{batch['name']}'")
+        batch_size_lb = float(batch["default_batch_lb"])
+        total_yield_lb = req.batches * batch_size_lb
+        cur.execute("""
+            SELECT bf.ingredient_product_id, bf.quantity_lb, 
+                   p.name as ingredient_name, p.odoo_code as ingredient_odoo_code
+            FROM batch_formulas bf
+            JOIN products p ON p.id = bf.ingredient_product_id
+            WHERE bf.product_id = %s
+            ORDER BY bf.quantity_lb DESC
+        """, (batch["id"],))
         bom_lines = cur.fetchall()
         if not bom_lines:
-            conn.close()
-            return JSONResponse(status_code=400, content={"error": f"No BOM found for '{batch['name']}'"})
-        cur.execute("INSERT INTO transactions (type, notes) VALUES ('make', %s) RETURNING id", (f"commit: {raw}",))
+            raise HTTPException(status_code=400, detail=f"No BOM/recipe found for '{batch['name']}'")
+        for line in bom_lines:
+            required_lb = float(line["quantity_lb"]) * req.batches
+            available_lots = get_available_lots_fifo(cur, line["ingredient_product_id"])
+            total_available = sum(float(lot["available_lb"]) for lot in available_lots)
+            if total_available < required_lb:
+                raise HTTPException(status_code=400, detail=f"Insufficient {line['ingredient_name']}: need {required_lb:,.0f} lb, have {total_available:,.0f} lb")
+        cur.execute("INSERT INTO transactions (type, notes) VALUES ('make', %s) RETURNING id", (f"Make {req.batches} batch(es) {batch['name']} lot {req.lot_code}",))
         tx_id = cur.fetchone()["id"]
-        batch_lot_id = get_or_create_lot(cur, batch["id"], output_lot_code)
+        output_lot_id = get_or_create_lot(cur, batch["id"], req.lot_code)
         consumed = []
         for line in bom_lines:
-            ing_id, ing_name, per_batch = int(line["ingredient_product_id"]), line["ingredient_name"], float(line["quantity_lb"])
-            qty = -(n_batches * per_batch)
-            ing_lot_id = get_or_create_lot(cur, ing_id, "UNKNOWN")
-            cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, ing_id, ing_lot_id, qty))
-            consumed.append({"ingredient": ing_name, "qty_lb": abs(qty), "lot": "UNKNOWN"})
-        cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, batch["id"], batch_lot_id, output_qty))
+            required_lb = float(line["quantity_lb"]) * req.batches
+            product_id = line["ingredient_product_id"]
+            remaining = required_lb
+            available_lots = get_available_lots_fifo(cur, product_id)
+            lots_used = []
+            for lot in available_lots:
+                if remaining <= 0:
+                    break
+                use_lb = min(float(lot["available_lb"]), remaining)
+                cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, product_id, lot["lot_id"], -use_lb))
+                cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, product_id, lot["lot_id"], use_lb))
+                lots_used.append({"lot": lot["lot_code"], "qty_lb": round(use_lb, 2)})
+                remaining -= use_lb
+            consumed.append({"ingredient": line["ingredient_name"], "odoo_code": line["ingredient_odoo_code"], "total_lb": round(required_lb, 2), "lots": lots_used})
+        cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (tx_id, batch["id"], output_lot_id, total_yield_lb))
         conn.commit()
-        conn.close()
-        return {"status": "committed", "transaction_id": tx_id, "action": "make", "batch": {"name": batch["name"], "odoo_code": batch.get("odoo_code"), "batches": n_batches, "yield_lb_per_batch": yield_lb, "produced_lb": output_qty, "lot": output_lot_code}, "consumed": consumed, "note": "Ingredient lots defaulted to UNKNOWN (MVP)."}
+        cur.close()
+        consumed_summary = "\n".join([f"  • {c['ingredient']}: {c['total_lb']} lb from {', '.join([l['lot'] for l in c['lots']])}" for c in consumed])
+        return MakeCommitResponse(
+            success=True,
+            transaction_id=tx_id,
+            batch_product_name=batch["name"],
+            batch_odoo_code=batch.get("odoo_code", ""),
+            batches=req.batches,
+            produced_lb=total_yield_lb,
+            output_lot_code=req.lot_code,
+            consumed=consumed,
+            message=f"✅ Produced {total_yield_lb:,.0f} lb {batch['name']} (lot {req.lot_code})\n\nIngredients consumed:\n{consumed_summary}"
+        )
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
     except Exception as e:
-        if conn:
-            try: conn.rollback(); conn.close()
-            except: pass
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if conn: conn.close()
+
+
+# --- TRACEABILITY ENDPOINTS ---
+
+@app.get("/trace/batch/{lot_code}")
+def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
+    try:
+        with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT t.id as transaction_id, t.timestamp, t.notes,
+                           p.name as product_name, p.odoo_code,
+                           tl.quantity_lb as produced_lb, l.lot_code
+                    FROM transactions t
+                    JOIN transaction_lines tl ON tl.transaction_id = t.id
+                    JOIN lots l ON l.id = tl.lot_id
+                    JOIN products p ON p.id = tl.product_id
+                    WHERE t.type = 'make' AND l.lot_code = %s AND tl.quantity_lb > 0
+                    ORDER BY t.timestamp DESC LIMIT 1
+                """, (lot_code,))
+                batch_info = cur.fetchone()
+                if not batch_info:
+                    return JSONResponse(status_code=404, content={"error": f"No production record found for lot {lot_code}"})
+                cur.execute("""
+                    SELECT p.name as ingredient_name, p.odoo_code as ingredient_code,
+                           l.lot_code as ingredient_lot, ilc.quantity_lb
+                    FROM ingredient_lot_consumption ilc
+                    JOIN products p ON p.id = ilc.ingredient_product_id
+                    JOIN lots l ON l.id = ilc.ingredient_lot_id
+                    WHERE ilc.transaction_id = %s
+                    ORDER BY ilc.quantity_lb DESC
+                """, (batch_info["transaction_id"],))
+                ingredients = cur.fetchall()
+                date_str, time_str = format_timestamp(batch_info["timestamp"])
+                return {
+                    "lot_code": lot_code,
+                    "product": batch_info["product_name"],
+                    "odoo_code": batch_info["odoo_code"],
+                    "produced_lb": float(batch_info["produced_lb"]),
+                    "produced_at": f"{date_str} {time_str}",
+                    "transaction_id": batch_info["transaction_id"],
+                    "ingredients_consumed": [{"ingredient": ing["ingredient_name"], "odoo_code": ing["ingredient_code"], "lot": ing["ingredient_lot"], "quantity_lb": float(ing["quantity_lb"])} for ing in ingredients]
+                }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/trace/ingredient/{lot_code}")
+def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
+    try:
+        with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT l.id, l.lot_code, p.name as product_name, p.odoo_code FROM lots l JOIN products p ON p.id = l.product_id WHERE l.lot_code = %s", (lot_code,))
+                lot_info = cur.fetchone()
+                if not lot_info:
+                    return JSONResponse(status_code=404, content={"error": f"Lot {lot_code} not found"})
+                cur.execute("""
+                    SELECT DISTINCT t.id as transaction_id, t.timestamp,
+                           output_product.name as batch_name, output_product.odoo_code as batch_odoo_code,
+                           output_lot.lot_code as batch_lot, output_tl.quantity_lb as batch_produced_lb,
+                           ilc.quantity_lb as ingredient_used_lb
+                    FROM ingredient_lot_consumption ilc
+                    JOIN transactions t ON t.id = ilc.transaction_id
+                    JOIN transaction_lines output_tl ON output_tl.transaction_id = t.id AND output_tl.quantity_lb > 0
+                    JOIN lots output_lot ON output_lot.id = output_tl.lot_id
+                    JOIN products output_product ON output_product.id = output_tl.product_id
+                    WHERE ilc.ingredient_lot_id = %s
+                    ORDER BY t.timestamp DESC
+                """, (lot_info["id"],))
+                batches = cur.fetchall()
+                return {
+                    "ingredient_lot": lot_code,
+                    "ingredient": lot_info["product_name"],
+                    "odoo_code": lot_info["odoo_code"],
+                    "used_in_batches": [{"batch_product": b["batch_name"], "batch_odoo_code": b["batch_odoo_code"], "batch_lot": b["batch_lot"], "produced_lb": float(b["batch_produced_lb"]), "ingredient_used_lb": float(b["ingredient_used_lb"]), "produced_at": f"{format_timestamp(b['timestamp'])[0]} {format_timestamp(b['timestamp'])[1]}"} for b in batches],
+                    "batch_count": len(batches)
+                }
+    except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
