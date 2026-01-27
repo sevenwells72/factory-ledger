@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date
+from zoneinfo import ZoneInfo
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
@@ -12,6 +13,10 @@ app = FastAPI(title="Factory Ledger System")
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
+
+# Timezone configuration
+PLANT_TIMEZONE = ZoneInfo("America/New_York")
+TIMEZONE_LABEL = "ET"  # Eastern Time
 
 
 def verify_api_key(x_api_key: str = Header(None, alias="X-API-Key")):
@@ -137,16 +142,45 @@ def generate_lot_code(shipper_code: str, receive_date: date = None) -> str:
     return f"{receive_date.strftime('%y-%m-%d')}-{shipper_code}"
 
 
+def localize_timestamp(dt: datetime) -> datetime:
+    """Convert UTC datetime to plant local time."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(PLANT_TIMEZONE)
+
+
+def format_timestamp(dt: datetime) -> tuple[str, str]:
+    """Return (date_str, time_str) in local timezone with label."""
+    local_dt = localize_timestamp(dt) if dt.tzinfo else dt
+    date_str = local_dt.strftime('%B %d, %Y')
+    time_str = f"{local_dt.strftime('%I:%M %p')} {TIMEZONE_LABEL}"
+    return date_str, time_str
+
+
+def format_history_timestamp(ts):
+    """Format timestamp for history API response."""
+    if ts is None:
+        return None
+    local_ts = localize_timestamp(ts) if ts.tzinfo else ts
+    return {
+        "iso": local_ts.isoformat(),
+        "display": f"{local_ts.strftime('%b %d, %Y %I:%M %p')} {TIMEZONE_LABEL}"
+    }
+
+
 # --- Receipt/Slip Generators ---
 
 def generate_receipt_text(product_name, odoo_code, cases, case_size_lb, total_lb, shipper_name, lot_code, bol_reference, timestamp):
+    date_str, time_str = format_timestamp(timestamp)
     return f"""
 ╔══════════════════════════════════════════════════╗
 ║         CNS CONFECTIONERY PRODUCTS               ║
 ║              RECEIVING RECEIPT                   ║
 ╠══════════════════════════════════════════════════╣
-║  Date:        {timestamp.strftime('%B %d, %Y'):<32}║
-║  Time:        {timestamp.strftime('%I:%M %p'):<32}║
+║  Date:        {date_str:<32}║
+║  Time:        {time_str:<32}║
 ╠══════════════════════════════════════════════════╣
 ║  LOT CODE:    {lot_code:<32}║
 ╠══════════════════════════════════════════════════╣
@@ -162,6 +196,7 @@ def generate_receipt_text(product_name, odoo_code, cases, case_size_lb, total_lb
 """.strip()
 
 def generate_receipt_html(product_name, odoo_code, cases, case_size_lb, total_lb, shipper_name, lot_code, bol_reference, timestamp):
+    date_str, time_str = format_timestamp(timestamp)
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -185,8 +220,8 @@ def generate_receipt_html(product_name, odoo_code, cases, case_size_lb, total_lb
     <div class="receipt">
         <div class="header"><h1>CNS CONFECTIONERY PRODUCTS</h1><h2>RECEIVING RECEIPT</h2></div>
         <div class="details">
-            <div class="row"><span class="label">Date:</span><span>{timestamp.strftime('%B %d, %Y')}</span></div>
-            <div class="row"><span class="label">Time:</span><span>{timestamp.strftime('%I:%M %p')}</span></div>
+            <div class="row"><span class="label">Date:</span><span>{date_str}</span></div>
+            <div class="row"><span class="label">Time:</span><span>{time_str}</span></div>
         </div>
         <div class="lot-code"><div>LOT CODE</div><span>{lot_code}</span></div>
         <div class="details">
@@ -205,13 +240,14 @@ def generate_receipt_html(product_name, odoo_code, cases, case_size_lb, total_lb
 </html>"""
 
 def generate_packing_slip_text(product_name, odoo_code, quantity_lb, customer_name, lot_code, order_reference, timestamp):
+    date_str, time_str = format_timestamp(timestamp)
     return f"""
 ╔══════════════════════════════════════════════════╗
 ║         CNS CONFECTIONERY PRODUCTS               ║
 ║                PACKING SLIP                      ║
 ╠══════════════════════════════════════════════════╣
-║  Date:        {timestamp.strftime('%B %d, %Y'):<32}║
-║  Time:        {timestamp.strftime('%I:%M %p'):<32}║
+║  Date:        {date_str:<32}║
+║  Time:        {time_str:<32}║
 ╠══════════════════════════════════════════════════╣
 ║  SHIP TO:     {customer_name:<32}║
 ║  Order Ref:   {order_reference:<32}║
@@ -228,6 +264,7 @@ def generate_packing_slip_text(product_name, odoo_code, quantity_lb, customer_na
 """.strip()
 
 def generate_packing_slip_html(product_name, odoo_code, quantity_lb, customer_name, lot_code, order_reference, timestamp):
+    date_str, time_str = format_timestamp(timestamp)
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -254,8 +291,8 @@ def generate_packing_slip_html(product_name, odoo_code, quantity_lb, customer_na
     <div class="slip">
         <div class="header"><h1>CNS CONFECTIONERY PRODUCTS</h1><h2>PACKING SLIP</h2></div>
         <div class="details">
-            <div class="row"><span class="label">Date:</span><span>{timestamp.strftime('%B %d, %Y')}</span></div>
-            <div class="row"><span class="label">Time:</span><span>{timestamp.strftime('%I:%M %p')}</span></div>
+            <div class="row"><span class="label">Date:</span><span>{date_str}</span></div>
+            <div class="row"><span class="label">Time:</span><span>{time_str}</span></div>
         </div>
         <div class="customer"><div class="name">{customer_name}</div><div class="ref">Order: {order_reference}</div></div>
         <div class="details">
@@ -280,8 +317,9 @@ def generate_packing_slip_html(product_name, odoo_code, quantity_lb, customer_na
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "0.9.1",
+        "version": "0.9.2",
         "status": "online",
+        "timezone": f"{PLANT_TIMEZONE} ({TIMEZONE_LABEL})",
         "endpoints": {
             "GET /health": "Health check",
             "GET /inventory/{item_name}": "Get current inventory",
@@ -384,7 +422,7 @@ def get_transaction_history(_: bool = Depends(verify_api_key), limit: int = Quer
                 params.append(limit)
                 cur.execute(query, params)
                 transactions = cur.fetchall()
-        result = [{"transaction_id": tx["transaction_id"], "type": tx["type"], "timestamp": tx["timestamp"].isoformat() if tx["timestamp"] else None, "notes": tx["notes"], "adjust_reason": tx.get("adjust_reason"), "lines": [l for l in (tx["lines"] or []) if l.get("product")]} for tx in transactions]
+        result = [{"transaction_id": tx["transaction_id"], "type": tx["type"], "timestamp": format_history_timestamp(tx["timestamp"]), "notes": tx["notes"], "adjust_reason": tx.get("adjust_reason"), "lines": [l for l in (tx["lines"] or []) if l.get("product")]} for tx in transactions]
         return {"count": len(result), "filters": {"limit": limit, "type": type, "product": product}, "transactions": result}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
