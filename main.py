@@ -1919,3 +1919,396 @@ def search_bom(
     
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+# =============================================
+# FACTORY LEDGER - BOM API ENDPOINTS
+# Add to your existing FastAPI app
+# =============================================
+
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
+from typing import Optional, List
+from supabase import Client
+
+# Create router for BOM endpoints
+bom_router = APIRouter(prefix="/bom", tags=["Bill of Materials"])
+
+# =============================================
+# PYDANTIC MODELS
+# =============================================
+
+class Product(BaseModel):
+    id: int
+    name: str
+    type: str
+    odoo_code: Optional[str]
+    brand: Optional[str]
+    uom: Optional[str]
+    default_batch_lb: Optional[int]
+    active: Optional[bool]
+
+class ProductWithYields(Product):
+    yield_25lb_cases: Optional[int]
+    yield_10lb_cases: Optional[int]
+    yield_retail_cases: Optional[int]
+    yield_retail_bags: Optional[int]
+    retail_bag_oz: Optional[float]
+    bags_per_case: Optional[int]
+
+class BatchIngredient(BaseModel):
+    ingredient_id: int
+    ingredient_name: str
+    ingredient_ref: Optional[str]
+    quantity_lb: float
+
+class BatchFormula(BaseModel):
+    batch_id: int
+    batch_name: str
+    batch_ref: Optional[str]
+    batch_weight: Optional[int]
+    brand: Optional[str]
+    yields: dict
+    ingredients: List[BatchIngredient]
+
+class BOMComponent(BaseModel):
+    component_id: int
+    component_name: str
+    component_ref: Optional[str]
+    component_type: str
+    quantity: float
+    uom: str
+
+class FinishedProductBOM(BaseModel):
+    product_id: int
+    product_name: str
+    product_ref: Optional[str]
+    brand: Optional[str]
+    components: List[BOMComponent]
+    batch_ingredients: Optional[List[BatchIngredient]]
+
+class Allergen(BaseModel):
+    allergen_name: str
+    notes: Optional[str]
+
+class BatchUpdate(BaseModel):
+    default_batch_lb: Optional[int]
+    yield_25lb_cases: Optional[int]
+    yield_10lb_cases: Optional[int]
+    yield_retail_cases: Optional[int]
+    yield_retail_bags: Optional[int]
+    retail_bag_oz: Optional[float]
+    bags_per_case: Optional[int]
+
+# =============================================
+# ENDPOINTS
+# =============================================
+
+@bom_router.get("/products", response_model=List[Product])
+async def list_products(
+    supabase: Client,
+    type: Optional[str] = Query(None, description="Filter by type: ingredient, batch, packaging, finished"),
+    brand: Optional[str] = Query(None, description="Filter by brand: CNS, Setton, Sunshine, Blue Stripes, etc."),
+    search: Optional[str] = Query(None, description="Search by name"),
+    active: Optional[bool] = Query(True, description="Filter by active status")
+):
+    """List all products with optional filters."""
+    query = supabase.table("products").select("*")
+    
+    if type:
+        query = query.eq("type", type)
+    if brand:
+        query = query.ilike("brand", f"%{brand}%")
+    if search:
+        query = query.ilike("name", f"%{search}%")
+    if active is not None:
+        query = query.eq("active", active)
+    
+    result = query.order("name").execute()
+    return result.data
+
+
+@bom_router.get("/products/{product_id}", response_model=ProductWithYields)
+async def get_product(supabase: Client, product_id: int):
+    """Get a single product by ID."""
+    result = supabase.table("products").select("*").eq("id", product_id).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return result.data
+
+
+@bom_router.get("/products/ref/{odoo_code}", response_model=ProductWithYields)
+async def get_product_by_ref(supabase: Client, odoo_code: str):
+    """Get a single product by internal reference (odoo_code)."""
+    result = supabase.table("products").select("*").eq("odoo_code", odoo_code).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return result.data
+
+
+@bom_router.get("/batches", response_model=List[ProductWithYields])
+async def list_batches(
+    supabase: Client,
+    brand: Optional[str] = Query(None, description="Filter by brand")
+):
+    """List all batch recipes with yields."""
+    query = supabase.table("products").select("*").eq("type", "batch")
+    
+    if brand:
+        query = query.ilike("brand", f"%{brand}%")
+    
+    result = query.order("name").execute()
+    return result.data
+
+
+@bom_router.get("/batches/{batch_id}/formula", response_model=BatchFormula)
+async def get_batch_formula(supabase: Client, batch_id: int):
+    """Get complete formula for a batch including all ingredients."""
+    
+    # Get batch info
+    batch = supabase.table("products").select("*").eq("id", batch_id).eq("type", "batch").single().execute()
+    if not batch.data:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    
+    # Get ingredients via view
+    ingredients = supabase.table("v_batch_ingredients").select("*").eq("batch_id", batch_id).execute()
+    
+    return {
+        "batch_id": batch.data["id"],
+        "batch_name": batch.data["name"],
+        "batch_ref": batch.data.get("odoo_code"),
+        "batch_weight": batch.data.get("default_batch_lb"),
+        "brand": batch.data.get("brand"),
+        "yields": {
+            "cases_25lb": batch.data.get("yield_25lb_cases"),
+            "cases_10lb": batch.data.get("yield_10lb_cases"),
+            "cases_retail": batch.data.get("yield_retail_cases"),
+            "bags_retail": batch.data.get("yield_retail_bags"),
+            "bag_size_oz": batch.data.get("retail_bag_oz"),
+            "bags_per_case": batch.data.get("bags_per_case")
+        },
+        "ingredients": [
+            {
+                "ingredient_id": i["ingredient_id"],
+                "ingredient_name": i["ingredient_name"],
+                "ingredient_ref": i["ingredient_ref"],
+                "quantity_lb": float(i["quantity_lb"])
+            }
+            for i in ingredients.data
+        ]
+    }
+
+
+@bom_router.get("/batches/ref/{odoo_code}/formula", response_model=BatchFormula)
+async def get_batch_formula_by_ref(supabase: Client, odoo_code: str):
+    """Get complete formula for a batch by internal reference."""
+    
+    # Get batch info
+    batch = supabase.table("products").select("*").eq("odoo_code", odoo_code).eq("type", "batch").single().execute()
+    if not batch.data:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    
+    return await get_batch_formula(supabase, batch.data["id"])
+
+
+@bom_router.get("/finished/{product_id}/bom", response_model=FinishedProductBOM)
+async def get_finished_product_bom(
+    supabase: Client, 
+    product_id: int,
+    explode: bool = Query(True, description="Include batch ingredient breakdown")
+):
+    """Get complete BOM for a finished product."""
+    
+    # Get product info
+    product = supabase.table("products").select("*").eq("id", product_id).eq("type", "finished").single().execute()
+    if not product.data:
+        raise HTTPException(status_code=404, detail="Finished product not found")
+    
+    # Get BOM components via view
+    components = supabase.table("v_finished_product_bom").select("*").eq("finished_product_id", product_id).execute()
+    
+    # Build response
+    response = {
+        "product_id": product.data["id"],
+        "product_name": product.data["name"],
+        "product_ref": product.data.get("odoo_code"),
+        "brand": product.data.get("brand"),
+        "components": [
+            {
+                "component_id": c["component_id"],
+                "component_name": c["component_name"],
+                "component_ref": c["component_ref"],
+                "component_type": c["component_type"],
+                "quantity": float(c["quantity"]),
+                "uom": c["uom"]
+            }
+            for c in components.data
+        ],
+        "batch_ingredients": None
+    }
+    
+    # Explode batch ingredients if requested
+    if explode:
+        batch_ingredients = []
+        for comp in components.data:
+            if comp["component_type"] == "batch":
+                ingredients = supabase.table("v_batch_ingredients").select("*").eq("batch_id", comp["component_id"]).execute()
+                batch_ingredients.extend([
+                    {
+                        "ingredient_id": i["ingredient_id"],
+                        "ingredient_name": i["ingredient_name"],
+                        "ingredient_ref": i["ingredient_ref"],
+                        "quantity_lb": float(i["quantity_lb"])
+                    }
+                    for i in ingredients.data
+                ])
+        response["batch_ingredients"] = batch_ingredients
+    
+    return response
+
+
+@bom_router.get("/finished/ref/{odoo_code}/bom", response_model=FinishedProductBOM)
+async def get_finished_product_bom_by_ref(
+    supabase: Client, 
+    odoo_code: str,
+    explode: bool = Query(True)
+):
+    """Get complete BOM for a finished product by internal reference."""
+    
+    product = supabase.table("products").select("*").eq("odoo_code", odoo_code).eq("type", "finished").single().execute()
+    if not product.data:
+        raise HTTPException(status_code=404, detail="Finished product not found")
+    
+    return await get_finished_product_bom(supabase, product.data["id"], explode)
+
+
+@bom_router.put("/batches/{batch_id}", response_model=ProductWithYields)
+async def update_batch(supabase: Client, batch_id: int, update: BatchUpdate):
+    """Update batch weight and/or yields."""
+    
+    # Verify batch exists
+    existing = supabase.table("products").select("id").eq("id", batch_id).eq("type", "batch").single().execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    
+    # Build update dict (only non-None values)
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    result = supabase.table("products").update(update_data).eq("id", batch_id).execute()
+    return result.data[0]
+
+
+@bom_router.get("/batches/{batch_id}/allergens", response_model=List[Allergen])
+async def get_batch_allergens(supabase: Client, batch_id: int):
+    """Get allergens for a batch."""
+    
+    result = supabase.rpc("get_batch_allergens", {"p_batch_id": batch_id}).execute()
+    
+    # Fallback if RPC doesn't exist - direct query
+    if not result.data:
+        result = supabase.table("product_allergens")\
+            .select("allergens(name), notes")\
+            .eq("product_id", batch_id)\
+            .execute()
+        
+        return [
+            {"allergen_name": r["allergens"]["name"], "notes": r.get("notes")}
+            for r in result.data
+        ]
+    
+    return result.data
+
+
+@bom_router.get("/search")
+async def search_bom(
+    supabase: Client,
+    q: str = Query(..., description="Search query"),
+    types: Optional[str] = Query(None, description="Comma-separated types to search")
+):
+    """Search across all products by name or reference."""
+    
+    query = supabase.table("products").select("id, name, type, odoo_code, brand")
+    
+    # Search by name or odoo_code
+    query = query.or_(f"name.ilike.%{q}%,odoo_code.ilike.%{q}%")
+    
+    if types:
+        type_list = [t.strip() for t in types.split(",")]
+        query = query.in_("type", type_list)
+    
+    result = query.order("type").order("name").limit(50).execute()
+    return result.data
+
+
+# =============================================
+# PRODUCTION PLANNING ENDPOINTS
+# =============================================
+
+@bom_router.get("/production/requirements")
+async def calculate_production_requirements(
+    supabase: Client,
+    product_ref: str = Query(..., description="Finished product odoo_code"),
+    quantity: int = Query(..., description="Number of cases to produce")
+):
+    """Calculate ingredient requirements for a production run."""
+    
+    # Get product
+    product = supabase.table("products").select("*").eq("odoo_code", product_ref).eq("type", "finished").single().execute()
+    if not product.data:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Get BOM
+    bom = supabase.table("v_finished_product_bom").select("*").eq("finished_product_id", product.data["id"]).execute()
+    
+    requirements = {
+        "product": product.data["name"],
+        "cases_requested": quantity,
+        "components": [],
+        "raw_ingredients": []
+    }
+    
+    for comp in bom.data:
+        comp_qty = float(comp["quantity"]) * quantity
+        requirements["components"].append({
+            "name": comp["component_name"],
+            "ref": comp["component_ref"],
+            "type": comp["component_type"],
+            "quantity_needed": comp_qty,
+            "uom": comp["uom"]
+        })
+        
+        # If batch, get ingredients
+        if comp["component_type"] == "batch":
+            batch = supabase.table("products").select("default_batch_lb").eq("id", comp["component_id"]).single().execute()
+            batch_weight = batch.data.get("default_batch_lb", 1)
+            
+            # Calculate batches needed
+            product_lb_per_case = float(comp["quantity"])
+            total_lb_needed = product_lb_per_case * quantity
+            batches_needed = total_lb_needed / batch_weight if batch_weight else 1
+            
+            ingredients = supabase.table("v_batch_ingredients").select("*").eq("batch_id", comp["component_id"]).execute()
+            
+            for ing in ingredients.data:
+                requirements["raw_ingredients"].append({
+                    "name": ing["ingredient_name"],
+                    "ref": ing["ingredient_ref"],
+                    "quantity_per_batch": float(ing["quantity_lb"]),
+                    "batches_needed": round(batches_needed, 2),
+                    "total_quantity_lb": round(float(ing["quantity_lb"]) * batches_needed, 2)
+                })
+    
+    return requirements
+
+
+# =============================================
+# REGISTER ROUTER IN MAIN APP
+# =============================================
+# In your main.py, add:
+# 
+# from bom_endpoints import bom_router
+# app.include_router(bom_router)
+#
+# Make sure to pass supabase client via dependency injection
