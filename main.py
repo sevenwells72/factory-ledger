@@ -1590,7 +1590,7 @@ def get_all_batches(
             query += " AND brand = %s"
             params.append(brand)
         
-       query += " ORDER BY internal_ref"
+        query += " ORDER BY internal_ref"
         
         cur.execute(query, params)
         batches = cur.fetchall()
