@@ -1458,3 +1458,464 @@ def trace_ingredient(lot_code: str, used_only: bool = Query(default=False), _: b
                 }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+        # ═══════════════════════════════════════════════════════════════
+# BOM ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+# --- Pydantic Models for BOM ---
+
+class BOMProductResponse(BaseModel):
+    id: int
+    internal_ref: str
+    name: str
+    product_type: str
+    brand: Optional[str] = None
+    odoo_code: Optional[str] = None
+    unit: Optional[str] = None
+    notes: Optional[str] = None
+
+class BatchFormulaItem(BaseModel):
+    ingredient_ref: str
+    ingredient_name: str
+    quantity: float
+    unit: str
+    percentage: Optional[float] = None
+
+class BatchFormulaResponse(BaseModel):
+    batch_ref: str
+    batch_name: str
+    batch_weight_lb: Optional[float] = None
+    yields_batches: Optional[int] = None
+    ingredients: List[BatchFormulaItem]
+    allergens: List[str] = []
+
+class FinishedBOMResponse(BaseModel):
+    finished_ref: str
+    finished_name: str
+    brand: Optional[str] = None
+    batch_ref: Optional[str] = None
+    batch_name: Optional[str] = None
+    batch_qty: Optional[float] = None
+    packaging_items: List[dict] = []
+    allergens: List[str] = []
+
+class ProductionRequirementRequest(BaseModel):
+    finished_ref: str
+    quantity_cases: int
+
+class IngredientRequirement(BaseModel):
+    ingredient_ref: str
+    ingredient_name: str
+    quantity_needed_lb: float
+    unit: str
+
+class ProductionRequirementResponse(BaseModel):
+    finished_ref: str
+    finished_name: str
+    cases_requested: int
+    batches_needed: float
+    ingredients: List[IngredientRequirement]
+
+class UpdateBatchRequest(BaseModel):
+    batch_weight_lb: Optional[float] = None
+    yields_batches: Optional[int] = None
+    notes: Optional[str] = None
+
+
+# --- BOM Endpoints ---
+
+@app.get("/bom/products")
+def get_bom_products(
+    product_type: Optional[str] = Query(None, description="Filter by type: ingredient, batch, packaging, finished"),
+    brand: Optional[str] = Query(None, description="Filter by brand: CNS, Setton, SS, BS, CQ, UNIPRO"),
+    search: Optional[str] = Query(None, description="Search by name or internal_ref"),
+    limit: int = Query(100, le=500),
+    _: bool = Depends(verify_api_key)
+):
+    """List all products with optional filters"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = "SELECT id, internal_ref, name, product_type, brand, odoo_code, unit, notes FROM products WHERE 1=1"
+        params = []
+        
+        if product_type:
+            query += " AND product_type = %s"
+            params.append(product_type)
+        
+        if brand:
+            query += " AND brand = %s"
+            params.append(brand)
+        
+        if search:
+            query += " AND (name ILIKE %s OR internal_ref ILIKE %s)"
+            params.extend([f"%{search}%", f"%{search}%"])
+        
+        query += " ORDER BY internal_ref LIMIT %s"
+        params.append(limit)
+        
+        cur.execute(query, params)
+        products = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        return {"count": len(products), "products": products}
+    
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/bom/batches")
+def get_all_batches(
+    brand: Optional[str] = Query(None),
+    _: bool = Depends(verify_api_key)
+):
+    """List all batches with their summary info"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        query = "SELECT * FROM v_batch_summary WHERE 1=1"
+        params = []
+        
+        if brand:
+            query += " AND brand = %s"
+            params.append(brand)
+        
+        query += " ORDER BY batch_ref"
+        
+        cur.execute(query, params)
+        batches = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        return {"count": len(batches), "batches": batches}
+    
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/bom/batches/{batch_ref}/formula")
+def get_batch_formula(
+    batch_ref: str,
+    _: bool = Depends(verify_api_key)
+):
+    """Get the ingredient formula for a specific batch"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get batch info
+        cur.execute("""
+            SELECT id, internal_ref, name, batch_weight_lb, yields_batches 
+            FROM products 
+            WHERE internal_ref = %s AND product_type = 'batch'
+        """, (batch_ref,))
+        batch = cur.fetchone()
+        
+        if not batch:
+            cur.close()
+            conn.close()
+            return JSONResponse(status_code=404, content={"error": f"Batch {batch_ref} not found"})
+        
+        # Get ingredients from view
+        cur.execute("""
+            SELECT ingredient_ref, ingredient_name, quantity, unit, percentage
+            FROM v_batch_ingredients
+            WHERE batch_ref = %s
+            ORDER BY percentage DESC NULLS LAST
+        """, (batch_ref,))
+        ingredients = cur.fetchall()
+        
+        # Get allergens
+        cur.execute("""
+            SELECT a.name 
+            FROM product_allergens pa
+            JOIN allergens a ON pa.allergen_id = a.id
+            JOIN products p ON pa.product_id = p.id
+            WHERE p.internal_ref = %s
+        """, (batch_ref,))
+        allergens = [row["name"] for row in cur.fetchall()]
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            "batch_ref": batch["internal_ref"],
+            "batch_name": batch["name"],
+            "batch_weight_lb": batch["batch_weight_lb"],
+            "yields_batches": batch["yields_batches"],
+            "ingredient_count": len(ingredients),
+            "ingredients": ingredients,
+            "allergens": allergens
+        }
+    
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/bom/finished/{finished_ref}/bom")
+def get_finished_product_bom(
+    finished_ref: str,
+    _: bool = Depends(verify_api_key)
+):
+    """Get the full BOM for a finished product (batch + packaging)"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get finished product info
+        cur.execute("""
+            SELECT id, internal_ref, name, brand, case_size, cases_per_pallet
+            FROM products 
+            WHERE internal_ref = %s AND product_type = 'finished'
+        """, (finished_ref,))
+        product = cur.fetchone()
+        
+        if not product:
+            cur.close()
+            conn.close()
+            return JSONResponse(status_code=404, content={"error": f"Finished product {finished_ref} not found"})
+        
+        # Get BOM from view
+        cur.execute("""
+            SELECT * FROM v_finished_product_bom WHERE finished_ref = %s
+        """, (finished_ref,))
+        bom = cur.fetchone()
+        
+        # Get packaging items
+        cur.execute("""
+            SELECT p.internal_ref, p.name, pb.quantity, p.unit
+            FROM product_bom pb
+            JOIN products p ON pb.component_id = p.id
+            JOIN products fp ON pb.finished_product_id = fp.id
+            WHERE fp.internal_ref = %s AND p.product_type = 'packaging'
+        """, (finished_ref,))
+        packaging = cur.fetchall()
+        
+        # Get allergens (from the batch)
+        allergens = []
+        if bom and bom.get("batch_ref"):
+            cur.execute("""
+                SELECT a.name 
+                FROM product_allergens pa
+                JOIN allergens a ON pa.allergen_id = a.id
+                JOIN products p ON pa.product_id = p.id
+                WHERE p.internal_ref = %s
+            """, (bom["batch_ref"],))
+            allergens = [row["name"] for row in cur.fetchall()]
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            "finished_ref": product["internal_ref"],
+            "finished_name": product["name"],
+            "brand": product["brand"],
+            "case_size": product["case_size"],
+            "cases_per_pallet": product["cases_per_pallet"],
+            "batch_ref": bom["batch_ref"] if bom else None,
+            "batch_name": bom["batch_name"] if bom else None,
+            "batch_qty_per_case": bom["batch_qty"] if bom else None,
+            "packaging_items": packaging,
+            "allergens": allergens
+        }
+    
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/bom/production/requirements")
+def calculate_production_requirements(
+    req: ProductionRequirementRequest,
+    _: bool = Depends(verify_api_key)
+):
+    """Calculate ingredient requirements for a production run"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get finished product and its batch
+        cur.execute("""
+            SELECT fp.id, fp.name as finished_name, fp.internal_ref,
+                   b.internal_ref as batch_ref, b.name as batch_name,
+                   b.batch_weight_lb, b.yields_batches,
+                   pb.quantity as batch_qty_per_case
+            FROM products fp
+            JOIN product_bom pb ON fp.id = pb.finished_product_id
+            JOIN products b ON pb.component_id = b.id AND b.product_type = 'batch'
+            WHERE fp.internal_ref = %s AND fp.product_type = 'finished'
+        """, (req.finished_ref,))
+        product = cur.fetchone()
+        
+        if not product:
+            cur.close()
+            conn.close()
+            return JSONResponse(status_code=404, content={"error": f"Finished product {req.finished_ref} not found or has no batch"})
+        
+        # Calculate batches needed
+        batch_qty_per_case = product["batch_qty_per_case"] or 1
+        yields_batches = product["yields_batches"] or 1
+        batch_weight = product["batch_weight_lb"] or 0
+        
+        total_batch_qty_needed = req.quantity_cases * batch_qty_per_case
+        batches_needed = total_batch_qty_needed / yields_batches if yields_batches else total_batch_qty_needed
+        
+        # Get ingredients and scale quantities
+        cur.execute("""
+            SELECT ingredient_ref, ingredient_name, quantity, unit
+            FROM v_batch_ingredients
+            WHERE batch_ref = %s
+        """, (product["batch_ref"],))
+        ingredients = cur.fetchall()
+        
+        scaled_ingredients = []
+        for ing in ingredients:
+            scaled_qty = (ing["quantity"] or 0) * batches_needed
+            scaled_ingredients.append({
+                "ingredient_ref": ing["ingredient_ref"],
+                "ingredient_name": ing["ingredient_name"],
+                "quantity_needed": round(scaled_qty, 2),
+                "unit": ing["unit"]
+            })
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            "finished_ref": req.finished_ref,
+            "finished_name": product["finished_name"],
+            "cases_requested": req.quantity_cases,
+            "batch_ref": product["batch_ref"],
+            "batch_name": product["batch_name"],
+            "batches_needed": round(batches_needed, 2),
+            "total_batch_weight_lb": round(batches_needed * batch_weight, 2) if batch_weight else None,
+            "ingredients": scaled_ingredients
+        }
+    
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.put("/bom/batches/{batch_ref}")
+def update_batch(
+    batch_ref: str,
+    req: UpdateBatchRequest,
+    _: bool = Depends(verify_api_key)
+):
+    """Update batch weight, yields, or notes"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Check batch exists
+        cur.execute("""
+            SELECT id FROM products WHERE internal_ref = %s AND product_type = 'batch'
+        """, (batch_ref,))
+        batch = cur.fetchone()
+        
+        if not batch:
+            cur.close()
+            conn.close()
+            return JSONResponse(status_code=404, content={"error": f"Batch {batch_ref} not found"})
+        
+        # Build update query
+        updates = []
+        params = []
+        
+        if req.batch_weight_lb is not None:
+            updates.append("batch_weight_lb = %s")
+            params.append(req.batch_weight_lb)
+        
+        if req.yields_batches is not None:
+            updates.append("yields_batches = %s")
+            params.append(req.yields_batches)
+        
+        if req.notes is not None:
+            updates.append("notes = %s")
+            params.append(req.notes)
+        
+        if not updates:
+            return JSONResponse(status_code=400, content={"error": "No fields to update"})
+        
+        params.append(batch_ref)
+        query = f"UPDATE products SET {', '.join(updates)} WHERE internal_ref = %s RETURNING *"
+        
+        cur.execute(query, params)
+        updated = cur.fetchone()
+        conn.commit()
+        
+        cur.close()
+        conn.close()
+        
+        return {"message": f"Batch {batch_ref} updated", "batch": updated}
+    
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/bom/allergens")
+def get_allergens_list(_: bool = Depends(verify_api_key)):
+    """Get all allergens and which batches contain them"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute("""
+            SELECT a.id, a.name, a.code,
+                   COALESCE(json_agg(
+                       json_build_object('batch_ref', p.internal_ref, 'batch_name', p.name)
+                   ) FILTER (WHERE p.id IS NOT NULL), '[]') as batches
+            FROM allergens a
+            LEFT JOIN product_allergens pa ON a.id = pa.allergen_id
+            LEFT JOIN products p ON pa.product_id = p.id
+            GROUP BY a.id, a.name, a.code
+            ORDER BY a.name
+        """)
+        allergens = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        return {"allergens": allergens}
+    
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/bom/search")
+def search_bom(
+    q: str = Query(..., description="Search term"),
+    _: bool = Depends(verify_api_key)
+):
+    """Search across all products, batches, and formulas"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        search_term = f"%{q}%"
+        
+        # Search products
+        cur.execute("""
+            SELECT internal_ref, name, product_type, brand
+            FROM products
+            WHERE name ILIKE %s OR internal_ref ILIKE %s OR odoo_code ILIKE %s
+            ORDER BY product_type, internal_ref
+            LIMIT 25
+        """, (search_term, search_term, search_term))
+        products = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        return {
+            "query": q,
+            "result_count": len(products),
+            "results": products
+        }
+    
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
