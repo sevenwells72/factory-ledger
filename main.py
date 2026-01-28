@@ -739,7 +739,7 @@ def get_transaction_history(_: bool = Depends(verify_api_key), limit: int = Quer
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.get("/bom/{product}")
+@app.get("/recipe/{product}")
 def get_bom(product: str, expand: bool = Query(default=False), _: bool = Depends(verify_api_key)):
     try:
         with psycopg2.connect(DATABASE_URL, connect_timeout=5) as conn:
