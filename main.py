@@ -17,7 +17,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.1.0")
+app = FastAPI(title="Factory Ledger System", version="2.1.2")
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
@@ -198,7 +198,7 @@ class VerifyProductRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.1.0",
+        "version": "2.1.1",
         "status": "online",
         "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory"]
     }
@@ -249,6 +249,59 @@ def search_products(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+# ═══════════════════════════════════════════════════════════════
+# REVIEW QUEUE ENDPOINTS (MUST BE BEFORE /products/{product_id})
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/products/unverified")
+def get_unverified_products(limit: int = Query(default=50, ge=1, le=200), _: bool = Depends(verify_api_key)):
+    """Get products that need verification."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT id, name, type, uom, 
+                       COALESCE(verification_status, 'verified') as verification_status,
+                       verification_notes, created_via
+                FROM products
+                WHERE COALESCE(verification_status, 'verified') = 'unverified'
+                  AND COALESCE(active, true) = true
+                ORDER BY id DESC
+                LIMIT %s
+            """, (limit,))
+            products = cur.fetchall()
+        return {"count": len(products), "products": products}
+    except Exception as e:
+        logger.error(f"Get unverified products failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/products/test-batches")
+def get_test_batches(limit: int = Query(default=50, ge=1, le=200), _: bool = Depends(verify_api_key)):
+    """Get test batch products that may need review."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT id, name, type, 
+                       COALESCE(verification_status, 'verified') as verification_status,
+                       COALESCE(production_context, 'standard') as production_context,
+                       verification_notes
+                FROM products
+                WHERE COALESCE(production_context, 'standard') IN ('test_batch', 'sample', 'one_off')
+                  AND COALESCE(active, true) = true
+                ORDER BY id DESC
+                LIMIT %s
+            """, (limit,))
+            products = cur.fetchall()
+        return {"count": len(products), "products": products}
+    except Exception as e:
+        logger.error(f"Get test batches failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# PRODUCT BY ID (AFTER specific /products/* routes)
+# ═══════════════════════════════════════════════════════════════
+
 @app.get("/products/{product_id}")
 def get_product(product_id: int, _: bool = Depends(verify_api_key)):
     try:
@@ -268,26 +321,6 @@ def get_product(product_id: int, _: bool = Depends(verify_api_key)):
 # ═══════════════════════════════════════════════════════════════
 # INVENTORY ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
-
-@app.get("/inventory/{item_name}")
-def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
-    try:
-        with get_transaction() as cur:
-            cur.execute("""
-                SELECT p.id, p.name, p.odoo_code, p.type, p.uom,
-                       COALESCE(SUM(tl.quantity_lb), 0) as total_on_hand
-                FROM products p
-                LEFT JOIN lots l ON l.product_id = p.id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-                WHERE LOWER(p.name) LIKE LOWER(%s) OR LOWER(p.odoo_code) LIKE LOWER(%s)
-                GROUP BY p.id
-            """, (f"%{item_name}%", f"%{item_name}%"))
-            results = cur.fetchall()
-        return {"count": len(results), "inventory": results}
-    except Exception as e:
-        logger.error(f"Get inventory failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
 
 @app.get("/inventory/current")
 def get_current_inventory(
@@ -317,6 +350,26 @@ def get_current_inventory(
         return {"count": len(inventory), "inventory": inventory}
     except Exception as e:
         logger.error(f"Get current inventory failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/inventory/{item_name}")
+def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT p.id, p.name, p.odoo_code, p.type, p.uom,
+                       COALESCE(SUM(tl.quantity_lb), 0) as total_on_hand
+                FROM products p
+                LEFT JOIN lots l ON l.product_id = p.id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE LOWER(p.name) LIKE LOWER(%s) OR LOWER(p.odoo_code) LIKE LOWER(%s)
+                GROUP BY p.id
+            """, (f"%{item_name}%", f"%{item_name}%"))
+            results = cur.fetchall()
+        return {"count": len(results), "inventory": results}
+    except Exception as e:
+        logger.error(f"Get inventory failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
@@ -847,7 +900,27 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             
             all_sufficient = all(i['sufficient'] for i in ingredients_needed)
             
-            lot_code = req.lot_code or f"B{get_plant_now().strftime('%m%d')}"
+            # Generate preview lot code with new format
+            if req.lot_code:
+                lot_code = req.lot_code
+            else:
+                now = get_plant_now()
+                date_part = now.strftime("%y-%m%d")
+                cur.execute("""
+                    SELECT lot_code FROM lots 
+                    WHERE lot_code LIKE %s 
+                    ORDER BY lot_code DESC LIMIT 1
+                """, (f"B{date_part}-%",))
+                existing = cur.fetchone()
+                if existing:
+                    try:
+                        last_seq = int(existing['lot_code'].split('-')[-1])
+                        seq = last_seq + 1
+                    except (ValueError, IndexError):
+                        seq = 1
+                else:
+                    seq = 1
+                lot_code = f"B{date_part}-{seq:03d}"
             
             return {
                 "product_id": product['id'],
@@ -885,7 +958,27 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 batch_size = float(product.get('default_batch_lb') or 0)
                 total_output = batch_size * req.batches
                 now = get_plant_now()
-                lot_code = req.lot_code or f"B{now.strftime('%m%d')}"
+                
+                # Generate production lot code with year + date + sequence to avoid collisions
+                if req.lot_code:
+                    lot_code = req.lot_code
+                else:
+                    date_part = now.strftime("%y-%m%d")
+                    cur.execute("""
+                        SELECT lot_code FROM lots 
+                        WHERE lot_code LIKE %s 
+                        ORDER BY lot_code DESC LIMIT 1
+                    """, (f"B{date_part}-%",))
+                    existing = cur.fetchone()
+                    if existing:
+                        try:
+                            last_seq = int(existing['lot_code'].split('-')[-1])
+                            seq = last_seq + 1
+                        except (ValueError, IndexError):
+                            seq = 1
+                    else:
+                        seq = 1
+                    lot_code = f"B{date_part}-{seq:03d}"
                 
                 # Create output lot
                 cur.execute("""
@@ -932,10 +1025,30 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         override_lot = cur.fetchone()
                     
                     if override_lot:
+                        # Validate override lot has sufficient quantity
+                        cur.execute("""
+                            SELECT COALESCE(SUM(tl.quantity_lb), 0) as available
+                            FROM transaction_lines tl
+                            WHERE tl.lot_id = %s
+                        """, (override_lot['id'],))
+                        available = float(cur.fetchone()['available'])
+                        if available < needed:
+                            raise HTTPException(
+                                status_code=400, 
+                                detail=f"Override lot {override_lot['lot_code']} has {available} lb, need {needed} lb"
+                            )
+                        
                         cur.execute("""
                             INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                             VALUES (%s, %s, %s, %s)
                         """, (txn_id, ing['ingredient_product_id'], override_lot['id'], -needed))
+                        
+                        # Record traceability for override lot
+                        cur.execute("""
+                            INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb)
+                            VALUES (%s, %s, %s, %s)
+                        """, (txn_id, ing['ingredient_product_id'], override_lot['id'], needed))
+                        
                         consumed.append({"lot_code": override_lot['lot_code'], "consumed_lb": needed})
                     else:
                         # FIFO consumption
@@ -961,14 +1074,21 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                                 VALUES (%s, %s, %s, %s)
                             """, (txn_id, ing['ingredient_product_id'], lot['id'], -take))
                             
-                            # Record traceability
+                            # Record traceability (FIXED: use correct column names)
                             cur.execute("""
-                                INSERT INTO ingredient_lot_consumption (batch_transaction_id, ingredient_product_id, ingredient_lot_id, quantity_consumed)
+                                INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb)
                                 VALUES (%s, %s, %s, %s)
                             """, (txn_id, ing['ingredient_product_id'], lot['id'], take))
                             
                             consumed.append({"lot_code": lot['lot_code'], "consumed_lb": take})
                             remaining -= take
+                        
+                        # Enforce ingredient sufficiency
+                        if remaining > 0.001:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Insufficient inventory for ingredient ID {ing['ingredient_product_id']}. Missing {remaining:.2f} lb"
+                            )
                 
                 logger.info(f"Make committed: {lot_code} - {total_output} lb of {product['name']}")
                 
@@ -1063,13 +1183,13 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
             if not batch:
                 raise HTTPException(status_code=404, detail=f"Batch '{lot_code}' not found")
             
-            # Get ingredients
+            # Get ingredients (FIXED: use correct column name transaction_id)
             cur.execute("""
-                SELECT p.name as ingredient_name, l.lot_code as ingredient_lot, ilc.quantity_consumed
+                SELECT p.name as ingredient_name, l.lot_code as ingredient_lot, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
                 JOIN products p ON p.id = ilc.ingredient_product_id
                 JOIN lots l ON l.id = ilc.ingredient_lot_id
-                WHERE ilc.batch_transaction_id = %s
+                WHERE ilc.transaction_id = %s
             """, (batch['transaction_id'],))
             ingredients = cur.fetchall()
             
@@ -1111,11 +1231,12 @@ def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
             if not lot:
                 raise HTTPException(status_code=404, detail=f"Lot '{lot_code}' not found")
             
+            # FIXED: use correct column name transaction_id
             cur.execute("""
-                SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_consumed
+                SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
                 JOIN lots il ON il.id = ilc.ingredient_lot_id
-                JOIN transactions t ON t.id = ilc.batch_transaction_id
+                JOIN transactions t ON t.id = ilc.transaction_id
                 JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
                 JOIN lots bl ON bl.id = tl.lot_id
                 JOIN products bp ON bp.id = bl.product_id
@@ -1225,14 +1346,14 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
                 """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes))
                 product = cur.fetchone()
                 
-                # Create audit record if table exists
+                # Create audit record
                 try:
                     cur.execute("""
                         INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, performed_by)
                         VALUES (%s, NULL, 'unverified', 'created', %s, %s)
                     """, (product['id'], f"Quick-created during receive. {verification_notes}", req.performed_by))
                 except Exception:
-                    pass  # Table might not exist yet
+                    pass
                 
                 logger.info(f"Quick-created product: {product['name']} (ID: {product['id']})")
                 
@@ -1300,12 +1421,15 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Get current lot info
+                # Get current lot info with quantity
                 cur.execute("""
-                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name
+                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
+                           COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                     FROM lots l
                     JOIN products p ON p.id = l.product_id
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                     WHERE l.id = %s
+                    GROUP BY l.id, p.id
                     FOR UPDATE OF l
                 """, (lot_id,))
                 lot = cur.fetchone()
@@ -1339,14 +1463,18 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     UPDATE transaction_lines SET product_id = %s WHERE lot_id = %s
                 """, (req.to_product_id, lot_id))
                 
-                # Record reassignment if table exists
+                # Record reassignment (FIXED: include all NOT NULL columns)
                 try:
                     cur.execute("""
-                        INSERT INTO lot_reassignments (lot_id, from_product_id, to_product_id, reason_code, reason_notes, reassigned_by)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (lot_id, lot['product_id'], req.to_product_id, req.reason_code, req.reason_notes, req.performed_by))
-                except Exception:
-                    pass
+                        INSERT INTO lot_reassignments 
+                        (lot_id, lot_code, from_product_id, from_product_name, to_product_id, to_product_name, 
+                         quantity_affected, uom, reason_code, reason_notes, reassigned_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (lot_id, lot['lot_code'], lot['product_id'], lot['product_name'], 
+                          req.to_product_id, to_product['name'], float(lot['quantity_on_hand']), 'lb',
+                          req.reason_code, req.reason_notes, req.performed_by))
+                except Exception as e:
+                    logger.warning(f"Failed to record lot reassignment history: {e}")
                 
                 logger.info(f"Reassigned lot {lot['lot_code']} from {lot['product_name']} to {to_product['name']}")
                 
@@ -1383,6 +1511,9 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                 
                 if not product:
                     raise HTTPException(status_code=404, detail=f"Product ID {req.product_id} not found")
+                
+                # Lock for FOUND lot sequence generation
+                cur.execute("SELECT pg_advisory_xact_lock(2)")
                 
                 now = get_plant_now()
                 date_part = now.strftime("%y-%m-%d")
@@ -1426,15 +1557,18 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, req.product_id, lot_id, req.quantity))
                 
-                # Record adjustment if table exists
+                # Record adjustment (FIXED: include all NOT NULL columns)
                 try:
                     cur.execute("""
                         INSERT INTO inventory_adjustments 
-                        (lot_id, product_id, adjustment_type, quantity_before, quantity_after, reason_code, reason_notes, suspected_supplier, adjusted_by)
-                        VALUES (%s, %s, 'found', 0, %s, %s, %s, %s, %s)
-                    """, (lot_id, req.product_id, req.quantity, req.reason_code, req.notes, req.suspected_supplier, req.performed_by))
-                except Exception:
-                    pass
+                        (lot_id, product_id, adjustment_type, quantity_before, quantity_adjustment, quantity_after, 
+                         uom, reason_code, reason_notes, found_location, estimated_age, suspected_supplier, adjusted_by)
+                        VALUES (%s, %s, 'found', 0, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (lot_id, req.product_id, req.quantity, req.quantity, req.uom, 
+                          req.reason_code, req.notes, req.found_location, req.estimated_age,
+                          req.suspected_supplier, req.performed_by))
+                except Exception as e:
+                    logger.warning(f"Failed to record inventory adjustment: {e}")
                 
                 logger.info(f"Added found inventory: {lot_code} - {req.quantity} {req.uom} of {product['name']}")
                 
@@ -1480,6 +1614,9 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes))
                 product = cur.fetchone()
                 
+                # Lock for FOUND lot sequence generation
+                cur.execute("SELECT pg_advisory_xact_lock(2)")
+                
                 now = get_plant_now()
                 date_part = now.strftime("%y-%m-%d")
                 
@@ -1524,55 +1661,6 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 }
     except Exception as e:
         logger.error(f"Add found inventory with new product failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-# ═══════════════════════════════════════════════════════════════
-# REVIEW QUEUE ENDPOINTS
-# ═══════════════════════════════════════════════════════════════
-
-@app.get("/products/unverified")
-def get_unverified_products(limit: int = Query(default=50, ge=1, le=200), _: bool = Depends(verify_api_key)):
-    """Get products that need verification."""
-    try:
-        with get_transaction() as cur:
-            cur.execute("""
-                SELECT id, name, type, uom, 
-                       COALESCE(verification_status, 'verified') as verification_status,
-                       verification_notes, created_via
-                FROM products
-                WHERE COALESCE(verification_status, 'verified') = 'unverified'
-                  AND COALESCE(active, true) = true
-                ORDER BY id DESC
-                LIMIT %s
-            """, (limit,))
-            products = cur.fetchall()
-        return {"count": len(products), "products": products}
-    except Exception as e:
-        logger.error(f"Get unverified products failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.get("/products/test-batches")
-def get_test_batches(limit: int = Query(default=50, ge=1, le=200), _: bool = Depends(verify_api_key)):
-    """Get test batch products that may need review."""
-    try:
-        with get_transaction() as cur:
-            cur.execute("""
-                SELECT id, name, type, 
-                       COALESCE(verification_status, 'verified') as verification_status,
-                       COALESCE(production_context, 'standard') as production_context,
-                       verification_notes
-                FROM products
-                WHERE COALESCE(production_context, 'standard') IN ('test_batch', 'sample', 'one_off')
-                  AND COALESCE(active, true) = true
-                ORDER BY id DESC
-                LIMIT %s
-            """, (limit,))
-            products = cur.fetchall()
-        return {"count": len(products), "products": products}
-    except Exception as e:
-        logger.error(f"Get test batches failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
@@ -1643,7 +1731,7 @@ def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends
                 else:
                     raise HTTPException(status_code=400, detail=f"Invalid action: {req.action}")
                 
-                # Record history if table exists
+                # Record history
                 try:
                     cur.execute("""
                         INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, performed_by)
