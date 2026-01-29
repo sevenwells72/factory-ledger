@@ -823,7 +823,7 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 SELECT bf.ingredient_product_id, p.name as ingredient_name, bf.quantity_lb
                 FROM batch_formulas bf
                 JOIN products p ON p.id = bf.ingredient_product_id
-                WHERE bf.batch_product_id = %s
+                WHERE bf.product_id = %s
             """, (product['id'],))
             formula = cur.fetchall()
             
@@ -913,7 +913,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 cur.execute("""
                     SELECT bf.ingredient_product_id, bf.quantity_lb
                     FROM batch_formulas bf
-                    WHERE bf.batch_product_id = %s
+                    WHERE bf.product_id = %s
                 """, (product['id'],))
                 formula = cur.fetchall()
                 
@@ -1716,7 +1716,7 @@ def get_batch_formula(batch_id: int, _: bool = Depends(verify_api_key)):
                 SELECT bf.ingredient_product_id, p.name as ingredient_name, p.odoo_code, bf.quantity_lb
                 FROM batch_formulas bf
                 JOIN products p ON p.id = bf.ingredient_product_id
-                WHERE bf.batch_product_id = %s
+                WHERE bf.product_id = %s
                 ORDER BY bf.quantity_lb DESC
             """, (batch_id,))
             ingredients = cur.fetchall()
