@@ -596,19 +596,43 @@ def get_available_lots_fifo(cur, product_id: int, lock: bool = False) -> list:
         product_id: Product to get lots for
         lock: If True, lock the lot rows (use in commit operations only)
     """
-    query = """
-        SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available_lb
-        FROM lots l
-        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-        WHERE l.product_id = %s
-        GROUP BY l.id, l.lot_code
-        HAVING COALESCE(SUM(tl.quantity_lb), 0) > %s
-        ORDER BY l.id ASC
-    """
+    # FOR UPDATE cannot be used with GROUP BY, so we use a subquery approach
+    # First get lots with positive balances, then optionally lock them
     if lock:
-        query += " FOR UPDATE OF l"
+        # Lock the lot rows first, then calculate balances
+        cur.execute("""
+            SELECT l.id as lot_id, l.lot_code
+            FROM lots l
+            WHERE l.product_id = %s
+            FOR UPDATE
+        """, (product_id,))
+        locked_lots = cur.fetchall()
+        
+        if not locked_lots:
+            return []
+        
+        # Now get balances for locked lots
+        lot_ids = [lot["lot_id"] for lot in locked_lots]
+        cur.execute("""
+            SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available_lb
+            FROM lots l
+            LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+            WHERE l.id = ANY(%s)
+            GROUP BY l.id, l.lot_code
+            HAVING COALESCE(SUM(tl.quantity_lb), 0) > %s
+            ORDER BY l.id ASC
+        """, (lot_ids, WEIGHT_TOLERANCE_LB))
+    else:
+        cur.execute("""
+            SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available_lb
+            FROM lots l
+            LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+            WHERE l.product_id = %s
+            GROUP BY l.id, l.lot_code
+            HAVING COALESCE(SUM(tl.quantity_lb), 0) > %s
+            ORDER BY l.id ASC
+        """, (product_id, WEIGHT_TOLERANCE_LB))
     
-    cur.execute(query, (product_id, WEIGHT_TOLERANCE_LB))
     return cur.fetchall()
 
 
@@ -622,18 +646,39 @@ def get_lot_with_balance(cur, product_id: int, lot_code: str, lock: bool = False
         lot_code: Lot code to look up
         lock: If True, lock the lot row (use in commit operations only)
     """
-    query = """
-        SELECT l.id as lot_id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as current_balance
-        FROM lots l
-        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-        WHERE l.product_id = %s AND l.lot_code = %s
-        GROUP BY l.id, l.lot_code
-    """
+    # Get the lot first (with optional lock)
+    # FOR UPDATE cannot be used with GROUP BY, so we split the queries
     if lock:
-        query += " FOR UPDATE OF l"
+        cur.execute("""
+            SELECT id as lot_id, lot_code 
+            FROM lots 
+            WHERE product_id = %s AND lot_code = %s
+            FOR UPDATE
+        """, (product_id, lot_code))
+    else:
+        cur.execute("""
+            SELECT id as lot_id, lot_code 
+            FROM lots 
+            WHERE product_id = %s AND lot_code = %s
+        """, (product_id, lot_code))
     
-    cur.execute(query, (product_id, lot_code))
-    return cur.fetchone()
+    lot = cur.fetchone()
+    if not lot:
+        return None
+    
+    # Get the balance separately (aggregation doesn't need lock)
+    cur.execute("""
+        SELECT COALESCE(SUM(quantity_lb), 0) as current_balance
+        FROM transaction_lines
+        WHERE lot_id = %s
+    """, (lot["lot_id"],))
+    balance = cur.fetchone()
+    
+    return {
+        "lot_id": lot["lot_id"],
+        "lot_code": lot["lot_code"],
+        "current_balance": float(balance["current_balance"])
+    }
 
 
 def allocate_from_lots(available_lots: list, required_lb: float) -> tuple:
