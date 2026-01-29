@@ -1537,12 +1537,13 @@ def get_unverified_products(limit: int = Query(default=50, ge=1, le=200), _: boo
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT id, name, type, uom, verification_status, verification_notes, created_via,
-                       created_at
+                SELECT id, name, type, uom, 
+                       COALESCE(verification_status, 'verified') as verification_status,
+                       verification_notes, created_via
                 FROM products
                 WHERE COALESCE(verification_status, 'verified') = 'unverified'
                   AND COALESCE(active, true) = true
-                ORDER BY created_at DESC
+                ORDER BY id DESC
                 LIMIT %s
             """, (limit,))
             products = cur.fetchall()
@@ -1558,11 +1559,14 @@ def get_test_batches(limit: int = Query(default=50, ge=1, le=200), _: bool = Dep
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT id, name, type, verification_status, production_context, verification_notes
+                SELECT id, name, type, 
+                       COALESCE(verification_status, 'verified') as verification_status,
+                       COALESCE(production_context, 'standard') as production_context,
+                       verification_notes
                 FROM products
                 WHERE COALESCE(production_context, 'standard') IN ('test_batch', 'sample', 'one_off')
                   AND COALESCE(active, true) = true
-                ORDER BY created_at DESC
+                ORDER BY id DESC
                 LIMIT %s
             """, (limit,))
             products = cur.fetchall()
