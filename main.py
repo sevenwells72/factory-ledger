@@ -198,7 +198,7 @@ class VerifyProductRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.1.1",
+        "version": "2.1.2",
         "status": "online",
         "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory"]
     }
