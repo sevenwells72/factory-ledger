@@ -17,7 +17,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.1.3")
+app = FastAPI(title="Factory Ledger System", version="2.1.4")
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
@@ -124,6 +124,7 @@ class MakeRequest(BaseModel):
     batches: int
     lot_code: Optional[str] = None
     ingredient_lot_overrides: Optional[Dict[str, str]] = None
+    excluded_ingredients: Optional[List[int]] = None  # v2.1.4: List of ingredient IDs to exclude
 
 class AdjustRequest(BaseModel):
     product_name: str
@@ -198,9 +199,9 @@ class VerifyProductRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.1.3",
+        "version": "2.1.4",
         "status": "online",
-        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory"]
+        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion"]
     }
 
 
@@ -896,6 +897,9 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             batch_size = float(product.get('default_batch_lb') or 0)
             total_output = batch_size * req.batches
             
+            # v2.1.4: Build exclusion set
+            excluded_ids = set(req.excluded_ingredients or [])
+            
             cur.execute("""
                 SELECT bf.ingredient_product_id, p.name as ingredient_name, bf.quantity_lb
                 FROM batch_formulas bf
@@ -905,17 +909,31 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             formula = cur.fetchall()
             
             ingredients_needed = []
+            excluded_ingredients = []
+            
             for ing in formula:
+                ing_id = ing['ingredient_product_id']
                 needed = float(ing['quantity_lb']) * req.batches
+                
+                # v2.1.4: Check if excluded
+                if ing_id in excluded_ids:
+                    excluded_ingredients.append({
+                        "ingredient_id": ing_id,
+                        "ingredient_name": ing['ingredient_name'],
+                        "would_need_lb": needed,
+                        "excluded": True
+                    })
+                    continue
+                
                 cur.execute("""
                     SELECT COALESCE(SUM(tl.quantity_lb), 0) as available
                     FROM lots l
                     LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                     WHERE l.product_id = %s
-                """, (ing['ingredient_product_id'],))
+                """, (ing_id,))
                 avail = float(cur.fetchone()['available'])
                 ingredients_needed.append({
-                    "ingredient_id": ing['ingredient_product_id'],
+                    "ingredient_id": ing_id,
                     "ingredient_name": ing['ingredient_name'],
                     "needed_lb": needed,
                     "available_lb": avail,
@@ -945,7 +963,7 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     seq = 1
                 lot_code = f"B{date_part}-{seq:03d}"
             
-            return {
+            response = {
                 "product_id": product['id'],
                 "product_name": product['name'],
                 "batches": req.batches,
@@ -956,6 +974,13 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 "all_ingredients_available": all_sufficient,
                 "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({total_output} lb)"
             }
+            
+            # v2.1.4: Include excluded ingredients in response
+            if excluded_ingredients:
+                response["excluded_ingredients"] = excluded_ingredients
+                response["preview_message"] += f" (excluding {len(excluded_ingredients)} ingredient(s))"
+            
+            return response
     except HTTPException:
         raise
     except Exception as e:
@@ -981,6 +1006,9 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 batch_size = float(product.get('default_batch_lb') or 0)
                 total_output = batch_size * req.batches
                 now = get_plant_now()
+                
+                # v2.1.4: Build exclusion set
+                excluded_ids = set(req.excluded_ingredients or [])
                 
                 if req.lot_code:
                     lot_code = req.lot_code
@@ -1009,11 +1037,16 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 """, (product['id'], lot_code))
                 output_lot_id = cur.fetchone()['id']
                 
+                # v2.1.4: Include exclusion info in notes
+                exclusion_note = ""
+                if excluded_ids:
+                    exclusion_note = f" (excluded ingredient IDs: {sorted(excluded_ids)})"
+                
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, notes)
                     VALUES ('make', %s, %s)
                     RETURNING id
-                """, (now, f"{req.batches} batch(es) of {product['name']}"))
+                """, (now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}"))
                 txn_id = cur.fetchone()['id']
                 
                 cur.execute("""
@@ -1029,16 +1062,31 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 formula = cur.fetchall()
                 
                 consumed = []
+                excluded_from_run = []
+                
                 for ing in formula:
+                    ing_id = ing['ingredient_product_id']
                     needed = float(ing['quantity_lb']) * req.batches
                     
+                    # v2.1.4: Skip excluded ingredients
+                    if ing_id in excluded_ids:
+                        # Get ingredient name for reporting
+                        cur.execute("SELECT name FROM products WHERE id = %s", (ing_id,))
+                        ing_name = cur.fetchone()
+                        excluded_from_run.append({
+                            "ingredient_id": ing_id,
+                            "ingredient_name": ing_name['name'] if ing_name else f"ID {ing_id}",
+                            "skipped_lb": needed
+                        })
+                        continue
+                    
                     override_lot = None
-                    if req.ingredient_lot_overrides and str(ing['ingredient_product_id']) in req.ingredient_lot_overrides:
-                        override_code = req.ingredient_lot_overrides[str(ing['ingredient_product_id'])]
+                    if req.ingredient_lot_overrides and str(ing_id) in req.ingredient_lot_overrides:
+                        override_code = req.ingredient_lot_overrides[str(ing_id)]
                         cur.execute("""
                             SELECT l.id, l.lot_code FROM lots l
                             WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s)
-                        """, (ing['ingredient_product_id'], override_code))
+                        """, (ing_id, override_code))
                         override_lot = cur.fetchone()
                     
                     if override_lot:
@@ -1059,12 +1107,12 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         cur.execute("""
                             INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                             VALUES (%s, %s, %s, %s)
-                        """, (txn_id, ing['ingredient_product_id'], override_lot['id'], -needed))
+                        """, (txn_id, ing_id, override_lot['id'], -needed))
                         
                         cur.execute("""
                             INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb)
                             VALUES (%s, %s, %s, %s)
-                        """, (txn_id, ing['ingredient_product_id'], override_lot['id'], needed))
+                        """, (txn_id, ing_id, override_lot['id'], needed))
                         
                         consumed.append({"lot_code": override_lot['lot_code'], "consumed_lb": needed})
                     else:
@@ -1077,13 +1125,13 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             GROUP BY l.id
                             HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
                             ORDER BY l.id ASC
-                        """, (ing['ingredient_product_id'],))
+                        """, (ing_id,))
                         candidate_lots = cur.fetchall()
                         
                         if not candidate_lots:
                             raise HTTPException(
                                 status_code=400,
-                                detail=f"No inventory available for ingredient ID {ing['ingredient_product_id']}"
+                                detail=f"No inventory available for ingredient ID {ing_id}"
                             )
                         
                         lot_ids = [lot['id'] for lot in candidate_lots]
@@ -1111,12 +1159,12 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             cur.execute("""
                                 INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                                 VALUES (%s, %s, %s, %s)
-                            """, (txn_id, ing['ingredient_product_id'], lot['id'], -take))
+                            """, (txn_id, ing_id, lot['id'], -take))
                             
                             cur.execute("""
                                 INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb)
                                 VALUES (%s, %s, %s, %s)
-                            """, (txn_id, ing['ingredient_product_id'], lot['id'], take))
+                            """, (txn_id, ing_id, lot['id'], take))
                             
                             consumed.append({"lot_code": lot['lot_code'], "consumed_lb": take})
                             remaining -= take
@@ -1124,12 +1172,12 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         if remaining > 0.001:
                             raise HTTPException(
                                 status_code=400,
-                                detail=f"Insufficient inventory for ingredient ID {ing['ingredient_product_id']}. Missing {remaining:.2f} lb"
+                                detail=f"Insufficient inventory for ingredient ID {ing_id}. Missing {remaining:.2f} lb"
                             )
                 
                 logger.info(f"Make committed: {lot_code} - {total_output} lb of {product['name']}")
                 
-                return {
+                response = {
                     "success": True,
                     "transaction_id": txn_id,
                     "lot_id": output_lot_id,
@@ -1138,6 +1186,13 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     "ingredients_consumed": consumed,
                     "message": f"Produced {total_output} lb as lot {lot_code}"
                 }
+                
+                # v2.1.4: Include excluded ingredients in response
+                if excluded_from_run:
+                    response["excluded_ingredients"] = excluded_from_run
+                    response["message"] += f" (excluded {len(excluded_from_run)} ingredient(s))"
+                
+                return response
     except HTTPException:
         raise
     except Exception as e:
