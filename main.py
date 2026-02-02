@@ -17,7 +17,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.1.2")
+app = FastAPI(title="Factory Ledger System", version="2.1.3")
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
@@ -134,17 +134,17 @@ class AdjustRequest(BaseModel):
 # --- Quick Create Models ---
 class QuickCreateProductRequest(BaseModel):
     product_name: str
-    product_type: str  # ingredient, finished_good, packaging
+    product_type: str
     uom: str = "lb"
     storage_type: str = "ambient"
-    name_confidence: str = "exact"  # exact, approximate
+    name_confidence: str = "exact"
     notes: Optional[str] = None
     performed_by: str = "system"
 
 class QuickCreateBatchProductRequest(BaseModel):
     product_name: str
-    category: str  # granola, coconut, chocolate, etc.
-    production_context: str  # test_batch, sample, private_label, one_off, standard
+    category: str
+    production_context: str
     name_confidence: str = "exact"
     notes: Optional[str] = None
     performed_by: str = "system"
@@ -152,7 +152,7 @@ class QuickCreateBatchProductRequest(BaseModel):
 # --- Lot Reassignment Models ---
 class LotReassignmentRequest(BaseModel):
     to_product_id: int
-    reason_code: str  # incorrect_receive, product_merge, data_entry_error, supplier_relabel, other
+    reason_code: str
     reason_notes: Optional[str] = None
     performed_by: str = "system"
 
@@ -161,9 +161,9 @@ class AddFoundInventoryRequest(BaseModel):
     product_id: int
     quantity: float
     uom: str = "lb"
-    reason_code: str  # found_during_count, found_back_stock, predates_system, unreceived_delivery
+    reason_code: str
     found_location: Optional[str] = None
-    estimated_age: str = "unknown"  # recent, 1-2_weeks, 1_month_plus, unknown
+    estimated_age: str = "unknown"
     suspected_supplier: Optional[str] = None
     suspected_bol: Optional[str] = None
     notes: Optional[str] = None
@@ -184,7 +184,7 @@ class AddFoundInventoryWithNewProductRequest(BaseModel):
 
 # --- Product Verification Models ---
 class VerifyProductRequest(BaseModel):
-    action: str  # verify, reject, archive
+    action: str
     verified_name: Optional[str] = None
     notes: Optional[str] = None
     performed_by: str = "system"
@@ -198,7 +198,7 @@ class VerifyProductRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.1.2",
+        "version": "2.1.3",
         "status": "online",
         "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory"]
     }
@@ -255,7 +255,6 @@ def search_products(
 
 @app.get("/products/unverified")
 def get_unverified_products(limit: int = Query(default=50, ge=1, le=200), _: bool = Depends(verify_api_key)):
-    """Get products that need verification."""
     try:
         with get_transaction() as cur:
             cur.execute("""
@@ -277,7 +276,6 @@ def get_unverified_products(limit: int = Query(default=50, ge=1, le=200), _: boo
 
 @app.get("/products/test-batches")
 def get_test_batches(limit: int = Query(default=50, ge=1, le=200), _: bool = Depends(verify_api_key)):
-    """Get test batch products that may need review."""
     try:
         with get_transaction() as cur:
             cur.execute("""
@@ -443,7 +441,6 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
     
     shipper_code = shipper_code or "UNKN"
     
-    # Find next sequence number
     cur.execute("""
         SELECT lot_code FROM lots 
         WHERE lot_code LIKE %s 
@@ -508,7 +505,6 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Lock for sequence generation
                 cur.execute("SELECT pg_advisory_xact_lock(1)")
                 
                 cur.execute("""
@@ -525,7 +521,6 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                 total_lb = req.cases * req.case_size_lb
                 now = get_plant_now()
                 
-                # Create lot
                 cur.execute("""
                     INSERT INTO lots (product_id, lot_code, entry_source)
                     VALUES (%s, %s, 'received')
@@ -533,7 +528,6 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                 """, (product['id'], lot_code))
                 lot_id = cur.fetchone()['id']
                 
-                # Create transaction
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, bol_reference, shipper_name, shipper_code, cases_received, case_size_lb)
                     VALUES ('receive', %s, %s, %s, %s, %s, %s)
@@ -541,7 +535,6 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                 """, (now, req.bol_reference, req.shipper_name, shipper_code, req.cases, req.case_size_lb))
                 txn_id = cur.fetchone()['id']
                 
-                # Create transaction line
                 cur.execute("""
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                     VALUES (%s, %s, %s, %s)
@@ -586,7 +579,6 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
             if not product:
                 raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
             
-            # Find lots with inventory
             cur.execute("""
                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                 FROM lots l
@@ -651,16 +643,24 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 if not product:
                     raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
                 
-                # Lock and get lot
+                # FIXED v2.1.3: Split aggregation and locking
                 if req.lot_code:
                     cur.execute("""
-                        SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                        FROM lots l
-                        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        SELECT l.id, l.lot_code FROM lots l
                         WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s)
-                        GROUP BY l.id
-                        FOR UPDATE OF l
                     """, (product['id'], req.lot_code))
+                    lot_row = cur.fetchone()
+                    if not lot_row:
+                        raise HTTPException(status_code=404, detail=f"Lot '{req.lot_code}' not found")
+                    
+                    cur.execute("SELECT id FROM lots WHERE id = %s FOR UPDATE", (lot_row['id'],))
+                    
+                    cur.execute("""
+                        SELECT COALESCE(SUM(quantity_lb), 0) as available
+                        FROM transaction_lines WHERE lot_id = %s
+                    """, (lot_row['id'],))
+                    available = float(cur.fetchone()['available'])
+                    lot = {"id": lot_row['id'], "lot_code": lot_row['lot_code'], "available": available}
                 else:
                     cur.execute("""
                         SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
@@ -670,17 +670,26 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
                         ORDER BY l.id ASC
-                        FOR UPDATE OF l
-                        LIMIT 1
                     """, (product['id'],))
+                    candidates = cur.fetchall()
+                    
+                    if not candidates:
+                        raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
+                    
+                    cur.execute("SELECT id FROM lots WHERE id = %s FOR UPDATE", (candidates[0]['id'],))
+                    
+                    cur.execute("""
+                        SELECT COALESCE(SUM(quantity_lb), 0) as available
+                        FROM transaction_lines WHERE lot_id = %s
+                    """, (candidates[0]['id'],))
+                    available = float(cur.fetchone()['available'])
+                    lot = {"id": candidates[0]['id'], "lot_code": candidates[0]['lot_code'], "available": available}
                 
-                lot = cur.fetchone()
-                if not lot or float(lot['available']) < req.quantity_lb:
+                if lot['available'] < req.quantity_lb:
                     raise HTTPException(status_code=400, detail="Insufficient inventory")
                 
                 now = get_plant_now()
                 
-                # Create transaction
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, customer_name, order_reference)
                     VALUES ('ship', %s, %s, %s)
@@ -688,14 +697,12 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 """, (now, req.customer_name, req.order_reference))
                 txn_id = cur.fetchone()['id']
                 
-                # Create transaction line (negative for ship)
                 cur.execute("""
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, product['id'], lot['id'], -req.quantity_lb))
                 
-                remaining = float(lot['available']) - req.quantity_lb
-                date_str, time_str = format_timestamp(now)
+                remaining = lot['available'] - req.quantity_lb
                 
                 logger.info(f"Ship committed: {req.quantity_lb} lb of {product['name']} to {req.customer_name}")
                 
@@ -748,7 +755,6 @@ def multi_lot_ship_preview(req: MultiLotShipRequest, _: bool = Depends(verify_ap
             if total_available < req.quantity_lb:
                 raise HTTPException(status_code=400, detail=f"Insufficient total inventory. Have {total_available} lb, need {req.quantity_lb} lb")
             
-            # Calculate FIFO allocation
             allocations = []
             remaining_need = req.quantity_lb
             for lot in lots:
@@ -795,7 +801,7 @@ def multi_lot_ship_commit(req: MultiLotShipRequest, _: bool = Depends(verify_api
                 if not product:
                     raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
                 
-                # Lock all lots for this product
+                # FIXED v2.1.3: Split aggregation and locking
                 cur.execute("""
                     SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                     FROM lots l
@@ -804,8 +810,27 @@ def multi_lot_ship_commit(req: MultiLotShipRequest, _: bool = Depends(verify_api
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
                     ORDER BY l.id ASC
-                    FOR UPDATE OF l
                 """, (product['id'],))
+                candidate_lots = cur.fetchall()
+                
+                if not candidate_lots:
+                    raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
+                
+                lot_ids = [lot['id'] for lot in candidate_lots]
+                cur.execute(
+                    "SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE",
+                    (lot_ids,)
+                )
+                
+                cur.execute("""
+                    SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                    FROM lots l
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    WHERE l.id = ANY(%s)
+                    GROUP BY l.id
+                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                    ORDER BY l.id ASC
+                """, (lot_ids,))
                 lots = cur.fetchall()
                 
                 total_available = sum(float(l['available']) for l in lots)
@@ -871,7 +896,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             batch_size = float(product.get('default_batch_lb') or 0)
             total_output = batch_size * req.batches
             
-            # Get formula
             cur.execute("""
                 SELECT bf.ingredient_product_id, p.name as ingredient_name, bf.quantity_lb
                 FROM batch_formulas bf
@@ -900,7 +924,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             
             all_sufficient = all(i['sufficient'] for i in ingredients_needed)
             
-            # Generate preview lot code with new format
             if req.lot_code:
                 lot_code = req.lot_code
             else:
@@ -959,7 +982,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 total_output = batch_size * req.batches
                 now = get_plant_now()
                 
-                # Generate production lot code with year + date + sequence to avoid collisions
                 if req.lot_code:
                     lot_code = req.lot_code
                 else:
@@ -980,7 +1002,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         seq = 1
                     lot_code = f"B{date_part}-{seq:03d}"
                 
-                # Create output lot
                 cur.execute("""
                     INSERT INTO lots (product_id, lot_code, entry_source)
                     VALUES (%s, %s, 'production_output')
@@ -988,7 +1009,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 """, (product['id'], lot_code))
                 output_lot_id = cur.fetchone()['id']
                 
-                # Create transaction
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, notes)
                     VALUES ('make', %s, %s)
@@ -996,13 +1016,11 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 """, (now, f"{req.batches} batch(es) of {product['name']}"))
                 txn_id = cur.fetchone()['id']
                 
-                # Add output
                 cur.execute("""
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, product['id'], output_lot_id, total_output))
                 
-                # Consume ingredients
                 cur.execute("""
                     SELECT bf.ingredient_product_id, bf.quantity_lb
                     FROM batch_formulas bf
@@ -1014,7 +1032,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 for ing in formula:
                     needed = float(ing['quantity_lb']) * req.batches
                     
-                    # Check for override
                     override_lot = None
                     if req.ingredient_lot_overrides and str(ing['ingredient_product_id']) in req.ingredient_lot_overrides:
                         override_code = req.ingredient_lot_overrides[str(ing['ingredient_product_id'])]
@@ -1025,13 +1042,14 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         override_lot = cur.fetchone()
                     
                     if override_lot:
-                        # Validate override lot has sufficient quantity
+                        cur.execute("SELECT id FROM lots WHERE id = %s FOR UPDATE", (override_lot['id'],))
+                        
                         cur.execute("""
                             SELECT COALESCE(SUM(tl.quantity_lb), 0) as available
-                            FROM transaction_lines tl
-                            WHERE tl.lot_id = %s
+                            FROM transaction_lines tl WHERE tl.lot_id = %s
                         """, (override_lot['id'],))
                         available = float(cur.fetchone()['available'])
+                        
                         if available < needed:
                             raise HTTPException(
                                 status_code=400, 
@@ -1043,7 +1061,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             VALUES (%s, %s, %s, %s)
                         """, (txn_id, ing['ingredient_product_id'], override_lot['id'], -needed))
                         
-                        # Record traceability for override lot
                         cur.execute("""
                             INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb)
                             VALUES (%s, %s, %s, %s)
@@ -1051,7 +1068,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         
                         consumed.append({"lot_code": override_lot['lot_code'], "consumed_lb": needed})
                     else:
-                        # FIFO consumption
+                        # FIXED v2.1.3: Split aggregation and locking for FIFO
                         cur.execute("""
                             SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                             FROM lots l
@@ -1060,8 +1077,30 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             GROUP BY l.id
                             HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
                             ORDER BY l.id ASC
-                            FOR UPDATE OF l
                         """, (ing['ingredient_product_id'],))
+                        candidate_lots = cur.fetchall()
+                        
+                        if not candidate_lots:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"No inventory available for ingredient ID {ing['ingredient_product_id']}"
+                            )
+                        
+                        lot_ids = [lot['id'] for lot in candidate_lots]
+                        cur.execute(
+                            "SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE",
+                            (lot_ids,)
+                        )
+                        
+                        cur.execute("""
+                            SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                            FROM lots l
+                            LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                            WHERE l.id = ANY(%s)
+                            GROUP BY l.id
+                            HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                            ORDER BY l.id ASC
+                        """, (lot_ids,))
                         lots = cur.fetchall()
                         
                         remaining = needed
@@ -1074,7 +1113,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                                 VALUES (%s, %s, %s, %s)
                             """, (txn_id, ing['ingredient_product_id'], lot['id'], -take))
                             
-                            # Record traceability (FIXED: use correct column names)
                             cur.execute("""
                                 INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb)
                                 VALUES (%s, %s, %s, %s)
@@ -1083,7 +1121,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             consumed.append({"lot_code": lot['lot_code'], "consumed_lb": take})
                             remaining -= take
                         
-                        # Enforce ingredient sufficiency
                         if remaining > 0.001:
                             raise HTTPException(
                                 status_code=400,
@@ -1168,7 +1205,6 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
 def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            # Get the batch
             cur.execute("""
                 SELECT t.id as transaction_id, t.timestamp, l.lot_code, p.name as product_name,
                        tl.quantity_lb as output_lb
@@ -1183,7 +1219,6 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
             if not batch:
                 raise HTTPException(status_code=404, detail=f"Batch '{lot_code}' not found")
             
-            # Get ingredients (FIXED: use correct column name transaction_id)
             cur.execute("""
                 SELECT p.name as ingredient_name, l.lot_code as ingredient_lot, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
@@ -1231,7 +1266,6 @@ def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
             if not lot:
                 raise HTTPException(status_code=404, detail=f"Lot '{lot_code}' not found")
             
-            # FIXED: use correct column name transaction_id
             cur.execute("""
                 SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
@@ -1322,11 +1356,9 @@ def get_transaction_history(
 
 @app.post("/products/quick-create")
 def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verify_api_key)):
-    """Quick-create a product during receive when it doesn't exist."""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Check if product already exists
                 cur.execute("SELECT id, name FROM products WHERE LOWER(name) = LOWER(%s)", (req.product_name,))
                 existing = cur.fetchone()
                 if existing:
@@ -1346,7 +1378,6 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
                 """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes))
                 product = cur.fetchone()
                 
-                # Create audit record
                 try:
                     cur.execute("""
                         INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, performed_by)
@@ -1372,7 +1403,6 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
 
 @app.post("/products/quick-create-batch")
 def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = Depends(verify_api_key)):
-    """Quick-create a batch product during production."""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1417,11 +1447,9 @@ def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = De
 
 @app.post("/lots/{lot_id}/reassign")
 def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(verify_api_key)):
-    """Reassign a lot to a different product."""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Get current lot info with quantity
                 cur.execute("""
                     SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
                            COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
@@ -1442,28 +1470,23 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                         "error": f"Lot is already assigned to {lot['product_name']}"
                     })
                 
-                # Get target product
                 cur.execute("SELECT id, name FROM products WHERE id = %s", (req.to_product_id,))
                 to_product = cur.fetchone()
                 
                 if not to_product:
                     raise HTTPException(status_code=404, detail=f"Target product ID {req.to_product_id} not found")
                 
-                # Check if lot was used in production
                 cur.execute("""
                     SELECT COUNT(*) as count FROM ingredient_lot_consumption WHERE ingredient_lot_id = %s
                 """, (lot_id,))
                 usage = cur.fetchone()
                 
-                # Update the lot
                 cur.execute("UPDATE lots SET product_id = %s WHERE id = %s", (req.to_product_id, lot_id))
                 
-                # Update transaction_lines
                 cur.execute("""
                     UPDATE transaction_lines SET product_id = %s WHERE lot_id = %s
                 """, (req.to_product_id, lot_id))
                 
-                # Record reassignment (FIXED: include all NOT NULL columns)
                 try:
                     cur.execute("""
                         INSERT INTO lot_reassignments 
@@ -1501,24 +1524,20 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
 
 @app.post("/inventory/found")
 def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key)):
-    """Add inventory found during counts that was never formally received."""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Verify product exists
                 cur.execute("SELECT id, name FROM products WHERE id = %s", (req.product_id,))
                 product = cur.fetchone()
                 
                 if not product:
                     raise HTTPException(status_code=404, detail=f"Product ID {req.product_id} not found")
                 
-                # Lock for FOUND lot sequence generation
                 cur.execute("SELECT pg_advisory_xact_lock(2)")
                 
                 now = get_plant_now()
                 date_part = now.strftime("%y-%m-%d")
                 
-                # Generate FOUND lot code
                 cur.execute("""
                     SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1
                 """, (f"{date_part}-FOUND-%",))
@@ -1535,7 +1554,6 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                 
                 lot_code = f"{date_part}-FOUND-{seq:03d}"
                 
-                # Create lot
                 cur.execute("""
                     INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, found_location, estimated_age)
                     VALUES (%s, %s, 'found_inventory', %s, %s, %s)
@@ -1543,7 +1561,6 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                 """, (req.product_id, lot_code, req.notes, req.found_location, req.estimated_age))
                 lot_id = cur.fetchone()['id']
                 
-                # Create transaction
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, notes)
                     VALUES ('adjust', %s, %s)
@@ -1551,13 +1568,11 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                 """, (now, f"Found inventory: {req.reason_code}"))
                 txn_id = cur.fetchone()['id']
                 
-                # Create transaction line
                 cur.execute("""
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, req.product_id, lot_id, req.quantity))
                 
-                # Record adjustment (FIXED: include all NOT NULL columns)
                 try:
                     cur.execute("""
                         INSERT INTO inventory_adjustments 
@@ -1591,11 +1606,9 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
 @app.post("/inventory/found-with-new-product")
 def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key)):
-    """Create a new product AND add found inventory in one transaction."""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Check if product exists
                 cur.execute("SELECT id, name FROM products WHERE LOWER(name) = LOWER(%s)", (req.product_name,))
                 existing = cur.fetchone()
                 if existing:
@@ -1605,7 +1618,6 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                         "suggestion": "Use /inventory/found with the existing product_id"
                     })
                 
-                # Create product
                 verification_notes = f"Quick-created during inventory count. {req.notes or ''}"
                 cur.execute("""
                     INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, created_via, active)
@@ -1614,19 +1626,16 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes))
                 product = cur.fetchone()
                 
-                # Lock for FOUND lot sequence generation
                 cur.execute("SELECT pg_advisory_xact_lock(2)")
                 
                 now = get_plant_now()
                 date_part = now.strftime("%y-%m-%d")
                 
-                # Generate lot code
                 cur.execute("SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1", (f"{date_part}-FOUND-%",))
                 existing_lot = cur.fetchone()
                 seq = (int(existing_lot['lot_code'].split('-')[-1]) + 1) if existing_lot else 1
                 lot_code = f"{date_part}-FOUND-{seq:03d}"
                 
-                # Create lot
                 cur.execute("""
                     INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, found_location, estimated_age)
                     VALUES (%s, %s, 'found_inventory', %s, %s, %s)
@@ -1634,7 +1643,6 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 """, (product['id'], lot_code, req.notes, req.found_location, req.estimated_age))
                 lot_id = cur.fetchone()['id']
                 
-                # Create transaction
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, notes)
                     VALUES ('adjust', %s, %s)
@@ -1666,7 +1674,6 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
 
 @app.get("/inventory/found/queue")
 def get_found_inventory_queue(limit: int = Query(default=50, ge=1, le=200), _: bool = Depends(verify_api_key)):
-    """Get found inventory lots that may need review."""
     try:
         with get_transaction() as cur:
             cur.execute("""
@@ -1695,7 +1702,6 @@ def get_found_inventory_queue(limit: int = Query(default=50, ge=1, le=200), _: b
 
 @app.post("/products/{product_id}/verify")
 def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends(verify_api_key)):
-    """Verify, reject, or archive a product."""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1731,7 +1737,6 @@ def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends
                 else:
                     raise HTTPException(status_code=400, detail=f"Invalid action: {req.action}")
                 
-                # Record history
                 try:
                     cur.execute("""
                         INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, performed_by)
@@ -1768,7 +1773,6 @@ def list_bom_products(
     limit: int = Query(default=50, ge=1, le=200),
     _: bool = Depends(verify_api_key)
 ):
-    """List products with optional type filter and search."""
     try:
         with get_transaction() as cur:
             query = "SELECT id, name, odoo_code, type, uom, default_batch_lb FROM products WHERE COALESCE(active, true) = true"
@@ -1795,7 +1799,6 @@ def list_bom_products(
 
 @app.get("/bom/batches/{batch_id}/formula")
 def get_batch_formula(batch_id: int, _: bool = Depends(verify_api_key)):
-    """Get the formula (ingredients) for a batch product."""
     try:
         with get_transaction() as cur:
             cur.execute("SELECT id, name, default_batch_lb FROM products WHERE id = %s", (batch_id,))
@@ -1832,7 +1835,6 @@ def get_batch_formula(batch_id: int, _: bool = Depends(verify_api_key)):
 
 @app.get("/reason-codes")
 def get_reason_codes(_: bool = Depends(verify_api_key)):
-    """Get available reason codes for adjustments and reassignments."""
     return {
         "found_inventory_reasons": [
             {"code": "found_during_count", "description": "Discovered during physical inventory count"},
