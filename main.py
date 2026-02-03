@@ -17,7 +17,16 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.1.4")
+app = FastAPI(title="Factory Ledger System", version="2.1.5")
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
@@ -124,7 +133,7 @@ class MakeRequest(BaseModel):
     batches: int
     lot_code: Optional[str] = None
     ingredient_lot_overrides: Optional[Dict[str, str]] = None
-    excluded_ingredients: Optional[List[int]] = None  # v2.1.4: List of ingredient IDs to exclude
+    excluded_ingredients: Optional[List[int]] = None
 
 class AdjustRequest(BaseModel):
     product_name: str
@@ -132,7 +141,6 @@ class AdjustRequest(BaseModel):
     adjustment_lb: float
     reason: str
 
-# --- Quick Create Models ---
 class QuickCreateProductRequest(BaseModel):
     product_name: str
     product_type: str
@@ -150,14 +158,12 @@ class QuickCreateBatchProductRequest(BaseModel):
     notes: Optional[str] = None
     performed_by: str = "system"
 
-# --- Lot Reassignment Models ---
 class LotReassignmentRequest(BaseModel):
     to_product_id: int
     reason_code: str
     reason_notes: Optional[str] = None
     performed_by: str = "system"
 
-# --- Found Inventory Models ---
 class AddFoundInventoryRequest(BaseModel):
     product_id: int
     quantity: float
@@ -183,12 +189,66 @@ class AddFoundInventoryWithNewProductRequest(BaseModel):
     notes: Optional[str] = None
     performed_by: str = "system"
 
-# --- Product Verification Models ---
 class VerifyProductRequest(BaseModel):
     action: str
     verified_name: Optional[str] = None
     notes: Optional[str] = None
     performed_by: str = "system"
+
+
+# ═══════════════════════════════════════════════════════════════
+# DASHBOARD ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/dashboard/inventory")
+def dashboard_inventory(_: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT * FROM inventory_summary WHERE on_hand > 0")
+            return cur.fetchall()
+    except Exception as e:
+        logger.error(f"Dashboard inventory failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/dashboard/low-stock")
+def dashboard_low_stock(_: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT * FROM low_stock_alerts")
+            return cur.fetchall()
+    except Exception as e:
+        logger.error(f"Dashboard low-stock failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/dashboard/today")
+def dashboard_today(_: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT * FROM todays_transactions")
+            return cur.fetchall()
+    except Exception as e:
+        logger.error(f"Dashboard today failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/dashboard/lots")
+def dashboard_lots(_: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT * FROM lot_balances LIMIT 100")
+            return cur.fetchall()
+    except Exception as e:
+        logger.error(f"Dashboard lots failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/dashboard/production")
+def dashboard_production(_: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT * FROM production_history LIMIT 50")
+            return cur.fetchall()
+    except Exception as e:
+        logger.error(f"Dashboard production failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -199,9 +259,9 @@ class VerifyProductRequest(BaseModel):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.1.4",
+        "version": "2.1.5",
         "status": "online",
-        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion"]
+        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "dashboard"]
     }
 
 
@@ -644,7 +704,6 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 if not product:
                     raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
                 
-                # FIXED v2.1.3: Split aggregation and locking
                 if req.lot_code:
                     cur.execute("""
                         SELECT l.id, l.lot_code FROM lots l
@@ -802,7 +861,6 @@ def multi_lot_ship_commit(req: MultiLotShipRequest, _: bool = Depends(verify_api
                 if not product:
                     raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
                 
-                # FIXED v2.1.3: Split aggregation and locking
                 cur.execute("""
                     SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                     FROM lots l
@@ -897,7 +955,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             batch_size = float(product.get('default_batch_lb') or 0)
             total_output = batch_size * req.batches
             
-            # v2.1.4: Build exclusion set
             excluded_ids = set(req.excluded_ingredients or [])
             
             cur.execute("""
@@ -915,7 +972,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 ing_id = ing['ingredient_product_id']
                 needed = float(ing['quantity_lb']) * req.batches
                 
-                # v2.1.4: Check if excluded
                 if ing_id in excluded_ids:
                     excluded_ingredients.append({
                         "ingredient_id": ing_id,
@@ -975,7 +1031,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({total_output} lb)"
             }
             
-            # v2.1.4: Include excluded ingredients in response
             if excluded_ingredients:
                 response["excluded_ingredients"] = excluded_ingredients
                 response["preview_message"] += f" (excluding {len(excluded_ingredients)} ingredient(s))"
@@ -1007,7 +1062,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 total_output = batch_size * req.batches
                 now = get_plant_now()
                 
-                # v2.1.4: Build exclusion set
                 excluded_ids = set(req.excluded_ingredients or [])
                 
                 if req.lot_code:
@@ -1037,7 +1091,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 """, (product['id'], lot_code))
                 output_lot_id = cur.fetchone()['id']
                 
-                # v2.1.4: Include exclusion info in notes
                 exclusion_note = ""
                 if excluded_ids:
                     exclusion_note = f" (excluded ingredient IDs: {sorted(excluded_ids)})"
@@ -1068,9 +1121,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     ing_id = ing['ingredient_product_id']
                     needed = float(ing['quantity_lb']) * req.batches
                     
-                    # v2.1.4: Skip excluded ingredients
                     if ing_id in excluded_ids:
-                        # Get ingredient name for reporting
                         cur.execute("SELECT name FROM products WHERE id = %s", (ing_id,))
                         ing_name = cur.fetchone()
                         excluded_from_run.append({
@@ -1116,7 +1167,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         
                         consumed.append({"lot_code": override_lot['lot_code'], "consumed_lb": needed})
                     else:
-                        # FIXED v2.1.3: Split aggregation and locking for FIFO
                         cur.execute("""
                             SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                             FROM lots l
@@ -1187,7 +1237,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     "message": f"Produced {total_output} lb as lot {lot_code}"
                 }
                 
-                # v2.1.4: Include excluded ingredients in response
                 if excluded_from_run:
                     response["excluded_ingredients"] = excluded_from_run
                     response["message"] += f" (excluded {len(excluded_from_run)} ingredient(s))"
