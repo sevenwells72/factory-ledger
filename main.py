@@ -17,7 +17,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.1.5")
+app = FastAPI(title="Factory Ledger System", version="2.1.6")
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -259,9 +259,9 @@ def dashboard_production(_: bool = Depends(verify_api_key)):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.1.5",
+        "version": "2.1.6",
         "status": "online",
-        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "dashboard"]
+        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "ingredient-lot-override", "dashboard"]
     }
 
 
@@ -967,6 +967,7 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             
             ingredients_needed = []
             excluded_ingredients = []
+            lot_overrides_applied = []
             
             for ing in formula:
                 ing_id = ing['ingredient_product_id']
@@ -981,20 +982,64 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     })
                     continue
                 
-                cur.execute("""
-                    SELECT COALESCE(SUM(tl.quantity_lb), 0) as available
-                    FROM lots l
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-                    WHERE l.product_id = %s
-                """, (ing_id,))
-                avail = float(cur.fetchone()['available'])
-                ingredients_needed.append({
-                    "ingredient_id": ing_id,
-                    "ingredient_name": ing['ingredient_name'],
-                    "needed_lb": needed,
-                    "available_lb": avail,
-                    "sufficient": avail >= needed
-                })
+                # Check for lot override
+                if req.ingredient_lot_overrides and str(ing_id) in req.ingredient_lot_overrides:
+                    override_code = req.ingredient_lot_overrides[str(ing_id)]
+                    cur.execute("""
+                        SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                        FROM lots l
+                        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s)
+                        GROUP BY l.id
+                    """, (ing_id, override_code))
+                    override_lot = cur.fetchone()
+                    
+                    if not override_lot:
+                        # Override lot not found
+                        ingredients_needed.append({
+                            "ingredient_id": ing_id,
+                            "ingredient_name": ing['ingredient_name'],
+                            "needed_lb": needed,
+                            "available_lb": 0,
+                            "sufficient": False,
+                            "override_lot": override_code,
+                            "override_error": f"Lot '{override_code}' not found for this ingredient"
+                        })
+                        continue
+                    
+                    avail = float(override_lot['available'])
+                    lot_overrides_applied.append({
+                        "ingredient_id": ing_id,
+                        "ingredient_name": ing['ingredient_name'],
+                        "lot_code": override_lot['lot_code'],
+                        "needed_lb": needed,
+                        "available_lb": avail,
+                        "sufficient": avail >= needed
+                    })
+                    ingredients_needed.append({
+                        "ingredient_id": ing_id,
+                        "ingredient_name": ing['ingredient_name'],
+                        "needed_lb": needed,
+                        "available_lb": avail,
+                        "sufficient": avail >= needed,
+                        "override_lot": override_lot['lot_code']
+                    })
+                else:
+                    # No override - check total availability (FIFO will be used)
+                    cur.execute("""
+                        SELECT COALESCE(SUM(tl.quantity_lb), 0) as available
+                        FROM lots l
+                        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        WHERE l.product_id = %s
+                    """, (ing_id,))
+                    avail = float(cur.fetchone()['available'])
+                    ingredients_needed.append({
+                        "ingredient_id": ing_id,
+                        "ingredient_name": ing['ingredient_name'],
+                        "needed_lb": needed,
+                        "available_lb": avail,
+                        "sufficient": avail >= needed
+                    })
             
             all_sufficient = all(i['sufficient'] for i in ingredients_needed)
             
@@ -1030,6 +1075,10 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 "all_ingredients_available": all_sufficient,
                 "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({total_output} lb)"
             }
+            
+            if lot_overrides_applied:
+                response["lot_overrides"] = lot_overrides_applied
+                response["preview_message"] += f" (with {len(lot_overrides_applied)} lot override(s))"
             
             if excluded_ingredients:
                 response["excluded_ingredients"] = excluded_ingredients
@@ -1165,7 +1214,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             VALUES (%s, %s, %s, %s)
                         """, (txn_id, ing_id, override_lot['id'], needed))
                         
-                        consumed.append({"lot_code": override_lot['lot_code'], "consumed_lb": needed})
+                        consumed.append({"lot_code": override_lot['lot_code'], "consumed_lb": needed, "override": True})
                     else:
                         cur.execute("""
                             SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
