@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
+import json
 from datetime import datetime, date, timezone
 from zoneinfo import ZoneInfo
 from contextlib import contextmanager
@@ -17,7 +18,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.1.6")
+app = FastAPI(title="Factory Ledger System", version="2.1.7")
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -132,8 +133,22 @@ class MakeRequest(BaseModel):
     product_name: str
     batches: int
     lot_code: Optional[str] = None
-    ingredient_lot_overrides: Optional[Dict[str, str]] = None
+    ingredient_lot_overrides: Optional[Union[Dict[str, str], str]] = None
     excluded_ingredients: Optional[List[int]] = None
+    
+    def get_lot_overrides(self) -> Optional[Dict[str, str]]:
+        """Parse ingredient_lot_overrides whether it's a dict or JSON string"""
+        if self.ingredient_lot_overrides is None:
+            return None
+        if isinstance(self.ingredient_lot_overrides, str):
+            try:
+                parsed = json.loads(self.ingredient_lot_overrides)
+                if isinstance(parsed, dict):
+                    return parsed
+                return None
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return self.ingredient_lot_overrides
 
 class AdjustRequest(BaseModel):
     product_name: str
@@ -259,7 +274,7 @@ def dashboard_production(_: bool = Depends(verify_api_key)):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.1.6",
+        "version": "2.1.7",
         "status": "online",
         "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "ingredient-lot-override", "dashboard"]
     }
@@ -969,6 +984,9 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             excluded_ingredients = []
             lot_overrides_applied = []
             
+            # Parse lot overrides (handles both dict and JSON string)
+            lot_overrides = req.get_lot_overrides()
+            
             for ing in formula:
                 ing_id = ing['ingredient_product_id']
                 needed = float(ing['quantity_lb']) * req.batches
@@ -983,8 +1001,8 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     continue
                 
                 # Check for lot override
-                if req.ingredient_lot_overrides and str(ing_id) in req.ingredient_lot_overrides:
-                    override_code = req.ingredient_lot_overrides[str(ing_id)]
+                if lot_overrides and str(ing_id) in lot_overrides:
+                    override_code = lot_overrides[str(ing_id)]
                     cur.execute("""
                         SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                         FROM lots l
@@ -1166,6 +1184,9 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 consumed = []
                 excluded_from_run = []
                 
+                # Parse lot overrides (handles both dict and JSON string)
+                lot_overrides = req.get_lot_overrides()
+                
                 for ing in formula:
                     ing_id = ing['ingredient_product_id']
                     needed = float(ing['quantity_lb']) * req.batches
@@ -1181,8 +1202,8 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         continue
                     
                     override_lot = None
-                    if req.ingredient_lot_overrides and str(ing_id) in req.ingredient_lot_overrides:
-                        override_code = req.ingredient_lot_overrides[str(ing_id)]
+                    if lot_overrides and str(ing_id) in lot_overrides:
+                        override_code = lot_overrides[str(ing_id)]
                         cur.execute("""
                             SELECT l.id, l.lot_code FROM lots l
                             WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s)
