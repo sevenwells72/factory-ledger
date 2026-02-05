@@ -18,7 +18,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.1.7")
+app = FastAPI(title="Factory Ledger System", version="2.2.0")
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -212,6 +212,111 @@ class VerifyProductRequest(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════
+# SALES PYDANTIC MODELS (v2.2.0)
+# ═══════════════════════════════════════════════════════════════
+
+class CustomerCreate(BaseModel):
+    name: str
+    contact_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = None
+    contact_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    notes: Optional[str] = None
+    active: Optional[bool] = None
+
+class OrderLineInput(BaseModel):
+    product_name: str
+    quantity_lb: float
+    unit_price: Optional[float] = None
+    notes: Optional[str] = None
+
+class OrderCreate(BaseModel):
+    customer_name: str
+    requested_ship_date: Optional[str] = None
+    lines: List[OrderLineInput]
+    notes: Optional[str] = None
+
+class OrderStatusUpdate(BaseModel):
+    status: str
+
+class AddOrderLines(BaseModel):
+    lines: List[OrderLineInput]
+
+class ShipOrderLineRequest(BaseModel):
+    line_id: int
+    quantity_lb: float
+
+class ShipOrderRequest(BaseModel):
+    ship_all: Optional[bool] = False
+    lines: Optional[List[ShipOrderLineRequest]] = None
+
+
+# ═══════════════════════════════════════════════════════════════
+# SALES HELPER FUNCTIONS (v2.2.0)
+# ═══════════════════════════════════════════════════════════════
+
+def resolve_product_id(cur, product_name: str) -> tuple:
+    """Find product by name (case-insensitive). Returns (product_id, product_name)."""
+    cur.execute(
+        "SELECT id, name FROM products WHERE LOWER(name) = LOWER(%s) AND COALESCE(active, true) = true",
+        (product_name,)
+    )
+    row = cur.fetchone()
+    if row:
+        return row['id'], row['name']
+    # Try fuzzy
+    cur.execute(
+        "SELECT id, name FROM products WHERE LOWER(name) LIKE LOWER(%s) AND COALESCE(active, true) = true ORDER BY name LIMIT 5",
+        (f"%{product_name}%",)
+    )
+    rows = cur.fetchall()
+    if len(rows) == 1:
+        return rows[0]['id'], rows[0]['name']
+    elif len(rows) > 1:
+        suggestions = [r['name'] for r in rows]
+        raise HTTPException(400, f"Multiple products match '{product_name}': {suggestions}")
+    raise HTTPException(404, f"Product not found: '{product_name}'")
+
+
+def resolve_customer_id(cur, customer_name: str, auto_create: bool = True) -> tuple:
+    """Find or create customer by name. Returns (customer_id, customer_name)."""
+    cur.execute(
+        "SELECT id, name FROM customers WHERE LOWER(name) = LOWER(%s)",
+        (customer_name,)
+    )
+    row = cur.fetchone()
+    if row:
+        return row['id'], row['name']
+    # Try fuzzy
+    cur.execute(
+        "SELECT id, name FROM customers WHERE LOWER(name) LIKE LOWER(%s) AND active = true ORDER BY name LIMIT 5",
+        (f"%{customer_name}%",)
+    )
+    rows = cur.fetchall()
+    if len(rows) == 1:
+        return rows[0]['id'], rows[0]['name']
+    elif len(rows) > 1:
+        suggestions = [r['name'] for r in rows]
+        raise HTTPException(400, f"Multiple customers match '{customer_name}': {suggestions}")
+    if auto_create:
+        cur.execute(
+            "INSERT INTO customers (name) VALUES (%s) RETURNING id, name",
+            (customer_name,)
+        )
+        row = cur.fetchone()
+        return row['id'], row['name']
+    raise HTTPException(404, f"Customer not found: '{customer_name}'")
+
+
+# ═══════════════════════════════════════════════════════════════
 # DASHBOARD ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
@@ -274,9 +379,9 @@ def dashboard_production(_: bool = Depends(verify_api_key)):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.1.7",
+        "version": "2.2.0",
         "status": "online",
-        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "ingredient-lot-override", "dashboard"]
+        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "ingredient-lot-override", "dashboard", "sales-orders", "customers"]
     }
 
 
@@ -984,7 +1089,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
             excluded_ingredients = []
             lot_overrides_applied = []
             
-            # Parse lot overrides (handles both dict and JSON string)
             lot_overrides = req.get_lot_overrides()
             
             for ing in formula:
@@ -1000,7 +1104,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     })
                     continue
                 
-                # Check for lot override
                 if lot_overrides and str(ing_id) in lot_overrides:
                     override_code = lot_overrides[str(ing_id)]
                     cur.execute("""
@@ -1013,7 +1116,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     override_lot = cur.fetchone()
                     
                     if not override_lot:
-                        # Override lot not found
                         ingredients_needed.append({
                             "ingredient_id": ing_id,
                             "ingredient_name": ing['ingredient_name'],
@@ -1043,7 +1145,6 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         "override_lot": override_lot['lot_code']
                     })
                 else:
-                    # No override - check total availability (FIFO will be used)
                     cur.execute("""
                         SELECT COALESCE(SUM(tl.quantity_lb), 0) as available
                         FROM lots l
@@ -1184,7 +1285,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 consumed = []
                 excluded_from_run = []
                 
-                # Parse lot overrides (handles both dict and JSON string)
                 lot_overrides = req.get_lot_overrides()
                 
                 for ing in formula:
@@ -2031,3 +2131,795 @@ def get_reason_codes(_: bool = Depends(verify_api_key)):
             {"code": "other", "description": "Other reason (specify in notes)"}
         ]
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# CUSTOMER ENDPOINTS (v2.2.0)
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/customers")
+def list_customers(active_only: bool = True, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            if active_only:
+                cur.execute("SELECT id, name, contact_name, email, phone, active FROM customers WHERE active = true ORDER BY name")
+            else:
+                cur.execute("SELECT id, name, contact_name, email, phone, active FROM customers ORDER BY name")
+            return {"customers": cur.fetchall()}
+    except Exception as e:
+        logger.error(f"List customers failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/customers/search")
+def search_customers(q: str = Query(..., min_length=1), _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute(
+                "SELECT id, name, contact_name, phone, email FROM customers WHERE LOWER(name) LIKE LOWER(%s) AND active = true ORDER BY name",
+                (f"%{q}%",)
+            )
+            rows = cur.fetchall()
+        return {"results": rows}
+    except Exception as e:
+        logger.error(f"Search customers failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/customers")
+def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """INSERT INTO customers (name, contact_name, email, phone, address, notes)
+                       VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name""",
+                    (req.name, req.contact_name, req.email, req.phone, req.address, req.notes)
+                )
+                row = cur.fetchone()
+                logger.info(f"Created customer: {row['name']} (ID: {row['id']})")
+                return {"customer_id": row['id'], "name": row['name'], "message": f"Customer '{row['name']}' created"}
+    except Exception as e:
+        if "unique" in str(e).lower():
+            raise HTTPException(409, f"Customer '{req.name}' already exists")
+        logger.error(f"Create customer failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.patch("/customers/{customer_id}")
+def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(verify_api_key)):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                updates = req.dict(exclude_none=True)
+                if not updates:
+                    raise HTTPException(400, "No fields to update")
+                set_clause = ", ".join(f"{k} = %s" for k in updates)
+                values = list(updates.values()) + [customer_id]
+                cur.execute(
+                    f"UPDATE customers SET {set_clause} WHERE id = %s RETURNING id, name",
+                    values
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(404, "Customer not found")
+                return {"customer_id": row['id'], "name": row['name'], "message": "Customer updated"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update customer failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# SALES ORDER ENDPOINTS (v2.2.0)
+# ═══════════════════════════════════════════════════════════════
+
+@app.post("/sales/orders")
+def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                customer_id, customer_name = resolve_customer_id(cur, req.customer_name)
+
+                cur.execute(
+                    """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, order_number)
+                       VALUES (%s, %s, %s, '')
+                       RETURNING id, order_number""",
+                    (customer_id, req.requested_ship_date, req.notes)
+                )
+                row = cur.fetchone()
+                order_id, order_number = row['id'], row['order_number']
+
+                line_results = []
+                total_lb = 0
+                for line in req.lines:
+                    product_id, prod_name = resolve_product_id(cur, line.product_name)
+                    cur.execute(
+                        """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes)
+                           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                        (order_id, product_id, line.quantity_lb, line.unit_price, line.notes)
+                    )
+                    line_id = cur.fetchone()['id']
+                    total_lb += line.quantity_lb
+                    line_results.append({
+                        "line_id": line_id,
+                        "product": prod_name,
+                        "quantity_lb": line.quantity_lb,
+                        "unit_price": line.unit_price
+                    })
+
+                logger.info(f"Created sales order {order_number} for {customer_name} with {len(line_results)} lines")
+                return {
+                    "order_id": order_id,
+                    "order_number": order_number,
+                    "customer": customer_name,
+                    "requested_ship_date": req.requested_ship_date,
+                    "status": "new",
+                    "total_lb": total_lb,
+                    "lines": line_results,
+                    "message": f"Order {order_number} created with {len(line_results)} line(s)"
+                }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Create sales order failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/sales/orders")
+def list_sales_orders(
+    status: Optional[str] = None,
+    customer: Optional[str] = None,
+    overdue_only: bool = False,
+    limit: int = Query(default=50, ge=1, le=200),
+    _: bool = Depends(verify_api_key)
+):
+    try:
+        with get_transaction() as cur:
+            query = """
+                SELECT so.id, so.order_number, c.name AS customer,
+                       so.order_date, so.requested_ship_date, so.status,
+                       COUNT(sol.id) AS line_count,
+                       COALESCE(SUM(sol.quantity_lb), 0) AS total_lb,
+                       COALESCE(SUM(sol.quantity_shipped_lb), 0) AS shipped_lb
+                FROM sales_orders so
+                JOIN customers c ON c.id = so.customer_id
+                LEFT JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                WHERE 1=1
+            """
+            params = []
+            if status:
+                query += " AND so.status = %s"
+                params.append(status)
+            if customer:
+                query += " AND LOWER(c.name) LIKE LOWER(%s)"
+                params.append(f"%{customer}%")
+            if overdue_only:
+                query += " AND so.requested_ship_date < CURRENT_DATE AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')"
+
+            query += " GROUP BY so.id, c.name ORDER BY so.requested_ship_date ASC NULLS LAST LIMIT %s"
+            params.append(limit)
+            cur.execute(query, params)
+            rows = cur.fetchall()
+
+            orders = []
+            for r in rows:
+                total = float(r['total_lb'] or 0)
+                shipped = float(r['shipped_lb'] or 0)
+                ship_date = r['requested_ship_date']
+                orders.append({
+                    "order_id": r['id'],
+                    "order_number": r['order_number'],
+                    "customer": r['customer'],
+                    "order_date": str(r['order_date']),
+                    "requested_ship_date": str(ship_date) if ship_date else None,
+                    "status": r['status'],
+                    "line_count": r['line_count'],
+                    "total_lb": total,
+                    "shipped_lb": shipped,
+                    "remaining_lb": total - shipped,
+                    "overdue": ship_date is not None and ship_date < date.today() and r['status'] not in ('shipped', 'invoiced', 'cancelled')
+                })
+            return {"orders": orders, "count": len(orders)}
+    except Exception as e:
+        logger.error(f"List sales orders failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/sales/orders/{order_id}")
+def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute(
+                """SELECT so.id, so.order_number, c.name AS customer, so.order_date,
+                          so.requested_ship_date, so.status, so.notes, so.created_at
+                   FROM sales_orders so
+                   JOIN customers c ON c.id = so.customer_id
+                   WHERE so.id = %s""",
+                (order_id,)
+            )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(404, f"Order #{order_id} not found")
+
+            date_str, time_str = format_timestamp(row['created_at'])
+            order = {
+                "order_id": row['id'],
+                "order_number": row['order_number'],
+                "customer": row['customer'],
+                "order_date": str(row['order_date']),
+                "requested_ship_date": str(row['requested_ship_date']) if row['requested_ship_date'] else None,
+                "status": row['status'],
+                "notes": row['notes'],
+                "created_date": date_str,
+                "created_time": time_str
+            }
+
+            cur.execute(
+                """SELECT sol.id, p.name, sol.quantity_lb, sol.quantity_shipped_lb,
+                          sol.unit_price, sol.line_status, sol.notes
+                   FROM sales_order_lines sol
+                   JOIN products p ON p.id = sol.product_id
+                   WHERE sol.sales_order_id = %s
+                   ORDER BY sol.id""",
+                (order_id,)
+            )
+            lines = []
+            total_ordered = 0
+            total_shipped = 0
+            total_value = 0
+            for r in cur.fetchall():
+                qty = float(r['quantity_lb'])
+                shipped = float(r['quantity_shipped_lb'])
+                price = float(r['unit_price']) if r['unit_price'] else None
+                total_ordered += qty
+                total_shipped += shipped
+                if price:
+                    total_value += qty * price
+                lines.append({
+                    "line_id": r['id'],
+                    "product": r['name'],
+                    "quantity_lb": qty,
+                    "quantity_shipped_lb": shipped,
+                    "remaining_lb": qty - shipped,
+                    "unit_price": price,
+                    "line_value": round(qty * price, 2) if price else None,
+                    "line_status": r['line_status'],
+                    "notes": r['notes']
+                })
+
+            cur.execute(
+                """SELECT sos.id, sol.id AS line_id, p.name AS product,
+                          sos.quantity_lb, sos.shipped_at, t.id AS transaction_id
+                   FROM sales_order_shipments sos
+                   JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+                   JOIN products p ON p.id = sol.product_id
+                   JOIN transactions t ON t.id = sos.transaction_id
+                   WHERE sol.sales_order_id = %s
+                   ORDER BY sos.shipped_at DESC""",
+                (order_id,)
+            )
+            shipments = []
+            for r in cur.fetchall():
+                s_date, s_time = format_timestamp(r['shipped_at'])
+                shipments.append({
+                    "shipment_id": r['id'],
+                    "line_id": r['line_id'],
+                    "product": r['product'],
+                    "quantity_lb": float(r['quantity_lb']),
+                    "shipped_date": s_date,
+                    "shipped_time": s_time,
+                    "transaction_id": r['transaction_id']
+                })
+
+            order["lines"] = lines
+            order["shipments"] = shipments
+            order["totals"] = {
+                "total_ordered_lb": total_ordered,
+                "total_shipped_lb": total_shipped,
+                "remaining_lb": total_ordered - total_shipped,
+                "total_value": round(total_value, 2) if total_value > 0 else None
+            }
+            return order
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get sales order failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.patch("/sales/orders/{order_id}/status")
+def update_order_status(order_id: int, req: OrderStatusUpdate, _: bool = Depends(verify_api_key)):
+    valid = ['new', 'confirmed', 'in_production', 'ready', 'shipped', 'partial_ship', 'invoiced', 'cancelled']
+    if req.status not in valid:
+        raise HTTPException(400, f"Invalid status. Must be one of: {valid}")
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "UPDATE sales_orders SET status = %s WHERE id = %s RETURNING order_number, status",
+                    (req.status, order_id)
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(404, f"Order #{order_id} not found")
+                logger.info(f"Order {row['order_number']} status → {req.status}")
+                return {"order_number": row['order_number'], "status": row['status'], "message": f"Order {row['order_number']} → {req.status}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update order status failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/sales/orders/{order_id}/lines")
+def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_api_key)):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT order_number, status FROM sales_orders WHERE id = %s", (order_id,))
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(404, f"Order #{order_id} not found")
+                if row['status'] in ('shipped', 'invoiced', 'cancelled'):
+                    raise HTTPException(400, f"Cannot add lines to {row['status']} order")
+
+                results = []
+                for line in req.lines:
+                    product_id, prod_name = resolve_product_id(cur, line.product_name)
+                    cur.execute(
+                        """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes)
+                           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                        (order_id, product_id, line.quantity_lb, line.unit_price, line.notes)
+                    )
+                    line_id = cur.fetchone()['id']
+                    results.append({"line_id": line_id, "product": prod_name, "quantity_lb": line.quantity_lb})
+
+                return {"order_number": row['order_number'], "lines_added": results, "message": f"Added {len(results)} line(s) to {row['order_number']}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Add order lines failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.patch("/sales/orders/{order_id}/lines/{line_id}/cancel")
+def cancel_order_line(order_id: int, line_id: int, _: bool = Depends(verify_api_key)):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """UPDATE sales_order_lines SET line_status = 'cancelled'
+                       WHERE id = %s AND sales_order_id = %s AND line_status != 'fulfilled'
+                       RETURNING id""",
+                    (line_id, order_id)
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(404, "Line not found or already fulfilled")
+                return {"line_id": line_id, "line_status": "cancelled", "message": "Line cancelled"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Cancel order line failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.patch("/sales/orders/{order_id}/lines/{line_id}/update")
+def update_order_line(
+    order_id: int,
+    line_id: int,
+    quantity_lb: Optional[float] = Query(default=None),
+    unit_price: Optional[float] = Query(default=None),
+    _: bool = Depends(verify_api_key)
+):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                fields = []
+                values = []
+                if quantity_lb is not None:
+                    fields.append("quantity_lb = %s")
+                    values.append(quantity_lb)
+                if unit_price is not None:
+                    fields.append("unit_price = %s")
+                    values.append(unit_price)
+                if not fields:
+                    raise HTTPException(400, "Nothing to update")
+                values.extend([line_id, order_id])
+                cur.execute(
+                    f"""UPDATE sales_order_lines SET {', '.join(fields)}
+                        WHERE id = %s AND sales_order_id = %s AND line_status NOT IN ('fulfilled', 'cancelled')
+                        RETURNING id, quantity_lb, unit_price""",
+                    values
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(404, "Line not found or already fulfilled/cancelled")
+                return {"line_id": row['id'], "quantity_lb": float(row['quantity_lb']), "unit_price": float(row['unit_price']) if row['unit_price'] else None}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update order line failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# SHIP AGAINST ORDER ENDPOINTS (v2.2.0)
+# ═══════════════════════════════════════════════════════════════
+
+@app.post("/sales/orders/{order_id}/ship/preview")
+def ship_order_preview(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute(
+                """SELECT so.order_number, so.status, c.name
+                   FROM sales_orders so
+                   JOIN customers c ON c.id = so.customer_id
+                   WHERE so.id = %s""",
+                (order_id,)
+            )
+            order_row = cur.fetchone()
+            if not order_row:
+                raise HTTPException(404, f"Order #{order_id} not found")
+            if order_row['status'] in ('invoiced', 'cancelled'):
+                raise HTTPException(400, f"Cannot ship {order_row['status']} order")
+
+            ship_all = (req is None) or (req.ship_all)
+
+            cur.execute(
+                """SELECT sol.id, p.id AS product_id, p.name, sol.quantity_lb, sol.quantity_shipped_lb
+                   FROM sales_order_lines sol
+                   JOIN products p ON p.id = sol.product_id
+                   WHERE sol.sales_order_id = %s AND sol.line_status NOT IN ('fulfilled', 'cancelled')
+                   ORDER BY sol.id""",
+                (order_id,)
+            )
+            lines = cur.fetchall()
+
+            preview = []
+            warnings = []
+            for line in lines:
+                remaining = float(line['quantity_lb']) - float(line['quantity_shipped_lb'])
+                if remaining <= 0:
+                    continue
+
+                cur.execute(
+                    """SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
+                       FROM lots l
+                       JOIN transaction_lines tl ON tl.lot_id = l.id
+                       WHERE l.product_id = %s""",
+                    (line['product_id'],)
+                )
+                on_hand = float(cur.fetchone()['on_hand'])
+
+                if ship_all:
+                    ship_qty = remaining
+                elif req and req.lines:
+                    match = next((rl for rl in req.lines if rl.line_id == line['id']), None)
+                    if not match:
+                        continue
+                    ship_qty = match.quantity_lb
+                else:
+                    ship_qty = remaining
+
+                can_ship = min(ship_qty, on_hand)
+                if can_ship < ship_qty:
+                    warnings.append(f"{line['name']}: only {on_hand:.1f} lb on hand, need {ship_qty:.1f} lb")
+
+                preview.append({
+                    "line_id": line['id'],
+                    "product": line['name'],
+                    "ordered_lb": float(line['quantity_lb']),
+                    "already_shipped_lb": float(line['quantity_shipped_lb']),
+                    "remaining_lb": remaining,
+                    "requested_ship_lb": ship_qty,
+                    "can_ship_lb": can_ship,
+                    "on_hand_lb": on_hand,
+                    "short": max(0, ship_qty - on_hand)
+                })
+
+            return {
+                "order_number": order_row['order_number'],
+                "customer": order_row['name'],
+                "status": order_row['status'],
+                "lines": preview,
+                "warnings": warnings,
+                "message": "Preview only — call /ship/commit to execute"
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ship order preview failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/sales/orders/{order_id}/ship/commit")
+def ship_order_commit(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """SELECT so.id, so.order_number, so.status, c.name
+                       FROM sales_orders so
+                       JOIN customers c ON c.id = so.customer_id
+                       WHERE so.id = %s""",
+                    (order_id,)
+                )
+                order_row = cur.fetchone()
+                if not order_row:
+                    raise HTTPException(404, f"Order #{order_id} not found")
+                if order_row['status'] in ('invoiced', 'cancelled'):
+                    raise HTTPException(400, f"Cannot ship {order_row['status']} order")
+
+                ship_all = (req is None) or (req.ship_all)
+
+                if ship_all:
+                    cur.execute(
+                        """SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name
+                           FROM sales_order_lines sol
+                           JOIN products p ON p.id = sol.product_id
+                           WHERE sol.sales_order_id = %s
+                             AND sol.line_status NOT IN ('fulfilled', 'cancelled')
+                           ORDER BY sol.id""",
+                        (order_id,)
+                    )
+                    lines_to_ship = [
+                        {"line_id": r['id'], "product_id": r['product_id'],
+                         "quantity_lb": float(r['quantity_lb']) - float(r['quantity_shipped_lb']),
+                         "product_name": r['name']}
+                        for r in cur.fetchall()
+                        if float(r['quantity_lb']) - float(r['quantity_shipped_lb']) > 0
+                    ]
+                else:
+                    lines_to_ship = []
+                    for rl in (req.lines or []):
+                        cur.execute(
+                            """SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name
+                               FROM sales_order_lines sol
+                               JOIN products p ON p.id = sol.product_id
+                               WHERE sol.id = %s AND sol.sales_order_id = %s""",
+                            (rl.line_id, order_id)
+                        )
+                        r = cur.fetchone()
+                        if not r:
+                            raise HTTPException(404, f"Line #{rl.line_id} not found on order #{order_id}")
+                        remaining = float(r['quantity_lb']) - float(r['quantity_shipped_lb'])
+                        ship_qty = min(rl.quantity_lb, remaining)
+                        if ship_qty > 0:
+                            lines_to_ship.append({
+                                "line_id": r['id'], "product_id": r['product_id'],
+                                "quantity_lb": ship_qty, "product_name": r['name']
+                            })
+
+                if not lines_to_ship:
+                    raise HTTPException(400, "Nothing to ship — all lines fulfilled or cancelled")
+
+                now = get_plant_now()
+                results = []
+                all_fully_shipped = True
+
+                for item in lines_to_ship:
+                    qty_to_ship = item["quantity_lb"]
+
+                    # FIFO 3-step pattern (v2.1.3)
+                    cur.execute(
+                        """SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
+                           FROM lots l
+                           JOIN transaction_lines tl ON tl.lot_id = l.id
+                           WHERE l.product_id = %s
+                           GROUP BY l.id
+                           HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                           ORDER BY l.created_at ASC""",
+                        (item["product_id"],)
+                    )
+                    candidates = cur.fetchall()
+                    lot_ids = [c['id'] for c in candidates]
+
+                    if lot_ids:
+                        cur.execute("SELECT id FROM lots WHERE id = ANY(%s) FOR UPDATE", (lot_ids,))
+                        cur.execute(
+                            """SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
+                               FROM lots l
+                               JOIN transaction_lines tl ON tl.lot_id = l.id
+                               WHERE l.id = ANY(%s)
+                               GROUP BY l.id
+                               HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                               ORDER BY l.created_at ASC""",
+                            (lot_ids,)
+                        )
+                        lots = cur.fetchall()
+                    else:
+                        lots = []
+
+                    available = sum(float(lt['balance']) for lt in lots)
+                    actual_ship = min(qty_to_ship, available)
+
+                    if actual_ship <= 0:
+                        results.append({
+                            "line_id": item["line_id"],
+                            "product": item["product_name"],
+                            "requested_lb": qty_to_ship,
+                            "shipped_lb": 0,
+                            "status": "no_stock"
+                        })
+                        all_fully_shipped = False
+                        continue
+
+                    # Create ship transaction
+                    cur.execute(
+                        """INSERT INTO transactions (type, timestamp, customer_name, notes)
+                           VALUES ('ship', %s, %s, %s) RETURNING id""",
+                        (now, order_row['name'], f"Sales order {order_row['order_number']} — {item['product_name']}")
+                    )
+                    txn_id = cur.fetchone()['id']
+
+                    # FIFO consumption
+                    remaining_to_ship = actual_ship
+                    lots_used = []
+                    for lot in lots:
+                        if remaining_to_ship <= 0:
+                            break
+                        balance = float(lot['balance'])
+                        take = min(remaining_to_ship, balance)
+                        cur.execute(
+                            """INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
+                               VALUES (%s, %s, %s, %s)""",
+                            (txn_id, item["product_id"], lot['id'], -take)
+                        )
+                        remaining_to_ship -= take
+                        lots_used.append({"lot_code": lot['lot_code'], "quantity_lb": take})
+
+                    # Update order line
+                    cur.execute(
+                        """UPDATE sales_order_lines
+                           SET quantity_shipped_lb = quantity_shipped_lb + %s
+                           WHERE id = %s
+                           RETURNING quantity_lb, quantity_shipped_lb""",
+                        (actual_ship, item["line_id"])
+                    )
+                    updated = cur.fetchone()
+                    ordered = float(updated['quantity_lb'])
+                    new_shipped = float(updated['quantity_shipped_lb'])
+
+                    if new_shipped >= ordered:
+                        new_line_status = 'fulfilled'
+                    elif new_shipped > 0:
+                        new_line_status = 'partial'
+                        all_fully_shipped = False
+                    else:
+                        new_line_status = 'pending'
+                        all_fully_shipped = False
+
+                    cur.execute("UPDATE sales_order_lines SET line_status = %s WHERE id = %s", (new_line_status, item["line_id"]))
+
+                    # Record shipment link
+                    cur.execute(
+                        """INSERT INTO sales_order_shipments (sales_order_line_id, transaction_id, quantity_lb)
+                           VALUES (%s, %s, %s)""",
+                        (item["line_id"], txn_id, actual_ship)
+                    )
+
+                    results.append({
+                        "line_id": item["line_id"],
+                        "product": item["product_name"],
+                        "requested_lb": qty_to_ship,
+                        "shipped_lb": actual_ship,
+                        "short_lb": max(0, qty_to_ship - actual_ship),
+                        "lots_used": lots_used,
+                        "transaction_id": txn_id,
+                        "line_status": new_line_status
+                    })
+
+                    if actual_ship < qty_to_ship:
+                        all_fully_shipped = False
+
+                # Update order status
+                new_order_status = 'shipped' if all_fully_shipped else 'partial_ship'
+                cur.execute("UPDATE sales_orders SET status = %s WHERE id = %s", (new_order_status, order_id))
+
+                logger.info(f"Ship order {order_row['order_number']}: {'fully' if all_fully_shipped else 'partially'} shipped")
+                return {
+                    "order_number": order_row['order_number'],
+                    "customer": order_row['name'],
+                    "order_status": new_order_status,
+                    "lines_shipped": results,
+                    "message": f"Order {order_row['order_number']} {'fully' if all_fully_shipped else 'partially'} shipped"
+                }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ship order commit failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# SALES DASHBOARD (v2.2.0)
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/sales/dashboard")
+def sales_dashboard(_: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            # Status counts
+            cur.execute(
+                """SELECT status, COUNT(*) as cnt FROM sales_orders
+                   WHERE status NOT IN ('invoiced', 'cancelled')
+                   GROUP BY status ORDER BY status"""
+            )
+            status_counts = {r['status']: r['cnt'] for r in cur.fetchall()}
+
+            # Overdue
+            cur.execute(
+                """SELECT so.order_number, c.name AS customer, so.requested_ship_date,
+                          SUM(sol.quantity_lb - sol.quantity_shipped_lb) AS remaining_lb
+                   FROM sales_orders so
+                   JOIN customers c ON c.id = so.customer_id
+                   JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                   WHERE so.requested_ship_date < CURRENT_DATE
+                     AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
+                   GROUP BY so.id, c.name
+                   HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
+                   ORDER BY so.requested_ship_date ASC"""
+            )
+            overdue = [
+                {"order_number": r['order_number'], "customer": r['customer'],
+                 "requested_ship_date": str(r['requested_ship_date']), "remaining_lb": float(r['remaining_lb'])}
+                for r in cur.fetchall()
+            ]
+
+            # Due this week
+            cur.execute(
+                """SELECT so.order_number, c.name AS customer, so.requested_ship_date,
+                          SUM(sol.quantity_lb - sol.quantity_shipped_lb) AS remaining_lb
+                   FROM sales_orders so
+                   JOIN customers c ON c.id = so.customer_id
+                   JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                   WHERE so.requested_ship_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+                     AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
+                   GROUP BY so.id, c.name
+                   HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
+                   ORDER BY so.requested_ship_date ASC"""
+            )
+            due_this_week = [
+                {"order_number": r['order_number'], "customer": r['customer'],
+                 "requested_ship_date": str(r['requested_ship_date']), "remaining_lb": float(r['remaining_lb'])}
+                for r in cur.fetchall()
+            ]
+
+            # Recent shipments
+            cur.execute(
+                """SELECT so.order_number, c.name AS customer, SUM(sos.quantity_lb) AS shipped_lb,
+                          MAX(sos.shipped_at) AS last_shipped
+                   FROM sales_order_shipments sos
+                   JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+                   JOIN sales_orders so ON so.id = sol.sales_order_id
+                   JOIN customers c ON c.id = so.customer_id
+                   WHERE sos.shipped_at > now() - INTERVAL '7 days'
+                   GROUP BY so.id, c.name
+                   ORDER BY last_shipped DESC"""
+            )
+            recent_shipments = []
+            for r in cur.fetchall():
+                s_date, s_time = format_timestamp(r['last_shipped'])
+                recent_shipments.append({
+                    "order_number": r['order_number'], "customer": r['customer'],
+                    "shipped_lb": float(r['shipped_lb']),
+                    "last_shipped_date": s_date, "last_shipped_time": s_time
+                })
+
+            now_date, now_time = format_timestamp(get_plant_now())
+            return {
+                "status_summary": status_counts,
+                "overdue_orders": overdue,
+                "overdue_count": len(overdue),
+                "due_this_week": due_this_week,
+                "due_this_week_count": len(due_this_week),
+                "recent_shipments_7d": recent_shipments,
+                "as_of_date": now_date,
+                "as_of_time": now_time
+            }
+    except Exception as e:
+        logger.error(f"Sales dashboard failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
