@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional, List, Dict, Union
 import json
 from datetime import datetime, date, timezone
@@ -18,7 +18,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.2.0")
+app = FastAPI(title="Factory Ledger System", version="2.3.0")
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -212,7 +212,7 @@ class VerifyProductRequest(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-# SALES PYDANTIC MODELS (v2.2.0)
+# SALES PYDANTIC MODELS (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
 
 class CustomerCreate(BaseModel):
@@ -234,9 +234,35 @@ class CustomerUpdate(BaseModel):
 
 class OrderLineInput(BaseModel):
     product_name: str
-    quantity_lb: float
+    quantity: Optional[float] = None
+    unit: Optional[str] = "lb"
+    case_weight_lb: Optional[float] = None
+    quantity_lb: Optional[float] = None
     unit_price: Optional[float] = None
     notes: Optional[str] = None
+
+    @validator('quantity_lb', always=True, pre=True)
+    def calculate_quantity_lb(cls, v, values):
+        unit = values.get('unit', 'lb')
+        quantity = values.get('quantity')
+        case_weight = values.get('case_weight_lb')
+
+        # If quantity_lb is directly provided, use it (backward compatible)
+        if v is not None:
+            return v
+
+        # If quantity + unit provided, calculate
+        if quantity is not None:
+            if unit == 'lb':
+                return quantity
+            elif unit in ('cases', 'bags', 'boxes'):
+                if case_weight is None:
+                    raise ValueError(f"case_weight_lb is required when unit is '{unit}'")
+                return quantity * case_weight
+            else:
+                raise ValueError(f"Unknown unit: {unit}. Use 'lb', 'cases', 'bags', or 'boxes'")
+
+        raise ValueError("Either quantity_lb or (quantity + unit) must be provided")
 
 class OrderCreate(BaseModel):
     customer_name: str
@@ -260,7 +286,7 @@ class ShipOrderRequest(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-# SALES HELPER FUNCTIONS (v2.2.0)
+# SALES HELPER FUNCTIONS (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
 
 def resolve_product_id(cur, product_name: str) -> tuple:
@@ -789,6 +815,33 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     "available_lots": [{"lot_code": l['lot_code'], "available_lb": float(l['available'])} for l in lots]
                 })
             
+            # Check for open sales orders from this customer
+            open_orders_warning = None
+            cur.execute("""
+                SELECT so.order_number, so.status,
+                       SUM(sol.quantity_lb - sol.quantity_shipped_lb) as remaining_lb
+                FROM sales_orders so
+                JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                WHERE so.customer_id = (
+                    SELECT id FROM customers WHERE LOWER(name) = LOWER(%s) LIMIT 1
+                )
+                AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
+                AND sol.line_status NOT IN ('fulfilled', 'cancelled')
+                GROUP BY so.id, so.order_number, so.status
+                HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
+            """, (req.customer_name,))
+            open_orders = cur.fetchall()
+
+            if open_orders:
+                order_list = "; ".join([
+                    f"{o['order_number']} ({o['status']}, {o['remaining_lb']:,.0f} lb remaining)"
+                    for o in open_orders
+                ])
+                open_orders_warning = (
+                    f"⚠️ WARNING: {req.customer_name} has open sales order(s): {order_list}. "
+                    f"Consider using shipOrderPreview to ship against the order instead."
+                )
+
             return {
                 "product_id": product['id'],
                 "product_name": product['name'],
@@ -800,6 +853,7 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 "lot_id": selected['id'],
                 "available_lb": float(selected['available']),
                 "lot_selection": lot_selection,
+                "open_orders_warning": open_orders_warning,
                 "preview_message": f"Ready to ship {req.quantity_lb} lb of {product['name']} from lot {selected['lot_code']}"
             }
     except HTTPException:
@@ -884,14 +938,42 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 
                 remaining = lot['available'] - req.quantity_lb
                 
+                # Check for open sales orders from this customer
+                open_orders_warning = None
+                cur.execute("""
+                    SELECT so.order_number, so.status,
+                           SUM(sol.quantity_lb - sol.quantity_shipped_lb) as remaining_lb
+                    FROM sales_orders so
+                    JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                    WHERE so.customer_id = (
+                        SELECT id FROM customers WHERE LOWER(name) = LOWER(%s) LIMIT 1
+                    )
+                    AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
+                    AND sol.line_status NOT IN ('fulfilled', 'cancelled')
+                    GROUP BY so.id, so.order_number, so.status
+                    HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
+                """, (req.customer_name,))
+                open_orders = cur.fetchall()
+
+                if open_orders:
+                    order_list = "; ".join([
+                        f"{o['order_number']} ({o['status']}, {o['remaining_lb']:,.0f} lb remaining)"
+                        for o in open_orders
+                    ])
+                    open_orders_warning = (
+                        f"⚠️ WARNING: {req.customer_name} has open sales order(s): {order_list}. "
+                        f"This shipment was standalone and NOT applied to the order."
+                    )
+
                 logger.info(f"Ship committed: {req.quantity_lb} lb of {product['name']} to {req.customer_name}")
-                
+
                 return {
                     "success": True,
                     "transaction_id": txn_id,
                     "lot_code": lot['lot_code'],
                     "quantity_shipped": req.quantity_lb,
                     "remaining_in_lot": remaining,
+                    "open_orders_warning": open_orders_warning,
                     "message": f"Shipped {req.quantity_lb} lb from lot {lot['lot_code']}. {remaining} lb remaining."
                 }
     except HTTPException:
@@ -2134,7 +2216,7 @@ def get_reason_codes(_: bool = Depends(verify_api_key)):
 
 
 # ═══════════════════════════════════════════════════════════════
-# CUSTOMER ENDPOINTS (v2.2.0)
+# CUSTOMER ENDPOINTS (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
 
 @app.get("/customers")
@@ -2212,7 +2294,7 @@ def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(ver
 
 
 # ═══════════════════════════════════════════════════════════════
-# SALES ORDER ENDPOINTS (v2.2.0)
+# SALES ORDER ENDPOINTS (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/sales/orders")
@@ -2246,6 +2328,9 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                         "line_id": line_id,
                         "product": prod_name,
                         "quantity_lb": line.quantity_lb,
+                        "original_quantity": line.quantity,
+                        "original_unit": line.unit,
+                        "case_weight_lb": line.case_weight_lb,
                         "unit_price": line.unit_price
                     })
 
@@ -2474,7 +2559,14 @@ def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_
                         (order_id, product_id, line.quantity_lb, line.unit_price, line.notes)
                     )
                     line_id = cur.fetchone()['id']
-                    results.append({"line_id": line_id, "product": prod_name, "quantity_lb": line.quantity_lb})
+                    results.append({
+                        "line_id": line_id,
+                        "product": prod_name,
+                        "quantity_lb": line.quantity_lb,
+                        "original_quantity": line.quantity,
+                        "original_unit": line.unit,
+                        "case_weight_lb": line.case_weight_lb
+                    })
 
                 return {"order_number": row['order_number'], "lines_added": results, "message": f"Added {len(results)} line(s) to {row['order_number']}"}
     except HTTPException:
@@ -2546,7 +2638,7 @@ def update_order_line(
 
 
 # ═══════════════════════════════════════════════════════════════
-# SHIP AGAINST ORDER ENDPOINTS (v2.2.0)
+# SHIP AGAINST ORDER ENDPOINTS (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/sales/orders/{order_id}/ship/preview")
@@ -2835,7 +2927,7 @@ def ship_order_commit(order_id: int, req: Optional[ShipOrderRequest] = None, _: 
 
 
 # ═══════════════════════════════════════════════════════════════
-# SALES DASHBOARD (v2.2.0)
+# SALES DASHBOARD (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
 
 @app.get("/sales/dashboard")
