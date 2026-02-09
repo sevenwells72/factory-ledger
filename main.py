@@ -822,14 +822,14 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
                        SUM(sol.quantity_lb - sol.quantity_shipped_lb) as remaining_lb
                 FROM sales_orders so
                 JOIN sales_order_lines sol ON sol.sales_order_id = so.id
-                WHERE so.customer_id = (
-                    SELECT id FROM customers WHERE LOWER(name) = LOWER(%s) LIMIT 1
+                WHERE so.customer_id IN (
+                    SELECT id FROM customers WHERE LOWER(name) LIKE LOWER(%s)
                 )
                 AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
                 AND sol.line_status NOT IN ('fulfilled', 'cancelled')
                 GROUP BY so.id, so.order_number, so.status
                 HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
-            """, (req.customer_name,))
+            """, (f"%{req.customer_name}%",))
             open_orders = cur.fetchall()
 
             if open_orders:
@@ -945,14 +945,14 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                            SUM(sol.quantity_lb - sol.quantity_shipped_lb) as remaining_lb
                     FROM sales_orders so
                     JOIN sales_order_lines sol ON sol.sales_order_id = so.id
-                    WHERE so.customer_id = (
-                        SELECT id FROM customers WHERE LOWER(name) = LOWER(%s) LIMIT 1
+                    WHERE so.customer_id IN (
+                        SELECT id FROM customers WHERE LOWER(name) LIKE LOWER(%s)
                     )
                     AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
                     AND sol.line_status NOT IN ('fulfilled', 'cancelled')
                     GROUP BY so.id, so.order_number, so.status
                     HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
-                """, (req.customer_name,))
+                """, (f"%{req.customer_name}%",))
                 open_orders = cur.fetchall()
 
                 if open_orders:
