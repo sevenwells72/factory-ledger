@@ -101,6 +101,26 @@ def get_plant_now():
 
 
 # ═══════════════════════════════════════════════════════════════
+# BILINGUAL SUPPORT HELPERS
+# ═══════════════════════════════════════════════════════════════
+
+def validate_bilingual(english_val, spanish_val, field_name: str):
+    """Validate bilingual field pair: English required when Spanish is provided."""
+    if spanish_val and not english_val:
+        raise HTTPException(400,
+            f"English version required. Provide '{field_name}' along with '{field_name}_es'."
+        )
+
+
+def bilingual_response(english_val, spanish_val, field_name: str) -> dict:
+    """Return bilingual fields for a response dict. Only includes _es if it has a value."""
+    result = {field_name: english_val}
+    if spanish_val:
+        result[f"{field_name}_es"] = spanish_val
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════
 # PYDANTIC MODELS
 # ═══════════════════════════════════════════════════════════════
 
@@ -155,6 +175,7 @@ class AdjustRequest(BaseModel):
     lot_code: str
     adjustment_lb: float
     reason: str
+    reason_es: Optional[str] = None
 
 class QuickCreateProductRequest(BaseModel):
     product_name: str
@@ -163,6 +184,7 @@ class QuickCreateProductRequest(BaseModel):
     storage_type: str = "ambient"
     name_confidence: str = "exact"
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
     performed_by: str = "system"
 
 class QuickCreateBatchProductRequest(BaseModel):
@@ -171,12 +193,14 @@ class QuickCreateBatchProductRequest(BaseModel):
     production_context: str
     name_confidence: str = "exact"
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
     performed_by: str = "system"
 
 class LotReassignmentRequest(BaseModel):
     to_product_id: int
     reason_code: str
     reason_notes: Optional[str] = None
+    reason_notes_es: Optional[str] = None
     performed_by: str = "system"
 
 class AddFoundInventoryRequest(BaseModel):
@@ -189,6 +213,7 @@ class AddFoundInventoryRequest(BaseModel):
     suspected_supplier: Optional[str] = None
     suspected_bol: Optional[str] = None
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
     performed_by: str = "system"
 
 class AddFoundInventoryWithNewProductRequest(BaseModel):
@@ -202,12 +227,14 @@ class AddFoundInventoryWithNewProductRequest(BaseModel):
     estimated_age: str = "unknown"
     suspected_supplier: Optional[str] = None
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
     performed_by: str = "system"
 
 class VerifyProductRequest(BaseModel):
     action: str
     verified_name: Optional[str] = None
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
     performed_by: str = "system"
 
 
@@ -222,6 +249,7 @@ class CustomerCreate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
 
 class CustomerUpdate(BaseModel):
     name: Optional[str] = None
@@ -230,6 +258,7 @@ class CustomerUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
     active: Optional[bool] = None
 
 class OrderLineInput(BaseModel):
@@ -240,6 +269,7 @@ class OrderLineInput(BaseModel):
     quantity_lb: Optional[float] = None
     unit_price: Optional[float] = None
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
     _unit_explicitly_set: bool = False        # internal tracking flag
 
     class Config:
@@ -281,6 +311,7 @@ class OrderCreate(BaseModel):
     requested_ship_date: Optional[str] = None
     lines: List[OrderLineInput]
     notes: Optional[str] = None
+    notes_es: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
     status: str
@@ -1519,6 +1550,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
 
 @app.post("/adjust/commit")
 def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.reason, req.reason_es, "reason")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1530,27 +1562,27 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
                       AND LOWER(l.lot_code) = LOWER(%s)
                 """, (f"%{req.product_name}%", f"%{req.product_name}%", req.lot_code))
                 result = cur.fetchone()
-                
+
                 if not result:
                     raise HTTPException(status_code=404, detail=f"Product/lot combination not found")
-                
+
                 now = get_plant_now()
-                
+
                 cur.execute("""
-                    INSERT INTO transactions (type, timestamp, adjust_reason, notes)
-                    VALUES ('adjust', %s, %s, %s)
+                    INSERT INTO transactions (type, timestamp, adjust_reason, adjust_reason_es, notes)
+                    VALUES ('adjust', %s, %s, %s, %s)
                     RETURNING id
-                """, (now, req.reason, f"Adjustment: {req.adjustment_lb} lb"))
+                """, (now, req.reason, req.reason_es, f"Adjustment: {req.adjustment_lb} lb"))
                 txn_id = cur.fetchone()['id']
-                
+
                 cur.execute("""
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
-                
+
                 logger.info(f"Adjust committed: {req.adjustment_lb} lb to lot {result['lot_code']}")
-                
-                return {
+
+                response = {
                     "success": True,
                     "transaction_id": txn_id,
                     "lot_code": result['lot_code'],
@@ -1558,6 +1590,9 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
                     "reason": req.reason,
                     "message": f"Adjusted lot {result['lot_code']} by {req.adjustment_lb} lb"
                 }
+                if req.reason_es:
+                    response["reason_es"] = req.reason_es
+                return response
     except HTTPException:
         raise
     except Exception as e:
@@ -1724,6 +1759,7 @@ def get_transaction_history(
 
 @app.post("/products/quick-create")
 def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1734,28 +1770,29 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
                         "error": f"Product '{req.product_name}' already exists",
                         "existing_product_id": existing['id']
                     })
-                
+
                 verification_notes = f"Quick-created. Name confidence: {req.name_confidence}."
                 if req.notes:
                     verification_notes += f" {req.notes}"
-                
+                verification_notes_es = req.notes_es
+
                 cur.execute("""
-                    INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, created_via, active)
-                    VALUES (%s, %s, %s, %s, 'unverified', %s, 'quick_create', true)
+                    INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, verification_notes_es, created_via, active)
+                    VALUES (%s, %s, %s, %s, 'unverified', %s, %s, 'quick_create', true)
                     RETURNING id, name, type, uom, verification_status
-                """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes))
+                """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes, verification_notes_es))
                 product = cur.fetchone()
-                
+
                 try:
                     cur.execute("""
-                        INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, performed_by)
-                        VALUES (%s, NULL, 'unverified', 'created', %s, %s)
-                    """, (product['id'], f"Quick-created during receive. {verification_notes}", req.performed_by))
+                        INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, action_notes_es, performed_by)
+                        VALUES (%s, NULL, 'unverified', 'created', %s, %s, %s)
+                    """, (product['id'], f"Quick-created during receive. {verification_notes}", verification_notes_es, req.performed_by))
                 except Exception:
                     pass
-                
+
                 logger.info(f"Quick-created product: {product['name']} (ID: {product['id']})")
-                
+
                 return {
                     "success": True,
                     "product_id": product['id'],
@@ -1771,6 +1808,7 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
 
 @app.post("/products/quick-create-batch")
 def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1781,20 +1819,21 @@ def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = De
                         "error": f"Product '{req.product_name}' already exists",
                         "existing_product_id": existing['id']
                     })
-                
+
                 verification_notes = f"Quick-created for production. Category: {req.category}. Context: {req.production_context}. Name confidence: {req.name_confidence}."
                 if req.notes:
                     verification_notes += f" {req.notes}"
-                
+                verification_notes_es = req.notes_es
+
                 cur.execute("""
-                    INSERT INTO products (name, type, uom, verification_status, verification_notes, production_context, created_via, active)
-                    VALUES (%s, 'batch', 'lb', 'unverified', %s, %s, 'quick_create_batch', true)
+                    INSERT INTO products (name, type, uom, verification_status, verification_notes, verification_notes_es, production_context, created_via, active)
+                    VALUES (%s, 'batch', 'lb', 'unverified', %s, %s, %s, 'quick_create_batch', true)
                     RETURNING id, name, type, verification_status
-                """, (req.product_name, verification_notes, req.production_context))
+                """, (req.product_name, verification_notes, verification_notes_es, req.production_context))
                 product = cur.fetchone()
-                
+
                 logger.info(f"Quick-created batch product: {product['name']} (ID: {product['id']})")
-                
+
                 return {
                     "success": True,
                     "product_id": product['id'],
@@ -1815,6 +1854,7 @@ def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = De
 
 @app.post("/lots/{lot_id}/reassign")
 def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.reason_notes, req.reason_notes_es, "reason_notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1857,19 +1897,19 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                 
                 try:
                     cur.execute("""
-                        INSERT INTO lot_reassignments 
-                        (lot_id, lot_code, from_product_id, from_product_name, to_product_id, to_product_name, 
-                         quantity_affected, uom, reason_code, reason_notes, reassigned_by)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (lot_id, lot['lot_code'], lot['product_id'], lot['product_name'], 
+                        INSERT INTO lot_reassignments
+                        (lot_id, lot_code, from_product_id, from_product_name, to_product_id, to_product_name,
+                         quantity_affected, uom, reason_code, reason_notes, reason_notes_es, reassigned_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (lot_id, lot['lot_code'], lot['product_id'], lot['product_name'],
                           req.to_product_id, to_product['name'], float(lot['quantity_on_hand']), 'lb',
-                          req.reason_code, req.reason_notes, req.performed_by))
+                          req.reason_code, req.reason_notes, req.reason_notes_es, req.performed_by))
                 except Exception as e:
                     logger.warning(f"Failed to record lot reassignment history: {e}")
-                
+
                 logger.info(f"Reassigned lot {lot['lot_code']} from {lot['product_name']} to {to_product['name']}")
-                
-                return {
+
+                response = {
                     "success": True,
                     "lot_id": lot_id,
                     "lot_code": lot['lot_code'],
@@ -1879,6 +1919,11 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     "production_usage_updated": usage['count'] if usage else 0,
                     "message": f"Reassigned lot {lot['lot_code']} to {to_product['name']}"
                 }
+                if req.reason_notes:
+                    response["reason_notes"] = req.reason_notes
+                if req.reason_notes_es:
+                    response["reason_notes_es"] = req.reason_notes_es
+                return response
     except HTTPException:
         raise
     except Exception as e:
@@ -1892,6 +1937,7 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
 
 @app.post("/inventory/found")
 def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1923,32 +1969,32 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                 lot_code = f"{date_part}-FOUND-{seq:03d}"
                 
                 cur.execute("""
-                    INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, found_location, estimated_age)
-                    VALUES (%s, %s, 'found_inventory', %s, %s, %s)
+                    INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, entry_source_notes_es, found_location, estimated_age)
+                    VALUES (%s, %s, 'found_inventory', %s, %s, %s, %s)
                     RETURNING id
-                """, (req.product_id, lot_code, req.notes, req.found_location, req.estimated_age))
+                """, (req.product_id, lot_code, req.notes, req.notes_es, req.found_location, req.estimated_age))
                 lot_id = cur.fetchone()['id']
-                
+
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, notes)
                     VALUES ('adjust', %s, %s)
                     RETURNING id
                 """, (now, f"Found inventory: {req.reason_code}"))
                 txn_id = cur.fetchone()['id']
-                
+
                 cur.execute("""
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, req.product_id, lot_id, req.quantity))
-                
+
                 try:
                     cur.execute("""
-                        INSERT INTO inventory_adjustments 
-                        (lot_id, product_id, adjustment_type, quantity_before, quantity_adjustment, quantity_after, 
-                         uom, reason_code, reason_notes, found_location, estimated_age, suspected_supplier, adjusted_by)
-                        VALUES (%s, %s, 'found', 0, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (lot_id, req.product_id, req.quantity, req.quantity, req.uom, 
-                          req.reason_code, req.notes, req.found_location, req.estimated_age,
+                        INSERT INTO inventory_adjustments
+                        (lot_id, product_id, adjustment_type, quantity_before, quantity_adjustment, quantity_after,
+                         uom, reason_code, reason_notes, reason_notes_es, found_location, estimated_age, suspected_supplier, adjusted_by)
+                        VALUES (%s, %s, 'found', 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (lot_id, req.product_id, req.quantity, req.quantity, req.uom,
+                          req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
                           req.suspected_supplier, req.performed_by))
                 except Exception as e:
                     logger.warning(f"Failed to record inventory adjustment: {e}")
@@ -1974,6 +2020,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
 @app.post("/inventory/found-with-new-product")
 def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -1987,11 +2034,12 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     })
                 
                 verification_notes = f"Quick-created during inventory count. {req.notes or ''}"
+                verification_notes_es = req.notes_es
                 cur.execute("""
-                    INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, created_via, active)
-                    VALUES (%s, %s, %s, %s, 'unverified', %s, 'quick_create_found_inventory', true)
+                    INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, verification_notes_es, created_via, active)
+                    VALUES (%s, %s, %s, %s, 'unverified', %s, %s, 'quick_create_found_inventory', true)
                     RETURNING id, name
-                """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes))
+                """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes, verification_notes_es))
                 product = cur.fetchone()
                 
                 cur.execute("SELECT pg_advisory_xact_lock(2)")
@@ -2005,10 +2053,10 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 lot_code = f"{date_part}-FOUND-{seq:03d}"
                 
                 cur.execute("""
-                    INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, found_location, estimated_age)
-                    VALUES (%s, %s, 'found_inventory', %s, %s, %s)
+                    INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, entry_source_notes_es, found_location, estimated_age)
+                    VALUES (%s, %s, 'found_inventory', %s, %s, %s, %s)
                     RETURNING id
-                """, (product['id'], lot_code, req.notes, req.found_location, req.estimated_age))
+                """, (product['id'], lot_code, req.notes, req.notes_es, req.found_location, req.estimated_age))
                 lot_id = cur.fetchone()['id']
                 
                 cur.execute("""
@@ -2070,46 +2118,47 @@ def get_found_inventory_queue(limit: int = Query(default=50, ge=1, le=200), _: b
 
 @app.post("/products/{product_id}/verify")
 def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("SELECT id, name, verification_status FROM products WHERE id = %s FOR UPDATE", (product_id,))
                 product = cur.fetchone()
-                
+
                 if not product:
                     raise HTTPException(status_code=404, detail=f"Product ID {product_id} not found")
-                
+
                 old_status = product.get('verification_status', 'unverified')
-                
+
                 if req.action == 'verify':
                     new_status = 'verified'
                     new_name = req.verified_name or product['name']
                     cur.execute("""
-                        UPDATE products SET verification_status = %s, name = %s, verification_notes = %s
+                        UPDATE products SET verification_status = %s, name = %s, verification_notes = %s, verification_notes_es = %s
                         WHERE id = %s
-                    """, (new_status, new_name, req.notes, product_id))
-                    
+                    """, (new_status, new_name, req.notes, req.notes_es, product_id))
+
                 elif req.action == 'reject':
                     new_status = 'rejected'
                     cur.execute("""
-                        UPDATE products SET verification_status = %s, active = false, verification_notes = %s
+                        UPDATE products SET verification_status = %s, active = false, verification_notes = %s, verification_notes_es = %s
                         WHERE id = %s
-                    """, (new_status, req.notes, product_id))
-                    
+                    """, (new_status, req.notes, req.notes_es, product_id))
+
                 elif req.action == 'archive':
                     new_status = 'archived'
                     cur.execute("""
-                        UPDATE products SET verification_status = %s, active = false, verification_notes = %s
+                        UPDATE products SET verification_status = %s, active = false, verification_notes = %s, verification_notes_es = %s
                         WHERE id = %s
-                    """, (new_status, req.notes, product_id))
+                    """, (new_status, req.notes, req.notes_es, product_id))
                 else:
                     raise HTTPException(status_code=400, detail=f"Invalid action: {req.action}")
-                
+
                 try:
                     cur.execute("""
-                        INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, performed_by)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (product_id, old_status, new_status, req.action, req.notes, req.performed_by))
+                        INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, action_notes_es, performed_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (product_id, old_status, new_status, req.action, req.notes, req.notes_es, req.performed_by))
                 except Exception:
                     pass
                 
@@ -2262,13 +2311,14 @@ def search_customers(q: str = Query(..., min_length=1), _: bool = Depends(verify
 
 @app.post("/customers")
 def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
-                    """INSERT INTO customers (name, contact_name, email, phone, address, notes)
-                       VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name""",
-                    (req.name, req.contact_name, req.email, req.phone, req.address, req.notes)
+                    """INSERT INTO customers (name, contact_name, email, phone, address, notes, notes_es)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, name""",
+                    (req.name, req.contact_name, req.email, req.phone, req.address, req.notes, req.notes_es)
                 )
                 row = cur.fetchone()
                 logger.info(f"Created customer: {row['name']} (ID: {row['id']})")
@@ -2335,16 +2385,19 @@ MANUAL_TRANSITIONS = {
 
 @app.post("/sales/orders")
 def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.notes, req.notes_es, "notes")
+    for line in req.lines:
+        validate_bilingual(line.notes, line.notes_es, "notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 customer_id, customer_name = resolve_customer_id(cur, req.customer_name)
 
                 cur.execute(
-                    """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, order_number)
-                       VALUES (%s, %s, %s, '')
+                    """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number)
+                       VALUES (%s, %s, %s, %s, '')
                        RETURNING id, order_number""",
-                    (customer_id, req.requested_ship_date, req.notes)
+                    (customer_id, req.requested_ship_date, req.notes, req.notes_es)
                 )
                 row = cur.fetchone()
                 order_id, order_number = row['id'], row['order_number']
@@ -2382,9 +2435,9 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                         )
 
                     cur.execute(
-                        """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes)
-                           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-                        (order_id, product_id, line.quantity_lb, line.unit_price, line.notes)
+                        """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes, notes_es)
+                           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+                        (order_id, product_id, line.quantity_lb, line.unit_price, line.notes, line.notes_es)
                     )
                     line_id = cur.fetchone()['id']
                     total_lb += line.quantity_lb
@@ -2651,7 +2704,7 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
         with get_transaction() as cur:
             cur.execute(
                 """SELECT so.id, so.order_number, c.name AS customer, so.order_date,
-                          so.requested_ship_date, so.status, so.notes, so.created_at
+                          so.requested_ship_date, so.status, so.notes, so.notes_es, so.created_at
                    FROM sales_orders so
                    JOIN customers c ON c.id = so.customer_id
                    WHERE so.id = %s""",
@@ -2673,10 +2726,12 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
                 "created_date": date_str,
                 "created_time": time_str
             }
+            if row.get('notes_es'):
+                order["notes_es"] = row['notes_es']
 
             cur.execute(
                 """SELECT sol.id, p.name, sol.quantity_lb, sol.quantity_shipped_lb,
-                          sol.unit_price, sol.line_status, sol.notes
+                          sol.unit_price, sol.line_status, sol.notes, sol.notes_es
                    FROM sales_order_lines sol
                    JOIN products p ON p.id = sol.product_id
                    WHERE sol.sales_order_id = %s
@@ -2695,7 +2750,7 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
                 total_shipped += shipped
                 if price:
                     total_value += qty * price
-                lines.append({
+                line_data = {
                     "line_id": r['id'],
                     "product": r['name'],
                     "quantity_lb": qty,
@@ -2705,7 +2760,10 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
                     "line_value": round(qty * price, 2) if price else None,
                     "line_status": r['line_status'],
                     "notes": r['notes']
-                })
+                }
+                if r.get('notes_es'):
+                    line_data["notes_es"] = r['notes_es']
+                lines.append(line_data)
 
             cur.execute(
                 """SELECT sos.id, sol.id AS line_id, p.name AS product,
@@ -2807,6 +2865,8 @@ def update_order_status(order_id: int, req: OrderStatusUpdate, _: bool = Depends
 
 @app.post("/sales/orders/{order_id}/lines")
 def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_api_key)):
+    for line in req.lines:
+        validate_bilingual(line.notes, line.notes_es, "notes")
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -2848,9 +2908,9 @@ def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_
                         )
 
                     cur.execute(
-                        """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes)
-                           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-                        (order_id, product_id, line.quantity_lb, line.unit_price, line.notes)
+                        """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes, notes_es)
+                           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+                        (order_id, product_id, line.quantity_lb, line.unit_price, line.notes, line.notes_es)
                     )
                     line_id = cur.fetchone()['id']
                     results.append({

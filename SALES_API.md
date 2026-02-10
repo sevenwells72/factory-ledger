@@ -889,3 +889,70 @@ When a standalone ship (`POST /ship/preview` or `/ship/commit`) is requested for
 | `/sales/orders/{id}/ship/commit` | POST | Execute shipment |
 | `/sales/orders/fulfillment-check` | GET | Bulk fulfillment feasibility check |
 | `/sales/dashboard` | GET | Dashboard overview |
+
+---
+
+## 8. Bilingual Support (English + Spanish)
+
+The system supports dual-language storage for all free-text fields. English is the system-of-record; Spanish is optional context.
+
+### How It Works
+
+Every free-text field (`notes`, `reason`, `reason_notes`) has an optional `_es` companion:
+
+| English Field (required) | Spanish Companion (optional) |
+|--------------------------|------------------------------|
+| `reason` | `reason_es` |
+| `notes` | `notes_es` |
+| `reason_notes` | `reason_notes_es` |
+
+### Validation Rules
+
+1. **English always required** when Spanish is provided
+2. **Spanish always optional** — can be omitted entirely
+3. **Error if Spanish-only**: `"English version required. Provide 'reason' along with 'reason_es'."`
+
+### Request Example
+
+```json
+{
+  "product_name": "Classic Granola 25 LB",
+  "lot_code": "26-02-09-PROD-001",
+  "adjustment_lb": -25,
+  "reason": "25 lb found damaged",
+  "reason_es": "Encontramos 25 libras dañadas"
+}
+```
+
+### Response Behavior
+
+- If `_es` field exists in the database, it is included in the response
+- If `_es` is null, only the English field is returned (no empty `_es` key)
+
+```json
+{
+  "reason": "25 lb found damaged",
+  "reason_es": "Encontramos 25 libras dañadas"
+}
+```
+
+### Affected Endpoints
+
+| Endpoint | Fields |
+|----------|--------|
+| `POST /adjust/commit` | `reason` / `reason_es` |
+| `POST /products/quick-create` | `notes` / `notes_es` |
+| `POST /products/quick-create-batch` | `notes` / `notes_es` |
+| `POST /lots/{id}/reassign` | `reason_notes` / `reason_notes_es` |
+| `POST /inventory/found` | `notes` / `notes_es` |
+| `POST /inventory/found-with-new-product` | `notes` / `notes_es` |
+| `POST /products/{id}/verify` | `notes` / `notes_es` |
+| `POST /customers` | `notes` / `notes_es` |
+| `PATCH /customers/{id}` | `notes` / `notes_es` |
+| `POST /sales/orders` | `notes` / `notes_es` (order + lines) |
+| `POST /sales/orders/{id}/lines` | `notes` / `notes_es` (per line) |
+| `GET /sales/orders/{id}` | Returns `notes_es` if present |
+
+### Reporting Rule
+
+Only the English (base) field appears in exports, reports, and audit logs. The `_es` companion fields are internal/contextual only and are not included in any reporting output.
