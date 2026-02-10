@@ -2309,6 +2309,30 @@ def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(ver
 # SALES ORDER ENDPOINTS (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
 
+# Status state machine — all valid transitions (includes auto-transitions from shipOrderCommit)
+VALID_TRANSITIONS = {
+    'new':            ['confirmed', 'cancelled'],
+    'confirmed':      ['in_production', 'cancelled'],
+    'in_production':  ['ready', 'cancelled'],
+    'ready':          ['shipped', 'partial_ship', 'cancelled'],
+    'partial_ship':   ['shipped', 'cancelled'],
+    'shipped':        ['invoiced'],
+    'invoiced':       [],   # terminal
+    'cancelled':      [],   # terminal
+}
+
+# Manual transitions — subset excluding shipped/partial_ship (those are auto-only via shipOrderCommit)
+MANUAL_TRANSITIONS = {
+    'new':            ['confirmed', 'cancelled'],
+    'confirmed':      ['in_production', 'cancelled'],
+    'in_production':  ['ready', 'cancelled'],
+    'ready':          ['cancelled'],
+    'partial_ship':   ['cancelled'],
+    'shipped':        ['invoiced'],
+    'invoiced':       [],
+    'cancelled':      [],
+}
+
 @app.post("/sales/orders")
 def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
     try:
@@ -2574,21 +2598,55 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
 
 @app.patch("/sales/orders/{order_id}/status")
 def update_order_status(order_id: int, req: OrderStatusUpdate, _: bool = Depends(verify_api_key)):
-    valid = ['new', 'confirmed', 'in_production', 'ready', 'shipped', 'partial_ship', 'invoiced', 'cancelled']
-    if req.status not in valid:
-        raise HTTPException(400, f"Invalid status. Must be one of: {valid}")
+    all_statuses = list(VALID_TRANSITIONS.keys())
+    if req.status not in all_statuses:
+        raise HTTPException(400, f"Invalid status. Must be one of: {all_statuses}")
+
+    # Block manual setting of shipped/partial_ship — those are auto-only via shipOrderCommit
+    if req.status in ('shipped', 'partial_ship'):
+        raise HTTPException(400,
+            f"'{req.status}' status is set automatically when an order is shipped. "
+            f"Use the ship endpoint instead."
+        )
+
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Get current status first
                 cur.execute(
-                    "UPDATE sales_orders SET status = %s WHERE id = %s RETURNING order_number, status",
-                    (req.status, order_id)
+                    "SELECT order_number, status FROM sales_orders WHERE id = %s",
+                    (order_id,)
                 )
                 row = cur.fetchone()
                 if not row:
                     raise HTTPException(404, f"Order #{order_id} not found")
-                logger.info(f"Order {row['order_number']} status → {req.status}")
-                return {"order_number": row['order_number'], "status": row['status'], "message": f"Order {row['order_number']} → {req.status}"}
+
+                current = row['status']
+                allowed = MANUAL_TRANSITIONS.get(current, [])
+
+                if req.status not in allowed:
+                    if not allowed:
+                        raise HTTPException(400,
+                            f"Order {row['order_number']} is '{current}' — this is a terminal status. "
+                            f"No further status changes are allowed."
+                        )
+                    raise HTTPException(400,
+                        f"Invalid status transition: '{current}' → '{req.status}'. "
+                        f"Allowed transitions from '{current}': {allowed}."
+                    )
+
+                cur.execute(
+                    "UPDATE sales_orders SET status = %s WHERE id = %s RETURNING order_number, status",
+                    (req.status, order_id)
+                )
+                updated = cur.fetchone()
+                logger.info(f"Order {updated['order_number']} status: {current} → {req.status}")
+                return {
+                    "order_number": updated['order_number'],
+                    "previous_status": current,
+                    "status": updated['status'],
+                    "message": f"Order {updated['order_number']}: {current} → {req.status}"
+                }
     except HTTPException:
         raise
     except Exception as e:
