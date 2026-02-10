@@ -235,21 +235,33 @@ class CustomerUpdate(BaseModel):
 class OrderLineInput(BaseModel):
     product_name: str
     quantity: Optional[float] = None
-    unit: Optional[str] = "lb"
+    unit: Optional[str] = None               # None = not explicitly provided
     case_weight_lb: Optional[float] = None
     quantity_lb: Optional[float] = None
     unit_price: Optional[float] = None
     notes: Optional[str] = None
+    _unit_explicitly_set: bool = False        # internal tracking flag
+
+    class Config:
+        underscore_attrs_are_private = True
+
+    @validator('unit', pre=True, always=True)
+    def track_unit_explicit(cls, v):
+        return v  # actual tracking done in calculate_quantity_lb
 
     @validator('quantity_lb', always=True, pre=True)
     def calculate_quantity_lb(cls, v, values):
-        unit = values.get('unit', 'lb')
+        unit = values.get('unit')
         quantity = values.get('quantity')
         case_weight = values.get('case_weight_lb')
 
         # If quantity_lb is directly provided, use it (backward compatible)
         if v is not None:
             return v
+
+        # Default unit to lb if not provided
+        if unit is None:
+            unit = 'lb'
 
         # If quantity + unit provided, calculate
         if quantity is not None:
@@ -2315,8 +2327,36 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
 
                 line_results = []
                 total_lb = 0
+                warnings = []
                 for line in req.lines:
                     product_id, prod_name = resolve_product_id(cur, line.product_name)
+
+                    # Fix #2: Auto-lookup case weight from product if not provided
+                    effective_case_weight = line.case_weight_lb
+                    used_unit = line.unit or 'lb'
+                    if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
+                        cur.execute(
+                            "SELECT default_case_weight_lb FROM products WHERE id = %s",
+                            (product_id,)
+                        )
+                        prod_row = cur.fetchone()
+                        if prod_row and prod_row.get('default_case_weight_lb'):
+                            effective_case_weight = float(prod_row['default_case_weight_lb'])
+                        else:
+                            raise HTTPException(400,
+                                f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
+                                f"No default case weight is set for this product."
+                            )
+                        # Recalculate quantity_lb with looked-up weight
+                        line.quantity_lb = line.quantity * effective_case_weight
+
+                    # Fix #1: Warn if unit was not explicitly provided and quantity was given
+                    if line.quantity is not None and line.unit is None:
+                        warnings.append(
+                            f"⚠️ '{prod_name}': No unit specified for quantity {line.quantity:,.0f} — "
+                            f"defaulting to lb. Did you mean cases?"
+                        )
+
                     cur.execute(
                         """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes)
                            VALUES (%s, %s, %s, %s, %s) RETURNING id""",
@@ -2324,13 +2364,30 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                     )
                     line_id = cur.fetchone()['id']
                     total_lb += line.quantity_lb
+
+                    # Fix #3: Quantity sanity check — compare to customer's average order size
+                    cur.execute("""
+                        SELECT AVG(sol.quantity_lb) as avg_qty
+                        FROM sales_order_lines sol
+                        JOIN sales_orders so ON so.id = sol.sales_order_id
+                        WHERE so.customer_id = %s AND sol.product_id = %s
+                          AND sol.id != %s
+                          AND sol.line_status != 'cancelled'
+                    """, (customer_id, product_id, line_id))
+                    avg_row = cur.fetchone()
+                    if avg_row and avg_row['avg_qty'] and line.quantity_lb < float(avg_row['avg_qty']) * 0.25:
+                        warnings.append(
+                            f"⚠️ '{prod_name}': {line.quantity_lb:,.0f} lb is unusually low for {customer_name}. "
+                            f"Their average order is {float(avg_row['avg_qty']):,.0f} lb. Double-check the quantity."
+                        )
+
                     line_results.append({
                         "line_id": line_id,
                         "product": prod_name,
                         "quantity_lb": line.quantity_lb,
                         "original_quantity": line.quantity,
-                        "original_unit": line.unit,
-                        "case_weight_lb": line.case_weight_lb,
+                        "original_unit": used_unit,
+                        "case_weight_lb": effective_case_weight,
                         "unit_price": line.unit_price
                     })
 
@@ -2343,6 +2400,7 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                     "status": "new",
                     "total_lb": total_lb,
                     "lines": line_results,
+                    "warnings": warnings if warnings else None,
                     "message": f"Order {order_number} created with {len(line_results)} line(s)"
                 }
     except HTTPException:
@@ -2551,8 +2609,35 @@ def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_
                     raise HTTPException(400, f"Cannot add lines to {row['status']} order")
 
                 results = []
+                warnings = []
                 for line in req.lines:
                     product_id, prod_name = resolve_product_id(cur, line.product_name)
+
+                    # Fix #2: Auto-lookup case weight from product if not provided
+                    effective_case_weight = line.case_weight_lb
+                    used_unit = line.unit or 'lb'
+                    if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
+                        cur.execute(
+                            "SELECT default_case_weight_lb FROM products WHERE id = %s",
+                            (product_id,)
+                        )
+                        prod_row = cur.fetchone()
+                        if prod_row and prod_row.get('default_case_weight_lb'):
+                            effective_case_weight = float(prod_row['default_case_weight_lb'])
+                        else:
+                            raise HTTPException(400,
+                                f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
+                                f"No default case weight is set for this product."
+                            )
+                        line.quantity_lb = line.quantity * effective_case_weight
+
+                    # Fix #1: Warn if unit was not explicitly provided
+                    if line.quantity is not None and line.unit is None:
+                        warnings.append(
+                            f"⚠️ '{prod_name}': No unit specified for quantity {line.quantity:,.0f} — "
+                            f"defaulting to lb. Did you mean cases?"
+                        )
+
                     cur.execute(
                         """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes)
                            VALUES (%s, %s, %s, %s, %s) RETURNING id""",
@@ -2564,11 +2649,14 @@ def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_
                         "product": prod_name,
                         "quantity_lb": line.quantity_lb,
                         "original_quantity": line.quantity,
-                        "original_unit": line.unit,
-                        "case_weight_lb": line.case_weight_lb
+                        "original_unit": used_unit,
+                        "case_weight_lb": effective_case_weight
                     })
 
-                return {"order_number": row['order_number'], "lines_added": results, "message": f"Added {len(results)} line(s) to {row['order_number']}"}
+                response = {"order_number": row['order_number'], "lines_added": results, "message": f"Added {len(results)} line(s) to {row['order_number']}"}
+                if warnings:
+                    response["warnings"] = warnings
+                return response
     except HTTPException:
         raise
     except Exception as e:
@@ -2655,6 +2743,11 @@ def ship_order_preview(order_id: int, req: Optional[ShipOrderRequest] = None, _:
             order_row = cur.fetchone()
             if not order_row:
                 raise HTTPException(404, f"Order #{order_id} not found")
+            if order_row['status'] == 'new':
+                raise HTTPException(400,
+                    f"Cannot ship order {order_row['order_number']} — status is 'new'. "
+                    f"Confirm the order first (update status to 'confirmed' or later)."
+                )
             if order_row['status'] in ('invoiced', 'cancelled'):
                 raise HTTPException(400, f"Cannot ship {order_row['status']} order")
 
@@ -2742,6 +2835,11 @@ def ship_order_commit(order_id: int, req: Optional[ShipOrderRequest] = None, _: 
                 order_row = cur.fetchone()
                 if not order_row:
                     raise HTTPException(404, f"Order #{order_id} not found")
+                if order_row['status'] == 'new':
+                    raise HTTPException(400,
+                        f"Cannot ship order {order_row['order_number']} — status is 'new'. "
+                        f"Confirm the order first (update status to 'confirmed' or later)."
+                    )
                 if order_row['status'] in ('invoiced', 'cancelled'):
                     raise HTTPException(400, f"Cannot ship {order_row['status']} order")
 
