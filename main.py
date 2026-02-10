@@ -18,7 +18,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.3.0")
+app = FastAPI(title="Factory Ledger System", version="2.3.1")
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
