@@ -18,7 +18,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.3.1")
+app = FastAPI(title="Factory Ledger System", version="2.4.0")
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -36,6 +36,51 @@ API_KEY = (os.getenv("API_KEY") or "").strip()
 PLANT_TIMEZONE = ZoneInfo("America/New_York")
 TIMEZONE_LABEL = "ET"
 
+# ═══════════════════════════════════════════════════════════════
+# SKU PROTECTION — Private-Label Guardrails
+# ═══════════════════════════════════════════════════════════════
+
+MERGE_KEYWORDS = ["merge", "deprecat", "consolidat", "migrat"]
+
+# Odoo codes for verified private-label finished goods + exclusive batches
+PRIVATE_LABEL_ODOO_CODES = [
+    '893',    # CQ Coconut Sweetened Flake 10 LB (Chef Quality)
+    '1614',   # CQ Granola 10 LB (Chef Quality)
+    '67470',  # Coconut Sweetened Fancy UNIPRO 10 LB
+    '67473',  # Coconut Sweetened Medium UNIPRO 10 LB
+    '67476',  # Coconut Sweetened Flake UNIPRO 10 LB
+    '70002',  # Granola SS Original 12x10 OZ Case (Sunshine)
+    '70003',  # Granola SS Chocolate Chip 12x10 OZ Case (Sunshine)
+    '70010',  # Granola SS Original Low Carb 12x10 OZ Case (Sunshine)
+    '70011',  # Granola SS Cranberry 12x10 OZ Case (Sunshine)
+    '70056',  # Granola Setton Cocoa Crunch 25 LB
+    '70070',  # Granola SS Chocolate Chip Low Carb 12x10 OZ Case (Sunshine)
+    '70073',  # BS Granola – Peanut Butter Banana – 6x7 OZ Case (Blue Stripes)
+    '70074',  # BS Granola – Dark Chocolate – 6x7 OZ Case (Blue Stripes)
+    '70077',  # Granola Setton Cinnamon Spice Almond 25 LB
+    '70078',  # Granola Setton Morning Latte Crunch 25 LB
+    '70079',  # BS Almond Butter Granola – 6x7 OZ Case (Blue Stripes)
+    '70080',  # BS Granola – Hazelnut Butter – 6x7 OZ Case (Blue Stripes)
+    '70081',  # Granola Setton Good Ol 25 LB
+    '70082',  # Granola Setton French Vanilla 25 LB
+]
+
+
+def check_private_label_merge(product_name: str, label_type: str, reason: str, quantity: float):
+    """Check if an adjustment would violate private-label SKU protection.
+    Returns a warning message string if blocked, or None if allowed."""
+    if label_type != 'private_label':
+        return None
+    reason_lower = reason.lower()
+    is_merge_reason = any(kw in reason_lower for kw in MERGE_KEYWORDS)
+    if is_merge_reason and quantity < 0:
+        return (
+            f"BLOCKED: Cannot merge/deprecate a private-label SKU. "
+            f"'{product_name}' is identity-protected. "
+            f"If this is a physical repack, use reason 'repack' instead."
+        )
+    return None
+
 # Connection pool (initialized on startup)
 db_pool = None
 
@@ -49,6 +94,49 @@ async def startup():
     except Exception as e:
         logger.error(f"Failed to create connection pool: {e}")
         raise
+
+    # Migration: Add label_type column for SKU protection
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                # Add column if it doesn't exist
+                cur.execute("""
+                    ALTER TABLE products ADD COLUMN IF NOT EXISTS label_type TEXT DEFAULT 'house'
+                """)
+
+                # Set private-label flags on verified finished goods by odoo_code
+                cur.execute("""
+                    UPDATE products SET label_type = 'private_label'
+                    WHERE odoo_code = ANY(%s) AND COALESCE(label_type, 'house') != 'private_label'
+                """, (PRIVATE_LABEL_ODOO_CODES,))
+                updated_by_code = cur.rowcount
+
+                # Set private-label flags on Blue Stripes exclusive batch products
+                cur.execute("""
+                    UPDATE products SET label_type = 'private_label'
+                    WHERE name ILIKE 'Batch BS %%'
+                      AND COALESCE(label_type, 'house') != 'private_label'
+                """)
+                updated_by_name = cur.rowcount
+
+                # Set private-label flags on Setton batch products
+                cur.execute("""
+                    UPDATE products SET label_type = 'private_label'
+                    WHERE name ILIKE 'Batch Setton %%'
+                      AND COALESCE(label_type, 'house') != 'private_label'
+                """)
+                updated_by_name += cur.rowcount
+
+                conn.commit()
+                if updated_by_code + updated_by_name > 0:
+                    logger.info(f"SKU protection migration: flagged {updated_by_code + updated_by_name} products as private_label")
+                else:
+                    logger.info("SKU protection: label_type column up to date")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"SKU protection migration warning (non-fatal): {e}")
 
 
 @app.on_event("shutdown")
@@ -1548,6 +1636,67 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
 # ADJUST ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+@app.post("/adjust/preview")
+def adjust_preview(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+    validate_bilingual(req.reason, req.reason_es, "reason")
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT p.id as product_id, p.name, p.odoo_code,
+                       COALESCE(p.label_type, 'house') as label_type,
+                       l.id as lot_id, l.lot_code,
+                       COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
+                FROM products p
+                JOIN lots l ON l.product_id = p.id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE (LOWER(p.name) LIKE LOWER(%s) OR LOWER(p.odoo_code) LIKE LOWER(%s))
+                  AND LOWER(l.lot_code) = LOWER(%s)
+                GROUP BY p.id, l.id
+            """, (f"%{req.product_name}%", f"%{req.product_name}%", req.lot_code))
+            result = cur.fetchone()
+
+            if not result:
+                return JSONResponse(status_code=404, content={
+                    "error": f"Product/lot combination not found for '{req.product_name}' / '{req.lot_code}'"
+                })
+
+            # SKU protection check
+            warning = check_private_label_merge(
+                result['name'], result['label_type'], req.reason, req.adjustment_lb
+            )
+            if warning:
+                return JSONResponse(status_code=403, content={
+                    "blocked": True,
+                    "warning": warning,
+                    "product_name": result['name'],
+                    "label_type": result['label_type']
+                })
+
+            quantity_on_hand = float(result['quantity_on_hand'])
+            new_balance = quantity_on_hand + req.adjustment_lb
+
+            response = {
+                "product_id": result['product_id'],
+                "product_name": result['name'],
+                "odoo_code": result['odoo_code'],
+                "label_type": result['label_type'],
+                "lot_code": result['lot_code'],
+                "current_quantity_lb": quantity_on_hand,
+                "adjustment_lb": req.adjustment_lb,
+                "new_balance_lb": new_balance,
+                "reason": req.reason,
+                "preview_message": f"Will adjust {result['name']} lot {result['lot_code']} by {req.adjustment_lb} lb ({quantity_on_hand} → {new_balance} lb)"
+            }
+            if req.reason_es:
+                response["reason_es"] = req.reason_es
+            if new_balance < 0:
+                response["balance_warning"] = f"This will result in negative inventory ({new_balance} lb)"
+            return response
+    except Exception as e:
+        logger.error(f"Adjust preview failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.post("/adjust/commit")
 def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
     validate_bilingual(req.reason, req.reason_es, "reason")
@@ -1555,7 +1704,9 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
-                    SELECT p.id as product_id, p.name, l.id as lot_id, l.lot_code
+                    SELECT p.id as product_id, p.name,
+                           COALESCE(p.label_type, 'house') as label_type,
+                           l.id as lot_id, l.lot_code
                     FROM products p
                     JOIN lots l ON l.product_id = p.id
                     WHERE (LOWER(p.name) LIKE LOWER(%s) OR LOWER(p.odoo_code) LIKE LOWER(%s))
@@ -1565,6 +1716,18 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
 
                 if not result:
                     raise HTTPException(status_code=404, detail=f"Product/lot combination not found")
+
+                # SKU protection check
+                warning = check_private_label_merge(
+                    result['name'], result['label_type'], req.reason, req.adjustment_lb
+                )
+                if warning:
+                    return JSONResponse(status_code=403, content={
+                        "blocked": True,
+                        "warning": warning,
+                        "product_name": result['name'],
+                        "label_type": result['label_type']
+                    })
 
                 now = get_plant_now()
 
@@ -1860,6 +2023,7 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
                     SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
+                           COALESCE(p.label_type, 'house') as label_type,
                            COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                     FROM lots l
                     JOIN products p ON p.id = l.product_id
@@ -1869,20 +2033,48 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     FOR UPDATE OF l
                 """, (lot_id,))
                 lot = cur.fetchone()
-                
+
                 if not lot:
                     raise HTTPException(status_code=404, detail=f"Lot ID {lot_id} not found")
-                
+
                 if lot['product_id'] == req.to_product_id:
                     return JSONResponse(status_code=400, content={
                         "error": f"Lot is already assigned to {lot['product_name']}"
                     })
-                
-                cur.execute("SELECT id, name FROM products WHERE id = %s", (req.to_product_id,))
+
+                cur.execute("""
+                    SELECT id, name, COALESCE(label_type, 'house') as label_type
+                    FROM products WHERE id = %s
+                """, (req.to_product_id,))
                 to_product = cur.fetchone()
-                
+
                 if not to_product:
                     raise HTTPException(status_code=404, detail=f"Target product ID {req.to_product_id} not found")
+
+                # SKU protection: block product_merge if either side is private-label
+                if req.reason_code == 'product_merge':
+                    if lot['label_type'] == 'private_label':
+                        return JSONResponse(status_code=403, content={
+                            "blocked": True,
+                            "warning": (
+                                f"BLOCKED: Cannot merge lots from private-label SKU '{lot['product_name']}'. "
+                                f"Private-label products are identity-protected and cannot be merged or consolidated. "
+                                f"If this is a correction, use reason_code 'incorrect_receive' or 'data_entry_error' instead."
+                            ),
+                            "source_product": lot['product_name'],
+                            "source_label_type": lot['label_type']
+                        })
+                    if to_product['label_type'] == 'private_label':
+                        return JSONResponse(status_code=403, content={
+                            "blocked": True,
+                            "warning": (
+                                f"BLOCKED: Cannot merge lots into private-label SKU '{to_product['name']}'. "
+                                f"Private-label products are identity-protected and cannot be merged or consolidated. "
+                                f"If this is a correction, use reason_code 'incorrect_receive' or 'data_entry_error' instead."
+                            ),
+                            "target_product": to_product['name'],
+                            "target_label_type": to_product['label_type']
+                        })
                 
                 cur.execute("""
                     SELECT COUNT(*) as count FROM ingredient_lot_consumption WHERE ingredient_lot_id = %s
