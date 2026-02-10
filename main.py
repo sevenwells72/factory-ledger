@@ -2494,6 +2494,157 @@ def list_sales_orders(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/sales/orders/fulfillment-check")
+def fulfillment_check(
+    customer_name: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
+    order_id: Optional[int] = Query(default=None),
+    _: bool = Depends(verify_api_key)
+):
+    """
+    Read-only fulfillment feasibility check across open orders.
+    Returns which orders can be fully fulfilled from current inventory.
+    """
+    OPEN_STATUSES = ('confirmed', 'in_production', 'ready')
+
+    if status and status not in OPEN_STATUSES:
+        raise HTTPException(400,
+            f"Invalid status filter '{status}'. Must be one of: {list(OPEN_STATUSES)}"
+        )
+
+    try:
+        with get_transaction() as cur:
+            # Build dynamic query for orders
+            query = """
+                SELECT so.id, so.order_number, so.status, so.requested_ship_date,
+                       c.name AS customer
+                FROM sales_orders so
+                JOIN customers c ON c.id = so.customer_id
+                WHERE so.status IN %s
+            """
+            params: list = [OPEN_STATUSES]
+
+            if order_id is not None:
+                query += " AND so.id = %s"
+                params.append(order_id)
+
+            if customer_name:
+                query += " AND LOWER(c.name) LIKE LOWER(%s)"
+                params.append(f"%{customer_name}%")
+
+            if status:
+                query += " AND so.status = %s"
+                params.append(status)
+
+            query += " ORDER BY so.requested_ship_date ASC NULLS LAST, so.id ASC"
+            cur.execute(query, tuple(params))
+            orders = cur.fetchall()
+
+            results = []
+            summary = {"total_orders_checked": 0, "fulfillable": 0, "partially_fulfillable": 0, "blocked": 0}
+
+            for order in orders:
+                # Get active lines with remaining quantity
+                cur.execute(
+                    """SELECT sol.id, p.id AS product_id, p.name,
+                              sol.quantity_lb, sol.quantity_shipped_lb
+                       FROM sales_order_lines sol
+                       JOIN products p ON p.id = sol.product_id
+                       WHERE sol.sales_order_id = %s
+                         AND sol.line_status NOT IN ('fulfilled', 'cancelled')
+                       ORDER BY sol.id""",
+                    (order['id'],)
+                )
+                lines = cur.fetchall()
+
+                order_lines = []
+                total_remaining = 0
+                total_on_hand = 0
+                total_shortfall = 0
+                lines_fulfillable = 0
+                lines_checked = 0
+
+                for line in lines:
+                    remaining = float(line['quantity_lb']) - float(line['quantity_shipped_lb'])
+                    if remaining <= 0:
+                        continue
+
+                    # Same inventory query as shipOrderPreview
+                    cur.execute(
+                        """SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
+                           FROM lots l
+                           JOIN transaction_lines tl ON tl.lot_id = l.id
+                           WHERE l.product_id = %s""",
+                        (line['product_id'],)
+                    )
+                    on_hand = float(cur.fetchone()['on_hand'])
+                    shortfall = max(0, remaining - on_hand)
+                    can_fulfill = on_hand >= remaining
+
+                    lines_checked += 1
+                    if can_fulfill:
+                        lines_fulfillable += 1
+
+                    total_remaining += remaining
+                    total_on_hand += on_hand
+                    total_shortfall += shortfall
+
+                    order_lines.append({
+                        "line_id": line['id'],
+                        "product": line['name'],
+                        "ordered_lb": float(line['quantity_lb']),
+                        "shipped_lb": float(line['quantity_shipped_lb']),
+                        "remaining_lb": remaining,
+                        "on_hand_lb": on_hand,
+                        "can_fulfill": can_fulfill,
+                        "shortfall_lb": shortfall
+                    })
+
+                # Skip orders with nothing remaining
+                if lines_checked == 0:
+                    continue
+
+                order_fulfillable = (lines_fulfillable == lines_checked)
+
+                # Classify for summary
+                summary["total_orders_checked"] += 1
+                if lines_fulfillable == lines_checked:
+                    summary["fulfillable"] += 1
+                elif lines_fulfillable > 0:
+                    summary["partially_fulfillable"] += 1
+                else:
+                    summary["blocked"] += 1
+
+                results.append({
+                    "order_id": order['id'],
+                    "order_number": order['order_number'],
+                    "customer": order['customer'],
+                    "status": order['status'],
+                    "requested_ship_date": str(order['requested_ship_date']) if order['requested_ship_date'] else None,
+                    "fulfillable": order_fulfillable,
+                    "lines": order_lines,
+                    "total_remaining_lb": total_remaining,
+                    "total_on_hand_lb": total_on_hand,
+                    "total_shortfall_lb": total_shortfall
+                })
+
+            # Sort: fulfillable first within each date group
+            results.sort(key=lambda o: (
+                o['requested_ship_date'] or '9999-12-31',
+                0 if o['fulfillable'] else 1
+            ))
+
+            return {
+                "summary": summary,
+                "orders": results
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Fulfillment check failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/sales/orders/{order_id}")
 def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
     try:

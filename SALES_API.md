@@ -708,7 +708,96 @@ curl "$BASE_URL/sales/dashboard" \
 
 ---
 
-## 6. Unit Handling & Sanity Checks
+## 6. Fulfillment Check
+
+```
+GET /sales/orders/fulfillment-check
+```
+
+Read-only check across all open orders. Answers: "Which orders can I fulfill right now?" — without entering the shipping flow.
+
+Scans orders in `confirmed`, `in_production`, and `ready` status. For each order, checks current inventory against every unfulfilled line.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `customer_name` | string | — | Fuzzy match on customer name |
+| `status` | string | — | Filter to one status (`confirmed`, `in_production`, `ready`) |
+| `order_id` | int | — | Check a single order by ID |
+
+**Response:**
+```json
+{
+  "summary": {
+    "total_orders_checked": 8,
+    "fulfillable": 5,
+    "partially_fulfillable": 2,
+    "blocked": 1
+  },
+  "orders": [
+    {
+      "order_id": 5,
+      "order_number": "SO-260210-001",
+      "customer": "QUALI-PACK USA",
+      "status": "confirmed",
+      "requested_ship_date": "2026-02-15",
+      "fulfillable": true,
+      "lines": [
+        {
+          "line_id": 12,
+          "product": "Classic Granola 25 LB",
+          "ordered_lb": 9000.0,
+          "shipped_lb": 0.0,
+          "remaining_lb": 9000.0,
+          "on_hand_lb": 12500.0,
+          "can_fulfill": true,
+          "shortfall_lb": 0.0
+        }
+      ],
+      "total_remaining_lb": 9000.0,
+      "total_on_hand_lb": 12500.0,
+      "total_shortfall_lb": 0.0
+    }
+  ]
+}
+```
+
+**Summary classification:**
+- **fulfillable** — All lines have enough inventory on hand
+- **partially_fulfillable** — At least one line can be fulfilled, but not all
+- **blocked** — No lines can be fulfilled (zero inventory for every product)
+
+**Sort order:** Soonest ship date first, then fulfillable orders before blocked ones.
+
+**Notes:**
+- Strictly read-only — no inventory locks, reservations, or status changes
+- Orders with all lines fully shipped (remaining = 0) are skipped
+- Uses the same inventory query as `shipOrderPreview`
+
+**Errors:**
+- `400` — Invalid status filter (must be `confirmed`, `in_production`, or `ready`)
+
+**curl examples:**
+```bash
+# All open orders
+curl "$BASE_URL/sales/orders/fulfillment-check" \
+  -H "X-API-Key: $API_KEY"
+
+# Filter to one customer
+curl "$BASE_URL/sales/orders/fulfillment-check?customer_name=Quali-Pack" \
+  -H "X-API-Key: $API_KEY"
+
+# Only ready-to-ship orders
+curl "$BASE_URL/sales/orders/fulfillment-check?status=ready" \
+  -H "X-API-Key: $API_KEY"
+
+# Check a single order
+curl "$BASE_URL/sales/orders/fulfillment-check?order_id=5" \
+  -H "X-API-Key: $API_KEY"
+```
+
+---
+
+## 7. Unit Handling & Sanity Checks
 
 The system includes three warning mechanisms to catch common data entry errors. Warnings are returned in the response but do not block order creation.
 
@@ -798,4 +887,5 @@ When a standalone ship (`POST /ship/preview` or `/ship/commit`) is requested for
 | `/sales/orders/{id}/lines/{line_id}/cancel` | PATCH | Cancel a line |
 | `/sales/orders/{id}/ship/preview` | POST | Dry-run ship feasibility |
 | `/sales/orders/{id}/ship/commit` | POST | Execute shipment |
+| `/sales/orders/fulfillment-check` | GET | Bulk fulfillment feasibility check |
 | `/sales/dashboard` | GET | Dashboard overview |
