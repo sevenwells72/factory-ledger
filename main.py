@@ -4099,6 +4099,26 @@ def dashboard_api_search(q: str = Query(min_length=1)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/dashboard/api/debug/make-products")
+def dashboard_debug_make_products():
+    """Temp debug: what product types appear in make transaction output lines."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT DISTINCT p.name, p.type, tl.quantity_lb,
+                       DATE(t.timestamp) as dt
+                FROM transactions t
+                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                JOIN products p ON p.id = tl.product_id
+                WHERE t.type = 'make' AND tl.quantity_lb > 0
+                ORDER BY dt DESC
+                LIMIT 50
+            """)
+            return [dict(r) for r in cur.fetchall()]
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 # ═══════════════════════════════════════════════════════════════
 # STATIC FILE SERVING — Dashboard UI (must be LAST)
 # ═══════════════════════════════════════════════════════════════
