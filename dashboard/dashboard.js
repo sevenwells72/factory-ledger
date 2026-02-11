@@ -216,10 +216,16 @@
       if (day.finished_goods.length > 0) {
         html += '<div class="day-section-label">Finished Goods Packed</div>';
         for (const fg of day.finished_goods) {
+          const fgBatchCount = fg.standard_batch_size_lbs
+            ? (fg.total_lbs / fg.standard_batch_size_lbs).toFixed(1)
+            : null;
           html += `<div class="day-item">`;
           html += `<div class="day-item-name">${escHtml(fg.product_name)}</div>`;
-          html += `<div class="day-item-stats">${fmt(fg.total_lbs)} lb</div>`;
-          html += `</div>`;
+          html += `<div class="day-item-stats">${fmt(fg.total_lbs)} lb`;
+          if (fgBatchCount !== null) {
+            html += ` &bull; ${fgBatchCount} runs`;
+          }
+          html += `</div></div>`;
         }
       }
 
