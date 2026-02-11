@@ -1,4 +1,4 @@
-# Factory Ledger — Sales API Reference (v2.3.1)
+# Factory Ledger — Sales API Reference (v2.4.1)
 
 Complete documentation for all customer and sales order endpoints.
 
@@ -889,6 +889,8 @@ When a standalone ship (`POST /ship/preview` or `/ship/commit`) is requested for
 | `/sales/orders/{id}/ship/commit` | POST | Execute shipment |
 | `/sales/orders/fulfillment-check` | GET | Bulk fulfillment feasibility check |
 | `/sales/dashboard` | GET | Dashboard overview |
+| `/make/preview` | POST | Preview production run (includes sibling SKU check) |
+| `/make/commit` | POST | Commit production run (requires `confirmed_sku` for multi-SKU products) |
 
 ---
 
@@ -956,3 +958,59 @@ Every free-text field (`notes`, `reason`, `reason_notes`) has an optional `_es` 
 ### Reporting Rule
 
 Only the English (base) field appears in exports, reports, and audit logs. The `_es` companion fields are internal/contextual only and are not included in any reporting output.
+
+---
+
+## 9. SKU Disambiguation (Make/Pack Transactions)
+
+When a batch source can produce multiple finished-good SKUs (e.g., Coconut Sweetened Flake → CNS 10 LB, CQ 10 LB, UNIPRO 10 LB), the system detects "sibling SKUs" — products that share the **exact same BOM ingredients** — and requires explicit confirmation before committing.
+
+### How It Works
+
+1. **Preview** (`POST /make/preview`): If sibling SKUs exist, the response includes:
+   - `sibling_skus` — Array of other products with the same formula
+   - `sku_confirmation_required: true` — Flag indicating confirmation is needed
+   - `sku_warning` — Human-readable message listing all options
+
+2. **Commit** (`POST /make/commit`): If sibling SKUs exist and `confirmed_sku` is not `true`, the commit is **blocked** with a `400` error listing all sibling options.
+
+### Request — With SKU Confirmation
+
+```json
+{
+  "product_name": "Coconut Sweetened Flake CNS 10 LB",
+  "batches": 5,
+  "confirmed_sku": true
+}
+```
+
+The `confirmed_sku` field is only required when the product has siblings. For products with a unique formula, it is ignored.
+
+### Preview Response — Sibling Warning
+
+```json
+{
+  "product_id": 42,
+  "product_name": "Coconut Sweetened Flake CNS 10 LB",
+  "batches": 5,
+  "total_output_lb": 5000.0,
+  "sibling_skus": [
+    {"id": 43, "name": "CQ Coconut Sweetened Flake 10 LB", "odoo_code": "893"},
+    {"id": 44, "name": "Coconut Sweetened Flake UNIPRO 10 LB", "odoo_code": "67476"}
+  ],
+  "sku_confirmation_required": true,
+  "sku_warning": "This batch source has 3 finished-good SKUs with the same formula. You selected 'Coconut Sweetened Flake CNS 10 LB'. Other options: ['CQ Coconut Sweetened Flake 10 LB', 'Coconut Sweetened Flake UNIPRO 10 LB']. Confirm this is the correct output SKU before committing."
+}
+```
+
+### Commit Error — Missing Confirmation
+
+```json
+{
+  "detail": "SKU confirmation required. 'Coconut Sweetened Flake CNS 10 LB' shares a batch formula with: ['CQ Coconut Sweetened Flake 10 LB', 'Coconut Sweetened Flake UNIPRO 10 LB']. Set confirmed_sku=true to confirm this is the correct output SKU. Never assume — ask the operator which SKU they are packing."
+}
+```
+
+### GPT Rule
+
+When recording a pack transaction, if the batch product has multiple finished-good SKUs in the BOM (e.g., CNS 10 lb, CNS 25 lb, CQ 10 lb, UNIPRO 10 lb), **always ask the operator which finished-good SKU they are packing** before submitting the transaction. Never assume CNS. BOM equivalence means manufacturing compatibility, not SKU equivalence.

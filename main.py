@@ -21,7 +21,7 @@ import secrets
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.4.0")
+app = FastAPI(title="Factory Ledger System", version="2.4.1")
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -250,6 +250,7 @@ class MakeRequest(BaseModel):
     lot_code: Optional[str] = None
     ingredient_lot_overrides: Optional[Union[Dict[str, str], str]] = None
     excluded_ingredients: Optional[List[int]] = None
+    confirmed_sku: Optional[bool] = None  # Must be True when sibling SKUs exist
     
     def get_lot_overrides(self) -> Optional[Dict[str, str]]:
         """Parse ingredient_lot_overrides whether it's a dict or JSON string"""
@@ -492,6 +493,42 @@ def resolve_product_full(cur, product_name: str) -> dict:
     raise HTTPException(404, f"Product not found: '{product_name}'")
 
 
+def get_sibling_skus(cur, product_id: int) -> list:
+    """Find other finished-good products that share the exact same BOM ingredients.
+    If product A and product B both have identical ingredient sets in batch_formulas,
+    they are 'siblings' — same batch source, different labels/packaging.
+    Returns list of dicts: [{id, name, odoo_code}, ...] (excluding the given product)."""
+    # Get the set of ingredient product IDs for this product
+    cur.execute(
+        "SELECT ingredient_product_id FROM batch_formulas WHERE product_id = %s ORDER BY ingredient_product_id",
+        (product_id,)
+    )
+    my_ingredients = [row['ingredient_product_id'] for row in cur.fetchall()]
+
+    if not my_ingredients:
+        return []  # No formula → no siblings
+
+    # Find all products that have a formula, grouped by their ingredient set
+    cur.execute("""
+        SELECT bf.product_id, ARRAY_AGG(bf.ingredient_product_id ORDER BY bf.ingredient_product_id) as ingredients
+        FROM batch_formulas bf
+        JOIN products p ON p.id = bf.product_id AND COALESCE(p.active, true) = true
+        WHERE bf.product_id != %s
+        GROUP BY bf.product_id
+        HAVING ARRAY_AGG(bf.ingredient_product_id ORDER BY bf.ingredient_product_id) = %s::int[]
+    """, (product_id, my_ingredients))
+    sibling_ids = [row['product_id'] for row in cur.fetchall()]
+
+    if not sibling_ids:
+        return []
+
+    cur.execute(
+        "SELECT id, name, odoo_code FROM products WHERE id = ANY(%s) ORDER BY name",
+        (sibling_ids,)
+    )
+    return [dict(r) for r in cur.fetchall()]
+
+
 def resolve_customer_id(cur, customer_name: str, auto_create: bool = True) -> tuple:
     """Find or create customer by name. Returns (customer_id, customer_name)."""
     cur.execute(
@@ -587,7 +624,7 @@ def root():
         "name": "Factory Ledger System",
         "version": app.version,
         "status": "online",
-        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "ingredient-lot-override", "dashboard", "sales-orders", "customers", "fulfillment-check", "bilingual"]
+        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "ingredient-lot-override", "dashboard", "sales-orders", "customers", "fulfillment-check", "bilingual", "sku-disambiguation"]
     }
 
 
@@ -1385,6 +1422,9 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     seq = 1
                 lot_code = f"B{date_part}-{seq:03d}"
             
+            # Check for sibling SKUs (same BOM ingredients, different finished-good label)
+            siblings = get_sibling_skus(cur, product['id'])
+
             response = {
                 "product_id": product['id'],
                 "product_name": product['name'],
@@ -1396,15 +1436,25 @@ def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 "all_ingredients_available": all_sufficient,
                 "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({total_output} lb)"
             }
-            
+
+            if siblings:
+                sibling_names = [s['name'] for s in siblings]
+                response["sibling_skus"] = siblings
+                response["sku_confirmation_required"] = True
+                response["sku_warning"] = (
+                    f"This batch source has {len(siblings) + 1} finished-good SKUs with the same formula. "
+                    f"You selected '{product['name']}'. Other options: {sibling_names}. "
+                    f"Confirm this is the correct output SKU before committing."
+                )
+
             if lot_overrides_applied:
                 response["lot_overrides"] = lot_overrides_applied
                 response["preview_message"] += f" (with {len(lot_overrides_applied)} lot override(s))"
-            
+
             if excluded_ingredients:
                 response["excluded_ingredients"] = excluded_ingredients
                 response["preview_message"] += f" (excluding {len(excluded_ingredients)} ingredient(s))"
-            
+
             return response
     except HTTPException:
         raise
@@ -1419,11 +1469,24 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 product = resolve_product_full(cur, req.product_name)
-                
+
+                # Block if sibling SKUs exist and operator hasn't confirmed
+                siblings = get_sibling_skus(cur, product['id'])
+                if siblings and not req.confirmed_sku:
+                    sibling_names = [s['name'] for s in siblings]
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"SKU confirmation required. '{product['name']}' shares a batch formula with: "
+                            f"{sibling_names}. Set confirmed_sku=true to confirm this is the correct "
+                            f"output SKU. Never assume — ask the operator which SKU they are packing."
+                        )
+                    )
+
                 batch_size = float(product.get('default_batch_lb') or 0)
                 total_output = batch_size * req.batches
                 now = get_plant_now()
-                
+
                 excluded_ids = set(req.excluded_ingredients or [])
                 
                 if req.lot_code:
@@ -1601,10 +1664,14 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     "message": f"Produced {total_output} lb as lot {lot_code}"
                 }
                 
+                if siblings:
+                    response["confirmed_sku"] = True
+                    response["sibling_skus"] = [s['name'] for s in siblings]
+
                 if excluded_from_run:
                     response["excluded_ingredients"] = excluded_from_run
                     response["message"] += f" (excluded {len(excluded_from_run)} ingredient(s))"
-                
+
                 return response
     except HTTPException:
         raise
