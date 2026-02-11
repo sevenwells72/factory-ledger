@@ -15,6 +15,27 @@
     searchTimeout: null,
   };
 
+  // ── Theme ──
+  function initTheme() {
+    const saved = localStorage.getItem('dashboard-theme');
+    const theme = saved || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeIcon(theme);
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('dashboard-theme', next);
+    updateThemeIcon(next);
+  }
+
+  function updateThemeIcon(theme) {
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.innerHTML = theme === 'dark' ? '&#9788;' : '&#9790;';
+  }
+
   // ── Helpers ──
   function fmt(n) {
     if (n == null) return '—';
@@ -24,6 +45,12 @@
   function fmtInt(n) {
     if (n == null) return '—';
     return Math.floor(Number(n)).toLocaleString('en-US');
+  }
+
+  function caseBadgeClass(cases) {
+    if (cases >= 100) return 'stock-healthy';
+    if (cases >= 20) return 'stock-low';
+    return 'stock-critical';
   }
 
   function escHtml(s) {
@@ -191,8 +218,12 @@
     let html = '';
     for (const day of displayDays) {
       const isToday = day.date === todayStr;
-      const isEmpty = day.batches.length === 0 && day.finished_goods.length === 0;
-      html += `<div class="day-card${isToday ? ' today' : ''}${isEmpty && state.calendarMode === 'month' ? ' empty' : ''}">`;
+      const hasProduction = day.batches.length > 0 || day.finished_goods.length > 0;
+      const classes = ['day-card'];
+      if (isToday) classes.push('today');
+      if (hasProduction) classes.push('has-production');
+      if (!hasProduction && state.calendarMode === 'month') classes.push('empty');
+      html += `<div class="${classes.join(' ')}">`;
       html += `<div class="day-card-date"><span class="day-name">${escHtml(day.day_name)}</span> &mdash; ${escHtml(day.date)}</div>`;
 
       if (day.batches.length > 0) {
@@ -203,9 +234,9 @@
             : null;
           html += `<div class="day-item">`;
           html += `<div class="day-item-name">${escHtml(b.product_name)}</div>`;
-          html += `<div class="day-item-stats">${fmt(b.total_lbs)} lb`;
+          html += `<div class="day-item-stats"><span class="stat-lbs">${fmt(b.total_lbs)} lb</span>`;
           if (batchCount !== null) {
-            html += ` &bull; ${batchCount} batches`;
+            html += ` &bull; <span class="stat-batches">${batchCount} batches</span>`;
           } else {
             html += ` &bull; <span class="badge unknown">batches: est.</span>`;
           }
@@ -221,16 +252,16 @@
             : null;
           html += `<div class="day-item">`;
           html += `<div class="day-item-name">${escHtml(fg.product_name)}</div>`;
-          html += `<div class="day-item-stats">${fmt(fg.total_lbs)} lb`;
+          html += `<div class="day-item-stats"><span class="stat-lbs">${fmt(fg.total_lbs)} lb</span>`;
           if (fgBatchCount !== null) {
-            html += ` &bull; ${fgBatchCount} runs`;
+            html += ` &bull; <span class="stat-batches">${fgBatchCount} runs</span>`;
           }
           html += `</div></div>`;
         }
       }
 
-      if (isEmpty) {
-        html += '<div class="day-item" style="color:var(--text-muted);font-size:12px">No production</div>';
+      if (!hasProduction) {
+        html += '<div class="no-production">No production</div>';
       }
 
       html += '</div>';
@@ -272,7 +303,7 @@
           html += `<tr class="expandable" data-expand="${rowId}">`;
           html += `<td>${escHtml(p.product_name)}</td>`;
           html += `<td class="num">${fmt(p.on_hand_lbs)}</td>`;
-          html += `<td>${cases !== null ? `<span class="badge">${fmtInt(cases)} cases</span>` : ''}</td>`;
+          html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
           html += `</tr>`;
           // Lot breakdown
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
@@ -332,7 +363,8 @@
         html += `<td class="num">${fmt(b.on_hand_lbs)}</td>`;
         html += `<td>`;
         if (estBatches !== null) {
-          html += `<span class="badge">${estBatches} batches</span>`;
+          const batchClass = estBatches >= 5 ? 'stock-healthy' : estBatches >= 2 ? 'stock-low' : 'stock-critical';
+          html += `<span class="badge ${batchClass}">${estBatches} batches</span>`;
         } else {
           html += `<span class="badge unknown">batches: unknown</span>`;
         }
@@ -691,7 +723,11 @@
 
   // ── Init ──
   function init() {
+    initTheme();
     initTabs();
+
+    // Theme toggle
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
     // Refresh button
     document.getElementById('refresh-btn').addEventListener('click', refreshAll);
