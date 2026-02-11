@@ -88,6 +88,10 @@ db_pool = None
 @app.on_event("startup")
 async def startup():
     global db_pool
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")
+    if not API_KEY:
+        raise RuntimeError("API_KEY env var required — app cannot start without authentication")
     try:
         db_pool = pool.ThreadedConnectionPool(minconn=2, maxconn=20, dsn=DATABASE_URL)
         logger.info("Database connection pool created")
@@ -429,16 +433,58 @@ def resolve_product_id(cur, product_name: str) -> tuple:
     row = cur.fetchone()
     if row:
         return row['id'], row['name']
-    # Try fuzzy
+    # Try fuzzy (name + odoo_code)
     cur.execute(
-        "SELECT id, name FROM products WHERE LOWER(name) LIKE LOWER(%s) AND COALESCE(active, true) = true ORDER BY name LIMIT 5",
-        (f"%{product_name}%",)
+        """SELECT id, name FROM products
+           WHERE (LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s))
+             AND COALESCE(active, true) = true
+           ORDER BY name LIMIT 5""",
+        (f"%{product_name}%", f"%{product_name}%")
     )
     rows = cur.fetchall()
     if len(rows) == 1:
         return rows[0]['id'], rows[0]['name']
     elif len(rows) > 1:
         suggestions = [r['name'] for r in rows]
+        raise HTTPException(400, f"Multiple products match '{product_name}': {suggestions}")
+    raise HTTPException(404, f"Product not found: '{product_name}'")
+
+
+def resolve_product_full(cur, product_name: str) -> dict:
+    """Find product by name/odoo_code. Returns full row dict with id, name, odoo_code, etc.
+    Used by receive/ship/make endpoints that need extra columns."""
+    # Exact name match
+    cur.execute(
+        """SELECT id, name, odoo_code, default_batch_lb, default_case_weight_lb
+           FROM products WHERE LOWER(name) = LOWER(%s) AND COALESCE(active, true) = true""",
+        (product_name,)
+    )
+    row = cur.fetchone()
+    if row:
+        return dict(row)
+    # Exact odoo_code match
+    cur.execute(
+        """SELECT id, name, odoo_code, default_batch_lb, default_case_weight_lb
+           FROM products WHERE LOWER(odoo_code) = LOWER(%s) AND COALESCE(active, true) = true""",
+        (product_name,)
+    )
+    row = cur.fetchone()
+    if row:
+        return dict(row)
+    # Fuzzy match (name + odoo_code)
+    cur.execute(
+        """SELECT id, name, odoo_code, default_batch_lb, default_case_weight_lb
+           FROM products
+           WHERE (LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s))
+             AND COALESCE(active, true) = true
+           ORDER BY name LIMIT 5""",
+        (f"%{product_name}%", f"%{product_name}%")
+    )
+    rows = cur.fetchall()
+    if len(rows) == 1:
+        return dict(rows[0])
+    elif len(rows) > 1:
+        suggestions = [f"{r['name']} ({r['odoo_code'] or 'no code'})" for r in rows]
         raise HTTPException(400, f"Multiple products match '{product_name}': {suggestions}")
     raise HTTPException(404, f"Product not found: '{product_name}'")
 
@@ -536,9 +582,9 @@ def dashboard_production(_: bool = Depends(verify_api_key)):
 def root():
     return {
         "name": "Factory Ledger System",
-        "version": "2.2.0",
+        "version": app.version,
         "status": "online",
-        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "ingredient-lot-override", "dashboard", "sales-orders", "customers"]
+        "features": ["receive", "ship", "make", "adjust", "trace", "bom", "quick-create", "lot-reassign", "found-inventory", "ingredient-exclusion", "ingredient-lot-override", "dashboard", "sales-orders", "customers", "fulfillment-check", "bilingual"]
     }
 
 
@@ -803,18 +849,7 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
 def receive_preview(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("""
-                SELECT id, name, odoo_code FROM products 
-                WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s)
-                LIMIT 1
-            """, (f"%{req.product_name}%", f"%{req.product_name}%"))
-            product = cur.fetchone()
-            
-            if not product:
-                return JSONResponse(status_code=404, content={
-                    "error": f"Product '{req.product_name}' not found",
-                    "suggestion": "Use /products/quick-create to add it first"
-                })
+            product = resolve_product_full(cur, req.product_name)
             
             lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
             total_lb = req.cases * req.case_size_lb
@@ -844,17 +879,8 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("SELECT pg_advisory_xact_lock(1)")
-                
-                cur.execute("""
-                    SELECT id, name, odoo_code FROM products 
-                    WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s)
-                    LIMIT 1
-                """, (f"%{req.product_name}%", f"%{req.product_name}%"))
-                product = cur.fetchone()
-                
-                if not product:
-                    raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
-                
+                product = resolve_product_full(cur, req.product_name)
+
                 lot_code, shipper_code, _ = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
                 total_lb = req.cases * req.case_size_lb
                 now = get_plant_now()
@@ -907,15 +933,7 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
 def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("""
-                SELECT id, name, odoo_code FROM products 
-                WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s)
-                LIMIT 1
-            """, (f"%{req.product_name}%", f"%{req.product_name}%"))
-            product = cur.fetchone()
-            
-            if not product:
-                raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
+            product = resolve_product_full(cur, req.product_name)
             
             cur.execute("""
                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
@@ -999,15 +1017,7 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    SELECT id, name, odoo_code FROM products 
-                    WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s)
-                    LIMIT 1
-                """, (f"%{req.product_name}%", f"%{req.product_name}%"))
-                product = cur.fetchone()
-                
-                if not product:
-                    raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
+                product = resolve_product_full(cur, req.product_name)
                 
                 if req.lot_code:
                     cur.execute("""
@@ -1122,16 +1132,8 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
 def multi_lot_ship_preview(req: MultiLotShipRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("""
-                SELECT id, name, odoo_code FROM products 
-                WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s)
-                LIMIT 1
-            """, (f"%{req.product_name}%", f"%{req.product_name}%"))
-            product = cur.fetchone()
-            
-            if not product:
-                raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
-            
+            product = resolve_product_full(cur, req.product_name)
+
             cur.execute("""
                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                 FROM lots l
@@ -1184,16 +1186,8 @@ def multi_lot_ship_commit(req: MultiLotShipRequest, _: bool = Depends(verify_api
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    SELECT id, name, odoo_code FROM products 
-                    WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s)
-                    LIMIT 1
-                """, (f"%{req.product_name}%", f"%{req.product_name}%"))
-                product = cur.fetchone()
-                
-                if not product:
-                    raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
-                
+                product = resolve_product_full(cur, req.product_name)
+
                 cur.execute("""
                     SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                     FROM lots l
@@ -1275,15 +1269,7 @@ def multi_lot_ship_commit(req: MultiLotShipRequest, _: bool = Depends(verify_api
 def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("""
-                SELECT id, name, odoo_code, default_batch_lb FROM products 
-                WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s)
-                LIMIT 1
-            """, (f"%{req.product_name}%", f"%{req.product_name}%"))
-            product = cur.fetchone()
-            
-            if not product:
-                raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
+            product = resolve_product_full(cur, req.product_name)
             
             batch_size = float(product.get('default_batch_lb') or 0)
             total_output = batch_size * req.batches
@@ -1429,15 +1415,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    SELECT id, name, odoo_code, default_batch_lb FROM products 
-                    WHERE LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s)
-                    LIMIT 1
-                """, (f"%{req.product_name}%", f"%{req.product_name}%"))
-                product = cur.fetchone()
-                
-                if not product:
-                    raise HTTPException(status_code=404, detail=f"Product '{req.product_name}' not found")
+                product = resolve_product_full(cur, req.product_name)
                 
                 batch_size = float(product.get('default_batch_lb') or 0)
                 total_output = batch_size * req.batches
@@ -1703,19 +1681,19 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    SELECT p.id as product_id, p.name,
-                           COALESCE(p.label_type, 'house') as label_type,
-                           l.id as lot_id, l.lot_code
-                    FROM products p
-                    JOIN lots l ON l.product_id = p.id
-                    WHERE (LOWER(p.name) LIKE LOWER(%s) OR LOWER(p.odoo_code) LIKE LOWER(%s))
-                      AND LOWER(l.lot_code) = LOWER(%s)
-                """, (f"%{req.product_name}%", f"%{req.product_name}%", req.lot_code))
-                result = cur.fetchone()
-
-                if not result:
-                    raise HTTPException(status_code=404, detail=f"Product/lot combination not found")
+                product = resolve_product_full(cur, req.product_name)
+                cur.execute(
+                    "SELECT id as lot_id, lot_code FROM lots WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)",
+                    (product['id'], req.lot_code)
+                )
+                lot = cur.fetchone()
+                if not lot:
+                    raise HTTPException(404, f"Lot '{req.lot_code}' not found for product '{product['name']}'")
+                # Fetch label_type for SKU protection check
+                cur.execute("SELECT COALESCE(label_type, 'house') as label_type FROM products WHERE id = %s", (product['id'],))
+                lt_row = cur.fetchone()
+                result = {**product, 'product_id': product['id'], 'lot_id': lot['lot_id'], 'lot_code': lot['lot_code'],
+                          'label_type': lt_row['label_type'] if lt_row else 'house'}
 
                 # SKU protection check
                 warning = check_private_label_merge(
