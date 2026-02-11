@@ -3605,14 +3605,15 @@ def dashboard_api_production(
                 SELECT DATE(t.timestamp) as prod_date,
                        p.name as product_name, p.type as product_type,
                        p.default_batch_lb,
-                       SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as total_lbs
+                       SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as total_lbs,
+                       COUNT(DISTINCT t.id) as txn_count
                 FROM transactions t
                 JOIN transaction_lines tl ON tl.transaction_id = t.id
                 JOIN products p ON p.id = tl.product_id
                 WHERE t.type = 'make'
+                  AND tl.quantity_lb > 0
                   AND {date_filter}
                 GROUP BY prod_date, p.id
-                HAVING SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) > 0
                 ORDER BY prod_date DESC, p.name
             """, params)
             rows = cur.fetchall()
@@ -3627,7 +3628,8 @@ def dashboard_api_production(
                 days_map[d] = {"date": d, "day_name": day_name, "batches": [], "finished_goods": []}
             entry = {
                 "product_name": r['product_name'],
-                "total_lbs": float(r['total_lbs'] or 0)
+                "total_lbs": float(r['total_lbs'] or 0),
+                "product_type": r['product_type']
             }
             if r['product_type'] == 'batch':
                 batch_size = float(r['default_batch_lb']) if r['default_batch_lb'] else None
