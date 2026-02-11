@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factory Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <h1>Factory Dashboard</h1>
+    </div>
+    <div class="header-center">
+      <div class="search-wrapper">
+        <input type="text" id="global-search" placeholder="Search SKU, lot, SO, customer, supplier..." autocomplete="off">
+        <div id="search-results" class="search-dropdown hidden"></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button id="refresh-btn" class="btn-refresh" title="Refresh all data">Refresh</button>
+      <span id="last-refreshed" class="refresh-ts"></span>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tab-bar">
+    <button class="tab active" data-tab="operations">Operations</button>
+    <button class="tab" data-tab="activity">Activity</button>
+  </nav>
+
+  <!-- Tab A: Operations -->
+  <main id="tab-operations" class="tab-content active">
+
+    <!-- A1: Production Calendar -->
+    <section class="section" id="section-production">
+      <div class="section-header">
+        <h2>Production Calendar</h2>
+        <div class="calendar-controls">
+          <button id="cal-prev" class="btn-sm" title="Previous">&larr;</button>
+          <span id="cal-range-label"></span>
+          <button id="cal-next" class="btn-sm" title="Next">&rarr;</button>
+          <button id="cal-toggle" class="btn-sm">Month View</button>
+        </div>
+      </div>
+      <div id="production-calendar" class="calendar-grid"></div>
+      <div id="production-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- A2: Finished Goods On-Hand -->
+    <section class="section" id="section-finished-goods">
+      <h2>Finished Goods On-Hand</h2>
+      <div id="finished-goods-panels"></div>
+      <div id="finished-goods-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- A3: Batch Inventory -->
+    <section class="section" id="section-batches">
+      <h2>Batch Inventory On-Hand</h2>
+      <div id="batch-inventory"></div>
+      <div id="batches-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- A5: Ingredients -->
+    <section class="section" id="section-ingredients">
+      <h2>On-Hand Ingredients</h2>
+      <div id="ingredients-panels"></div>
+      <div id="ingredients-error" class="error-msg hidden"></div>
+    </section>
+
+  </main>
+
+  <!-- Tab B: Activity -->
+  <main id="tab-activity" class="tab-content">
+
+    <!-- B1: Shipping Log -->
+    <section class="section" id="section-shipments">
+      <div class="collapsible-header expanded" data-panel="shipments-list">
+        <h2>Shipping</h2>
+        <span class="chevron"></span>
+      </div>
+      <div id="shipments-list" class="collapsible-body expanded">
+        <div id="shipments-table"></div>
+      </div>
+      <div id="shipments-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- B2: Receiving Log -->
+    <section class="section" id="section-receipts">
+      <div class="collapsible-header expanded" data-panel="receipts-list">
+        <h2>Receiving</h2>
+        <span class="chevron"></span>
+      </div>
+      <div id="receipts-list" class="collapsible-body expanded">
+        <div id="receipts-table"></div>
+      </div>
+      <div id="receipts-error" class="error-msg hidden"></div>
+    </section>
+
+  </main>
+
+  <!-- Lot Detail Side Panel -->
+  <div id="lot-panel-overlay" class="panel-overlay hidden" role="dialog" aria-label="Lot detail">
+    <div class="lot-panel">
+      <div class="panel-header">
+        <h3 id="lot-panel-title">Lot Detail</h3>
+        <button id="lot-panel-close" class="btn-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="lot-panel-body" class="panel-body"></div>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

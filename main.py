@@ -1,13 +1,16 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
 from typing import Optional, List, Dict, Union
 import json
-from datetime import datetime, date, timezone
+import pathlib
+from datetime import datetime, date, timezone, timedelta
 from zoneinfo import ZoneInfo
 from contextlib import contextmanager
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import calendar
 from psycopg2 import pool
 import os
 import re
@@ -3552,3 +3555,549 @@ def sales_dashboard(_: bool = Depends(verify_api_key)):
     except Exception as e:
         logger.error(f"Sales dashboard failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# WEB DASHBOARD API (no auth — read-only, same-origin)
+# ═══════════════════════════════════════════════════════════════
+
+_DASHBOARD_CONFIG_PATH = pathlib.Path(__file__).parent / "dashboard" / "dashboard_config.json"
+
+def _load_dashboard_config():
+    try:
+        with open(_DASHBOARD_CONFIG_PATH) as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load dashboard config: {e}")
+        return None
+
+
+@app.get("/dashboard/api/production")
+def dashboard_api_production(
+    days: int = Query(default=5, ge=1, le=31),
+    month: Optional[str] = Query(default=None)
+):
+    """Rolling production calendar — batches made + finished goods packed.
+    Excludes ship/receive/adjust. Only 'make' transactions."""
+    try:
+        with get_transaction() as cur:
+            tz = "America/New_York"
+            if month:
+                # Full month view: e.g. month=2026-02
+                try:
+                    parts = month.split("-")
+                    y, m = int(parts[0]), int(parts[1])
+                    start_date = f"{y}-{m:02d}-01"
+                    last_day = calendar.monthrange(y, m)[1]
+                    end_date = f"{y}-{m:02d}-{last_day}"
+                except (ValueError, IndexError):
+                    raise HTTPException(400, "month must be YYYY-MM format")
+                date_filter = f"DATE(t.timestamp AT TIME ZONE '{tz}') BETWEEN %s AND %s"
+                params = [start_date, end_date]
+            else:
+                date_filter = f"DATE(t.timestamp AT TIME ZONE '{tz}') >= (NOW() AT TIME ZONE '{tz}')::date - %s"
+                params = [days - 1]
+
+            cur.execute(f"""
+                SELECT DATE(t.timestamp AT TIME ZONE '{tz}') as prod_date,
+                       p.name as product_name, p.type as product_type,
+                       p.default_batch_lb,
+                       SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as total_lbs
+                FROM transactions t
+                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                JOIN products p ON p.id = tl.product_id
+                WHERE t.type = 'make'
+                  AND {date_filter}
+                GROUP BY prod_date, p.id
+                HAVING SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) > 0
+                ORDER BY prod_date DESC, p.name
+            """, params)
+            rows = cur.fetchall()
+
+        # Group by day
+        days_map = {}
+        for r in rows:
+            d = str(r['prod_date'])
+            if d not in days_map:
+                dt = r['prod_date']
+                day_name = dt.strftime("%A") if hasattr(dt, 'strftime') else d
+                days_map[d] = {"date": d, "day_name": day_name, "batches": [], "finished_goods": []}
+            entry = {
+                "product_name": r['product_name'],
+                "total_lbs": float(r['total_lbs'] or 0)
+            }
+            if r['product_type'] == 'batch':
+                batch_size = float(r['default_batch_lb']) if r['default_batch_lb'] else None
+                entry["standard_batch_size_lbs"] = batch_size
+                days_map[d]["batches"].append(entry)
+            else:
+                days_map[d]["finished_goods"].append(entry)
+
+        return {"days": list(days_map.values())}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dashboard production API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dashboard/api/inventory/finished-goods")
+def dashboard_api_finished_goods():
+    """On-hand inventory for finished goods, grouped by panel with lot breakdown."""
+    config = _load_dashboard_config()
+    if not config:
+        return JSONResponse(status_code=500, content={"error": "Dashboard config not found"})
+    try:
+        panels = list(config.get("finished_goods_panels", []))
+        coconut = config.get("coconut_panel")
+        if coconut:
+            panels.append(coconut)
+
+        # Collect all SKU names
+        all_skus = []
+        for panel in panels:
+            all_skus.extend(panel.get("skus", []))
+
+        with get_transaction() as cur:
+            # Get on-hand per product
+            cur.execute("""
+                SELECT p.id, p.name, p.default_case_weight_lb,
+                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                FROM products p
+                LEFT JOIN lots l ON l.product_id = p.id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE COALESCE(p.active, true) = true
+                  AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
+                GROUP BY p.id
+            """, (all_skus,))
+            product_rows = {r['name'].lower(): dict(r) for r in cur.fetchall()}
+
+            # Get lot breakdown for all matched products
+            matched_ids = [r['id'] for r in product_rows.values()]
+            lot_map = {}
+            if matched_ids:
+                cur.execute("""
+                    SELECT l.product_id, l.lot_code,
+                           COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs,
+                           l.id as lot_id
+                    FROM lots l
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    WHERE l.product_id = ANY(%s)
+                    GROUP BY l.id
+                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                    ORDER BY l.id ASC
+                """, (matched_ids,))
+                for lr in cur.fetchall():
+                    pid = lr['product_id']
+                    if pid not in lot_map:
+                        lot_map[pid] = []
+                    lot_map[pid].append({
+                        "lot_code": lr['lot_code'],
+                        "on_hand_lbs": float(lr['on_hand_lbs'])
+                    })
+
+        result_panels = []
+        for panel in panels:
+            panel_data = {
+                "id": panel.get("id", ""),
+                "title": panel.get("title", ""),
+                "case_weight_lb": panel.get("case_weight_lb"),
+                "products": [],
+                "missing_skus": []
+            }
+            for sku in panel.get("skus", []):
+                prow = product_rows.get(sku.lower())
+                if prow:
+                    pid = prow['id']
+                    on_hand = float(prow['on_hand_lbs'])
+                    case_wt = panel.get("case_weight_lb")
+                    if case_wt is None and prow.get('default_case_weight_lb'):
+                        case_wt = float(prow['default_case_weight_lb'])
+                    product_entry = {
+                        "product_name": prow['name'],
+                        "on_hand_lbs": on_hand,
+                        "case_weight_lb": case_wt,
+                        "lots": lot_map.get(pid, [])
+                    }
+                    panel_data["products"].append(product_entry)
+                else:
+                    panel_data["missing_skus"].append(sku)
+            # Sort by on_hand descending
+            panel_data["products"].sort(key=lambda x: x["on_hand_lbs"], reverse=True)
+            result_panels.append(panel_data)
+
+        return {"panels": result_panels}
+    except Exception as e:
+        logger.error(f"Dashboard finished goods API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dashboard/api/inventory/batches")
+def dashboard_api_batches():
+    """Batch inventory on-hand with estimated batch counts and lot breakdown."""
+    config = _load_dashboard_config()
+    if not config:
+        return JSONResponse(status_code=500, content={"error": "Dashboard config not found"})
+    try:
+        batch_skus = config.get("batch_skus", [])
+        sku_names = [b["name"] for b in batch_skus]
+        # Build a lookup for standard batch sizes from config
+        config_batch_sizes = {b["name"].lower(): b.get("standard_batch_size_lbs") for b in batch_skus}
+
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT p.id, p.name, p.default_batch_lb,
+                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                FROM products p
+                LEFT JOIN lots l ON l.product_id = p.id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE COALESCE(p.active, true) = true
+                  AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
+                GROUP BY p.id
+                ORDER BY COALESCE(SUM(tl.quantity_lb), 0) DESC
+            """, (sku_names,))
+            product_rows = cur.fetchall()
+
+            matched_ids = [r['id'] for r in product_rows]
+            lot_map = {}
+            if matched_ids:
+                cur.execute("""
+                    SELECT l.product_id, l.lot_code,
+                           COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                    FROM lots l
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    WHERE l.product_id = ANY(%s)
+                    GROUP BY l.id
+                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                    ORDER BY l.id ASC
+                """, (matched_ids,))
+                for lr in cur.fetchall():
+                    pid = lr['product_id']
+                    if pid not in lot_map:
+                        lot_map[pid] = []
+                    lot_map[pid].append({
+                        "lot_code": lr['lot_code'],
+                        "on_hand_lbs": float(lr['on_hand_lbs'])
+                    })
+
+        found_names = {r['name'].lower() for r in product_rows}
+        missing_skus = [n for n in sku_names if n.lower() not in found_names]
+
+        batches = []
+        for r in product_rows:
+            on_hand = float(r['on_hand_lbs'])
+            # Prefer config batch size, fall back to DB default_batch_lb
+            batch_size = config_batch_sizes.get(r['name'].lower())
+            if batch_size is None and r['default_batch_lb']:
+                batch_size = float(r['default_batch_lb'])
+            batches.append({
+                "product_name": r['name'],
+                "on_hand_lbs": on_hand,
+                "standard_batch_size_lbs": batch_size,
+                "lots": lot_map.get(r['id'], [])
+            })
+
+        return {"batches": batches, "missing_skus": missing_skus}
+    except Exception as e:
+        logger.error(f"Dashboard batches API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dashboard/api/inventory/ingredients")
+def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
+    """Ingredient/raw material on-hand grouped by category."""
+    config = _load_dashboard_config()
+    if not config:
+        return JSONResponse(status_code=500, content={"error": "Dashboard config not found"})
+    try:
+        categories = config.get("ingredient_categories", [])
+        if category:
+            categories = [c for c in categories if c["id"] == category]
+
+        all_names = []
+        for cat in categories:
+            all_names.extend(cat.get("items", []))
+
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT p.id, p.name,
+                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand
+                FROM products p
+                LEFT JOIN lots l ON l.product_id = p.id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE COALESCE(p.active, true) = true
+                  AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
+                GROUP BY p.id
+            """, (all_names,))
+            product_map = {r['name'].lower(): {"name": r['name'], "on_hand": float(r['on_hand'])} for r in cur.fetchall()}
+
+        result = []
+        for cat in categories:
+            items = []
+            missing = []
+            for item_name in cat.get("items", []):
+                pdata = product_map.get(item_name.lower())
+                if pdata:
+                    items.append(pdata)
+                else:
+                    missing.append(item_name)
+            items.sort(key=lambda x: x["on_hand"], reverse=True)
+            result.append({
+                "id": cat["id"],
+                "title": cat["title"],
+                "unit": cat.get("unit", "lb"),
+                "items": items,
+                "missing_skus": missing,
+                "total_skus_expected": len(cat.get("items", []))
+            })
+
+        return {"categories": result}
+    except Exception as e:
+        logger.error(f"Dashboard ingredients API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dashboard/api/activity/shipments")
+def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
+    """Shipping log — most recent first."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT t.id, t.timestamp, t.customer_name, t.order_reference, t.notes,
+                       json_agg(json_build_object(
+                           'product_name', p.name,
+                           'lot_code', l.lot_code,
+                           'quantity_lb', tl.quantity_lb
+                       ) ORDER BY p.name) as lines
+                FROM transactions t
+                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                JOIN products p ON p.id = tl.product_id
+                LEFT JOIN lots l ON l.id = tl.lot_id
+                WHERE t.type = 'ship'
+                GROUP BY t.id
+                ORDER BY t.timestamp DESC
+                LIMIT %s
+            """, (limit,))
+            shipments = cur.fetchall()
+
+        result = []
+        for s in shipments:
+            d, tm = format_timestamp(s['timestamp'])
+            total_lbs = sum(abs(float(ln['quantity_lb'] or 0)) for ln in (s['lines'] or []))
+            result.append({
+                "transaction_id": s['id'],
+                "date": d,
+                "time": tm,
+                "customer_name": s['customer_name'],
+                "order_reference": s['order_reference'],
+                "total_lbs": total_lbs,
+                "lines": s['lines'] or [],
+                "notes": s['notes']
+            })
+        return {"shipments": result}
+    except Exception as e:
+        logger.error(f"Dashboard shipments API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dashboard/api/activity/receipts")
+def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
+    """Receiving log — most recent first."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT t.id, t.timestamp, t.shipper_name, t.bol_reference, t.notes,
+                       t.cases_received, t.case_size_lb,
+                       json_agg(json_build_object(
+                           'product_name', p.name,
+                           'lot_code', l.lot_code,
+                           'quantity_lb', tl.quantity_lb
+                       ) ORDER BY p.name) as lines
+                FROM transactions t
+                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                JOIN products p ON p.id = tl.product_id
+                LEFT JOIN lots l ON l.id = tl.lot_id
+                WHERE t.type = 'receive'
+                GROUP BY t.id
+                ORDER BY t.timestamp DESC
+                LIMIT %s
+            """, (limit,))
+            receipts = cur.fetchall()
+
+        result = []
+        for r in receipts:
+            d, tm = format_timestamp(r['timestamp'])
+            total_lbs = sum(float(ln['quantity_lb'] or 0) for ln in (r['lines'] or []))
+            result.append({
+                "transaction_id": r['id'],
+                "date": d,
+                "time": tm,
+                "shipper_name": r['shipper_name'],
+                "bol_reference": r['bol_reference'],
+                "total_lbs": total_lbs,
+                "cases_received": r['cases_received'],
+                "case_size_lb": float(r['case_size_lb']) if r['case_size_lb'] else None,
+                "lines": r['lines'] or [],
+                "notes": r['notes']
+            })
+        return {"receipts": result}
+    except Exception as e:
+        logger.error(f"Dashboard receipts API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dashboard/api/lot/{lot_code}")
+def dashboard_api_lot_detail(lot_code: str):
+    """Lot detail with full transaction timeline."""
+    try:
+        with get_transaction() as cur:
+            # Lot info
+            cur.execute("""
+                SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
+                       l.entry_source,
+                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE LOWER(l.lot_code) = LOWER(%s)
+                GROUP BY l.id, p.id
+            """, (lot_code,))
+            lot = cur.fetchone()
+            if not lot:
+                raise HTTPException(404, f"Lot '{lot_code}' not found")
+
+            # First transaction to get original quantity
+            cur.execute("""
+                SELECT tl.quantity_lb
+                FROM transaction_lines tl
+                JOIN transactions t ON t.id = tl.transaction_id
+                WHERE tl.lot_id = %s
+                ORDER BY t.timestamp ASC
+                LIMIT 1
+            """, (lot['id'],))
+            first_txn = cur.fetchone()
+            original_qty = float(first_txn['quantity_lb']) if first_txn else 0
+
+            # Full timeline
+            cur.execute("""
+                SELECT t.id as transaction_id, t.type, t.timestamp,
+                       tl.quantity_lb,
+                       t.customer_name, t.shipper_name, t.order_reference,
+                       t.bol_reference, t.adjust_reason, t.notes
+                FROM transaction_lines tl
+                JOIN transactions t ON t.id = tl.transaction_id
+                WHERE tl.lot_id = %s
+                ORDER BY t.timestamp ASC
+            """, (lot['id'],))
+            timeline_rows = cur.fetchall()
+
+        timeline = []
+        for tr in timeline_rows:
+            d, tm = format_timestamp(tr['timestamp'])
+            timeline.append({
+                "transaction_id": tr['transaction_id'],
+                "type": tr['type'],
+                "date": d,
+                "time": tm,
+                "quantity_lb": float(tr['quantity_lb']),
+                "customer_name": tr['customer_name'],
+                "shipper_name": tr['shipper_name'],
+                "order_reference": tr['order_reference'],
+                "bol_reference": tr['bol_reference'],
+                "adjust_reason": tr['adjust_reason'],
+                "notes": tr['notes']
+            })
+
+        return {
+            "lot_code": lot['lot_code'],
+            "product_name": lot['product_name'],
+            "entry_source": lot['entry_source'],
+            "original_quantity_lbs": original_qty,
+            "on_hand_lbs": float(lot['on_hand_lbs']),
+            "timeline": timeline
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dashboard lot detail API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dashboard/api/search")
+def dashboard_api_search(q: str = Query(min_length=1)):
+    """Global search across products, lots, orders, customers, suppliers."""
+    try:
+        term = f"%{q}%"
+        results = {}
+        with get_transaction() as cur:
+            # Products
+            cur.execute("""
+                SELECT p.name, p.type, p.odoo_code,
+                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                FROM products p
+                LEFT JOIN lots l ON l.product_id = p.id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE COALESCE(p.active, true) = true
+                  AND (p.name ILIKE %s OR p.odoo_code ILIKE %s)
+                GROUP BY p.id
+                ORDER BY p.name
+                LIMIT 20
+            """, (term, term))
+            results["products"] = [dict(r) for r in cur.fetchall()]
+            for p in results["products"]:
+                p["on_hand_lbs"] = float(p["on_hand_lbs"])
+
+            # Lots
+            cur.execute("""
+                SELECT l.lot_code, p.name as product_name,
+                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE l.lot_code ILIKE %s
+                GROUP BY l.id, p.id
+                ORDER BY l.id DESC
+                LIMIT 20
+            """, (term,))
+            results["lots"] = [dict(r) for r in cur.fetchall()]
+            for lt in results["lots"]:
+                lt["on_hand_lbs"] = float(lt["on_hand_lbs"])
+
+            # Sales orders
+            cur.execute("""
+                SELECT so.order_number, c.name as customer, so.status,
+                       so.order_date
+                FROM sales_orders so
+                JOIN customers c ON c.id = so.customer_id
+                WHERE so.order_number ILIKE %s OR c.name ILIKE %s
+                ORDER BY so.id DESC
+                LIMIT 20
+            """, (term, term))
+            results["orders"] = [
+                {**dict(r), "order_date": str(r["order_date"]) if r["order_date"] else None}
+                for r in cur.fetchall()
+            ]
+
+            # Customers
+            cur.execute("""
+                SELECT name, contact_name, email, phone
+                FROM customers
+                WHERE name ILIKE %s AND active = true
+                ORDER BY name
+                LIMIT 20
+            """, (term,))
+            results["customers"] = [dict(r) for r in cur.fetchall()]
+
+        return results
+    except Exception as e:
+        logger.error(f"Dashboard search API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# STATIC FILE SERVING — Dashboard UI (must be LAST)
+# ═══════════════════════════════════════════════════════════════
+
+_dashboard_dir = pathlib.Path(__file__).parent / "dashboard"
+if _dashboard_dir.is_dir():
+    app.mount("/dashboard", StaticFiles(directory=str(_dashboard_dir), html=True), name="dashboard-ui")
