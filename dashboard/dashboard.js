@@ -691,6 +691,230 @@
     });
   }
 
+  // ── Notes / To-Dos / Reminders ──
+
+  // Notes sub-state
+  state.notesFilter = 'all';   // 'all' | 'note' | 'todo' | 'reminder'
+  state.notesShowDone = false;
+  state.notesData = [];
+  state.editingNoteId = null;
+
+  async function refreshNotes() {
+    hideError('notes-error');
+    const container = document.getElementById('notes-list');
+    container.innerHTML = '<div class="loading-indicator">Loading notes...</div>';
+    try {
+      let url = '/notes';
+      const params = [];
+      if (state.notesFilter !== 'all') params.push('category=' + state.notesFilter);
+      if (!state.notesShowDone) params.push('status=open');
+      if (params.length) url += '?' + params.join('&');
+      const data = await fetchAPI(url);
+      state.notesData = data.notes || [];
+      renderNotes(container);
+    } catch (e) {
+      container.innerHTML = '';
+      showError('notes-error', 'Failed to load notes: ' + e.message);
+    }
+  }
+
+  function renderNotes(container) {
+    const notes = state.notesData;
+    if (notes.length === 0) {
+      container.innerHTML = `<div class="notes-empty">
+        <div class="notes-empty-icon">&#128221;</div>
+        No ${state.notesFilter === 'all' ? 'items' : state.notesFilter + 's'} yet. Click <strong>+ New</strong> to create one.
+      </div>`;
+      return;
+    }
+
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+
+    let html = '';
+    for (const n of notes) {
+      const isDone = n.status === 'done' || n.status === 'dismissed';
+      const classes = ['note-card'];
+      if (isDone) classes.push('done');
+      if (n.priority !== 'normal') classes.push('priority-' + n.priority);
+
+      html += `<div class="${classes.join(' ')}" data-id="${n.id}">`;
+
+      // Checkbox
+      html += `<input type="checkbox" class="note-checkbox" data-id="${n.id}" ${isDone ? 'checked' : ''}>`;
+
+      // Content
+      html += '<div class="note-content">';
+      html += '<div class="note-title-row">';
+      html += `<span class="note-title">${escHtml(n.title)}</span>`;
+      html += `<span class="note-cat-badge cat-${n.category}">${n.category}</span>`;
+      if (n.priority === 'high') html += '<span class="note-priority-badge p-high">High</span>';
+      if (n.priority === 'low') html += '<span class="note-priority-badge p-low">Low</span>';
+      html += '</div>';
+
+      if (n.body && n.body.trim()) {
+        html += `<div class="note-body">${escHtml(n.body)}</div>`;
+      }
+
+      // Meta row
+      const meta = [];
+      if (n.due_date) {
+        const overdue = !isDone && n.due_date < todayStr;
+        meta.push(`<span class="note-due ${overdue ? 'overdue' : ''}">Due: ${n.due_date}</span>`);
+      }
+      if (n.entity_type && n.entity_id) {
+        meta.push(`<span class="note-entity">${escHtml(n.entity_type)}: ${escHtml(n.entity_id)}</span>`);
+      }
+      if (n.created_at) {
+        meta.push(`<span>Created: ${escHtml(n.created_at)}</span>`);
+      }
+      if (meta.length) {
+        html += `<div class="note-meta">${meta.join('')}</div>`;
+      }
+      html += '</div>'; // .note-content
+
+      // Actions
+      html += '<div class="note-actions">';
+      html += `<button class="note-action-btn edit" data-id="${n.id}" title="Edit">&#9998;</button>`;
+      html += `<button class="note-action-btn delete" data-id="${n.id}" title="Delete">&#10005;</button>`;
+      html += '</div>';
+
+      html += '</div>'; // .note-card
+    }
+    container.innerHTML = html;
+
+    // Bind checkbox toggles
+    container.querySelectorAll('.note-checkbox').forEach(cb => {
+      cb.addEventListener('change', async () => {
+        const id = cb.dataset.id;
+        try {
+          await fetch(API_BASE + '/notes/' + id + '/toggle', { method: 'PUT' });
+          refreshNotes();
+        } catch (err) {
+          showError('notes-error', 'Toggle failed: ' + err.message);
+        }
+      });
+    });
+
+    // Bind edit buttons
+    container.querySelectorAll('.note-action-btn.edit').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = Number(btn.dataset.id);
+        const note = state.notesData.find(n => n.id === id);
+        if (note) openNoteModal(note);
+      });
+    });
+
+    // Bind delete buttons
+    container.querySelectorAll('.note-action-btn.delete').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        if (!confirm('Delete this item?')) return;
+        try {
+          await fetch(API_BASE + '/notes/' + id, { method: 'DELETE' });
+          refreshNotes();
+        } catch (err) {
+          showError('notes-error', 'Delete failed: ' + err.message);
+        }
+      });
+    });
+  }
+
+  function openNoteModal(note) {
+    state.editingNoteId = note ? note.id : null;
+    const title = document.getElementById('note-modal-title');
+    title.textContent = note ? 'Edit Item' : 'New Item';
+
+    // Populate fields
+    const catRadios = document.querySelectorAll('input[name="note-cat"]');
+    catRadios.forEach(r => { r.checked = r.value === (note ? note.category : 'note'); });
+
+    document.getElementById('note-title').value = note ? (note.title || '') : '';
+    document.getElementById('note-body').value = note ? (note.body || '') : '';
+    document.getElementById('note-priority').value = note ? (note.priority || 'normal') : 'normal';
+    document.getElementById('note-due').value = note ? (note.due_date || '') : '';
+    document.getElementById('note-entity-type').value = note ? (note.entity_type || '') : '';
+    document.getElementById('note-entity-id').value = note ? (note.entity_id || '') : '';
+
+    document.getElementById('note-modal-overlay').classList.remove('hidden');
+  }
+
+  function closeNoteModal() {
+    document.getElementById('note-modal-overlay').classList.add('hidden');
+    state.editingNoteId = null;
+  }
+
+  async function saveNote() {
+    const category = document.querySelector('input[name="note-cat"]:checked').value;
+    const title = document.getElementById('note-title').value.trim();
+    if (!title) {
+      alert('Title is required');
+      return;
+    }
+
+    const body = document.getElementById('note-body').value.trim();
+    const priority = document.getElementById('note-priority').value;
+    const due_date = document.getElementById('note-due').value || null;
+    const entity_type = document.getElementById('note-entity-type').value || null;
+    const entity_id = document.getElementById('note-entity-id').value.trim() || null;
+
+    const payload = { title, body, priority, due_date, entity_type, entity_id };
+
+    try {
+      if (state.editingNoteId) {
+        // Update
+        await fetch(API_BASE + '/notes/' + state.editingNoteId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Create
+        payload.category = category;
+        await fetch(API_BASE + '/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+      closeNoteModal();
+      refreshNotes();
+    } catch (err) {
+      alert('Save failed: ' + err.message);
+    }
+  }
+
+  function initNotes() {
+    // Filter buttons
+    document.querySelectorAll('.notes-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.notesFilter = btn.dataset.cat;
+        document.querySelectorAll('.notes-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === state.notesFilter));
+        refreshNotes();
+      });
+    });
+
+    // Show-done toggle
+    document.getElementById('notes-show-done').addEventListener('change', (e) => {
+      state.notesShowDone = e.target.checked;
+      refreshNotes();
+    });
+
+    // Add button
+    document.getElementById('notes-add-btn').addEventListener('click', () => openNoteModal(null));
+
+    // Modal close
+    document.getElementById('note-modal-close').addEventListener('click', closeNoteModal);
+    document.getElementById('note-cancel-btn').addEventListener('click', closeNoteModal);
+    document.getElementById('note-modal-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeNoteModal();
+    });
+
+    // Save
+    document.getElementById('note-save-btn').addEventListener('click', saveNote);
+  }
+
   // ── Refresh All ──
   async function refreshAll() {
     const btn = document.getElementById('refresh-btn');
@@ -707,6 +931,7 @@
     // Always load activity data too (even if tab not visible) so it's ready
     ops.push(refreshShipments());
     ops.push(refreshReceipts());
+    ops.push(refreshNotes());
 
     await Promise.allSettled(ops);
 
@@ -725,6 +950,7 @@
   function init() {
     initTheme();
     initTabs();
+    initNotes();
 
     // Theme toggle
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
