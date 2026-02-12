@@ -771,6 +771,11 @@ body {
 .note-action-btn.delete:hover { color: var(--danger); border-color: var(--danger); }
 
 /* Note Modal */
+#note-modal-overlay {
+  justify-content: center;
+  align-items: center;
+}
+
 .note-modal {
   width: 520px;
   max-width: 95vw;
@@ -780,7 +785,7 @@ body {
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
-  margin: auto;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3);
 }
 
 .note-modal-body {
