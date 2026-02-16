@@ -4727,8 +4727,60 @@ def dashboard_api_notes_toggle(note_id: int):
 
 
 # ═══════════════════════════════════════════════════════════════
-# ADMIN BOM MANAGEMENT
+# ADMIN PRODUCT & BOM MANAGEMENT
 # ═══════════════════════════════════════════════════════════════
+
+class ProductUpdate(BaseModel):
+    default_case_weight_lb: Optional[float] = None
+    default_batch_lb: Optional[float] = None
+    active: Optional[bool] = None
+
+
+@app.put("/admin/products/{product_id}")
+def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (product_id,))
+            product = cur.fetchone()
+            if not product:
+                raise HTTPException(status_code=404, detail=f"Product ID {product_id} not found")
+
+            updates = []
+            params = []
+            if req.default_case_weight_lb is not None:
+                updates.append("default_case_weight_lb = %s")
+                params.append(req.default_case_weight_lb)
+            if req.default_batch_lb is not None:
+                updates.append("default_batch_lb = %s")
+                params.append(req.default_batch_lb)
+            if req.active is not None:
+                updates.append("active = %s")
+                params.append(req.active)
+
+            if not updates:
+                return {"updated": False, "message": "No fields to update"}
+
+            params.append(product_id)
+            cur.execute(f"UPDATE products SET {', '.join(updates)} WHERE id = %s", params)
+
+        return {
+            "updated": True,
+            "product_id": product_id,
+            "product_name": product['name'],
+            "changes": {
+                k: v for k, v in {
+                    "default_case_weight_lb": req.default_case_weight_lb,
+                    "default_batch_lb": req.default_batch_lb,
+                    "active": req.active
+                }.items() if v is not None
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin product update failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 
 class BomLineCreate(BaseModel):
     ingredient_product_id: int
