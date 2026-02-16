@@ -1,0 +1,1011 @@
+openapi: 3.1.0
+info:
+  title: Factory Ledger API
+  version: 2.5.0
+  description: Manufacturing operations system for CNS Confectionery Products
+servers:
+  - url: https://fastapi-production-b73a.up.railway.app
+security:
+  - ApiKeyAuth: []
+components:
+  schemas: {}
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+paths:
+  /products/search:
+    get:
+      operationId: searchProducts
+      summary: Search products by name or code
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of matching products
+  /inventory/{item_name}:
+    get:
+      operationId: getInventory
+      summary: Get inventory for a product
+      parameters:
+        - name: item_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Inventory details
+  /lots/by-code/{lot_code}:
+    get:
+      operationId: getLotByCode
+      summary: Get lot details by lot code
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lot details
+  /receive/preview:
+    post:
+      operationId: receivePreview
+      summary: Preview a receive transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - cases
+                - case_size_lb
+                - shipper_name
+                - bol_reference
+              properties:
+                product_name:
+                  type: string
+                cases:
+                  type: integer
+                case_size_lb:
+                  type: number
+                shipper_name:
+                  type: string
+                bol_reference:
+                  type: string
+                shipper_code_override:
+                  type: string
+      responses:
+        "200":
+          description: Preview of receive transaction
+  /receive/commit:
+    post:
+      operationId: receiveCommit
+      summary: Commit a receive transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - cases
+                - case_size_lb
+                - shipper_name
+                - bol_reference
+              properties:
+                product_name:
+                  type: string
+                cases:
+                  type: integer
+                case_size_lb:
+                  type: number
+                shipper_name:
+                  type: string
+                bol_reference:
+                  type: string
+                shipper_code_override:
+                  type: string
+      responses:
+        "200":
+          description: Committed receive transaction
+  /ship/preview:
+    post:
+      operationId: shipPreview
+      summary: Preview a standalone ship transaction (not against an order)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - quantity_lb
+                - customer_name
+                - order_reference
+              properties:
+                product_name:
+                  type: string
+                quantity_lb:
+                  type: number
+                customer_name:
+                  type: string
+                order_reference:
+                  type: string
+                lot_code:
+                  type: string
+      responses:
+        "200":
+          description: Preview of ship transaction
+  /ship/commit:
+    post:
+      operationId: shipCommit
+      summary: Commit a standalone ship transaction (not against an order)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - quantity_lb
+                - customer_name
+                - order_reference
+              properties:
+                product_name:
+                  type: string
+                quantity_lb:
+                  type: number
+                customer_name:
+                  type: string
+                order_reference:
+                  type: string
+                lot_code:
+                  type: string
+      responses:
+        "200":
+          description: Committed ship transaction
+  /ship/multi-lot/commit:
+    post:
+      operationId: multiLotShipCommit
+      summary: Ship from multiple lots when one lot is insufficient (standalone)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - quantity_lb
+                - customer_name
+                - order_reference
+              properties:
+                product_name:
+                  type: string
+                quantity_lb:
+                  type: number
+                customer_name:
+                  type: string
+                order_reference:
+                  type: string
+      responses:
+        "200":
+          description: Committed multi-lot shipment
+  /make/preview:
+    post:
+      operationId: makePreview
+      summary: Preview a production batch with optional lot overrides and ingredient exclusions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - batches
+              properties:
+                product_name:
+                  type: string
+                batches:
+                  type: integer
+                lot_code:
+                  type: string
+                ingredient_lot_overrides:
+                  type: string
+                  description: "JSON string mapping ingredient product ID to lot code. Example: {\"61\": \"26-02-03-FOUND-025\"}"
+                excluded_ingredients:
+                  type: array
+                  items:
+                    type: integer
+                  description: "List of ingredient product IDs to skip. Example: [57, 62]"
+      responses:
+        "200":
+          description: Preview of production with ingredient availability
+  /make/commit:
+    post:
+      operationId: makeCommit
+      summary: Commit a production batch with optional lot overrides and ingredient exclusions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - batches
+              properties:
+                product_name:
+                  type: string
+                batches:
+                  type: integer
+                lot_code:
+                  type: string
+                ingredient_lot_overrides:
+                  type: string
+                  description: "JSON string mapping ingredient product ID to lot code. Example: {\"61\": \"26-02-03-FOUND-025\"}"
+                excluded_ingredients:
+                  type: array
+                  items:
+                    type: integer
+                  description: "List of ingredient product IDs to skip. Example: [57, 62]"
+      responses:
+        "200":
+          description: Committed production with consumed and excluded ingredients
+  /pack/preview:
+    post:
+      operationId: packPreview
+      summary: Preview an internal packing operation (batch to finished good)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source_product
+                - target_product
+                - cases
+              properties:
+                source_product:
+                  type: string
+                  description: "Batch product name or code (e.g., 'Batch Classic Granola #9' or '90002')"
+                target_product:
+                  type: string
+                  description: "Finished good name or code (e.g., 'CQ Granola 10 LB' or '1614')"
+                cases:
+                  type: integer
+                case_weight_lb:
+                  type: number
+                  description: "Override case weight; defaults to target product's default_case_weight_lb"
+                lot_allocations:
+                  type: array
+                  description: "Explicit lot splits. Omit for FIFO."
+                  items:
+                    type: object
+                    required:
+                      - lot_code
+                      - quantity_lb
+                    properties:
+                      lot_code:
+                        type: string
+                      quantity_lb:
+                        type: number
+                target_lot_code:
+                  type: string
+                  description: "Override output lot code; defaults to primary source lot code"
+      responses:
+        "200":
+          description: Pack preview with allocation plan
+  /pack/commit:
+    post:
+      operationId: packCommit
+      summary: Commit an internal packing operation (batch to finished good)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source_product
+                - target_product
+                - cases
+              properties:
+                source_product:
+                  type: string
+                  description: "Batch product name or code"
+                target_product:
+                  type: string
+                  description: "Finished good name or code"
+                cases:
+                  type: integer
+                case_weight_lb:
+                  type: number
+                lot_allocations:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - lot_code
+                      - quantity_lb
+                    properties:
+                      lot_code:
+                        type: string
+                      quantity_lb:
+                        type: number
+                target_lot_code:
+                  type: string
+      responses:
+        "200":
+          description: Pack committed with consumed lots and output details
+  /adjust/commit:
+    post:
+      operationId: adjustCommit
+      summary: Adjust inventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - lot_code
+                - adjustment_lb
+                - reason
+              properties:
+                product_name:
+                  type: string
+                lot_code:
+                  type: string
+                adjustment_lb:
+                  type: number
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Adjustment committed
+  /trace/batch/{lot_code}:
+    get:
+      operationId: traceBatch
+      summary: Trace ingredients used in a batch
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Batch traceability
+  /trace/ingredient/{lot_code}:
+    get:
+      operationId: traceIngredient
+      summary: Trace which batches used an ingredient lot
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ingredient traceability
+  /transactions/history:
+    get:
+      operationId: getTransactionHistory
+      summary: Get transaction history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: transaction_type
+          in: query
+          schema:
+            type: string
+            enum:
+              - receive
+              - ship
+              - make
+              - pack
+              - adjust
+        - name: product_name
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transaction history
+  /products/quick-create:
+    post:
+      operationId: quickCreateProduct
+      summary: Quick-create a product (during receive or production)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+                - product_type
+              properties:
+                product_name:
+                  type: string
+                product_type:
+                  type: string
+                  enum:
+                    - ingredient
+                    - finished_good
+                    - packaging
+                uom:
+                  type: string
+                  default: lb
+                storage_type:
+                  type: string
+                  enum:
+                    - ambient
+                    - refrigerated
+                    - frozen
+                  default: ambient
+                name_confidence:
+                  type: string
+                  enum:
+                    - exact
+                    - approximate
+                  default: exact
+                notes:
+                  type: string
+                performed_by:
+                  type: string
+                  default: system
+      responses:
+        "200":
+          description: Created product
+        "409":
+          description: Product already exists
+  /lots/{lot_id}/reassign:
+    post:
+      operationId: reassignLot
+      summary: Reassign a lot to a different product
+      parameters:
+        - name: lot_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to_product_id
+                - reason_code
+              properties:
+                to_product_id:
+                  type: integer
+                reason_code:
+                  type: string
+                  enum:
+                    - incorrect_receive
+                    - product_merge
+                    - data_entry_error
+                    - supplier_relabel
+                    - other
+                reason_notes:
+                  type: string
+                performed_by:
+                  type: string
+                  default: system
+      responses:
+        "200":
+          description: Lot reassigned
+  /inventory/found:
+    post:
+      operationId: addFoundInventory
+      summary: Add inventory found during counts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - quantity
+                - reason_code
+              properties:
+                product_id:
+                  type: integer
+                quantity:
+                  type: number
+                uom:
+                  type: string
+                  default: lb
+                reason_code:
+                  type: string
+                  enum:
+                    - found_during_count
+                    - found_back_stock
+                    - predates_system
+                    - unreceived_delivery
+                found_location:
+                  type: string
+                estimated_age:
+                  type: string
+                  enum:
+                    - recent
+                    - 1-2_weeks
+                    - 1_month_plus
+                    - unknown
+                  default: unknown
+                suspected_supplier:
+                  type: string
+                suspected_bol:
+                  type: string
+                notes:
+                  type: string
+                performed_by:
+                  type: string
+                  default: system
+      responses:
+        "200":
+          description: Found inventory added
+  /products/{product_id}/verify:
+    post:
+      operationId: verifyProduct
+      summary: Verify, reject, or archive a product
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - verify
+                    - reject
+                    - archive
+                verified_name:
+                  type: string
+                  description: Corrected name (for verify action)
+                notes:
+                  type: string
+                performed_by:
+                  type: string
+                  default: system
+      responses:
+        "200":
+          description: Product verification updated
+  /bom/batches/{batch_id}/formula:
+    get:
+      operationId: getBatchFormula
+      summary: Get batch formula with ingredient IDs needed for lot overrides and exclusions
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Batch formula with ingredient product IDs
+  /customers:
+    get:
+      operationId: listCustomers
+      summary: List all customers
+      parameters:
+        - name: active_only
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        "200":
+          description: Customer list
+    post:
+      operationId: createCustomer
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                contact_name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Customer created
+        "409":
+          description: Customer already exists
+  /sales/orders:
+    post:
+      operationId: createSalesOrder
+      summary: Create a sales order with line items. Auto-creates customer if not found.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customer_name
+                - lines
+              properties:
+                customer_name:
+                  type: string
+                  description: Customer name (fuzzy matched, auto-created if new)
+                requested_ship_date:
+                  type: string
+                  description: "Date in YYYY-MM-DD format"
+                notes:
+                  type: string
+                lines:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - product_name
+                      - quantity_lb
+                    properties:
+                      product_name:
+                        type: string
+                      quantity_lb:
+                        type: number
+                      unit_price:
+                        type: number
+                      notes:
+                        type: string
+      responses:
+        "200":
+          description: Order created with order number
+    get:
+      operationId: listSalesOrders
+      summary: List sales orders with optional filters
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - new
+              - confirmed
+              - in_production
+              - ready
+              - shipped
+              - partial_ship
+              - invoiced
+              - cancelled
+        - name: customer
+          in: query
+          schema:
+            type: string
+          description: Filter by customer name (fuzzy)
+        - name: overdue_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Show only orders past their requested ship date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of sales orders
+  /sales/orders/{order_id}:
+    get:
+      operationId: getSalesOrder
+      summary: Get full order details including lines, shipments, and totals
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order with lines, shipments, totals
+  /sales/orders/{order_id}/status:
+    patch:
+      operationId: updateOrderStatus
+      summary: Update order status
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - new
+                    - confirmed
+                    - in_production
+                    - ready
+                    - shipped
+                    - partial_ship
+                    - invoiced
+                    - cancelled
+      responses:
+        "200":
+          description: Status updated
+  /sales/orders/{order_id}/lines:
+    post:
+      operationId: addOrderLines
+      summary: Add line items to an existing order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lines
+              properties:
+                lines:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - product_name
+                      - quantity_lb
+                    properties:
+                      product_name:
+                        type: string
+                      quantity_lb:
+                        type: number
+                      unit_price:
+                        type: number
+                      notes:
+                        type: string
+      responses:
+        "200":
+          description: Lines added
+  /sales/orders/{order_id}/ship/commit:
+    post:
+      operationId: shipOrderCommit
+      summary: Execute shipment against a sales order using FIFO. Updates line and order status automatically.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ship_all:
+                  type: boolean
+                  default: true
+                  description: Ship all unfulfilled lines. Set false to specify individual lines.
+                lines:
+                  type: array
+                  description: Specific lines and quantities to ship (only when ship_all is false)
+                  items:
+                    type: object
+                    required:
+                      - line_id
+                      - quantity_lb
+                    properties:
+                      line_id:
+                        type: integer
+                      quantity_lb:
+                        type: number
+      responses:
+        "200":
+          description: Shipment executed with lot details and updated statuses
+  # ═══════════════════════════════════════════════════════════
+  # Notes / To-Dos / Reminders (NO AUTH REQUIRED)
+  # ═══════════════════════════════════════════════════════════
+
+  /dashboard/api/notes:
+    get:
+      operationId: listNotes
+      summary: List notes, to-dos, and reminders with optional filters
+      security: []
+      parameters:
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+            enum:
+              - note
+              - todo
+              - reminder
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            type: string
+            enum:
+              - open
+              - done
+              - dismissed
+        - name: entity_type
+          in: query
+          description: Filter by pinned entity type
+          schema:
+            type: string
+            enum:
+              - product
+              - lot
+              - customer
+              - supplier
+        - name: entity_id
+          in: query
+          description: Filter by pinned entity name/ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of notes
+    post:
+      operationId: createNote
+      summary: Create a note, to-do, or reminder. Optionally pin to a product, lot, customer, or supplier.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category
+                - title
+              properties:
+                category:
+                  type: string
+                  enum:
+                    - note
+                    - todo
+                    - reminder
+                title:
+                  type: string
+                  description: Short title or description of the item
+                body:
+                  type: string
+                  description: Additional details (optional)
+                priority:
+                  type: string
+                  enum:
+                    - low
+                    - normal
+                    - high
+                  default: normal
+                due_date:
+                  type: string
+                  description: "Due date in YYYY-MM-DD format (optional)"
+                entity_type:
+                  type: string
+                  enum:
+                    - product
+                    - lot
+                    - customer
+                    - supplier
+                  description: Pin this item to an entity (optional)
+                entity_id:
+                  type: string
+                  description: "The entity name or identifier, e.g. 'Granola Classic 25 LB' or 'Tropical Foods'"
+      responses:
+        "200":
+          description: Created note
+  /dashboard/api/notes/{note_id}:
+    put:
+      operationId: updateNote
+      summary: Update a note, to-do, or reminder. Only send fields you want to change.
+      security: []
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                body:
+                  type: string
+                priority:
+                  type: string
+                  enum:
+                    - low
+                    - normal
+                    - high
+                status:
+                  type: string
+                  enum:
+                    - open
+                    - done
+                    - dismissed
+                due_date:
+                  type: string
+                  description: "YYYY-MM-DD or empty string to clear"
+                entity_type:
+                  type: string
+                  enum:
+                    - product
+                    - lot
+                    - customer
+                    - supplier
+                entity_id:
+                  type: string
+      responses:
+        "200":
+          description: Updated note
+        "404":
+          description: Note not found
