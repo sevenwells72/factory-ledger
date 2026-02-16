@@ -4727,6 +4727,185 @@ def dashboard_api_notes_toggle(note_id: int):
 
 
 # ═══════════════════════════════════════════════════════════════
+# ADMIN BOM MANAGEMENT
+# ═══════════════════════════════════════════════════════════════
+
+class BomLineCreate(BaseModel):
+    ingredient_product_id: int
+    quantity_lb: float
+    exclude_from_inventory: Optional[bool] = False
+
+class BomLineUpdate(BaseModel):
+    quantity_lb: Optional[float] = None
+    exclude_from_inventory: Optional[bool] = None
+
+
+@app.get("/admin/bom/search")
+def admin_bom_search(
+    product_name: str = Query(...),
+    _: bool = Depends(verify_api_key)
+):
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT id, name, odoo_code, type, default_batch_lb
+                FROM products
+                WHERE COALESCE(active, true) = true
+                  AND LOWER(name) LIKE LOWER(%s)
+                ORDER BY name
+                LIMIT 20
+            """, (f"%{product_name}%",))
+            products = cur.fetchall()
+        return {"count": len(products), "products": products}
+    except Exception as e:
+        logger.error(f"Admin BOM search failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/admin/bom/{product_id}/lines")
+def admin_bom_lines(product_id: int, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (product_id,))
+            product = cur.fetchone()
+            if not product:
+                raise HTTPException(status_code=404, detail=f"Product ID {product_id} not found")
+
+            cur.execute("""
+                SELECT bf.id AS line_id, bf.ingredient_product_id, p.name AS ingredient_name,
+                       bf.quantity_lb, COALESCE(bf.exclude_from_inventory, false) AS exclude_from_inventory
+                FROM batch_formulas bf
+                JOIN products p ON p.id = bf.ingredient_product_id
+                WHERE bf.product_id = %s
+                ORDER BY bf.quantity_lb DESC
+            """, (product_id,))
+            lines = cur.fetchall()
+
+        return {
+            "product_id": product['id'],
+            "product_name": product['name'],
+            "line_count": len(lines),
+            "lines": lines
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin BOM lines failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/admin/bom/{product_id}/lines")
+def admin_bom_add_line(product_id: int, req: BomLineCreate, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (product_id,))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail=f"Product ID {product_id} not found")
+
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (req.ingredient_product_id,))
+            ingredient = cur.fetchone()
+            if not ingredient:
+                raise HTTPException(status_code=404, detail=f"Ingredient product ID {req.ingredient_product_id} not found")
+
+            cur.execute("""
+                INSERT INTO batch_formulas (product_id, ingredient_product_id, quantity_lb, exclude_from_inventory)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id
+            """, (product_id, req.ingredient_product_id, req.quantity_lb, req.exclude_from_inventory))
+            new_line = cur.fetchone()
+
+        return {
+            "created": True,
+            "line_id": new_line['id'],
+            "ingredient_name": ingredient['name'],
+            "quantity_lb": req.quantity_lb,
+            "exclude_from_inventory": req.exclude_from_inventory
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin BOM add line failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.put("/admin/bom/lines/{line_id}")
+def admin_bom_update_line(line_id: int, req: BomLineUpdate, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT bf.id, bf.quantity_lb, COALESCE(bf.exclude_from_inventory, false) AS exclude_from_inventory,
+                       p.name AS ingredient_name
+                FROM batch_formulas bf
+                JOIN products p ON p.id = bf.ingredient_product_id
+                WHERE bf.id = %s
+            """, (line_id,))
+            existing = cur.fetchone()
+            if not existing:
+                raise HTTPException(status_code=404, detail=f"BOM line ID {line_id} not found")
+
+            updates = []
+            params = []
+            if req.quantity_lb is not None:
+                updates.append("quantity_lb = %s")
+                params.append(req.quantity_lb)
+            if req.exclude_from_inventory is not None:
+                updates.append("exclude_from_inventory = %s")
+                params.append(req.exclude_from_inventory)
+
+            if not updates:
+                return {"updated": False, "message": "No fields to update"}
+
+            params.append(line_id)
+            cur.execute(f"UPDATE batch_formulas SET {', '.join(updates)} WHERE id = %s", params)
+
+        return {
+            "updated": True,
+            "line_id": line_id,
+            "ingredient_name": existing['ingredient_name'],
+            "previous_quantity_lb": float(existing['quantity_lb']),
+            "new_quantity_lb": req.quantity_lb if req.quantity_lb is not None else float(existing['quantity_lb']),
+            "exclude_from_inventory": req.exclude_from_inventory if req.exclude_from_inventory is not None else existing['exclude_from_inventory']
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin BOM update line failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.delete("/admin/bom/lines/{line_id}")
+def admin_bom_delete_line(line_id: int, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT bf.id, bf.product_id, bf.ingredient_product_id, bf.quantity_lb,
+                       p.name AS ingredient_name, prod.name AS product_name
+                FROM batch_formulas bf
+                JOIN products p ON p.id = bf.ingredient_product_id
+                JOIN products prod ON prod.id = bf.product_id
+                WHERE bf.id = %s
+            """, (line_id,))
+            existing = cur.fetchone()
+            if not existing:
+                raise HTTPException(status_code=404, detail=f"BOM line ID {line_id} not found")
+
+            cur.execute("DELETE FROM batch_formulas WHERE id = %s", (line_id,))
+
+        return {
+            "deleted": True,
+            "line_id": line_id,
+            "product_name": existing['product_name'],
+            "ingredient_name": existing['ingredient_name'],
+            "quantity_lb": float(existing['quantity_lb'])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin BOM delete line failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
 # STATIC FILE SERVING — Dashboard UI (must be LAST)
 # ═══════════════════════════════════════════════════════════════
 
