@@ -76,7 +76,7 @@
     { "name": "Batch BS Almond Butter Granola 350", "standard_batch_size_lbs": 350 },
     { "name": "Batch BS Dark Chocolate Granola 350", "standard_batch_size_lbs": 350 },
     { "name": "Batch BS Hazelnut Butter Granola 350", "standard_batch_size_lbs": 350 },
-    { "name": "Batch BS Peanut Butter Banana Granola", "standard_batch_size_lbs": null },
+    { "name": "Batch BS Peanut Butter Banana Granola", "standard_batch_size_lbs": 451.61 },
     { "name": "Batch Classic Chocolate Chip Granola #9", "standard_batch_size_lbs": null },
     { "name": "Batch Classic Granola #9", "standard_batch_size_lbs": null },
     { "name": "Batch Granola Vanilla Almond 380 lb", "standard_batch_size_lbs": 380 },
@@ -105,19 +105,16 @@
         "BS Cacao Nibs",
         "BS Cacao Shell Flour",
         "BS Chia Seeds",
-        "BS Cocoa Chips",
-        "BS Cocoa Liquor",
         "BS Cocoa Liquor \u2013 Chips",
-        "BS Coconut \u2013 Chips",
         "BS Coconut Sugar",
         "BS Hazelnut Butter",
-        "BS Hazelnuts",
         "BS Hazelnuts \u2013 Diced",
         "BS Oats GF",
         "BS Oil \u2013 Almond",
         "BS Peanut Butter Chips",
         "BS Pumpkin Seeds",
-        "BS Salt"
+        "BS Salt",
+        "Sunflower Seeds"
       ]
     },
     {
