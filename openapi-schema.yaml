@@ -668,7 +668,7 @@ paths:
   /sales/orders:
     post:
       operationId: createSalesOrder
-      summary: Create a sales order with line items. Auto-creates customer if not found.
+      summary: Create a sales order with line items. Supports cases or lb. Auto-creates customer if not found.
       requestBody:
         required: true
         content:
@@ -693,12 +693,26 @@ paths:
                     type: object
                     required:
                       - product_name
-                      - quantity_lb
                     properties:
                       product_name:
                         type: string
+                      quantity:
+                        type: number
+                        description: "Number of units (cases, bags, boxes, or lb). Use with 'unit' field."
+                      unit:
+                        type: string
+                        enum:
+                          - cases
+                          - bags
+                          - boxes
+                          - lb
+                        description: "Unit type. When 'cases', system converts: quantity × case_weight_lb = total lb."
+                      case_weight_lb:
+                        type: number
+                        description: "Weight per case in lb. Defaults to product's default_case_weight_lb if not provided."
                       quantity_lb:
                         type: number
+                        description: "Direct lb amount (legacy). Use quantity + unit instead when ordering in cases."
                       unit_price:
                         type: number
                       notes:
@@ -791,7 +805,7 @@ paths:
   /sales/orders/{order_id}/lines:
     post:
       operationId: addOrderLines
-      summary: Add line items to an existing order
+      summary: Add line items to an existing order. Supports cases or lb.
       parameters:
         - name: order_id
           in: path
@@ -813,12 +827,26 @@ paths:
                     type: object
                     required:
                       - product_name
-                      - quantity_lb
                     properties:
                       product_name:
                         type: string
+                      quantity:
+                        type: number
+                        description: "Number of units (cases, bags, boxes, or lb). Use with 'unit' field."
+                      unit:
+                        type: string
+                        enum:
+                          - cases
+                          - bags
+                          - boxes
+                          - lb
+                        description: "Unit type. When 'cases', system converts: quantity × case_weight_lb = total lb."
+                      case_weight_lb:
+                        type: number
+                        description: "Weight per case in lb. Defaults to product's default_case_weight_lb if not provided."
                       quantity_lb:
                         type: number
+                        description: "Direct lb amount (legacy). Use quantity + unit instead when ordering in cases."
                       unit_price:
                         type: number
                       notes:
