@@ -1596,6 +1596,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 now = get_plant_now()
 
                 manual_excluded_ids = set(req.excluded_ingredients or [])
+                auto_excluded_ids = set()
 
                 if req.lot_code:
                     lot_code = req.lot_code
@@ -1624,24 +1625,6 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 """, (product['id'], lot_code))
                 output_lot_id = cur.fetchone()['id']
                 
-                exclusion_note = ""
-                if manual_excluded_ids:
-                    exclusion_note += f" (manually excluded IDs: {sorted(manual_excluded_ids)})"
-                if auto_excluded_ids:
-                    exclusion_note += f" (auto-excluded IDs: {sorted(auto_excluded_ids)})"
-                
-                cur.execute("""
-                    INSERT INTO transactions (type, timestamp, notes)
-                    VALUES ('make', %s, %s)
-                    RETURNING id
-                """, (now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}"))
-                txn_id = cur.fetchone()['id']
-                
-                cur.execute("""
-                    INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
-                    VALUES (%s, %s, %s, %s)
-                """, (txn_id, product['id'], output_lot_id, total_output))
-                
                 cur.execute("""
                     SELECT bf.ingredient_product_id, bf.quantity_lb,
                            COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
@@ -1656,6 +1639,24 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     if ing.get('exclude_from_inventory'):
                         auto_excluded_ids.add(ing['ingredient_product_id'])
                 excluded_ids = manual_excluded_ids | auto_excluded_ids
+
+                exclusion_note = ""
+                if manual_excluded_ids:
+                    exclusion_note += f" (manually excluded IDs: {sorted(manual_excluded_ids)})"
+                if auto_excluded_ids:
+                    exclusion_note += f" (auto-excluded IDs: {sorted(auto_excluded_ids)})"
+
+                cur.execute("""
+                    INSERT INTO transactions (type, timestamp, notes)
+                    VALUES ('make', %s, %s)
+                    RETURNING id
+                """, (now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}"))
+                txn_id = cur.fetchone()['id']
+
+                cur.execute("""
+                    INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
+                    VALUES (%s, %s, %s, %s)
+                """, (txn_id, product['id'], output_lot_id, total_output))
 
                 consumed = []
                 excluded_from_run = []
