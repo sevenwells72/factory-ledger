@@ -178,6 +178,34 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 004 warning (non-fatal): {e}")
 
+    # Migration 005: Create product_bom table (FG → batch product mapping)
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables WHERE table_name = 'product_bom'
+                    )
+                """)
+                if not cur.fetchone()[0]:
+                    cur.execute("""
+                        CREATE TABLE product_bom (
+                            id SERIAL PRIMARY KEY,
+                            finished_good_id INTEGER NOT NULL REFERENCES products(id),
+                            batch_product_id INTEGER NOT NULL REFERENCES products(id),
+                            UNIQUE(finished_good_id, batch_product_id)
+                        )
+                    """)
+                    conn.commit()
+                    logger.info("Migration 005: Created product_bom table")
+                else:
+                    logger.info("Migration 005: product_bom table already exists")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 005 warning (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -4954,6 +4982,304 @@ def admin_bom_delete_line(line_id: int, _: bool = Depends(verify_api_key)):
         raise
     except Exception as e:
         logger.error(f"Admin BOM delete line failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# ADMIN: FG → BATCH PRODUCT MAPPING (product_bom)
+# ═══════════════════════════════════════════════════════════════
+
+class ProductBomCreate(BaseModel):
+    finished_good_id: int
+    batch_product_id: int
+
+
+@app.get("/admin/product-bom")
+def admin_list_product_bom(_: bool = Depends(verify_api_key)):
+    """List all FG → batch product mappings."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT pb.id, pb.finished_good_id, fg.name AS finished_good_name,
+                       pb.batch_product_id, bp.name AS batch_product_name
+                FROM product_bom pb
+                JOIN products fg ON fg.id = pb.finished_good_id
+                JOIN products bp ON bp.id = pb.batch_product_id
+                ORDER BY fg.name
+            """)
+            rows = cur.fetchall()
+        return {"count": len(rows), "mappings": [dict(r) for r in rows]}
+    except Exception as e:
+        logger.error(f"Admin product-bom list failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/admin/product-bom")
+def admin_create_product_bom(req: ProductBomCreate, _: bool = Depends(verify_api_key)):
+    """Link a finished good to its batch product."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (req.finished_good_id,))
+            fg = cur.fetchone()
+            if not fg:
+                raise HTTPException(404, f"Finished good ID {req.finished_good_id} not found")
+
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (req.batch_product_id,))
+            bp = cur.fetchone()
+            if not bp:
+                raise HTTPException(404, f"Batch product ID {req.batch_product_id} not found")
+
+            cur.execute("""
+                INSERT INTO product_bom (finished_good_id, batch_product_id)
+                VALUES (%s, %s)
+                ON CONFLICT (finished_good_id, batch_product_id) DO NOTHING
+                RETURNING id
+            """, (req.finished_good_id, req.batch_product_id))
+            row = cur.fetchone()
+
+        if row:
+            return {"created": True, "id": row['id'], "finished_good": fg['name'], "batch_product": bp['name']}
+        else:
+            return {"created": False, "message": "Mapping already exists", "finished_good": fg['name'], "batch_product": bp['name']}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin product-bom create failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.delete("/admin/product-bom/{mapping_id}")
+def admin_delete_product_bom(mapping_id: int, _: bool = Depends(verify_api_key)):
+    """Remove a FG → batch product mapping."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT pb.id, fg.name AS finished_good_name, bp.name AS batch_product_name
+                FROM product_bom pb
+                JOIN products fg ON fg.id = pb.finished_good_id
+                JOIN products bp ON bp.id = pb.batch_product_id
+                WHERE pb.id = %s
+            """, (mapping_id,))
+            existing = cur.fetchone()
+            if not existing:
+                raise HTTPException(404, f"Mapping ID {mapping_id} not found")
+
+            cur.execute("DELETE FROM product_bom WHERE id = %s", (mapping_id,))
+
+        return {"deleted": True, "finished_good": existing['finished_good_name'], "batch_product": existing['batch_product_name']}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin product-bom delete failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# ADMIN: READ-ONLY SQL QUERY (diagnostics)
+# ═══════════════════════════════════════════════════════════════
+
+class AdminSQLQuery(BaseModel):
+    sql: str
+
+@app.post("/admin/sql")
+def admin_sql_query(req: AdminSQLQuery, _: bool = Depends(verify_api_key)):
+    """Read-only SQL for admin diagnostics. Only SELECT allowed."""
+    sql = req.sql.strip()
+    if not sql.upper().startswith("SELECT"):
+        raise HTTPException(400, "Only SELECT queries allowed")
+    try:
+        with get_transaction() as cur:
+            cur.execute(sql)
+            rows = cur.fetchall()
+        return {"count": len(rows), "rows": [dict(r) for r in rows]}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# PRODUCTION REQUIREMENTS
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/production/requirements")
+def production_requirements(
+    product_name: str = Query(..., description="Finished good or batch product name"),
+    cases: Optional[int] = Query(None, description="Number of cases (for finished goods)"),
+    batches: Optional[int] = Query(None, description="Number of batches (for batch products)"),
+    _: bool = Depends(verify_api_key)
+):
+    """Given a finished good + cases OR batch product + batches, return the full ingredient breakdown."""
+    try:
+        with get_transaction() as cur:
+            product = resolve_product_full(cur, product_name)
+            pid = product['id']
+            pname = product['name']
+
+            # Determine if this is a finished good or batch product
+            cur.execute("SELECT type FROM products WHERE id = %s", (pid,))
+            ptype = cur.fetchone()['type']
+
+            batch_product_id = None
+            batch_product_name = None
+            num_batches = batches
+            total_output_lb = None
+
+            if ptype == 'finished':
+                if not cases:
+                    raise HTTPException(400, "cases parameter required for finished goods")
+
+                # Look up the batch product from product_bom
+                cur.execute("""
+                    SELECT pb.batch_product_id, p.name AS batch_name, p.default_batch_lb
+                    FROM product_bom pb
+                    JOIN products p ON p.id = pb.batch_product_id
+                    WHERE pb.finished_good_id = %s
+                """, (pid,))
+                link = cur.fetchone()
+
+                if not link:
+                    raise HTTPException(404, f"No batch product linked to '{pname}'. Add a product_bom mapping.")
+
+                batch_product_id = link['batch_product_id']
+                batch_product_name = link['batch_name']
+                batch_size = float(link['default_batch_lb'] or 0)
+
+                # Calculate how many lbs needed
+                case_weight = float(product.get('default_case_weight_lb') or 0)
+                if case_weight <= 0:
+                    raise HTTPException(400, f"No default_case_weight_lb set for '{pname}'")
+
+                total_output_lb = cases * case_weight
+                if batch_size > 0:
+                    import math
+                    num_batches = math.ceil(total_output_lb / batch_size)
+                else:
+                    raise HTTPException(400, f"No default_batch_lb set for batch product '{batch_product_name}'")
+
+            elif ptype == 'batch':
+                batch_product_id = pid
+                batch_product_name = pname
+                if not num_batches:
+                    num_batches = 1
+                batch_size = float(product.get('default_batch_lb') or 0)
+                total_output_lb = num_batches * batch_size
+            else:
+                raise HTTPException(400, f"Product '{pname}' is type '{ptype}', expected 'finished' or 'batch'")
+
+            # Get the BOM for the batch product
+            cur.execute("""
+                SELECT bf.ingredient_product_id, p.name AS ingredient_name, bf.quantity_lb,
+                       COALESCE(bf.exclude_from_inventory, false) AS exclude_from_inventory
+                FROM batch_formulas bf
+                JOIN products p ON p.id = bf.ingredient_product_id
+                WHERE bf.product_id = %s
+                ORDER BY bf.quantity_lb DESC
+            """, (batch_product_id,))
+            formula = cur.fetchall()
+
+            if not formula:
+                raise HTTPException(404, f"No BOM found for batch product '{batch_product_name}'")
+
+            # Check if any ingredient is itself a batch product (nested BOM, e.g. PB Banana)
+            ingredients = []
+            for ing in formula:
+                needed = float(ing['quantity_lb']) * num_batches
+                excluded = ing['exclude_from_inventory']
+
+                # Check if this ingredient has its own BOM (nested)
+                cur.execute("SELECT COUNT(*) AS cnt FROM batch_formulas WHERE product_id = %s", (ing['ingredient_product_id'],))
+                has_sub_bom = cur.fetchone()['cnt'] > 0
+
+                # Get current inventory
+                cur.execute("""
+                    SELECT COALESCE(SUM(tl.quantity_lb), 0) AS available
+                    FROM lots l
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    WHERE l.product_id = %s
+                """, (ing['ingredient_product_id'],))
+                available = float(cur.fetchone()['available'])
+
+                ing_data = {
+                    "ingredient_id": ing['ingredient_product_id'],
+                    "ingredient_name": ing['ingredient_name'],
+                    "per_batch_lb": float(ing['quantity_lb']),
+                    "total_needed_lb": needed,
+                    "available_lb": available,
+                    "sufficient": available >= needed or excluded,
+                    "excluded": excluded
+                }
+
+                if has_sub_bom:
+                    # Expand the sub-BOM
+                    sub_batches_needed = needed  # lbs needed of this sub-batch
+                    cur.execute("SELECT default_batch_lb FROM products WHERE id = %s", (ing['ingredient_product_id'],))
+                    sub_batch_size = float(cur.fetchone()['default_batch_lb'] or 0)
+                    if sub_batch_size > 0:
+                        import math
+                        sub_num_batches = math.ceil(sub_batches_needed / sub_batch_size)
+                    else:
+                        sub_num_batches = 1
+
+                    cur.execute("""
+                        SELECT bf.ingredient_product_id, p.name AS ingredient_name, bf.quantity_lb,
+                               COALESCE(bf.exclude_from_inventory, false) AS exclude_from_inventory
+                        FROM batch_formulas bf
+                        JOIN products p ON p.id = bf.ingredient_product_id
+                        WHERE bf.product_id = %s
+                        ORDER BY bf.quantity_lb DESC
+                    """, (ing['ingredient_product_id'],))
+                    sub_formula = cur.fetchall()
+
+                    sub_ingredients = []
+                    for sub in sub_formula:
+                        sub_needed = float(sub['quantity_lb']) * sub_num_batches
+                        cur.execute("""
+                            SELECT COALESCE(SUM(tl.quantity_lb), 0) AS available
+                            FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                            WHERE l.product_id = %s
+                        """, (sub['ingredient_product_id'],))
+                        sub_avail = float(cur.fetchone()['available'])
+                        sub_excluded = sub['exclude_from_inventory']
+                        sub_ingredients.append({
+                            "ingredient_id": sub['ingredient_product_id'],
+                            "ingredient_name": sub['ingredient_name'],
+                            "per_batch_lb": float(sub['quantity_lb']),
+                            "total_needed_lb": sub_needed,
+                            "available_lb": sub_avail,
+                            "sufficient": sub_avail >= sub_needed or sub_excluded,
+                            "excluded": sub_excluded
+                        })
+
+                    ing_data["is_sub_batch"] = True
+                    ing_data["sub_batches_needed"] = sub_num_batches
+                    ing_data["sub_ingredients"] = sub_ingredients
+
+                ingredients.append(ing_data)
+
+            all_sufficient = all(
+                i['sufficient'] and all(s['sufficient'] for s in i.get('sub_ingredients', []))
+                for i in ingredients
+            )
+
+            result = {
+                "product_name": pname,
+                "product_type": ptype,
+                "batch_product": batch_product_name,
+                "batches_needed": num_batches,
+                "total_output_lb": total_output_lb,
+                "all_ingredients_sufficient": all_sufficient,
+                "ingredients": ingredients
+            }
+
+            if ptype == 'finished':
+                result["cases"] = cases
+                result["case_weight_lb"] = case_weight
+
+            return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Production requirements failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
