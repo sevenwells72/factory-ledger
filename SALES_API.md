@@ -1,4 +1,4 @@
-# Factory Ledger — Sales API Reference (v2.4.1)
+# Factory Ledger — Sales API Reference (v2.5.0)
 
 Complete documentation for all customer and sales order endpoints.
 
@@ -891,6 +891,8 @@ When a standalone ship (`POST /ship/preview` or `/ship/commit`) is requested for
 | `/sales/dashboard` | GET | Dashboard overview |
 | `/make/preview` | POST | Preview production run (includes sibling SKU check) |
 | `/make/commit` | POST | Commit production run (requires `confirmed_sku` for multi-SKU products) |
+| `/pack/preview` | POST | Preview internal packing (batch → finished good) |
+| `/pack/commit` | POST | Commit internal packing (FIFO or explicit lot splits) |
 
 ---
 
@@ -1014,3 +1016,158 @@ The `confirmed_sku` field is only required when the product has siblings. For pr
 ### GPT Rule
 
 When recording a pack transaction, if the batch product has multiple finished-good SKUs in the BOM (e.g., CNS 10 lb, CNS 25 lb, CQ 10 lb, UNIPRO 10 lb), **always ask the operator which finished-good SKU they are packing** before submitting the transaction. Never assume CNS. BOM equivalence means manufacturing compatibility, not SKU equivalence.
+
+---
+
+## 10. Internal Packing (Batch → Finished Good) / Empaque Interno
+
+When the operator says **"internal packing"** or **"empaque interno"**, use the pack endpoints — **NOT** `/make`. This is for converting existing batch inventory into finished-good cases.
+
+**Key difference:**
+- `/make` = raw ingredients → batch/finished good (via BOM formula)
+- `/pack` = batch inventory → finished-good cases (1:1 lb conversion, no BOM needed)
+
+### Pack Preview
+
+```
+POST /pack/preview
+```
+
+Previews a batch-to-finished-good packing operation. Shows lot allocation plan without committing.
+
+**Request — FIFO (automatic lot selection):**
+```json
+{
+  "source_product": "90002",
+  "target_product": "1614",
+  "cases": 140
+}
+```
+
+`case_weight_lb` defaults to the target product's `default_case_weight_lb`. Override if needed:
+```json
+{
+  "source_product": "Batch Classic Granola #9",
+  "target_product": "CQ Granola 10 LB",
+  "cases": 140,
+  "case_weight_lb": 10
+}
+```
+
+**Request — Explicit lot splits:**
+```json
+{
+  "source_product": "90004",
+  "target_product": "893",
+  "cases": 296,
+  "case_weight_lb": 10,
+  "lot_allocations": [
+    {"lot_code": "FEB 12 2026", "quantity_lb": 160},
+    {"lot_code": "FEB 13 2026", "quantity_lb": 2800}
+  ]
+}
+```
+
+When `lot_allocations` is provided, the sum must equal `cases × case_weight_lb`.
+
+**Response:**
+```json
+{
+  "source_product_id": 15,
+  "source_product_name": "Batch Classic Granola #9",
+  "target_product_id": 42,
+  "target_product_name": "CQ Granola 10 LB",
+  "cases": 140,
+  "case_weight_lb": 10.0,
+  "total_lb": 1400.0,
+  "output_lot_code": "FEB 06 2026",
+  "allocations": [
+    {
+      "lot_id": 120,
+      "lot_code": "FEB 06 2026",
+      "available_lb": 2000.0,
+      "allocated_lb": 1400.0,
+      "sufficient": true
+    }
+  ],
+  "all_lots_sufficient": true,
+  "total_batch_available_lb": 5200.0,
+  "preview_message": "Ready to pack 140 cases (1400 lb) of CQ Granola 10 LB from Batch Classic Granola #9 (1 batch lot(s))"
+}
+```
+
+**Errors:**
+- `400` — Case weight not set and product has no `default_case_weight_lb`
+- `400` — Lot not found or insufficient inventory
+- `400` — Lot allocations sum doesn't match required total
+
+---
+
+### Pack Commit
+
+```
+POST /pack/commit
+```
+
+Commits the packing operation. Same request body as preview.
+
+**What happens:**
+1. Locks source batch lots (`FOR UPDATE`)
+2. Deducts batch inventory (negative `transaction_lines`)
+3. Creates finished-good lot (`entry_source: 'pack_output'`)
+4. Creates positive `transaction_line` for FG output
+5. Records `ingredient_lot_consumption` for traceability
+6. Transaction type: `'pack'`
+
+**Response:**
+```json
+{
+  "success": true,
+  "transaction_id": 250,
+  "output_lot_id": 180,
+  "output_lot_code": "FEB 06 2026",
+  "target_product_name": "CQ Granola 10 LB",
+  "source_product_name": "Batch Classic Granola #9",
+  "cases": 140,
+  "case_weight_lb": 10.0,
+  "total_lb": 1400.0,
+  "batch_lots_consumed": [
+    {"lot_code": "FEB 06 2026", "consumed_lb": 1400.0}
+  ],
+  "message": "Packed 140 cases (1400 lb) of CQ Granola 10 LB as lot FEB 06 2026"
+}
+```
+
+**Lot code behavior:** The output FG lot inherits the primary source batch lot code by default. Override with `target_lot_code` if needed.
+
+**Traceability:** Use `/trace/batch/{lot_code}` on the output lot to see which batch lots were consumed — works the same as make transactions.
+
+**curl:**
+```bash
+# FIFO pack
+curl -X POST "$BASE_URL/pack/commit" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"source_product": "90002", "target_product": "1614", "cases": 140}'
+
+# Explicit lot split
+curl -X POST "$BASE_URL/pack/commit" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_product": "90004",
+    "target_product": "893",
+    "cases": 296,
+    "case_weight_lb": 10,
+    "lot_allocations": [
+      {"lot_code": "FEB 12 2026", "quantity_lb": 160},
+      {"lot_code": "FEB 13 2026", "quantity_lb": 2800}
+    ]
+  }'
+```
+
+### GPT Rule — Pack vs Make
+
+- When the operator says **"internal packing"**, **"empaque interno"**, **"pack into"**, or **"convert batch to cases"** → use `/pack/preview` and `/pack/commit`
+- When the operator says **"make"**, **"produce"**, **"run batches"** → use `/make/preview` and `/make/commit`
+- **Never use `/make` for batch-to-FG conversion** — it will fail because there's no BOM linking batch products to finished goods

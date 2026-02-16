@@ -1,4 +1,4 @@
-# Factory Ledger — Dummy Guide (v2.3.0)
+# Factory Ledger — Dummy Guide (v2.5.0)
 
 How to use each workflow, with real-world examples from the factory floor.
 
@@ -108,6 +108,55 @@ Ingredients consumed:
 **Special options:**
 - **Exclude an ingredient:** "Make 2 batches of Classic Granola, skip almonds"
 - **Force a specific lot:** "Make 2 batches of Classic Granola, use lot 26-02-01-GRAIN-002 for oats"
+
+**Auto-excluded ingredients:** Water and other utility ingredients are automatically excluded from production — they'll never block a run. You'll see them listed as "auto-excluded" in the preview.
+
+---
+
+## 4a. PACK — Internal Packing (Batch → Finished Good) / Empaque Interno
+
+**When:** The production team has made a batch product (e.g., "Batch Classic Granola #9") and now needs to pack it into customer-ready finished-good cases (e.g., "CQ Granola 10 LB").
+
+**This is different from MAKE.** Make = raw ingredients into batch product. Pack = batch product into finished-good cases.
+
+**What you tell the GPT:**
+```
+Pack 140 cases of CQ Granola 10 LB from Batch Classic Granola #9, FIFO
+```
+
+**What happens:**
+- Finds the batch product and checks available lot inventory (FIFO — oldest lots first)
+- Calculates total: 140 cases × 10 lb = 1,400 lb needed
+- Shows allocation preview → you confirm → batch inventory goes down, finished-good inventory goes up
+
+**Result:**
+```
+📦 Packed 140 cases (1,400 lb) of CQ Granola 10 LB
+Source: Batch Classic Granola #9
+Lot consumed: FEB 06 2026 (1,400 lb)
+Output lot: FEB 06 2026
+```
+
+**Split across lots:**
+```
+Pack 296 cases of CQ Coconut Sweetened Flake 10 LB from Batch Coconut Sweetened Flake:
+- 16 cases from lot FEB 12 2026
+- 280 cases from lot FEB 13 2026
+```
+
+**Result:**
+```
+📦 Packed 296 cases (2,960 lb) of CQ Coconut Sweetened Flake 10 LB
+Lots consumed:
+  - FEB 12 2026: 160 lb
+  - FEB 13 2026: 2,800 lb
+Output lot: FEB 12 2026
+```
+
+**Key points:**
+- The finished-good lot inherits the lot code from the primary batch lot
+- Full traceability: "Trace batch FEB 06 2026" will show it came from the batch product
+- FIFO is the default — specify lots only when you need to control which batches are used
 
 ---
 
@@ -668,7 +717,7 @@ Production records updated: 2 batches
 
 ---
 
-## Quick Reference — All 20 Workflows
+## Quick Reference — All 21 Workflows
 
 | # | Say This | System Does |
 |---|----------|-------------|
@@ -676,6 +725,7 @@ Production records updated: 2 batches
 | 2 | "Ship 500 lb X to Y" | Deducts from oldest lot |
 | 3 | "Ship 2,000 lb X to Y, multi-lot" | Splits across multiple lots |
 | 4 | "Make 2 batches of X" | Consumes ingredients, creates output |
+| 4a | "Pack 140 cases of FG from Batch X" | Converts batch → FG cases |
 | 5 | "Adjust lot X down 50 lb, reason: Y" | Corrects inventory |
 | 6 | "New order from X: 360 cases Y at $4.50" | Creates sales order |
 | 7 | "Show open orders" / "What's overdue?" | Lists orders |
