@@ -178,33 +178,6 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 004 warning (non-fatal): {e}")
 
-    # Migration 005: Create product_bom table (FG → batch product mapping)
-    try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT EXISTS (
-                        SELECT FROM information_schema.tables WHERE table_name = 'product_bom'
-                    )
-                """)
-                if not cur.fetchone()[0]:
-                    cur.execute("""
-                        CREATE TABLE product_bom (
-                            id SERIAL PRIMARY KEY,
-                            finished_good_id INTEGER NOT NULL REFERENCES products(id),
-                            batch_product_id INTEGER NOT NULL REFERENCES products(id),
-                            UNIQUE(finished_good_id, batch_product_id)
-                        )
-                    """)
-                    conn.commit()
-                    logger.info("Migration 005: Created product_bom table")
-                else:
-                    logger.info("Migration 005: product_bom table already exists")
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"Migration 005 warning (non-fatal): {e}")
 
 
 @app.on_event("shutdown")
@@ -4990,23 +4963,32 @@ def admin_bom_delete_line(line_id: int, _: bool = Depends(verify_api_key)):
 # ═══════════════════════════════════════════════════════════════
 
 class ProductBomCreate(BaseModel):
-    finished_good_id: int
-    batch_product_id: int
+    finished_product_id: int
+    component_product_id: int
+    quantity: Optional[float] = 1.0
+    uom: Optional[str] = "unit"
 
 
 @app.get("/admin/product-bom")
-def admin_list_product_bom(_: bool = Depends(verify_api_key)):
-    """List all FG → batch product mappings."""
+def admin_list_product_bom(
+    fg_only: bool = Query(False, description="Only show batch product components"),
+    _: bool = Depends(verify_api_key)
+):
+    """List all FG → component mappings from product_bom."""
     try:
         with get_transaction() as cur:
-            cur.execute("""
-                SELECT pb.id, pb.finished_good_id, fg.name AS finished_good_name,
-                       pb.batch_product_id, bp.name AS batch_product_name
+            query = """
+                SELECT pb.id, pb.finished_product_id, fg.name AS finished_good_name,
+                       pb.component_product_id, cp.name AS component_name, cp.type AS component_type,
+                       pb.quantity, pb.uom
                 FROM product_bom pb
-                JOIN products fg ON fg.id = pb.finished_good_id
-                JOIN products bp ON bp.id = pb.batch_product_id
-                ORDER BY fg.name
-            """)
+                JOIN products fg ON fg.id = pb.finished_product_id
+                JOIN products cp ON cp.id = pb.component_product_id
+            """
+            if fg_only:
+                query += " WHERE cp.type = 'batch'"
+            query += " ORDER BY fg.name, cp.type"
+            cur.execute(query)
             rows = cur.fetchall()
         return {"count": len(rows), "mappings": [dict(r) for r in rows]}
     except Exception as e:
@@ -5016,31 +4998,28 @@ def admin_list_product_bom(_: bool = Depends(verify_api_key)):
 
 @app.post("/admin/product-bom")
 def admin_create_product_bom(req: ProductBomCreate, _: bool = Depends(verify_api_key)):
-    """Link a finished good to its batch product."""
+    """Add a component to a finished good's product_bom."""
     try:
         with get_transaction() as cur:
-            cur.execute("SELECT id, name FROM products WHERE id = %s", (req.finished_good_id,))
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (req.finished_product_id,))
             fg = cur.fetchone()
             if not fg:
-                raise HTTPException(404, f"Finished good ID {req.finished_good_id} not found")
+                raise HTTPException(404, f"Finished good ID {req.finished_product_id} not found")
 
-            cur.execute("SELECT id, name FROM products WHERE id = %s", (req.batch_product_id,))
-            bp = cur.fetchone()
-            if not bp:
-                raise HTTPException(404, f"Batch product ID {req.batch_product_id} not found")
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (req.component_product_id,))
+            cp = cur.fetchone()
+            if not cp:
+                raise HTTPException(404, f"Component product ID {req.component_product_id} not found")
 
             cur.execute("""
-                INSERT INTO product_bom (finished_good_id, batch_product_id)
-                VALUES (%s, %s)
-                ON CONFLICT (finished_good_id, batch_product_id) DO NOTHING
+                INSERT INTO product_bom (finished_product_id, component_product_id, quantity, uom)
+                VALUES (%s, %s, %s, %s)
                 RETURNING id
-            """, (req.finished_good_id, req.batch_product_id))
+            """, (req.finished_product_id, req.component_product_id, req.quantity, req.uom))
             row = cur.fetchone()
 
-        if row:
-            return {"created": True, "id": row['id'], "finished_good": fg['name'], "batch_product": bp['name']}
-        else:
-            return {"created": False, "message": "Mapping already exists", "finished_good": fg['name'], "batch_product": bp['name']}
+        return {"created": True, "id": row['id'], "finished_good": fg['name'], "component": cp['name'],
+                "quantity": req.quantity, "uom": req.uom}
     except HTTPException:
         raise
     except Exception as e:
@@ -5050,14 +5029,14 @@ def admin_create_product_bom(req: ProductBomCreate, _: bool = Depends(verify_api
 
 @app.delete("/admin/product-bom/{mapping_id}")
 def admin_delete_product_bom(mapping_id: int, _: bool = Depends(verify_api_key)):
-    """Remove a FG → batch product mapping."""
+    """Remove a component from a finished good's product_bom."""
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT pb.id, fg.name AS finished_good_name, bp.name AS batch_product_name
+                SELECT pb.id, fg.name AS finished_good_name, cp.name AS component_name
                 FROM product_bom pb
-                JOIN products fg ON fg.id = pb.finished_good_id
-                JOIN products bp ON bp.id = pb.batch_product_id
+                JOIN products fg ON fg.id = pb.finished_product_id
+                JOIN products cp ON cp.id = pb.component_product_id
                 WHERE pb.id = %s
             """, (mapping_id,))
             existing = cur.fetchone()
@@ -5066,7 +5045,7 @@ def admin_delete_product_bom(mapping_id: int, _: bool = Depends(verify_api_key))
 
             cur.execute("DELETE FROM product_bom WHERE id = %s", (mapping_id,))
 
-        return {"deleted": True, "finished_good": existing['finished_good_name'], "batch_product": existing['batch_product_name']}
+        return {"deleted": True, "finished_good": existing['finished_good_name'], "component": existing['component_name']}
     except HTTPException:
         raise
     except Exception as e:
@@ -5129,10 +5108,10 @@ def production_requirements(
 
                 # Look up the batch product from product_bom
                 cur.execute("""
-                    SELECT pb.batch_product_id, p.name AS batch_name, p.default_batch_lb
+                    SELECT pb.component_product_id AS batch_product_id, p.name AS batch_name, p.default_batch_lb
                     FROM product_bom pb
-                    JOIN products p ON p.id = pb.batch_product_id
-                    WHERE pb.finished_good_id = %s
+                    JOIN products p ON p.id = pb.component_product_id
+                    WHERE pb.finished_product_id = %s AND p.type = 'batch'
                 """, (pid,))
                 link = cur.fetchone()
 
