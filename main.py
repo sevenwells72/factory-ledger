@@ -196,6 +196,37 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 005 warning (non-fatal): {e}")
 
+    # Migration 006: Add case_size_lb to products
+    # Stores the weight per sellable unit (e.g., 25 for "25 LB" case, 10 for "10 LB" case).
+    # Required for correct line_value calculation: cases * unit_price (not lb * unit_price).
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    ALTER TABLE products
+                    ADD COLUMN IF NOT EXISTS case_size_lb NUMERIC(10,2)
+                """)
+
+                # Auto-populate from product names
+                cur.execute("UPDATE products SET case_size_lb = 25 WHERE name LIKE '%25 LB%' AND case_size_lb IS NULL")
+                updated_25 = cur.rowcount
+                cur.execute("UPDATE products SET case_size_lb = 10 WHERE name LIKE '%10 LB%' AND case_size_lb IS NULL")
+                updated_10 = cur.rowcount
+                cur.execute("UPDATE products SET case_size_lb = 50 WHERE name LIKE '%50 LB%' AND case_size_lb IS NULL")
+                updated_50 = cur.rowcount
+
+                conn.commit()
+                total = updated_25 + updated_10 + updated_50
+                if total > 0:
+                    logger.info(f"Migration 006: case_size_lb populated for {total} products (25lb:{updated_25}, 10lb:{updated_10}, 50lb:{updated_50})")
+                else:
+                    logger.info("Migration 006: case_size_lb column up to date")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 006 warning (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -3549,7 +3580,8 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
 
             cur.execute(
                 """SELECT sol.id, p.name, sol.quantity_lb, sol.quantity_shipped_lb,
-                          sol.unit_price, sol.line_status, sol.notes, sol.notes_es
+                          sol.unit_price, sol.line_status, sol.notes, sol.notes_es,
+                          p.case_size_lb
                    FROM sales_order_lines sol
                    JOIN products p ON p.id = sol.product_id
                    WHERE sol.sales_order_id = %s
@@ -3564,18 +3596,32 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
                 qty = float(r['quantity_lb'])
                 shipped = float(r['quantity_shipped_lb'])
                 price = float(r['unit_price']) if r['unit_price'] else None
+                case_size = float(r['case_size_lb']) if r['case_size_lb'] else None
+                cases = round(qty / case_size) if case_size else None
                 total_ordered += qty
                 total_shipped += shipped
-                if price:
-                    total_value += qty * price
+
+                # line_value = cases * price_per_case (not lb * price)
+                line_value = None
+                if price and cases:
+                    line_value = round(cases * price, 2)
+                    total_value += line_value
+                elif price:
+                    # Fallback for products without case_size_lb: treat unit_price as price/lb
+                    line_value = round(qty * price, 2)
+                    total_value += line_value
+
                 line_data = {
                     "line_id": r['id'],
                     "product": r['name'],
                     "quantity_lb": qty,
+                    "cases": cases,
+                    "case_size_lb": case_size,
                     "quantity_shipped_lb": shipped,
                     "remaining_lb": qty - shipped,
-                    "unit_price": price,
-                    "line_value": round(qty * price, 2) if price else None,
+                    "case_price": price,
+                    "price_basis": "per_case" if case_size else "per_lb",
+                    "line_value": line_value,
                     "line_status": r['line_status'],
                     "notes": r['notes']
                 }

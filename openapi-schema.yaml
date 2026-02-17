@@ -768,7 +768,15 @@ paths:
             type: integer
       responses:
         "200":
-          description: Order with lines, shipments, totals
+          description: |
+            Order with lines, shipments, totals.
+            Each line includes:
+            - cases (integer): derived from quantity_lb / case_size_lb
+            - case_size_lb (number): weight per sellable unit from product
+            - case_price (number): price per case (was unit_price)
+            - price_basis (string): "per_case" or "per_lb"
+            - line_value (number): cases * case_price (correct total)
+            Order totals include total_value computed from line values.
   /sales/orders/{order_id}/status:
     patch:
       operationId: updateOrderStatus
