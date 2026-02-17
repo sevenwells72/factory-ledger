@@ -227,6 +227,24 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 006 warning (non-fatal): {e}")
 
+    # Migration 007: Migrate legacy 'new' orders to 'confirmed'
+    # Phase 3 changed default status to 'confirmed', but pre-existing orders may still be 'new'.
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE sales_orders SET status = 'confirmed' WHERE status = 'new'")
+                migrated = cur.rowcount
+                conn.commit()
+                if migrated > 0:
+                    logger.info(f"Migration 007: Migrated {migrated} orders from 'new' to 'confirmed'")
+                else:
+                    logger.info("Migration 007: No legacy 'new' orders to migrate")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 007 warning (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -3365,8 +3383,11 @@ def list_sales_orders(
             """
             params = []
             if status:
-                query += " AND so.status = %s"
-                params.append(status)
+                if status == 'open':
+                    query += " AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')"
+                else:
+                    query += " AND so.status = %s"
+                    params.append(status)
             if customer:
                 query += " AND LOWER(c.name) LIKE LOWER(%s)"
                 params.append(f"%{customer}%")
@@ -3632,6 +3653,18 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
                     line_value = round(qty * price, 2)
                     total_value += line_value
 
+                # Detect non-weight items (pallets, freight, surcharges, etc.)
+                product_name_lower = r['name'].lower()
+                non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
+                is_non_weight = any(kw in product_name_lower for kw in non_weight_keywords)
+
+                if is_non_weight:
+                    price_basis = "per_unit"
+                elif case_size:
+                    price_basis = "per_case"
+                else:
+                    price_basis = "per_lb"
+
                 line_data = {
                     "line_id": r['id'],
                     "product": r['name'],
@@ -3641,11 +3674,14 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
                     "quantity_shipped_lb": shipped,
                     "remaining_lb": qty - shipped,
                     "case_price": price,
-                    "price_basis": "per_case" if case_size else "per_lb",
+                    "price_basis": price_basis,
                     "line_value": line_value,
                     "line_status": r['line_status'],
                     "notes": r['notes']
                 }
+                if is_non_weight:
+                    line_data["is_non_weight"] = True
+                    line_data["unit_quantity"] = int(qty) if qty == int(qty) else qty
                 if r.get('notes_es'):
                     line_data["notes_es"] = r['notes_es']
                 lines.append(line_data)

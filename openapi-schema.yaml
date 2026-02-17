@@ -722,13 +722,15 @@ paths:
           description: Order created with order number
     get:
       operationId: listSalesOrders
-      summary: List sales orders with optional filters
+      summary: List sales orders with optional filters. Use status=open for all active orders.
       parameters:
         - name: status
           in: query
+          description: "Filter by status. Use 'open' to get all non-closed orders (excludes shipped, invoiced, cancelled)."
           schema:
             type: string
             enum:
+              - open
               - new
               - confirmed
               - in_production
