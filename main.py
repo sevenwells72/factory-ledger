@@ -3249,8 +3249,8 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                 customer_id, customer_name = resolve_customer_id(cur, req.customer_name)
 
                 cur.execute(
-                    """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number)
-                       VALUES (%s, %s, %s, %s, '')
+                    """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number, status)
+                       VALUES (%s, %s, %s, %s, '', 'confirmed')
                        RETURNING id, order_number""",
                     (customer_id, req.requested_ship_date, req.notes, req.notes_es)
                 )
@@ -3329,7 +3329,7 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                     "order_number": order_number,
                     "customer": customer_name,
                     "requested_ship_date": req.requested_ship_date,
-                    "status": "new",
+                    "status": "confirmed",
                     "total_lb": total_lb,
                     "lines": line_results,
                     "warnings": warnings if warnings else None,
@@ -3383,7 +3383,19 @@ def list_sales_orders(
                 total = float(r['total_lb'] or 0)
                 shipped = float(r['shipped_lb'] or 0)
                 ship_date = r['requested_ship_date']
-                orders.append({
+                is_open = r['status'] not in ('shipped', 'invoiced', 'cancelled')
+
+                # Proactive warnings for open orders
+                order_warnings = []
+                if is_open:
+                    if ship_date is None:
+                        order_warnings.append("⚠️ No ship date set")
+                    if 'test' in r['customer'].lower():
+                        order_warnings.append("⚠️ Possible test order")
+                    if total == 0 and r['line_count'] == 0:
+                        order_warnings.append("⚠️ Empty order — no line items")
+
+                order = {
                     "order_id": r['id'],
                     "order_number": r['order_number'],
                     "customer": r['customer'],
@@ -3394,8 +3406,11 @@ def list_sales_orders(
                     "total_lb": total,
                     "shipped_lb": shipped,
                     "remaining_lb": total - shipped,
-                    "overdue": ship_date is not None and ship_date < date.today() and r['status'] not in ('shipped', 'invoiced', 'cancelled')
-                })
+                    "overdue": ship_date is not None and ship_date < date.today() and is_open
+                }
+                if order_warnings:
+                    order["warnings"] = order_warnings
+                orders.append(order)
             return {"orders": orders, "count": len(orders)}
     except Exception as e:
         logger.error(f"List sales orders failed: {e}")
