@@ -4664,7 +4664,7 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
                     items.append(pdata)
                 else:
                     missing.append(item_name)
-            items.sort(key=lambda x: x["on_hand"], reverse=True)
+            # Preserve config ordering (don't sort by on_hand)
             result.append({
                 "id": cat["id"],
                 "title": cat["title"],
