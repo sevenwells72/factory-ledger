@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger API
-  version: 2.5.0
+  version: 2.6.0
   description: Manufacturing operations system for CNS Confectionery Products
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -777,6 +777,40 @@ paths:
             - price_basis (string): "per_case" or "per_lb"
             - line_value (number): cases * case_price (correct total)
             Order totals include total_value computed from line values.
+    patch:
+      operationId: updateOrderHeader
+      summary: Edit order header fields. Only allowed when status is 'new' or 'confirmed'.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requested_ship_date:
+                  type: string
+                  description: "New ship date in YYYY-MM-DD format, or empty string to clear"
+                notes:
+                  type: string
+                  description: "Order notes (English)"
+                notes_es:
+                  type: string
+                  description: "Order notes (Spanish)"
+                customer_id:
+                  type: integer
+                  description: "Change the customer for this order"
+      responses:
+        "200":
+          description: |
+            Order header updated. Returns order_id, order_number, status,
+            customer_id, customer_name, requested_ship_date, notes, notes_es,
+            fields_updated (list of changed fields), and message.
   /sales/orders/{order_id}/status:
     patch:
       operationId: updateOrderStatus
@@ -810,6 +844,74 @@ paths:
       responses:
         "200":
           description: Status updated
+  /sales/orders/{order_id}/lines/{line_id}/update:
+    patch:
+      operationId: updateOrderLine
+      summary: Update quantity or price on an order line. Not allowed on fulfilled/cancelled lines.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: line_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: quantity_lb
+          in: query
+          schema:
+            type: number
+          description: "New quantity in lb"
+        - name: unit_price
+          in: query
+          schema:
+            type: number
+          description: "New unit price (per case)"
+      responses:
+        "200":
+          description: "Updated line with line_id, quantity_lb, unit_price"
+        "404":
+          description: "Line not found or already fulfilled/cancelled"
+  /customers/{customer_id}:
+    patch:
+      operationId: updateCustomer
+      summary: Update customer details. Only send fields you want to change.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                contact_name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+                notes:
+                  type: string
+                notes_es:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: "Customer updated with customer_id, name, message"
+        "404":
+          description: "Customer not found"
   /sales/orders/{order_id}/lines:
     post:
       operationId: addOrderLines

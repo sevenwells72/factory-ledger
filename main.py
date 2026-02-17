@@ -619,6 +619,12 @@ class OrderCreate(BaseModel):
 class OrderStatusUpdate(BaseModel):
     status: str
 
+class OrderHeaderUpdate(BaseModel):
+    requested_ship_date: Optional[str] = None
+    notes: Optional[str] = None
+    notes_es: Optional[str] = None
+    customer_id: Optional[int] = None
+
 class AddOrderLines(BaseModel):
     lines: List[OrderLineInput]
 
@@ -3724,6 +3730,76 @@ def update_order_status(order_id: int, req: OrderStatusUpdate, _: bool = Depends
         raise
     except Exception as e:
         logger.error(f"Update order status failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.patch("/sales/orders/{order_id}")
+def update_order_header(order_id: int, req: OrderHeaderUpdate, _: bool = Depends(verify_api_key)):
+    """Update order header fields (ship date, notes, customer). Only allowed when status is 'new' or 'confirmed'."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT id, order_number, status, customer_id, requested_ship_date, notes, notes_es FROM sales_orders WHERE id = %s",
+                    (order_id,)
+                )
+                order = cur.fetchone()
+                if not order:
+                    raise HTTPException(404, f"Order #{order_id} not found")
+
+                if order['status'] not in ('new', 'confirmed'):
+                    raise HTTPException(400,
+                        f"Order {order['order_number']} is '{order['status']}' — header edits only allowed when status is 'new' or 'confirmed'."
+                    )
+
+                updates = {}
+                if req.requested_ship_date is not None:
+                    updates['requested_ship_date'] = req.requested_ship_date if req.requested_ship_date else None
+                if req.notes is not None:
+                    updates['notes'] = req.notes if req.notes else None
+                if req.notes_es is not None:
+                    updates['notes_es'] = req.notes_es if req.notes_es else None
+                if req.customer_id is not None:
+                    # Verify customer exists
+                    cur.execute("SELECT id, name FROM customers WHERE id = %s", (req.customer_id,))
+                    cust = cur.fetchone()
+                    if not cust:
+                        raise HTTPException(404, f"Customer ID {req.customer_id} not found")
+                    updates['customer_id'] = req.customer_id
+
+                if not updates:
+                    raise HTTPException(400, "No fields to update")
+
+                set_clause = ", ".join(f"{k} = %s" for k in updates)
+                values = list(updates.values()) + [order_id]
+                cur.execute(
+                    f"UPDATE sales_orders SET {set_clause} WHERE id = %s RETURNING id, order_number, status, customer_id, requested_ship_date, notes, notes_es",
+                    values
+                )
+                updated = cur.fetchone()
+
+                # Get customer name for response
+                cur.execute("SELECT name FROM customers WHERE id = %s", (updated['customer_id'],))
+                customer_name = cur.fetchone()['name']
+
+                changes = list(updates.keys())
+                logger.info(f"Order {updated['order_number']} header updated: {changes}")
+                return {
+                    "order_id": updated['id'],
+                    "order_number": updated['order_number'],
+                    "status": updated['status'],
+                    "customer_id": updated['customer_id'],
+                    "customer_name": customer_name,
+                    "requested_ship_date": str(updated['requested_ship_date']) if updated['requested_ship_date'] else None,
+                    "notes": updated['notes'],
+                    "notes_es": updated['notes_es'],
+                    "fields_updated": changes,
+                    "message": f"Order {updated['order_number']} updated: {', '.join(changes)}"
+                }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update order header failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
