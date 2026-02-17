@@ -423,7 +423,21 @@
       if (cat.items.length > 0) {
         html += `<table class="inv-table"><thead><tr><th>Ingredient</th><th class="num">On Hand (${escHtml(cat.unit)})</th></tr></thead><tbody>`;
         for (const item of cat.items) {
-          html += `<tr><td>${escHtml(item.name)}</td><td class="num">${fmt(item.on_hand)}</td></tr>`;
+          const rowId = panelId + '-' + item.name.replace(/\W/g, '_');
+          html += `<tr class="expandable" data-expand="${rowId}">`;
+          html += `<td>${escHtml(item.name)}</td><td class="num">${fmt(item.on_hand)}</td>`;
+          html += `</tr>`;
+          // Lot breakdown
+          html += `<tbody class="lot-breakdown" id="${rowId}">`;
+          if (item.lots && item.lots.length > 0) {
+            for (const lot of item.lots) {
+              html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}">${escHtml(lot.lot_code)}</span></td>`;
+              html += `<td class="num">${fmt(lot.on_hand_lbs)}</td></tr>`;
+            }
+          } else {
+            html += `<tr class="lot-row"><td colspan="2" style="color:var(--text-muted)">No lots on hand</td></tr>`;
+          }
+          html += `</tbody>`;
         }
         html += '</tbody></table>';
       } else {
@@ -438,6 +452,8 @@
     }
     container.innerHTML = html;
     bindCollapsibles(container);
+    bindExpandableRows(container);
+    bindLotLinks(container);
   }
 
   // ── Activity: Shipments ──

@@ -4652,7 +4652,31 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
                   AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
                 GROUP BY p.id
             """, (all_names,))
-            product_map = {r['name'].lower(): {"name": r['name'], "on_hand": float(r['on_hand'])} for r in cur.fetchall()}
+            rows = cur.fetchall()
+            product_map = {r['name'].lower(): {"id": r['id'], "name": r['name'], "on_hand": float(r['on_hand'])} for r in rows}
+
+            # Fetch lot-level breakdown for all matched products
+            matched_ids = [r['id'] for r in rows]
+            lot_map = {}
+            if matched_ids:
+                cur.execute("""
+                    SELECT l.product_id, l.lot_code,
+                           COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                    FROM lots l
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    WHERE l.product_id = ANY(%s)
+                    GROUP BY l.id
+                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                    ORDER BY l.id ASC
+                """, (matched_ids,))
+                for lr in cur.fetchall():
+                    pid = lr['product_id']
+                    if pid not in lot_map:
+                        lot_map[pid] = []
+                    lot_map[pid].append({
+                        "lot_code": lr['lot_code'],
+                        "on_hand_lbs": float(lr['on_hand_lbs'])
+                    })
 
         result = []
         for cat in categories:
@@ -4661,7 +4685,11 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
             for item_name in cat.get("items", []):
                 pdata = product_map.get(item_name.lower())
                 if pdata:
-                    items.append(pdata)
+                    items.append({
+                        "name": pdata["name"],
+                        "on_hand": pdata["on_hand"],
+                        "lots": lot_map.get(pdata["id"], [])
+                    })
                 else:
                     missing.append(item_name)
             # Preserve config ordering (don't sort by on_hand)
