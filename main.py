@@ -5795,29 +5795,6 @@ def production_day_summary(
 # PRODUCTION SCHEDULING — 7-Day Tactical Scheduler
 # ═══════════════════════════════════════════════════════════════
 
-class ScheduleRequest(BaseModel):
-    start_date: Optional[str] = None  # YYYY-MM-DD, defaults to tomorrow
-    horizon_days: int = 7
-    total_workers: int = 10
-    friday_modifier: float = 0.5
-
-class ConfirmScheduleRun(BaseModel):
-    date: str
-    line_code: str
-    product_id: int
-    planned_batches: Optional[int] = None
-    planned_quantity_lb: Optional[float] = None
-    planned_bags: Optional[int] = None
-    workers_assigned: int
-    linked_order_numbers: Optional[List[str]] = None
-    overproduction_lb: Optional[float] = 0
-    overproduction_reason: Optional[str] = None
-    notes: Optional[str] = None
-
-class ConfirmScheduleRequest(BaseModel):
-    runs: List[ConfirmScheduleRun]
-
-
 def _build_schedule_calendar(start_date: date, horizon_days: int, friday_modifier: float):
     """Build list of working days with capacity modifiers."""
     days = []
@@ -6353,268 +6330,288 @@ def _schedule_runs_to_days(production_reqs, calendar_days, line_config, total_wo
     return formatted_days, unscheduled
 
 
-@app.post("/schedule/suggest")
-def schedule_suggest(req: ScheduleRequest, _: bool = Depends(verify_api_key)):
+def _handle_schedule_suggest(body: dict):
     """Generate a proposed 7-day production schedule based on open orders, inventory, and capacity."""
-    try:
-        # Parse start date
-        if req.start_date:
-            try:
-                start = date.fromisoformat(req.start_date)
-            except ValueError:
-                raise HTTPException(400, f"Invalid start_date format: '{req.start_date}'. Use YYYY-MM-DD.")
-        else:
-            start = get_plant_now().date() + timedelta(days=1)
+    start_date_str = body.get('start_date')
+    horizon_days = body.get('horizon_days', 7)
+    total_workers = body.get('total_workers', 10)
+    friday_modifier = body.get('friday_modifier', 0.5)
 
-        with get_transaction() as cur:
-            # 1. Load config
-            line_config = _load_line_config(cur)
-            product_line_map = _load_product_line_map(cur)
+    if start_date_str:
+        try:
+            start = date.fromisoformat(start_date_str)
+        except ValueError:
+            raise HTTPException(400, f"Invalid start_date format: '{start_date_str}'. Use YYYY-MM-DD.")
+    else:
+        start = get_plant_now().date() + timedelta(days=1)
 
-            # 2. Build calendar
-            calendar_days = _build_schedule_calendar(start, req.horizon_days, req.friday_modifier)
-            if not calendar_days:
-                return {"error": "No working days in the specified horizon"}
-            horizon_end = calendar_days[-1]['date']
+    with get_transaction() as cur:
+        # 1. Load config
+        line_config = _load_line_config(cur)
+        product_line_map = _load_product_line_map(cur)
 
-            # 3. Load demand
-            demand = _load_demand(cur, horizon_end)
+        # 2. Build calendar
+        calendar_days = _build_schedule_calendar(start, horizon_days, friday_modifier)
+        if not calendar_days:
+            return {"error": "No working days in the specified horizon"}
+        horizon_end = calendar_days[-1]['date']
 
-            # 4. Load supply
-            inventory = _load_finished_inventory(cur)
-            ingredient_inv = _load_ingredient_inventory(cur)
+        # 3. Load demand
+        demand = _load_demand(cur, horizon_end)
 
-            # 5. Load BOM structure
-            fg_to_batch, batch_to_ingredients, batch_sizes = _load_bom_structure(cur)
+        # 4. Load supply
+        inventory = _load_finished_inventory(cur)
+        ingredient_inv = _load_ingredient_inventory(cur)
 
-            # 6. Simulated allocation → net requirements
-            production_reqs = _simulated_allocation(
-                demand, inventory, fg_to_batch, batch_sizes, product_line_map
-            )
+        # 5. Load BOM structure
+        fg_to_batch, batch_to_ingredients, batch_sizes = _load_bom_structure(cur)
 
-            if not production_reqs:
-                return {
-                    "schedule_id": str(uuid.uuid4()),
-                    "horizon": {"start": start.isoformat(), "end": horizon_end.isoformat()},
-                    "total_workers_available": req.total_workers,
-                    "message": "No production needed — all open orders covered by current inventory.",
-                    "scenarios": [],
-                }
+        # 6. Simulated allocation → net requirements
+        production_reqs = _simulated_allocation(
+            demand, inventory, fg_to_batch, batch_sizes, product_line_map
+        )
 
-            # 7. Explode ingredients
-            ingredient_summary = _explode_ingredients(
-                production_reqs, batch_to_ingredients, ingredient_inv
-            )
-
-            # 8. Schedule runs — try earliest-first
-            days_earliest, unscheduled_earliest = _schedule_runs_to_days(
-                production_reqs, calendar_days, line_config, req.total_workers, strategy='earliest'
-            )
-
-            scenarios = []
-
-            if not unscheduled_earliest:
-                # Everything fits — single recommended scenario
-                scenarios.append({
-                    'scenario_name': 'Recommended',
-                    'days': days_earliest,
-                    'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
-                    'unscheduled_orders': [],
-                })
-            else:
-                # Conflicts — generate two scenarios
-                scenarios.append({
-                    'scenario_name': 'Scenario A: Pull Production Earlier',
-                    'days': days_earliest,
-                    'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
-                    'unscheduled_orders': unscheduled_earliest,
-                })
-
-                # Scenario B: push production later
-                days_latest, unscheduled_latest = _schedule_runs_to_days(
-                    production_reqs, calendar_days, line_config, req.total_workers, strategy='latest'
-                )
-                scenarios.append({
-                    'scenario_name': 'Scenario B: Push Production Later',
-                    'days': days_latest,
-                    'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
-                    'unscheduled_orders': unscheduled_latest,
-                })
-
-            # Build summary of production requirements for context
-            production_summary = []
-            for req_item in production_reqs:
-                production_summary.append({
-                    'product': req_item.get('batch_name') or req_item['product_name'],
-                    'for_finished_good': req_item['product_name'] if req_item['product_type'] == 'finished' else None,
-                    'needed_lb': round(req_item['needed_lb'], 2),
-                    'batches': req_item['batches'],
-                    'total_output_lb': round(req_item['batches'] * req_item['batch_size_lb'], 2) if req_item['batches'] and req_item['batch_size_lb'] else None,
-                    'overproduction_lb': req_item['overproduction_lb'],
-                    'line': req_item['line_code'],
-                    'for_orders': req_item['order_numbers'],
-                    'warning': req_item.get('warning'),
-                })
-
+        if not production_reqs:
             return {
                 "schedule_id": str(uuid.uuid4()),
                 "horizon": {"start": start.isoformat(), "end": horizon_end.isoformat()},
-                "total_workers_available": req.total_workers,
-                "open_orders_in_window": len(set(r['order_number'] for r in demand)),
-                "production_requirements": production_summary,
-                "scenarios": scenarios,
-                "all_ingredient_status": ingredient_summary,
+                "total_workers_available": total_workers,
+                "message": "No production needed — all open orders covered by current inventory.",
+                "scenarios": [],
             }
 
+        # 7. Explode ingredients
+        ingredient_summary = _explode_ingredients(
+            production_reqs, batch_to_ingredients, ingredient_inv
+        )
+
+        # 8. Schedule runs — try earliest-first
+        days_earliest, unscheduled_earliest = _schedule_runs_to_days(
+            production_reqs, calendar_days, line_config, total_workers, strategy='earliest'
+        )
+
+        scenarios = []
+
+        if not unscheduled_earliest:
+            # Everything fits — single recommended scenario
+            scenarios.append({
+                'scenario_name': 'Recommended',
+                'days': days_earliest,
+                'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
+                'unscheduled_orders': [],
+            })
+        else:
+            # Conflicts — generate two scenarios
+            scenarios.append({
+                'scenario_name': 'Scenario A: Pull Production Earlier',
+                'days': days_earliest,
+                'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
+                'unscheduled_orders': unscheduled_earliest,
+            })
+
+            # Scenario B: push production later
+            days_latest, unscheduled_latest = _schedule_runs_to_days(
+                production_reqs, calendar_days, line_config, total_workers, strategy='latest'
+            )
+            scenarios.append({
+                'scenario_name': 'Scenario B: Push Production Later',
+                'days': days_latest,
+                'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
+                'unscheduled_orders': unscheduled_latest,
+            })
+
+        # Build summary of production requirements for context
+        production_summary = []
+        for req_item in production_reqs:
+            production_summary.append({
+                'product': req_item.get('batch_name') or req_item['product_name'],
+                'for_finished_good': req_item['product_name'] if req_item['product_type'] == 'finished' else None,
+                'needed_lb': round(req_item['needed_lb'], 2),
+                'batches': req_item['batches'],
+                'total_output_lb': round(req_item['batches'] * req_item['batch_size_lb'], 2) if req_item['batches'] and req_item['batch_size_lb'] else None,
+                'overproduction_lb': req_item['overproduction_lb'],
+                'line': req_item['line_code'],
+                'for_orders': req_item['order_numbers'],
+                'warning': req_item.get('warning'),
+            })
+
+        return {
+            "schedule_id": str(uuid.uuid4()),
+            "horizon": {"start": start.isoformat(), "end": horizon_end.isoformat()},
+            "total_workers_available": total_workers,
+            "open_orders_in_window": len(set(r['order_number'] for r in demand)),
+            "production_requirements": production_summary,
+            "scenarios": scenarios,
+            "all_ingredient_status": ingredient_summary,
+        }
+
+
+def _handle_schedule_confirm(body: dict):
+    """Confirm a proposed (or edited) production schedule — saves to production_schedule table."""
+    runs_data = body.get('runs')
+    if not runs_data or not isinstance(runs_data, list):
+        raise HTTPException(400, "confirm action requires a 'runs' array")
+
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            # Load line lookup
+            cur.execute("SELECT id, line_code FROM production_lines WHERE active = true")
+            line_lookup = {r['line_code']: r['id'] for r in cur.fetchall()}
+
+            confirmed_ids = []
+            for run in runs_data:
+                line_code = run.get('line_code')
+                line_id = line_lookup.get(line_code)
+                if not line_id:
+                    raise HTTPException(400, f"Unknown line_code: '{line_code}'")
+
+                run_date_str = run.get('date')
+                try:
+                    run_date = date.fromisoformat(run_date_str)
+                except (ValueError, TypeError):
+                    raise HTTPException(400, f"Invalid date: '{run_date_str}'")
+
+                product_id = run.get('product_id')
+                if not product_id:
+                    raise HTTPException(400, "Each run requires a 'product_id'")
+
+                cur.execute("""
+                    INSERT INTO production_schedule
+                        (schedule_date, line_id, product_id, planned_batches, planned_quantity_lb,
+                         planned_bags, workers_assigned, status, linked_order_numbers,
+                         overproduction_lb, overproduction_reason, notes, confirmed_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'confirmed', %s, %s, %s, %s, NOW())
+                    ON CONFLICT (schedule_date, line_id, product_id)
+                    DO UPDATE SET
+                        planned_batches = EXCLUDED.planned_batches,
+                        planned_quantity_lb = EXCLUDED.planned_quantity_lb,
+                        planned_bags = EXCLUDED.planned_bags,
+                        workers_assigned = EXCLUDED.workers_assigned,
+                        linked_order_numbers = EXCLUDED.linked_order_numbers,
+                        overproduction_lb = EXCLUDED.overproduction_lb,
+                        overproduction_reason = EXCLUDED.overproduction_reason,
+                        notes = EXCLUDED.notes,
+                        status = 'confirmed',
+                        confirmed_at = NOW()
+                    RETURNING id
+                """, (
+                    run_date, line_id, product_id,
+                    run.get('planned_batches'), run.get('planned_quantity_lb'),
+                    run.get('planned_bags'), run.get('workers_assigned', 0),
+                    run.get('linked_order_numbers'),
+                    run.get('overproduction_lb', 0), run.get('overproduction_reason'),
+                    run.get('notes'),
+                ))
+                row = cur.fetchone()
+                if row:
+                    confirmed_ids.append(row['id'])
+
+            conn.commit()
+
+    return {
+        "confirmed": True,
+        "runs_saved": len(confirmed_ids),
+        "schedule_ids": confirmed_ids,
+    }
+
+
+def _handle_schedule_current(body: dict):
+    """View the current confirmed production schedule."""
+    start_date_str = body.get('start_date')
+    days = body.get('days', 7)
+
+    if start_date_str:
+        try:
+            start = date.fromisoformat(start_date_str)
+        except ValueError:
+            raise HTTPException(400, f"Invalid start_date: '{start_date_str}'")
+    else:
+        start = get_plant_now().date()
+
+    end = start + timedelta(days=days)
+
+    with get_transaction() as cur:
+        cur.execute("""
+            SELECT ps.id, ps.schedule_date, ps.planned_batches, ps.planned_quantity_lb,
+                   ps.planned_bags, ps.workers_assigned, ps.status,
+                   ps.linked_order_numbers, ps.overproduction_lb, ps.overproduction_reason,
+                   ps.notes, ps.confirmed_at,
+                   pl.name AS line_name, pl.line_code,
+                   p.name AS product_name, p.id AS product_id
+            FROM production_schedule ps
+            JOIN production_lines pl ON pl.id = ps.line_id
+            JOIN products p ON p.id = ps.product_id
+            WHERE ps.schedule_date >= %s AND ps.schedule_date < %s
+              AND ps.status != 'cancelled'
+            ORDER BY ps.schedule_date, pl.name, p.name
+        """, (start, end))
+        rows = cur.fetchall()
+
+    # Group by date
+    by_date = {}
+    for r in rows:
+        d = r['schedule_date'].isoformat()
+        if d not in by_date:
+            by_date[d] = {
+                'date': d,
+                'day_of_week': r['schedule_date'].strftime("%A"),
+                'runs': [],
+                'total_workers': 0,
+            }
+        by_date[d]['runs'].append({
+            'schedule_id': r['id'],
+            'line_name': r['line_name'],
+            'line_code': r['line_code'],
+            'product_name': r['product_name'],
+            'product_id': r['product_id'],
+            'planned_batches': r['planned_batches'],
+            'planned_quantity_lb': float(r['planned_quantity_lb']) if r['planned_quantity_lb'] else None,
+            'planned_bags': r['planned_bags'],
+            'workers_assigned': r['workers_assigned'],
+            'status': r['status'],
+            'linked_orders': r['linked_order_numbers'],
+            'overproduction_lb': float(r['overproduction_lb']) if r['overproduction_lb'] else 0,
+            'notes': r['notes'],
+        })
+        by_date[d]['total_workers'] += r['workers_assigned']
+
+    return {
+        "period": {"start": start.isoformat(), "end": end.isoformat()},
+        "days": list(by_date.values()),
+        "total_runs": len(rows),
+    }
+
+
+@app.post("/schedule")
+def schedule_dispatch(request_body: dict, _: bool = Depends(verify_api_key)):
+    """Unified scheduling endpoint. Dispatches based on the 'action' field.
+
+    Actions:
+      - suggest:  Generate a proposed schedule (optional: start_date, horizon_days, total_workers, friday_modifier)
+      - confirm:  Confirm/save a schedule (requires: runs[])
+      - current:  View the confirmed schedule (optional: start_date, days)
+    """
+    action = request_body.get("action")
+    if not action:
+        raise HTTPException(400, "Missing required field: 'action'. Use 'suggest', 'confirm', or 'current'.")
+
+    action = action.strip().lower()
+
+    try:
+        if action == "suggest":
+            return _handle_schedule_suggest(request_body)
+        elif action == "confirm":
+            return _handle_schedule_confirm(request_body)
+        elif action == "current":
+            return _handle_schedule_current(request_body)
+        else:
+            raise HTTPException(400, f"Unknown action: '{action}'. Use 'suggest', 'confirm', or 'current'.")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Schedule suggest failed: {e}")
+        logger.error(f"Schedule ({action}) failed: {e}")
         import traceback
         traceback.print_exc()
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.post("/schedule/confirm")
-def schedule_confirm(req: ConfirmScheduleRequest, _: bool = Depends(verify_api_key)):
-    """Confirm a proposed (or edited) production schedule — saves to production_schedule table."""
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Load line lookup
-                cur.execute("SELECT id, line_code FROM production_lines WHERE active = true")
-                line_lookup = {r['line_code']: r['id'] for r in cur.fetchall()}
-
-                confirmed_ids = []
-                for run in req.runs:
-                    line_id = line_lookup.get(run.line_code)
-                    if not line_id:
-                        raise HTTPException(400, f"Unknown line_code: '{run.line_code}'")
-
-                    try:
-                        run_date = date.fromisoformat(run.date)
-                    except ValueError:
-                        raise HTTPException(400, f"Invalid date: '{run.date}'")
-
-                    cur.execute("""
-                        INSERT INTO production_schedule
-                            (schedule_date, line_id, product_id, planned_batches, planned_quantity_lb,
-                             planned_bags, workers_assigned, status, linked_order_numbers,
-                             overproduction_lb, overproduction_reason, notes, confirmed_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, 'confirmed', %s, %s, %s, %s, NOW())
-                        ON CONFLICT (schedule_date, line_id, product_id)
-                        DO UPDATE SET
-                            planned_batches = EXCLUDED.planned_batches,
-                            planned_quantity_lb = EXCLUDED.planned_quantity_lb,
-                            planned_bags = EXCLUDED.planned_bags,
-                            workers_assigned = EXCLUDED.workers_assigned,
-                            linked_order_numbers = EXCLUDED.linked_order_numbers,
-                            overproduction_lb = EXCLUDED.overproduction_lb,
-                            overproduction_reason = EXCLUDED.overproduction_reason,
-                            notes = EXCLUDED.notes,
-                            status = 'confirmed',
-                            confirmed_at = NOW()
-                        RETURNING id
-                    """, (
-                        run_date, line_id, run.product_id,
-                        run.planned_batches, run.planned_quantity_lb,
-                        run.planned_bags, run.workers_assigned,
-                        run.linked_order_numbers,
-                        run.overproduction_lb, run.overproduction_reason,
-                        run.notes,
-                    ))
-                    row = cur.fetchone()
-                    if row:
-                        confirmed_ids.append(row['id'])
-
-                conn.commit()
-
-        return {
-            "confirmed": True,
-            "runs_saved": len(confirmed_ids),
-            "schedule_ids": confirmed_ids,
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Schedule confirm failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.get("/schedule/current")
-def schedule_current(
-    start_date: Optional[str] = Query(None, description="Start date (defaults to today)"),
-    days: int = Query(7, description="Number of days to show"),
-    _: bool = Depends(verify_api_key)
-):
-    """View the current confirmed production schedule."""
-    try:
-        if start_date:
-            try:
-                start = date.fromisoformat(start_date)
-            except ValueError:
-                raise HTTPException(400, f"Invalid start_date: '{start_date}'")
-        else:
-            start = get_plant_now().date()
-
-        end = start + timedelta(days=days)
-
-        with get_transaction() as cur:
-            cur.execute("""
-                SELECT ps.id, ps.schedule_date, ps.planned_batches, ps.planned_quantity_lb,
-                       ps.planned_bags, ps.workers_assigned, ps.status,
-                       ps.linked_order_numbers, ps.overproduction_lb, ps.overproduction_reason,
-                       ps.notes, ps.confirmed_at,
-                       pl.name AS line_name, pl.line_code,
-                       p.name AS product_name, p.id AS product_id
-                FROM production_schedule ps
-                JOIN production_lines pl ON pl.id = ps.line_id
-                JOIN products p ON p.id = ps.product_id
-                WHERE ps.schedule_date >= %s AND ps.schedule_date < %s
-                  AND ps.status != 'cancelled'
-                ORDER BY ps.schedule_date, pl.name, p.name
-            """, (start, end))
-            rows = cur.fetchall()
-
-        # Group by date
-        by_date = {}
-        for r in rows:
-            d = r['schedule_date'].isoformat()
-            if d not in by_date:
-                by_date[d] = {
-                    'date': d,
-                    'day_of_week': r['schedule_date'].strftime("%A"),
-                    'runs': [],
-                    'total_workers': 0,
-                }
-            by_date[d]['runs'].append({
-                'schedule_id': r['id'],
-                'line_name': r['line_name'],
-                'line_code': r['line_code'],
-                'product_name': r['product_name'],
-                'product_id': r['product_id'],
-                'planned_batches': r['planned_batches'],
-                'planned_quantity_lb': float(r['planned_quantity_lb']) if r['planned_quantity_lb'] else None,
-                'planned_bags': r['planned_bags'],
-                'workers_assigned': r['workers_assigned'],
-                'status': r['status'],
-                'linked_orders': r['linked_order_numbers'],
-                'overproduction_lb': float(r['overproduction_lb']) if r['overproduction_lb'] else 0,
-                'notes': r['notes'],
-            })
-            by_date[d]['total_workers'] += r['workers_assigned']
-
-        return {
-            "period": {"start": start.isoformat(), "end": end.isoformat()},
-            "days": list(by_date.values()),
-            "total_runs": len(rows),
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Schedule current failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
