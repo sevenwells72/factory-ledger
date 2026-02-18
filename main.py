@@ -16,6 +16,8 @@ import os
 import re
 import logging
 import secrets
+import math
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -5843,6 +5845,833 @@ def production_day_summary(
         raise
     except Exception as e:
         logger.error(f"Production day-summary failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# PRODUCTION SCHEDULING — 7-Day Tactical Scheduler
+# ═══════════════════════════════════════════════════════════════
+
+class ScheduleRequest(BaseModel):
+    start_date: Optional[str] = None  # YYYY-MM-DD, defaults to tomorrow
+    horizon_days: int = 7
+    total_workers: int = 10
+    friday_modifier: float = 0.5
+
+class ConfirmScheduleRun(BaseModel):
+    date: str
+    line_code: str
+    product_id: int
+    planned_batches: Optional[int] = None
+    planned_quantity_lb: Optional[float] = None
+    planned_bags: Optional[int] = None
+    workers_assigned: int
+    linked_order_numbers: Optional[List[str]] = None
+    overproduction_lb: Optional[float] = 0
+    overproduction_reason: Optional[str] = None
+    notes: Optional[str] = None
+
+class ConfirmScheduleRequest(BaseModel):
+    runs: List[ConfirmScheduleRun]
+
+
+def _build_schedule_calendar(start_date: date, horizon_days: int, friday_modifier: float):
+    """Build list of working days with capacity modifiers."""
+    days = []
+    current = start_date
+    working_days_added = 0
+    max_scan = horizon_days * 3  # scan enough calendar days
+    scanned = 0
+    while working_days_added < horizon_days and scanned < max_scan:
+        dow = current.strftime("%A")
+        if dow in ("Saturday", "Sunday"):
+            current += timedelta(days=1)
+            scanned += 1
+            continue
+        modifier = friday_modifier if dow == "Friday" else 1.0
+        days.append({
+            "date": current,
+            "day_of_week": dow,
+            "capacity_modifier": modifier,
+        })
+        working_days_added += 1
+        current += timedelta(days=1)
+        scanned += 1
+    return days
+
+
+def _load_line_config(cur):
+    """Load production lines and their capacity modes from DB."""
+    cur.execute("""
+        SELECT pl.id, pl.name, pl.line_code, pl.active,
+               json_agg(json_build_object(
+                   'mode_id', lcm.id, 'mode_name', lcm.mode_name,
+                   'workers_required', lcm.workers_required,
+                   'batches_per_day', lcm.batches_per_day,
+                   'pallets_per_day', lcm.pallets_per_day,
+                   'bags_per_day', lcm.bags_per_day,
+                   'pack_size_lb', lcm.pack_size_lb,
+                   'is_default', lcm.is_default
+               ) ORDER BY lcm.is_default DESC, lcm.workers_required) AS modes
+        FROM production_lines pl
+        LEFT JOIN line_capacity_modes lcm ON lcm.line_id = pl.id
+        WHERE pl.active = true
+        GROUP BY pl.id, pl.name, pl.line_code, pl.active
+        ORDER BY pl.name
+    """)
+    lines = {}
+    for row in cur.fetchall():
+        lines[row['line_code']] = {
+            'id': row['id'],
+            'name': row['name'],
+            'line_code': row['line_code'],
+            'modes': row['modes'] or [],
+        }
+    return lines
+
+
+def _load_product_line_map(cur):
+    """Load product→line assignments. Returns dict: product_id → line_code."""
+    cur.execute("""
+        SELECT pla.product_id, pl.line_code
+        FROM product_line_assignments pla
+        JOIN production_lines pl ON pl.id = pla.line_id
+    """)
+    return {row['product_id']: row['line_code'] for row in cur.fetchall()}
+
+
+def _load_demand(cur, horizon_end: date):
+    """Load open/confirmed sales orders within or overdue relative to horizon."""
+    cur.execute("""
+        SELECT so.id AS order_id, so.order_number, so.requested_ship_date, so.status,
+               sol.id AS line_id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb,
+               p.name AS product_name, p.type AS product_type
+        FROM sales_orders so
+        JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+        JOIN products p ON p.id = sol.product_id
+        WHERE so.status IN ('confirmed', 'in_production', 'ready')
+          AND sol.line_status IN ('pending', 'partial')
+          AND (so.requested_ship_date IS NULL OR so.requested_ship_date <= %s)
+        ORDER BY so.requested_ship_date ASC NULLS LAST, so.id ASC
+    """, (horizon_end,))
+    return cur.fetchall()
+
+
+def _load_finished_inventory(cur):
+    """Load on-hand inventory for finished and batch products."""
+    cur.execute("""
+        SELECT p.id AS product_id, p.name AS product_name,
+               COALESCE(SUM(tl.quantity_lb), 0) AS on_hand_lb
+        FROM products p
+        LEFT JOIN lots l ON l.product_id = p.id
+        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+        WHERE p.active = true AND p.type IN ('finished', 'batch')
+        GROUP BY p.id, p.name
+    """)
+    return {row['product_id']: float(row['on_hand_lb']) for row in cur.fetchall()}
+
+
+def _load_ingredient_inventory(cur):
+    """Load on-hand inventory for ingredient products."""
+    cur.execute("""
+        SELECT p.id AS product_id, p.name AS product_name,
+               COALESCE(SUM(tl.quantity_lb), 0) AS on_hand_lb
+        FROM products p
+        LEFT JOIN lots l ON l.product_id = p.id
+        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+        WHERE p.active = true AND p.type = 'ingredient'
+        GROUP BY p.id, p.name
+    """)
+    return {row['product_id']: {'name': row['product_name'], 'on_hand': float(row['on_hand_lb'])} for row in cur.fetchall()}
+
+
+def _load_bom_structure(cur):
+    """Load full BOM: finished→batch (product_bom) and batch→ingredients (batch_formulas).
+    Returns:
+      fg_to_batch: {finished_product_id: {batch_product_id, batch_name, quantity, uom}}
+      batch_to_ingredients: {batch_product_id: [{ingredient_product_id, ingredient_name, quantity_lb, exclude}]}
+      batch_sizes: {batch_product_id: default_batch_lb}
+    """
+    # Finished good → batch product mapping
+    cur.execute("""
+        SELECT pb.finished_product_id, pb.component_product_id, p.name AS component_name,
+               p.type AS component_type, pb.quantity, pb.uom, p.default_batch_lb
+        FROM product_bom pb
+        JOIN products p ON p.id = pb.component_product_id
+    """)
+    fg_to_batch = {}
+    for row in cur.fetchall():
+        fid = row['finished_product_id']
+        if fid not in fg_to_batch:
+            fg_to_batch[fid] = []
+        fg_to_batch[fid].append({
+            'component_product_id': row['component_product_id'],
+            'component_name': row['component_name'],
+            'component_type': row['component_type'],
+            'quantity': float(row['quantity'] or 1),
+            'uom': row['uom'] or 'unit',
+            'default_batch_lb': float(row['default_batch_lb']) if row['default_batch_lb'] else None,
+        })
+
+    # Batch product → ingredients
+    cur.execute("""
+        SELECT bf.product_id, bf.ingredient_product_id, p.name AS ingredient_name,
+               bf.quantity_lb, COALESCE(bf.exclude_from_inventory, false) AS exclude_from_inventory
+        FROM batch_formulas bf
+        JOIN products p ON p.id = bf.ingredient_product_id
+        ORDER BY bf.product_id, bf.quantity_lb DESC
+    """)
+    batch_to_ingredients = {}
+    for row in cur.fetchall():
+        bid = row['product_id']
+        if bid not in batch_to_ingredients:
+            batch_to_ingredients[bid] = []
+        batch_to_ingredients[bid].append({
+            'ingredient_product_id': row['ingredient_product_id'],
+            'ingredient_name': row['ingredient_name'],
+            'quantity_lb': float(row['quantity_lb']),
+            'exclude': row['exclude_from_inventory'],
+        })
+
+    # Batch sizes
+    cur.execute("SELECT id, default_batch_lb FROM products WHERE type = 'batch' AND active = true AND default_batch_lb IS NOT NULL")
+    batch_sizes = {row['id']: float(row['default_batch_lb']) for row in cur.fetchall()}
+
+    return fg_to_batch, batch_to_ingredients, batch_sizes
+
+
+def _simulated_allocation(demand_rows, inventory, fg_to_batch, batch_sizes, product_line_map):
+    """
+    Walk demand in ship-date order. For each order line, allocate from available
+    finished goods inventory. Whatever remains becomes a production requirement.
+    Returns list of production requirements (what to make).
+    """
+    available = dict(inventory)  # copy — will be mutated during simulation
+    production_reqs = []  # [{product_id, product_name, batch_product_id, batch_name, needed_lb, batches, overproduction_lb, order_numbers, line_code}]
+
+    # Group demand by product to consolidate
+    product_demand = {}  # product_id → [{order_number, needed_lb, ship_date}]
+    for row in demand_rows:
+        pid = row['product_id']
+        remaining = float(row['quantity_lb']) - float(row['quantity_shipped_lb'] or 0)
+        if remaining <= 0:
+            continue
+        if pid not in product_demand:
+            product_demand[pid] = []
+        product_demand[pid].append({
+            'order_number': row['order_number'],
+            'needed_lb': remaining,
+            'ship_date': row['requested_ship_date'],
+            'product_name': row['product_name'],
+            'product_type': row['product_type'],
+        })
+
+    # Process each product's demand
+    for pid, demands in product_demand.items():
+        total_needed = sum(d['needed_lb'] for d in demands)
+        on_hand = available.get(pid, 0)
+
+        # Allocate from inventory
+        allocated = min(on_hand, total_needed)
+        available[pid] = on_hand - allocated
+        net_need = total_needed - allocated
+
+        if net_need <= 0:
+            continue
+
+        order_numbers = [d['order_number'] for d in demands]
+        product_name = demands[0]['product_name']
+        product_type = demands[0]['product_type']
+        earliest_ship = min((d['ship_date'] for d in demands if d['ship_date']), default=None)
+
+        # Determine what to produce
+        if product_type == 'finished':
+            # Look up batch product from BOM
+            bom_components = fg_to_batch.get(pid, [])
+            batch_component = next((c for c in bom_components if c['component_type'] == 'batch'), None)
+
+            if not batch_component:
+                # No BOM — can't schedule production, will be flagged
+                production_reqs.append({
+                    'product_id': pid,
+                    'product_name': product_name,
+                    'product_type': 'finished',
+                    'batch_product_id': None,
+                    'batch_name': None,
+                    'needed_lb': net_need,
+                    'batches': None,
+                    'batch_size_lb': None,
+                    'overproduction_lb': 0,
+                    'order_numbers': order_numbers,
+                    'earliest_ship_date': earliest_ship,
+                    'line_code': product_line_map.get(pid),
+                    'warning': f"No batch product in BOM for '{product_name}'",
+                })
+                continue
+
+            batch_pid = batch_component['component_product_id']
+            batch_name = batch_component['component_name']
+            batch_size = batch_sizes.get(batch_pid, 0)
+
+            if batch_size <= 0:
+                production_reqs.append({
+                    'product_id': pid,
+                    'product_name': product_name,
+                    'product_type': 'finished',
+                    'batch_product_id': batch_pid,
+                    'batch_name': batch_name,
+                    'needed_lb': net_need,
+                    'batches': None,
+                    'batch_size_lb': 0,
+                    'overproduction_lb': 0,
+                    'order_numbers': order_numbers,
+                    'earliest_ship_date': earliest_ship,
+                    'line_code': product_line_map.get(batch_pid),
+                    'warning': f"No default_batch_lb for '{batch_name}'",
+                })
+                continue
+
+            # Also check batch inventory — maybe we have batch product on hand
+            batch_on_hand = available.get(batch_pid, 0)
+            net_need_after_batch = max(0, net_need - batch_on_hand)
+            if batch_on_hand > 0:
+                used = min(batch_on_hand, net_need)
+                available[batch_pid] = batch_on_hand - used
+
+            if net_need_after_batch <= 0:
+                continue
+
+            num_batches = math.ceil(net_need_after_batch / batch_size)
+            total_output = num_batches * batch_size
+            overproduction = total_output - net_need_after_batch
+
+            production_reqs.append({
+                'product_id': pid,
+                'product_name': product_name,
+                'product_type': 'finished',
+                'batch_product_id': batch_pid,
+                'batch_name': batch_name,
+                'needed_lb': net_need_after_batch,
+                'batches': num_batches,
+                'batch_size_lb': batch_size,
+                'overproduction_lb': round(overproduction, 2),
+                'order_numbers': order_numbers,
+                'earliest_ship_date': earliest_ship,
+                'line_code': product_line_map.get(batch_pid),
+                'warning': None,
+            })
+
+        elif product_type == 'batch':
+            # Direct batch product demand
+            batch_size = batch_sizes.get(pid, 0)
+            line_code = product_line_map.get(pid)
+
+            if batch_size <= 0:
+                production_reqs.append({
+                    'product_id': pid,
+                    'product_name': product_name,
+                    'product_type': 'batch',
+                    'batch_product_id': pid,
+                    'batch_name': product_name,
+                    'needed_lb': net_need,
+                    'batches': None,
+                    'batch_size_lb': 0,
+                    'overproduction_lb': 0,
+                    'order_numbers': order_numbers,
+                    'earliest_ship_date': earliest_ship,
+                    'line_code': line_code,
+                    'warning': f"No default_batch_lb for '{product_name}'",
+                })
+                continue
+
+            num_batches = math.ceil(net_need / batch_size)
+            total_output = num_batches * batch_size
+            overproduction = total_output - net_need
+
+            production_reqs.append({
+                'product_id': pid,
+                'product_name': product_name,
+                'product_type': 'batch',
+                'batch_product_id': pid,
+                'batch_name': product_name,
+                'needed_lb': net_need,
+                'batches': num_batches,
+                'batch_size_lb': batch_size,
+                'overproduction_lb': round(overproduction, 2),
+                'order_numbers': order_numbers,
+                'earliest_ship_date': earliest_ship,
+                'line_code': line_code,
+                'warning': None,
+            })
+
+    return production_reqs
+
+
+def _explode_ingredients(production_reqs, batch_to_ingredients, ingredient_inventory):
+    """Calculate total ingredient needs and check for shortages."""
+    ingredient_needs = {}  # ingredient_product_id → total_lb_needed
+
+    for req in production_reqs:
+        if req['batches'] is None or req['batch_product_id'] is None:
+            continue
+        formula = batch_to_ingredients.get(req['batch_product_id'], [])
+        for ing in formula:
+            if ing['exclude']:
+                continue
+            iid = ing['ingredient_product_id']
+            needed = ing['quantity_lb'] * req['batches']
+            ingredient_needs[iid] = ingredient_needs.get(iid, 0) + needed
+
+    # Check against inventory
+    ingredient_summary = []
+    for iid, needed in sorted(ingredient_needs.items(), key=lambda x: x[1], reverse=True):
+        info = ingredient_inventory.get(iid, {'name': f'Unknown ({iid})', 'on_hand': 0})
+        on_hand = info['on_hand']
+        shortage = max(0, needed - on_hand)
+        ingredient_summary.append({
+            'ingredient_name': info['name'],
+            'ingredient_id': iid,
+            'required_lb': round(needed, 2),
+            'on_hand_lb': round(on_hand, 2),
+            'shortage_lb': round(shortage, 2),
+            'status': '⚠️ Ingredient Risk' if shortage > 0 else '✅ OK',
+        })
+
+    return ingredient_summary
+
+
+def _schedule_runs_to_days(production_reqs, calendar_days, line_config, total_workers, strategy='earliest'):
+    """
+    Assign production runs to days respecting capacity and labor constraints.
+    strategy: 'earliest' = pull forward, 'latest' = push back (closer to ship date)
+    Returns (scheduled_days, unscheduled_orders).
+    """
+    # Initialize day structures
+    day_schedules = []
+    for day_info in calendar_days:
+        day_sched = {
+            'date': day_info['date'].isoformat(),
+            'day_of_week': day_info['day_of_week'],
+            'capacity_modifier': day_info['capacity_modifier'],
+            'total_labor_used': 0,
+            'lines': {},
+        }
+        for lc, linfo in line_config.items():
+            day_sched['lines'][lc] = {
+                'line_name': linfo['name'],
+                'workers_assigned': 0,
+                'runs': [],
+                'warnings': [],
+                'remaining_batches': None,  # will be set when line activated
+                'remaining_bags': None,
+                'remaining_pallets': None,
+            }
+        day_schedules.append(day_sched)
+
+    unscheduled = []
+
+    # Sort reqs: by earliest_ship_date for 'earliest', reverse for 'latest'
+    sorted_reqs = sorted(
+        production_reqs,
+        key=lambda r: (r['earliest_ship_date'] or date(2099, 1, 1), r.get('needed_lb', 0)),
+        reverse=(strategy == 'latest')
+    )
+
+    for req in sorted_reqs:
+        if req['batches'] is None or req['batches'] <= 0:
+            if req.get('warning'):
+                unscheduled.append({
+                    'order_numbers': req['order_numbers'],
+                    'product_name': req['product_name'],
+                    'reason': req['warning'],
+                })
+            continue
+
+        line_code = req['line_code']
+        if not line_code or line_code not in line_config:
+            unscheduled.append({
+                'order_numbers': req['order_numbers'],
+                'product_name': req['product_name'],
+                'reason': f"No production line assigned for '{req.get('batch_name') or req['product_name']}'",
+            })
+            continue
+
+        linfo = line_config[line_code]
+        modes = linfo['modes']
+        if not modes:
+            unscheduled.append({
+                'order_numbers': req['order_numbers'],
+                'product_name': req['product_name'],
+                'reason': f"No capacity modes configured for line '{linfo['name']}'",
+            })
+            continue
+
+        remaining_batches = req['batches']
+        day_indices = range(len(day_schedules)) if strategy == 'earliest' else reversed(range(len(day_schedules)))
+
+        for di in day_indices:
+            if remaining_batches <= 0:
+                break
+
+            day = day_schedules[di]
+            modifier = day['capacity_modifier']
+            line_day = day['lines'][line_code]
+
+            # Pick the best capacity mode that fits labor
+            available_labor = total_workers - day['total_labor_used']
+
+            # If this line already has workers assigned today, use that mode
+            if line_day['workers_assigned'] > 0:
+                # Line already active — use remaining capacity
+                can_do = line_day.get('remaining_batches') or 0
+                if can_do <= 0:
+                    continue
+
+                run_batches = min(remaining_batches, can_do)
+                batch_size = req['batch_size_lb']
+                run_qty = run_batches * batch_size
+
+                line_day['runs'].append({
+                    'product_name': req.get('batch_name') or req['product_name'],
+                    'product_id': req.get('batch_product_id') or req['product_id'],
+                    'batches': run_batches,
+                    'quantity_lb': round(run_qty, 2),
+                    'for_orders': req['order_numbers'],
+                    'overproduction_lb': round(req['overproduction_lb'], 2) if remaining_batches - run_batches <= 0 else 0,
+                    'overproduction_reason': 'Batch Rounding' if (remaining_batches - run_batches <= 0 and req['overproduction_lb'] > 0) else None,
+                })
+                line_day['remaining_batches'] = can_do - run_batches
+                remaining_batches -= run_batches
+                continue
+
+            # Line not active yet today — need to activate with a mode
+            best_mode = None
+            for mode in modes:
+                w = mode['workers_required']
+                if w <= available_labor:
+                    best_mode = mode
+                    break  # modes sorted by default first, then lowest workers
+
+            if not best_mode:
+                continue  # can't fit any mode on this day
+
+            workers = best_mode['workers_required']
+            raw_capacity = best_mode.get('batches_per_day') or 0
+            day_capacity = max(1, int(raw_capacity * modifier))
+
+            run_batches = min(remaining_batches, day_capacity)
+            batch_size = req['batch_size_lb']
+            run_qty = run_batches * batch_size
+
+            # Activate the line
+            day['total_labor_used'] += workers
+            line_day['workers_assigned'] = workers
+            line_day['remaining_batches'] = day_capacity - run_batches
+
+            line_day['runs'].append({
+                'product_name': req.get('batch_name') or req['product_name'],
+                'product_id': req.get('batch_product_id') or req['product_id'],
+                'batches': run_batches,
+                'quantity_lb': round(run_qty, 2),
+                'for_orders': req['order_numbers'],
+                'overproduction_lb': round(req['overproduction_lb'], 2) if remaining_batches - run_batches <= 0 else 0,
+                'overproduction_reason': 'Batch Rounding' if (remaining_batches - run_batches <= 0 and req['overproduction_lb'] > 0) else None,
+            })
+            remaining_batches -= run_batches
+
+        if remaining_batches > 0:
+            unscheduled.append({
+                'order_numbers': req['order_numbers'],
+                'product_name': req.get('batch_name') or req['product_name'],
+                'reason': f"Insufficient capacity in window ({remaining_batches} batches remaining)",
+            })
+
+    # Format output
+    formatted_days = []
+    for day in day_schedules:
+        lines_out = []
+        for lc in ['granola', 'coconut', 'bulk_pack', 'pouch']:
+            if lc in day['lines']:
+                ld = day['lines'][lc]
+                lines_out.append({
+                    'line_name': ld['line_name'],
+                    'workers_assigned': ld['workers_assigned'],
+                    'runs': ld['runs'],
+                    'warnings': ld['warnings'],
+                })
+        formatted_days.append({
+            'date': day['date'],
+            'day_of_week': day['day_of_week'],
+            'capacity_modifier': day['capacity_modifier'],
+            'total_labor_used': day['total_labor_used'],
+            'lines': lines_out,
+        })
+
+    return formatted_days, unscheduled
+
+
+@app.post("/schedule/suggest")
+def schedule_suggest(req: ScheduleRequest, _: bool = Depends(verify_api_key)):
+    """Generate a proposed 7-day production schedule based on open orders, inventory, and capacity."""
+    try:
+        # Parse start date
+        if req.start_date:
+            try:
+                start = date.fromisoformat(req.start_date)
+            except ValueError:
+                raise HTTPException(400, f"Invalid start_date format: '{req.start_date}'. Use YYYY-MM-DD.")
+        else:
+            start = get_plant_now().date() + timedelta(days=1)
+
+        with get_transaction() as cur:
+            # 1. Load config
+            line_config = _load_line_config(cur)
+            product_line_map = _load_product_line_map(cur)
+
+            # 2. Build calendar
+            calendar_days = _build_schedule_calendar(start, req.horizon_days, req.friday_modifier)
+            if not calendar_days:
+                return {"error": "No working days in the specified horizon"}
+            horizon_end = calendar_days[-1]['date']
+
+            # 3. Load demand
+            demand = _load_demand(cur, horizon_end)
+
+            # 4. Load supply
+            inventory = _load_finished_inventory(cur)
+            ingredient_inv = _load_ingredient_inventory(cur)
+
+            # 5. Load BOM structure
+            fg_to_batch, batch_to_ingredients, batch_sizes = _load_bom_structure(cur)
+
+            # 6. Simulated allocation → net requirements
+            production_reqs = _simulated_allocation(
+                demand, inventory, fg_to_batch, batch_sizes, product_line_map
+            )
+
+            if not production_reqs:
+                return {
+                    "schedule_id": str(uuid.uuid4()),
+                    "horizon": {"start": start.isoformat(), "end": horizon_end.isoformat()},
+                    "total_workers_available": req.total_workers,
+                    "message": "No production needed — all open orders covered by current inventory.",
+                    "scenarios": [],
+                }
+
+            # 7. Explode ingredients
+            ingredient_summary = _explode_ingredients(
+                production_reqs, batch_to_ingredients, ingredient_inv
+            )
+
+            # 8. Schedule runs — try earliest-first
+            days_earliest, unscheduled_earliest = _schedule_runs_to_days(
+                production_reqs, calendar_days, line_config, req.total_workers, strategy='earliest'
+            )
+
+            scenarios = []
+
+            if not unscheduled_earliest:
+                # Everything fits — single recommended scenario
+                scenarios.append({
+                    'scenario_name': 'Recommended',
+                    'days': days_earliest,
+                    'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
+                    'unscheduled_orders': [],
+                })
+            else:
+                # Conflicts — generate two scenarios
+                scenarios.append({
+                    'scenario_name': 'Scenario A: Pull Production Earlier',
+                    'days': days_earliest,
+                    'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
+                    'unscheduled_orders': unscheduled_earliest,
+                })
+
+                # Scenario B: push production later
+                days_latest, unscheduled_latest = _schedule_runs_to_days(
+                    production_reqs, calendar_days, line_config, req.total_workers, strategy='latest'
+                )
+                scenarios.append({
+                    'scenario_name': 'Scenario B: Push Production Later',
+                    'days': days_latest,
+                    'ingredient_summary': [i for i in ingredient_summary if i['shortage_lb'] > 0],
+                    'unscheduled_orders': unscheduled_latest,
+                })
+
+            # Build summary of production requirements for context
+            production_summary = []
+            for req_item in production_reqs:
+                production_summary.append({
+                    'product': req_item.get('batch_name') or req_item['product_name'],
+                    'for_finished_good': req_item['product_name'] if req_item['product_type'] == 'finished' else None,
+                    'needed_lb': round(req_item['needed_lb'], 2),
+                    'batches': req_item['batches'],
+                    'total_output_lb': round(req_item['batches'] * req_item['batch_size_lb'], 2) if req_item['batches'] and req_item['batch_size_lb'] else None,
+                    'overproduction_lb': req_item['overproduction_lb'],
+                    'line': req_item['line_code'],
+                    'for_orders': req_item['order_numbers'],
+                    'warning': req_item.get('warning'),
+                })
+
+            return {
+                "schedule_id": str(uuid.uuid4()),
+                "horizon": {"start": start.isoformat(), "end": horizon_end.isoformat()},
+                "total_workers_available": req.total_workers,
+                "open_orders_in_window": len(set(r['order_number'] for r in demand)),
+                "production_requirements": production_summary,
+                "scenarios": scenarios,
+                "all_ingredient_status": ingredient_summary,
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Schedule suggest failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/schedule/confirm")
+def schedule_confirm(req: ConfirmScheduleRequest, _: bool = Depends(verify_api_key)):
+    """Confirm a proposed (or edited) production schedule — saves to production_schedule table."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Load line lookup
+                cur.execute("SELECT id, line_code FROM production_lines WHERE active = true")
+                line_lookup = {r['line_code']: r['id'] for r in cur.fetchall()}
+
+                confirmed_ids = []
+                for run in req.runs:
+                    line_id = line_lookup.get(run.line_code)
+                    if not line_id:
+                        raise HTTPException(400, f"Unknown line_code: '{run.line_code}'")
+
+                    try:
+                        run_date = date.fromisoformat(run.date)
+                    except ValueError:
+                        raise HTTPException(400, f"Invalid date: '{run.date}'")
+
+                    cur.execute("""
+                        INSERT INTO production_schedule
+                            (schedule_date, line_id, product_id, planned_batches, planned_quantity_lb,
+                             planned_bags, workers_assigned, status, linked_order_numbers,
+                             overproduction_lb, overproduction_reason, notes, confirmed_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, 'confirmed', %s, %s, %s, %s, NOW())
+                        ON CONFLICT (schedule_date, line_id, product_id)
+                        DO UPDATE SET
+                            planned_batches = EXCLUDED.planned_batches,
+                            planned_quantity_lb = EXCLUDED.planned_quantity_lb,
+                            planned_bags = EXCLUDED.planned_bags,
+                            workers_assigned = EXCLUDED.workers_assigned,
+                            linked_order_numbers = EXCLUDED.linked_order_numbers,
+                            overproduction_lb = EXCLUDED.overproduction_lb,
+                            overproduction_reason = EXCLUDED.overproduction_reason,
+                            notes = EXCLUDED.notes,
+                            status = 'confirmed',
+                            confirmed_at = NOW()
+                        RETURNING id
+                    """, (
+                        run_date, line_id, run.product_id,
+                        run.planned_batches, run.planned_quantity_lb,
+                        run.planned_bags, run.workers_assigned,
+                        run.linked_order_numbers,
+                        run.overproduction_lb, run.overproduction_reason,
+                        run.notes,
+                    ))
+                    row = cur.fetchone()
+                    if row:
+                        confirmed_ids.append(row['id'])
+
+                conn.commit()
+
+        return {
+            "confirmed": True,
+            "runs_saved": len(confirmed_ids),
+            "schedule_ids": confirmed_ids,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Schedule confirm failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/schedule/current")
+def schedule_current(
+    start_date: Optional[str] = Query(None, description="Start date (defaults to today)"),
+    days: int = Query(7, description="Number of days to show"),
+    _: bool = Depends(verify_api_key)
+):
+    """View the current confirmed production schedule."""
+    try:
+        if start_date:
+            try:
+                start = date.fromisoformat(start_date)
+            except ValueError:
+                raise HTTPException(400, f"Invalid start_date: '{start_date}'")
+        else:
+            start = get_plant_now().date()
+
+        end = start + timedelta(days=days)
+
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT ps.id, ps.schedule_date, ps.planned_batches, ps.planned_quantity_lb,
+                       ps.planned_bags, ps.workers_assigned, ps.status,
+                       ps.linked_order_numbers, ps.overproduction_lb, ps.overproduction_reason,
+                       ps.notes, ps.confirmed_at,
+                       pl.name AS line_name, pl.line_code,
+                       p.name AS product_name, p.id AS product_id
+                FROM production_schedule ps
+                JOIN production_lines pl ON pl.id = ps.line_id
+                JOIN products p ON p.id = ps.product_id
+                WHERE ps.schedule_date >= %s AND ps.schedule_date < %s
+                  AND ps.status != 'cancelled'
+                ORDER BY ps.schedule_date, pl.name, p.name
+            """, (start, end))
+            rows = cur.fetchall()
+
+        # Group by date
+        by_date = {}
+        for r in rows:
+            d = r['schedule_date'].isoformat()
+            if d not in by_date:
+                by_date[d] = {
+                    'date': d,
+                    'day_of_week': r['schedule_date'].strftime("%A"),
+                    'runs': [],
+                    'total_workers': 0,
+                }
+            by_date[d]['runs'].append({
+                'schedule_id': r['id'],
+                'line_name': r['line_name'],
+                'line_code': r['line_code'],
+                'product_name': r['product_name'],
+                'product_id': r['product_id'],
+                'planned_batches': r['planned_batches'],
+                'planned_quantity_lb': float(r['planned_quantity_lb']) if r['planned_quantity_lb'] else None,
+                'planned_bags': r['planned_bags'],
+                'workers_assigned': r['workers_assigned'],
+                'status': r['status'],
+                'linked_orders': r['linked_order_numbers'],
+                'overproduction_lb': float(r['overproduction_lb']) if r['overproduction_lb'] else 0,
+                'notes': r['notes'],
+            })
+            by_date[d]['total_workers'] += r['workers_assigned']
+
+        return {
+            "period": {"start": start.isoformat(), "end": end.isoformat()},
+            "days": list(by_date.values()),
+            "total_runs": len(rows),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Schedule current failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
