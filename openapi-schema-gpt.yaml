@@ -46,19 +46,6 @@ paths:
       responses:
         "200":
           description: Inventory details
-  /lots/by-code/{lot_code}:
-    get:
-      operationId: getLotByCode
-      summary: Get lot details by lot code
-      parameters:
-        - name: lot_code
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Lot details
   /receive/preview:
     post:
       operationId: receivePreview
@@ -180,7 +167,7 @@ paths:
                   type: string
       responses:
         "200":
-          description: Committed ship transaction (auto multi-lot FIFO when single lot is insufficient)
+          description: Committed ship transaction
   /make/preview:
     post:
       operationId: makePreview
@@ -410,179 +397,6 @@ paths:
       responses:
         "200":
           description: Transaction history
-  /products/quick-create:
-    post:
-      operationId: quickCreateProduct
-      summary: Quick-create a product (during receive or production)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - product_name
-                - product_type
-              properties:
-                product_name:
-                  type: string
-                product_type:
-                  type: string
-                  enum:
-                    - ingredient
-                    - finished_good
-                    - packaging
-                uom:
-                  type: string
-                  default: lb
-                storage_type:
-                  type: string
-                  enum:
-                    - ambient
-                    - refrigerated
-                    - frozen
-                  default: ambient
-                name_confidence:
-                  type: string
-                  enum:
-                    - exact
-                    - approximate
-                  default: exact
-                notes:
-                  type: string
-                performed_by:
-                  type: string
-                  default: system
-      responses:
-        "200":
-          description: Created product
-        "409":
-          description: Product already exists
-  /lots/{lot_id}/reassign:
-    post:
-      operationId: reassignLot
-      summary: Reassign a lot to a different product
-      parameters:
-        - name: lot_id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - to_product_id
-                - reason_code
-              properties:
-                to_product_id:
-                  type: integer
-                reason_code:
-                  type: string
-                  enum:
-                    - incorrect_receive
-                    - product_merge
-                    - data_entry_error
-                    - supplier_relabel
-                    - other
-                reason_notes:
-                  type: string
-                performed_by:
-                  type: string
-                  default: system
-      responses:
-        "200":
-          description: Lot reassigned
-  /inventory/found:
-    post:
-      operationId: addFoundInventory
-      summary: Add inventory found during counts
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - product_id
-                - quantity
-                - reason_code
-              properties:
-                product_id:
-                  type: integer
-                quantity:
-                  type: number
-                uom:
-                  type: string
-                  default: lb
-                reason_code:
-                  type: string
-                  enum:
-                    - found_during_count
-                    - found_back_stock
-                    - predates_system
-                    - unreceived_delivery
-                found_location:
-                  type: string
-                estimated_age:
-                  type: string
-                  enum:
-                    - recent
-                    - 1-2_weeks
-                    - 1_month_plus
-                    - unknown
-                  default: unknown
-                suspected_supplier:
-                  type: string
-                suspected_bol:
-                  type: string
-                notes:
-                  type: string
-                performed_by:
-                  type: string
-                  default: system
-      responses:
-        "200":
-          description: Found inventory added
-  /products/{product_id}/verify:
-    post:
-      operationId: verifyProduct
-      summary: Verify, reject, or archive a product
-      parameters:
-        - name: product_id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - action
-              properties:
-                action:
-                  type: string
-                  enum:
-                    - verify
-                    - reject
-                    - archive
-                verified_name:
-                  type: string
-                  description: Corrected name (for verify action)
-                notes:
-                  type: string
-                performed_by:
-                  type: string
-                  default: system
-      responses:
-        "200":
-          description: Product verification updated
   /bom/batches/{batch_id}/formula:
     get:
       operationId: getBatchFormula
@@ -638,6 +452,44 @@ paths:
           description: Customer created
         "409":
           description: Customer already exists
+  /customers/{customer_id}:
+    patch:
+      operationId: updateCustomer
+      summary: Update customer details. Only send fields you want to change.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                contact_name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+                notes:
+                  type: string
+                notes_es:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: "Customer updated with customer_id, name, message"
+        "404":
+          description: "Customer not found"
   /sales/orders:
     post:
       operationId: createSalesOrder
@@ -849,44 +701,6 @@ paths:
           description: "Updated line with line_id, quantity_lb, unit_price"
         "404":
           description: "Line not found or already fulfilled/cancelled"
-  /customers/{customer_id}:
-    patch:
-      operationId: updateCustomer
-      summary: Update customer details. Only send fields you want to change.
-      parameters:
-        - name: customer_id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                contact_name:
-                  type: string
-                email:
-                  type: string
-                phone:
-                  type: string
-                address:
-                  type: string
-                notes:
-                  type: string
-                notes_es:
-                  type: string
-                active:
-                  type: boolean
-      responses:
-        "200":
-          description: "Customer updated with customer_id, name, message"
-        "404":
-          description: "Customer not found"
   /sales/orders/{order_id}/lines:
     post:
       operationId: addOrderLines
@@ -975,10 +789,6 @@ paths:
       responses:
         "200":
           description: Shipment executed with lot details and updated statuses
-  # ═══════════════════════════════════════════════════════════
-  # Notes / To-Dos / Reminders (NO AUTH REQUIRED)
-  # ═══════════════════════════════════════════════════════════
-
   /dashboard/api/notes:
     get:
       operationId: listNotes
