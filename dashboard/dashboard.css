@@ -866,6 +866,255 @@ body {
   opacity: 0.5;
 }
 
+/* === Sales Orders === */
+
+.orders-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.orders-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.orders-select {
+  padding: 7px 10px;
+  background: var(--search-bg);
+  border: 1px solid var(--search-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  font-family: var(--font);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.orders-select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+
+#orders-customer-search {
+  padding: 7px 10px;
+  background: var(--search-bg);
+  border: 1px solid var(--search-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  width: 200px;
+  transition: border-color 0.15s ease;
+}
+#orders-customer-search::placeholder { color: var(--text-muted); }
+#orders-customer-search:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+
+.orders-overdue-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.orders-overdue-toggle input { cursor: pointer; accent-color: var(--primary); }
+
+/* Orders table */
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orders-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--row-header);
+}
+
+.orders-table td {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.orders-table tr:nth-child(even) td { background: var(--row-alt); }
+.orders-table tr.order-row { cursor: pointer; transition: background-color 0.15s ease; }
+.orders-table tr.order-row:hover td { background: var(--surface-hover); }
+
+.orders-table .num {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-link {
+  color: var(--primary);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.order-link:hover { color: var(--primary-hover); text-decoration: underline; }
+
+/* Status badges */
+.so-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--mono);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.so-badge.status-new { background: var(--row-header); color: var(--text-muted); }
+.so-badge.status-confirmed { background: var(--badge-bg); color: var(--badge-text); }
+.so-badge.status-in_production { background: var(--badge-amber-bg); color: var(--badge-amber-text); }
+.so-badge.status-ready { background: #064e3b; color: #5eead4; }
+.so-badge.status-partial_ship { background: #7c2d12; color: #fdba74; }
+.so-badge.status-shipped { background: var(--badge-green-bg); color: var(--badge-green-text); }
+.so-badge.status-invoiced { background: #064e3b; color: #6ee7b7; }
+.so-badge.status-cancelled { background: var(--badge-red-bg); color: var(--badge-red-text); }
+
+.date-overdue { color: var(--danger); font-weight: 600; }
+
+/* Back button */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.btn-back:hover { background: var(--surface-hover); color: var(--text); }
+
+/* Order detail header */
+.order-detail-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.order-detail-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.order-detail-top .order-number {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.order-detail-top .order-customer {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.order-detail-dates {
+  display: flex;
+  gap: 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.order-detail-dates strong { color: var(--text-secondary); font-weight: 600; }
+
+/* KPI summary cards */
+.order-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.order-kpi {
+  background: var(--surface);
+  padding: 12px 16px;
+  text-align: center;
+}
+
+.order-kpi .kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.order-kpi .kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* Order notes card */
+.order-notes-card {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.order-notes-card h4 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.order-notes-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+/* Orders empty state */
+.orders-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.orders-empty .orders-empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+/* Hidden utility (for detail toggle) */
+#order-detail-view.hidden { display: none; }
+
 /* === Responsive === */
 @media (max-width: 768px) {
   .app-header { flex-wrap: wrap; gap: 8px; }
@@ -879,4 +1128,9 @@ body {
   .form-row { grid-template-columns: 1fr; }
   .note-modal { width: 100%; max-width: 100vw; border-radius: 0; }
   .note-actions { opacity: 1; }
+  .orders-toolbar { flex-direction: column; align-items: stretch; }
+  .orders-filters { flex-direction: column; }
+  #orders-customer-search { width: 100%; }
+  .order-kpi-row { grid-template-columns: 1fr; }
+  .order-detail-dates { flex-direction: column; gap: 4px; }
 }

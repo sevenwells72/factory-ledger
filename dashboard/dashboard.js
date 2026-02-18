@@ -931,6 +931,266 @@
     document.getElementById('note-save-btn').addEventListener('click', saveNote);
   }
 
+  // ── Sales Orders ──
+
+  const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
+  const SALES_API_KEY = 'ledger-secret-2026-factory';
+
+  // Orders sub-state
+  state.ordersData = [];
+  state.ordersLoaded = false;
+  state.ordersScrollTop = 0;
+
+  async function fetchSalesAPI(path) {
+    const res = await fetch(SALES_API_BASE + path, {
+      headers: { 'X-API-Key': SALES_API_KEY }
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+    return res.json();
+  }
+
+  function formatDateShort(dateStr) {
+    if (!dateStr) return '—';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return parts[1] + '/' + parts[2] + '/' + parts[0].slice(2);
+  }
+
+  function fmtLbs(n) {
+    if (n == null) return '—';
+    return Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' lb';
+  }
+
+  function isOrderOverdue(order) {
+    if (!order.requested_ship_date) return false;
+    const closedStatuses = ['shipped', 'invoiced', 'cancelled'];
+    if (closedStatuses.includes(order.status)) return false;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    return order.requested_ship_date < today;
+  }
+
+  function soStatusLabel(status) {
+    const labels = {
+      'new': 'New',
+      'confirmed': 'Confirmed',
+      'in_production': 'In Production',
+      'ready': 'Ready',
+      'partial_ship': 'Partial Ship',
+      'shipped': 'Shipped',
+      'invoiced': 'Invoiced',
+      'cancelled': 'Cancelled'
+    };
+    return labels[status] || status;
+  }
+
+  function getFilteredOrders() {
+    const statusFilter = document.getElementById('orders-status-filter').value;
+    const customerSearch = document.getElementById('orders-customer-search').value.trim().toLowerCase();
+    const overdueOnly = document.getElementById('orders-overdue-only').checked;
+
+    const openStatuses = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship'];
+
+    return state.ordersData.filter(order => {
+      // Status filter
+      if (statusFilter === 'open') {
+        if (!openStatuses.includes(order.status)) return false;
+      } else if (statusFilter !== 'all') {
+        if (order.status !== statusFilter) return false;
+      }
+
+      // Customer search
+      if (customerSearch && !(order.customer || '').toLowerCase().includes(customerSearch)) {
+        return false;
+      }
+
+      // Overdue only
+      if (overdueOnly && !isOrderOverdue(order)) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  async function refreshOrders() {
+    hideError('orders-error');
+    const container = document.getElementById('orders-table-container');
+    container.innerHTML = '<div class="loading-indicator">Loading sales orders...</div>';
+    try {
+      const data = await fetchSalesAPI('/sales/orders?limit=200');
+      state.ordersData = data.orders || [];
+      state.ordersLoaded = true;
+      renderOrdersList();
+    } catch (e) {
+      container.innerHTML = '';
+      showError('orders-error', 'Failed to load sales orders: ' + e.message);
+    }
+  }
+
+  function renderOrdersList() {
+    const container = document.getElementById('orders-table-container');
+    const orders = getFilteredOrders();
+
+    if (orders.length === 0) {
+      container.innerHTML = `<div class="orders-empty">
+        <div class="orders-empty-icon">&#128230;</div>
+        No orders match your filters.
+      </div>`;
+      return;
+    }
+
+    let html = '<table class="orders-table"><thead><tr>';
+    html += '<th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th class="num">Remaining</th>';
+    html += '</tr></thead><tbody>';
+
+    for (const o of orders) {
+      const overdue = isOrderOverdue(o);
+      html += `<tr class="order-row" data-order-id="${o.order_id}">`;
+      html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
+      html += `<td>${escHtml(o.customer)}</td>`;
+      html += `<td>${formatDateShort(o.order_date)}</td>`;
+      html += `<td class="${overdue ? 'date-overdue' : ''}">${formatDateShort(o.requested_ship_date)}</td>`;
+      html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span></td>`;
+      html += `<td class="num">${fmtLbs(o.remaining_lb)}</td>`;
+      html += `</tr>`;
+    }
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    // Bind row clicks
+    container.querySelectorAll('.order-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const orderId = row.dataset.orderId;
+        // Save scroll position
+        state.ordersScrollTop = document.getElementById('tab-orders').scrollTop || window.scrollY;
+        openOrderDetail(orderId);
+      });
+    });
+  }
+
+  async function openOrderDetail(orderId) {
+    const listView = document.getElementById('orders-list-view');
+    const detailView = document.getElementById('order-detail-view');
+    const container = document.getElementById('order-detail-container');
+
+    listView.style.display = 'none';
+    detailView.classList.remove('hidden');
+    hideError('order-detail-error');
+    container.innerHTML = '<div class="loading-indicator">Loading order detail...</div>';
+
+    try {
+      const data = await fetchSalesAPI('/sales/orders/' + orderId);
+      renderOrderDetail(data, container);
+    } catch (e) {
+      container.innerHTML = '';
+      showError('order-detail-error', 'Failed to load order detail: ' + e.message);
+    }
+  }
+
+  function renderOrderDetail(data, container) {
+    let html = '';
+
+    // Header
+    html += '<div class="order-detail-header">';
+    html += '<div class="order-detail-top">';
+    html += `<span class="order-number">${escHtml(data.order_number)}</span>`;
+    html += `<span class="so-badge status-${data.status}">${soStatusLabel(data.status)}</span>`;
+    html += '</div>';
+    html += `<div class="order-detail-top"><span class="order-customer">${escHtml(data.customer)}</span></div>`;
+    html += '<div class="order-detail-dates">';
+    html += `<span><strong>Order Date:</strong> ${formatDateShort(data.order_date)}</span>`;
+    html += `<span><strong>Ship By:</strong> ${formatDateShort(data.requested_ship_date)}</span>`;
+    html += '</div>';
+    html += '</div>';
+
+    // KPI row — totals may be nested under data.totals or at top level
+    const totals = data.totals || {};
+    const totalOrdered = totals.total_ordered_lb != null ? totals.total_ordered_lb : data.total_ordered_lb;
+    const totalShipped = totals.total_shipped_lb != null ? totals.total_shipped_lb : data.total_shipped_lb;
+    const totalRemaining = totals.remaining_lb != null ? totals.remaining_lb : (data.total_remaining_lb != null ? data.total_remaining_lb : data.remaining_lb);
+    html += '<div class="order-kpi-row">';
+    html += `<div class="order-kpi"><div class="kpi-label">Total Ordered</div><div class="kpi-value">${fmtLbs(totalOrdered)}</div></div>`;
+    html += `<div class="order-kpi"><div class="kpi-label">Shipped</div><div class="kpi-value">${fmtLbs(totalShipped)}</div></div>`;
+    html += `<div class="order-kpi"><div class="kpi-label">Remaining</div><div class="kpi-value">${fmtLbs(totalRemaining)}</div></div>`;
+    html += '</div>';
+
+    // Line items
+    const lines = data.lines || [];
+    if (lines.length > 0) {
+      html += '<table class="orders-table"><thead><tr>';
+      html += '<th>Product</th><th class="num">Ordered</th><th class="num">Shipped</th><th class="num">Remaining</th><th>Status</th>';
+      html += '</tr></thead><tbody>';
+      for (const l of lines) {
+        const remaining = l.remaining_lb != null ? l.remaining_lb : ((l.quantity_lb || 0) - (l.quantity_shipped_lb || 0));
+        const productName = l.product || l.name || '—';
+        const lineStatusClass = l.line_status === 'fulfilled' ? 'status-shipped'
+          : l.line_status === 'partial' ? 'status-partial_ship'
+          : l.line_status === 'cancelled' ? 'status-cancelled'
+          : 'status-new';
+        html += '<tr>';
+        html += `<td>${escHtml(productName)}</td>`;
+        html += `<td class="num">${fmtLbs(l.quantity_lb)}</td>`;
+        html += `<td class="num">${fmtLbs(l.quantity_shipped_lb)}</td>`;
+        html += `<td class="num">${fmtLbs(remaining)}</td>`;
+        html += `<td><span class="so-badge ${lineStatusClass}">${escHtml(l.line_status || 'pending')}</span></td>`;
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+    }
+
+    // Notes
+    if (data.notes && data.notes.trim()) {
+      html += '<div class="order-notes-card">';
+      html += '<h4>Notes</h4>';
+      html += `<p>${escHtml(data.notes)}</p>`;
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+  }
+
+  function closeOrderDetail() {
+    const listView = document.getElementById('orders-list-view');
+    const detailView = document.getElementById('order-detail-view');
+
+    detailView.classList.add('hidden');
+    listView.style.display = '';
+
+    // Restore scroll position
+    window.scrollTo(0, state.ordersScrollTop);
+  }
+
+  function initOrders() {
+    // Status filter
+    document.getElementById('orders-status-filter').addEventListener('change', () => {
+      if (state.ordersLoaded) renderOrdersList();
+    });
+
+    // Customer search (debounced)
+    let orderSearchTimeout;
+    document.getElementById('orders-customer-search').addEventListener('input', () => {
+      clearTimeout(orderSearchTimeout);
+      orderSearchTimeout = setTimeout(() => {
+        if (state.ordersLoaded) renderOrdersList();
+      }, 200);
+    });
+
+    // Overdue toggle
+    document.getElementById('orders-overdue-only').addEventListener('change', () => {
+      if (state.ordersLoaded) renderOrdersList();
+    });
+
+    // Refresh button
+    document.getElementById('orders-refresh-btn').addEventListener('click', refreshOrders);
+
+    // Back button
+    document.getElementById('order-back-btn').addEventListener('click', closeOrderDetail);
+  }
+
   // ── Refresh All ──
   async function refreshAll() {
     const btn = document.getElementById('refresh-btn');
@@ -948,6 +1208,7 @@
     ops.push(refreshShipments());
     ops.push(refreshReceipts());
     ops.push(refreshNotes());
+    ops.push(refreshOrders());
 
     await Promise.allSettled(ops);
 
@@ -967,6 +1228,7 @@
     initTheme();
     initTabs();
     initNotes();
+    initOrders();
 
     // Theme toggle
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);

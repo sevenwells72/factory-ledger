@@ -31,6 +31,7 @@
     <button class="tab active" data-tab="operations">Operations</button>
     <button class="tab" data-tab="activity">Activity</button>
     <button class="tab" data-tab="notes">Notes</button>
+    <button class="tab" data-tab="orders">Sales Orders</button>
   </nav>
 
   <!-- Tab A: Operations -->
@@ -124,6 +125,51 @@
     <!-- Notes List -->
     <div id="notes-list"></div>
     <div id="notes-error" class="error-msg hidden"></div>
+
+  </main>
+
+  <!-- Tab D: Sales Orders -->
+  <main id="tab-orders" class="tab-content">
+
+    <!-- Orders List View -->
+    <div id="orders-list-view">
+      <div class="orders-toolbar">
+        <div class="orders-filters">
+          <select id="orders-status-filter" class="orders-select">
+            <option value="open" selected>All Open Orders</option>
+            <option value="new">New</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in_production">In Production</option>
+            <option value="ready">Ready</option>
+            <option value="partial_ship">Partial Ship</option>
+            <option value="shipped">Shipped</option>
+            <option value="invoiced">Invoiced</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="all">All Orders</option>
+          </select>
+          <input type="text" id="orders-customer-search" placeholder="Filter by customer..." autocomplete="off">
+          <label class="orders-overdue-toggle">
+            <input type="checkbox" id="orders-overdue-only"> Overdue only
+          </label>
+        </div>
+        <button id="orders-refresh-btn" class="btn-refresh" title="Refresh orders">Refresh</button>
+      </div>
+
+      <section class="section" id="section-orders">
+        <div id="orders-table-container"></div>
+        <div id="orders-error" class="error-msg hidden"></div>
+      </section>
+    </div>
+
+    <!-- Order Detail View (hidden by default) -->
+    <div id="order-detail-view" class="hidden">
+      <button id="order-back-btn" class="btn-back">&larr; Back to Orders</button>
+
+      <section class="section" id="section-order-detail">
+        <div id="order-detail-container"></div>
+        <div id="order-detail-error" class="error-msg hidden"></div>
+      </section>
+    </div>
 
   </main>
 
