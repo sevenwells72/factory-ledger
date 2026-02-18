@@ -295,6 +295,14 @@ def get_plant_now():
     return datetime.now(PLANT_TIMEZONE)
 
 
+def generate_confirmation_code(transaction_id: int) -> str:
+    """Generate a short unique confirmation code from a transaction ID."""
+    import hashlib
+    hash_input = f"txn-{transaction_id}-cns"
+    short_hash = hashlib.sha256(hash_input.encode()).hexdigest()[:6].upper()
+    return f"TXN-{short_hash}"
+
+
 def get_daily_production_summary(cur, target_date=None):
     """Query all make+pack transactions for a given date (plant timezone).
     Returns dict with 'production' list and 'adjustments' list."""
@@ -1186,6 +1194,7 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                 return {
                     "success": True,
                     "transaction_id": txn_id,
+                    "confirmation_code": generate_confirmation_code(txn_id),
                     "lot_id": lot_id,
                     "lot_code": lot_code,
                     "total_lb": total_lb,
@@ -1385,6 +1394,7 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 return {
                     "success": True,
                     "transaction_id": txn_id,
+                    "confirmation_code": generate_confirmation_code(txn_id),
                     "lot_code": lot['lot_code'],
                     "quantity_shipped": req.quantity_lb,
                     "remaining_in_lot": remaining,
@@ -1524,6 +1534,7 @@ def multi_lot_ship_commit(req: MultiLotShipRequest, _: bool = Depends(verify_api
                 return {
                     "success": True,
                     "transaction_id": txn_id,
+                    "confirmation_code": generate_confirmation_code(txn_id),
                     "quantity_shipped": req.quantity_lb,
                     "lots_used": shipped_lots,
                     "message": f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s)"
@@ -1987,6 +1998,7 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 response = {
                     "success": True,
                     "transaction_id": txn_id,
+                    "confirmation_code": generate_confirmation_code(txn_id),
                     "lot_id": output_lot_id,
                     "lot_code": lot_code,
                     "yield_multiplier": yield_multiplier,
@@ -2280,6 +2292,7 @@ def pack_commit(req: PackRequest, _: bool = Depends(verify_api_key)):
                 response = {
                     "success": True,
                     "transaction_id": txn_id,
+                    "confirmation_code": generate_confirmation_code(txn_id),
                     "output_lot_id": output_lot_id,
                     "output_lot_code": output_lot_code,
                     "target_product_name": target['name'],
@@ -2424,6 +2437,7 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
                 response = {
                     "success": True,
                     "transaction_id": txn_id,
+                    "confirmation_code": generate_confirmation_code(txn_id),
                     "product_id": result['product_id'],
                     "product_name": result['name'],
                     "lot_code": result['lot_code'],
@@ -4259,6 +4273,7 @@ def ship_order_commit(order_id: int, req: Optional[ShipOrderRequest] = None, _: 
                         "short_lb": max(0, qty_to_ship - actual_ship),
                         "lots_used": lots_used,
                         "transaction_id": txn_id,
+                        "confirmation_code": generate_confirmation_code(txn_id),
                         "line_status": new_line_status
                     })
 
