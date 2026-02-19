@@ -5113,6 +5113,7 @@ def dashboard_api_notes_toggle(note_id: int):
 # ═══════════════════════════════════════════════════════════════
 
 class ProductUpdate(BaseModel):
+    odoo_code: Optional[str] = None
     default_case_weight_lb: Optional[float] = None
     default_batch_lb: Optional[float] = None
     yield_multiplier: Optional[float] = None
@@ -5130,6 +5131,9 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
 
             updates = []
             params = []
+            if req.odoo_code is not None:
+                updates.append("odoo_code = %s")
+                params.append(req.odoo_code)
             if req.default_case_weight_lb is not None:
                 updates.append("default_case_weight_lb = %s")
                 params.append(req.default_case_weight_lb)
@@ -5155,6 +5159,7 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
             "product_name": product['name'],
             "changes": {
                 k: v for k, v in {
+                    "odoo_code": req.odoo_code,
                     "default_case_weight_lb": req.default_case_weight_lb,
                     "default_batch_lb": req.default_batch_lb,
                     "yield_multiplier": req.yield_multiplier,
