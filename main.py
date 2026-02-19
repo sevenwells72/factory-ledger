@@ -4934,6 +4934,47 @@ def dashboard_api_lot_detail(lot_code: str):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/dashboard/api/product/{product_id}/lots")
+def dashboard_api_product_lots(product_id: int):
+    """Get all lots for a product with on-hand quantities."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT p.name, p.type, p.odoo_code
+                FROM products p WHERE p.id = %s
+            """, (product_id,))
+            product = cur.fetchone()
+            if not product:
+                raise HTTPException(404, f"Product {product_id} not found")
+
+            cur.execute("""
+                SELECT l.lot_code, l.entry_source,
+                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                FROM lots l
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE l.product_id = %s
+                GROUP BY l.id
+                ORDER BY l.id DESC
+            """, (product_id,))
+            lots = [
+                {"lot_code": r["lot_code"], "entry_source": r["entry_source"],
+                 "on_hand_lbs": float(r["on_hand_lbs"])}
+                for r in cur.fetchall()
+            ]
+
+        return {
+            "product_name": product["name"],
+            "product_type": product["type"],
+            "odoo_code": product["odoo_code"],
+            "lots": lots
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dashboard product lots API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/dashboard/api/search")
 def dashboard_api_search(q: str = Query(min_length=1)):
     """Global search across products, lots, orders, customers, suppliers."""

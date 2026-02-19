@@ -608,6 +608,74 @@
     document.getElementById('lot-panel-overlay').classList.add('hidden');
   }
 
+  async function openProductPanel(productId, productName) {
+    const overlay = document.getElementById('lot-panel-overlay');
+    const body = document.getElementById('lot-panel-body');
+    const title = document.getElementById('lot-panel-title');
+    overlay.classList.remove('hidden');
+    title.textContent = productName;
+    body.innerHTML = '<div class="loading-indicator">Loading product lots...</div>';
+    try {
+      const data = await fetchAPI('/product/' + productId + '/lots');
+      let html = '<dl class="lot-info-grid">';
+      html += `<dt>Product</dt><dd>${escHtml(data.product_name)}</dd>`;
+      html += `<dt>Type</dt><dd>${escHtml(data.product_type)}</dd>`;
+      if (data.odoo_code) html += `<dt>SKU</dt><dd>${escHtml(data.odoo_code)}</dd>`;
+      const totalOnHand = data.lots.reduce((sum, l) => sum + l.on_hand_lbs, 0);
+      html += `<dt>Total On Hand</dt><dd>${fmt(totalOnHand)} lb</dd>`;
+      html += `<dt>Lot Count</dt><dd>${data.lots.length}</dd>`;
+      html += '</dl>';
+
+      if (data.lots.length > 0) {
+        const activeLots = data.lots.filter(l => l.on_hand_lbs !== 0);
+        const zeroLots = data.lots.filter(l => l.on_hand_lbs === 0);
+
+        if (activeLots.length > 0) {
+          html += '<h4 style="font-size:13px;margin:12px 0 8px;">Active Lots</h4>';
+          html += '<table style="width:100%;font-size:13px;border-collapse:collapse;">';
+          html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Lot Code</th><th style="text-align:left;padding:4px 8px;">Source</th><th style="text-align:right;padding:4px 8px;">On Hand</th></tr>';
+          for (const l of activeLots) {
+            html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
+            html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;
+            html += `<td style="padding:4px 8px;">${escHtml(l.entry_source || '')}</td>`;
+            html += `<td style="text-align:right;padding:4px 8px;">${fmt(l.on_hand_lbs)} lb</td>`;
+            html += '</tr>';
+          }
+          html += '</table>';
+        }
+
+        if (zeroLots.length > 0) {
+          html += `<h4 style="font-size:13px;margin:12px 0 8px;color:var(--text-muted);">Depleted Lots (${zeroLots.length})</h4>`;
+          html += '<table style="width:100%;font-size:13px;border-collapse:collapse;opacity:0.6;">';
+          for (const l of zeroLots.slice(0, 10)) {
+            html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
+            html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;
+            html += `<td style="padding:4px 8px;">${escHtml(l.entry_source || '')}</td>`;
+            html += `<td style="text-align:right;padding:4px 8px;">0 lb</td>`;
+            html += '</tr>';
+          }
+          html += '</table>';
+          if (zeroLots.length > 10) {
+            html += `<div style="font-size:12px;color:var(--text-muted);padding:4px 8px;">...and ${zeroLots.length - 10} more depleted lots</div>`;
+          }
+        }
+      } else {
+        html += '<div style="color:var(--text-muted);font-size:13px;margin-top:8px;">No lots found for this product.</div>';
+      }
+
+      body.innerHTML = html;
+
+      // Bind lot clicks within product panel
+      body.querySelectorAll('.product-lot-row').forEach(row => {
+        row.addEventListener('click', () => {
+          openLotPanel(row.dataset.lotCode);
+        });
+      });
+    } catch (e) {
+      body.innerHTML = `<div class="error-msg">Failed to load product: ${escHtml(e.message)}</div>`;
+    }
+  }
+
   // ── Search ──
   async function performSearch(query) {
     const dropdown = document.getElementById('search-results');
@@ -632,7 +700,7 @@
       hasResults = true;
       html += '<div class="search-category">Products</div>';
       for (const p of data.products) {
-        html += `<div class="search-item" data-search-product="${escHtml(p.name)}"><span class="lot-link">${escHtml(p.name)}</span> <span class="si-sub">${escHtml(p.type)} | ${fmt(p.on_hand_lbs)} lb</span></div>`;
+        html += `<div class="search-item" data-search-product-id="${p.product_id}" data-search-product-name="${escHtml(p.name)}"><span class="lot-link">${escHtml(p.name)}</span> <span class="si-sub">${escHtml(p.type)} | ${fmt(p.on_hand_lbs)} lb</span></div>`;
       }
     }
     if (data.lots && data.lots.length > 0) {
@@ -672,14 +740,14 @@
       });
     });
 
-    // Bind product clicks – search for the product name to show its lots
-    dropdown.querySelectorAll('[data-search-product]').forEach(el => {
+    // Bind product clicks – open product detail panel
+    dropdown.querySelectorAll('[data-search-product-id]').forEach(el => {
       el.addEventListener('click', () => {
-        const name = el.dataset.searchProduct;
-        const searchInput = document.getElementById('global-search');
-        searchInput.value = name;
+        const productId = el.dataset.searchProductId;
+        const productName = el.dataset.searchProductName;
         dropdown.classList.add('hidden');
-        performSearch(name);
+        document.getElementById('global-search').value = '';
+        openProductPanel(productId, productName);
       });
     });
 
