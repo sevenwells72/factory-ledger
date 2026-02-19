@@ -23,7 +23,7 @@ import uuid
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="2.4.1")
+app = FastAPI(title="Factory Ledger System", version="2.5.0")
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -247,6 +247,24 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 007 warning (non-fatal): {e}")
 
+    # Migration 008: Lot merge support columns
+    # Adds status, merged_into_lot_id, merged_at, merge_reason to lots table
+    # for controlled lot merge operations (POST /admin/lots/merge).
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'")
+                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merged_into_lot_id INTEGER REFERENCES lots(id)")
+                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merged_at TIMESTAMPTZ")
+                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merge_reason TEXT")
+                conn.commit()
+                logger.info("Migration 008: lot merge columns up to date")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 008 warning (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -405,6 +423,9 @@ class ReceiveRequest(BaseModel):
     shipper_name: str
     bol_reference: str
     shipper_code_override: Optional[str] = None
+    # Lot Identity Policy: If lot_code is provided, find-or-create by (product_id, lot_code).
+    # Only auto-generate if lot_code is omitted.
+    lot_code: Optional[str] = None
 
 class ShipRequest(BaseModel):
     product_name: str
@@ -416,6 +437,8 @@ class ShipRequest(BaseModel):
 class MakeRequest(BaseModel):
     product_name: str
     batches: int
+    # Lot Identity Policy: If lot_code is provided, find-or-create by (product_id, lot_code).
+    # Only auto-generate if lot_code is omitted.
     lot_code: Optional[str] = None
     ingredient_lot_overrides: Optional[Union[Dict[str, str], str]] = None
     excluded_ingredients: Optional[List[int]] = None
@@ -445,7 +468,9 @@ class PackRequest(BaseModel):
     cases: int
     case_weight_lb: Optional[float] = None  # Override; defaults to target product's default_case_weight_lb
     lot_allocations: Optional[List[PackLotAllocation]] = None  # Explicit lot splits; FIFO if omitted
-    target_lot_code: Optional[str] = None  # Override for the output lot code
+    # Lot Identity Policy: If target_lot_code is provided, find-or-create by (product_id, lot_code).
+    # Only auto-generate (inherit from batch lot) if target_lot_code is omitted.
+    target_lot_code: Optional[str] = None
 
 class AdjustRequest(BaseModel):
     product_name: str
@@ -492,6 +517,9 @@ class AddFoundInventoryRequest(BaseModel):
     notes: Optional[str] = None
     notes_es: Optional[str] = None
     performed_by: str = "system"
+    # Lot Identity Policy: If lot_code is provided, find-or-create by (product_id, lot_code).
+    # Only auto-generate if lot_code is omitted.
+    lot_code: Optional[str] = None
 
 class AddFoundInventoryWithNewProductRequest(BaseModel):
     product_name: str
@@ -506,6 +534,9 @@ class AddFoundInventoryWithNewProductRequest(BaseModel):
     notes: Optional[str] = None
     notes_es: Optional[str] = None
     performed_by: str = "system"
+    # Lot Identity Policy: If lot_code is provided, find-or-create by (product_id, lot_code).
+    # Only auto-generate if lot_code is omitted.
+    lot_code: Optional[str] = None
 
 class VerifyProductRequest(BaseModel):
     action: str
@@ -1086,6 +1117,63 @@ def get_lot(lot_id: int, _: bool = Depends(verify_api_key)):
 
 
 # ═══════════════════════════════════════════════════════════════
+# LOT IDENTITY — Find-or-Create Pattern
+# ═══════════════════════════════════════════════════════════════
+# Lot Identity Policy: A physical lot must map to exactly one canonical lot_id.
+# If lot_code is provided, find-or-create by (product_id, lot_code).
+# Only auto-generate if lot_code is omitted.
+
+def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
+                       entry_source_notes: str = None, entry_source_notes_es: str = None,
+                       found_location: str = None, estimated_age: str = None) -> tuple:
+    """Find existing lot or create a new one. Returns (lot_id, is_new).
+
+    Uses INSERT ... ON CONFLICT DO NOTHING + SELECT to guarantee exactly one lot
+    per (product_id, lot_code) pair, leveraging the unique index.
+    """
+    # Build dynamic INSERT with optional columns
+    columns = ["product_id", "lot_code", "entry_source"]
+    values = [product_id, lot_code, entry_source]
+    placeholders = ["%s", "%s", "%s"]
+
+    if entry_source_notes:
+        columns.append("entry_source_notes")
+        values.append(entry_source_notes)
+        placeholders.append("%s")
+    if entry_source_notes_es:
+        columns.append("entry_source_notes_es")
+        values.append(entry_source_notes_es)
+        placeholders.append("%s")
+    if found_location:
+        columns.append("found_location")
+        values.append(found_location)
+        placeholders.append("%s")
+    if estimated_age:
+        columns.append("estimated_age")
+        values.append(estimated_age)
+        placeholders.append("%s")
+
+    col_str = ", ".join(columns)
+    ph_str = ", ".join(placeholders)
+
+    cur.execute(f"""
+        INSERT INTO lots ({col_str})
+        VALUES ({ph_str})
+        ON CONFLICT (product_id, lot_code) DO NOTHING
+    """, values)
+    is_new = cur.rowcount > 0
+
+    # Fetch the lot (whether just created or already existed)
+    cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product_id, lot_code))
+    lot_id = cur.fetchone()['id']
+
+    if not is_new:
+        logger.info(f"Found existing lot {lot_code} (id={lot_id}) for product_id={product_id}")
+
+    return lot_id, is_new
+
+
+# ═══════════════════════════════════════════════════════════════
 # RECEIVE ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
@@ -1127,11 +1215,21 @@ def receive_preview(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
             product = resolve_product_full(cur, req.product_name)
-            
-            lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
+
+            # Lot Identity Policy: honor physical lot code if provided
+            if req.lot_code:
+                lot_code = req.lot_code
+                shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
+                auto = False
+                # Check if lot already exists
+                cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product['id'], req.lot_code))
+                existing = cur.fetchone()
+            else:
+                lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
+                existing = None
             total_lb = req.cases * req.case_size_lb
-            
-            return {
+
+            response = {
                 "product_id": product['id'],
                 "product_name": product['name'],
                 "odoo_code": product['odoo_code'],
@@ -1145,6 +1243,11 @@ def receive_preview(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                 "bol_reference": req.bol_reference,
                 "preview_message": f"Ready to receive {req.cases} cases ({total_lb} lb) of {product['name']} as lot {lot_code}"
             }
+            if existing:
+                response["lot_exists"] = True
+                response["existing_lot_id"] = existing['id']
+                response["preview_message"] += f" (lot already exists — will add to existing)"
+            return response
     except Exception as e:
         logger.error(f"Receive preview failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -1158,16 +1261,16 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                 cur.execute("SELECT pg_advisory_xact_lock(1)")
                 product = resolve_product_full(cur, req.product_name)
 
-                lot_code, shipper_code, _ = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
+                # Lot Identity Policy: honor physical lot code if provided
+                if req.lot_code:
+                    lot_code = req.lot_code
+                    shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
+                else:
+                    lot_code, shipper_code, _ = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
                 total_lb = req.cases * req.case_size_lb
                 now = get_plant_now()
-                
-                cur.execute("""
-                    INSERT INTO lots (product_id, lot_code, entry_source)
-                    VALUES (%s, %s, 'received')
-                    RETURNING id
-                """, (product['id'], lot_code))
-                lot_id = cur.fetchone()['id']
+
+                lot_id, is_new_lot = find_or_create_lot(cur, product['id'], lot_code, 'received')
                 
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, bol_reference, shipper_name, shipper_code, cases_received, case_size_lb)
@@ -1184,17 +1287,19 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                 date_str, time_str = format_timestamp(now)
                 receipt = f"RECEIVED: {req.cases} cases ({total_lb} lb) {product['name']}\nLot: {lot_code}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
                 
-                logger.info(f"Receive committed: {lot_code} - {total_lb} lb of {product['name']}")
-                
+                lot_verb = "created" if is_new_lot else "found existing"
+                logger.info(f"Receive committed: {lot_code} ({lot_verb}) - {total_lb} lb of {product['name']}")
+
                 return {
                     "success": True,
                     "transaction_id": txn_id,
                     "confirmation_code": generate_confirmation_code(txn_id),
                     "lot_id": lot_id,
                     "lot_code": lot_code,
+                    "lot_is_new": is_new_lot,
                     "total_lb": total_lb,
                     "receipt_text": receipt,
-                    "message": f"Received {total_lb} lb as lot {lot_code}"
+                    "message": f"Received {total_lb} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
                 }
     except HTTPException:
         raise
@@ -1729,13 +1834,14 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 manual_excluded_ids = set(req.excluded_ingredients or [])
                 auto_excluded_ids = set()
 
+                # Lot Identity Policy: honor physical lot code if provided
                 if req.lot_code:
                     lot_code = req.lot_code
                 else:
                     date_part = now.strftime("%y-%m%d")
                     cur.execute("""
-                        SELECT lot_code FROM lots 
-                        WHERE lot_code LIKE %s 
+                        SELECT lot_code FROM lots
+                        WHERE lot_code LIKE %s
                         ORDER BY lot_code DESC LIMIT 1
                     """, (f"B{date_part}-%",))
                     existing = cur.fetchone()
@@ -1748,13 +1854,8 @@ def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     else:
                         seq = 1
                     lot_code = f"B{date_part}-{seq:03d}"
-                
-                cur.execute("""
-                    INSERT INTO lots (product_id, lot_code, entry_source)
-                    VALUES (%s, %s, 'production_output')
-                    RETURNING id
-                """, (product['id'], lot_code))
-                output_lot_id = cur.fetchone()['id']
+
+                output_lot_id, is_new_lot = find_or_create_lot(cur, product['id'], lot_code, 'production_output')
                 
                 cur.execute("""
                     SELECT bf.ingredient_product_id, bf.quantity_lb,
@@ -2190,13 +2291,8 @@ def pack_commit(req: PackRequest, _: bool = Depends(verify_api_key)):
                 else:
                     output_lot_code = alloc_plan[0][0]['lot_code']
 
-                # Create the output lot for the finished good
-                cur.execute("""
-                    INSERT INTO lots (product_id, lot_code, entry_source)
-                    VALUES (%s, %s, 'pack_output')
-                    RETURNING id
-                """, (target['id'], output_lot_code))
-                output_lot_id = cur.fetchone()['id']
+                # Lot Identity Policy: find-or-create output lot for the finished good
+                output_lot_id, is_new_lot = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
 
                 # Create the pack transaction
                 source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
@@ -2778,32 +2874,33 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                     raise HTTPException(status_code=404, detail=f"Product ID {req.product_id} not found")
                 
                 cur.execute("SELECT pg_advisory_xact_lock(2)")
-                
+
                 now = get_plant_now()
-                date_part = now.strftime("%y-%m-%d")
-                
-                cur.execute("""
-                    SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1
-                """, (f"{date_part}-FOUND-%",))
-                existing = cur.fetchone()
-                
-                if existing:
-                    try:
-                        last_seq = int(existing['lot_code'].split('-')[-1])
-                        seq = last_seq + 1
-                    except (ValueError, IndexError):
-                        seq = 1
+
+                # Lot Identity Policy: honor physical lot code if provided
+                if req.lot_code:
+                    lot_code = req.lot_code
                 else:
-                    seq = 1
-                
-                lot_code = f"{date_part}-FOUND-{seq:03d}"
-                
-                cur.execute("""
-                    INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, entry_source_notes_es, found_location, estimated_age)
-                    VALUES (%s, %s, 'found_inventory', %s, %s, %s, %s)
-                    RETURNING id
-                """, (req.product_id, lot_code, req.notes, req.notes_es, req.found_location, req.estimated_age))
-                lot_id = cur.fetchone()['id']
+                    date_part = now.strftime("%y-%m-%d")
+                    cur.execute("""
+                        SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1
+                    """, (f"{date_part}-FOUND-%",))
+                    existing = cur.fetchone()
+                    if existing:
+                        try:
+                            last_seq = int(existing['lot_code'].split('-')[-1])
+                            seq = last_seq + 1
+                        except (ValueError, IndexError):
+                            seq = 1
+                    else:
+                        seq = 1
+                    lot_code = f"{date_part}-FOUND-{seq:03d}"
+
+                lot_id, is_new_lot = find_or_create_lot(
+                    cur, req.product_id, lot_code, 'found_inventory',
+                    entry_source_notes=req.notes, entry_source_notes_es=req.notes_es,
+                    found_location=req.found_location, estimated_age=req.estimated_age
+                )
 
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, notes)
@@ -2873,21 +2970,24 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 product = cur.fetchone()
                 
                 cur.execute("SELECT pg_advisory_xact_lock(2)")
-                
+
                 now = get_plant_now()
-                date_part = now.strftime("%y-%m-%d")
-                
-                cur.execute("SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1", (f"{date_part}-FOUND-%",))
-                existing_lot = cur.fetchone()
-                seq = (int(existing_lot['lot_code'].split('-')[-1]) + 1) if existing_lot else 1
-                lot_code = f"{date_part}-FOUND-{seq:03d}"
-                
-                cur.execute("""
-                    INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, entry_source_notes_es, found_location, estimated_age)
-                    VALUES (%s, %s, 'found_inventory', %s, %s, %s, %s)
-                    RETURNING id
-                """, (product['id'], lot_code, req.notes, req.notes_es, req.found_location, req.estimated_age))
-                lot_id = cur.fetchone()['id']
+
+                # Lot Identity Policy: honor physical lot code if provided
+                if req.lot_code:
+                    lot_code = req.lot_code
+                else:
+                    date_part = now.strftime("%y-%m-%d")
+                    cur.execute("SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1", (f"{date_part}-FOUND-%",))
+                    existing_lot = cur.fetchone()
+                    seq = (int(existing_lot['lot_code'].split('-')[-1]) + 1) if existing_lot else 1
+                    lot_code = f"{date_part}-FOUND-{seq:03d}"
+
+                lot_id, is_new_lot = find_or_create_lot(
+                    cur, product['id'], lot_code, 'found_inventory',
+                    entry_source_notes=req.notes, entry_source_notes_es=req.notes_es,
+                    found_location=req.found_location, estimated_age=req.estimated_age
+                )
                 
                 cur.execute("""
                     INSERT INTO transactions (type, timestamp, notes)
@@ -5417,6 +5517,163 @@ def admin_sql_query(req: AdminSQLQuery, _: bool = Depends(verify_api_key)):
             rows = cur.fetchall()
         return {"count": len(rows), "rows": [dict(r) for r in rows]}
     except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# LOT TRACEABILITY — Duplicate Scanner & Merge
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/admin/lots/duplicates")
+def scan_lot_duplicates(_: bool = Depends(verify_api_key)):
+    """Scan for duplicate (product_id, lot_code) pairs across the lots table.
+    Returns grouped results for review before merging."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT p.name AS product_name, p.id AS product_id, l.lot_code,
+                       COUNT(*) AS duplicate_count,
+                       ARRAY_AGG(l.id ORDER BY l.created_at) AS lot_ids,
+                       ARRAY_AGG(l.created_at ORDER BY l.created_at) AS created_dates
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                WHERE l.lot_code IS NOT NULL
+                  AND COALESCE(l.status, 'active') = 'active'
+                GROUP BY p.id, p.name, l.lot_code
+                HAVING COUNT(*) > 1
+                ORDER BY COUNT(*) DESC
+            """)
+            rows = cur.fetchall()
+
+            groups = []
+            for r in rows:
+                groups.append({
+                    "product_name": r['product_name'],
+                    "product_id": r['product_id'],
+                    "lot_code": r['lot_code'],
+                    "duplicate_count": r['duplicate_count'],
+                    "lot_ids": r['lot_ids'],
+                    "created_dates": [str(d) for d in r['created_dates']]
+                })
+
+            return {
+                "duplicate_groups": groups,
+                "total_groups": len(groups)
+            }
+    except Exception as e:
+        logger.error(f"Scan lot duplicates failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+class LotMergeRequest(BaseModel):
+    source_lot_id: int
+    target_lot_id: int
+    reason: str
+
+
+@app.post("/admin/lots/merge")
+def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
+    """Merge source lot into target lot. Moves all transaction_lines and
+    ingredient_lot_consumption references, marks source as merged.
+    Both lots must belong to the same product."""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # 1. Validate both lots exist
+                cur.execute("SELECT id, product_id, lot_code, status FROM lots WHERE id = %s", (req.source_lot_id,))
+                source = cur.fetchone()
+                if not source:
+                    raise HTTPException(404, f"Source lot ID {req.source_lot_id} not found")
+
+                cur.execute("SELECT id, product_id, lot_code, status FROM lots WHERE id = %s", (req.target_lot_id,))
+                target = cur.fetchone()
+                if not target:
+                    raise HTTPException(404, f"Target lot ID {req.target_lot_id} not found")
+
+                # 2. Validate neither is already merged
+                if source.get('status') == 'merged':
+                    raise HTTPException(400,
+                        f"Source lot {source['lot_code']} (id={req.source_lot_id}) is already merged. "
+                        f"Cannot merge an already-merged lot."
+                    )
+                if target.get('status') == 'merged':
+                    raise HTTPException(400,
+                        f"Target lot {target['lot_code']} (id={req.target_lot_id}) is already merged. "
+                        f"Cannot merge into an already-merged lot."
+                    )
+
+                # 3. Validate same product
+                if source['product_id'] != target['product_id']:
+                    raise HTTPException(400,
+                        f"Cannot merge lots from different products. "
+                        f"Source lot {source['lot_code']} is product_id={source['product_id']}, "
+                        f"target lot {target['lot_code']} is product_id={target['product_id']}."
+                    )
+
+                # 4. Lock both lots within transaction
+                cur.execute(
+                    "SELECT id FROM lots WHERE id IN (%s, %s) ORDER BY id FOR UPDATE",
+                    (req.source_lot_id, req.target_lot_id)
+                )
+
+                rows_moved = {}
+
+                # 5. Move transaction_lines
+                cur.execute(
+                    "UPDATE transaction_lines SET lot_id = %s WHERE lot_id = %s",
+                    (req.target_lot_id, req.source_lot_id)
+                )
+                rows_moved["transaction_lines"] = cur.rowcount
+
+                # Move ingredient_lot_consumption
+                cur.execute(
+                    "UPDATE ingredient_lot_consumption SET ingredient_lot_id = %s WHERE ingredient_lot_id = %s",
+                    (req.target_lot_id, req.source_lot_id)
+                )
+                rows_moved["ingredient_lot_consumption"] = cur.rowcount
+
+                # 6. Mark source lot as merged
+                now = get_plant_now()
+                cur.execute("""
+                    UPDATE lots
+                    SET status = 'merged',
+                        merged_into_lot_id = %s,
+                        merged_at = %s,
+                        merge_reason = %s
+                    WHERE id = %s
+                """, (req.target_lot_id, now, req.reason, req.source_lot_id))
+
+                # 7. Recalculate target lot balance from ledger
+                cur.execute("""
+                    SELECT COALESCE(SUM(quantity_lb), 0) AS computed_balance
+                    FROM transaction_lines
+                    WHERE lot_id = %s
+                """, (req.target_lot_id,))
+                computed_balance = float(cur.fetchone()['computed_balance'])
+
+                total_rows = sum(rows_moved.values())
+                logger.info(
+                    f"Lot merge: {source['lot_code']} (id={req.source_lot_id}) → "
+                    f"{target['lot_code']} (id={req.target_lot_id}). "
+                    f"Moved {total_rows} rows. Balance: {computed_balance} lb. "
+                    f"Reason: {req.reason}"
+                )
+
+                return {
+                    "merged": True,
+                    "source_lot_id": req.source_lot_id,
+                    "source_lot_code": source['lot_code'],
+                    "target_lot_id": req.target_lot_id,
+                    "target_lot_code": target['lot_code'],
+                    "product_id": source['product_id'],
+                    "rows_moved": rows_moved,
+                    "target_lot_new_balance": computed_balance,
+                    "audit_note": req.reason
+                }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Lot merge failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
