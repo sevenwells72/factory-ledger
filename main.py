@@ -4843,7 +4843,7 @@ def dashboard_api_search(q: str = Query(min_length=1)):
         with get_transaction() as cur:
             # Products
             cur.execute("""
-                SELECT p.name, p.type, p.odoo_code,
+                SELECT p.id as product_id, p.name, p.type, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
@@ -4876,7 +4876,7 @@ def dashboard_api_search(q: str = Query(min_length=1)):
 
             # Sales orders
             cur.execute("""
-                SELECT so.order_number, c.name as customer, so.status,
+                SELECT so.id as order_id, so.order_number, c.name as customer, so.status,
                        so.order_date
                 FROM sales_orders so
                 JOIN customers c ON c.id = so.customer_id
