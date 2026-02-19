@@ -632,7 +632,7 @@
       hasResults = true;
       html += '<div class="search-category">Products</div>';
       for (const p of data.products) {
-        html += `<div class="search-item">${escHtml(p.name)} <span class="si-sub">${escHtml(p.type)} | ${fmt(p.on_hand_lbs)} lb</span></div>`;
+        html += `<div class="search-item" data-search-product="${escHtml(p.name)}"><span class="lot-link">${escHtml(p.name)}</span> <span class="si-sub">${escHtml(p.type)} | ${fmt(p.on_hand_lbs)} lb</span></div>`;
       }
     }
     if (data.lots && data.lots.length > 0) {
@@ -646,14 +646,14 @@
       hasResults = true;
       html += '<div class="search-category">Sales Orders</div>';
       for (const o of data.orders) {
-        html += `<div class="search-item">${escHtml(o.order_number)} <span class="si-sub">${escHtml(o.customer)} | ${escHtml(o.status)}</span></div>`;
+        html += `<div class="search-item" data-search-order="${o.order_id}"><span class="lot-link">${escHtml(o.order_number)}</span> <span class="si-sub">${escHtml(o.customer)} | ${escHtml(o.status)}</span></div>`;
       }
     }
     if (data.customers && data.customers.length > 0) {
       hasResults = true;
       html += '<div class="search-category">Customers</div>';
       for (const c of data.customers) {
-        html += `<div class="search-item">${escHtml(c.name)} <span class="si-sub">${escHtml(c.contact_name || '')} ${escHtml(c.email || '')}</span></div>`;
+        html += `<div class="search-item" data-search-customer="${escHtml(c.name)}"><span class="lot-link">${escHtml(c.name)}</span> <span class="si-sub">${escHtml(c.contact_name || '')} ${escHtml(c.email || '')}</span></div>`;
       }
     }
 
@@ -669,6 +669,50 @@
       el.addEventListener('click', () => {
         openLotPanel(el.dataset.searchLot);
         dropdown.classList.add('hidden');
+      });
+    });
+
+    // Bind product clicks – search for the product name to show its lots
+    dropdown.querySelectorAll('[data-search-product]').forEach(el => {
+      el.addEventListener('click', () => {
+        const name = el.dataset.searchProduct;
+        const searchInput = document.getElementById('global-search');
+        searchInput.value = name;
+        dropdown.classList.add('hidden');
+        performSearch(name);
+      });
+    });
+
+    // Bind order clicks – switch to orders tab and open detail
+    dropdown.querySelectorAll('[data-search-order]').forEach(el => {
+      el.addEventListener('click', () => {
+        const orderId = el.dataset.searchOrder;
+        dropdown.classList.add('hidden');
+        document.getElementById('global-search').value = '';
+        // Switch to orders tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'orders'));
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-orders'));
+        state.currentTab = 'orders';
+        openOrderDetail(parseInt(orderId));
+      });
+    });
+
+    // Bind customer clicks – switch to orders tab and search by customer
+    dropdown.querySelectorAll('[data-search-customer]').forEach(el => {
+      el.addEventListener('click', () => {
+        const name = el.dataset.searchCustomer;
+        dropdown.classList.add('hidden');
+        document.getElementById('global-search').value = '';
+        // Switch to orders tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'orders'));
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-orders'));
+        state.currentTab = 'orders';
+        // If there's a customer filter on the orders tab, use it; otherwise just switch
+        const custFilter = document.getElementById('orders-customer-filter');
+        if (custFilter) {
+          custFilter.value = name;
+          custFilter.dispatchEvent(new Event('change'));
+        }
       });
     });
   }
