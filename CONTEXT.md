@@ -19,13 +19,13 @@ Factory Ledger is a **manufacturing inventory management and production scheduli
 
 ```
 factory-ledger/
-├── main.py                       # ALL backend logic (6,624 lines, single-file FastAPI app)
+├── main.py                       # ALL backend logic (6,927 lines, single-file FastAPI app)
 ├── requirements.txt              # Python dependencies
 ├── runtime.txt                   # Python 3.11.7
 ├── dashboard/
 │   ├── index.html                # Dashboard HTML (tabs: Operations, Activity, Notes, Sales Orders)
-│   ├── dashboard.js              # Vanilla JS dashboard app (1,293 lines, no framework)
-│   ├── dashboard.css             # Dark/light theme CSS (1,137 lines)
+│   ├── dashboard.js              # Vanilla JS dashboard app (1,404 lines, no framework)
+│   ├── dashboard.css             # Dark/light theme CSS (1,136 lines)
 │   └── dashboard_config.json     # SKU panel definitions, batch sizes, ingredient categories
 ├── migrations/
 │   ├── 003_notes_todos_reminders.sql
@@ -170,7 +170,7 @@ Inventory is **ledger-based** (not snapshot-based). Current stock = SUM of all `
 
 **FIFO allocation:** When shipping or packing, the system allocates from the oldest lots first (ORDER BY lot.id ASC). Multi-lot shipments split across lots in FIFO order. Row-level locking (`SELECT ... FOR UPDATE`) prevents race conditions.
 
-### Startup Migrations (7 total, run automatically)
+### Startup Migrations (8 total, run automatically)
 
 1. **label_type column** — Adds `label_type` to products, flags private-label SKUs by odoo_code and name patterns ('Batch BS %', 'Batch Setton %')
 2. **exclude_from_inventory** — Adds to batch_formulas, auto-flags Water entries
@@ -178,10 +178,11 @@ Inventory is **ledger-based** (not snapshot-based). Current stock = SUM of all `
 4. **case_size_lb** — Adds to products, auto-populates from product names (25 LB → 25, 10 LB → 10, 50 LB → 50)
 5. **Legacy order status** — Migrates 'new' orders to 'confirmed'
 6. (Plus migration files 003 and 004 for notes and scheduling tables)
+7. **Lot merge columns** — Adds `status`, `merged_into_lot_id`, `merged_at`, `merge_reason` to lots table
 
 ---
 
-## API Endpoints (~77 routes)
+## API Endpoints (~85 routes)
 
 All routes require `X-API-Key` header except `/dashboard/api/*` endpoints (read-only, no auth).
 
@@ -631,6 +632,10 @@ Dashboard fetches from `/dashboard/api/*` endpoints (no auth) for local data. Sa
 ## Recent Development History
 
 ```
+57ac547 Add odoo_code to admin product update endpoint
+0efce35 Fix search click: open product detail panel with lots list
+bd4a9a9 Add click handlers for all search result types
+5d5c34a v2.5.0: Lot traceability fix — canonical lot identity + find-or-create
 4a89c1b Consolidate scheduling into single POST /schedule endpoint
 6f6617c Merge multi-lot FIFO into /ship/commit, remove /ship/multi-lot/* endpoints
 473dcf4 Add production-scheduling to features list

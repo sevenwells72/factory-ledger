@@ -265,6 +265,30 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 008 warning (non-fatal): {e}")
 
+    # Migration 009: Reclassify internal packing transactions
+    # Before /pack/commit existed, internal packing was done via /ship/commit
+    # with customer_name='Internal Packaging'. Fix those to type='pack'.
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE transactions
+                    SET type = 'pack'
+                    WHERE type = 'ship'
+                      AND LOWER(COALESCE(customer_name, '')) = 'internal packaging'
+                """)
+                updated = cur.rowcount
+                conn.commit()
+                if updated > 0:
+                    logger.info(f"Migration 009: reclassified {updated} internal packaging transactions from 'ship' to 'pack'")
+                else:
+                    logger.info("Migration 009: no internal packaging transactions to reclassify")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 009 warning (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -4785,6 +4809,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 JOIN products p ON p.id = tl.product_id
                 LEFT JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'ship'
+                  AND LOWER(COALESCE(t.customer_name, '')) != 'internal packaging'
                 GROUP BY t.id
                 ORDER BY t.timestamp DESC
                 LIMIT %s
