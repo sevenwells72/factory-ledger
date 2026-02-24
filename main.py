@@ -289,6 +289,30 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 009 warning (non-fatal): {e}")
 
+    # Migration 010: Customer aliases table
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS customer_aliases (
+                        id SERIAL PRIMARY KEY,
+                        customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+                        alias TEXT NOT NULL,
+                        created_at TIMESTAMPTZ DEFAULT now()
+                    )
+                """)
+                cur.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_aliases_lower_alias
+                        ON customer_aliases (LOWER(alias))
+                """)
+                conn.commit()
+                logger.info("Migration 010: customer_aliases table up to date")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 010 warning (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -457,6 +481,8 @@ class ShipRequest(BaseModel):
     customer_name: str
     order_reference: str
     lot_code: Optional[str] = None
+    force_standalone: bool = False
+    force_create_customer: bool = False
 
 class MakeRequest(BaseModel):
     product_name: str
@@ -639,6 +665,7 @@ class CustomerUpdate(BaseModel):
     notes: Optional[str] = None
     notes_es: Optional[str] = None
     active: Optional[bool] = None
+    aliases: Optional[List[str]] = None
 
 class OrderLineInput(BaseModel):
     product_name: str
@@ -821,27 +848,87 @@ def get_sibling_skus(cur, product_id: int) -> list:
     return [dict(r) for r in cur.fetchall()]
 
 
-def resolve_customer_id(cur, customer_name: str, auto_create: bool = True) -> tuple:
-    """Find or create customer by name. Returns (customer_id, customer_name)."""
+def resolve_customer_id(cur, customer_name: str, auto_create: bool = True, force_create: bool = False) -> tuple:
+    """Find or create customer by name/alias. Returns (customer_id, canonical_name).
+
+    Resolution order:
+    1. Exact match on canonical name
+    2. Exact match on alias
+    3. Fuzzy LIKE across names + aliases → single match returns, multiple → 409
+    4. No match → first-word prefix check before auto-create → if close, 409
+    """
+    # Step 1: Exact match on canonical name
     cur.execute(
-        "SELECT id, name FROM customers WHERE LOWER(name) = LOWER(%s)",
+        "SELECT id, name FROM customers WHERE LOWER(name) = LOWER(%s) AND active = true",
         (customer_name,)
     )
     row = cur.fetchone()
     if row:
         return row['id'], row['name']
-    # Try fuzzy
+
+    # Step 2: Exact match on alias
     cur.execute(
-        "SELECT id, name FROM customers WHERE LOWER(name) LIKE LOWER(%s) AND active = true ORDER BY name LIMIT 5",
-        (f"%{customer_name}%",)
+        """SELECT c.id, c.name FROM customers c
+           JOIN customer_aliases ca ON ca.customer_id = c.id
+           WHERE LOWER(ca.alias) = LOWER(%s) AND c.active = true""",
+        (customer_name,)
+    )
+    row = cur.fetchone()
+    if row:
+        return row['id'], row['name']
+
+    # Step 3: Fuzzy match across canonical names AND aliases
+    cur.execute(
+        """SELECT DISTINCT c.id, c.name FROM customers c
+           LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
+           WHERE c.active = true
+             AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))
+           ORDER BY c.name LIMIT 5""",
+        (f"%{customer_name}%", f"%{customer_name}%")
     )
     rows = cur.fetchall()
     if len(rows) == 1:
         return rows[0]['id'], rows[0]['name']
     elif len(rows) > 1:
-        suggestions = [r['name'] for r in rows]
-        raise HTTPException(400, f"Multiple customers match '{customer_name}': {suggestions}")
-    if auto_create:
+        suggestions = [{"customer_id": r['id'], "name": r['name']} for r in rows]
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error_code": "CUSTOMER_AMBIGUOUS",
+                "message": f"Multiple customers match '{customer_name}'. Please use the exact canonical name.",
+                "input": customer_name,
+                "suggestions": suggestions,
+                "hint": "Set force_create_customer=true to create a new customer, or use an existing name from suggestions."
+            }
+        )
+
+    # Step 4: No match — check for first-word/prefix collisions before auto-create
+    if not force_create:
+        first_word = customer_name.strip().split()[0] if customer_name.strip() else ""
+        if first_word and len(first_word) >= 3:
+            cur.execute(
+                """SELECT DISTINCT c.id, c.name FROM customers c
+                   LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
+                   WHERE c.active = true
+                     AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))
+                   LIMIT 5""",
+                (f"{first_word}%", f"{first_word}%")
+            )
+            prefix_rows = cur.fetchall()
+            if prefix_rows:
+                suggestions = [{"customer_id": r['id'], "name": r['name']} for r in prefix_rows]
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error_code": "CUSTOMER_AMBIGUOUS",
+                        "message": f"No exact match for '{customer_name}', but similar customers exist. Did you mean one of these?",
+                        "input": customer_name,
+                        "suggestions": suggestions,
+                        "hint": "Set force_create_customer=true to create a new customer, or use an existing name from suggestions."
+                    }
+                )
+
+    if auto_create or force_create:
         cur.execute(
             "INSERT INTO customers (name) VALUES (%s) RETURNING id, name",
             (customer_name,)
@@ -1336,6 +1423,69 @@ def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
 # SHIP ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+
+def check_open_orders_for_ship(cur, customer_id: int, customer_name: str) -> dict | None:
+    """Check if a customer has open sales order lines with remaining quantity.
+    Returns a structured payload dict suitable for 409 responses, or None if no open orders.
+    Uses customer_id (not fuzzy name LIKE) for reliable matching.
+    """
+    cur.execute("""
+        SELECT so.id AS order_id, so.order_number, so.status, so.requested_ship_date,
+               sol.id AS line_id, sol.product_id,
+               p.name AS product_name,
+               sol.quantity_lb - sol.quantity_shipped_lb AS remaining_lb
+        FROM sales_orders so
+        JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+        JOIN products p ON p.id = sol.product_id
+        WHERE so.customer_id = %s
+          AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
+          AND sol.line_status NOT IN ('fulfilled', 'cancelled')
+          AND sol.quantity_lb - sol.quantity_shipped_lb > 0
+        ORDER BY so.requested_ship_date ASC NULLS LAST, so.id ASC
+    """, (customer_id,))
+    matches = cur.fetchall()
+
+    if not matches:
+        return None
+
+    # Group by order
+    orders = {}
+    for m in matches:
+        oid = m['order_id']
+        if oid not in orders:
+            orders[oid] = {
+                "order_id": oid,
+                "order_number": m['order_number'],
+                "status": m['status'],
+                "requested_ship_date": str(m['requested_ship_date']) if m['requested_ship_date'] else None,
+                "lines": [],
+                "use_instead": {
+                    "method": "POST",
+                    "url": f"/sales/orders/{oid}/ship/commit"
+                }
+            }
+        orders[oid]["lines"].append({
+            "line_id": m['line_id'],
+            "product_name": m['product_name'],
+            "remaining_lb": float(m['remaining_lb'])
+        })
+
+    total_remaining = sum(float(m['remaining_lb']) for m in matches)
+    orders_list = list(orders.values())
+    order_nums = ", ".join(o['order_number'] for o in orders_list)
+
+    return {
+        "error_code": "OPEN_SALES_ORDER_EXISTS",
+        "message": (
+            f"Standalone ship blocked: '{customer_name}' has {len(orders_list)} open sales order(s) "
+            f"({order_nums}) with {total_remaining:,.0f} lb remaining. "
+            f"Use the order ship endpoint instead, or set force_standalone=true to bypass."
+        ),
+        "open_orders": orders_list,
+        "note": "No inventory was moved."
+    }
+
+
 @app.post("/ship/preview")
 def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
     try:
@@ -1397,39 +1547,26 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
                 preview_msg = (f"Will ship {req.quantity_lb} lb of {product['name']} "
                                f"from {len(allocations)} lot(s) (auto multi-lot FIFO)")
 
-            # Check for open sales orders from this customer
+            # Resolve customer for open-order check (no auto-create in preview)
             open_orders_warning = None
-            cur.execute("""
-                SELECT so.order_number, so.status,
-                       SUM(sol.quantity_lb - sol.quantity_shipped_lb) as remaining_lb
-                FROM sales_orders so
-                JOIN sales_order_lines sol ON sol.sales_order_id = so.id
-                WHERE so.customer_id IN (
-                    SELECT id FROM customers WHERE LOWER(name) LIKE LOWER(%s)
-                )
-                AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
-                AND sol.line_status NOT IN ('fulfilled', 'cancelled')
-                GROUP BY so.id, so.order_number, so.status
-                HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
-            """, (f"%{req.customer_name}%",))
-            open_orders = cur.fetchall()
+            try:
+                cust_id, cust_canonical = resolve_customer_id(cur, req.customer_name, auto_create=False)
+            except HTTPException as e:
+                if e.status_code == 409:
+                    raise  # Pass through CUSTOMER_AMBIGUOUS
+                cust_id, cust_canonical = None, req.customer_name
 
-            if open_orders:
-                order_list = "; ".join([
-                    f"{o['order_number']} ({o['status']}, {o['remaining_lb']:,.0f} lb remaining)"
-                    for o in open_orders
-                ])
-                open_orders_warning = (
-                    f"⚠️ WARNING: {req.customer_name} has open sales order(s): {order_list}. "
-                    f"Consider using shipOrderPreview to ship against the order instead."
-                )
+            if cust_id and not req.force_standalone:
+                oo_payload = check_open_orders_for_ship(cur, cust_id, cust_canonical)
+                if oo_payload:
+                    open_orders_warning = oo_payload
 
             return {
                 "product_id": product['id'],
                 "product_name": product['name'],
                 "odoo_code": product['odoo_code'],
                 "quantity_lb": req.quantity_lb,
-                "customer_name": req.customer_name,
+                "customer_name": cust_canonical,
                 "order_reference": req.order_reference,
                 "ship_mode": ship_mode,
                 "allocations": allocations,
@@ -1450,6 +1587,19 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 product = resolve_product_full(cur, req.product_name)
+
+                # ── Customer resolution — MUST happen before inventory movement ──
+                customer_id, canonical_customer = resolve_customer_id(
+                    cur, req.customer_name,
+                    auto_create=True,
+                    force_create=req.force_create_customer
+                )
+
+                # ── Open-order guard (409 hard block) ──
+                if not req.force_standalone:
+                    oo_payload = check_open_orders_for_ship(cur, customer_id, canonical_customer)
+                    if oo_payload:
+                        raise HTTPException(status_code=409, detail=oo_payload)
 
                 # ── Gather candidate lots (FIFO by lot id) ──
                 if req.lot_code:
@@ -1511,7 +1661,7 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     cur.execute("""
                         INSERT INTO transactions (type, timestamp, customer_name, order_reference)
                         VALUES ('ship', %s, %s, %s) RETURNING id
-                    """, (now, req.customer_name, req.order_reference))
+                    """, (now, canonical_customer, req.order_reference))
                     txn_id = cur.fetchone()['id']
 
                     cur.execute("""
@@ -1553,7 +1703,7 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     cur.execute("""
                         INSERT INTO transactions (type, timestamp, customer_name, order_reference)
                         VALUES ('ship', %s, %s, %s) RETURNING id
-                    """, (now, req.customer_name, req.order_reference))
+                    """, (now, canonical_customer, req.order_reference))
                     txn_id = cur.fetchone()['id']
 
                     shipped_lots = []
@@ -1573,34 +1723,7 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     ship_mode = "multi_lot_fifo"
                     log_msg = f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s) (auto multi-lot FIFO)."
 
-                # ── Open-orders warning (shared by both paths) ──
-                open_orders_warning = None
-                cur.execute("""
-                    SELECT so.order_number, so.status,
-                           SUM(sol.quantity_lb - sol.quantity_shipped_lb) as remaining_lb
-                    FROM sales_orders so
-                    JOIN sales_order_lines sol ON sol.sales_order_id = so.id
-                    WHERE so.customer_id IN (
-                        SELECT id FROM customers WHERE LOWER(name) LIKE LOWER(%s)
-                    )
-                    AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
-                    AND sol.line_status NOT IN ('fulfilled', 'cancelled')
-                    GROUP BY so.id, so.order_number, so.status
-                    HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
-                """, (f"%{req.customer_name}%",))
-                open_orders = cur.fetchall()
-
-                if open_orders:
-                    order_list = "; ".join([
-                        f"{o['order_number']} ({o['status']}, {o['remaining_lb']:,.0f} lb remaining)"
-                        for o in open_orders
-                    ])
-                    open_orders_warning = (
-                        f"⚠️ WARNING: {req.customer_name} has open sales order(s): {order_list}. "
-                        f"This shipment was standalone and NOT applied to the order."
-                    )
-
-                logger.info(f"Ship committed: {req.quantity_lb} lb of {product['name']} to {req.customer_name} ({ship_mode})")
+                logger.info(f"Ship committed: {req.quantity_lb} lb of {product['name']} to {canonical_customer} ({ship_mode})")
 
                 return {
                     "success": True,
@@ -1610,7 +1733,7 @@ def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     "ship_mode": ship_mode,
                     "lots_used": shipped_lots,
                     "remaining_in_lot": remaining,
-                    "open_orders_warning": open_orders_warning,
+                    "customer_name": canonical_customer,
                     "message": log_msg
                 }
     except HTTPException:
@@ -3291,22 +3414,59 @@ def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(ver
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                updates = req.dict(exclude_none=True)
-                if not updates:
+                # Separate aliases from customer table fields
+                aliases = req.aliases
+                updates = req.dict(exclude_none=True, exclude={'aliases'})
+
+                if not updates and aliases is None:
                     raise HTTPException(400, "No fields to update")
-                set_clause = ", ".join(f"{k} = %s" for k in updates)
-                values = list(updates.values()) + [customer_id]
+
+                # Update customer table fields
+                if updates:
+                    set_clause = ", ".join(f"{k} = %s" for k in updates)
+                    values = list(updates.values()) + [customer_id]
+                    cur.execute(
+                        f"UPDATE customers SET {set_clause} WHERE id = %s RETURNING id, name",
+                        values
+                    )
+                    row = cur.fetchone()
+                    if not row:
+                        raise HTTPException(404, "Customer not found")
+                else:
+                    cur.execute("SELECT id, name FROM customers WHERE id = %s", (customer_id,))
+                    row = cur.fetchone()
+                    if not row:
+                        raise HTTPException(404, "Customer not found")
+
+                # Handle aliases: clear and replace
+                if aliases is not None:
+                    cur.execute("DELETE FROM customer_aliases WHERE customer_id = %s", (customer_id,))
+                    for alias in aliases:
+                        alias_stripped = alias.strip()
+                        if alias_stripped:
+                            cur.execute(
+                                "INSERT INTO customer_aliases (customer_id, alias) VALUES (%s, %s)",
+                                (customer_id, alias_stripped)
+                            )
+
+                # Fetch current aliases for response
                 cur.execute(
-                    f"UPDATE customers SET {set_clause} WHERE id = %s RETURNING id, name",
-                    values
+                    "SELECT alias FROM customer_aliases WHERE customer_id = %s ORDER BY alias",
+                    (customer_id,)
                 )
-                row = cur.fetchone()
-                if not row:
-                    raise HTTPException(404, "Customer not found")
-                return {"customer_id": row['id'], "name": row['name'], "message": "Customer updated"}
+                current_aliases = [r['alias'] for r in cur.fetchall()]
+
+                return {
+                    "customer_id": row['id'],
+                    "name": row['name'],
+                    "aliases": current_aliases,
+                    "message": "Customer updated"
+                }
     except HTTPException:
         raise
     except Exception as e:
+        if "idx_customer_aliases_lower_alias" in str(e):
+            raise HTTPException(409, f"One of the aliases is already in use by another customer")
         logger.error(f"Update customer failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -4219,15 +4379,54 @@ def ship_order_commit(order_id: int, req: Optional[ShipOrderRequest] = None, _: 
                         if not r:
                             raise HTTPException(404, f"Line #{rl.line_id} not found on order #{order_id}")
                         remaining = float(r['quantity_lb']) - float(r['quantity_shipped_lb'])
-                        ship_qty = min(rl.quantity_lb, remaining)
-                        if ship_qty > 0:
-                            lines_to_ship.append({
-                                "line_id": r['id'], "product_id": r['product_id'],
-                                "quantity_lb": ship_qty, "product_name": r['name']
-                            })
+
+                        # Guard: line already fulfilled
+                        if remaining <= 0:
+                            raise HTTPException(
+                                status_code=409,
+                                detail={
+                                    "error_code": "LINE_ALREADY_FULFILLED",
+                                    "message": f"Line #{rl.line_id} ({r['name']}) is already fully shipped.",
+                                    "line_id": rl.line_id,
+                                    "product": r['name'],
+                                    "ordered_lb": float(r['quantity_lb']),
+                                    "shipped_lb": float(r['quantity_shipped_lb']),
+                                    "remaining_lb": 0
+                                }
+                            )
+
+                        # Guard: quantity exceeds remaining
+                        if rl.quantity_lb > remaining:
+                            raise HTTPException(
+                                status_code=422,
+                                detail={
+                                    "error_code": "QTY_EXCEEDS_REMAINING",
+                                    "message": f"Line #{rl.line_id} ({r['name']}): requested {rl.quantity_lb} lb but only {remaining} lb remaining.",
+                                    "line_id": rl.line_id,
+                                    "product": r['name'],
+                                    "requested_lb": rl.quantity_lb,
+                                    "remaining_lb": remaining,
+                                    "suggestion": f"Retry with quantity_lb={remaining}"
+                                }
+                            )
+
+                        ship_qty = rl.quantity_lb  # Safe — validated above
+                        lines_to_ship.append({
+                            "line_id": r['id'], "product_id": r['product_id'],
+                            "quantity_lb": ship_qty, "product_name": r['name']
+                        })
 
                 if not lines_to_ship:
-                    raise HTTPException(400, "Nothing to ship — all lines fulfilled or cancelled")
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "error_code": "ORDER_ALREADY_FULFILLED",
+                            "message": f"Order {order_row['order_number']} has no remaining lines to ship — all lines are fulfilled or cancelled.",
+                            "order_id": order_id,
+                            "order_number": order_row['order_number'],
+                            "status": order_row['status']
+                        }
+                    )
 
                 now = get_plant_now()
                 results = []

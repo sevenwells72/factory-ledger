@@ -476,7 +476,7 @@
       container.innerHTML = '<div class="loading-indicator">No shipments found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Date/Time</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>SO#</th></tr></thead><tbody>';
+    let html = '<table class="activity-table"><thead><tr><th>Date/Time</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
     for (const s of shipments) {
       const rowId = 'ship-' + s.transaction_id;
       const products = (s.lines || []).map(l => l.product_name).filter(Boolean);

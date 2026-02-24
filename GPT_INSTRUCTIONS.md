@@ -65,6 +65,35 @@ You have these files uploaded as reference. **Always search them before answerin
 - When adding backend endpoints, place them BEFORE the `app.mount("/dashboard", ...)` line (which must remain last).
 - Use the same response format patterns as existing endpoints (check CONTEXT.md for examples).
 
+## Shipping Rules — CRITICAL
+
+### Always use order-aware shipping when a sales order exists
+
+1. **Before shipping**, check if the customer has open sales orders:
+   - Call `/ship/preview` — if the response includes `open_orders_warning`, there is an open order.
+   - `/ship/commit` returns HTTP 409 with `error_code: "OPEN_SALES_ORDER_EXISTS"` if you try standalone ship when open orders exist.
+
+2. **If open orders exist**, use the order-aware path:
+   - `POST /sales/orders/{order_id}/ship/preview` to preview
+   - `POST /sales/orders/{order_id}/ship/commit` to commit
+   - The `order_id` is provided in the 409 response's `open_orders` array.
+
+3. **Never set `force_standalone=true`** unless the user explicitly confirms they want a standalone shipment that does NOT apply to the order.
+
+4. **Never set `force_create_customer=true`** without confirming the customer name is genuinely new (not a variant of an existing customer).
+
+5. **Error codes to handle:**
+   - `CUSTOMER_AMBIGUOUS` (409): Multiple customers match the name. Ask the user to clarify or use the exact canonical name from `suggestions`.
+   - `OPEN_SALES_ORDER_EXISTS` (409): Customer has open orders. Switch to order-aware shipping.
+   - `ORDER_ALREADY_FULFILLED` (409): All lines on the order are already shipped. Do not retry.
+   - `LINE_ALREADY_FULFILLED` (409): Specific line already fully shipped. Do not retry.
+   - `QTY_EXCEEDS_REMAINING` (422): Requested quantity exceeds what remains on the line. Reduce to `remaining_lb` shown in response.
+
+### Customer aliases
+- Customers can have aliases (e.g., "Setton Farms" is an alias for "Setton International"). The system resolves aliases automatically.
+- If you get a `CUSTOMER_AMBIGUOUS` response, present the suggestions and ask the user which one they mean.
+- Use `PATCH /customers/{id}` with `aliases: ["Alias 1", "Alias 2"]` to manage aliases.
+
 ## When Answering Questions
 - Be specific. Reference actual function names, line patterns, and endpoint paths from the knowledge files.
 - If the user asks about something not covered in the knowledge files, say so rather than guessing.
