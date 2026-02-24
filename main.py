@@ -306,8 +306,29 @@ async def startup():
                     CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_aliases_lower_alias
                         ON customer_aliases (LOWER(alias))
                 """)
+                # Seed known customer aliases
+                cur.execute("""
+                    INSERT INTO customer_aliases (customer_id, alias)
+                    SELECT c.id, alias_name
+                    FROM customers c,
+                         (VALUES ('Setton Farms', 'Setton International'),
+                                 ('Setton Farms', 'Setton Intl'),
+                                 ('QUALI-PACK USA', 'Quali-Pack'),
+                                 ('QUALI-PACK USA', 'Quali Pack'),
+                                 ('QUALI-PACK USA', 'QualiPack')
+                         ) AS seed(canonical, alias_name)
+                    WHERE LOWER(c.name) = LOWER(seed.canonical)
+                      AND NOT EXISTS (
+                          SELECT 1 FROM customer_aliases ca
+                          WHERE ca.customer_id = c.id AND LOWER(ca.alias) = LOWER(seed.alias_name)
+                      )
+                """)
+                seeded = cur.rowcount
                 conn.commit()
-                logger.info("Migration 010: customer_aliases table up to date")
+                if seeded > 0:
+                    logger.info(f"Migration 010: customer_aliases table up to date, seeded {seeded} alias(es)")
+                else:
+                    logger.info("Migration 010: customer_aliases table up to date")
         finally:
             db_pool.putconn(conn)
     except Exception as e:
@@ -1492,6 +1513,23 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
         with get_transaction() as cur:
             product = resolve_product_full(cur, req.product_name)
 
+            # ── Customer resolution + open-order check FIRST ──
+            # Must run before inventory check so the GPT sees the warning
+            # even when the product has zero stock.
+            open_orders_warning = None
+            try:
+                cust_id, cust_canonical = resolve_customer_id(cur, req.customer_name, auto_create=False)
+            except HTTPException as e:
+                if e.status_code == 409:
+                    raise  # Pass through CUSTOMER_AMBIGUOUS
+                cust_id, cust_canonical = None, req.customer_name
+
+            if cust_id and not req.force_standalone:
+                oo_payload = check_open_orders_for_ship(cur, cust_id, cust_canonical)
+                if oo_payload:
+                    open_orders_warning = oo_payload
+
+            # ── Inventory check ──
             cur.execute("""
                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                 FROM lots l
@@ -1504,6 +1542,15 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
             lots = cur.fetchall()
 
             if not lots:
+                # If open orders exist, return that info with the no-stock error
+                if open_orders_warning:
+                    raise HTTPException(status_code=409, detail={
+                        "error_code": "OPEN_SALES_ORDER_EXISTS",
+                        "message": f"No inventory for {product['name']}, AND {cust_canonical} has open sales orders. "
+                                   f"Use the order ship endpoint to check fulfillment feasibility.",
+                        "open_orders": open_orders_warning.get("open_orders", []),
+                        "note": "No inventory available for standalone shipping."
+                    })
                 raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
 
             total_available = sum(float(l['available']) for l in lots)
@@ -1546,20 +1593,6 @@ def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     remaining_need -= take
                 preview_msg = (f"Will ship {req.quantity_lb} lb of {product['name']} "
                                f"from {len(allocations)} lot(s) (auto multi-lot FIFO)")
-
-            # Resolve customer for open-order check (no auto-create in preview)
-            open_orders_warning = None
-            try:
-                cust_id, cust_canonical = resolve_customer_id(cur, req.customer_name, auto_create=False)
-            except HTTPException as e:
-                if e.status_code == 409:
-                    raise  # Pass through CUSTOMER_AMBIGUOUS
-                cust_id, cust_canonical = None, req.customer_name
-
-            if cust_id and not req.force_standalone:
-                oo_payload = check_open_orders_for_ship(cur, cust_id, cust_canonical)
-                if oo_payload:
-                    open_orders_warning = oo_payload
 
             return {
                 "product_id": product['id'],
@@ -3378,8 +3411,13 @@ def search_customers(q: str = Query(..., min_length=1), _: bool = Depends(verify
     try:
         with get_transaction() as cur:
             cur.execute(
-                "SELECT id, name, contact_name, phone, email FROM customers WHERE LOWER(name) LIKE LOWER(%s) AND active = true ORDER BY name",
-                (f"%{q}%",)
+                """SELECT DISTINCT c.id, c.name, c.contact_name, c.phone, c.email
+                   FROM customers c
+                   LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
+                   WHERE c.active = true
+                     AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))
+                   ORDER BY c.name""",
+                (f"%{q}%", f"%{q}%")
             )
             rows = cur.fetchall()
         return {"results": rows}
@@ -3622,6 +3660,7 @@ def list_sales_orders(
                 FROM sales_orders so
                 JOIN customers c ON c.id = so.customer_id
                 LEFT JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
                 WHERE 1=1
             """
             params = []
@@ -3632,7 +3671,8 @@ def list_sales_orders(
                     query += " AND so.status = %s"
                     params.append(status)
             if customer:
-                query += " AND LOWER(c.name) LIKE LOWER(%s)"
+                query += " AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))"
+                params.append(f"%{customer}%")
                 params.append(f"%{customer}%")
             if overdue_only:
                 query += " AND so.requested_ship_date < CURRENT_DATE AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')"
@@ -3703,10 +3743,11 @@ def fulfillment_check(
         with get_transaction() as cur:
             # Build dynamic query for orders
             query = """
-                SELECT so.id, so.order_number, so.status, so.requested_ship_date,
+                SELECT DISTINCT so.id, so.order_number, so.status, so.requested_ship_date,
                        c.name AS customer
                 FROM sales_orders so
                 JOIN customers c ON c.id = so.customer_id
+                LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
                 WHERE so.status IN %s
             """
             params: list = [OPEN_STATUSES]
@@ -3716,7 +3757,8 @@ def fulfillment_check(
                 params.append(order_id)
 
             if customer_name:
-                query += " AND LOWER(c.name) LIKE LOWER(%s)"
+                query += " AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))"
+                params.append(f"%{customer_name}%")
                 params.append(f"%{customer_name}%")
 
             if status:
@@ -5239,29 +5281,31 @@ def dashboard_api_search(q: str = Query(min_length=1)):
             for lt in results["lots"]:
                 lt["on_hand_lbs"] = float(lt["on_hand_lbs"])
 
-            # Sales orders
+            # Sales orders (also search by customer alias)
             cur.execute("""
-                SELECT so.id as order_id, so.order_number, c.name as customer, so.status,
+                SELECT DISTINCT so.id as order_id, so.order_number, c.name as customer, so.status,
                        so.order_date
                 FROM sales_orders so
                 JOIN customers c ON c.id = so.customer_id
-                WHERE so.order_number ILIKE %s OR c.name ILIKE %s
+                LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
+                WHERE so.order_number ILIKE %s OR c.name ILIKE %s OR ca.alias ILIKE %s
                 ORDER BY so.id DESC
                 LIMIT 20
-            """, (term, term))
+            """, (term, term, term))
             results["orders"] = [
                 {**dict(r), "order_date": str(r["order_date"]) if r["order_date"] else None}
                 for r in cur.fetchall()
             ]
 
-            # Customers
+            # Customers (also search by alias)
             cur.execute("""
-                SELECT name, contact_name, email, phone
-                FROM customers
-                WHERE name ILIKE %s AND active = true
-                ORDER BY name
+                SELECT DISTINCT c.name, c.contact_name, c.email, c.phone
+                FROM customers c
+                LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
+                WHERE (c.name ILIKE %s OR ca.alias ILIKE %s) AND c.active = true
+                ORDER BY c.name
                 LIMIT 20
-            """, (term,))
+            """, (term, term))
             results["customers"] = [dict(r) for r in cur.fetchall()]
 
         return results
