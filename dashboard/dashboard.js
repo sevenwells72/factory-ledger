@@ -309,7 +309,7 @@
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
           if (p.lots && p.lots.length > 0) {
             for (const lot of p.lots) {
-              html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}">${escHtml(lot.lot_code)}</span></td>`;
+              html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
               html += `<td class="num">${fmt(lot.on_hand_lbs)}</td><td></td></tr>`;
             }
           } else {
@@ -373,7 +373,7 @@
         html += `<tbody class="lot-breakdown" id="${rowId}">`;
         if (b.lots && b.lots.length > 0) {
           for (const lot of b.lots) {
-            html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}">${escHtml(lot.lot_code)}</span></td>`;
+            html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
             html += `<td class="num">${fmt(lot.on_hand_lbs)}</td><td></td></tr>`;
           }
         } else {
@@ -431,7 +431,7 @@
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
           if (item.lots && item.lots.length > 0) {
             for (const lot of item.lots) {
-              html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}">${escHtml(lot.lot_code)}</span></td>`;
+              html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
               html += `<td class="num">${fmt(lot.on_hand_lbs)}</td></tr>`;
             }
           } else {
@@ -556,7 +556,7 @@
   }
 
   // ── Lot Detail Panel ──
-  async function openLotPanel(lotCode) {
+  async function openLotPanel(lotCode, productId) {
     const overlay = document.getElementById('lot-panel-overlay');
     const body = document.getElementById('lot-panel-body');
     const title = document.getElementById('lot-panel-title');
@@ -564,7 +564,9 @@
     title.textContent = 'Lot: ' + lotCode;
     body.innerHTML = '<div class="loading-indicator">Loading lot detail...</div>';
     try {
-      const data = await fetchAPI('/lot/' + encodeURIComponent(lotCode));
+      let url = '/lot/' + encodeURIComponent(lotCode);
+      if (productId) url += '?product_id=' + encodeURIComponent(productId);
+      const data = await fetchAPI(url);
       renderLotPanel(data, body);
     } catch (e) {
       body.innerHTML = `<div class="error-msg">Failed to load lot: ${escHtml(e.message)}</div>`;
@@ -674,7 +676,7 @@
       // Bind lot clicks within product panel
       body.querySelectorAll('.product-lot-row').forEach(row => {
         row.addEventListener('click', () => {
-          openLotPanel(row.dataset.lotCode);
+          openLotPanel(row.dataset.lotCode, row.dataset.productId);
         });
       });
     } catch (e) {
@@ -820,7 +822,7 @@
     container.querySelectorAll('.lot-link[data-lot]').forEach(link => {
       link.addEventListener('click', (e) => {
         e.stopPropagation();
-        openLotPanel(link.dataset.lot);
+        openLotPanel(link.dataset.lot, link.dataset.productId);
       });
     });
   }

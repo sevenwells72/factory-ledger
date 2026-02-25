@@ -4841,7 +4841,8 @@ def dashboard_api_finished_goods():
                         lot_map[pid] = []
                     lot_map[pid].append({
                         "lot_code": lr['lot_code'],
-                        "on_hand_lbs": float(lr['on_hand_lbs'])
+                        "on_hand_lbs": float(lr['on_hand_lbs']),
+                        "product_id": pid
                     })
 
         result_panels = []
@@ -4925,7 +4926,8 @@ def dashboard_api_batches():
                         lot_map[pid] = []
                     lot_map[pid].append({
                         "lot_code": lr['lot_code'],
-                        "on_hand_lbs": float(lr['on_hand_lbs'])
+                        "on_hand_lbs": float(lr['on_hand_lbs']),
+                        "product_id": pid
                     })
 
         found_names = {r['name'].lower() for r in product_rows}
@@ -5000,7 +5002,8 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
                         lot_map[pid] = []
                     lot_map[pid].append({
                         "lot_code": lr['lot_code'],
-                        "on_hand_lbs": float(lr['on_hand_lbs'])
+                        "on_hand_lbs": float(lr['on_hand_lbs']),
+                        "product_id": pid
                     })
 
         result = []
@@ -5124,21 +5127,33 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
 
 
 @app.get("/dashboard/api/lot/{lot_code}")
-def dashboard_api_lot_detail(lot_code: str):
+def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(default=None)):
     """Lot detail with full transaction timeline."""
     try:
         with get_transaction() as cur:
-            # Lot info
-            cur.execute("""
-                SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                       l.entry_source, COALESCE(p.case_size_lb, p.case_size_lb) as product_case_size_lb,
-                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
-                FROM lots l
-                JOIN products p ON p.id = l.product_id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-                WHERE LOWER(l.lot_code) = LOWER(%s)
-                GROUP BY l.id, p.id
-            """, (lot_code,))
+            # Lot info — filter by product_id when provided (lot codes can be shared)
+            if product_id is not None:
+                cur.execute("""
+                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
+                           l.entry_source, p.case_size_lb as product_case_size_lb,
+                           COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                    FROM lots l
+                    JOIN products p ON p.id = l.product_id
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    WHERE LOWER(l.lot_code) = LOWER(%s) AND l.product_id = %s
+                    GROUP BY l.id, p.id
+                """, (lot_code, product_id))
+            else:
+                cur.execute("""
+                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
+                           l.entry_source, p.case_size_lb as product_case_size_lb,
+                           COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                    FROM lots l
+                    JOIN products p ON p.id = l.product_id
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    WHERE LOWER(l.lot_code) = LOWER(%s)
+                    GROUP BY l.id, p.id
+                """, (lot_code,))
             lot = cur.fetchone()
             if not lot:
                 raise HTTPException(404, f"Lot '{lot_code}' not found")
