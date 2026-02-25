@@ -334,6 +334,28 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 010 warning (non-fatal): {e}")
 
+    # Migration 011: Add default_case_weight_lb to products (rename from case_size_lb)
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    ALTER TABLE products
+                    ADD COLUMN IF NOT EXISTS default_case_weight_lb NUMERIC(10,2)
+                """)
+                # Backfill from case_size_lb where available
+                cur.execute("""
+                    UPDATE products
+                    SET default_case_weight_lb = case_size_lb
+                    WHERE case_size_lb IS NOT NULL AND default_case_weight_lb IS NULL
+                """)
+                conn.commit()
+                logger.info("Migration 011: default_case_weight_lb column up to date")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 011 warning (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -5131,7 +5153,7 @@ def dashboard_api_lot_detail(lot_code: str):
             # Lot info
             cur.execute("""
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                       l.entry_source, p.case_size_lb as product_case_size_lb,
+                       l.entry_source, p.default_case_weight_lb as product_case_size_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
