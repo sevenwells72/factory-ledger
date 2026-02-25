@@ -334,28 +334,6 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 010 warning (non-fatal): {e}")
 
-    # Migration 011: Add default_case_weight_lb to products (rename from case_size_lb)
-    try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    ALTER TABLE products
-                    ADD COLUMN IF NOT EXISTS default_case_weight_lb NUMERIC(10,2)
-                """)
-                # Backfill from case_size_lb where available
-                cur.execute("""
-                    UPDATE products
-                    SET default_case_weight_lb = case_size_lb
-                    WHERE case_size_lb IS NOT NULL AND default_case_weight_lb IS NULL
-                """)
-                conn.commit()
-                logger.info("Migration 011: default_case_weight_lb column up to date")
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"Migration 011 warning (non-fatal): {e}")
-
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -559,7 +537,7 @@ class PackRequest(BaseModel):
     source_product: str          # Batch product name or code (e.g., "Batch Classic Granola #9" or "90002")
     target_product: str          # Finished good name or code (e.g., "CQ Granola 10 LB" or "1614")
     cases: int
-    case_weight_lb: Optional[float] = None  # Override; defaults to target product's default_case_weight_lb
+    case_weight_lb: Optional[float] = None  # Override; defaults to target product's case_size_lb
     lot_allocations: Optional[List[PackLotAllocation]] = None  # Explicit lot splits; FIFO if omitted
     # Lot Identity Policy: If target_lot_code is provided, find-or-create by (product_id, lot_code).
     # Only auto-generate (inherit from batch lot) if target_lot_code is omitted.
@@ -818,7 +796,7 @@ def resolve_product_full(cur, product_name: str) -> dict:
     Used by receive/ship/make endpoints that need extra columns."""
     # Exact name match
     cur.execute(
-        """SELECT id, name, odoo_code, default_batch_lb, default_case_weight_lb,
+        """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
                        COALESCE(yield_multiplier, 1.0) as yield_multiplier
            FROM products WHERE LOWER(name) = LOWER(%s) AND COALESCE(active, true) = true""",
         (product_name,)
@@ -828,7 +806,7 @@ def resolve_product_full(cur, product_name: str) -> dict:
         return dict(row)
     # Exact odoo_code match
     cur.execute(
-        """SELECT id, name, odoo_code, default_batch_lb, default_case_weight_lb,
+        """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
                        COALESCE(yield_multiplier, 1.0) as yield_multiplier
            FROM products WHERE LOWER(odoo_code) = LOWER(%s) AND COALESCE(active, true) = true""",
         (product_name,)
@@ -838,7 +816,7 @@ def resolve_product_full(cur, product_name: str) -> dict:
         return dict(row)
     # Fuzzy match (name + odoo_code)
     cur.execute(
-        """SELECT id, name, odoo_code, default_batch_lb, default_case_weight_lb,
+        """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
                        COALESCE(yield_multiplier, 1.0) as yield_multiplier
            FROM products
            WHERE (LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s))
@@ -2299,9 +2277,9 @@ def pack_preview(req: PackRequest, _: bool = Depends(verify_api_key)):
             # Determine case weight
             case_weight = req.case_weight_lb
             if case_weight is None:
-                case_weight = float(target.get('default_case_weight_lb') or 0)
+                case_weight = float(target.get('case_size_lb') or 0)
             if case_weight <= 0:
-                raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no default_case_weight_lb set.")
+                raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no case_size_lb set.")
 
             total_lb = req.cases * case_weight
 
@@ -2416,7 +2394,7 @@ def pack_commit(req: PackRequest, _: bool = Depends(verify_api_key)):
                 # Determine case weight
                 case_weight = req.case_weight_lb
                 if case_weight is None:
-                    case_weight = float(target.get('default_case_weight_lb') or 0)
+                    case_weight = float(target.get('case_size_lb') or 0)
                 if case_weight <= 0:
                     raise HTTPException(400, f"Case weight required for '{target['name']}'")
 
@@ -3589,12 +3567,12 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                     used_unit = line.unit or 'lb'
                     if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
                         cur.execute(
-                            "SELECT default_case_weight_lb FROM products WHERE id = %s",
+                            "SELECT case_size_lb FROM products WHERE id = %s",
                             (product_id,)
                         )
                         prod_row = cur.fetchone()
-                        if prod_row and prod_row.get('default_case_weight_lb'):
-                            effective_case_weight = float(prod_row['default_case_weight_lb'])
+                        if prod_row and prod_row.get('case_size_lb'):
+                            effective_case_weight = float(prod_row['case_size_lb'])
                         else:
                             raise HTTPException(400,
                                 f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
@@ -4185,12 +4163,12 @@ def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_
                     used_unit = line.unit or 'lb'
                     if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
                         cur.execute(
-                            "SELECT default_case_weight_lb FROM products WHERE id = %s",
+                            "SELECT case_size_lb FROM products WHERE id = %s",
                             (product_id,)
                         )
                         prod_row = cur.fetchone()
-                        if prod_row and prod_row.get('default_case_weight_lb'):
-                            effective_case_weight = float(prod_row['default_case_weight_lb'])
+                        if prod_row and prod_row.get('case_size_lb'):
+                            effective_case_weight = float(prod_row['case_size_lb'])
                         else:
                             raise HTTPException(400,
                                 f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
@@ -4831,7 +4809,7 @@ def dashboard_api_finished_goods():
         with get_transaction() as cur:
             # Get on-hand per product
             cur.execute("""
-                SELECT p.id, p.name, COALESCE(p.default_case_weight_lb, p.case_size_lb) as default_case_weight_lb,
+                SELECT p.id, p.name, COALESCE(p.case_size_lb, p.case_size_lb) as case_size_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
@@ -4881,8 +4859,8 @@ def dashboard_api_finished_goods():
                     pid = prow['id']
                     on_hand = float(prow['on_hand_lbs'])
                     case_wt = panel.get("case_weight_lb")
-                    if case_wt is None and prow.get('default_case_weight_lb'):
-                        case_wt = float(prow['default_case_weight_lb'])
+                    if case_wt is None and prow.get('case_size_lb'):
+                        case_wt = float(prow['case_size_lb'])
                     product_entry = {
                         "product_name": prow['name'],
                         "on_hand_lbs": on_hand,
@@ -5153,7 +5131,7 @@ def dashboard_api_lot_detail(lot_code: str):
             # Lot info
             cur.execute("""
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                       l.entry_source, COALESCE(p.default_case_weight_lb, p.case_size_lb) as product_case_size_lb,
+                       l.entry_source, COALESCE(p.case_size_lb, p.case_size_lb) as product_case_size_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
@@ -5524,7 +5502,7 @@ def dashboard_api_notes_toggle(note_id: int):
 
 class ProductUpdate(BaseModel):
     odoo_code: Optional[str] = None
-    default_case_weight_lb: Optional[float] = None
+    case_size_lb: Optional[float] = None
     default_batch_lb: Optional[float] = None
     yield_multiplier: Optional[float] = None
     active: Optional[bool] = None
@@ -5544,9 +5522,9 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
             if req.odoo_code is not None:
                 updates.append("odoo_code = %s")
                 params.append(req.odoo_code)
-            if req.default_case_weight_lb is not None:
-                updates.append("default_case_weight_lb = %s")
-                params.append(req.default_case_weight_lb)
+            if req.case_size_lb is not None:
+                updates.append("case_size_lb = %s")
+                params.append(req.case_size_lb)
             if req.default_batch_lb is not None:
                 updates.append("default_batch_lb = %s")
                 params.append(req.default_batch_lb)
@@ -5570,7 +5548,7 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
             "changes": {
                 k: v for k, v in {
                     "odoo_code": req.odoo_code,
-                    "default_case_weight_lb": req.default_case_weight_lb,
+                    "case_size_lb": req.case_size_lb,
                     "default_batch_lb": req.default_batch_lb,
                     "yield_multiplier": req.yield_multiplier,
                     "active": req.active
@@ -6081,9 +6059,9 @@ def production_requirements(
                 batch_size = float(link['default_batch_lb'] or 0)
 
                 # Calculate how many lbs needed
-                case_weight = float(product.get('default_case_weight_lb') or 0)
+                case_weight = float(product.get('case_size_lb') or 0)
                 if case_weight <= 0:
-                    raise HTTPException(400, f"No default_case_weight_lb set for '{pname}'")
+                    raise HTTPException(400, f"No case_size_lb set for '{pname}'")
 
                 total_output_lb = cases * case_weight
                 if batch_size > 0:
