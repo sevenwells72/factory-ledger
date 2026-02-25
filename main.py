@@ -5131,7 +5131,7 @@ def dashboard_api_lot_detail(lot_code: str):
             # Lot info
             cur.execute("""
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                       l.entry_source,
+                       l.entry_source, p.case_size_lb as product_case_size_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
@@ -5160,7 +5160,8 @@ def dashboard_api_lot_detail(lot_code: str):
                 SELECT t.id as transaction_id, t.type, t.timestamp,
                        tl.quantity_lb,
                        t.customer_name, t.shipper_name, t.order_reference,
-                       t.bol_reference, t.adjust_reason, t.notes
+                       t.bol_reference, t.adjust_reason, t.notes,
+                       t.cases_received, t.case_size_lb
                 FROM transaction_lines tl
                 JOIN transactions t ON t.id = tl.transaction_id
                 WHERE tl.lot_id = %s
@@ -5168,15 +5169,26 @@ def dashboard_api_lot_detail(lot_code: str):
             """, (lot['id'],))
             timeline_rows = cur.fetchall()
 
+        product_case_size = float(lot['product_case_size_lb']) if lot['product_case_size_lb'] else None
+
         timeline = []
         for tr in timeline_rows:
             d, tm = format_timestamp(tr['timestamp'])
+            qty_lb = float(tr['quantity_lb'])
+            # For receives, use actual cases_received; otherwise derive from product case_size_lb
+            if tr['cases_received'] is not None:
+                cases = int(tr['cases_received'])
+            elif product_case_size:
+                cases = round(abs(qty_lb) / product_case_size)
+            else:
+                cases = None
             timeline.append({
                 "transaction_id": tr['transaction_id'],
                 "type": tr['type'],
                 "date": d,
                 "time": tm,
-                "quantity_lb": float(tr['quantity_lb']),
+                "quantity_lb": qty_lb,
+                "cases": cases,
                 "customer_name": tr['customer_name'],
                 "shipper_name": tr['shipper_name'],
                 "order_reference": tr['order_reference'],
@@ -5185,12 +5197,20 @@ def dashboard_api_lot_detail(lot_code: str):
                 "notes": tr['notes']
             })
 
+        # Derive header case counts
+        on_hand_lbs = float(lot['on_hand_lbs'])
+        original_cases = round(original_qty / product_case_size) if product_case_size else None
+        on_hand_cases = round(on_hand_lbs / product_case_size) if product_case_size else None
+
         return {
             "lot_code": lot['lot_code'],
             "product_name": lot['product_name'],
             "entry_source": lot['entry_source'],
             "original_quantity_lbs": original_qty,
-            "on_hand_lbs": float(lot['on_hand_lbs']),
+            "original_cases": original_cases,
+            "on_hand_lbs": on_hand_lbs,
+            "on_hand_cases": on_hand_cases,
+            "case_size_lb": product_case_size,
             "timeline": timeline
         }
     except HTTPException:

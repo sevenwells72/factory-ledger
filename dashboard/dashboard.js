@@ -571,13 +571,19 @@
     }
   }
 
+  function fmtQtyCases(lbs, cases) {
+    let s = fmt(lbs) + ' lb';
+    if (cases != null) s += ` (${cases} cs)`;
+    return s;
+  }
+
   function renderLotPanel(data, body) {
     let html = '<dl class="lot-info-grid">';
     html += `<dt>Lot Code</dt><dd>${escHtml(data.lot_code)}</dd>`;
     html += `<dt>Product</dt><dd>${escHtml(data.product_name)}</dd>`;
     html += `<dt>Source</dt><dd>${escHtml(data.entry_source)}</dd>`;
-    html += `<dt>Original Qty</dt><dd>${fmt(data.original_quantity_lbs)} lb</dd>`;
-    html += `<dt>On Hand</dt><dd>${fmt(data.on_hand_lbs)} lb</dd>`;
+    html += `<dt>Original Qty</dt><dd>${fmtQtyCases(data.original_quantity_lbs, data.original_cases)}</dd>`;
+    html += `<dt>On Hand</dt><dd>${fmtQtyCases(data.on_hand_lbs, data.on_hand_cases)}</dd>`;
     html += '</dl>';
 
     html += '<h4 style="font-size:13px;margin-bottom:8px;">Transaction Timeline</h4>';
@@ -586,7 +592,7 @@
       for (const t of data.timeline) {
         html += `<li class="txn-${t.type}">`;
         html += `<div class="tl-date">${escHtml(t.date)} ${escHtml(t.time)}</div>`;
-        html += `<div><span class="tl-type">${escHtml(t.type)}</span> <span class="tl-qty">${fmt(t.quantity_lb)} lb</span></div>`;
+        html += `<div><span class="tl-type">${escHtml(t.type)}</span> <span class="tl-qty">${fmtQtyCases(t.quantity_lb, t.cases)}</span></div>`;
         let ctx = '';
         if (t.customer_name) ctx += 'Customer: ' + t.customer_name;
         if (t.shipper_name) ctx += 'Supplier: ' + t.shipper_name;
