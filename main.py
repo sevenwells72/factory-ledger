@@ -4831,7 +4831,7 @@ def dashboard_api_finished_goods():
         with get_transaction() as cur:
             # Get on-hand per product
             cur.execute("""
-                SELECT p.id, p.name, p.default_case_weight_lb,
+                SELECT p.id, p.name, COALESCE(p.default_case_weight_lb, p.case_size_lb) as default_case_weight_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
