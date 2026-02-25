@@ -302,7 +302,7 @@
           const cases = caseWt ? Math.floor(p.on_hand_lbs / caseWt) : null;
           html += `<tr class="expandable" data-expand="${rowId}">`;
           html += `<td>${escHtml(p.product_name)}</td>`;
-          html += `<td class="num">${fmt(p.on_hand_lbs)}</td>`;
+          html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtInt(caseWt)} lb)` : ''}</td>`;
           html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
           html += `</tr>`;
           // Lot breakdown
