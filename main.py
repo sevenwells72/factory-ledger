@@ -5153,7 +5153,7 @@ def dashboard_api_lot_detail(lot_code: str):
             # Lot info
             cur.execute("""
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                       l.entry_source, p.default_case_weight_lb as product_case_size_lb,
+                       l.entry_source, COALESCE(p.default_case_weight_lb, p.case_size_lb) as product_case_size_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
