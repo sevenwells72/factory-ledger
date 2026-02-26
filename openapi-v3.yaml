@@ -340,21 +340,6 @@ paths:
       responses:
         '200':
           description: Item inventory with lots
-  /lots/by-supplier-lot/{supplier_lot_code}:
-    get:
-      operationId: getLotsBySupplierLot
-      summary: Find internal lot(s) by supplier lot code (recall tracing)
-      parameters:
-        - name: supplier_lot_code
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Matching internal lots with inventory and supplier details
-        '404':
-          description: No lots found with that supplier lot code
   /lots/by-code/{lot_code}:
     get:
       operationId: getLotByCode
@@ -752,39 +737,6 @@ paths:
       responses:
         '200':
           description: Preview result or committed shipment with shipment_id
-  /sales/orders/{order_id}/packing-slip:
-    get:
-      operationId: getPackingSlip
-      summary: Generate a printable packing slip PDF for a sales order
-      description: >
-        Returns a binary PDF file. IMPORTANT: Do NOT call this endpoint as an API action —
-        it returns binary data that cannot be displayed in chat. Instead, construct the full URL
-        (including ?key=) as a markdown hyperlink and present it to the user to open in their browser.
-        Never attempt to summarize or recreate the packing slip content in chat text.
-      parameters:
-        - name: order_id
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: key
-          in: query
-          required: false
-          description: API key (alternative to X-API-Key header, for browser access)
-          schema:
-            type: string
-      responses:
-        '200':
-          description: PDF packing slip file
-          content:
-            application/pdf:
-              schema:
-                type: string
-                format: binary
-        '404':
-          description: Order not found
-        '400':
-          description: Order is cancelled
   /sales/dashboard:
     get:
       operationId: salesDashboard
