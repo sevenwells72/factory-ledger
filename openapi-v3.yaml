@@ -1,0 +1,746 @@
+openapi: 3.1.0
+info:
+  title: Factory Ledger System
+  version: 3.0.0
+  description: Inventory management, production tracking, and sales order fulfillment for food manufacturing.
+servers:
+  - url: https://fastapi-production-b73a.up.railway.app
+security:
+  - ApiKeyAuth: []
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    ReceiveRequest:
+      type: object
+      required: [product_name, cases, case_size_lb, shipper_name, bol_reference]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        product_name:
+          type: string
+        cases:
+          type: integer
+        case_size_lb:
+          type: number
+        shipper_name:
+          type: string
+        bol_reference:
+          type: string
+        shipper_code_override:
+          type: string
+        lot_code:
+          type: string
+        supplier_lot_code:
+          type: string
+        lot_type:
+          type: string
+          enum: [single_supplier, commingled]
+        supplier_lot_entries:
+          type: array
+          items:
+            type: object
+            properties:
+              supplier_lot_code:
+                type: string
+              supplier_name:
+                type: string
+              quantity_lb:
+                type: number
+              notes:
+                type: string
+    ShipRequest:
+      type: object
+      required: [product_name, quantity_lb, customer_name, order_reference]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        product_name:
+          type: string
+        quantity_lb:
+          type: number
+        customer_name:
+          type: string
+        order_reference:
+          type: string
+        lot_code:
+          type: string
+        force_standalone:
+          type: boolean
+          default: false
+        force_create_customer:
+          type: boolean
+          default: false
+    MakeRequest:
+      type: object
+      required: [product_name, batches]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        product_name:
+          type: string
+        batches:
+          type: integer
+        lot_code:
+          type: string
+        ingredient_lot_overrides:
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: string
+            - type: string
+        excluded_ingredients:
+          type: array
+          items:
+            type: integer
+        confirmed_sku:
+          type: boolean
+    PackRequest:
+      type: object
+      required: [source_product, target_product, cases]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        source_product:
+          type: string
+        target_product:
+          type: string
+        cases:
+          type: integer
+        case_weight_lb:
+          type: number
+        lot_allocations:
+          type: array
+          items:
+            type: object
+            required: [lot_code, quantity_lb]
+            properties:
+              lot_code:
+                type: string
+              quantity_lb:
+                type: number
+        target_lot_code:
+          type: string
+    AdjustRequest:
+      type: object
+      required: [product_name, lot_code, adjustment_lb, reason]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        product_name:
+          type: string
+        lot_code:
+          type: string
+        adjustment_lb:
+          type: number
+        reason:
+          type: string
+        reason_es:
+          type: string
+    CustomerCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        contact_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        notes:
+          type: string
+        notes_es:
+          type: string
+    CustomerUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        contact_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        notes:
+          type: string
+        notes_es:
+          type: string
+        active:
+          type: boolean
+        aliases:
+          type: array
+          items:
+            type: string
+    OrderLineInput:
+      type: object
+      required: [product_name]
+      properties:
+        product_name:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        case_weight_lb:
+          type: number
+        quantity_lb:
+          type: number
+        unit_price:
+          type: number
+        notes:
+          type: string
+        notes_es:
+          type: string
+    OrderCreate:
+      type: object
+      required: [customer_name, lines]
+      properties:
+        customer_name:
+          type: string
+        requested_ship_date:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLineInput'
+        notes:
+          type: string
+        notes_es:
+          type: string
+    OrderStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [new, confirmed, in_production, ready, partial_ship, shipped, invoiced, cancelled]
+    OrderHeaderUpdate:
+      type: object
+      properties:
+        requested_ship_date:
+          type: string
+        notes:
+          type: string
+        notes_es:
+          type: string
+        customer_id:
+          type: integer
+    AddOrderLines:
+      type: object
+      required: [lines]
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLineInput'
+    ShipOrderRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        ship_all:
+          type: boolean
+          default: false
+        lines:
+          type: array
+          items:
+            type: object
+            required: [line_id, quantity_lb]
+            properties:
+              line_id:
+                type: integer
+              quantity_lb:
+                type: number
+paths:
+  /products/search:
+    get:
+      operationId: searchProducts
+      summary: Search products by name or Odoo code
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Product search results
+  /products/{product_id}:
+    get:
+      operationId: getProduct
+      summary: Get product details by ID
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Product details
+  /inventory/current:
+    get:
+      operationId: getCurrentInventory
+      summary: Get current inventory with on-hand quantities
+      parameters:
+        - name: product_type
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: Current inventory
+  /inventory/{item_name}:
+    get:
+      operationId: getInventoryItem
+      summary: Get inventory for a specific product with lot-level detail
+      parameters:
+        - name: item_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item inventory with lots
+  /lots/by-code/{lot_code}:
+    get:
+      operationId: getLotByCode
+      summary: Look up lot by lot code
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lot details
+  /lots/{lot_id}:
+    get:
+      operationId: getLot
+      summary: Get lot details by ID
+      parameters:
+        - name: lot_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lot details
+  /receive:
+    post:
+      operationId: receive
+      summary: Receive inventory (preview or commit)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiveRequest'
+      responses:
+        '200':
+          description: Preview result or committed receipt
+  /ship:
+    post:
+      operationId: ship
+      summary: Ship inventory standalone (preview or commit)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipRequest'
+      responses:
+        '200':
+          description: Preview result or committed shipment
+  /make:
+    post:
+      operationId: make
+      summary: Record batch production (preview or commit)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MakeRequest'
+      responses:
+        '200':
+          description: Preview result or committed production
+  /pack:
+    post:
+      operationId: pack
+      summary: Pack batch into finished goods (preview or commit)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackRequest'
+      responses:
+        '200':
+          description: Preview result or committed pack
+  /adjust:
+    post:
+      operationId: adjust
+      summary: Adjust inventory quantity (preview or commit)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustRequest'
+      responses:
+        '200':
+          description: Preview result or committed adjustment
+  /trace/batch/{lot_code}:
+    get:
+      operationId: traceBatch
+      summary: Trace batch ingredients (backward trace)
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Batch trace with ingredient lots
+  /trace/ingredient/{lot_code}:
+    get:
+      operationId: traceIngredient
+      summary: Trace ingredient usage (forward trace)
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ingredient usage trace
+  /transactions/history:
+    get:
+      operationId: getTransactionHistory
+      summary: Get recent transaction history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: transaction_type
+          in: query
+          schema:
+            type: string
+            enum: [receive, ship, make, pack, adjust]
+        - name: product_name
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transaction history
+  /reason-codes:
+    get:
+      operationId: getReasonCodes
+      summary: Get valid adjustment reason codes
+      responses:
+        '200':
+          description: List of reason codes
+  /customers:
+    get:
+      operationId: listCustomers
+      summary: List all customers
+      parameters:
+        - name: active_only
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Customer list
+    post:
+      operationId: createCustomer
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '200':
+          description: Created customer
+  /customers/search:
+    get:
+      operationId: searchCustomers
+      summary: Search customers by name
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Customer search results
+  /customers/{customer_id}:
+    patch:
+      operationId: updateCustomer
+      summary: Update customer details
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerUpdate'
+      responses:
+        '200':
+          description: Updated customer
+  /sales/orders:
+    get:
+      operationId: listOrders
+      summary: List sales orders with filters
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: customer
+          in: query
+          schema:
+            type: string
+        - name: overdue_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: Sales orders
+    post:
+      operationId: createOrder
+      summary: Create a new sales order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+      responses:
+        '200':
+          description: Created order
+  /sales/orders/fulfillment-check:
+    get:
+      operationId: checkFulfillment
+      summary: Check inventory availability for open orders
+      parameters:
+        - name: customer_name
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: order_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Fulfillment feasibility
+  /sales/orders/{order_id}:
+    get:
+      operationId: getOrder
+      summary: Get sales order details
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Order details with lines
+    patch:
+      operationId: updateOrderHeader
+      summary: Update order header (ship date, notes, customer)
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderHeaderUpdate'
+      responses:
+        '200':
+          description: Updated order
+  /sales/orders/{order_id}/status:
+    patch:
+      operationId: updateOrderStatus
+      summary: Update order status
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+      responses:
+        '200':
+          description: Updated order status
+  /sales/orders/{order_id}/lines:
+    post:
+      operationId: addOrderLines
+      summary: Add lines to an existing order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddOrderLines'
+      responses:
+        '200':
+          description: Added lines
+  /sales/orders/{order_id}/lines/{line_id}/cancel:
+    patch:
+      operationId: cancelOrderLine
+      summary: Cancel a specific order line
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: line_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Cancelled line
+  /sales/orders/{order_id}/lines/{line_id}/update:
+    patch:
+      operationId: updateOrderLine
+      summary: Update quantity or price on an order line
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: line_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: quantity_lb
+          in: query
+          schema:
+            type: number
+        - name: unit_price
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Updated line
+  /sales/orders/{order_id}/ship:
+    post:
+      operationId: shipOrder
+      summary: Ship against a sales order (preview or commit)
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipOrderRequest'
+      responses:
+        '200':
+          description: Preview result or committed shipment with shipment_id
+  /sales/dashboard:
+    get:
+      operationId: salesDashboard
+      summary: Sales dashboard with order status counts and upcoming shipments
+      responses:
+        '200':
+          description: Sales dashboard summary
