@@ -377,6 +377,29 @@ async def startup():
         logger.warning(f"Migration 011 warning (non-fatal): {e}")
 
 
+    # Migration 012: Add Sprinkles 25 LB finished goods
+    # Two new SKUs: Sprinkles Rainbow 25 LB (10305) and Sprinkles Chocolate 25 LB (10306)
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM products WHERE odoo_code IN ('10305', '10306')")
+                existing = cur.fetchone()[0]
+                if existing == 0:
+                    cur.execute("""
+                        INSERT INTO products (name, type, uom, odoo_code, case_size_lb, storage_type, verification_status, active)
+                        VALUES
+                            ('Sprinkles Rainbow 25 LB', 'finished', '25 lb case', '10305', 25, 'ambient', 'verified', true),
+                            ('Sprinkles Chocolate 25 LB', 'finished', '25 lb case', '10306', 25, 'ambient', 'verified', true)
+                    """)
+                conn.commit()
+                logger.info("Migration 012: Sprinkles 25 LB products up to date")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 012 warning (non-fatal): {e}")
+
+
 @app.on_event("shutdown")
 async def shutdown():
     global db_pool
