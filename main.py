@@ -336,6 +336,47 @@ async def startup():
         logger.warning(f"Migration 010 warning (non-fatal): {e}")
 
 
+    # Migration 011: Supplier lot code fields + lot_supplier_codes table
+    # Adds supplier_lot_code, lot_type, received_at to lots table
+    # Creates lot_supplier_codes table for commingled receipt breakdowns
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS supplier_lot_code TEXT")
+                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS lot_type TEXT")
+                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS received_at TIMESTAMPTZ")
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS lot_supplier_codes (
+                        id SERIAL PRIMARY KEY,
+                        lot_id INTEGER NOT NULL REFERENCES lots(id) ON DELETE CASCADE,
+                        supplier_lot_code TEXT,
+                        supplier_name TEXT,
+                        quantity_lb NUMERIC,
+                        notes TEXT,
+                        created_at TIMESTAMPTZ DEFAULT now()
+                    )
+                """)
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_lot_supplier_codes_lot_id
+                        ON lot_supplier_codes (lot_id)
+                """)
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_lot_supplier_codes_supplier_lot
+                        ON lot_supplier_codes (LOWER(supplier_lot_code))
+                """)
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_lots_supplier_lot_code
+                        ON lots (LOWER(supplier_lot_code))
+                """)
+                conn.commit()
+                logger.info("Migration 011: supplier lot columns and lot_supplier_codes table up to date")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 011 warning (non-fatal): {e}")
+
+
 @app.on_event("shutdown")
 async def shutdown():
     global db_pool
