@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
 from typing import Optional, List, Dict, Union, Literal
@@ -18,6 +18,7 @@ import logging
 import secrets
 import math
 import uuid
+import io
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -4190,6 +4191,349 @@ def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = 
         except Exception as e:
             logger.error(f"Ship order commit failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# PACKING SLIP PDF (v3.0.0)
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/sales/orders/{order_id}/packing-slip")
+def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key)):
+    """Generate a printable packing slip PDF for a sales order."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import inch
+    from reportlab.lib.colors import HexColor
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+
+    try:
+        with get_transaction() as cur:
+            # ── Fetch order header + customer ──
+            cur.execute("""
+                SELECT so.id, so.order_number, so.order_date, so.requested_ship_date,
+                       so.status, so.notes,
+                       c.name AS customer_name, c.address AS customer_address
+                FROM sales_orders so
+                JOIN customers c ON c.id = so.customer_id
+                WHERE so.id = %s
+            """, (order_id,))
+            order = cur.fetchone()
+            if not order:
+                raise HTTPException(404, f"Order #{order_id} not found")
+            if order['status'] == 'cancelled':
+                raise HTTPException(400, f"Order {order['order_number']} is cancelled — cannot generate packing slip")
+
+            # ── Fetch order lines ──
+            cur.execute("""
+                SELECT sol.id, sol.product_id, p.name AS product_name,
+                       sol.quantity_lb, sol.quantity_shipped_lb,
+                       p.case_size_lb, sol.line_status
+                FROM sales_order_lines sol
+                JOIN products p ON p.id = sol.product_id
+                WHERE sol.sales_order_id = %s AND sol.line_status != 'cancelled'
+                ORDER BY sol.id
+            """, (order_id,))
+            lines = cur.fetchall()
+
+            # ── FIFO lot allocation per line (read-only preview) ──
+            line_allocations = []
+            for line in lines:
+                product_name = line['product_name']
+                qty_lb = float(line['quantity_lb'])
+                remaining_lb = qty_lb - float(line['quantity_shipped_lb'])
+                case_size = float(line['case_size_lb']) if line['case_size_lb'] else None
+
+                # Detect non-weight items
+                product_lower = product_name.lower()
+                non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
+                is_non_weight = any(kw in product_lower for kw in non_weight_keywords)
+
+                if is_non_weight:
+                    qty_display = str(int(qty_lb)) if qty_lb == int(qty_lb) else str(qty_lb)
+                    line_allocations.append({
+                        "product_name": product_name,
+                        "lot_code": "N/A",
+                        "qty_display": qty_display
+                    })
+                    continue
+
+                # Query FIFO lots
+                cur.execute("""
+                    SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS available
+                    FROM lots l
+                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    WHERE l.product_id = %s
+                    GROUP BY l.id
+                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                    ORDER BY l.id ASC
+                """, (line['product_id'],))
+                lots = cur.fetchall()
+
+                remaining_need = remaining_lb if remaining_lb > 0 else qty_lb
+                allocated = False
+                for lot in lots:
+                    if remaining_need <= 0:
+                        break
+                    avail = float(lot['available'])
+                    take = min(avail, remaining_need)
+                    qty_display_val = take
+                    if case_size and case_size > 0:
+                        cases = round(take / case_size)
+                        qty_display = f"{cases} cs"
+                    else:
+                        qty_display = f"{take:g} lb"
+                    line_allocations.append({
+                        "product_name": product_name,
+                        "lot_code": lot['lot_code'],
+                        "qty_display": qty_display
+                    })
+                    remaining_need -= take
+                    allocated = True
+
+                if remaining_need > 0:
+                    # Shortfall — show INSUFFICIENT row
+                    if case_size and case_size > 0:
+                        short_cases = math.ceil(remaining_need / case_size)
+                        qty_display = f"{short_cases} cs"
+                    else:
+                        qty_display = f"{remaining_need:g} lb"
+                    line_allocations.append({
+                        "product_name": product_name,
+                        "lot_code": "INSUFFICIENT",
+                        "qty_display": qty_display
+                    })
+                elif not allocated:
+                    # No lots at all
+                    if case_size and case_size > 0:
+                        cases = round(qty_lb / case_size)
+                        qty_display = f"{cases} cs"
+                    else:
+                        qty_display = f"{qty_lb:g} lb"
+                    line_allocations.append({
+                        "product_name": product_name,
+                        "lot_code": "INSUFFICIENT",
+                        "qty_display": qty_display
+                    })
+
+            # ── Build PDF ──
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter,
+                                    topMargin=0.5*inch, bottomMargin=0.5*inch,
+                                    leftMargin=0.6*inch, rightMargin=0.6*inch)
+
+            styles = getSampleStyleSheet()
+            elements = []
+
+            # Colors
+            dark_gray = HexColor('#333333')
+            med_gray = HexColor('#666666')
+            light_gray = HexColor('#999999')
+            header_bg = HexColor('#4a4a4a')
+            white = HexColor('#FFFFFF')
+            row_alt = HexColor('#F5F5F5')
+
+            # Custom styles
+            style_company = ParagraphStyle('Company', parent=styles['Normal'],
+                                           fontSize=12, leading=14, textColor=dark_gray,
+                                           fontName='Helvetica-Bold')
+            style_company_detail = ParagraphStyle('CompanyDetail', parent=styles['Normal'],
+                                                   fontSize=8, leading=10, textColor=med_gray)
+            style_title = ParagraphStyle('SlipTitle', parent=styles['Normal'],
+                                          fontSize=18, leading=22, textColor=dark_gray,
+                                          fontName='Helvetica-Bold', spaceAfter=6)
+            style_label = ParagraphStyle('Label', parent=styles['Normal'],
+                                          fontSize=7, leading=9, textColor=light_gray,
+                                          fontName='Helvetica-Bold')
+            style_value = ParagraphStyle('Value', parent=styles['Normal'],
+                                          fontSize=9, leading=11, textColor=dark_gray)
+            style_value_bold = ParagraphStyle('ValueBold', parent=styles['Normal'],
+                                              fontSize=9, leading=11, textColor=dark_gray,
+                                              fontName='Helvetica-Bold')
+            style_small_gray = ParagraphStyle('SmallGray', parent=styles['Normal'],
+                                              fontSize=7, leading=9, textColor=light_gray)
+            style_footer = ParagraphStyle('Footer', parent=styles['Normal'],
+                                           fontSize=7, leading=9, textColor=light_gray)
+            style_section_label = ParagraphStyle('SectionLabel', parent=styles['Normal'],
+                                                  fontSize=10, leading=12, textColor=dark_gray,
+                                                  fontName='Helvetica-Bold', spaceBefore=12,
+                                                  spaceAfter=4)
+            style_sig_line = ParagraphStyle('SigLine', parent=styles['Normal'],
+                                            fontSize=9, leading=18, textColor=dark_gray)
+
+            # ── HEADER: Company info ──
+            company_block = [
+                Paragraph("CNS Confectionery Products LLC", style_company),
+                Paragraph("33 Hook Road", style_company_detail),
+                Paragraph("Bayonne, NJ 07002 US", style_company_detail),
+                Paragraph("(201) 823-1400", style_company_detail),
+                Paragraph("miriam@cnscoinc.com", style_company_detail),
+            ]
+            for p in company_block:
+                elements.append(p)
+
+            elements.append(Spacer(1, 0.25*inch))
+
+            # ── TITLE ──
+            elements.append(Paragraph("Packing Slip", style_title))
+            elements.append(Spacer(1, 0.15*inch))
+
+            # ── INFO ROW (4 columns) ──
+            # Customer address
+            cust_name = order['customer_name'] or ""
+            cust_addr = order['customer_address'] or "Address on file"
+            addr_lines = cust_addr.split('\n') if cust_addr else ["Address on file"]
+            bill_to_text = f"<b>{cust_name}</b><br/>" + "<br/>".join(addr_lines)
+            ship_to_text = bill_to_text  # Mirror for now
+
+            ship_date = str(order['requested_ship_date']) if order['requested_ship_date'] else "TBD"
+            order_date = str(order['order_date']) if order['order_date'] else ""
+            order_number = order['order_number']
+
+            style_info = ParagraphStyle('InfoCell', parent=styles['Normal'],
+                                         fontSize=8, leading=10, textColor=dark_gray)
+
+            col1 = [Paragraph("BILL TO", style_label), Paragraph(bill_to_text, style_info)]
+            col2 = [Paragraph("SHIP TO", style_label), Paragraph(ship_to_text, style_info)]
+            col3 = [
+                Paragraph("SHIP DATE", style_label), Paragraph(ship_date, style_info),
+                Spacer(1, 4),
+                Paragraph("SHIP VIA", style_label), Paragraph("Customer Pick Up", style_info)
+            ]
+            col4 = [
+                Paragraph("SO #", style_label), Paragraph(f"<b>{order_number}</b>", style_info),
+                Spacer(1, 4),
+                Paragraph("DATE", style_label), Paragraph(order_date, style_info)
+            ]
+
+            # Render the 4-column info as a table
+            from reportlab.platypus import KeepTogether
+            info_table_data = [[col1, col2, col3, col4]]
+            info_table = Table(info_table_data, colWidths=[2.0*inch, 2.0*inch, 1.5*inch, 1.5*inch])
+            info_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            elements.append(info_table)
+            elements.append(Spacer(1, 0.15*inch))
+
+            # ── PURCHASE ORDER ──
+            po_ref = order['notes'] if order['notes'] else ""
+            if po_ref:
+                elements.append(Paragraph("PURCHASE ORDER", style_label))
+                elements.append(Paragraph(po_ref, style_value))
+                elements.append(Spacer(1, 0.1*inch))
+
+            # ── ITEMS TABLE ──
+            style_table_header = ParagraphStyle('TableHeader', parent=styles['Normal'],
+                                                 fontSize=8, leading=10, textColor=white,
+                                                 fontName='Helvetica-Bold')
+            style_table_cell = ParagraphStyle('TableCell', parent=styles['Normal'],
+                                               fontSize=8, leading=10, textColor=dark_gray)
+            style_table_cell_bold = ParagraphStyle('TableCellBold', parent=styles['Normal'],
+                                                    fontSize=8, leading=10, textColor=dark_gray,
+                                                    fontName='Helvetica-Bold')
+
+            table_data = [[
+                Paragraph("DATE", style_table_header),
+                Paragraph("ACTIVITY", style_table_header),
+                Paragraph("LOT #", style_table_header),
+                Paragraph("QTY", style_table_header),
+            ]]
+
+            order_date_str = str(order['order_date']) if order['order_date'] else ""
+            for alloc in line_allocations:
+                lot_style = style_table_cell_bold if alloc['lot_code'] == 'INSUFFICIENT' else style_table_cell
+                table_data.append([
+                    Paragraph(order_date_str, style_table_cell),
+                    Paragraph(alloc['product_name'], style_table_cell),
+                    Paragraph(alloc['lot_code'], lot_style),
+                    Paragraph(alloc['qty_display'], style_table_cell),
+                ])
+
+            items_table = Table(table_data, colWidths=[1.0*inch, 3.2*inch, 1.5*inch, 1.3*inch])
+
+            # Build table style with alternating rows
+            table_style_cmds = [
+                ('BACKGROUND', (0, 0), (-1, 0), header_bg),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('TOPPADDING', (0, 0), (-1, 0), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('ALIGN', (3, 0), (3, -1), 'RIGHT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LINEBELOW', (0, 0), (-1, 0), 0.5, dark_gray),
+                ('LINEBELOW', (0, -1), (-1, -1), 0.5, light_gray),
+            ]
+            # Alternating row backgrounds
+            for i in range(1, len(table_data)):
+                if i % 2 == 0:
+                    table_style_cmds.append(('BACKGROUND', (0, i), (-1, i), row_alt))
+
+            items_table.setStyle(TableStyle(table_style_cmds))
+            elements.append(items_table)
+
+            # ── Dashed separator ──
+            elements.append(Spacer(1, 0.2*inch))
+            from reportlab.platypus import HRFlowable
+            elements.append(HRFlowable(width="100%", thickness=0.5, color=light_gray,
+                                        dash=[3, 3], spaceBefore=0, spaceAfter=0))
+            elements.append(Spacer(1, 0.2*inch))
+
+            # ── WAREHOUSE CONFIRMATION ──
+            elements.append(Paragraph("WAREHOUSE CONFIRMATION", style_section_label))
+            elements.append(Spacer(1, 0.1*inch))
+            elements.append(Paragraph("Picked By: ___________________________________", style_sig_line))
+            elements.append(Paragraph("Verified By: ___________________________________", style_sig_line))
+            elements.append(Paragraph("Date: ___________________________________", style_sig_line))
+            elements.append(Spacer(1, 0.2*inch))
+
+            # ── Traceability note ──
+            elements.append(Paragraph(
+                "All lot numbers are system-assigned internal codes from Factory Ledger. "
+                "Do not substitute with supplier lot numbers.",
+                style_small_gray
+            ))
+            elements.append(Spacer(1, 0.3*inch))
+
+            # ── Footer ──
+            now_et = get_plant_now()
+            footer_ts = now_et.strftime("%Y-%m-%d %I:%M %p ET")
+            footer_table_data = [[
+                Paragraph(f"Generated by Factory Ledger | {footer_ts}", style_footer),
+                Paragraph("Page 1 of 1", ParagraphStyle('FooterRight', parent=style_footer, alignment=TA_RIGHT))
+            ]]
+            footer_table = Table(footer_table_data, colWidths=[5.0*inch, 2.0*inch])
+            footer_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            elements.append(footer_table)
+
+            # ── Render ──
+            doc.build(elements)
+            buffer.seek(0)
+
+            return StreamingResponse(
+                buffer,
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f'inline; filename="packing_slip_{order_number}.pdf"'
+                }
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Packing slip generation failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 # ═══════════════════════════════════════════════════════════════
