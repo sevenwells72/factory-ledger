@@ -741,12 +741,22 @@ paths:
     get:
       operationId: getPackingSlip
       summary: Generate a printable packing slip PDF for a sales order
+      description: >
+        Returns a PDF file. NOTE: For ChatGPT usage, do NOT call this endpoint directly.
+        Instead, construct the URL with ?key= parameter and present it as a clickable link
+        for the user to open in their browser.
       parameters:
         - name: order_id
           in: path
           required: true
           schema:
             type: integer
+        - name: key
+          in: query
+          required: false
+          description: API key (alternative to X-API-Key header, for browser access)
+          schema:
+            type: string
       responses:
         '200':
           description: PDF packing slip file

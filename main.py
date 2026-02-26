@@ -372,6 +372,19 @@ def verify_api_key(x_api_key: str = Header(None, alias="X-API-Key")):
     return True
 
 
+def verify_api_key_flexible(
+    x_api_key: str = Header(None, alias="X-API-Key"),
+    key: str = Query(None)
+):
+    """Accept API key from either header or query parameter (packing slip browser access)."""
+    provided_key = x_api_key or key
+    if not provided_key:
+        raise HTTPException(status_code=401, detail="API key required")
+    if not secrets.compare_digest(provided_key, API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    return True
+
+
 def format_timestamp(dt):
     if dt is None:
         return None, None
@@ -4198,7 +4211,7 @@ def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = 
 # ═══════════════════════════════════════════════════════════════
 
 @app.get("/sales/orders/{order_id}/packing-slip")
-def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key)):
+def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexible)):
     """Generate a printable packing slip PDF for a sales order."""
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.units import inch
