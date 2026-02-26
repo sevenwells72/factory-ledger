@@ -1223,6 +1223,99 @@ def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
 # LOT ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+@app.get("/lots/by-supplier-lot/{supplier_lot_code}")
+def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_api_key)):
+    """Find internal lot(s) by supplier lot code — for recall tracing."""
+    try:
+        with get_transaction() as cur:
+            # Search lots table (direct supplier_lot_code on lot)
+            cur.execute("""
+                SELECT l.id, l.lot_code, l.supplier_lot_code, l.lot_type,
+                       l.product_id, p.name AS product_name, p.odoo_code,
+                       COALESCE(SUM(tl.quantity_lb), 0) AS quantity_on_hand
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE LOWER(l.supplier_lot_code) = LOWER(%s)
+                GROUP BY l.id, p.id
+            """, (supplier_lot_code,))
+            direct_matches = cur.fetchall()
+
+            # Search lot_supplier_codes table (commingled entries)
+            cur.execute("""
+                SELECT DISTINCT l.id, l.lot_code, l.supplier_lot_code, l.lot_type,
+                       l.product_id, p.name AS product_name, p.odoo_code,
+                       COALESCE(oh.on_hand, 0) AS quantity_on_hand,
+                       lsc.supplier_lot_code AS commingled_supplier_lot,
+                       lsc.supplier_name, lsc.quantity_lb AS supplier_qty_lb, lsc.notes
+                FROM lot_supplier_codes lsc
+                JOIN lots l ON l.id = lsc.lot_id
+                JOIN products p ON p.id = l.product_id
+                LEFT JOIN LATERAL (
+                    SELECT COALESCE(SUM(tl2.quantity_lb), 0) AS on_hand
+                    FROM transaction_lines tl2 WHERE tl2.lot_id = l.id
+                ) oh ON TRUE
+                WHERE LOWER(lsc.supplier_lot_code) = LOWER(%s)
+            """, (supplier_lot_code,))
+            commingled_matches = cur.fetchall()
+
+            # Combine results, dedup by lot_id
+            seen_ids = set()
+            results = []
+            for lot in direct_matches:
+                seen_ids.add(lot['id'])
+                results.append({
+                    "lot_id": lot['id'],
+                    "lot_code": lot['lot_code'],
+                    "supplier_lot_code": lot['supplier_lot_code'],
+                    "lot_type": lot['lot_type'],
+                    "product_name": lot['product_name'],
+                    "odoo_code": lot['odoo_code'],
+                    "quantity_on_hand": float(lot['quantity_on_hand']),
+                    "match_source": "lots.supplier_lot_code"
+                })
+            for row in commingled_matches:
+                entry = {
+                    "lot_id": row['id'],
+                    "lot_code": row['lot_code'],
+                    "supplier_lot_code": row['supplier_lot_code'],
+                    "lot_type": row['lot_type'],
+                    "product_name": row['product_name'],
+                    "odoo_code": row['odoo_code'],
+                    "quantity_on_hand": float(row['quantity_on_hand']),
+                    "match_source": "lot_supplier_codes",
+                    "commingled_detail": {
+                        "supplier_lot_code": row['commingled_supplier_lot'],
+                        "supplier_name": row['supplier_name'],
+                        "quantity_lb": float(row['supplier_qty_lb']) if row['supplier_qty_lb'] else None,
+                        "notes": row['notes']
+                    }
+                }
+                if row['id'] not in seen_ids:
+                    results.append(entry)
+                    seen_ids.add(row['id'])
+                else:
+                    # Lot already in results from direct match — add commingled detail
+                    for r in results:
+                        if r['lot_id'] == row['id'] and 'commingled_detail' not in r:
+                            r['commingled_detail'] = entry['commingled_detail']
+                            break
+
+            if not results:
+                raise HTTPException(404, f"No lots found with supplier lot code '{supplier_lot_code}'")
+
+            return {
+                "supplier_lot_code_searched": supplier_lot_code,
+                "matching_lots": results,
+                "total_matches": len(results)
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Search by supplier lot failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/lots/by-code/{lot_code}")
 def get_lot_by_code(lot_code: str, _: bool = Depends(verify_api_key)):
     try:
@@ -1230,7 +1323,8 @@ def get_lot_by_code(lot_code: str, _: bool = Depends(verify_api_key)):
             cur.execute("""
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand,
-                       l.entry_source, l.found_location, l.estimated_age
+                       l.entry_source, l.found_location, l.estimated_age,
+                       l.supplier_lot_code, l.lot_type
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
@@ -1240,7 +1334,14 @@ def get_lot_by_code(lot_code: str, _: bool = Depends(verify_api_key)):
             lot = cur.fetchone()
         if not lot:
             raise HTTPException(status_code=404, detail=f"Lot '{lot_code}' not found")
-        return lot
+        result = dict(lot)
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT supplier_lot_code, supplier_name, quantity_lb, notes
+                FROM lot_supplier_codes WHERE lot_id = %s ORDER BY id
+            """, (lot['id'],))
+            result['supplier_lot_entries'] = [dict(r) for r in cur.fetchall()]
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -1264,7 +1365,14 @@ def get_lot(lot_id: int, _: bool = Depends(verify_api_key)):
             lot = cur.fetchone()
         if not lot:
             raise HTTPException(status_code=404, detail="Lot not found")
-        return lot
+        result = dict(lot)
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT supplier_lot_code, supplier_name, quantity_lb, notes
+                FROM lot_supplier_codes WHERE lot_id = %s ORDER BY id
+            """, (lot_id,))
+            result['supplier_lot_entries'] = [dict(r) for r in cur.fetchall()]
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -2446,16 +2554,17 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
                 raise HTTPException(status_code=404, detail=f"Batch '{lot_code}' not found")
             
             cur.execute("""
-                SELECT p.name as ingredient_name, l.lot_code as ingredient_lot, ilc.quantity_lb as quantity_consumed
+                SELECT p.name as ingredient_name, l.lot_code as ingredient_lot,
+                       l.supplier_lot_code, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
                 JOIN products p ON p.id = ilc.ingredient_product_id
                 JOIN lots l ON l.id = ilc.ingredient_lot_id
                 WHERE ilc.transaction_id = %s
             """, (batch['transaction_id'],))
             ingredients = cur.fetchall()
-            
+
             date_str, time_str = format_timestamp(batch['timestamp'])
-            
+
             return {
                 "batch_lot_code": batch['lot_code'],
                 "product_name": batch['product_name'],
@@ -2466,6 +2575,7 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
                     {
                         "ingredient_name": ing['ingredient_name'],
                         "lot_code": ing['ingredient_lot'],
+                        "supplier_lot_code": ing['supplier_lot_code'],
                         "quantity_lb": float(ing['quantity_consumed'])
                     } for ing in ingredients
                 ]
@@ -2482,16 +2592,16 @@ def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT l.lot_code, p.name as ingredient_name, l.product_id
+                SELECT l.lot_code, l.supplier_lot_code, p.name as ingredient_name, l.product_id
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 WHERE LOWER(l.lot_code) = LOWER(%s)
             """, (lot_code,))
             lot = cur.fetchone()
-            
+
             if not lot:
                 raise HTTPException(status_code=404, detail=f"Lot '{lot_code}' not found")
-            
+
             cur.execute("""
                 SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
@@ -2503,9 +2613,10 @@ def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
                 WHERE LOWER(il.lot_code) = LOWER(%s)
             """, (lot_code,))
             batches = cur.fetchall()
-            
+
             return {
                 "ingredient_lot_code": lot['lot_code'],
+                "supplier_lot_code": lot['supplier_lot_code'],
                 "ingredient_name": lot['ingredient_name'],
                 "used_in_batches": [
                     {
@@ -4273,7 +4384,8 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
 
                 # Query FIFO lots
                 cur.execute("""
-                    SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS available
+                    SELECT l.id, l.lot_code, l.supplier_lot_code,
+                           COALESCE(SUM(tl.quantity_lb), 0) AS available
                     FROM lots l
                     LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                     WHERE l.product_id = %s
@@ -4299,6 +4411,7 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
                     line_allocations.append({
                         "product_name": product_name,
                         "lot_code": lot['lot_code'],
+                        "supplier_lot_code": lot['supplier_lot_code'],
                         "qty_display": qty_display
                     })
                     remaining_need -= take
@@ -4457,13 +4570,24 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
                 Paragraph("QTY", style_table_header),
             ]]
 
+            style_supplier_ref = ParagraphStyle('SupplierRef', parent=styles['Normal'],
+                                                    fontSize=6, leading=8, textColor=light_gray)
+
             order_date_str = str(order['order_date']) if order['order_date'] else ""
             for alloc in line_allocations:
                 lot_style = style_table_cell_bold if alloc['lot_code'] == 'INSUFFICIENT' else style_table_cell
+                # Build lot cell with optional supplier lot reference
+                lot_text = alloc['lot_code']
+                supplier_code = alloc.get('supplier_lot_code')
+                if supplier_code and alloc['lot_code'] not in ('N/A', 'INSUFFICIENT'):
+                    lot_cell = [Paragraph(lot_text, lot_style),
+                                Paragraph(f"(Supplier: {supplier_code})", style_supplier_ref)]
+                else:
+                    lot_cell = Paragraph(lot_text, lot_style)
                 table_data.append([
                     Paragraph(order_date_str, style_table_cell),
                     Paragraph(alloc['product_name'], style_table_cell),
-                    Paragraph(alloc['lot_code'], lot_style),
+                    lot_cell,
                     Paragraph(alloc['qty_display'], style_table_cell),
                 ])
 

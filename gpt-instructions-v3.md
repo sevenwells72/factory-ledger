@@ -124,11 +124,12 @@ Trigger: "print packing slip" / "packing slip for [order/customer]" / "packing s
 6. INSUFFICIENT in lot column = not enough stock. Cancelled orders return an error page.
 
 ## QUERIES
-Inventory: GET /inventory/current, /inventory/{item}. Lots: /lots/by-code/{code}, /lots/{id}
+Inventory: GET /inventory/current, /inventory/{item}. Lots: /lots/by-code/{code}, /lots/{id}, /lots/by-supplier-lot/{code}
 Trace: /trace/batch/{lot}, /trace/ingredient/{lot}. History: /transactions/history
 Customers: /customers/search, /customers, POST/PATCH /customers/{id}
 Products: /products/search, /products/{id}
 Packing slip: /sales/orders/{id}/packing-slip (PDF)
+Supplier lot search: "which lot has supplier code X?" → GET /lots/by-supplier-lot/{code}. Returns all internal lots containing that supplier lot (direct + commingled). Critical for recall tracing.
 
 ## BILINGUAL
 Spanish input → English fields → store original in _es → respond in Spanish.

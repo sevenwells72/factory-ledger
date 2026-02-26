@@ -340,10 +340,25 @@ paths:
       responses:
         '200':
           description: Item inventory with lots
+  /lots/by-supplier-lot/{supplier_lot_code}:
+    get:
+      operationId: getLotsBySupplierLot
+      summary: Find internal lot(s) by supplier lot code (recall tracing)
+      parameters:
+        - name: supplier_lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching internal lots with inventory and supplier details
+        '404':
+          description: No lots found with that supplier lot code
   /lots/by-code/{lot_code}:
     get:
       operationId: getLotByCode
-      summary: Look up lot by lot code
+      summary: Look up lot by lot code (includes supplier_lot_code and supplier_lot_entries)
       parameters:
         - name: lot_code
           in: path
@@ -352,7 +367,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Lot details
+          description: Lot details with supplier lot info
   /lots/{lot_id}:
     get:
       operationId: getLot
