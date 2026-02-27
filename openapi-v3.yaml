@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger System
-  version: 3.0.0
+  version: 3.1.0
   description: Inventory management, production tracking, and sales order fulfillment for food manufacturing.
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -277,7 +277,7 @@ paths:
   /products/search:
     get:
       operationId: searchProducts
-      summary: Search products by name or Odoo code
+      summary: "Search products using 3-tier matching: exact → keyword (word-order independent) → trigram similarity. Returns match_tier per result."
       parameters:
         - name: q
           in: query
@@ -285,6 +285,7 @@ paths:
           schema:
             type: string
             minLength: 1
+          description: "Product name, partial name, or odoo_code. Word order does not matter — 'Chocolate Sprinkles 10' finds 'Sprinkles Chocolate 10 LB'."
         - name: limit
           in: query
           schema:
@@ -294,7 +295,34 @@ paths:
             maximum: 100
       responses:
         '200':
-          description: Product search results
+          description: Product search results with match_tier (exact, keyword, or trigram)
+  /products/resolve:
+    post:
+      operationId: resolveProducts
+      summary: "Bulk-resolve raw product names to database products. Use BEFORE creating sales orders from OCR text to verify matches. Returns confidence per item."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [names]
+              properties:
+                names:
+                  type: array
+                  items:
+                    type: string
+                  description: "Raw product name strings from OCR or order confirmations"
+            example:
+              names:
+                - "Chocolate Sprinkles 10 lb"
+                - "Rainbow Sprinkles 10 lb Case"
+                - "90002"
+      responses:
+        '200':
+          description: |
+            Each item: input, match {id, name, odoo_code} or null, match_tier (exact/keyword/trigram/null), confidence (high/medium/low/none).
+            Multiple matches → top in 'match', rest in 'alternatives'. Summary has total/resolved/unresolved.
   /products/{product_id}:
     get:
       operationId: getProduct
