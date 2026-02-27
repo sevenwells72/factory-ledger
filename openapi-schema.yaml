@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger API
-  version: 2.6.0
+  version: 2.7.0
   description: Manufacturing operations system for CNS Confectionery Products
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -18,13 +18,14 @@ paths:
   /products/search:
     get:
       operationId: searchProducts
-      summary: Search products by name or code
+      summary: "Search products by name or code. Uses 3-tier matching: exact → keyword (word-order independent) → trigram similarity. Returns match_tier per result."
       parameters:
         - name: q
           in: query
           required: true
           schema:
             type: string
+          description: "Product name, partial name, or odoo_code. Word order does not matter — 'Chocolate Sprinkles 10' matches 'Sprinkles Chocolate 10 LB'."
         - name: limit
           in: query
           schema:
@@ -32,7 +33,36 @@ paths:
             default: 20
       responses:
         "200":
-          description: List of matching products
+          description: List of matching products with match_tier field (exact, keyword, or trigram)
+  /products/resolve:
+    post:
+      operationId: resolveProducts
+      summary: "Bulk-resolve raw product names to database products. Use BEFORE creating sales orders to verify product matches. Returns confidence level per item."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - names
+              properties:
+                names:
+                  type: array
+                  items:
+                    type: string
+                  description: "Raw product name strings from OCR or order confirmations"
+            example:
+              names:
+                - "Chocolate Sprinkles 10 lb"
+                - "Rainbow Sprinkles 10 lb Case"
+                - "90002"
+      responses:
+        "200":
+          description: |
+            Each item includes: input, match (id/name/odoo_code or null), match_tier (exact/keyword/trigram/null), confidence (high/medium/low/none).
+            If multiple matches exist, top match is in 'match' and rest in 'alternatives'.
+            Summary shows total/resolved/unresolved counts.
   /inventory/{item_name}:
     get:
       operationId: getInventory

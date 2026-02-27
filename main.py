@@ -831,71 +831,185 @@ class ShipOrderRequest(BaseModel):
 # ═══════════════════════════════════════════════════════════════
 
 def resolve_product_id(cur, product_name: str) -> tuple:
-    """Find product by name (case-insensitive). Returns (product_id, product_name)."""
-    cur.execute(
-        "SELECT id, name FROM products WHERE LOWER(name) = LOWER(%s) AND COALESCE(active, true) = true",
-        (product_name,)
-    )
-    row = cur.fetchone()
-    if row:
-        return row['id'], row['name']
-    # Try fuzzy (name + odoo_code)
-    cur.execute(
-        """SELECT id, name FROM products
-           WHERE (LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s))
-             AND COALESCE(active, true) = true
-           ORDER BY name LIMIT 5""",
-        (f"%{product_name}%", f"%{product_name}%")
-    )
-    rows = cur.fetchall()
-    if len(rows) == 1:
-        return rows[0]['id'], rows[0]['name']
-    elif len(rows) > 1:
-        suggestions = [r['name'] for r in rows]
+    """Find product by name using 3-tier search. Returns (product_id, product_name).
+    For sales orders: auto-resolves high confidence, raises on ambiguous/none."""
+    results = _tiered_product_search(cur, product_name, limit=5)
+    if not results:
+        raise HTTPException(404, f"Product not found: '{product_name}'")
+
+    best = results[0]
+    tier = best['match_tier']
+
+    # High confidence: exact or single keyword match → auto-resolve
+    if tier == 'exact' or (tier == 'keyword' and len(results) == 1):
+        return best['id'], best['name']
+
+    # Multiple keyword matches → ambiguous
+    if tier == 'keyword' and len(results) > 1:
+        suggestions = [r['name'] for r in results]
         raise HTTPException(400, f"Multiple products match '{product_name}': {suggestions}")
+
+    # Trigram: accept if similarity is high enough and only one strong match
+    if tier == 'trigram':
+        if best['similarity'] > 0.4 and (len(results) == 1 or results[0]['similarity'] - results[1]['similarity'] > 0.15):
+            return best['id'], best['name']
+        suggestions = [f"{r['name']} ({r['similarity']:.0%})" for r in results]
+        raise HTTPException(400, f"Uncertain match for '{product_name}'. Did you mean: {suggestions}")
+
     raise HTTPException(404, f"Product not found: '{product_name}'")
 
 
 def resolve_product_full(cur, product_name: str) -> dict:
-    """Find product by name/odoo_code. Returns full row dict with id, name, odoo_code, etc.
+    """Find product by name/odoo_code using 3-tier search. Returns full row dict.
     Used by receive/ship/make endpoints that need extra columns."""
-    # Exact name match
+    results = _tiered_product_search(cur, product_name, limit=5)
+    if not results:
+        raise HTTPException(404, f"Product not found: '{product_name}'")
+
+    best = results[0]
+    tier = best['match_tier']
+
+    # High confidence: exact or single keyword match → auto-resolve
+    if tier == 'exact' or (tier == 'keyword' and len(results) == 1):
+        product_id = best['id']
+    elif tier == 'keyword' and len(results) > 1:
+        suggestions = [f"{r['name']} ({r['odoo_code'] or 'no code'})" for r in results]
+        raise HTTPException(400, f"Multiple products match '{product_name}': {suggestions}")
+    elif tier == 'trigram':
+        if best['similarity'] > 0.4 and (len(results) == 1 or results[0]['similarity'] - results[1]['similarity'] > 0.15):
+            product_id = best['id']
+        else:
+            suggestions = [f"{r['name']} ({r['odoo_code'] or 'no code'}) ({r['similarity']:.0%})" for r in results]
+            raise HTTPException(400, f"Uncertain match for '{product_name}'. Did you mean: {suggestions}")
+    else:
+        raise HTTPException(404, f"Product not found: '{product_name}'")
+
+    # Fetch full product row
     cur.execute(
         """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
-                       COALESCE(yield_multiplier, 1.0) as yield_multiplier
-           FROM products WHERE LOWER(name) = LOWER(%s) AND COALESCE(active, true) = true""",
-        (product_name,)
+                  COALESCE(yield_multiplier, 1.0) as yield_multiplier
+           FROM products WHERE id = %s""",
+        (product_id,)
     )
     row = cur.fetchone()
-    if row:
-        return dict(row)
-    # Exact odoo_code match
+    if not row:
+        raise HTTPException(404, f"Product not found: '{product_name}'")
+    return dict(row)
+
+
+# Noise words filtered out during keyword search
+_SEARCH_NOISE_WORDS = {'the', 'a', 'an', 'in', 'for', 'lb', 'lbs', 'case', 'cases',
+                       'oz', 'bag', 'bags', 'box', 'boxes', 'of', 'and', 'with', 'per'}
+
+
+def _tiered_product_search(cur, query: str, limit: int = 5) -> list:
+    """3-tier product search: exact → keyword → trigram.
+    Returns list of dicts with keys: id, name, odoo_code, match_tier, similarity."""
+    q = query.strip()
+    if not q:
+        return []
+
+    # --- Tier 1: Exact match ---
+    # Try odoo_code if input looks numeric
+    if q.isdigit():
+        cur.execute(
+            """SELECT id, name, odoo_code FROM products
+               WHERE odoo_code = %s AND COALESCE(active, true) = true""",
+            (q,)
+        )
+        rows = cur.fetchall()
+        if rows:
+            return [dict(r, match_tier='exact', similarity=1.0) for r in rows][:limit]
+
+    # Try exact name match
     cur.execute(
-        """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
-                       COALESCE(yield_multiplier, 1.0) as yield_multiplier
-           FROM products WHERE LOWER(odoo_code) = LOWER(%s) AND COALESCE(active, true) = true""",
-        (product_name,)
-    )
-    row = cur.fetchone()
-    if row:
-        return dict(row)
-    # Fuzzy match (name + odoo_code)
-    cur.execute(
-        """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
-                       COALESCE(yield_multiplier, 1.0) as yield_multiplier
-           FROM products
-           WHERE (LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s))
-             AND COALESCE(active, true) = true
-           ORDER BY name LIMIT 5""",
-        (f"%{product_name}%", f"%{product_name}%")
+        """SELECT id, name, odoo_code FROM products
+           WHERE LOWER(name) = LOWER(%s) AND COALESCE(active, true) = true""",
+        (q,)
     )
     rows = cur.fetchall()
-    if len(rows) == 1:
-        return dict(rows[0])
-    elif len(rows) > 1:
-        suggestions = [f"{r['name']} ({r['odoo_code'] or 'no code'})" for r in rows]
-        raise HTTPException(400, f"Multiple products match '{product_name}': {suggestions}")
-    raise HTTPException(404, f"Product not found: '{product_name}'")
+    if rows:
+        return [dict(r, match_tier='exact', similarity=1.0) for r in rows][:limit]
+
+    # --- Tier 2: Keyword match (word-order independent) ---
+    words = [w for w in re.split(r'\s+', q.lower()) if w and w not in _SEARCH_NOISE_WORDS]
+    if words:
+        patterns = [f"%{w}%" for w in words]
+        cur.execute(
+            """SELECT id, name, odoo_code FROM products
+               WHERE name ILIKE ALL(%s) AND COALESCE(active, true) = true
+               ORDER BY length(name), name
+               LIMIT %s""",
+            (patterns, limit)
+        )
+        rows = cur.fetchall()
+        if rows:
+            return [dict(r, match_tier='keyword', similarity=0.8) for r in rows]
+
+    # --- Tier 3: Trigram similarity fallback ---
+    cur.execute(
+        """SELECT id, name, odoo_code,
+                  similarity(LOWER(name), LOWER(%s)) AS sim
+           FROM products
+           WHERE similarity(LOWER(name), LOWER(%s)) > 0.25
+             AND COALESCE(active, true) = true
+           ORDER BY sim DESC
+           LIMIT %s""",
+        (q, q, limit)
+    )
+    rows = cur.fetchall()
+    return [dict(r, match_tier='trigram', similarity=float(r['sim'])) for r in rows]
+
+
+def _resolve_single_product(cur, raw_name: str) -> dict:
+    """Resolve a single raw product name string using 3-tier search.
+    Returns a dict with: input, match, match_tier, confidence, alternatives."""
+    results = _tiered_product_search(cur, raw_name, limit=5)
+
+    if not results:
+        return {
+            "input": raw_name,
+            "match": None,
+            "match_tier": None,
+            "confidence": "none",
+            "suggestions": []
+        }
+
+    best = results[0]
+    tier = best['match_tier']
+    sim = best['similarity']
+
+    # Determine confidence
+    if tier == 'exact':
+        confidence = 'high'
+    elif tier == 'keyword':
+        confidence = 'high' if len(results) == 1 else 'medium'
+    else:  # trigram
+        if sim > 0.4:
+            confidence = 'medium'
+        else:
+            confidence = 'low'
+
+    match_data = {"id": best['id'], "name": best['name'], "odoo_code": best['odoo_code']}
+    result = {
+        "input": raw_name,
+        "match": match_data,
+        "match_tier": tier,
+        "confidence": confidence,
+    }
+
+    # Include alternatives if there are multiple matches at tier 2/3
+    if len(results) > 1 and tier in ('keyword', 'trigram'):
+        result["alternatives"] = [
+            {"id": r['id'], "name": r['name'], "odoo_code": r['odoo_code']}
+            for r in results[1:]
+        ]
+
+    return result
+
+
+class BulkResolveRequest(BaseModel):
+    names: List[str]
 
 
 def get_sibling_skus(cur, product_id: int) -> list:
@@ -1115,26 +1229,54 @@ def search_products(
     limit: int = Query(default=20, ge=1, le=100),
     _: bool = Depends(verify_api_key)
 ):
+    """Search products using 3-tier matching: exact → keyword → trigram."""
     try:
         with get_transaction() as cur:
-            cur.execute("""
-                SELECT id, name, odoo_code, type, uom, active,
-                       COALESCE(verification_status, 'verified') as verification_status
-                FROM products
-                WHERE (LOWER(name) LIKE LOWER(%s) OR LOWER(odoo_code) LIKE LOWER(%s))
-                  AND COALESCE(active, true) = true
-                ORDER BY 
-                    CASE WHEN LOWER(name) = LOWER(%s) THEN 0
-                         WHEN LOWER(odoo_code) = LOWER(%s) THEN 1
-                         WHEN LOWER(name) LIKE LOWER(%s) THEN 2
-                         ELSE 3 END,
-                    name
-                LIMIT %s
-            """, (f"%{q}%", f"%{q}%", q, q, f"{q}%", limit))
-            products = cur.fetchall()
+            results = _tiered_product_search(cur, q, limit=limit)
+            products = []
+            for r in results:
+                # Fetch full product details for each match
+                cur.execute(
+                    """SELECT id, name, odoo_code, type, uom, active,
+                              COALESCE(verification_status, 'verified') as verification_status
+                       FROM products WHERE id = %s""",
+                    (r['id'],)
+                )
+                row = cur.fetchone()
+                if row:
+                    prod = dict(row)
+                    prod['match_tier'] = r['match_tier']
+                    products.append(prod)
         return {"count": len(products), "products": products}
     except Exception as e:
         logger.error(f"Product search failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/products/resolve")
+def resolve_products_bulk(req: BulkResolveRequest, _: bool = Depends(verify_api_key)):
+    """Bulk-resolve raw product name strings against the database.
+    Uses 3-tier matching: exact → keyword (word-order independent) → trigram similarity."""
+    try:
+        with get_transaction() as cur:
+            resolved_list = []
+            resolved_count = 0
+            for name in req.names:
+                result = _resolve_single_product(cur, name)
+                resolved_list.append(result)
+                if result['match'] is not None:
+                    resolved_count += 1
+
+        return {
+            "resolved": resolved_list,
+            "summary": {
+                "total": len(req.names),
+                "resolved": resolved_count,
+                "unresolved": len(req.names) - resolved_count,
+            }
+        }
+    except Exception as e:
+        logger.error(f"Bulk product resolve failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
