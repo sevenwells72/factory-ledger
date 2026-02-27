@@ -509,13 +509,6 @@ paths:
       responses:
         '200':
           description: Transaction history
-  /reason-codes:
-    get:
-      operationId: getReasonCodes
-      summary: Get valid adjustment reason codes
-      responses:
-        '200':
-          description: List of reason codes
   /customers:
     get:
       operationId: listCustomers
