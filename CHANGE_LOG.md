@@ -1,5 +1,54 @@
 # Change Log
 
+## 2026-03-05 09:50 — Fix packing slip to use actual shipment records instead of live FIFO
+- **File(s) changed:** `main.py`
+- **What changed:** Patched the packing slip endpoint (`/sales/orders/{id}/packing-slip`) to check for committed shipment records in the `shipments` table. If shipments exist, lot allocations are pulled from `shipment_lines → transaction_lines → lots` (reflecting what was actually shipped). If no shipments exist yet (pre-shipment), the original FIFO inventory preview is preserved for pick-list use.
+- **Why:** After a shipment was committed, the packing slip was recalculating FIFO against current (post-shipment) inventory, causing it to show less than what was actually shipped (e.g., showing 200 lb instead of 300 lb for Coconut Sweetened Flake UNIPRO 10 LB on SO-260217-001).
+
+---
+
+## 2026-03-04 12:55 — Clarify lot_allocations schema description: source overrides only
+- **File(s) changed:** `openapi-v3.yaml`
+- **What changed:** Updated lot_allocations description in PackRequest to explicitly state it's for SOURCE lot overrides only, and to use target_lot_code for the output/FG lot.
+- **Why:** GPT was misrouting operator-provided lot codes into lot_allocations (source) instead of target_lot_code (output).
+
+---
+
+## 2026-03-04 12:50 — Fix GPT pack lot code misrouting: lot code = output lot, not source
+- **File(s) changed:** `gpt-instructions-v3.md`
+- **What changed:** Added explicit instruction that when operator provides a lot code during packing, it is the target_lot_code (FG output lot), NOT a source lot allocation. Source lots use FIFO unless operator explicitly says "pull from lot X."
+- **Why:** After schema fix, GPT successfully called /pack but misinterpreted lot code 602271 as a source lot allocation instead of the output lot, causing a "0 lb available" error.
+
+---
+
+## 2026-03-04 12:30 — Fix GPT pack workflow: schema descriptions + instruction conflict
+- **File(s) changed:** `openapi-v3.yaml`, `gpt-instructions-v3.md`, `openapi-schema-gpt.yaml`
+- **What changed:** Added field descriptions (source_product, target_product, case_weight_lb, lot_allocations, target_lot_code) to PackRequest in v3 OpenAPI schema so GPT knows it can pass raw SKU codes. Fixed instruction "Always ask which FG SKU" → only ask if FG SKU not already provided. Marked old openapi-schema-gpt.yaml (v2.7.0) as deprecated — its split /preview and /commit endpoints don't exist in the API.
+- **Why:** GPT was stuck in a verify/resolve loop during pack operations. Root cause: old schema's /pack/preview endpoint returns 404 (only /pack with mode param exists), and missing field descriptions left GPT uncertain what values to pass.
+
+---
+
+## 2026-03-02 17:35 — Auto-populate case_size_lb for OZ-pattern products
+- **File(s) changed:** `main.py`
+- **What changed:** Extended Migration 006 startup logic to handle OZ-pattern product names (e.g., "12x10 OZ", "6x7 OZ"). Parses count × unit-oz from the name, converts to lb (÷16), and sets `case_size_lb`. Also ran UPDATE directly against production DB for 9 existing products: 5 × 12x10 OZ → 7.50 lb, 4 × 6x7 OZ → 2.63 lb.
+- **Why:** Products with OZ-based case formats had `case_size_lb = NULL`, which blocked the `/pack` endpoint with HTTP 400. SKU 70003 (Granola SS Chocolate Chip 12x10 OZ Case) was specifically reported as failing during packing.
+
+---
+
+## 2026-03-02 17:15 — Migration 013: Create shipment tables
+- **File(s) changed:** `migrations/013_shipment_tables.sql`
+- **What changed:** Created migration for three missing tables: `shipments` (one record per ship/commit), `sales_order_shipments` (links transactions to order lines), and `shipment_lines` (per-product detail within a shipment). All columns derived from existing INSERT/SELECT statements in main.py. Includes foreign keys to sales_orders, customers, sales_order_lines, transactions, and products, plus indexes on all FK and timestamp columns.
+- **Why:** The ship/commit endpoint (`POST /sales/orders/{id}/ship`) and sales dashboard were referencing these tables but no CREATE TABLE migration existed, causing "relation does not exist" errors on any dispatch operation.
+
+---
+
+## 2026-02-27 09:48 — Add /products/resolve to v3 OpenAPI schema
+- **File(s) changed:** `openapi-v3.yaml`
+- **What changed:** Added `/products/resolve` endpoint and updated `/products/search` description in the v3 schema (the one the GPT uses for actions). Bumped version 3.0.0 → 3.1.0.
+- **Why:** The GPT needs to see the new resolve endpoint in its action schema to use it.
+
+---
+
 ## 2026-02-27 09:40 — 3-tier fuzzy product search + bulk resolve endpoint
 - **File(s) changed:** `main.py`, `openapi-schema.yaml`, `openapi-schema-gpt.yaml`, `migrations/012_pg_trgm_product_search.sql`
 - **What changed:**

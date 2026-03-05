@@ -211,7 +211,7 @@ async def startup():
                     ADD COLUMN IF NOT EXISTS case_size_lb NUMERIC(10,2)
                 """)
 
-                # Auto-populate from product names
+                # Auto-populate from product names — LB patterns
                 cur.execute("UPDATE products SET case_size_lb = 25 WHERE name LIKE '%25 LB%' AND case_size_lb IS NULL")
                 updated_25 = cur.rowcount
                 cur.execute("UPDATE products SET case_size_lb = 10 WHERE name LIKE '%10 LB%' AND case_size_lb IS NULL")
@@ -219,10 +219,21 @@ async def startup():
                 cur.execute("UPDATE products SET case_size_lb = 50 WHERE name LIKE '%50 LB%' AND case_size_lb IS NULL")
                 updated_50 = cur.rowcount
 
+                # Auto-populate from product names — OZ patterns (e.g., "12x10 OZ", "6x7 OZ")
+                cur.execute("""
+                    UPDATE products SET case_size_lb = ROUND(
+                        (substring(name FROM '(\d+)\s*x\s*\d+'))::numeric
+                        * (substring(name FROM '\d+\s*x\s*(\d+\.?\d*)\s*OZ'))::numeric
+                        / 16.0, 2)
+                    WHERE name ~* '\d+\s*x\s*\d+\.?\d*\s*OZ'
+                      AND case_size_lb IS NULL
+                """)
+                updated_oz = cur.rowcount
+
                 conn.commit()
-                total = updated_25 + updated_10 + updated_50
+                total = updated_25 + updated_10 + updated_50 + updated_oz
                 if total > 0:
-                    logger.info(f"Migration 006: case_size_lb populated for {total} products (25lb:{updated_25}, 10lb:{updated_10}, 50lb:{updated_50})")
+                    logger.info(f"Migration 006: case_size_lb populated for {total} products (25lb:{updated_25}, 10lb:{updated_10}, 50lb:{updated_50}, oz:{updated_oz})")
                 else:
                     logger.info("Migration 006: case_size_lb column up to date")
         finally:
@@ -4543,87 +4554,155 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
             """, (order_id,))
             lines = cur.fetchall()
 
-            # ── FIFO lot allocation per line (read-only preview) ──
+            # ── Lot allocation: actual shipment data or FIFO preview ──
             line_allocations = []
-            for line in lines:
-                product_name = line['product_name']
-                qty_lb = float(line['quantity_lb'])
-                remaining_lb = qty_lb - float(line['quantity_shipped_lb'])
-                case_size = float(line['case_size_lb']) if line['case_size_lb'] else None
 
-                # Detect non-weight items
-                product_lower = product_name.lower()
-                non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                is_non_weight = any(kw in product_lower for kw in non_weight_keywords)
+            # Check if this order has committed shipment records
+            cur.execute("""
+                SELECT s.id FROM shipments s
+                WHERE s.sales_order_id = %s LIMIT 1
+            """, (order_id,))
+            has_shipments = cur.fetchone() is not None
 
-                if is_non_weight:
-                    qty_display = str(int(qty_lb)) if qty_lb == int(qty_lb) else str(qty_lb)
-                    line_allocations.append({
-                        "product_name": product_name,
-                        "lot_code": "N/A",
-                        "qty_display": qty_display
-                    })
-                    continue
-
-                # Query FIFO lots
+            if has_shipments:
+                # ── Post-shipment: pull actual lot allocations from shipment records ──
                 cur.execute("""
-                    SELECT l.id, l.lot_code, l.supplier_lot_code,
-                           COALESCE(SUM(tl.quantity_lb), 0) AS available
-                    FROM lots l
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-                    WHERE l.product_id = %s
-                    GROUP BY l.id
-                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                    ORDER BY l.id ASC
-                """, (line['product_id'],))
-                lots = cur.fetchall()
+                    SELECT p.name AS product_name, p.case_size_lb,
+                           l.lot_code, l.supplier_lot_code,
+                           ABS(tl.quantity_lb) AS quantity_lb
+                    FROM shipment_lines sl
+                    JOIN transaction_lines tl ON tl.transaction_id = sl.transaction_id
+                        AND tl.product_id = sl.product_id
+                    JOIN lots l ON l.id = tl.lot_id
+                    JOIN products p ON p.id = sl.product_id
+                    WHERE sl.shipment_id IN (
+                        SELECT s.id FROM shipments s WHERE s.sales_order_id = %s
+                    )
+                    ORDER BY p.name, l.created_at ASC
+                """, (order_id,))
+                shipped_lots = cur.fetchall()
 
-                remaining_need = remaining_lb if remaining_lb > 0 else qty_lb
-                allocated = False
-                for lot in lots:
-                    if remaining_need <= 0:
-                        break
-                    avail = float(lot['available'])
-                    take = min(avail, remaining_need)
-                    qty_display_val = take
-                    if case_size and case_size > 0:
-                        cases = round(take / case_size)
+                for row in shipped_lots:
+                    product_name = row['product_name']
+                    case_size = float(row['case_size_lb']) if row['case_size_lb'] else None
+                    qty = float(row['quantity_lb'])
+
+                    product_lower = product_name.lower()
+                    non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
+                    is_non_weight = any(kw in product_lower for kw in non_weight_keywords)
+
+                    if is_non_weight:
+                        qty_display = str(int(qty)) if qty == int(qty) else str(qty)
+                    elif case_size and case_size > 0:
+                        cases = round(qty / case_size)
                         qty_display = f"{cases} cs"
                     else:
-                        qty_display = f"{take:g} lb"
-                    line_allocations.append({
-                        "product_name": product_name,
-                        "lot_code": lot['lot_code'],
-                        "supplier_lot_code": lot['supplier_lot_code'],
-                        "qty_display": qty_display
-                    })
-                    remaining_need -= take
-                    allocated = True
+                        qty_display = f"{qty:g} lb"
 
-                if remaining_need > 0:
-                    # Shortfall — show INSUFFICIENT row
-                    if case_size and case_size > 0:
-                        short_cases = math.ceil(remaining_need / case_size)
-                        qty_display = f"{short_cases} cs"
-                    else:
-                        qty_display = f"{remaining_need:g} lb"
                     line_allocations.append({
                         "product_name": product_name,
-                        "lot_code": "INSUFFICIENT",
+                        "lot_code": row['lot_code'],
+                        "supplier_lot_code": row['supplier_lot_code'],
                         "qty_display": qty_display
                     })
-                elif not allocated:
-                    # No lots at all
-                    if case_size and case_size > 0:
-                        cases = round(qty_lb / case_size)
-                        qty_display = f"{cases} cs"
-                    else:
-                        qty_display = f"{qty_lb:g} lb"
-                    line_allocations.append({
-                        "product_name": product_name,
-                        "lot_code": "INSUFFICIENT",
-                        "qty_display": qty_display
-                    })
+
+                # Include non-weight order lines that may not have shipment lot records
+                shipped_product_names = {r['product_name'] for r in shipped_lots}
+                for line in lines:
+                    product_name = line['product_name']
+                    product_lower = product_name.lower()
+                    non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
+                    is_non_weight = any(kw in product_lower for kw in non_weight_keywords)
+                    if is_non_weight and product_name not in shipped_product_names:
+                        qty_lb = float(line['quantity_lb'])
+                        qty_display = str(int(qty_lb)) if qty_lb == int(qty_lb) else str(qty_lb)
+                        line_allocations.append({
+                            "product_name": product_name,
+                            "lot_code": "N/A",
+                            "qty_display": qty_display
+                        })
+
+            else:
+                # ── Pre-shipment: FIFO lot allocation preview ──
+                for line in lines:
+                    product_name = line['product_name']
+                    qty_lb = float(line['quantity_lb'])
+                    remaining_lb = qty_lb - float(line['quantity_shipped_lb'])
+                    case_size = float(line['case_size_lb']) if line['case_size_lb'] else None
+
+                    # Detect non-weight items
+                    product_lower = product_name.lower()
+                    non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
+                    is_non_weight = any(kw in product_lower for kw in non_weight_keywords)
+
+                    if is_non_weight:
+                        qty_display = str(int(qty_lb)) if qty_lb == int(qty_lb) else str(qty_lb)
+                        line_allocations.append({
+                            "product_name": product_name,
+                            "lot_code": "N/A",
+                            "qty_display": qty_display
+                        })
+                        continue
+
+                    # Query FIFO lots
+                    cur.execute("""
+                        SELECT l.id, l.lot_code, l.supplier_lot_code,
+                               COALESCE(SUM(tl.quantity_lb), 0) AS available
+                        FROM lots l
+                        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        WHERE l.product_id = %s
+                        GROUP BY l.id
+                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                        ORDER BY l.id ASC
+                    """, (line['product_id'],))
+                    lots = cur.fetchall()
+
+                    remaining_need = remaining_lb if remaining_lb > 0 else qty_lb
+                    allocated = False
+                    for lot in lots:
+                        if remaining_need <= 0:
+                            break
+                        avail = float(lot['available'])
+                        take = min(avail, remaining_need)
+                        qty_display_val = take
+                        if case_size and case_size > 0:
+                            cases = round(take / case_size)
+                            qty_display = f"{cases} cs"
+                        else:
+                            qty_display = f"{take:g} lb"
+                        line_allocations.append({
+                            "product_name": product_name,
+                            "lot_code": lot['lot_code'],
+                            "supplier_lot_code": lot['supplier_lot_code'],
+                            "qty_display": qty_display
+                        })
+                        remaining_need -= take
+                        allocated = True
+
+                    if remaining_need > 0:
+                        # Shortfall — show INSUFFICIENT row
+                        if case_size and case_size > 0:
+                            short_cases = math.ceil(remaining_need / case_size)
+                            qty_display = f"{short_cases} cs"
+                        else:
+                            qty_display = f"{remaining_need:g} lb"
+                        line_allocations.append({
+                            "product_name": product_name,
+                            "lot_code": "INSUFFICIENT",
+                            "qty_display": qty_display
+                        })
+                    elif not allocated:
+                        # No lots at all
+                        if case_size and case_size > 0:
+                            cases = round(qty_lb / case_size)
+                            qty_display = f"{cases} cs"
+                        else:
+                            qty_display = f"{qty_lb:g} lb"
+                        line_allocations.append({
+                            "product_name": product_name,
+                            "lot_code": "INSUFFICIENT",
+                            "qty_display": qty_display
+                        })
 
             # ── Build PDF ──
             buffer = io.BytesIO()
