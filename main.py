@@ -518,6 +518,7 @@ def get_daily_production_summary(cur, target_date=None):
         JOIN transaction_lines tl ON tl.transaction_id = t.id
         JOIN products p ON p.id = tl.product_id
         WHERE t.type IN ('make', 'pack')
+          AND COALESCE(t.status, 'posted') = 'posted'
           AND t.timestamp >= %s AND t.timestamp < %s
         GROUP BY p.id, p.name, p.type, t.type
         ORDER BY t.type, p.name
@@ -545,6 +546,7 @@ def get_daily_production_summary(cur, target_date=None):
         JOIN products p ON p.id = tl.product_id
         JOIN lots l ON l.id = tl.lot_id
         WHERE t.type = 'adjust'
+          AND COALESCE(t.status, 'posted') = 'posted'
           AND t.timestamp >= %s AND t.timestamp < %s
         ORDER BY t.timestamp
     """, (day_start, day_end))
@@ -2329,6 +2331,8 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     yield_multiplier = float(product.get('yield_multiplier') or 1.0)
                     formula_weight_lb = batch_size * req.batches
                     total_output = formula_weight_lb * yield_multiplier
+                    if total_output <= 0:
+                        raise HTTPException(400, f"Make rejected: output quantity is 0 lb. Product '{product['name']}' has batch_size={batch_size}, batches={req.batches}.")
                     now = get_plant_now()
                     manual_excluded_ids = set(req.excluded_ingredients or [])
                     auto_excluded_ids = set()
@@ -2763,6 +2767,79 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
 
 
 # ═══════════════════════════════════════════════════════════════
+# VOID TRANSACTION ENDPOINT
+# ═══════════════════════════════════════════════════════════════
+
+@app.post("/void/{transaction_id}")
+def void_transaction(transaction_id: int, _: bool = Depends(verify_api_key)):
+    """Void a transaction by marking it as voided and posting reversal lines.
+
+    Sets status='voided' on the original transaction (UI suppression only).
+    Posts a new reversal transaction with offsetting transaction_lines so
+    the ledger stays balanced. Inventory math never filters by status.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT id, type, status, notes FROM transactions WHERE id = %s", (transaction_id,))
+                txn = cur.fetchone()
+                if not txn:
+                    raise HTTPException(404, f"Transaction #{transaction_id} not found")
+                if txn['status'] == 'voided':
+                    raise HTTPException(400, f"Transaction #{transaction_id} is already voided")
+
+                # Get original transaction lines
+                cur.execute("SELECT product_id, lot_id, quantity_lb FROM transaction_lines WHERE transaction_id = %s", (transaction_id,))
+                original_lines = cur.fetchall()
+
+                now = get_plant_now()
+
+                # Mark original as voided (UI suppression only)
+                cur.execute(
+                    "UPDATE transactions SET status = 'voided', notes = COALESCE(notes, '') || %s WHERE id = %s",
+                    (f" | Voided at {now.strftime('%Y-%m-%d %H:%M')}", transaction_id)
+                )
+
+                # Post reversal transaction with offsetting lines
+                reversal_lines = []
+                if original_lines:
+                    cur.execute("""
+                        INSERT INTO transactions (type, timestamp, status, notes)
+                        VALUES (%s, %s, 'posted', %s) RETURNING id
+                    """, (txn['type'], now, f"Reversal of transaction #{transaction_id}"))
+                    reversal_txn_id = cur.fetchone()['id']
+
+                    for line in original_lines:
+                        reversed_qty = -float(line['quantity_lb'])
+                        cur.execute(
+                            "INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)",
+                            (reversal_txn_id, line['product_id'], line['lot_id'], reversed_qty)
+                        )
+                        reversal_lines.append({
+                            "product_id": line['product_id'],
+                            "lot_id": line['lot_id'],
+                            "original_qty": float(line['quantity_lb']),
+                            "reversal_qty": reversed_qty
+                        })
+                else:
+                    reversal_txn_id = None
+
+                logger.info(f"Voided transaction #{transaction_id} (type={txn['type']}, {len(original_lines)} lines reversed)")
+                return {
+                    "success": True,
+                    "voided_transaction_id": transaction_id,
+                    "reversal_transaction_id": reversal_txn_id,
+                    "reversal_lines": reversal_lines,
+                    "message": f"Transaction #{transaction_id} voided with {len(reversal_lines)} offsetting line(s)"
+                }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Void transaction failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
 # TRACE ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
@@ -2777,7 +2854,7 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
                 JOIN transaction_lines tl ON tl.transaction_id = t.id
                 JOIN lots l ON l.id = tl.lot_id
                 JOIN products p ON p.id = tl.product_id
-                WHERE t.type IN ('make', 'pack') AND LOWER(l.lot_code) = LOWER(%s) AND tl.quantity_lb > 0
+                WHERE t.type IN ('make', 'pack') AND COALESCE(t.status, 'posted') = 'posted' AND LOWER(l.lot_code) = LOWER(%s) AND tl.quantity_lb > 0
             """, (lot_code,))
             batch = cur.fetchone()
             
@@ -2889,10 +2966,10 @@ def get_transaction_history(
                 LEFT JOIN transaction_lines tl ON tl.transaction_id = t.id
                 LEFT JOIN products p ON p.id = tl.product_id
                 LEFT JOIN lots l ON l.id = tl.lot_id
-                WHERE 1=1
+                WHERE COALESCE(t.status, 'posted') = 'posted'
             """
             params = []
-            
+
             if transaction_type:
                 query += " AND t.type = %s"
                 params.append(transaction_type)
@@ -5119,6 +5196,7 @@ def dashboard_api_production(
                 JOIN transaction_lines tl ON tl.transaction_id = t.id
                 JOIN products p ON p.id = tl.product_id
                 WHERE t.type IN ('make', 'pack')
+                  AND COALESCE(t.status, 'posted') = 'posted'
                   AND tl.quantity_lb > 0
                   AND {date_filter}
                 GROUP BY prod_date, p.id
@@ -5418,6 +5496,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 JOIN products p ON p.id = tl.product_id
                 LEFT JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'ship'
+                  AND COALESCE(t.status, 'posted') = 'posted'
                   AND LOWER(COALESCE(t.customer_name, '')) != 'internal packaging'
                 GROUP BY t.id
                 ORDER BY t.timestamp DESC
@@ -5463,6 +5542,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                 JOIN products p ON p.id = tl.product_id
                 LEFT JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'receive'
+                  AND COALESCE(t.status, 'posted') = 'posted'
                 GROUP BY t.id
                 ORDER BY t.timestamp DESC
                 LIMIT %s
@@ -6612,6 +6692,7 @@ def production_day_summary(
                 JOIN products p ON p.id = tl.product_id
                 JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'make'
+                  AND COALESCE(t.status, 'posted') = 'posted'
                   AND t.timestamp >= %s AND t.timestamp < %s
                   AND tl.quantity_lb > 0
                 ORDER BY t.timestamp
@@ -6627,6 +6708,7 @@ def production_day_summary(
                 JOIN transaction_lines tl ON tl.transaction_id = t.id
                 JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'pack'
+                  AND COALESCE(t.status, 'posted') = 'posted'
                   AND t.timestamp >= %s AND t.timestamp < %s
                   AND tl.quantity_lb < 0
                 ORDER BY t.timestamp
@@ -6643,6 +6725,7 @@ def production_day_summary(
                 JOIN products p ON p.id = tl.product_id
                 JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'pack'
+                  AND COALESCE(t.status, 'posted') = 'posted'
                   AND t.timestamp >= %s AND t.timestamp < %s
                   AND tl.quantity_lb > 0
                 ORDER BY t.timestamp
@@ -6659,6 +6742,7 @@ def production_day_summary(
                 JOIN products p ON p.id = tl.product_id
                 JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'adjust'
+                  AND COALESCE(t.status, 'posted') = 'posted'
                   AND t.timestamp >= %s AND t.timestamp < %s
                 ORDER BY t.timestamp
             """, (day_start, day_end))
