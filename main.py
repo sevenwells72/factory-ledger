@@ -1931,7 +1931,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     WHERE l.product_id = %s
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                    ORDER BY l.id ASC
+                    ORDER BY COALESCE(l.received_at, l.created_at) ASC
                 """, (product['id'],))
                 lots = cur.fetchall()
 
@@ -2040,7 +2040,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         WHERE l.product_id = %s
                         GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                        ORDER BY l.id ASC
+                        ORDER BY COALESCE(l.received_at, l.created_at) ASC
                     """, (product['id'],))
                     all_lots = cur.fetchall()
 
@@ -2095,7 +2095,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                             WHERE l.id = ANY(%s)
                             GROUP BY l.id
                             HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                            ORDER BY l.id ASC
+                            ORDER BY COALESCE(l.received_at, l.created_at) ASC
                         """, (lot_ids,))
                         locked_lots = cur.fetchall()
 
@@ -2201,7 +2201,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         WHERE l.product_id = ANY(%s)
                         GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                        ORDER BY l.product_id, l.id ASC
+                        ORDER BY l.product_id, COALESCE(l.received_at, l.created_at) ASC
                     """, (all_ing_ids,))
                     for row in cur.fetchall():
                         pid = row['product_id']
@@ -2421,7 +2421,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                                 FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                                 WHERE l.product_id = %s GROUP BY l.id
-                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.id ASC
+                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                             """, (ing_id,))
                             candidate_lots = cur.fetchall()
                             if not candidate_lots:
@@ -2432,7 +2432,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                                 FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                                 WHERE l.id = ANY(%s) GROUP BY l.id
-                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.id ASC
+                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                             """, (lot_ids,))
                             lots = cur.fetchall()
                             remaining = needed
@@ -2510,7 +2510,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                     FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                     WHERE l.product_id = %s GROUP BY l.id
-                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.id ASC
+                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                 """, (source['id'],))
                 available_lots = cur.fetchall()
                 total_available = sum(float(lot['available']) for lot in available_lots)
@@ -2578,7 +2578,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                         FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                         WHERE l.product_id = %s GROUP BY l.id
-                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.id ASC
+                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                     """, (source['id'],))
                     candidate_lots = cur.fetchall()
                     if not candidate_lots:
@@ -2590,7 +2590,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                         FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                         WHERE l.id = ANY(%s) GROUP BY l.id
-                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.id ASC
+                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                     """, (lot_ids,))
                     lots = cur.fetchall()
                     lots_by_code = {lot['lot_code'].lower(): lot for lot in lots}
@@ -4472,7 +4472,7 @@ def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = 
                         cur.execute("""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
                                        FROM lots l JOIN transaction_lines tl ON tl.lot_id = l.id
                                        WHERE l.product_id = %s GROUP BY l.id
-                                       HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.created_at ASC""", (item["product_id"],))
+                                       HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC""", (item["product_id"],))
                         candidates = cur.fetchall()
                         lot_ids = [c['id'] for c in candidates]
                         if lot_ids:
@@ -4480,7 +4480,7 @@ def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = 
                             cur.execute("""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
                                            FROM lots l JOIN transaction_lines tl ON tl.lot_id = l.id
                                            WHERE l.id = ANY(%s) GROUP BY l.id
-                                           HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY l.created_at ASC""", (lot_ids,))
+                                           HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC""", (lot_ids,))
                             lots = cur.fetchall()
                         else:
                             lots = []
@@ -4692,7 +4692,7 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
                         WHERE l.product_id = %s
                         GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                        ORDER BY l.id ASC
+                        ORDER BY COALESCE(l.received_at, l.created_at) ASC
                     """, (line['product_id'],))
                     lots = cur.fetchall()
 
@@ -5198,7 +5198,7 @@ def dashboard_api_finished_goods():
                     WHERE l.product_id = ANY(%s)
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                    ORDER BY l.id ASC
+                    ORDER BY COALESCE(l.received_at, l.created_at) ASC
                 """, (matched_ids,))
                 for lr in cur.fetchall():
                     pid = lr['product_id']
@@ -5283,7 +5283,7 @@ def dashboard_api_batches():
                     WHERE l.product_id = ANY(%s)
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                    ORDER BY l.id ASC
+                    ORDER BY COALESCE(l.received_at, l.created_at) ASC
                 """, (matched_ids,))
                 for lr in cur.fetchall():
                     pid = lr['product_id']
@@ -5359,7 +5359,7 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
                     WHERE l.product_id = ANY(%s)
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                    ORDER BY l.id ASC
+                    ORDER BY COALESCE(l.received_at, l.created_at) ASC
                 """, (matched_ids,))
                 for lr in cur.fetchall():
                     pid = lr['product_id']
