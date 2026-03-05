@@ -7680,6 +7680,175 @@ def schedule_dispatch(request_body: dict, _: bool = Depends(verify_api_key)):
 
 
 # ═══════════════════════════════════════════════════════════════
+# AUDIT / INTEGRITY CHECK ENDPOINT
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/audit/integrity")
+def audit_integrity():
+    """Run automated integrity checks and return structured results.
+    No auth required — read-only diagnostic endpoint for dashboard."""
+    try:
+        with get_transaction() as cur:
+            checks = []
+            now = get_plant_now()
+
+            # 1. Negative lot balances [CRITICAL]
+            cur.execute("""
+                SELECT l.id as lot_id, l.lot_code, p.name as product_name,
+                       COALESCE(SUM(tl.quantity_lb), 0) as balance
+                FROM lots l
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                JOIN products p ON p.id = l.product_id
+                GROUP BY l.id, p.name
+                HAVING COALESCE(SUM(tl.quantity_lb), 0) < -%s
+            """, (BALANCE_EPSILON,))
+            neg_lots = cur.fetchall()
+            checks.append({
+                "name": "negative_lot_balances",
+                "severity": "critical",
+                "status": "fail" if neg_lots else "pass",
+                "details": [{"lot_id": r['lot_id'], "lot_code": r['lot_code'],
+                             "product": r['product_name'], "balance": float(r['balance'])} for r in neg_lots]
+            })
+
+            # 2. Production missing ILC [CRITICAL]
+            cur.execute("""
+                SELECT t.id as transaction_id, t.notes,
+                       COALESCE(SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0), 0) as output_lb
+                FROM transactions t
+                LEFT JOIN transaction_lines tl ON tl.transaction_id = t.id
+                LEFT JOIN ingredient_lot_consumption ilc ON ilc.transaction_id = t.id
+                WHERE t.type = 'make'
+                  AND COALESCE(t.status, 'posted') = 'posted'
+                GROUP BY t.id
+                HAVING COUNT(ilc.id) = 0
+                   AND COALESCE(SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0), 0) > 0
+            """)
+            missing_ilc = cur.fetchall()
+            checks.append({
+                "name": "production_missing_ilc",
+                "severity": "critical",
+                "status": "fail" if missing_ilc else "pass",
+                "details": [{"transaction_id": r['transaction_id'], "output_lb": float(r['output_lb']),
+                             "note": r['notes']} for r in missing_ilc]
+            })
+
+            # 3. Ship transactions missing shipment_lines after Feb 27 [MAJOR]
+            cur.execute("""
+                SELECT t.id as transaction_id, t.timestamp, t.customer_name
+                FROM transactions t
+                LEFT JOIN shipment_lines sl ON sl.transaction_id = t.id
+                WHERE t.type = 'ship'
+                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.timestamp >= '2026-02-27'
+                  AND sl.id IS NULL
+                GROUP BY t.id
+            """)
+            missing_sl = cur.fetchall()
+            checks.append({
+                "name": "ship_missing_shipment_lines",
+                "severity": "major",
+                "status": "fail" if missing_sl else "pass",
+                "details": [{"transaction_id": r['transaction_id'],
+                             "customer": r['customer_name']} for r in missing_sl]
+            })
+
+            # 4. Lots missing received_at [MAJOR]
+            cur.execute("SELECT COUNT(*) as cnt FROM lots WHERE received_at IS NULL")
+            null_received = cur.fetchone()['cnt']
+            checks.append({
+                "name": "lots_missing_received_at",
+                "severity": "major",
+                "status": "fail" if null_received > 0 else "pass",
+                "details": [{"count": null_received}] if null_received > 0 else []
+            })
+
+            # 5. Lots missing supplier_lot_code on receive transactions [MAJOR]
+            cur.execute("""
+                SELECT l.id as lot_id, l.lot_code, p.name as product_name
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                WHERE l.entry_source = 'received'
+                  AND l.supplier_lot_code IS NULL
+            """)
+            missing_slc = cur.fetchall()
+            checks.append({
+                "name": "lots_missing_supplier_lot_code",
+                "severity": "major",
+                "status": "fail" if missing_slc else "pass",
+                "details": [{"lot_id": r['lot_id'], "lot_code": r['lot_code'],
+                             "product": r['product_name']} for r in missing_slc]
+            })
+
+            # 6. Finished goods missing case_size_lb [MAJOR]
+            cur.execute("""
+                SELECT DISTINCT p.id as product_id, p.name
+                FROM products p
+                JOIN transaction_lines tl ON tl.product_id = p.id
+                JOIN transactions t ON t.id = tl.transaction_id
+                WHERE t.type = 'pack' AND tl.quantity_lb > 0
+                  AND p.case_size_lb IS NULL
+            """)
+            missing_cs = cur.fetchall()
+            checks.append({
+                "name": "finished_goods_missing_case_size",
+                "severity": "major",
+                "status": "fail" if missing_cs else "pass",
+                "details": [{"product_id": r['product_id'], "name": r['name']} for r in missing_cs]
+            })
+
+            # 7. Floating point dust [MINOR]
+            cur.execute("""
+                SELECT l.id as lot_id, l.lot_code,
+                       COALESCE(SUM(tl.quantity_lb), 0) as balance
+                FROM lots l
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                GROUP BY l.id
+                HAVING ABS(COALESCE(SUM(tl.quantity_lb), 0)) < 0.01
+                   AND COALESCE(SUM(tl.quantity_lb), 0) != 0
+            """)
+            dust = cur.fetchall()
+            checks.append({
+                "name": "floating_point_dust",
+                "severity": "minor",
+                "status": "fail" if dust else "pass",
+                "details": [{"lot_id": r['lot_id'], "lot_code": r['lot_code'],
+                             "balance": float(r['balance'])} for r in dust]
+            })
+
+            # 8. Voided transaction count [INFO]
+            cur.execute("SELECT COUNT(*) as cnt FROM transactions WHERE status = 'voided'")
+            voided_count = cur.fetchone()['cnt']
+            checks.append({
+                "name": "voided_transaction_count",
+                "severity": "info",
+                "status": "pass",
+                "details": [{"count": voided_count}]
+            })
+
+            # Calculate score
+            score = 100
+            for check in checks:
+                if check['status'] == 'fail':
+                    if check['severity'] == 'critical':
+                        score -= 10
+                    elif check['severity'] == 'major':
+                        score -= 5
+                    elif check['severity'] == 'minor':
+                        score -= 1
+            score = max(0, score)
+
+            return {
+                "timestamp": now.isoformat(),
+                "score": score,
+                "checks": checks
+            }
+    except Exception as e:
+        logger.error(f"Audit integrity check failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
 # STATIC FILE SERVING — Dashboard UI (must be LAST)
 # ═══════════════════════════════════════════════════════════════
 

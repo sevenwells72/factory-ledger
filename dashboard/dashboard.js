@@ -1311,6 +1311,33 @@
     document.getElementById('order-back-btn').addEventListener('click', closeOrderDetail);
   }
 
+  // ── System Health Badge ──
+  async function refreshHealthBadge() {
+    const badge = document.getElementById('health-badge');
+    try {
+      const res = await fetch('/audit/integrity');
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      const score = data.score;
+      badge.textContent = score;
+      badge.className = 'health-badge';
+      if (score >= 90) badge.classList.add('health-green');
+      else if (score >= 70) badge.classList.add('health-yellow');
+      else badge.classList.add('health-red');
+
+      const failChecks = data.checks.filter(c => c.status === 'fail');
+      if (failChecks.length) {
+        badge.title = 'Health: ' + score + '/100 — ' + failChecks.map(c => c.name + ' (' + c.severity + ')').join(', ');
+      } else {
+        badge.title = 'System Health: ' + score + '/100 — All checks pass';
+      }
+    } catch {
+      badge.textContent = '?';
+      badge.className = 'health-badge';
+      badge.title = 'Health check unavailable';
+    }
+  }
+
   // ── Refresh All ──
   async function refreshAll() {
     const btn = document.getElementById('refresh-btn');
@@ -1329,6 +1356,7 @@
     ops.push(refreshReceipts());
     ops.push(refreshNotes());
     ops.push(refreshOrders());
+    ops.push(refreshHealthBadge());
 
     await Promise.allSettled(ops);
 

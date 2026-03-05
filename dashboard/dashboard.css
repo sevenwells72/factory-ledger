@@ -160,6 +160,22 @@ body {
 
 .header-right { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 
+.health-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: default;
+  transition: background-color 0.3s ease;
+}
+.health-badge.health-green { background: var(--badge-green-bg); color: var(--badge-green-text); }
+.health-badge.health-yellow { background: var(--badge-amber-bg); color: var(--badge-amber-text); }
+.health-badge.health-red { background: var(--badge-red-bg); color: var(--badge-red-text); }
+
 .btn-theme {
   background: none;
   border: 1px solid var(--border);
