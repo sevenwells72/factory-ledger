@@ -29,7 +29,25 @@ def to_decimal(value) -> Decimal:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Factory Ledger System", version="3.0.0")
+# Custom JSON encoder to handle Decimal from NUMERIC columns
+class DecimalSafeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+
+class DecimalSafeJSONResponse(JSONResponse):
+    def render(self, content) -> bytes:
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+            cls=DecimalSafeEncoder,
+        ).encode("utf-8")
+
+app = FastAPI(title="Factory Ledger System", version="3.0.0", default_response_class=DecimalSafeJSONResponse)
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -2790,7 +2808,7 @@ def void_transaction(transaction_id: int, _: bool = Depends(verify_api_key)):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, type, status, notes FROM transactions WHERE id = %s", (transaction_id,))
+                cur.execute("SELECT id, type, COALESCE(status, 'posted') as status, notes FROM transactions WHERE id = %s FOR UPDATE", (transaction_id,))
                 txn = cur.fetchone()
                 if not txn:
                     raise HTTPException(404, f"Transaction #{transaction_id} not found")

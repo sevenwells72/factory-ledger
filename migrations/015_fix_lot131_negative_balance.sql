@@ -9,6 +9,7 @@
 DO $$
 DECLARE
     v_balance NUMERIC;
+    v_note TEXT;
 BEGIN
     SELECT COALESCE(SUM(quantity_lb), 0) INTO v_balance
     FROM transaction_lines WHERE lot_id = 131;
@@ -18,15 +19,13 @@ BEGIN
         RETURN;
     END IF;
 
+    RAISE NOTICE 'Lot 131 current balance: %.4f lb. Posting +%.4f lb adjustment.', v_balance, ABS(v_balance);
+    v_note := format('Audit fix 2026-03-05: correct negative lot balance on lot 131 (was %.4f lb)', v_balance);
+
     -- Post corrective adjustment transaction
     WITH new_txn AS (
         INSERT INTO transactions (type, timestamp, adjust_reason, notes)
-        VALUES (
-            'adjust',
-            NOW(),
-            'Audit fix 2026-03-05: correct negative lot balance on lot 131 (was -60 lb)',
-            'Audit fix 2026-03-05: correct negative lot balance on lot 131 (was -60 lb)'
-        )
+        VALUES ('adjust', NOW(), v_note, v_note)
         RETURNING id
     )
     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
