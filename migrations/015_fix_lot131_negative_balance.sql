@@ -20,7 +20,7 @@ BEGIN
     END IF;
 
     RAISE NOTICE 'Lot 131 current balance: %.4f lb. Posting +%.4f lb adjustment.', v_balance, ABS(v_balance);
-    v_note := format('Audit fix 2026-03-05: correct negative lot balance on lot 131 (was %.4f lb)', v_balance);
+    v_note := 'Audit fix 2026-03-05: correct negative lot balance on lot 131 (was ' || to_char(v_balance, 'FM9999990.0000') || ' lb)';
 
     -- Post corrective adjustment transaction
     WITH new_txn AS (

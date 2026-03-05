@@ -9,8 +9,9 @@
 -- Step 1: Add transaction_id column to shipments for tracking
 ALTER TABLE shipments ADD COLUMN IF NOT EXISTS transaction_id INTEGER REFERENCES transactions(id);
 
--- Step 2: Allow standalone shipments (no sales order)
+-- Step 2: Allow standalone shipments (no sales order, no customer initially)
 ALTER TABLE shipments ALTER COLUMN sales_order_id DROP NOT NULL;
+ALTER TABLE shipments ALTER COLUMN customer_id DROP NOT NULL;
 
 -- Step 3: Create shipment records for pre-migration ship transactions
 -- These transactions may have sales_order_shipments records (SO-based)
@@ -18,13 +19,11 @@ ALTER TABLE shipments ALTER COLUMN sales_order_id DROP NOT NULL;
 INSERT INTO shipments (transaction_id, sales_order_id, customer_id, shipped_at)
 SELECT DISTINCT ON (t.id)
     t.id,
-    sos.sales_order_line_id,  -- will be NULL for standalone ships
+    NULL::integer,  -- will be resolved in Step 4 via sales_order_shipments
     c.id,
     t.timestamp
 FROM transactions t
 LEFT JOIN customers c ON LOWER(c.name) = LOWER(t.customer_name)
-LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
-LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
 LEFT JOIN shipments s_existing ON s_existing.transaction_id = t.id
 WHERE t.id IN (296, 297, 304, 306, 307, 308, 311, 313, 327, 328, 329)
   AND t.type = 'ship'
@@ -72,4 +71,5 @@ ON CONFLICT DO NOTHING;
 -- DELETE FROM shipments WHERE transaction_id IN (296,297,304,306,307,308,311,313,327,328,329);
 -- ALTER TABLE shipments DROP COLUMN IF EXISTS transaction_id;
 -- ALTER TABLE shipments ALTER COLUMN sales_order_id SET NOT NULL;
+-- ALTER TABLE shipments ALTER COLUMN customer_id SET NOT NULL;
 -- ALTER TABLE shipment_lines ALTER COLUMN sales_order_line_id SET NOT NULL;
