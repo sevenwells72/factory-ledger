@@ -1717,6 +1717,10 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
 @app.post("/receive")
 def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
     """Receive inventory. mode=preview returns what will happen; mode=commit executes."""
+    # Require supplier_lot_code on new receives
+    if not req.supplier_lot_code or not req.supplier_lot_code.strip():
+        raise HTTPException(400, "supplier_lot_code is required when receiving inventory. Use 'N/A - found inventory' if supplier lot code is not available.")
+
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
