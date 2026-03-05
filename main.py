@@ -4578,6 +4578,7 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
                     WHERE sl.shipment_id IN (
                         SELECT s.id FROM shipments s WHERE s.sales_order_id = %s
                     )
+                    AND tl.quantity_lb != 0
                     ORDER BY p.name, l.created_at ASC
                 """, (order_id,))
                 shipped_lots = cur.fetchall()

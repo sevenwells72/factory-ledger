@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-05 11:30 — Fix SO-260217-001 Flake UNIPRO over-shipment (300→200 lb)
+- **File(s) changed:** `migrations/014_fix_so260217001_flake_overshipment.sql`, `main.py`
+- **What changed:** Created migration 014 to correct the over-shipment: zeroes out the 100 lb over-deduction on lot "FEB 24 2026" (lot 242) in transaction_lines, updates shipment_lines/sales_order_shipments from 300→200 lb, reduces sales_order_line 48 shipped qty from 300→200 and status from fulfilled→partial, and sets order 32 status to partial_ship. Also added `AND tl.quantity_lb != 0` filter to the packing slip query to skip zeroed-out correction rows.
+- **Why:** System recorded 300 lb shipped for Coconut Sweetened Flake UNIPRO 10 LB on SO-260217-001 but only 200 lb physically left the warehouse. The extra 100 lb was a data entry error at ship time.
+
+---
+
 ## 2026-03-05 09:50 — Fix packing slip to use actual shipment records instead of live FIFO
 - **File(s) changed:** `main.py`
 - **What changed:** Patched the packing slip endpoint (`/sales/orders/{id}/packing-slip`) to check for committed shipment records in the `shipments` table. If shipments exist, lot allocations are pulled from `shipment_lines → transaction_lines → lots` (reflecting what was actually shipped). If no shipments exist yet (pre-shipment), the original FIFO inventory preview is preserved for pick-list use.
