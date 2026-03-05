@@ -19,6 +19,11 @@ import secrets
 import math
 import uuid
 import io
+from decimal import Decimal, ROUND_HALF_UP
+
+def to_decimal(value) -> Decimal:
+    """Convert a value to Decimal safely, rounding to 4 decimal places."""
+    return Decimal(str(value)).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -2329,8 +2334,8 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
 
                     batch_size = float(product.get('default_batch_lb') or 0)
                     yield_multiplier = float(product.get('yield_multiplier') or 1.0)
-                    formula_weight_lb = batch_size * req.batches
-                    total_output = formula_weight_lb * yield_multiplier
+                    formula_weight_lb = float(to_decimal(batch_size) * to_decimal(req.batches))
+                    total_output = float(to_decimal(formula_weight_lb) * to_decimal(yield_multiplier))
                     if total_output <= 0:
                         raise HTTPException(400, f"Make rejected: output quantity is 0 lb. Product '{product['name']}' has batch_size={batch_size}, batches={req.batches}.")
                     now = get_plant_now()
@@ -2394,7 +2399,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
 
                     for ing in formula:
                         ing_id = ing['ingredient_product_id']
-                        needed = float(ing['quantity_lb']) * req.batches
+                        needed = float(to_decimal(ing['quantity_lb']) * to_decimal(req.batches))
                         ing_name = ing_names.get(ing_id, f"ID {ing_id}")
                         if ing_id in excluded_ids:
                             excluded_from_run.append({
