@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-05 15:00 — Pre-merge review fixes (Decimal serialization, void safety, migration 015)
+- **File(s) changed:** `main.py`, `migrations/015_fix_lot131_negative_balance.sql`
+- **What changed:** Added DecimalSafeJSONResponse as default FastAPI response class for NUMERIC column compatibility; added FOR UPDATE lock + COALESCE(status) on /void endpoint; made migration 015 note text dynamic using actual balance
+- **Why:** Pre-merge review identified psycopg2 Decimal serialization risk from migration 020, potential double-void race condition, and hardcoded balance in migration 015
+
+---
+
 ## 2026-03-05 14:30 — Factory Ledger Data Integrity Remediation (Priorities 0–7)
 - **File(s) changed:** `main.py`, `dashboard/index.html`, `dashboard/dashboard.css`, `dashboard/dashboard.js`, `migrations/015_fix_lot131_negative_balance.sql`, `migrations/016_backfill_received_at.sql`, `migrations/017_transaction_status_and_void_ghosts.sql`, `migrations/018_backfill_pre_migration_shipments.sql`, `migrations/019_populate_case_size_lb.sql`, `migrations/020_numeric_precision.sql`
 - **What changed:**
