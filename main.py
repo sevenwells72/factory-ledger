@@ -2507,7 +2507,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                 if case_weight is None:
                     case_weight = float(target.get('case_size_lb') or 0)
                 if case_weight <= 0:
-                    raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no case_size_lb set.")
+                    raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no case_size_lb set. Provide case_weight_lb parameter to override.")
                 total_lb = req.cases * case_weight
 
                 cur.execute("""
@@ -2574,7 +2574,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     if case_weight is None:
                         case_weight = float(target.get('case_size_lb') or 0)
                     if case_weight <= 0:
-                        raise HTTPException(400, f"Case weight required for '{target['name']}'")
+                        raise HTTPException(400, f"Case weight required for '{target['name']}'. Provide case_weight_lb parameter to override.")
                     total_lb = req.cases * case_weight
                     now = get_plant_now()
 
