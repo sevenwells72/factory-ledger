@@ -87,6 +87,45 @@ def check_private_label_merge(product_name: str, label_type: str, reason: str, q
         )
     return None
 
+# ═══════════════════════════════════════════════════════════════
+# LOT BALANCE GUARD — Prevent Negative Inventory at Write-Time
+# ═══════════════════════════════════════════════════════════════
+
+# Tolerance for floating point dust (e.g., 9.99999999997 treated as 10.0)
+BALANCE_EPSILON = 0.0001
+
+
+def validate_lot_deduction(cur, lot_id: int, lot_code: str, requested_lb: float):
+    """Validate that deducting requested_lb from a lot won't push it negative.
+
+    Must be called within a DB transaction AFTER the lot row is locked (FOR UPDATE).
+    Uses BALANCE_EPSILON tolerance to handle floating point dust.
+
+    Returns the current available balance (epsilon-adjusted).
+    Raises HTTPException(400) if the deduction would cause a genuine negative balance.
+
+    NOT used for adjust transactions — adjustments are the escape hatch for corrections.
+    """
+    cur.execute(
+        "SELECT COALESCE(SUM(quantity_lb), 0) as balance FROM transaction_lines WHERE lot_id = %s",
+        (lot_id,)
+    )
+    balance = float(cur.fetchone()['balance'])
+
+    # Snap near-zero balances to zero
+    if abs(balance) < BALANCE_EPSILON:
+        balance = 0.0
+
+    # Allow if requested is within epsilon of available
+    if balance + BALANCE_EPSILON >= requested_lb:
+        return balance
+
+    raise HTTPException(
+        status_code=400,
+        detail=f"Insufficient balance on lot {lot_code}: available {balance:.4f} lb, requested {requested_lb:.4f} lb"
+    )
+
+
 # Connection pool (initialized on startup)
 db_pool = None
 
@@ -2016,17 +2055,13 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     else:
                         primary = all_lots[0]
 
-                    single_lot_sufficient = float(primary['available']) >= req.quantity_lb
+                    single_lot_sufficient = float(primary['available']) + BALANCE_EPSILON >= req.quantity_lb
 
                     if single_lot_sufficient:
                         cur.execute("SELECT id FROM lots WHERE id = %s FOR UPDATE", (primary['id'],))
-                        cur.execute("""
-                            SELECT COALESCE(SUM(quantity_lb), 0) as available
-                            FROM transaction_lines WHERE lot_id = %s
-                        """, (primary['id'],))
-                        locked_avail = float(cur.fetchone()['available'])
+                        locked_avail = validate_lot_deduction(cur, primary['id'], primary['lot_code'], req.quantity_lb)
 
-                        if locked_avail < req.quantity_lb:
+                        if locked_avail + BALANCE_EPSILON < req.quantity_lb:
                             single_lot_sufficient = False
 
                     if single_lot_sufficient:
@@ -2065,10 +2100,10 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         locked_lots = cur.fetchall()
 
                         total_available = sum(float(l['available']) for l in locked_lots)
-                        if total_available < req.quantity_lb:
+                        if total_available + BALANCE_EPSILON < req.quantity_lb:
                             raise HTTPException(status_code=400,
                                 detail=f"Insufficient total inventory for {product['name']}. "
-                                       f"Have {total_available} lb across {len(locked_lots)} lot(s), need {req.quantity_lb} lb")
+                                       f"Have {total_available:.4f} lb across {len(locked_lots)} lot(s), need {req.quantity_lb} lb")
 
                         now = get_plant_now()
                         cur.execute("""
@@ -2080,9 +2115,11 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         shipped_lots = []
                         remaining_need = req.quantity_lb
                         for lot in locked_lots:
-                            if remaining_need <= 0:
+                            if remaining_need <= BALANCE_EPSILON:
                                 break
-                            take = min(float(lot['available']), remaining_need)
+                            avail = float(lot['available'])
+                            if avail < BALANCE_EPSILON: continue
+                            take = min(avail, remaining_need)
                             cur.execute("""
                                 INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                                 VALUES (%s, %s, %s, %s)
@@ -2374,10 +2411,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             override_lot = cur.fetchone()
                         if override_lot:
                             cur.execute("SELECT id FROM lots WHERE id = %s FOR UPDATE", (override_lot['id'],))
-                            cur.execute("SELECT COALESCE(SUM(tl.quantity_lb), 0) as available FROM transaction_lines tl WHERE tl.lot_id = %s", (override_lot['id'],))
-                            available = float(cur.fetchone()['available'])
-                            if available < needed:
-                                raise HTTPException(status_code=400, detail=f"Override lot {override_lot['lot_code']} has {available} lb, need {needed} lb")
+                            available = validate_lot_deduction(cur, override_lot['id'], override_lot['lot_code'], needed)
                             cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, override_lot['id'], -needed))
                             cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, override_lot['id'], needed))
                             consumed_by_ingredient[ing_id]["total_consumed_lb"] += needed
@@ -2403,14 +2437,16 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             lots = cur.fetchall()
                             remaining = needed
                             for lot in lots:
-                                if remaining <= 0: break
-                                take = min(float(lot['available']), remaining)
+                                if remaining <= BALANCE_EPSILON: break
+                                avail = float(lot['available'])
+                                if avail < BALANCE_EPSILON: continue
+                                take = min(avail, remaining)
                                 cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], -take))
                                 cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], take))
                                 consumed_by_ingredient[ing_id]["total_consumed_lb"] += take
                                 consumed_by_ingredient[ing_id]["lots"].append({"lot_code": lot['lot_code'], "consumed_lb": take})
                                 remaining -= take
-                            if remaining > 0.001:
+                            if remaining > BALANCE_EPSILON:
                                 raise HTTPException(status_code=400, detail=f"Insufficient inventory for ingredient ID {ing_id}. Missing {remaining:.2f} lb")
 
                     consumed_flat = []
@@ -2565,24 +2601,25 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                             lot = lots_by_code.get(alloc.lot_code.lower())
                             if not lot:
                                 raise HTTPException(400, f"Lot '{alloc.lot_code}' not found or empty for {source['name']}")
-                            if float(lot['available']) < alloc.quantity_lb:
-                                raise HTTPException(400, f"Lot '{alloc.lot_code}' has {lot['available']} lb, need {alloc.quantity_lb} lb")
+                            validate_lot_deduction(cur, lot['id'], lot['lot_code'], alloc.quantity_lb)
                             alloc_plan.append((lot, alloc.quantity_lb))
                         alloc_total = sum(qty for _, qty in alloc_plan)
                         if abs(alloc_total - total_lb) > 0.01:
                             raise HTTPException(400, f"Allocations sum to {alloc_total} lb, need {total_lb} lb ({req.cases} cases x {case_weight} lb)")
                     else:
                         total_available = sum(float(l['available']) for l in lots)
-                        if total_available < total_lb:
-                            raise HTTPException(400, f"Insufficient batch inventory. Have {total_available} lb, need {total_lb} lb")
+                        if total_available + BALANCE_EPSILON < total_lb:
+                            raise HTTPException(400, f"Insufficient batch inventory. Have {total_available:.4f} lb, need {total_lb} lb")
                         alloc_plan = []
                         remaining = total_lb
                         for lot in lots:
-                            if remaining <= 0: break
-                            take = min(float(lot['available']), remaining)
+                            if remaining <= BALANCE_EPSILON: break
+                            avail = float(lot['available'])
+                            if avail < BALANCE_EPSILON: continue
+                            take = min(avail, remaining)
                             alloc_plan.append((lot, take))
                             remaining -= take
-                        if remaining > 0.001:
+                        if remaining > BALANCE_EPSILON:
                             raise HTTPException(400, f"Could not fully allocate. Missing {remaining:.2f} lb")
 
                     if req.target_lot_code:
@@ -4449,7 +4486,7 @@ def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = 
                             lots = []
                         available = sum(float(lt['balance']) for lt in lots)
                         actual_ship = min(qty_to_ship, available)
-                        if actual_ship <= 0:
+                        if actual_ship <= BALANCE_EPSILON:
                             results.append({"line_id": item["line_id"], "product": item["product_name"], "requested_lb": qty_to_ship, "shipped_lb": 0, "status": "no_stock"})
                             all_fully_shipped = False
                             continue
@@ -4460,8 +4497,9 @@ def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = 
                         remaining_to_ship = actual_ship
                         lots_used = []
                         for lot in lots:
-                            if remaining_to_ship <= 0: break
+                            if remaining_to_ship <= BALANCE_EPSILON: break
                             balance = float(lot['balance'])
+                            if balance < BALANCE_EPSILON: continue
                             take = min(remaining_to_ship, balance)
                             cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, item["product_id"], lot['id'], -take))
                             remaining_to_ship -= take
