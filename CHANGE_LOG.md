@@ -1,5 +1,21 @@
 # Change Log
 
+## 2026-03-05 14:30 — Factory Ledger Data Integrity Remediation (Priorities 0–7)
+- **File(s) changed:** `main.py`, `dashboard/index.html`, `dashboard/dashboard.css`, `dashboard/dashboard.js`, `migrations/015_fix_lot131_negative_balance.sql`, `migrations/016_backfill_received_at.sql`, `migrations/017_transaction_status_and_void_ghosts.sql`, `migrations/018_backfill_pre_migration_shipments.sql`, `migrations/019_populate_case_size_lb.sql`, `migrations/020_numeric_precision.sql`
+- **What changed:**
+  - P0: Added `validate_lot_deduction()` guard with BALANCE_EPSILON=0.0001 to /pack, /ship, /make, /sales/orders/{id}/ship
+  - P1: Migration 015 posts adjustment to fix lot 131 -60 lb negative balance
+  - P2: Migration 016 backfills received_at; updated all FIFO ORDER BY to use COALESCE(received_at, created_at)
+  - P3: Migration 017 adds status column, voids ghost makes 80/83/84/177; added POST /void/{id} endpoint; 0-lb make guardrail; dashboard queries filter voided transactions
+  - P3B: Migration 018 backfills shipments/shipment_lines for 11 pre-migration ship transactions
+  - P4: Migration 019 auto-populates case_size_lb from product names; improved /pack error messages
+  - P5: Migration 020 converts quantity columns to NUMERIC(14,4); added Decimal-based calculations
+  - P6: Added supplier_lot_code required validation on /receive
+  - P7: New GET /audit/integrity endpoint with 8 automated checks + dashboard health badge
+- **Why:** Data integrity audit found negative lot balances, missing metadata, ghost transactions, floating point dust, and other issues requiring systematic remediation.
+
+---
+
 ## 2026-03-05 11:30 — Fix SO-260217-001 Flake UNIPRO over-shipment (300→200 lb)
 - **File(s) changed:** `migrations/014_fix_so260217001_flake_overshipment.sql`, `main.py`
 - **What changed:** Created migration 014 to correct the over-shipment: zeroes out the 100 lb over-deduction on lot "FEB 24 2026" (lot 242) in transaction_lines, updates shipment_lines/sales_order_shipments from 300→200 lb, reduces sales_order_line 48 shipped qty from 300→200 and status from fulfilled→partial, and sets order 32 status to partial_ship. Also added `AND tl.quantity_lb != 0` filter to the packing slip query to skip zeroed-out correction rows.
