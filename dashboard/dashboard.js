@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const API_BASE = '/dashboard/api';
+  const API_BASE = 'https://fastapi-production-b73a.up.railway.app/dashboard/api';
 
   // ── State ──
   const state = {
@@ -1315,7 +1315,7 @@
   async function refreshHealthBadge() {
     const badge = document.getElementById('health-badge');
     try {
-      const res = await fetch('/audit/integrity');
+      const res = await fetch('https://fastapi-production-b73a.up.railway.app/audit/integrity');
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       const score = data.score;
