@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Ledger — Lot Traceability</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #283548;
+  --text: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-dimmed: #64748b;
+  --border: #334155;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --accent: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+
+  --col-supplier: #1D9E75;
+  --col-ingredient: #378ADD;
+  --col-batch: #7F77DD;
+  --col-finished: #D85A30;
+  --col-customer: #BA7517;
+  --col-gap: #E24B4A;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; padding-top: 48px; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Site Nav */
+.site-nav { position:fixed;top:0;left:0;right:0;height:48px;z-index:200;background:#1a1a2e;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;padding:0 20px; }
+.site-nav-brand { font-size:15px;font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
+.site-nav-links { display:flex;gap:4px;align-items:center; }
+.site-nav-link { padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
+.site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
+.site-nav-link.active { color:#fff;background:#3b82f6; }
+.site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;cursor:pointer;line-height:1; }
+@media(max-width:768px){
+  .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
+  .site-nav-toggle{display:block}
+  .site-nav-links{display:none;width:100%;flex-direction:column;gap:2px;padding:4px 0 8px;border-top:1px solid rgba(255,255,255,0.06)}
+  .site-nav-links.open{display:flex}
+  .site-nav-link{padding:8px 14px;width:100%;border-radius:4px}
+}
+
+/* Header */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 48px; z-index: 100;
+}
+.header h1 { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted); }
+.back-link { font-size: 13px; display: flex; align-items: center; gap: 4px; }
+
+/* Search area */
+.search-area {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+}
+.search-row {
+  display: flex; align-items: center; gap: 12px; max-width: 900px; margin: 0 auto;
+}
+.search-input-wrap {
+  flex: 1; position: relative;
+}
+.search-input {
+  width: 100%; padding: 10px 14px 10px 36px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-size: 14px; font-family: var(--mono); outline: none;
+}
+.search-input:focus { border-color: var(--primary); }
+.search-icon {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); font-size: 15px; pointer-events: none;
+}
+.search-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  max-height: 320px; overflow-y: auto; z-index: 200; display: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.search-dropdown.open { display: block; }
+.search-group-label {
+  padding: 6px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  color: var(--text-dimmed); background: var(--bg); letter-spacing: 0.5px;
+}
+.search-item {
+  padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between;
+  align-items: center; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.search-item:hover { background: var(--surface2); }
+.search-item .lot-code { font-family: var(--mono); color: var(--text); }
+.search-item .product-name { color: var(--text-muted); font-size: 12px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.direction-btns { display: flex; gap: 4px; }
+.dir-btn {
+  padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: transparent; color: var(--text-muted); font-size: 13px; cursor: pointer;
+  transition: all 0.15s;
+}
+.dir-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.dir-btn:hover:not(.active) { border-color: var(--text-muted); color: var(--text); }
+
+.trace-btn {
+  padding: 8px 20px; border: none; border-radius: var(--radius);
+  background: var(--primary); color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.trace-btn:hover { background: var(--primary-hover); }
+.trace-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Recent lots */
+.recent-lots {
+  max-width: 900px; margin: 10px auto 0; display: flex; flex-wrap: wrap;
+  gap: 6px; align-items: center; max-height: 60px; overflow: hidden;
+}
+.recent-label { font-size: 11px; color: var(--text-dimmed); margin-right: 4px; }
+.lot-pill {
+  padding: 3px 10px; border-radius: 12px; font-size: 11px; font-family: var(--mono);
+  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);
+  color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+}
+.lot-pill:hover { background: rgba(59,130,246,0.2); color: var(--text); }
+
+/* Completeness badge */
+.completeness-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+}
+.badge-complete { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+.badge-partial { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.badge-incomplete { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+
+/* Graph area */
+.graph-container {
+  position: relative; min-height: 400px; margin: 0;
+  border-bottom: 1px solid var(--border);
+}
+.graph-controls {
+  position: absolute; top: 12px; right: 12px; z-index: 10;
+  display: flex; gap: 6px;
+}
+.graph-ctrl-btn {
+  padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text-muted); font-size: 12px;
+  cursor: pointer; transition: all 0.15s;
+}
+.graph-ctrl-btn:hover { border-color: var(--text-muted); color: var(--text); }
+.trace-info {
+  position: absolute; top: 12px; left: 12px; z-index: 10;
+  display: flex; align-items: center; gap: 10px;
+}
+svg text { font-family: var(--font); }
+
+/* Status area */
+.status-bar {
+  padding: 12px 24px; text-align: center; color: var(--text-muted); font-size: 13px;
+  min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.status-bar.error { color: var(--danger); }
+.loading-spinner {
+  width: 16px; height: 16px; border: 2px solid var(--border);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.7s linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Detail panel */
+.detail-panel {
+  max-width: 1000px; margin: 16px auto; padding: 0 24px; display: none;
+}
+.detail-card {
+  background: #16213e; border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+}
+.detail-card h3 { font-size: 15px; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.detail-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.detail-table th {
+  text-align: left; padding: 6px 10px; color: var(--text-dimmed); font-weight: 500;
+  border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.detail-table td {
+  padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text-secondary); font-family: var(--mono); font-size: 12px;
+}
+.detail-table td.name-col { font-family: var(--font); }
+.confirmed-tag { color: var(--accent); font-size: 11px; }
+.legacy-tag { color: var(--col-gap); font-size: 11px; }
+
+/* Export panel */
+.export-btns {
+  display: flex; gap: 8px; margin-top: 16px;
+}
+.export-btn {
+  padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: transparent; color: var(--text-muted); font-size: 12px;
+  cursor: pointer; transition: all 0.15s;
+}
+.export-btn:hover { border-color: var(--text-muted); color: var(--text); }
+
+/* Node tooltip */
+.node-tooltip {
+  position: absolute; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 14px; font-size: 12px;
+  pointer-events: none; z-index: 300; max-width: 320px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: none;
+}
+.node-tooltip .tt-label { color: var(--text-dimmed); font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+.node-tooltip .tt-value { color: var(--text); margin-bottom: 4px; }
+.node-tooltip .tt-mono { font-family: var(--mono); }
+
+/* Legend */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 14px; padding: 8px 24px;
+  border-bottom: 1px solid var(--border); font-size: 11px;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+.legend-swatch {
+  width: 14px; height: 14px; border-radius: 3px; border: 1px solid;
+}
+.legend-line { width: 24px; height: 0; border-top: 2px solid; }
+.legend-line.dashed { border-top-style: dashed; }
+
+/* Print styles */
+@media print {
+  .site-nav, .header, .search-area, .graph-container, .legend, .graph-controls, .export-btns, .recent-lots { display: none !important; }
+  .detail-panel { display: block !important; max-width: 100%; padding: 0; }
+  .detail-card { background: #fff; color: #000; border: 1px solid #ccc; }
+  .detail-table th, .detail-table td { color: #333; border-bottom-color: #ccc; }
+  body { background: #fff; color: #000; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<nav class="site-nav" id="siteNav">
+  <span class="site-nav-brand">CNS Factory Ledger</span>
+  <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
+  <div class="site-nav-links" id="navLinks">
+    <a href="/dashboard/" class="site-nav-link">Dashboard</a>
+    <a href="/dashboard/sankey.html" class="site-nav-link">Material Flow</a>
+    <a href="/dashboard/process-flow.html" class="site-nav-link">Production Lines</a>
+    <a href="/dashboard/traceability.html" class="site-nav-link active">Traceability</a>
+  </div>
+</nav>
+
+<!-- Header -->
+<div class="header">
+  <h1><span class="icon">&#x1f50d;</span> Lot Traceability</h1>
+  <div class="header-right"></div>
+</div>
+
+<!-- Search -->
+<div class="search-area">
+  <div class="search-row">
+    <div class="search-input-wrap">
+      <span class="search-icon">&#x1f50e;</span>
+      <input type="text" class="search-input" id="lotSearch" placeholder="Search by lot code, supplier lot, or product name..." autocomplete="off">
+      <div class="search-dropdown" id="searchDropdown"></div>
+    </div>
+    <div class="direction-btns">
+      <button class="dir-btn active" id="btn-forward" onclick="setDirection('forward')">Forward &#x2192;</button>
+      <button class="dir-btn" id="btn-backward" onclick="setDirection('backward')">&#x2190; Backward</button>
+    </div>
+    <button class="trace-btn" id="traceBtn" onclick="runTrace()" disabled>Trace</button>
+  </div>
+  <div class="recent-lots" id="recentLots">
+    <span class="recent-label">Recent:</span>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:rgba(29,158,117,0.12);border-color:var(--col-supplier)"></div> Supplier</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:rgba(55,138,221,0.12);border-color:var(--col-ingredient)"></div> Ingredient Lot</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:rgba(127,119,221,0.12);border-color:var(--col-batch)"></div> Batch</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:rgba(216,90,48,0.12);border-color:var(--col-finished)"></div> Finished Goods</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:rgba(186,117,23,0.12);border-color:var(--col-customer)"></div> Customer</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:rgba(226,75,74,0.12);border-color:var(--col-gap);border-style:dashed"></div> Data Gap</div>
+  <div class="legend-item"><div class="legend-line" style="border-color:var(--accent)"></div> Confirmed</div>
+  <div class="legend-item"><div class="legend-line dashed" style="border-color:var(--col-gap)"></div> Legacy</div>
+</div>
+
+<!-- Status -->
+<div class="status-bar" id="statusBar">Enter a lot code above to trace its supply chain.</div>
+
+<!-- Graph -->
+<div class="graph-container" id="graphContainer">
+  <div class="trace-info" id="traceInfo"></div>
+  <div class="graph-controls" id="graphControls" style="display:none;">
+    <button class="graph-ctrl-btn" onclick="fitToScreen()">Fit</button>
+    <button class="graph-ctrl-btn" onclick="zoomIn()">+</button>
+    <button class="graph-ctrl-btn" onclick="zoomOut()">&minus;</button>
+    <button class="graph-ctrl-btn" id="expandBtn" onclick="toggleFullChain()" style="display:none;">Show full chain</button>
+  </div>
+  <svg id="graphSvg" width="100%" height="500"></svg>
+</div>
+
+<!-- Tooltip -->
+<div class="node-tooltip" id="tooltip"></div>
+
+<!-- Detail Panel -->
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-card" id="traceDetail"></div>
+  <div class="export-btns">
+    <button class="export-btn" onclick="printAuditReport()">&#x1f5a8; Print Audit Report</button>
+    <button class="export-btn" onclick="downloadAuditText()">&#x1f4be; Download Text Report</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG & STATE
+// ═══════════════════════════════════════════════════════
+const API_BASE = 'https://fastapi-production-b73a.up.railway.app';
+const API_KEY  = 'ledger-secret-2026-factory';
+
+let direction = 'forward';
+let lotIndex = [];
+let currentTrace = null;
+let graphNodes = [];
+let graphLinks = [];
+let depthLimit = 2;
+let fullChainMode = false;
+let svgZoom = null;
+let selectedLotCode = '';
+
+const headers = { 'X-Api-Key': API_KEY };
+
+// ═══════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════
+async function api(path) {
+  console.log('[API]', path);
+  const res = await fetch(API_BASE + path, { headers });
+  const data = await res.json();
+  console.log('[API Response]', path, data);
+  if (!res.ok) throw new Error(data.detail || data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════
+// SEARCH INDEX & LOT LOOKUP
+// ═══════════════════════════════════════════════════════
+async function buildLotIndex() {
+  try {
+    const data = await api('/transactions/history?limit=100');
+    const seen = new Set();
+    for (const txn of data.transactions) {
+      if (!txn.lines) continue;
+      for (const line of txn.lines) {
+        if (!line.lot_code || seen.has(line.lot_code)) continue;
+        seen.add(line.lot_code);
+        lotIndex.push({
+          lot_code: line.lot_code,
+          product_name: line.product_name || '',
+          type: txn.type,
+          date: txn.date || ''
+        });
+      }
+    }
+    lotIndex.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    renderRecentLots();
+  } catch (e) {
+    console.error('[Index] Failed to build lot index:', e);
+  }
+}
+
+function renderRecentLots() {
+  const el = document.getElementById('recentLots');
+  el.innerHTML = '<span class="recent-label">Recent:</span>';
+  const recent = lotIndex.slice(0, 20);
+  for (const lot of recent) {
+    const pill = document.createElement('span');
+    pill.className = 'lot-pill';
+    pill.textContent = lot.lot_code;
+    pill.title = lot.product_name;
+    pill.onclick = () => {
+      document.getElementById('lotSearch').value = lot.lot_code;
+      selectedLotCode = lot.lot_code;
+      document.getElementById('traceBtn').disabled = false;
+      closeDropdown();
+    };
+    el.appendChild(pill);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SEARCH DROPDOWN
+// ═══════════════════════════════════════════════════════
+const searchInput = document.getElementById('lotSearch');
+const dropdown = document.getElementById('searchDropdown');
+let debounceTimer = null;
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  const q = searchInput.value.trim();
+  if (q.length < 2) { closeDropdown(); document.getElementById('traceBtn').disabled = true; return; }
+  debounceTimer = setTimeout(() => filterLots(q), 200);
+  selectedLotCode = q;
+  document.getElementById('traceBtn').disabled = false;
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); closeDropdown(); runTrace(); }
+});
+
+function filterLots(q) {
+  const lower = q.toLowerCase();
+  const groups = { receive: [], make: [], pack: [], ship: [] };
+  for (const lot of lotIndex) {
+    if (lot.lot_code.toLowerCase().includes(lower) || lot.product_name.toLowerCase().includes(lower)) {
+      const g = groups[lot.type] || (groups.other = groups.other || []);
+      g.push(lot);
+    }
+  }
+  const labels = { receive: 'Received Lots', make: 'Production Lots', pack: 'Packed Lots', ship: 'Shipped Lots', other: 'Other' };
+  let html = '';
+  for (const [type, items] of Object.entries(groups)) {
+    if (!items || items.length === 0) continue;
+    html += `<div class="search-group-label">${labels[type] || type}</div>`;
+    for (const it of items.slice(0, 8)) {
+      html += `<div class="search-item" onclick="selectLot('${it.lot_code}')">
+        <span class="lot-code">${highlight(it.lot_code, q)}</span>
+        <span class="product-name">${it.product_name}</span>
+      </div>`;
+    }
+  }
+  if (!html) html = '<div class="search-item" style="color:var(--text-dimmed)">No matches</div>';
+  dropdown.innerHTML = html;
+  dropdown.classList.add('open');
+}
+
+function highlight(text, q) {
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx < 0) return text;
+  return text.slice(0, idx) + '<strong style="color:var(--primary)">' + text.slice(idx, idx + q.length) + '</strong>' + text.slice(idx + q.length);
+}
+
+function selectLot(code) {
+  searchInput.value = code;
+  selectedLotCode = code;
+  document.getElementById('traceBtn').disabled = false;
+  closeDropdown();
+}
+
+function closeDropdown() { dropdown.classList.remove('open'); }
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-input-wrap')) closeDropdown();
+});
+
+// ═══════════════════════════════════════════════════════
+// DIRECTION TOGGLE
+// ═══════════════════════════════════════════════════════
+function setDirection(dir) {
+  direction = dir;
+  document.getElementById('btn-forward').classList.toggle('active', dir === 'forward');
+  document.getElementById('btn-backward').classList.toggle('active', dir === 'backward');
+}
+
+// ═══════════════════════════════════════════════════════
+// TRACE ENGINE
+// ═══════════════════════════════════════════════════════
+async function runTrace() {
+  const lotCode = selectedLotCode || searchInput.value.trim();
+  if (!lotCode) return;
+  selectedLotCode = lotCode;
+
+  setStatus('loading', `Tracing ${lotCode} ${direction === 'forward' ? 'forward' : 'backward'}...`);
+  graphNodes = [];
+  graphLinks = [];
+  currentTrace = null;
+
+  try {
+    if (direction === 'backward') {
+      await traceBackward(lotCode);
+    } else {
+      await traceForward(lotCode);
+    }
+    renderGraph();
+    renderDetailPanel();
+    updateURL(lotCode, direction);
+  } catch (e) {
+    console.error('[Trace]', e);
+    if (e.message.includes('404')) {
+      setStatus('error', `No records found for lot code "${lotCode}". Check the lot code and try again.`);
+      suggestSimilar(lotCode);
+    } else {
+      setStatus('error', `Trace failed: ${e.message}`);
+    }
+  }
+}
+
+// ── BACKWARD TRACE: batch → ingredients → suppliers ──
+async function traceBackward(lotCode) {
+  let batchData;
+  try {
+    batchData = await api(`/trace/batch/${encodeURIComponent(lotCode)}`);
+  } catch (e) {
+    // Not a production batch — try as a lot
+    if (e.message.includes('404')) {
+      await traceBackwardAsLot(lotCode);
+      return;
+    }
+    throw e;
+  }
+
+  // Center node: the batch
+  const batchId = addNode({
+    id: 'batch-' + batchData.batch_lot_code,
+    type: 'batch', label: batchData.batch_lot_code,
+    sublabel: batchData.product_name,
+    detail: `${batchData.output_lb} lb | ${batchData.produced_date} ${batchData.produced_time} ET`,
+    lotCode: batchData.batch_lot_code, quantity: batchData.output_lb, layer: 2
+  });
+
+  let hasLegacy = false;
+  let confirmedCount = 0;
+  let legacyCount = 0;
+
+  // Ingredient nodes
+  for (const ing of batchData.ingredients) {
+    const isLegacy = !ing.lot_code || ing.lot_code === 'UNKNOWN';
+    const ingId = addNode({
+      id: 'ing-' + (ing.lot_code || 'UNKNOWN') + '-' + ing.ingredient_name,
+      type: isLegacy ? 'gap' : 'ingredient',
+      label: isLegacy ? 'UNKNOWN' : ing.lot_code,
+      sublabel: ing.ingredient_name,
+      detail: `${ing.quantity_lb} lb` + (isLegacy ? ' | Legacy record' : ''),
+      lotCode: ing.lot_code, quantity: ing.quantity_lb, layer: 1,
+      isLegacy
+    });
+
+    addLink(ingId, batchId, ing.quantity_lb, isLegacy ? 'legacy' : 'confirmed');
+
+    if (isLegacy) { hasLegacy = true; legacyCount++; }
+    else { confirmedCount++; }
+
+    // Supplier lookup for each ingredient lot (if not legacy)
+    if (!isLegacy) {
+      await findSupplierForLot(ing.lot_code, ingId);
+    }
+  }
+
+  // Check for shipments of this batch
+  await findShipmentsForLot(batchData.batch_lot_code, batchId);
+
+  currentTrace = {
+    direction: 'backward', startLot: lotCode,
+    product: batchData.product_name, outputLb: batchData.output_lb,
+    date: batchData.produced_date, time: batchData.produced_time,
+    confirmedCount, legacyCount, hasLegacy,
+    batchData
+  };
+
+  setStatus('ok', '');
+}
+
+async function traceBackwardAsLot(lotCode) {
+  // Try to look up as a regular lot
+  try {
+    const lotInfo = await api(`/lots/by-code/${encodeURIComponent(lotCode)}`);
+    const lotId = addNode({
+      id: 'lot-' + lotCode, type: 'ingredient',
+      label: lotCode, sublabel: lotInfo.product_name,
+      detail: `On hand: ${lotInfo.quantity_on_hand} lb`,
+      lotCode, quantity: parseFloat(lotInfo.quantity_on_hand) || 0, layer: 2
+    });
+
+    // Find receive transaction for supplier info
+    await findSupplierForLot(lotCode, lotId);
+
+    currentTrace = {
+      direction: 'backward', startLot: lotCode,
+      product: lotInfo.product_name,
+      note: 'This lot was not produced in the system (received directly or via adjustment).',
+      confirmedCount: 0, legacyCount: 0, hasLegacy: false
+    };
+    setStatus('ok', '');
+  } catch (e2) {
+    throw new Error(`404 — Lot "${lotCode}" not found`);
+  }
+}
+
+// ── FORWARD TRACE: ingredient → batches → shipments → customers ──
+async function traceForward(lotCode) {
+  let ingData;
+  try {
+    ingData = await api(`/trace/ingredient/${encodeURIComponent(lotCode)}`);
+  } catch (e) {
+    if (e.message.includes('404')) {
+      // Not found as ingredient — try as batch lot and trace shipments
+      await traceForwardAsBatch(lotCode);
+      return;
+    }
+    throw e;
+  }
+
+  // Origin node: the ingredient
+  const ingId = addNode({
+    id: 'ing-' + ingData.ingredient_lot_code,
+    type: 'ingredient', label: ingData.ingredient_lot_code,
+    sublabel: ingData.ingredient_name,
+    detail: ingData.supplier_lot_code ? `Supplier lot: ${ingData.supplier_lot_code}` : '',
+    lotCode: ingData.ingredient_lot_code, layer: 1
+  });
+
+  // Find supplier
+  await findSupplierForLot(ingData.ingredient_lot_code, ingId);
+
+  if (ingData.used_in_batches.length === 0) {
+    currentTrace = {
+      direction: 'forward', startLot: lotCode,
+      product: ingData.ingredient_name,
+      note: 'This lot has not been consumed in any production batches. It may still be in raw inventory.',
+      confirmedCount: 0, legacyCount: 0, hasLegacy: false,
+      ingData
+    };
+    setStatus('ok', '');
+    return;
+  }
+
+  // Fan-out control
+  const batches = ingData.used_in_batches;
+  const showCount = (batches.length > 8 && !fullChainMode) ? 5 : batches.length;
+  const collapsed = batches.length - showCount;
+
+  for (let i = 0; i < showCount; i++) {
+    const b = batches[i];
+    const batchId = addNode({
+      id: 'batch-' + b.batch_lot_code,
+      type: 'batch', label: b.batch_lot_code,
+      sublabel: b.batch_product,
+      detail: `Used ${b.quantity_used} lb of ingredient`,
+      lotCode: b.batch_lot_code, quantity: b.quantity_used, layer: 2
+    });
+    addLink(ingId, batchId, b.quantity_used, 'confirmed');
+
+    // Find shipments for each batch
+    await findShipmentsForLot(b.batch_lot_code, batchId);
+  }
+
+  if (collapsed > 0) {
+    addNode({
+      id: 'collapsed-batches',
+      type: 'gap', label: `... and ${collapsed} more`,
+      sublabel: 'Click to expand', detail: '', layer: 2, isCollapsed: true
+    });
+    addLink(ingId, 'collapsed-batches', 0, 'confirmed');
+    document.getElementById('expandBtn').style.display = '';
+  }
+
+  currentTrace = {
+    direction: 'forward', startLot: lotCode,
+    product: ingData.ingredient_name,
+    confirmedCount: batches.length, legacyCount: 0, hasLegacy: false,
+    ingData
+  };
+  setStatus('ok', '');
+}
+
+async function traceForwardAsBatch(lotCode) {
+  // It might be a batch/finished lot — trace its shipments
+  let batchData = null;
+  try {
+    batchData = await api(`/trace/batch/${encodeURIComponent(lotCode)}`);
+  } catch (e) {
+    // Not a batch either — try as any lot
+  }
+
+  let lotInfo;
+  try {
+    lotInfo = await api(`/lots/by-code/${encodeURIComponent(lotCode)}`);
+  } catch (e) {
+    throw new Error(`404 — Lot "${lotCode}" not found`);
+  }
+
+  const nodeType = batchData ? 'batch' : 'finished';
+  const mainId = addNode({
+    id: 'lot-' + lotCode, type: nodeType,
+    label: lotCode, sublabel: lotInfo.product_name,
+    detail: `On hand: ${lotInfo.quantity_on_hand} lb`,
+    lotCode, quantity: parseFloat(lotInfo.quantity_on_hand) || 0, layer: 1
+  });
+
+  await findShipmentsForLot(lotCode, mainId);
+
+  currentTrace = {
+    direction: 'forward', startLot: lotCode,
+    product: lotInfo.product_name,
+    confirmedCount: graphLinks.filter(l => l.confidence === 'confirmed').length,
+    legacyCount: 0, hasLegacy: false
+  };
+  setStatus('ok', '');
+}
+
+// ── Supplier lookup ──
+async function findSupplierForLot(lotCode, ingNodeId) {
+  try {
+    const data = await api(`/transactions/history?transaction_type=receive&limit=100`);
+    for (const txn of data.transactions) {
+      if (!txn.lines) continue;
+      for (const line of txn.lines) {
+        if (line.lot_code && line.lot_code.toLowerCase() === lotCode.toLowerCase()) {
+          const supplierName = txn.shipper_name || 'Unknown supplier';
+          const suppId = addNode({
+            id: 'supplier-' + supplierName + '-' + (txn.bol_reference || ''),
+            type: txn.shipper_name ? 'supplier' : 'gap',
+            label: supplierName,
+            sublabel: txn.bol_reference ? `BOL: ${txn.bol_reference}` : '',
+            detail: `${txn.date} ${txn.time || ''} | Txn #${txn.id}`,
+            layer: 0, txnId: txn.id
+          });
+          addLink(suppId, ingNodeId, Math.abs(parseFloat(line.quantity_lb) || 0), 'confirmed');
+          return;
+        }
+      }
+    }
+    // No receive found
+    addNode({
+      id: 'supplier-unknown-' + lotCode,
+      type: 'gap', label: 'Supplier unknown',
+      sublabel: 'Lot origin not in recent transactions',
+      detail: '', layer: 0
+    });
+    addLink('supplier-unknown-' + lotCode, ingNodeId, 0, 'legacy');
+  } catch (e) {
+    console.warn('[Supplier lookup failed]', e);
+  }
+}
+
+// ── Shipment lookup ──
+async function findShipmentsForLot(lotCode, batchNodeId) {
+  try {
+    const data = await api(`/transactions/history?transaction_type=ship&limit=100`);
+    let found = false;
+    const customers = {};
+
+    for (const txn of data.transactions) {
+      if (!txn.lines) continue;
+      for (const line of txn.lines) {
+        if (line.lot_code && line.lot_code.toLowerCase() === lotCode.toLowerCase()) {
+          const custName = txn.customer_name || 'Unknown customer';
+          const qty = Math.abs(parseFloat(line.quantity_lb) || 0);
+          const key = custName;
+          if (!customers[key]) {
+            customers[key] = { name: custName, totalQty: 0, orders: [], txnIds: [] };
+          }
+          customers[key].totalQty += qty;
+          if (txn.order_reference) customers[key].orders.push(txn.order_reference);
+          customers[key].txnIds.push(txn.id);
+          customers[key].date = txn.date;
+          found = true;
+        }
+      }
+    }
+
+    for (const [key, cust] of Object.entries(customers)) {
+      const custId = addNode({
+        id: 'cust-' + key + '-' + batchNodeId,
+        type: 'customer', label: cust.name,
+        sublabel: cust.orders.length ? cust.orders.join(', ') : '',
+        detail: `${cust.totalQty} lb | ${cust.date} | Txn #${cust.txnIds.join(', #')}`,
+        quantity: cust.totalQty, layer: 3, txnIds: cust.txnIds
+      });
+      addLink(batchNodeId, custId, cust.totalQty, 'confirmed');
+    }
+
+    if (!found) {
+      const stockId = addNode({
+        id: 'stock-' + lotCode,
+        type: 'finished', label: 'In stock',
+        sublabel: 'No shipments recorded',
+        detail: '', layer: 3
+      });
+      addLink(batchNodeId, stockId, 0, 'confirmed');
+    }
+  } catch (e) {
+    console.warn('[Shipment lookup failed]', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// NODE / LINK MANAGEMENT
+// ═══════════════════════════════════════════════════════
+function addNode(node) {
+  const existing = graphNodes.find(n => n.id === node.id);
+  if (existing) return existing.id;
+  graphNodes.push(node);
+  return node.id;
+}
+
+function addLink(sourceId, targetId, quantity, confidence) {
+  if (graphLinks.some(l => l.source === sourceId && l.target === targetId)) return;
+  graphLinks.push({ source: sourceId, target: targetId, quantity: quantity || 0, confidence });
+}
+
+// ═══════════════════════════════════════════════════════
+// STATUS
+// ═══════════════════════════════════════════════════════
+function setStatus(type, msg) {
+  const el = document.getElementById('statusBar');
+  if (type === 'loading') {
+    el.className = 'status-bar';
+    el.innerHTML = `<span class="loading-spinner"></span> ${msg}`;
+  } else if (type === 'error') {
+    el.className = 'status-bar error';
+    el.innerHTML = msg;
+  } else {
+    el.className = 'status-bar';
+    el.innerHTML = '';
+  }
+}
+
+function suggestSimilar(query) {
+  const lower = query.toLowerCase();
+  const matches = lotIndex.filter(l => l.lot_code.toLowerCase().includes(lower.slice(0, 6))).slice(0, 5);
+  if (matches.length > 0) {
+    const el = document.getElementById('statusBar');
+    el.innerHTML += '<br>Did you mean: ' + matches.map(m =>
+      `<a href="#" onclick="selectLot('${m.lot_code}');runTrace();return false;" style="margin:0 4px">${m.lot_code}</a>`
+    ).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// GRAPH RENDERING (D3)
+// ═══════════════════════════════════════════════════════
+const colorMap = {
+  supplier: 'var(--col-supplier)', ingredient: 'var(--col-ingredient)',
+  batch: 'var(--col-batch)', finished: 'var(--col-finished)',
+  customer: 'var(--col-customer)', gap: 'var(--col-gap)'
+};
+const colorHex = {
+  supplier: '#1D9E75', ingredient: '#378ADD', batch: '#7F77DD',
+  finished: '#D85A30', customer: '#BA7517', gap: '#E24B4A'
+};
+
+function renderGraph() {
+  const container = document.getElementById('graphContainer');
+  const svg = d3.select('#graphSvg');
+  svg.selectAll('*').remove();
+  document.getElementById('graphControls').style.display = '';
+
+  if (graphNodes.length === 0) {
+    document.getElementById('graphControls').style.display = 'none';
+    return;
+  }
+
+  // Layout: layered left-to-right
+  const width = container.clientWidth;
+  const nodeW = 180, nodeH = 56, padX = 60, padY = 20;
+
+  // Group nodes by layer
+  const layers = {};
+  for (const n of graphNodes) {
+    const layer = n.layer ?? 0;
+    if (!layers[layer]) layers[layer] = [];
+    layers[layer].push(n);
+  }
+  const layerKeys = Object.keys(layers).map(Number).sort((a, b) => a - b);
+  const maxLayerSize = Math.max(...layerKeys.map(k => layers[k].length));
+  const totalHeight = Math.max(500, maxLayerSize * (nodeH + padY) + 80);
+
+  svg.attr('height', totalHeight);
+
+  // Position nodes
+  const layerCount = layerKeys.length;
+  const totalW = layerCount * nodeW + (layerCount - 1) * padX;
+  const startX = Math.max(40, (width - totalW) / 2);
+
+  for (let li = 0; li < layerKeys.length; li++) {
+    const layerNodes = layers[layerKeys[li]];
+    const layerH = layerNodes.length * (nodeH + padY) - padY;
+    const startY = (totalHeight - layerH) / 2;
+    for (let ni = 0; ni < layerNodes.length; ni++) {
+      layerNodes[ni].x = startX + li * (nodeW + padX);
+      layerNodes[ni].y = startY + ni * (nodeH + padY);
+    }
+  }
+
+  // Create zoom group
+  const g = svg.append('g');
+
+  svgZoom = d3.zoom()
+    .scaleExtent([0.2, 3])
+    .on('zoom', (event) => g.attr('transform', event.transform));
+  svg.call(svgZoom);
+
+  // Build node map for link lookup
+  const nodeMap = {};
+  for (const n of graphNodes) nodeMap[n.id] = n;
+
+  // Draw links
+  const linkGroup = g.append('g');
+  for (const link of graphLinks) {
+    const src = nodeMap[link.source];
+    const tgt = nodeMap[link.target];
+    if (!src || !tgt) continue;
+
+    const x1 = src.x + nodeW;
+    const y1 = src.y + nodeH / 2;
+    const x2 = tgt.x;
+    const y2 = tgt.y + nodeH / 2;
+    const cpx = (x1 + x2) / 2;
+
+    const isLegacy = link.confidence === 'legacy';
+    const strokeW = isLegacy ? 1.5 : Math.max(1.5, Math.min(6, (link.quantity || 0) / 200));
+    const color = isLegacy ? '#E24B4A' : (colorHex[src.type] || '#666');
+
+    const path = linkGroup.append('path')
+      .attr('d', `M ${x1},${y1} C ${cpx},${y1} ${cpx},${y2} ${x2},${y2}`)
+      .attr('fill', 'none')
+      .attr('stroke', color)
+      .attr('stroke-width', strokeW)
+      .attr('opacity', 0.4);
+
+    if (isLegacy) {
+      path.attr('stroke-dasharray', '6,4');
+    }
+
+    // Quantity label on link
+    if (link.quantity > 0) {
+      linkGroup.append('text')
+        .attr('x', cpx)
+        .attr('y', (y1 + y2) / 2 - 6)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', 10)
+        .attr('fill', 'var(--text-dimmed)')
+        .text(`${link.quantity.toLocaleString()} lb`);
+    }
+
+    // Confidence icon
+    if (!isLegacy && link.quantity > 0) {
+      linkGroup.append('text')
+        .attr('x', cpx)
+        .attr('y', (y1 + y2) / 2 + 8)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', 9)
+        .attr('fill', '#10b981')
+        .text('\u2713');
+    }
+    if (isLegacy) {
+      linkGroup.append('text')
+        .attr('x', cpx)
+        .attr('y', (y1 + y2) / 2 + 8)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', 10)
+        .attr('fill', '#E24B4A')
+        .text('\u26A0');
+    }
+  }
+
+  // Draw nodes
+  const nodeGroup = g.append('g');
+  for (const node of graphNodes) {
+    const ng = nodeGroup.append('g')
+      .attr('transform', `translate(${node.x}, ${node.y})`)
+      .attr('cursor', 'pointer')
+      .on('click', () => onNodeClick(node))
+      .on('mouseenter', (event) => showTooltip(event, node))
+      .on('mouseleave', hideTooltip);
+
+    // Background rect
+    const hex = colorHex[node.type] || '#666';
+    ng.append('rect')
+      .attr('width', nodeW)
+      .attr('height', nodeH)
+      .attr('rx', 6)
+      .attr('fill', hex + '1F')  // ~12% opacity
+      .attr('stroke', hex)
+      .attr('stroke-width', node.id === ('batch-' + selectedLotCode) || node.id === ('ing-' + selectedLotCode) || node.id === ('lot-' + selectedLotCode) ? 2 : 1)
+      .attr('stroke-dasharray', (node.type === 'gap' || node.isLegacy) ? '4,3' : 'none');
+
+    // Warning icon for gaps/legacy
+    if (node.type === 'gap' || node.isLegacy) {
+      ng.append('text')
+        .attr('x', nodeW - 16)
+        .attr('y', 16)
+        .attr('font-size', 13)
+        .attr('fill', '#E24B4A')
+        .text('\u26A0');
+    }
+
+    // Label (lot code)
+    ng.append('text')
+      .attr('x', 10)
+      .attr('y', 22)
+      .attr('font-size', 12)
+      .attr('font-weight', 600)
+      .attr('fill', 'var(--text)')
+      .text(truncate(node.label, 22));
+
+    // Sublabel (product name)
+    if (node.sublabel) {
+      ng.append('text')
+        .attr('x', 10)
+        .attr('y', 38)
+        .attr('font-size', 10)
+        .attr('fill', 'var(--text-muted)')
+        .text(truncate(node.sublabel, 26));
+    }
+
+    // Quantity badge
+    if (node.quantity > 0) {
+      ng.append('text')
+        .attr('x', 10)
+        .attr('y', 50)
+        .attr('font-size', 9)
+        .attr('fill', 'var(--text-dimmed)')
+        .text(`${node.quantity.toLocaleString()} lb`);
+    }
+  }
+
+  // Completeness badge
+  renderCompleteness();
+
+  // Auto-scroll graph into view
+  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function truncate(str, max) {
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max - 1) + '\u2026' : str;
+}
+
+// ═══════════════════════════════════════════════════════
+// TOOLTIP
+// ═══════════════════════════════════════════════════════
+function showTooltip(event, node) {
+  const tt = document.getElementById('tooltip');
+  const typeLabel = { supplier: 'Supplier', ingredient: 'Ingredient Lot', batch: 'Production Batch', finished: 'Finished Goods', customer: 'Customer', gap: 'Data Gap' };
+
+  tt.innerHTML = `
+    <div class="tt-label">${typeLabel[node.type] || node.type}</div>
+    <div class="tt-value tt-mono" style="font-weight:600">${node.label}</div>
+    ${node.sublabel ? `<div class="tt-value">${node.sublabel}</div>` : ''}
+    ${node.detail ? `<div class="tt-value" style="color:var(--text-muted);font-size:11px">${node.detail}</div>` : ''}
+    ${node.isLegacy ? '<div style="color:#E24B4A;font-size:11px;margin-top:4px">\u26A0 Legacy record — ingredient lot not tracked</div>' : ''}
+    ${node.txnId ? `<div class="tt-label" style="margin-top:4px">Transaction #${node.txnId}</div>` : ''}
+  `;
+  tt.style.display = 'block';
+  tt.style.left = (event.pageX + 12) + 'px';
+  tt.style.top = (event.pageY - 8) + 'px';
+}
+
+function hideTooltip() {
+  document.getElementById('tooltip').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════
+// NODE CLICK — trace deeper
+// ═══════════════════════════════════════════════════════
+function onNodeClick(node) {
+  if (node.isCollapsed) {
+    fullChainMode = true;
+    runTrace();
+    return;
+  }
+  if (node.lotCode && node.lotCode !== 'UNKNOWN') {
+    searchInput.value = node.lotCode;
+    selectedLotCode = node.lotCode;
+    // Auto-detect direction
+    if (node.type === 'ingredient' || node.type === 'supplier') {
+      setDirection('forward');
+    } else if (node.type === 'batch' || node.type === 'finished') {
+      setDirection('backward');
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// GRAPH CONTROLS
+// ═══════════════════════════════════════════════════════
+function fitToScreen() {
+  const svg = d3.select('#graphSvg');
+  svg.transition().duration(300).call(svgZoom.transform, d3.zoomIdentity);
+}
+
+function zoomIn() {
+  const svg = d3.select('#graphSvg');
+  svg.transition().duration(200).call(svgZoom.scaleBy, 1.3);
+}
+
+function zoomOut() {
+  const svg = d3.select('#graphSvg');
+  svg.transition().duration(200).call(svgZoom.scaleBy, 0.77);
+}
+
+function toggleFullChain() {
+  fullChainMode = !fullChainMode;
+  document.getElementById('expandBtn').textContent = fullChainMode ? 'Collapse' : 'Show full chain';
+  runTrace();
+}
+
+// ═══════════════════════════════════════════════════════
+// COMPLETENESS BADGE
+// ═══════════════════════════════════════════════════════
+function renderCompleteness() {
+  const info = document.getElementById('traceInfo');
+  if (!currentTrace) { info.innerHTML = ''; return; }
+
+  const { confirmedCount, legacyCount, hasLegacy, note } = currentTrace;
+
+  // Also check for gap nodes in the graph (e.g., supplier unknown)
+  const gapNodes = graphNodes.filter(n => n.type === 'gap');
+  const legacyLinks = graphLinks.filter(l => l.confidence === 'legacy');
+  const totalGaps = gapNodes.length + legacyCount;
+  const hasAnyGap = totalGaps > 0 || hasLegacy;
+
+  let badge = '';
+  if (note) {
+    badge = `<span class="completeness-badge badge-partial">\u26A0 ${note}</span>`;
+  } else if (!hasAnyGap && confirmedCount > 0) {
+    badge = `<span class="completeness-badge badge-complete">\u2713 Complete trace &mdash; all links confirmed</span>`;
+  } else if (hasAnyGap) {
+    const details = [];
+    if (legacyCount > 0) details.push(`${legacyCount} legacy lot(s)`);
+    if (gapNodes.length > 0) details.push(`${gapNodes.length} unknown supplier(s)`);
+    badge = `<span class="completeness-badge badge-partial">\u26A0 Partial trace &mdash; ${details.join(', ')}</span>`;
+  } else if (confirmedCount === 0) {
+    badge = `<span class="completeness-badge badge-incomplete">\u2717 Incomplete &mdash; no confirmed links found</span>`;
+  }
+  info.innerHTML = badge;
+}
+
+// ═══════════════════════════════════════════════════════
+// DETAIL PANEL
+// ═══════════════════════════════════════════════════════
+function renderDetailPanel() {
+  const panel = document.getElementById('detailPanel');
+  const card = document.getElementById('traceDetail');
+  if (!currentTrace || graphNodes.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  const t = currentTrace;
+  const dirLabel = t.direction === 'forward' ? 'Forward Trace (Ingredient \u2192 Batches \u2192 Customers)' : 'Backward Trace (Batch \u2192 Ingredients \u2192 Suppliers)';
+  const now = new Date();
+  const traceDate = now.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'medium', timeStyle: 'short' }) + ' ET';
+
+  let html = `<h3>${dirLabel}</h3>`;
+  html += `<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--text-muted)">`;
+  html += `<span>Traced: ${traceDate}</span>`;
+  html += `<span>Start: <strong style="color:var(--text);font-family:var(--mono)">${t.startLot}</strong></span>`;
+  if (t.product) html += `<span>Product: ${t.product}</span>`;
+  if (t.outputLb) html += `<span>Quantity: ${t.outputLb} lb</span>`;
+  html += `</div>`;
+
+  // Build chain table
+  html += `<table class="detail-table"><thead><tr>
+    <th>Type</th><th>Lot / Name</th><th>Product</th><th>Quantity</th><th>Link</th><th>Detail</th>
+  </tr></thead><tbody>`;
+
+  // Sort nodes by layer for the table
+  const sorted = [...graphNodes].sort((a, b) => (a.layer || 0) - (b.layer || 0));
+  for (const node of sorted) {
+    const linkConf = graphLinks.find(l => l.target === node.id || l.source === node.id);
+    const conf = linkConf ? linkConf.confidence : '-';
+    const typeLabels = { supplier: 'Supplier', ingredient: 'Ingredient', batch: 'Batch', finished: 'Finished', customer: 'Customer', gap: 'Data Gap' };
+
+    html += `<tr>
+      <td class="name-col">${typeLabels[node.type] || node.type}</td>
+      <td>${node.label}</td>
+      <td class="name-col">${node.sublabel || '-'}</td>
+      <td>${node.quantity ? node.quantity.toLocaleString() + ' lb' : '-'}</td>
+      <td>${conf === 'confirmed' ? '<span class="confirmed-tag">\u2713 Confirmed</span>' : conf === 'legacy' ? '<span class="legacy-tag">\u26A0 Legacy</span>' : '-'}</td>
+      <td class="name-col" style="font-size:11px">${node.detail || '-'}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+
+  card.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT / PRINT
+// ═══════════════════════════════════════════════════════
+function printAuditReport() {
+  window.print();
+}
+
+function downloadAuditText() {
+  if (!currentTrace) return;
+  const t = currentTrace;
+  const now = new Date();
+  const traceDate = now.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'long', timeStyle: 'long' });
+
+  let text = '═══════════════════════════════════════════════\n';
+  text += '  LOT TRACEABILITY AUDIT REPORT\n';
+  text += '  Factory Ledger System\n';
+  text += '═══════════════════════════════════════════════\n\n';
+  text += `Trace Date:      ${traceDate} ET\n`;
+  text += `Direction:       ${t.direction === 'forward' ? 'Forward (Ingredient → Customers)' : 'Backward (Batch → Suppliers)'}\n`;
+  text += `Starting Lot:    ${t.startLot}\n`;
+  text += `Product:         ${t.product || 'N/A'}\n`;
+  if (t.outputLb) text += `Output:          ${t.outputLb} lb\n`;
+  text += `Confirmed Links: ${t.confirmedCount}\n`;
+  text += `Legacy Gaps:     ${t.legacyCount}\n`;
+  text += `Completeness:    ${!t.hasLegacy && t.confirmedCount > 0 ? 'COMPLETE' : t.hasLegacy ? 'PARTIAL' : 'INCOMPLETE'}\n`;
+  if (t.note) text += `Note:            ${t.note}\n`;
+  text += '\n───────────────────────────────────────────────\n';
+  text += '  TRACE CHAIN\n';
+  text += '───────────────────────────────────────────────\n\n';
+
+  const sorted = [...graphNodes].sort((a, b) => (a.layer || 0) - (b.layer || 0));
+  const typeLabels = { supplier: 'SUPPLIER', ingredient: 'INGREDIENT', batch: 'BATCH', finished: 'FINISHED', customer: 'CUSTOMER', gap: 'DATA GAP' };
+  let prevLayer = -1;
+
+  for (const node of sorted) {
+    const indent = '  '.repeat(node.layer || 0);
+    const link = graphLinks.find(l => l.target === node.id || l.source === node.id);
+    const confLabel = link ? (link.confidence === 'confirmed' ? '[CONFIRMED]' : '[LEGACY/UNTRACKED]') : '';
+
+    if (node.layer !== prevLayer) text += '\n';
+    prevLayer = node.layer;
+
+    text += `${indent}${confLabel} ${typeLabels[node.type] || 'NODE'}: ${node.label}\n`;
+    if (node.sublabel) text += `${indent}  Product: ${node.sublabel}\n`;
+    if (node.quantity > 0) text += `${indent}  Quantity: ${node.quantity} lb\n`;
+    if (node.detail) text += `${indent}  Detail: ${node.detail}\n`;
+    if (node.txnId) text += `${indent}  Transaction ID: ${node.txnId}\n`;
+    if (node.txnIds) text += `${indent}  Transaction IDs: ${node.txnIds.join(', ')}\n`;
+  }
+
+  text += '\n═══════════════════════════════════════════════\n';
+  text += '  END OF REPORT\n';
+  text += '═══════════════════════════════════════════════\n';
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `trace-${t.startLot}-${t.direction}-${now.toISOString().slice(0, 10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════
+// URL STATE
+// ═══════════════════════════════════════════════════════
+function updateURL(lot, dir) {
+  const url = new URL(window.location);
+  url.searchParams.set('lot', lot);
+  url.searchParams.set('direction', dir);
+  history.replaceState({}, '', url);
+}
+
+function loadFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const lot = params.get('lot');
+  const dir = params.get('direction');
+  if (lot) {
+    searchInput.value = lot;
+    selectedLotCode = lot;
+    document.getElementById('traceBtn').disabled = false;
+    if (dir === 'backward' || dir === 'forward') setDirection(dir);
+    setTimeout(() => runTrace(), 500);  // wait for index
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+(async function init() {
+  await buildLotIndex();
+  loadFromURL();
+})();
+</script>
+<script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
+</body>
+</html>

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Ledger — Production Process Flow</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card-bg: #16213e;
+    --card-border: rgba(255,255,255,0.08);
+    --stage-active: rgba(29,158,117,0.10);
+    --stage-idle: #2a2a3e;
+    --badge-active-bg: #1D9E75;
+    --badge-idle-bg: #3a3a4e;
+    --badge-idle-text: #888;
+    --text: #e0e0e0;
+    --text-muted: #888;
+    --text-dim: #555;
+    --arrow-color: rgba(255,255,255,0.2);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; padding-top:48px; }
+  a { color:#3b82f6; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+
+  /* Site Nav */
+  .site-nav { position:fixed;top:0;left:0;right:0;height:48px;z-index:200;background:#1a1a2e;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;padding:0 20px; }
+  .site-nav-brand { font-size:15px;font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
+  .site-nav-links { display:flex;gap:4px;align-items:center; }
+  .site-nav-link { padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
+  .site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
+  .site-nav-link.active { color:#fff;background:#3b82f6; }
+  .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;cursor:pointer;line-height:1; }
+  @media(max-width:768px){
+    .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
+    .site-nav-toggle{display:block}
+    .site-nav-links{display:none;width:100%;flex-direction:column;gap:2px;padding:4px 0 8px;border-top:1px solid rgba(255,255,255,0.06)}
+    .site-nav-links.open{display:flex}
+    .site-nav-link{padding:8px 14px;width:100%;border-radius:4px}
+  }
+
+  /* Header */
+  .header {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--card-border);
+    padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 48px; z-index: 100;
+  }
+  .header h1 { font-size:18px; font-weight:600; }
+  .header-right { display:flex; align-items:center; gap:12px; font-size:13px; color:var(--text-muted); }
+  .back-link { font-size:13px; }
+
+  /* Summary strip */
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 20px 24px;
+  }
+  .summary-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .summary-card.placeholder {
+    border-style: dashed;
+    opacity: 0.7;
+  }
+  .summary-card .label { font-size:12px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
+  .summary-card .value { font-size:24px; font-weight:600; }
+  .summary-card .sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+
+  /* Line cards */
+  .lines-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 0 24px 24px;
+  }
+  .line-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .line-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .line-title { font-size:16px; font-weight:600; }
+  .line-product { font-size:13px; color:var(--text-muted); margin-top:2px; }
+  .line-also { font-size:11px; color:var(--text-dim); margin-top:2px; font-style:italic; }
+  .badge {
+    display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; text-transform:uppercase;
+  }
+  .badge-active { background:var(--badge-active-bg); color:#fff; }
+  .badge-idle { background:var(--badge-idle-bg); color:var(--badge-idle-text); }
+
+  /* Pipeline */
+  .pipeline {
+    display: flex; align-items: center; gap: 0;
+  }
+  .stage {
+    flex: 1;
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+    min-width: 0;
+  }
+  .stage-active { background: var(--stage-active); }
+  .stage-idle { background: var(--stage-idle); }
+  .stage-value { font-size:18px; font-weight:500; white-space:nowrap; }
+  .stage-label { font-size:11px; color:var(--text-muted); margin-top:2px; white-space:nowrap; }
+  .stage-name { font-size:11px; color:var(--text-dim); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px; }
+  .arrow {
+    flex-shrink: 0;
+    width: 24px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--arrow-color);
+    font-size: 16px;
+  }
+
+  /* Metrics row */
+  .metrics {
+    display: flex; gap: 20px; font-size:13px;
+  }
+  .metric-label { color:var(--text-muted); }
+  .metric-value { font-weight:500; }
+  .hydration-note { font-size:10px; color:var(--text-dim); }
+
+  /* Stale warning */
+  .stale-banner {
+    background: #4a3520;
+    color: #f0c040;
+    padding: 8px 24px;
+    font-size: 13px;
+    display: none;
+  }
+  .stale-banner.visible { display:block; }
+
+  /* API error banner */
+  .error-banner {
+    background: #3a2020;
+    color: #e05050;
+    padding: 8px 24px;
+    font-size: 13px;
+    display: none;
+  }
+  .error-banner.visible { display:block; }
+
+  /* Footer */
+  .footer {
+    padding: 12px 24px;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .lines-grid { grid-template-columns: 1fr; }
+    .summary-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 550px) {
+    .summary-strip { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav" id="siteNav">
+  <span class="site-nav-brand">CNS Factory Ledger</span>
+  <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
+  <div class="site-nav-links" id="navLinks">
+    <a href="/dashboard/" class="site-nav-link">Dashboard</a>
+    <a href="/dashboard/sankey.html" class="site-nav-link">Material Flow</a>
+    <a href="/dashboard/process-flow.html" class="site-nav-link active">Production Lines</a>
+    <a href="/dashboard/traceability.html" class="site-nav-link">Traceability</a>
+  </div>
+</nav>
+
+<div class="header">
+  <h1>Production Process Flow</h1>
+  <div class="header-right">
+    <span id="last-updated"></span>
+  </div>
+</div>
+
+<div class="error-banner" id="error-banner"></div>
+<div class="stale-banner" id="stale-banner"></div>
+
+<div class="summary-strip" id="summary-strip">
+  <div class="summary-card"><div class="label">Lines Active</div><div class="value" id="sum-lines">--</div></div>
+  <div class="summary-card"><div class="label">Produced Today</div><div class="value" id="sum-produced">--</div><div class="sub" id="sum-produced-sub"></div></div>
+  <div class="summary-card"><div class="label">Avg Yield</div><div class="value" id="sum-yield">--</div></div>
+  <div class="summary-card placeholder">
+    <div class="label">Workers on Floor</div>
+    <div class="value">8 / 10</div>
+    <!-- PLACEHOLDER: not tracked in database. Future: manual input or headcount API. -->
+    <div class="sub">Manual entry</div>
+  </div>
+</div>
+
+<div class="lines-grid" id="lines-grid"></div>
+
+<div class="footer" id="footer">Auto-refreshes every 60s</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const API_BASE = 'https://fastapi-production-b73a.up.railway.app';
+  const API_KEY = 'ledger-secret-2026-factory';
+  const REFRESH_MS = 60000;
+
+  // --- Production line definitions ---
+  const LINE_DEFS = {
+    'Granola Baking': {
+      stages: [
+        { name: 'Weigh & Mix', key: 'input', unit: 'lb in' },
+        { name: 'Bake', key: 'batches', unit: 'batches' },
+        { name: 'Cool & Break', key: 'output', unit: 'lb out' },
+        { name: 'Pack', key: 'cases', unit: 'cases' }
+      ]
+    },
+    'Coconut Sweetened': {
+      stages: [
+        { name: 'Hydrate', key: 'input', unit: 'lb dry in' },
+        { name: 'Sweeten & Coat', key: 'batches', unit: 'batches' },
+        { name: 'Dry', key: 'output', unit: 'lb out' },
+        { name: 'Pack', key: 'cases', unit: 'cases' }
+      ]
+    },
+    'Bulk Packing': {
+      stages: [
+        { name: 'Stage Bulk', key: 'input', unit: 'lb staged' },
+        { name: 'Weigh & Fill', key: 'batches', unit: 'runs' },
+        { name: 'Seal & Label', key: 'cases', unit: 'cases' }
+      ]
+    },
+    'Pouch Line': {
+      stages: [
+        { name: 'Weigh Portions', key: 'input', unit: 'lb portioned' },
+        { name: 'Fill & Seal', key: 'batches', unit: 'runs' },
+        { name: 'Case Pack', key: 'cases', unit: 'cases' }
+      ]
+    }
+  };
+
+  const LINE_ORDER = ['Granola Baking', 'Coconut Sweetened', 'Bulk Packing', 'Pouch Line'];
+
+  // --- Classification ---
+  function classifyLine(productName, transactionType) {
+    const name = productName.toLowerCase();
+    if (/pouch|7\s?oz|8\s?oz|10\s?oz|retail/.test(name)) return 'Pouch Line';
+    if (/granola/.test(name)) return 'Granola Baking';
+    if (/coconut|sweetened.*flake|medium.*cut|fancy.*cut|cq.*flake/.test(name)) return 'Coconut Sweetened';
+    if (/sprinkle|choc.*chip|graham|crumb/.test(name) || transactionType === 'pack') return 'Bulk Packing';
+    return 'Other';
+  }
+
+  // --- Timezone helpers ---
+  function toET(utcStr) {
+    const d = new Date(utcStr + (utcStr.endsWith('Z') ? '' : 'Z'));
+    return new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  }
+
+  function todayET() {
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    return et.toISOString().slice(0, 10);
+  }
+
+  function formatTimeET(utcStr) {
+    const d = new Date(utcStr + (utcStr.endsWith('Z') ? '' : 'Z'));
+    return d.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }) + ' ET';
+  }
+
+  function formatDateET(utcStr) {
+    const d = new Date(utcStr + (utcStr.endsWith('Z') ? '' : 'Z'));
+    return d.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' });
+  }
+
+  // --- API helpers ---
+  async function apiFetch(path) {
+    const res = await fetch(API_BASE + path, {
+      headers: { 'X-Api-Key': API_KEY }
+    });
+    if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+    return res.json();
+  }
+
+  // Product cache (name -> detail)
+  const productCache = {};
+  async function getProductDetail(productName) {
+    if (productCache[productName]) return productCache[productName];
+    try {
+      const res = await apiFetch('/products/search?q=' + encodeURIComponent(productName) + '&limit=5');
+      if (res.products && res.products.length > 0) {
+        // Find exact match first
+        const exact = res.products.find(p => p.name === productName);
+        const prod = exact || res.products[0];
+        const detail = await apiFetch('/products/' + prod.id);
+        productCache[productName] = detail;
+        return detail;
+      }
+    } catch (e) {
+      console.warn('Product lookup failed for:', productName, e);
+    }
+    return null;
+  }
+
+  // --- Fetch all data ---
+  let isFetching = false;
+  let consecutiveFailures = 0;
+  let lastSuccessTime = null;
+  let useFallback = false;
+
+  async function fetchData() {
+    if (isFetching) return null;
+    isFetching = true;
+    try {
+      const [makeRes, packRes] = await Promise.all([
+        apiFetch('/transactions/history?transaction_type=make&limit=100'),
+        apiFetch('/transactions/history?transaction_type=pack&limit=100')
+      ]);
+      consecutiveFailures = 0;
+      useFallback = false;
+      hideError();
+      lastSuccessTime = new Date();
+      isFetching = false;
+      return { make: makeRes.transactions || [], pack: packRes.transactions || [] };
+    } catch (e) {
+      console.error('API fetch error:', e);
+      consecutiveFailures++;
+      if (consecutiveFailures >= 3) {
+        showStale();
+      }
+      if (!lastSuccessTime) {
+        useFallback = true;
+        showError('API offline — showing sample data');
+      }
+      isFetching = false;
+      return null;
+    }
+  }
+
+  // --- Process transactions into line data ---
+  function processTransactions(data) {
+    const today = todayET();
+    const allTx = [...data.make, ...data.pack];
+
+    // Log all responses
+    console.log('Make transactions:', data.make.length, data.make);
+    console.log('Pack transactions:', data.pack.length, data.pack);
+
+    // Classify and split into today vs historical
+    const lineData = {};
+
+    for (const tx of allTx) {
+      const etDate = toET(tx.timestamp);
+      const dateStr = etDate.getFullYear() + '-' +
+        String(etDate.getMonth() + 1).padStart(2, '0') + '-' +
+        String(etDate.getDate()).padStart(2, '0');
+
+      // Find output product (positive quantity line)
+      const outputLines = tx.lines.filter(l => l.quantity_lb > 0);
+      const inputLines = tx.lines.filter(l => l.quantity_lb < 0);
+      if (outputLines.length === 0) continue;
+
+      const outputProduct = outputLines[0].product_name;
+      const line = classifyLine(outputProduct, tx.type);
+
+      if (line === 'Other') {
+        console.warn('Unclassified product:', outputProduct, '(tx type:', tx.type, ')');
+      }
+
+      if (!lineData[line]) {
+        lineData[line] = {
+          todayTx: [],
+          lastRunDate: null,
+          lastRunTimestamp: null
+        };
+      }
+
+      if (dateStr === today) {
+        lineData[line].todayTx.push({
+          id: tx.id,
+          type: tx.type,
+          timestamp: tx.timestamp,
+          outputProduct: outputProduct,
+          outputLot: outputLines[0].lot_code,
+          outputLb: outputLines.reduce((s, l) => s + l.quantity_lb, 0),
+          inputLb: inputLines.reduce((s, l) => s + Math.abs(l.quantity_lb), 0),
+          lines: tx.lines
+        });
+      }
+
+      // Track last run
+      if (!lineData[line].lastRunTimestamp || tx.timestamp > lineData[line].lastRunTimestamp) {
+        lineData[line].lastRunTimestamp = tx.timestamp;
+        lineData[line].lastRunDate = dateStr;
+      }
+    }
+
+    return lineData;
+  }
+
+  // --- Compute stage values ---
+  function computeStages(lineName, txList, caseWeight) {
+    const totalInputLb = txList.reduce((s, t) => s + t.inputLb, 0);
+    const totalOutputLb = txList.reduce((s, t) => s + t.outputLb, 0);
+    const batchCount = txList.length;
+
+    let casesValue = null;
+    if (caseWeight && caseWeight > 0) {
+      casesValue = Math.round(totalOutputLb / caseWeight);
+    }
+
+    const stages = {};
+    stages.input = totalInputLb > 0 ? fmtNum(totalInputLb) : null;
+    stages.batches = batchCount > 0 ? batchCount : null;
+    stages.output = totalOutputLb > 0 ? fmtNum(totalOutputLb) : null;
+    stages.cases = casesValue !== null ? casesValue : (totalOutputLb > 0 ? fmtNum(totalOutputLb) + ' lb' : null);
+    stages.casesIsPounds = casesValue === null && totalOutputLb > 0;
+
+    return stages;
+  }
+
+  function fmtNum(n) {
+    return Math.round(n).toLocaleString('en-US');
+  }
+
+  // --- Render ---
+  function renderDashboard(lineData, productDetails) {
+    const todayStr = todayET();
+    let totalActiveLines = 0;
+    let totalOutputLb = 0;
+    let totalInputLb = 0;
+    let totalCases = 0;
+    let hasCaseData = false;
+
+    // Determine all lines to render
+    const allLines = [...LINE_ORDER];
+    for (const ln of Object.keys(lineData)) {
+      if (!allLines.includes(ln) && lineData[ln].todayTx.length > 0) {
+        allLines.push(ln);
+      }
+    }
+
+    const grid = document.getElementById('lines-grid');
+    // Build new HTML (update in-place if possible)
+    let html = '';
+
+    for (const lineName of allLines) {
+      const ld = lineData[lineName] || { todayTx: [], lastRunDate: null, lastRunTimestamp: null };
+      const isActive = ld.todayTx.length > 0;
+      if (isActive) totalActiveLines++;
+
+      // Current product (most recent tx today)
+      let currentProduct = null;
+      let currentLot = null;
+      let alsoRan = [];
+      if (isActive) {
+        const sorted = [...ld.todayTx].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+        currentProduct = sorted[0].outputProduct;
+        currentLot = sorted[0].outputLot;
+        const otherProducts = [...new Set(sorted.map(t => t.outputProduct))].filter(p => p !== currentProduct);
+        alsoRan = otherProducts;
+      }
+
+      // Get case weight
+      const detail = currentProduct ? productDetails[currentProduct] : null;
+      const caseWeight = detail ? (detail.default_case_weight_lb || detail.case_size_lb || null) : null;
+
+      // Compute stages
+      const stageVals = isActive ? computeStages(lineName, ld.todayTx, caseWeight) : null;
+
+      // Yield
+      const lineInputLb = ld.todayTx.reduce((s, t) => s + t.inputLb, 0);
+      const lineOutputLb = ld.todayTx.reduce((s, t) => s + t.outputLb, 0);
+      totalOutputLb += lineOutputLb;
+      totalInputLb += lineInputLb;
+      let yieldPct = lineInputLb > 0 ? ((lineOutputLb / lineInputLb) * 100) : null;
+      const isCoconut = lineName === 'Coconut Sweetened';
+
+      if (isActive && caseWeight && caseWeight > 0) {
+        totalCases += Math.round(lineOutputLb / caseWeight);
+        hasCaseData = true;
+      }
+
+      // Stage definitions
+      const def = LINE_DEFS[lineName];
+      const stages = def ? def.stages : [
+        { name: 'Input', key: 'input', unit: 'lb in' },
+        { name: 'Process', key: 'batches', unit: 'batches' },
+        { name: 'Output', key: 'cases', unit: 'cases' }
+      ];
+
+      // Build card HTML
+      html += `<div class="line-card" data-line="${lineName}">`;
+      html += `<div class="line-header">`;
+      html += `<div>`;
+      html += `<div class="line-title">${lineName}</div>`;
+      if (isActive) {
+        html += `<div class="line-product">${escHtml(currentProduct)}</div>`;
+        if (alsoRan.length > 0) {
+          html += `<div class="line-also">Also ran today: ${alsoRan.map(escHtml).join(', ')}</div>`;
+        }
+      } else {
+        const lastStr = ld.lastRunTimestamp ? 'Last run: ' + formatDateET(ld.lastRunTimestamp) : 'No recent activity';
+        html += `<div class="line-product">${lastStr}</div>`;
+      }
+      html += `</div>`;
+      html += `<span class="badge ${isActive ? 'badge-active' : 'badge-idle'}">${isActive ? 'Active' : 'Idle'}</span>`;
+      html += `</div>`;
+
+      // Pipeline
+      html += `<div class="pipeline">`;
+      for (let i = 0; i < stages.length; i++) {
+        if (i > 0) html += `<div class="arrow"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+        const st = stages[i];
+        const stClass = isActive ? 'stage-active' : 'stage-idle';
+
+        let valStr = '\u2014';
+        let unitStr = st.unit;
+        if (isActive && stageVals) {
+          if (st.key === 'input' && stageVals.input !== null) {
+            valStr = stageVals.input;
+          } else if (st.key === 'batches' && stageVals.batches !== null) {
+            valStr = stageVals.batches;
+          } else if (st.key === 'output' && stageVals.output !== null) {
+            valStr = stageVals.output;
+          } else if (st.key === 'cases') {
+            if (stageVals.casesIsPounds) {
+              valStr = stageVals.cases;
+              unitStr = 'lb packed';
+            } else if (stageVals.cases !== null) {
+              valStr = stageVals.cases;
+            }
+          }
+        }
+
+        html += `<div class="stage ${stClass}">`;
+        html += `<div class="stage-name">${st.name}</div>`;
+        html += `<div class="stage-value">${valStr}</div>`;
+        html += `<div class="stage-label">${unitStr}</div>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+
+      // Metrics row
+      if (isActive) {
+        html += `<div class="metrics">`;
+        html += `<span><span class="metric-label">Yield: </span><span class="metric-value">`;
+        if (yieldPct !== null) {
+          html += fmtNum(yieldPct) + '%';
+          if (isCoconut && yieldPct > 100) {
+            html += ` <span class="hydration-note">(incl. hydration)</span>`;
+          }
+        } else {
+          html += '\u2014';
+        }
+        html += `</span></span>`;
+        if (currentLot) {
+          html += `<span><span class="metric-label">Lot: </span><span class="metric-value">${escHtml(currentLot)}</span></span>`;
+        }
+        html += `</div>`;
+      }
+
+      html += `</div>`;
+    }
+
+    grid.innerHTML = html;
+
+    // Summary cards
+    const totalLines = LINE_ORDER.length;
+    document.getElementById('sum-lines').textContent = totalActiveLines + ' / ' + totalLines;
+
+    if (totalOutputLb > 0) {
+      let producedStr = fmtNum(totalOutputLb) + ' lb';
+      if (hasCaseData && totalCases > 0) {
+        producedStr += ' (' + fmtNum(totalCases) + ' cs)';
+      }
+      document.getElementById('sum-produced').textContent = producedStr;
+    } else {
+      document.getElementById('sum-produced').textContent = '\u2014';
+    }
+
+    if (totalInputLb > 0) {
+      const avgYield = (totalOutputLb / totalInputLb * 100);
+      document.getElementById('sum-yield').textContent = fmtNum(avgYield) + '%';
+    } else {
+      document.getElementById('sum-yield').textContent = '\u2014';
+    }
+
+    // Update time
+    const now = new Date();
+    document.getElementById('last-updated').textContent = 'Updated: ' +
+      now.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }) + ' ET';
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // --- Fallback data ---
+  function getFallbackData() {
+    return {
+      'Granola Baking': {
+        todayTx: [{
+          id: 0, type: 'make', timestamp: new Date().toISOString(),
+          outputProduct: 'Honey Granola 30lb', outputLot: 'GH-2026-0316',
+          outputLb: 1180, inputLb: 1240, lines: []
+        }],
+        lastRunTimestamp: new Date().toISOString(), lastRunDate: todayET()
+      },
+      'Coconut Sweetened': {
+        todayTx: [{
+          id: 0, type: 'make', timestamp: new Date().toISOString(),
+          outputProduct: 'CQ Coconut 25lb', outputLot: 'CS-2026-0087',
+          outputLb: 960, inputLb: 800, lines: []
+        }],
+        lastRunTimestamp: new Date().toISOString(), lastRunDate: todayET()
+      },
+      'Bulk Packing': {
+        todayTx: [{
+          id: 0, type: 'pack', timestamp: new Date().toISOString(),
+          outputProduct: 'Sprinkles 25lb', outputLot: 'SP-2026-0041',
+          outputLb: 1000, inputLb: 1000, lines: []
+        }],
+        lastRunTimestamp: new Date().toISOString(), lastRunDate: todayET()
+      },
+      'Pouch Line': {
+        todayTx: [],
+        lastRunTimestamp: '2026-03-15T20:00:00', lastRunDate: '2026-03-15'
+      }
+    };
+  }
+
+  function getFallbackProductDetails() {
+    return {
+      'Honey Granola 30lb': { default_case_weight_lb: 10, case_size_lb: 10 },
+      'CQ Coconut 25lb': { default_case_weight_lb: 16, case_size_lb: 16 },
+      'Sprinkles 25lb': { default_case_weight_lb: 25, case_size_lb: 25 }
+    };
+  }
+
+  // --- Error/stale UI ---
+  function showError(msg) {
+    const el = document.getElementById('error-banner');
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+  function hideError() {
+    document.getElementById('error-banner').classList.remove('visible');
+  }
+  function showStale() {
+    const el = document.getElementById('stale-banner');
+    const t = lastSuccessTime
+      ? lastSuccessTime.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true })
+      : 'unknown';
+    el.textContent = 'Data may be stale \u2014 last updated ' + t;
+    el.classList.add('visible');
+  }
+
+  // --- Main loop ---
+  async function refresh() {
+    const data = await fetchData();
+    let lineData;
+    let productDetails = {};
+
+    if (data) {
+      lineData = processTransactions(data);
+
+      // Fetch product details for current products
+      const productNames = new Set();
+      for (const ln of Object.values(lineData)) {
+        if (ln.todayTx.length > 0) {
+          const sorted = [...ln.todayTx].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+          productNames.add(sorted[0].outputProduct);
+        }
+      }
+      const detailPromises = [...productNames].map(async (name) => {
+        const d = await getProductDetail(name);
+        if (d) productDetails[name] = d;
+      });
+      await Promise.all(detailPromises);
+    } else if (useFallback) {
+      lineData = getFallbackData();
+      productDetails = getFallbackProductDetails();
+    } else {
+      return; // Keep showing last good data
+    }
+
+    // Check limit warning
+    if (data) {
+      const totalFetched = data.make.length + data.pack.length;
+      if (totalFetched >= 100) {
+        console.warn('Fetched 100+ records. Some earlier transactions may not be included.');
+      }
+    }
+
+    renderDashboard(lineData, productDetails);
+  }
+
+  // Initial load
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+
+})();
+</script>
+<script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
+</body>
+</html>

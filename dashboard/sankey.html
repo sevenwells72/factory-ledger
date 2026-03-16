@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Ledger — Product Flow (Sankey)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #283548;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --primary: #3b82f6;
+    --accent: #10b981;
+    --col-ingredient: #1D9E75;
+    --col-line: #7F77DD;
+    --col-finished: #D85A30;
+    --col-customer: #378ADD;
+    --link-opacity: 0.25;
+    --link-hover: 0.6;
+    --radius: 8px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-top: 48px;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Site Nav */
+  .site-nav { position:fixed;top:0;left:0;right:0;height:48px;z-index:200;background:#1a1a2e;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;padding:0 20px; }
+  .site-nav-brand { font-size:15px;font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
+  .site-nav-links { display:flex;gap:4px;align-items:center; }
+  .site-nav-link { padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
+  .site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
+  .site-nav-link.active { color:#fff;background:#3b82f6; }
+  .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;cursor:pointer;line-height:1; }
+  @media(max-width:768px){
+    .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
+    .site-nav-toggle{display:block}
+    .site-nav-links{display:none;width:100%;flex-direction:column;gap:2px;padding:4px 0 8px;border-top:1px solid rgba(255,255,255,0.06)}
+    .site-nav-links.open{display:flex}
+    .site-nav-link{padding:8px 14px;width:100%;border-radius:4px}
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 48px;
+    z-index: 100;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header h1 .icon { font-size: 22px; }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .back-link {
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Controls */
+  .controls {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .control-group label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  select, input[type="date"] {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+  }
+  select:focus, input[type="date"]:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .custom-dates { display: none; align-items: center; gap: 8px; }
+  .custom-dates.visible { display: flex; }
+
+  /* Banner */
+  .banner {
+    padding: 8px 24px;
+    font-size: 13px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .banner.warning {
+    background: #78350f;
+    color: #fef3c7;
+    display: flex;
+  }
+  .banner.error {
+    background: #7f1d1d;
+    color: #fecaca;
+    display: flex;
+  }
+  .banner.info {
+    background: #1e3a5f;
+    color: #bfdbfe;
+    display: flex;
+  }
+
+  /* Chart area */
+  .chart-container {
+    padding: 24px;
+    position: relative;
+    min-height: 500px;
+  }
+  #sankey-chart { width: 100%; }
+  .sankey-tooltip {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 50;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .sankey-tooltip .tt-label { font-weight: 600; margin-bottom: 2px; }
+  .sankey-tooltip .tt-value { color: var(--text-muted); font-family: var(--mono); }
+
+  /* Column labels */
+  .column-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 60px;
+    margin-bottom: 8px;
+  }
+  .col-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .col-label.ingredients { color: var(--col-ingredient); }
+  .col-label.lines { color: var(--col-line); }
+  .col-label.finished { color: var(--col-finished); }
+  .col-label.customers { color: var(--col-customer); }
+
+  /* Loading */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15,23,42,0.8);
+    z-index: 20;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: var(--text-muted);
+    font-size: 15px;
+    gap: 8px;
+  }
+  .empty-state .icon { font-size: 48px; opacity: 0.4; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 20px;
+    padding: 0 24px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 16px 24px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Node labels */
+  .node-label {
+    font-size: 11px;
+    fill: var(--text);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav" id="siteNav">
+  <span class="site-nav-brand">CNS Factory Ledger</span>
+  <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
+  <div class="site-nav-links" id="navLinks">
+    <a href="/dashboard/" class="site-nav-link">Dashboard</a>
+    <a href="/dashboard/sankey.html" class="site-nav-link active">Material Flow</a>
+    <a href="/dashboard/process-flow.html" class="site-nav-link">Production Lines</a>
+    <a href="/dashboard/traceability.html" class="site-nav-link">Traceability</a>
+  </div>
+</nav>
+
+<div class="header">
+  <h1><span class="icon">&#9776;</span> Product Flow — Sankey</h1>
+  <div class="header-right">
+    <span id="last-updated"></span>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="control-group">
+    <label>Period</label>
+    <select id="period-select">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+      <option value="ytd">Year to date</option>
+      <option value="custom">Custom range</option>
+    </select>
+  </div>
+  <div class="custom-dates" id="custom-dates">
+    <input type="date" id="date-from">
+    <span style="color:var(--text-muted)">to</span>
+    <input type="date" id="date-to">
+  </div>
+  <div class="control-group">
+    <label>Top products</label>
+    <select id="top-n-select">
+      <option value="5">5</option>
+      <option value="10" selected>10</option>
+      <option value="15">15</option>
+      <option value="20">20</option>
+    </select>
+  </div>
+  <div class="control-group">
+    <label>Top customers</label>
+    <select id="top-c-select">
+      <option value="4">4</option>
+      <option value="6" selected>6</option>
+      <option value="10">10</option>
+      <option value="15">15</option>
+    </select>
+  </div>
+  <div class="control-group">
+    <label>Top ingredients</label>
+    <select id="top-i-select">
+      <option value="5">5</option>
+      <option value="8" selected>8</option>
+      <option value="12">12</option>
+      <option value="15">15</option>
+    </select>
+  </div>
+</div>
+
+<div class="banner" id="banner"></div>
+
+<div class="chart-container" id="chart-container">
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:#1D9E75"></div> Ingredients</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#7F77DD"></div> Production Lines</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#D85A30"></div> Finished Goods</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#378ADD"></div> Customers</div>
+  </div>
+  <div class="column-labels">
+    <span class="col-label ingredients">Ingredients</span>
+    <span class="col-label lines">Production Lines</span>
+    <span class="col-label finished">Finished Goods</span>
+    <span class="col-label customers">Customers</span>
+  </div>
+  <div id="sankey-chart"></div>
+  <div class="sankey-tooltip" id="tooltip"></div>
+</div>
+
+<div class="footer">
+  <span>All volumes shown in pounds.</span>
+  <span id="truncation-note"></span>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const API_BASE = 'https://fastapi-production-b73a.up.railway.app';
+  const API_KEY = 'ledger-secret-2026-factory';
+  const LIMIT = 500;
+  const MIN_FLOW_LB = 50;
+
+  // --- Production line mapping ---
+  const LINE_MAP = {
+    'Granola Baking':    p => /granola/i.test(p),
+    'Coconut Sweetened': p => /coconut|flake|medium|fancy/i.test(p) && /sweeten|hydrat/i.test(p),
+    'Bulk Packing':      p => /(sprinkle|choc.*chip|graham|crumb)/i.test(p),
+    'Pouch Line':        p => /(pouch|7\s?oz|8\s?oz|10\s?oz)/i.test(p),
+  };
+
+  function getProductionLine(productName) {
+    for (const [line, test] of Object.entries(LINE_MAP)) {
+      if (test(productName)) return line;
+    }
+    return 'Other Production';
+  }
+
+  // --- Column colors ---
+  const COL_COLORS = {
+    ingredient: '#1D9E75',
+    line: '#7F77DD',
+    finished: '#D85A30',
+    customer: '#378ADD',
+  };
+
+  // --- Date helpers ---
+  function fmtDate(d) {
+    return d.toISOString().slice(0, 10);
+  }
+  function getDateRange() {
+    const sel = document.getElementById('period-select').value;
+    const now = new Date();
+    let since, until;
+    until = fmtDate(now);
+    if (sel === 'custom') {
+      since = document.getElementById('date-from').value;
+      until = document.getElementById('date-to').value;
+      if (!since || !until) return null;
+    } else if (sel === 'ytd') {
+      since = now.getFullYear() + '-01-01';
+    } else {
+      const d = new Date(now);
+      d.setDate(d.getDate() - parseInt(sel));
+      since = fmtDate(d);
+    }
+    return { since, until };
+  }
+
+  // --- API fetch ---
+  async function apiFetch(path) {
+    const res = await fetch(API_BASE + path, {
+      headers: { 'X-Api-Key': API_KEY }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  async function fetchTransactions(type, since, until) {
+    const url = `/transactions/history?transaction_type=${type}&limit=${LIMIT}&since=${since}&until=${until}`;
+    console.log('Fetching:', url);
+    const data = await apiFetch(url);
+    console.log(`${type} response:`, data.count, 'transactions', data);
+    return data;
+  }
+
+  // --- Data processing ---
+  function processData(makeData, shipData, receiveData, topN, topC, topI) {
+    // Column 1→2: Ingredient → Production Line
+    // Column 2→3: Production Line → Finished Good
+    // From make transactions: positive lines = output, negative lines = ingredients
+    const ingredientToLine = {};   // { "Ingredient|Line": lb }
+    const lineToFinished = {};     // { "Line|Finished": lb }
+    const finishedToCustomer = {}; // { "Finished|Customer": lb }
+
+    for (const tx of makeData.transactions || []) {
+      const lines = tx.lines || [];
+      // Find output product(s) - positive quantity
+      const outputs = lines.filter(l => l.quantity_lb > 0);
+      const inputs = lines.filter(l => l.quantity_lb < 0);
+
+      for (const out of outputs) {
+        const line = getProductionLine(out.product_name);
+        const key = `${line}|${out.product_name}`;
+        lineToFinished[key] = (lineToFinished[key] || 0) + out.quantity_lb;
+
+        // Attribute all ingredient consumption to this output's line
+        for (const inp of inputs) {
+          const iKey = `${inp.product_name}|${line}`;
+          ingredientToLine[iKey] = (ingredientToLine[iKey] || 0) + Math.abs(inp.quantity_lb);
+        }
+      }
+    }
+
+    // Column 3→4: Finished Good → Customer
+    for (const tx of shipData.transactions || []) {
+      const customer = tx.customer_name || 'Unknown Customer';
+      for (const l of (tx.lines || [])) {
+        const qty = Math.abs(l.quantity_lb);
+        if (qty > 0) {
+          const key = `${l.product_name}|${customer}`;
+          finishedToCustomer[key] = (finishedToCustomer[key] || 0) + qty;
+        }
+      }
+    }
+
+    // --- Aggregation & top-N ---
+    // Ingredients: top N by total volume
+    const ingredientTotals = {};
+    for (const [key, val] of Object.entries(ingredientToLine)) {
+      const ing = key.split('|')[0];
+      ingredientTotals[ing] = (ingredientTotals[ing] || 0) + val;
+    }
+    const topIngredients = new Set(
+      Object.entries(ingredientTotals)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, topI)
+        .map(e => e[0])
+    );
+
+    // Finished goods: top N by shipped volume
+    const finishedTotals = {};
+    for (const [key, val] of Object.entries(finishedToCustomer)) {
+      const prod = key.split('|')[0];
+      finishedTotals[prod] = (finishedTotals[prod] || 0) + val;
+    }
+    // Also include production output totals for products not yet shipped
+    for (const [key, val] of Object.entries(lineToFinished)) {
+      const prod = key.split('|')[1];
+      if (!finishedTotals[prod]) finishedTotals[prod] = 0;
+    }
+    const topFinished = new Set(
+      Object.entries(finishedTotals)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, topN)
+        .map(e => e[0])
+    );
+
+    // Customers: top N by shipped volume
+    const customerTotals = {};
+    for (const [key, val] of Object.entries(finishedToCustomer)) {
+      const cust = key.split('|')[1];
+      customerTotals[cust] = (customerTotals[cust] || 0) + val;
+    }
+    const topCustomers = new Set(
+      Object.entries(customerTotals)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, topC)
+        .map(e => e[0])
+    );
+
+    // Build aggregated links
+    const links = [];
+
+    // Ingredient → Line (with grouping)
+    const aggIL = {};
+    for (const [key, val] of Object.entries(ingredientToLine)) {
+      const [ing, line] = key.split('|');
+      const displayIng = topIngredients.has(ing) ? ing : 'Other Ingredients';
+      const k = `${displayIng}|${line}`;
+      aggIL[k] = (aggIL[k] || 0) + val;
+    }
+    for (const [key, val] of Object.entries(aggIL)) {
+      if (val < MIN_FLOW_LB) continue;
+      const [src, tgt] = key.split('|');
+      links.push({ source: src, target: tgt, value: val, type: 'il' });
+    }
+
+    // Line → Finished (with grouping)
+    const aggLF = {};
+    for (const [key, val] of Object.entries(lineToFinished)) {
+      const [line, prod] = key.split('|');
+      const displayProd = topFinished.has(prod) ? prod : 'Other Products';
+      const k = `${line}|${displayProd}`;
+      aggLF[k] = (aggLF[k] || 0) + val;
+    }
+    for (const [key, val] of Object.entries(aggLF)) {
+      if (val < MIN_FLOW_LB) continue;
+      const [src, tgt] = key.split('|');
+      links.push({ source: src, target: tgt, value: val, type: 'lf' });
+    }
+
+    // Finished → Customer (with grouping)
+    const aggFC = {};
+    for (const [key, val] of Object.entries(finishedToCustomer)) {
+      const [prod, cust] = key.split('|');
+      const displayProd = topFinished.has(prod) ? prod : 'Other Products';
+      const displayCust = topCustomers.has(cust) ? cust : 'Other Customers';
+      const k = `${displayProd}|${displayCust}`;
+      aggFC[k] = (aggFC[k] || 0) + val;
+    }
+    for (const [key, val] of Object.entries(aggFC)) {
+      if (val < MIN_FLOW_LB) continue;
+      const [src, tgt] = key.split('|');
+      links.push({ source: src, target: tgt, value: val, type: 'fc' });
+    }
+
+    return links;
+  }
+
+  // --- Sankey rendering ---
+  function getNodeColor(name, column) {
+    if (column === 0) return COL_COLORS.ingredient;
+    if (column === 1) return COL_COLORS.line;
+    if (column === 2) return COL_COLORS.finished;
+    return COL_COLORS.customer;
+  }
+
+  function renderSankey(links) {
+    const container = document.getElementById('sankey-chart');
+    container.innerHTML = '';
+
+    if (!links.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">&#8709;</div>
+          <div>No production or shipment activity found for this date range.</div>
+        </div>`;
+      return;
+    }
+
+    const width = container.clientWidth || 900;
+    const height = Math.max(500, links.length * 8);
+
+    // Build node set preserving column order
+    const nodeNames = new Set();
+    const nodeColumn = {};
+
+    for (const l of links) {
+      nodeNames.add(l.source);
+      nodeNames.add(l.target);
+      if (l.type === 'il') {
+        nodeColumn[l.source] = 0; // ingredient
+        nodeColumn[l.target] = 1; // line
+      } else if (l.type === 'lf') {
+        nodeColumn[l.source] = 1; // line
+        nodeColumn[l.target] = 2; // finished
+      } else {
+        nodeColumn[l.source] = 2; // finished
+        nodeColumn[l.target] = 3; // customer
+      }
+    }
+
+    const nodeArray = Array.from(nodeNames);
+    const nodeIndex = {};
+    nodeArray.forEach((n, i) => nodeIndex[n] = i);
+
+    const sankeyNodes = nodeArray.map(n => ({ name: n, column: nodeColumn[n] ?? 0 }));
+    const sankeyLinks = links.map(l => ({
+      source: nodeIndex[l.source],
+      target: nodeIndex[l.target],
+      value: l.value,
+    }));
+
+    const sankey = d3.sankey()
+      .nodeId(d => d.index)
+      .nodeWidth(18)
+      .nodePadding(12)
+      .nodeAlign(d3.sankeyLeft)
+      .nodeSort((a, b) => b.value - a.value)
+      .extent([[1, 1], [width - 1, height - 1]]);
+
+    // Assign fixed columns
+    const graph = sankey({
+      nodes: sankeyNodes.map(d => Object.assign({}, d)),
+      links: sankeyLinks.map(d => Object.assign({}, d)),
+    });
+
+    // Override x positions by column
+    const colWidth = (width - 20 - 18) / 3;
+    for (const node of graph.nodes) {
+      const col = nodeColumn[node.name] ?? 0;
+      node.x0 = col * colWidth + 1;
+      node.x1 = node.x0 + 18;
+    }
+    sankey.update(graph);
+
+    const svg = d3.select(container)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('viewBox', `0 0 ${width} ${height}`);
+
+    const tooltip = document.getElementById('tooltip');
+
+    // Links
+    svg.append('g')
+      .selectAll('path')
+      .data(graph.links)
+      .join('path')
+      .attr('d', d3.sankeyLinkHorizontal())
+      .attr('fill', 'none')
+      .attr('stroke', d => {
+        const col = nodeColumn[d.source.name] ?? 0;
+        return getNodeColor(d.source.name, col);
+      })
+      .attr('stroke-opacity', 0.25)
+      .attr('stroke-width', d => Math.max(1, d.width))
+      .on('mouseover', function(event, d) {
+        d3.select(this).attr('stroke-opacity', 0.6);
+        tooltip.style.opacity = 1;
+        tooltip.innerHTML = `
+          <div class="tt-label">${d.source.name} → ${d.target.name}</div>
+          <div class="tt-value">${d3.format(',.0f')(d.value)} lb</div>`;
+      })
+      .on('mousemove', function(event) {
+        const rect = container.getBoundingClientRect();
+        tooltip.style.left = (event.clientX - rect.left + 12) + 'px';
+        tooltip.style.top = (event.clientY - rect.top - 10) + 'px';
+      })
+      .on('mouseout', function() {
+        d3.select(this).attr('stroke-opacity', 0.25);
+        tooltip.style.opacity = 0;
+      });
+
+    // Nodes
+    svg.append('g')
+      .selectAll('rect')
+      .data(graph.nodes)
+      .join('rect')
+      .attr('x', d => d.x0)
+      .attr('y', d => d.y0)
+      .attr('width', d => d.x1 - d.x0)
+      .attr('height', d => Math.max(1, d.y1 - d.y0))
+      .attr('fill', d => getNodeColor(d.name, nodeColumn[d.name] ?? 0))
+      .attr('rx', 2)
+      .on('mouseover', function(event, d) {
+        tooltip.style.opacity = 1;
+        tooltip.innerHTML = `
+          <div class="tt-label">${d.name}</div>
+          <div class="tt-value">${d3.format(',.0f')(d.value)} lb total</div>`;
+      })
+      .on('mousemove', function(event) {
+        const rect = container.getBoundingClientRect();
+        tooltip.style.left = (event.clientX - rect.left + 12) + 'px';
+        tooltip.style.top = (event.clientY - rect.top - 10) + 'px';
+      })
+      .on('mouseout', function() {
+        tooltip.style.opacity = 0;
+      });
+
+    // Node labels
+    svg.append('g')
+      .selectAll('text')
+      .data(graph.nodes)
+      .join('text')
+      .attr('class', 'node-label')
+      .attr('x', d => {
+        const col = nodeColumn[d.name] ?? 0;
+        return col < 2 ? d.x1 + 6 : d.x0 - 6;
+      })
+      .attr('y', d => (d.y0 + d.y1) / 2)
+      .attr('dy', '0.35em')
+      .attr('text-anchor', d => {
+        const col = nodeColumn[d.name] ?? 0;
+        return col < 2 ? 'start' : 'end';
+      })
+      .text(d => {
+        const lbl = d.name.length > 28 ? d.name.slice(0, 26) + '…' : d.name;
+        return `${lbl} (${d3.format(',.0f')(d.value)} lb)`;
+      });
+  }
+
+  // --- Fallback data ---
+  function getFallbackLinks() {
+    return [
+      { source: 'Coconut Flake', target: 'Coconut Sweetened', value: 12500, type: 'il' },
+      { source: 'Rolled Oats', target: 'Granola Baking', value: 9800, type: 'il' },
+      { source: 'Sugar', target: 'Granola Baking', value: 3200, type: 'il' },
+      { source: 'Sugar', target: 'Coconut Sweetened', value: 4100, type: 'il' },
+      { source: 'Chocolate', target: 'Bulk Packing', value: 5600, type: 'il' },
+      { source: 'Graham Cracker', target: 'Bulk Packing', value: 4200, type: 'il' },
+      { source: 'Other Ingredients', target: 'Granola Baking', value: 2100, type: 'il' },
+      { source: 'Other Ingredients', target: 'Pouch Line', value: 1500, type: 'il' },
+      { source: 'Coconut Sweetened', target: 'Sweetened Flake 25lb', value: 8200, type: 'lf' },
+      { source: 'Coconut Sweetened', target: 'CQ Coconut 25lb', value: 5800, type: 'lf' },
+      { source: 'Granola Baking', target: 'Honey Granola 30lb', value: 6100, type: 'lf' },
+      { source: 'Granola Baking', target: 'Vanilla Granola 30lb', value: 5200, type: 'lf' },
+      { source: 'Bulk Packing', target: 'Choc Chips 25lb', value: 5600, type: 'lf' },
+      { source: 'Bulk Packing', target: 'Graham Crumb 25lb', value: 4200, type: 'lf' },
+      { source: 'Pouch Line', target: 'Sprinkles 25lb', value: 1500, type: 'lf' },
+      { source: 'Sweetened Flake 25lb', target: 'Restaurant Depot', value: 4800, type: 'fc' },
+      { source: 'Sweetened Flake 25lb', target: 'DOT Foods', value: 2200, type: 'fc' },
+      { source: 'CQ Coconut 25lb', target: 'Setton Farms', value: 3100, type: 'fc' },
+      { source: 'CQ Coconut 25lb', target: 'UNIPRO', value: 1900, type: 'fc' },
+      { source: 'Honey Granola 30lb', target: 'Restaurant Depot', value: 3200, type: 'fc' },
+      { source: 'Honey Granola 30lb', target: 'Blue Stripes', value: 1800, type: 'fc' },
+      { source: 'Vanilla Granola 30lb', target: 'DOT Foods', value: 2900, type: 'fc' },
+      { source: 'Vanilla Granola 30lb', target: 'Setton Farms', value: 1500, type: 'fc' },
+      { source: 'Choc Chips 25lb', target: 'Restaurant Depot', value: 3100, type: 'fc' },
+      { source: 'Graham Crumb 25lb', target: 'DOT Foods', value: 2400, type: 'fc' },
+      { source: 'Graham Crumb 25lb', target: 'Other Customers', value: 1200, type: 'fc' },
+      { source: 'Sprinkles 25lb', target: 'UNIPRO', value: 900, type: 'fc' },
+      { source: 'Other Products', target: 'Other Customers', value: 1100, type: 'fc' },
+    ];
+  }
+
+  // --- Loading UI ---
+  function showLoading() {
+    let el = document.querySelector('.loading-overlay');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'loading-overlay';
+      el.innerHTML = '<div class="spinner"></div>';
+      document.getElementById('chart-container').appendChild(el);
+    }
+    el.style.display = 'flex';
+  }
+  function hideLoading() {
+    const el = document.querySelector('.loading-overlay');
+    if (el) el.style.display = 'none';
+  }
+
+  function showBanner(msg, type) {
+    const b = document.getElementById('banner');
+    b.className = 'banner ' + type;
+    b.textContent = msg;
+    b.style.display = 'flex';
+  }
+  function hideBanner() {
+    document.getElementById('banner').style.display = 'none';
+  }
+
+  // --- Main load ---
+  let debounceTimer = null;
+
+  async function loadData() {
+    const range = getDateRange();
+    if (!range) return;
+
+    showLoading();
+    hideBanner();
+    document.getElementById('truncation-note').textContent = '';
+
+    const topN = parseInt(document.getElementById('top-n-select').value);
+    const topC = parseInt(document.getElementById('top-c-select').value);
+    const topI = parseInt(document.getElementById('top-i-select').value);
+
+    try {
+      const [makeData, shipData] = await Promise.all([
+        fetchTransactions('make', range.since, range.until),
+        fetchTransactions('ship', range.since, range.until),
+      ]);
+
+      let truncated = false;
+      if ((makeData.count || 0) >= LIMIT || (shipData.count || 0) >= LIMIT) {
+        truncated = true;
+      }
+
+      const links = processData(makeData, shipData, {}, topN, topC, topI);
+      renderSankey(links);
+
+      if (truncated) {
+        document.getElementById('truncation-note').textContent =
+          'Showing most recent 100 transactions per type. Actual volumes may be higher.';
+      }
+
+      document.getElementById('last-updated').textContent =
+        'Updated ' + new Date().toLocaleTimeString();
+    } catch (err) {
+      console.error('API error:', err);
+      showBanner('API unreachable — showing sample data', 'warning');
+      const links = getFallbackLinks();
+      renderSankey(links);
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function debouncedLoad() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(loadData, 300);
+  }
+
+  // --- Event listeners ---
+  document.getElementById('period-select').addEventListener('change', function() {
+    const custom = document.getElementById('custom-dates');
+    custom.classList.toggle('visible', this.value === 'custom');
+    if (this.value !== 'custom') debouncedLoad();
+  });
+  document.getElementById('date-from').addEventListener('change', debouncedLoad);
+  document.getElementById('date-to').addEventListener('change', debouncedLoad);
+  document.getElementById('top-n-select').addEventListener('change', debouncedLoad);
+  document.getElementById('top-c-select').addEventListener('change', debouncedLoad);
+  document.getElementById('top-i-select').addEventListener('change', debouncedLoad);
+
+  // Handle resize
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(debouncedLoad, 300);
+  });
+
+  // Initial load
+  loadData();
+})();
+</script>
+<script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
+</body>
+</html>

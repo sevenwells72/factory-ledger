@@ -1,5 +1,99 @@
 # Change Log
 
+## 2026-03-16 17:00 — Add top navigation bar across all dashboard pages
+- **File(s) changed:** `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/dashboard.css`
+- **What changed:** Added a fixed 48px top navigation bar to all four dashboard HTML files. "CNS Factory Ledger" branding on the left, pill-style nav links (Dashboard, Material Flow, Production Lines, Traceability) on the right with active page highlighted in blue. Collapses to hamburger menu below 768px. Adjusted sticky header and tab-bar positions in all files to account for the new 48px offset. Removed redundant "back to Dashboard" links from sub-pages.
+- **Why:** Users needed a way to navigate between all dashboard pages without returning to the main dashboard first.
+
+---
+
+## 2026-03-16 16:30 — Add lot traceability network graph page
+- **File(s) changed:** `dashboard/traceability.html`
+- **What changed:** Built a new audit-critical lot traceability page with D3.js network graph. Supports forward trace (ingredient -> batches -> customers) and backward trace (batch -> ingredients -> suppliers). Features include: search with autocomplete from lot index, completeness badges (complete/partial/incomplete), confirmed vs legacy/unknown link distinction (solid vs dashed lines), fan-out collapse for large traces (>8 children), zoom/pan controls, detail audit table, print and text export for auditors, URL deep-linking (?lot=X&direction=Y), and proper data gap handling with warning icons.
+- **Why:** Required for food safety compliance (Setton Farms audits, HACCP, FDA recall readiness). Traces ingredient lots through production batches to customer shipments with honest data completeness indicators.
+
+---
+
+## 2026-03-16 15:00 — Increase transaction history limit and Sankey fetch size
+- **File(s) changed:** `main.py`, `dashboard/sankey.html`
+- **What changed:** Raised `/transactions/history` max limit from 100 to 1000 (line 2992 in main.py). Updated Sankey diagram fetch constant from 100 to 500 for both make and ship transaction fetches.
+- **Why:** 100-record cap truncated data in Sankey diagram; 500 captures fuller production/shipment history
+
+---
+
+## 2026-03-16 14:30 — Add manufacturing process flow dashboard
+- **File(s) changed:** `dashboard/process-flow.html`
+- **What changed:** New single-file HTML dashboard showing 4 production lines (Granola Baking, Coconut Sweetened, Bulk Packing, Pouch Line) as cards with visual stage pipelines. Features: product classification by output name, today's production metrics (input lb, batch count, output lb, cases), yield calculation with coconut hydration handling, summary strip (lines active, produced today, avg yield, workers placeholder), auto-refresh every 60s with stale-data detection, dark industrial theme, fallback sample data when API is offline.
+- **Why:** Need a real-time production floor view showing each line's status and throughput derived from make/pack transactions
+
+---
+
+## 2026-03-16 14:00 — Add Sankey diagram page for product flow visualization
+- **File(s) changed:** `dashboard/sankey.html`
+- **What changed:** New single-file HTML page with D3.js Sankey diagram showing raw materials → production lines → finished goods → customers. Features: date range selector, top-N controls for ingredients/products/customers, dark industrial theme, API integration with fallback sample data, hover tooltips, 50 lb minimum flow threshold.
+- **Why:** Visualize end-to-end product flow through the factory operation
+
+---
+
+## 2026-03-12 — Close SO-260213-001 unrecorded shipment (Juliette Food LLC)
+- **File(s) changed:** `migrations/024_close_so260213001_juliette.sql`
+- **What changed:** Marked all 5 order lines (4 granola products + pallets) as fulfilled and set order to shipped. The physical shipment (BOL 28106-I, 02/26/2026, customer pick up) was never recorded as ship transactions in the system.
+- **Why:** Order was stuck in confirmed status with 0 shipped despite physical shipment being complete per packing slip
+
+---
+
+## 2026-03-12 — Reconcile SO-260312-005 with pre-existing shipments (DiCarlo Food Service)
+- **File(s) changed:** `migrations/023_reconcile_so260312005_dicarlo.sql`
+- **What changed:** Linked 4 standalone ship transactions (Graham Cracker Crumbs 400 lb, Fancy UNIPRO 400 lb, Sprinkles Chocolate 600 lb, Sprinkles Rainbow 1,800 lb) to sales order SO-260312-005. Created shipments, sales_order_shipments, and shipment_lines records; updated line shipped quantities and statuses to fulfilled; set order status to shipped.
+- **Why:** Shipments were recorded before the sales order was entered, so they weren't linked
+
+---
+
+## 2026-03-12 — Close SO-260217-001 partial ship (Feeser's Food Distributors)
+- **File(s) changed:** `migrations/022_close_so260217001.sql`
+- **What changed:** Closed order SO-260217-001 by reducing Flake UNIPRO 10 LB ordered qty from 300 → 200 lb to match what was shipped, marked line as fulfilled, updated order status to shipped. Remaining 100 lb will not be shipped per business decision.
+- **Why:** Order was stuck in partial_ship status; business decided to close it as-is
+
+---
+
+## 2026-03-12 — Fix SO-260217-008 under-shipment (Curtze Food Service)
+- **File(s) changed:** `migrations/021_fix_so260217008_undershipment.sql`
+- **What changed:** Created correction migration to fix order SO-260217-008 which shows "Partial Ship" but was fully shipped per packing slip (invoice 28108-I, 02/24/2026). Medium UNIPRO 10 LB was recorded as 1,080 lb shipped instead of 1,200 lb (120 lb short due to insufficient on-hand at ship time). Pallets line (qty 1) was not recorded at all. Migration updates sales_order_lines, sales_order_shipments, shipment_lines, and order status.
+- **Why:** Physical shipment (per BOL) was complete but system under-recorded due to inventory cap at ship time
+
+---
+
+## 2026-03-09 13:43 — Add /production/day-summary to schema, trim GPT instructions
+- **File(s) changed:** `openapi-v3.yaml`, `gpt-instructions-v3.md`
+- **What changed:** Added `/production/day-summary` GET endpoint to OpenAPI schema (was in main.py but missing from schema). Removed `/lots/{lot_id}` (getLot) to stay within GPT's 30-operation limit — `getLotByCode` covers all real usage. Bumped schema version to 3.2.0. Trimmed GPT instructions from ~9,400 chars to ~5,600 chars by removing redundant field-by-field listings for RECEIVE, MAKE, PACK, and ADJUST sections (the schema already provides these).
+- **Why:** GPT was slow due to ~500-800 wasted tokens per turn from duplicated field listings. Missing day-summary endpoint caused GPT to hallucinate when users said "wrap up" or "daily summary". Hit 30-operation GPT limit after adding day-summary.
+
+---
+
+## 2026-03-09 18:45 — Add since/until date filters to /transactions/history
+- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `gpt-instructions-v3.md`
+- **What changed:** Added `since` and `until` (YYYY-MM-DD, both inclusive) query parameters to the `/transactions/history` endpoint. Filters on `t.timestamp`. Updated both OpenAPI specs and GPT instructions to document the new parameters.
+- **Why:** GPT was hanging when users asked for transactions since a specific date — the endpoint had no date filtering, causing either no results or too much data.
+
+---
+
+## 2026-03-09 11:19 — Fix reconciliation SQL script: p.sku → p.odoo_code
+- **File(s) changed:** `factory_ledger_reconciliation.sql` (also updated in Supabase SQL Editor)
+- **What changed:** Replaced `p.sku` with `p.odoo_code` on lines 116 (SELECT) and 123 (GROUP BY) in Test 5 (Negative Balance). The `products` table has no `sku` column; `odoo_code` is the equivalent. All other column references across all 6 tests and the summary block were verified correct against the production schema via `information_schema.columns` inspection and EXPLAIN dry-run.
+- **Why:** Script failed on Supabase production with "column so.ship_date does not exist" (original report) / "column p.sku does not exist" (actual remaining error after inspection).
+
+---
+
+## 2026-03-09 11:05 — Patch three critical bugs: transaction safety, zero-shipment guard, force_standalone audit trail
+- **File(s) changed:** `main.py`
+- **What changed:**
+  - Fix 1: Added `except HTTPException: raise` to 4 write endpoints missing it (`/products/quick-create`, `/products/quick-create-batch`, `/inventory/found-with-new-product`, `/customers` POST). All other commit endpoints already had correct outer try/except pattern.
+  - Fix 2: Added zero-shipment guard in `POST /sales/orders/{id}/ship` commit — if all line items hit the `no_stock` path (total shipped = 0), the pre-created shipments row is deleted and a 409 is returned instead of committing an empty `partial_ship` status update.
+  - Fix 3: In `POST /ship` commit, when `force_standalone=true` is used and customer has open orders: logs `logger.warning` with customer name and order count, records `standalone_override=true` in transaction notes, returns `warning` and `standalone_override` fields in response JSON.
+- **Why:** Code audit found these three patterns causing inventory/order drift in production.
+
+---
+
 ## 2026-03-05 15:00 — Pre-merge review fixes (Decimal serialization, void safety, migration 015)
 - **File(s) changed:** `main.py`, `migrations/015_fix_lot131_negative_balance.sql`
 - **What changed:** Added DecimalSafeJSONResponse as default FastAPI response class for NUMERIC column compatibility; added FOR UPDATE lock + COALESCE(status) on /void endpoint; made migration 015 note text dynamic using actual balance
