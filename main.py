@@ -1638,6 +1638,63 @@ def get_lot(lot_id: int, _: bool = Depends(verify_api_key)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+class SupplierLotUpdate(BaseModel):
+    supplier_lot_code: str
+    notes: Optional[str] = None
+
+
+@app.patch("/lots/{lot_code}/supplier-lot")
+def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, _: bool = Depends(verify_api_key)):
+    """Attach or update the supplier lot cross-reference on an existing lot.
+
+    Use this when a packing slip or physical label shows a supplier lot number
+    that differs from (or was missing on) the system lot. Updates lots.supplier_lot_code
+    and optionally adds to lot_supplier_codes for commingled lots.
+    """
+    try:
+        with get_transaction() as cur:
+            # Find the lot
+            cur.execute("""
+                SELECT l.id, l.lot_code, l.supplier_lot_code, l.lot_type,
+                       p.name AS product_name
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                WHERE LOWER(l.lot_code) = LOWER(%s)
+            """, (lot_code,))
+            lot = cur.fetchone()
+            if not lot:
+                raise HTTPException(404, f"Lot '{lot_code}' not found")
+
+            old_supplier_lot = lot['supplier_lot_code']
+            new_supplier_lot = req.supplier_lot_code.strip()
+
+            # Update lots.supplier_lot_code
+            cur.execute("""
+                UPDATE lots SET supplier_lot_code = %s WHERE id = %s
+            """, (new_supplier_lot, lot['id']))
+
+            # If commingled lot, also add an entry in lot_supplier_codes
+            if lot['lot_type'] == 'commingled':
+                cur.execute("""
+                    INSERT INTO lot_supplier_codes (lot_id, supplier_lot_code, notes)
+                    VALUES (%s, %s, %s)
+                """, (lot['id'], new_supplier_lot, req.notes))
+
+            return {
+                "lot_code": lot['lot_code'],
+                "product_name": lot['product_name'],
+                "previous_supplier_lot_code": old_supplier_lot,
+                "supplier_lot_code": new_supplier_lot,
+                "notes": req.notes,
+                "updated": True
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Update supplier lot failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 # ═══════════════════════════════════════════════════════════════
 # LOT IDENTITY — Find-or-Create Pattern
 # ═══════════════════════════════════════════════════════════════
@@ -2045,10 +2102,14 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         force_create=req.force_create_customer
                     )
 
-                    if not req.force_standalone:
-                        oo_payload = check_open_orders_for_ship(cur, customer_id, canonical_customer)
-                        if oo_payload:
+                    standalone_warning = None
+                    oo_payload = check_open_orders_for_ship(cur, customer_id, canonical_customer)
+                    if oo_payload:
+                        if not req.force_standalone:
                             raise HTTPException(status_code=409, detail=oo_payload)
+                        # force_standalone=True: allow but log and tag
+                        n_open = len(oo_payload.get("open_orders", []))
+                        standalone_warning = f"This shipment was not linked to any sales order. Customer has {n_open} open orders."
 
                     if req.lot_code:
                         cur.execute("""
@@ -2093,12 +2154,16 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         if locked_avail + BALANCE_EPSILON < req.quantity_lb:
                             single_lot_sufficient = False
 
+                    txn_notes = None
+                    if standalone_warning:
+                        txn_notes = f"standalone_override=true | {standalone_warning}"
+
                     if single_lot_sufficient:
                         now = get_plant_now()
                         cur.execute("""
-                            INSERT INTO transactions (type, timestamp, customer_name, order_reference)
-                            VALUES ('ship', %s, %s, %s) RETURNING id
-                        """, (now, canonical_customer, req.order_reference))
+                            INSERT INTO transactions (type, timestamp, customer_name, order_reference, notes)
+                            VALUES ('ship', %s, %s, %s, %s) RETURNING id
+                        """, (now, canonical_customer, req.order_reference, txn_notes))
                         txn_id = cur.fetchone()['id']
 
                         cur.execute("""
@@ -2136,9 +2201,9 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
 
                         now = get_plant_now()
                         cur.execute("""
-                            INSERT INTO transactions (type, timestamp, customer_name, order_reference)
-                            VALUES ('ship', %s, %s, %s) RETURNING id
-                        """, (now, canonical_customer, req.order_reference))
+                            INSERT INTO transactions (type, timestamp, customer_name, order_reference, notes)
+                            VALUES ('ship', %s, %s, %s, %s) RETURNING id
+                        """, (now, canonical_customer, req.order_reference, txn_notes))
                         txn_id = cur.fetchone()['id']
 
                         shipped_lots = []
@@ -2160,9 +2225,12 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         ship_mode = "multi_lot_fifo"
                         log_msg = f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s) (auto multi-lot FIFO)."
 
+                    if standalone_warning:
+                        logger.warning(f"force_standalone ship for {canonical_customer} who has {len(oo_payload.get('open_orders', []))} open orders: txn {txn_id}")
+
                     logger.info(f"Ship committed: {req.quantity_lb} lb of {product['name']} to {canonical_customer} ({ship_mode})")
 
-                    return {
+                    response = {
                         "mode": "commit",
                         "success": True,
                         "transaction_id": txn_id,
@@ -2174,6 +2242,10 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         "customer_name": canonical_customer,
                         "message": log_msg
                     }
+                    if standalone_warning:
+                        response["standalone_override"] = True
+                        response["warning"] = standalone_warning
+                    return response
         except HTTPException:
             raise
         except Exception as e:
@@ -2974,15 +3046,17 @@ def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
 
 @app.get("/transactions/history")
 def get_transaction_history(
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=1000),
     transaction_type: Optional[str] = Query(default=None),
     product_name: Optional[str] = Query(default=None),
+    since: Optional[date] = Query(default=None, description="Start date (YYYY-MM-DD), inclusive"),
+    until: Optional[date] = Query(default=None, description="End date (YYYY-MM-DD), inclusive"),
     _: bool = Depends(verify_api_key)
 ):
     try:
         with get_transaction() as cur:
             query = """
-                SELECT t.id, t.type, t.timestamp, t.bol_reference, t.shipper_name, 
+                SELECT t.id, t.type, t.timestamp, t.bol_reference, t.shipper_name,
                        t.customer_name, t.order_reference, t.adjust_reason, t.notes,
                        json_agg(json_build_object(
                            'product_name', p.name,
@@ -3000,11 +3074,19 @@ def get_transaction_history(
             if transaction_type:
                 query += " AND t.type = %s"
                 params.append(transaction_type)
-            
+
             if product_name:
                 query += " AND p.name ILIKE %s"
                 params.append(f"%{product_name}%")
-            
+
+            if since:
+                query += " AND t.timestamp >= %s"
+                params.append(datetime.combine(since, datetime.min.time(), tzinfo=timezone.utc))
+
+            if until:
+                query += " AND t.timestamp < %s"
+                params.append(datetime.combine(until + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc))
+
             query += " GROUP BY t.id ORDER BY t.timestamp DESC LIMIT %s"
             params.append(limit)
             
@@ -3070,6 +3152,8 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
                     "verification_status": product['verification_status'],
                     "message": f"Created '{product['name']}' - flagged for verification"
                 }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Quick-create product failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -3112,6 +3196,8 @@ def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = De
                     "verification_status": product['verification_status'],
                     "message": f"Created batch '{product['name']}' - flagged for verification"
                 }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Quick-create batch product failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -3385,6 +3471,8 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     "quantity": req.quantity,
                     "message": f"Created '{product['name']}' and added {req.quantity} {req.uom} as lot {lot_code}"
                 }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Add found inventory with new product failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -3632,6 +3720,8 @@ def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
                 row = cur.fetchone()
                 logger.info(f"Created customer: {row['name']} (ID: {row['id']})")
                 return {"customer_id": row['id'], "name": row['name'], "message": f"Customer '{row['name']}' created"}
+    except HTTPException:
+        raise
     except Exception as e:
         if "unique" in str(e).lower():
             raise HTTPException(409, f"Customer '{req.name}' already exists")
@@ -4639,6 +4729,19 @@ def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = 
                                         "line_status": new_line_status})
                         if actual_ship < qty_to_ship:
                             all_fully_shipped = False
+
+                    # Block zero-shipment: if no line items shipped any quantity, roll back
+                    any_actually_shipped = any(r.get("shipped_lb", 0) > 0 for r in results)
+                    if not any_actually_shipped:
+                        cur.execute("DELETE FROM shipment_lines WHERE shipment_id = %s", (shipment_id,))
+                        cur.execute("DELETE FROM shipments WHERE id = %s", (shipment_id,))
+                        raise HTTPException(status_code=409, detail={
+                            "error_code": "ZERO_SHIPMENT",
+                            "message": "No items could be shipped — all products have zero available stock",
+                            "order_id": order_id,
+                            "order_number": order_row['order_number'],
+                            "lines_attempted": len(results)
+                        })
 
                     new_order_status = 'shipped' if all_fully_shipped else 'partial_ship'
                     cur.execute("UPDATE sales_orders SET status = %s WHERE id = %s", (new_order_status, order_id))
@@ -6791,15 +6894,47 @@ def production_day_summary(
                     }
                 batch_lots[lid]["produced_lb"] += float(r['quantity_lb'])
 
-            # Add pack consumption
+            # Add pack consumption (include lots produced on previous days)
             for r in pack_consume_rows:
                 lid = r['lot_id']
+                if lid not in batch_lots:
+                    cur.execute("""
+                        SELECT l.lot_code, l.product_id, p.name as product_name
+                        FROM lots l JOIN products p ON p.id = l.product_id
+                        WHERE l.id = %s
+                    """, (lid,))
+                    lot_info = cur.fetchone()
+                    if lot_info:
+                        batch_lots[lid] = {
+                            "lot_code": lot_info['lot_code'],
+                            "product_id": lot_info['product_id'],
+                            "product_name": lot_info['product_name'],
+                            "produced_lb": 0.0,
+                            "packed_lb": 0.0,
+                            "adjusted_lb": 0.0,
+                        }
                 if lid in batch_lots:
                     batch_lots[lid]["packed_lb"] += float(r['packed_lb'])
 
-            # Add adjustments
+            # Add adjustments (include lots produced on previous days)
             for r in adjust_rows:
                 lid = r['lot_id']
+                if lid not in batch_lots:
+                    cur.execute("""
+                        SELECT l.lot_code, l.product_id, p.name as product_name
+                        FROM lots l JOIN products p ON p.id = l.product_id
+                        WHERE l.id = %s
+                    """, (lid,))
+                    lot_info = cur.fetchone()
+                    if lot_info:
+                        batch_lots[lid] = {
+                            "lot_code": lot_info['lot_code'],
+                            "product_id": lot_info['product_id'],
+                            "product_name": lot_info['product_name'],
+                            "produced_lb": 0.0,
+                            "packed_lb": 0.0,
+                            "adjusted_lb": 0.0,
+                        }
                 if lid in batch_lots:
                     batch_lots[lid]["adjusted_lb"] += float(r['adjustment_lb'])
 

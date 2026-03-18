@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-03-18 — Fix day summary to show pack consumption from older batch lots; void test transaction 469
+- **File(s) changed:** `main.py`
+- **What changed:** Fixed `/production/day-summary` endpoint to include pack consumption (and adjustments) from batch lots produced on previous days. Previously, only lots with a `make` transaction on the same day were included in `batch_lots`, so pack consumption from older lots was silently dropped. Now, when a lot_id is not already in the dict, it looks up the lot's product info and adds it with `produced_lb: 0.0`. Also voided test transaction 469 (1-case test pack of CQ Granola 10 LB, TXN-8EB734).
+- **Why:** Production team reported that the day summary was missing pack consumption from batch lots made on prior days (e.g., Batch Classic Granola #9 made across MAR 10-11, with MAR 10 lot consumption missing from MAR 11 summary).
+
+---
+
+## 2026-03-18 — Add PATCH /lots/{lot_code}/supplier-lot endpoint and GPT integration
+- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `gpt-instructions-v3.md`
+- **What changed:** Added new `PATCH /lots/{lot_code}/supplier-lot` endpoint to attach or update supplier lot cross-references on existing lots after receiving. Updated OpenAPI schema (v3.3.0) with the new endpoint. Added "SUPPLIER LOT CROSS-REFERENCE" section to GPT instructions so the GPT auto-records mismatches when Arturo reports packing slip lot differs from system lot. Added new endpoint to QUERIES reference.
+- **Why:** Arturo frequently encounters supplier lot numbers on packing slips (e.g., 550078168 for sprinkles) that don't match system lot codes. Previously there was no way to record this post-receive — only at receive time. This endpoint closes that gap.
+
+---
+
+## 2026-03-18 — Add supplier lot cross-reference for lot 26-03-10-FOUN-001
+- **File(s) changed:** `migrations/025_set_supplier_lot_sprinkles_26-03-10-FOUN-001.sql`
+- **What changed:** Created migration to set supplier_lot_code = '550078168' on lot 26-03-10-FOUN-001 (Sprinkles Rainbow 10 LB). This lot was used to ship 23 cases to International Gourmet Foods (SO-260318-001, Shipment #32).
+- **Why:** Packing slip shows supplier lot 550078168; adding cross-reference for traceability.
+
+---
+
+## 2026-03-16 17:20 — Deploy to Netlify and connect GitHub auto-deploy
+- **File(s) changed:** (no code changes — deployment config only)
+- **What changed:** Linked Netlify site (cns-factory-ledger) to GitHub repo sevenwells72/factory-ledger for auto-deploy from main branch with publish dir `dashboard/`. Deployed latest dashboard.js with Railway API URL fix to production.
+- **Why:** Site was using Netlify Drop (manual uploads) and wasn't picking up git pushes. Now auto-deploys on every push to main.
+
+---
+
+## 2026-03-16 17:15 — Fix dashboard API calls for Netlify hosting
+- **File(s) changed:** `dashboard/dashboard.js`
+- **What changed:** Changed `API_BASE` from relative `/dashboard/api` to absolute `https://fastapi-production-b73a.up.railway.app/dashboard/api`. Also updated the `/audit/integrity` health badge fetch to use the full Railway URL. Relative paths were resolving to Netlify (returning 404 HTML) instead of the Railway backend.
+- **Why:** Dashboard deployed on Netlify was showing "Failed to load" errors with 404 HTML responses for all API calls.
+
+---
+
 ## 2026-03-16 17:00 — Add top navigation bar across all dashboard pages
 - **File(s) changed:** `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/dashboard.css`
 - **What changed:** Added a fixed 48px top navigation bar to all four dashboard HTML files. "CNS Factory Ledger" branding on the left, pill-style nav links (Dashboard, Material Flow, Production Lines, Traceability) on the right with active page highlighted in blue. Collapses to hamburger menu below 768px. Adjusted sticky header and tab-bar positions in all files to account for the new 48px offset. Removed redundant "back to Dashboard" links from sub-pages.
