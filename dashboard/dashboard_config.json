@@ -53,6 +53,17 @@
         "BS Granola \u2013 Hazelnut Butter \u2013 6x7 OZ Case",
         "BS Almond Butter Granola \u2013 6x7 OZ Case"
       ]
+    },
+    {
+      "id": "retail_bs_8oz",
+      "title": "6x8 OZ Retail Cases (BS Line)",
+      "case_weight_lb": null,
+      "skus": [
+        "BS Granola \u2013 Dark Chocolate \u2013 6x8 OZ Case",
+        "BS Granola \u2013 Peanut Butter Banana \u2013 6x8 OZ Case",
+        "BS Granola \u2013 Hazelnut Butter \u2013 6x8 OZ Case",
+        "BS Almond Butter Granola \u2013 6x8 OZ Case"
+      ]
     }
   ],
   "coconut_panel": {

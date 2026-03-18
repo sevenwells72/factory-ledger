@@ -47,6 +47,12 @@
     return Math.floor(Number(n)).toLocaleString('en-US');
   }
 
+  function fmtWt(n) {
+    if (n == null) return '—';
+    const v = Number(n);
+    return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  }
+
   function caseBadgeClass(cases) {
     if (cases >= 100) return 'stock-healthy';
     if (cases >= 20) return 'stock-low';
@@ -302,7 +308,7 @@
           const cases = caseWt ? Math.floor(p.on_hand_lbs / caseWt) : null;
           html += `<tr class="expandable" data-expand="${rowId}">`;
           html += `<td>${escHtml(p.product_name)}</td>`;
-          html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtInt(caseWt)} lb)` : ''}</td>`;
+          html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtWt(caseWt)} lb)` : ''}</td>`;
           html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
           html += `</tr>`;
           // Lot breakdown

@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-03-18 — Add 8oz BS panel to dashboard; fix case weight display rounding
+- **File(s) changed:** `dashboard/dashboard_config.json`, `dashboard/dashboard.js`
+- **What changed:** Added new "6x8 OZ Retail Cases (BS Line)" panel with SKUs 70085-70088 to dashboard config. Fixed case weight display: `fmtInt()` was truncating 2.63 to 2 for 7oz BS products — added `fmtWt()` formatter that preserves decimals for non-integer weights while showing whole numbers cleanly (e.g., "25" not "25.0").
+- **Why:** New 8oz BS products were missing from dashboard; 7oz products showed "× 2 lb" instead of "× 2.63 lb"
+
+---
+
+## 2026-03-18 — Add Blue Stripes 8 OZ Granola product SKUs
+- **File(s) changed:** `migrations/026_add_bs_8oz_granola_products.sql`
+- **What changed:** Created migration to insert 4 new BS Granola finished goods (Hazelnut Butter, Almond Butter, Dark Chocolate, Peanut Butter Banana — all 6x8 OZ Case, 3.0 lb, private_label). odoo_codes 70085–70088 (70081–70084 were already taken by Setton products). Product IDs: 206–209. Type is `finished` (not `finished_good` — check constraint).
+- **Why:** New SKUs needed in the products table
+
+---
+
 ## 2026-03-18 — Fix day summary to show pack consumption from older batch lots; void test transaction 469
 - **File(s) changed:** `main.py`
 - **What changed:** Fixed `/production/day-summary` endpoint to include pack consumption (and adjustments) from batch lots produced on previous days. Previously, only lots with a `make` transaction on the same day were included in `batch_lots`, so pack consumption from older lots was silently dropped. Now, when a lot_id is not already in the dict, it looks up the lot's product info and adds it with `produced_lb: 0.0`. Also voided test transaction 469 (1-case test pack of CQ Granola 10 LB, TXN-8EB734).
