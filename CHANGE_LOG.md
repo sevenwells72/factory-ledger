@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-03-19 — Fix pallet charges counted as weight in sales order totals
+- **File(s) changed:** `main.py`, `migrations/028_add_is_service_to_products.sql`
+- **What changed:** Added `is_service` boolean column to products table (migration 028) to flag service/charge items like pallets, freight, surcharges. Updated 4 locations in main.py to exclude service products from weight totals: order detail Python loop (lines ~4441-4442), order list SQL SUM (lines ~4171-4172), dashboard overdue query (line ~5488), dashboard due-this-week query (line ~5507). Uses PostgreSQL FILTER clause in SQL queries and DB flag + keyword fallback in Python.
+- **Why:** Pallet Charge lines (e.g., 1 unit stored as 1 lb) were inflating order weight totals. SO-260305-003 showed 251 lb instead of 250 lb due to a pallet charge line.
+
+---
+
+## 2026-03-19 — Swap GPT schema to openapi-v3.yaml; add sliced almonds products; update GPT instructions
+- **File(s) changed:** `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `GPT_INSTRUCTIONS.md`, `migrations/027_add_sliced_almonds_products.sql`
+- **What changed:** Added "ACTIVE GPT SCHEMA" header comment to openapi-v3.yaml confirming it's the canonical spec (30/30 ops). Added large deprecation warning box to openapi-schema-gpt.yaml. Updated GPT_INSTRUCTIONS.md to reference openapi-v3.yaml instead of deprecated schema. Created migration 027 to add two missing sliced almonds products: "Almonds – Sliced" (general ingredient) and "BS Almonds – Sliced – Raw" (Blue Stripes ingredient), both with idempotent NOT EXISTS guards.
+- **Why:** GPT was configured with deprecated openapi-schema-gpt.yaml causing 404s on all receive operations (split /preview /commit endpoints no longer exist). Arturo couldn't receive "Almonds Slice" because no sliced almonds product existed in the DB.
+
+---
+
+## 2026-03-19 — Trim GPT instructions to fit 8,000 char limit
+- **File(s) changed:** `gpt-instructions-v3.md`
+- **What changed:** Condensed SOURCE BATCH MISMATCH WARNING and QUERIES product lookup lines to save ~300 characters. Final count: 7,869 chars (131 under limit). No behavioral rules removed.
+- **Why:** GPT instructions were 8,167 chars after adding pack_needed/batch_hint rules, exceeding OpenAI's 8,000 char limit.
+
+---
+
+## 2026-03-19 — Update GPT instructions for pack_needed and batch_hint fields
+- **File(s) changed:** `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`
+- **What changed:** Added behavioral rule in MAKE section: when /make commit returns `pack_needed`, GPT must surface FG SKUs, ask operator to pack, and execute /pack calls. Added batch_hint note in PACKING SLIP section: when INSUFFICIENT lines have a `batch_hint`, GPT explains unpacked batch inventory exists and offers to run /pack. Added corresponding sections to developer-facing GPT_INSTRUCTIONS.md.
+- **Why:** Ensures the GPT actually acts on the new `pack_needed` and `batch_hint` fields added to the API, closing the loop on forgotten /pack steps.
+
+---
+
+## 2026-03-19 — Add batch-inventory hints for INSUFFICIENT packing slips and /pack prompt after /make
+- **File(s) changed:** `main.py`
+- **What changed:** Fix 1: When packing slip shows INSUFFICIENT for a FG product, cross-references `parent_batch_product_id` to check if unpacked batch inventory exists and displays a hint (e.g., "Note: 500 lb of Batch BS Dark Chocolate is available — run /pack to convert to finished goods") both in the JSON data and rendered on the PDF. Fix 2: After `/make` commit, the response now includes a `pack_needed` object listing all FG SKUs linked via `parent_batch_product_id` that can be packed from the batch, prompting the operator to run `/pack`.
+- **Why:** Recurring issue where production happens (/make) but the /pack step is forgotten, leaving batch inventory idle while packing slips show INSUFFICIENT for finished goods. FOUND lots were being used as a workaround.
+
+---
+
 ## 2026-03-19 — Add automatic add-in ingredient deduction to /pack
 - **File(s) changed:** `main.py`, `GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`
 - **What changed:** Replaced `check_pack_source_mismatch()` with `resolve_pack_add_ins()` that detects when packing from a base batch into an FG with an intermediate batch BOM containing add-in ingredients. Preview now shows add-in quantities needed with FIFO availability. Commit automatically deducts add-in ingredients via FIFO with row-level locking. Falls back to mismatch warning when intermediate BOM is missing or source batch not in BOM. Updated GPT instructions and OpenAPI schemas.

@@ -2611,6 +2611,37 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         if auto_count: parts.append(f"{auto_count} auto-excluded")
                         if manual_count: parts.append(f"{manual_count} manually excluded")
                         response["message"] += f" ({', '.join(parts)} ingredient(s))"
+
+                    # Fix 2: Auto-prompt /pack after /make — query FG products that
+                    # can be packed from this batch product via parent_batch_product_id.
+                    # This tells the GPT/operator which /pack calls to make next.
+                    cur.execute("""
+                        SELECT id, name, case_size_lb
+                        FROM products
+                        WHERE parent_batch_product_id = %s
+                          AND COALESCE(is_ingredient, false) = false
+                        ORDER BY name
+                    """, (product['id'],))
+                    fg_products = cur.fetchall()
+                    if fg_products:
+                        response["pack_needed"] = {
+                            "batch_lot_code": lot_code,
+                            "batch_product_name": product['name'],
+                            "batch_on_hand_lb": total_output,
+                            "finished_goods": [
+                                {
+                                    "product_id": fg['id'],
+                                    "name": fg['name'],
+                                    "case_size_lb": float(fg['case_size_lb']) if fg['case_size_lb'] else None
+                                }
+                                for fg in fg_products
+                            ],
+                            "message": (
+                                f"Run /pack to convert {product['name']} lot {lot_code} "
+                                f"into finished goods: {', '.join(fg['name'] for fg in fg_products)}"
+                            )
+                        }
+
                     response["daily_production_summary"] = get_daily_production_summary(cur)
                     return response
         except HTTPException:
@@ -4137,11 +4168,12 @@ def list_sales_orders(
                 SELECT so.id, so.order_number, c.name AS customer,
                        so.order_date, so.requested_ship_date, so.status,
                        COUNT(sol.id) AS line_count,
-                       COALESCE(SUM(sol.quantity_lb), 0) AS total_lb,
-                       COALESCE(SUM(sol.quantity_shipped_lb), 0) AS shipped_lb
+                       COALESCE(SUM(sol.quantity_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS total_lb,
+                       COALESCE(SUM(sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS shipped_lb
                 FROM sales_orders so
                 JOIN customers c ON c.id = so.customer_id
                 LEFT JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                LEFT JOIN products p ON p.id = sol.product_id
                 LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
                 WHERE 1=1
             """
@@ -4390,7 +4422,7 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
             cur.execute(
                 """SELECT sol.id, p.name, sol.quantity_lb, sol.quantity_shipped_lb,
                           sol.unit_price, sol.line_status, sol.notes, sol.notes_es,
-                          p.case_size_lb
+                          p.case_size_lb, COALESCE(p.is_service, false) AS is_service
                    FROM sales_order_lines sol
                    JOIN products p ON p.id = sol.product_id
                    WHERE sol.sales_order_id = %s
@@ -4407,8 +4439,12 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
                 price = float(r['unit_price']) if r['unit_price'] else None
                 case_size = float(r['case_size_lb']) if r['case_size_lb'] else None
                 cases = round(qty / case_size) if case_size else None
-                total_ordered += qty
-                total_shipped += shipped
+
+                # Exclude service/charge lines (pallets, freight, etc.) from weight totals
+                is_service = r['is_service']
+                if not is_service:
+                    total_ordered += qty
+                    total_shipped += shipped
 
                 # line_value = cases * price_per_case (not lb * price)
                 line_value = None
@@ -4421,9 +4457,10 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
                     total_value += line_value
 
                 # Detect non-weight items (pallets, freight, surcharges, etc.)
+                # Primary: DB flag; fallback: keyword matching
                 product_name_lower = r['name'].lower()
                 non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                is_non_weight = any(kw in product_name_lower for kw in non_weight_keywords)
+                is_non_weight = is_service or any(kw in product_name_lower for kw in non_weight_keywords)
 
                 if is_non_weight:
                     price_basis = "per_unit"
@@ -5132,11 +5169,33 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
                             qty_display = f"{short_cases} cs"
                         else:
                             qty_display = f"{remaining_need:g} lb"
-                        line_allocations.append({
+                        insufficient_entry = {
                             "product_name": product_name,
                             "lot_code": "INSUFFICIENT",
                             "qty_display": qty_display
-                        })
+                        }
+                        # Check if unpacked batch inventory exists for this FG product.
+                        # If /make was run but /pack was not, batch inventory sits idle
+                        # while the FG SKU shows zero on-hand.
+                        cur.execute("""
+                            SELECT p2.name AS batch_name,
+                                   COALESCE(SUM(tl.quantity_lb), 0) AS batch_available
+                            FROM products p
+                            JOIN products p2 ON p2.id = p.parent_batch_product_id
+                            JOIN lots l ON l.product_id = p2.id
+                            JOIN transaction_lines tl ON tl.lot_id = l.id
+                            WHERE p.id = %s AND p.parent_batch_product_id IS NOT NULL
+                            GROUP BY p2.name
+                            HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                        """, (line['product_id'],))
+                        batch_row = cur.fetchone()
+                        if batch_row:
+                            batch_avail = float(batch_row['batch_available'])
+                            insufficient_entry["batch_hint"] = (
+                                f"Note: {batch_avail:g} lb of {batch_row['batch_name']} is available "
+                                f"— run /pack to convert to finished goods."
+                            )
+                        line_allocations.append(insufficient_entry)
                     elif not allocated:
                         # No lots at all
                         if case_size and case_size > 0:
@@ -5144,11 +5203,31 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
                             qty_display = f"{cases} cs"
                         else:
                             qty_display = f"{qty_lb:g} lb"
-                        line_allocations.append({
+                        insufficient_entry = {
                             "product_name": product_name,
                             "lot_code": "INSUFFICIENT",
                             "qty_display": qty_display
-                        })
+                        }
+                        # Same batch-inventory cross-reference for zero-lot case
+                        cur.execute("""
+                            SELECT p2.name AS batch_name,
+                                   COALESCE(SUM(tl.quantity_lb), 0) AS batch_available
+                            FROM products p
+                            JOIN products p2 ON p2.id = p.parent_batch_product_id
+                            JOIN lots l ON l.product_id = p2.id
+                            JOIN transaction_lines tl ON tl.lot_id = l.id
+                            WHERE p.id = %s AND p.parent_batch_product_id IS NOT NULL
+                            GROUP BY p2.name
+                            HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                        """, (line['product_id'],))
+                        batch_row = cur.fetchone()
+                        if batch_row:
+                            batch_avail = float(batch_row['batch_available'])
+                            insufficient_entry["batch_hint"] = (
+                                f"Note: {batch_avail:g} lb of {batch_row['batch_name']} is available "
+                                f"— run /pack to convert to finished goods."
+                            )
+                        line_allocations.append(insufficient_entry)
 
             # ── Build PDF ──
             buffer = io.BytesIO()
@@ -5281,6 +5360,10 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
             style_supplier_ref = ParagraphStyle('SupplierRef', parent=styles['Normal'],
                                                     fontSize=6, leading=8, textColor=light_gray)
 
+            style_batch_hint = ParagraphStyle('BatchHint', parent=styles['Normal'],
+                                                    fontSize=7, leading=9, textColor=HexColor('#CC6600'),
+                                                    fontName='Helvetica-Oblique')
+
             order_date_str = str(order['order_date']) if order['order_date'] else ""
             for alloc in line_allocations:
                 lot_style = style_table_cell_bold if alloc['lot_code'] == 'INSUFFICIENT' else style_table_cell
@@ -5298,6 +5381,14 @@ def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexib
                     lot_cell,
                     Paragraph(alloc['qty_display'], style_table_cell),
                 ])
+                # If this INSUFFICIENT line has a batch hint, add a note row
+                if alloc.get('batch_hint'):
+                    table_data.append([
+                        Paragraph("", style_table_cell),
+                        Paragraph(alloc['batch_hint'], style_batch_hint),
+                        Paragraph("", style_table_cell),
+                        Paragraph("", style_table_cell),
+                    ])
 
             items_table = Table(table_data, colWidths=[1.0*inch, 3.2*inch, 1.5*inch, 1.3*inch])
 
@@ -5400,14 +5491,15 @@ def sales_dashboard(_: bool = Depends(verify_api_key)):
             # Overdue
             cur.execute(
                 """SELECT so.order_number, c.name AS customer, so.requested_ship_date,
-                          SUM(sol.quantity_lb - sol.quantity_shipped_lb) AS remaining_lb
+                          SUM(sol.quantity_lb - sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)) AS remaining_lb
                    FROM sales_orders so
                    JOIN customers c ON c.id = so.customer_id
                    JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                   JOIN products p ON p.id = sol.product_id
                    WHERE so.requested_ship_date < CURRENT_DATE
                      AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
                    GROUP BY so.id, c.name
-                   HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
+                   HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)) > 0
                    ORDER BY so.requested_ship_date ASC"""
             )
             overdue = [
@@ -5419,14 +5511,15 @@ def sales_dashboard(_: bool = Depends(verify_api_key)):
             # Due this week
             cur.execute(
                 """SELECT so.order_number, c.name AS customer, so.requested_ship_date,
-                          SUM(sol.quantity_lb - sol.quantity_shipped_lb) AS remaining_lb
+                          SUM(sol.quantity_lb - sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)) AS remaining_lb
                    FROM sales_orders so
                    JOIN customers c ON c.id = so.customer_id
                    JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+                   JOIN products p ON p.id = sol.product_id
                    WHERE so.requested_ship_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
                      AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')
                    GROUP BY so.id, c.name
-                   HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) > 0
+                   HAVING SUM(sol.quantity_lb - sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)) > 0
                    ORDER BY so.requested_ship_date ASC"""
             )
             due_this_week = [
