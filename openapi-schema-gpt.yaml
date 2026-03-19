@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Factory Ledger API
   version: 2.7.0
-  description: Manufacturing operations system for CNS Confectionery Products
+  description: "DEPRECATED — This schema uses split /preview and /commit endpoints that no longer exist in the API. Use openapi-v3.yaml instead."
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
 security:
@@ -304,7 +304,7 @@ paths:
                   description: "Override output lot code; defaults to primary source lot code"
       responses:
         "200":
-          description: Pack preview with allocation plan
+          description: "Pack preview with allocation plan. When packing from a base batch into an FG with an intermediate batch BOM, includes add_in_ingredients (array of {ingredient_id, ingredient_name, needed_lb, available_lb, sufficient, lots}), all_add_ins_sufficient (bool), and add_in_note. May include warning/warning_es if source batch mismatch cannot be resolved via add-ins."
   /pack/commit:
     post:
       operationId: packCommit
@@ -346,7 +346,7 @@ paths:
                   type: string
       responses:
         "200":
-          description: Pack committed with consumed lots and output details
+          description: "Pack committed with consumed lots and output details. When add-in ingredients were deducted, includes add_in_ingredients_consumed (array of {ingredient_name, lot_code, consumed_lb}) and add_in_note. May include warning/warning_es if source batch mismatch cannot be resolved via add-ins."
   /adjust/commit:
     post:
       operationId: adjustCommit
@@ -424,6 +424,18 @@ paths:
           in: query
           schema:
             type: string
+        - name: since
+          in: query
+          description: Start date (inclusive), format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
+        - name: until
+          in: query
+          description: End date (inclusive), format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
       responses:
         "200":
           description: Transaction history

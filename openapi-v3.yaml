@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger System
-  version: 3.1.0
+  version: 3.3.0
   description: Inventory management, production tracking, and sales order fulfillment for food manufacturing.
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -114,14 +114,18 @@ components:
           default: preview
         source_product:
           type: string
+          description: "Batch product name or odoo_code (e.g., '31011' or 'Graham Cracker Crumbs - 50 LB')"
         target_product:
           type: string
+          description: "Finished good name or odoo_code (e.g., '31012' or 'Graham Cracker Crumbs - 10 LB')"
         cases:
           type: integer
         case_weight_lb:
           type: number
+          description: "Override case weight in lb; defaults to target product's case_size_lb"
         lot_allocations:
           type: array
+          description: "SOURCE lot overrides only (e.g., pull from a specific batch lot). Omit for FIFO. Do NOT put the output/FG lot here - use target_lot_code instead."
           items:
             type: object
             required: [lot_code, quantity_lb]
@@ -132,6 +136,7 @@ components:
                 type: number
         target_lot_code:
           type: string
+          description: "Override output lot code; defaults to primary source lot code"
     AdjustRequest:
       type: object
       required: [product_name, lot_code, adjustment_lb, reason]
@@ -277,7 +282,7 @@ paths:
   /products/search:
     get:
       operationId: searchProducts
-      summary: "Search products using 3-tier matching: exact → keyword (word-order independent) → trigram similarity. Returns match_tier per result."
+      summary: "Search products using 3-tier matching: exact -> keyword (word-order independent) -> trigram similarity. Returns match_tier per result."
       parameters:
         - name: q
           in: query
@@ -285,7 +290,7 @@ paths:
           schema:
             type: string
             minLength: 1
-          description: "Product name, partial name, or odoo_code. Word order does not matter — 'Chocolate Sprinkles 10' finds 'Sprinkles Chocolate 10 LB'."
+          description: "Product name, partial name, or odoo_code. Word order does not matter -- 'Chocolate Sprinkles 10' finds 'Sprinkles Chocolate 10 LB'."
         - name: limit
           in: query
           schema:
@@ -322,20 +327,33 @@ paths:
         '200':
           description: |
             Each item: input, match {id, name, odoo_code} or null, match_tier (exact/keyword/trigram/null), confidence (high/medium/low/none).
-            Multiple matches → top in 'match', rest in 'alternatives'. Summary has total/resolved/unresolved.
-  /products/{product_id}:
+            Multiple matches -> top in 'match', rest in 'alternatives'. Summary has total/resolved/unresolved.
+  /bom/products:
     get:
-      operationId: getProduct
-      summary: Get product details by ID
+      operationId: listProducts
+      summary: "List all active products, optionally filtered by type (ingredient, batch, finished_good) and name search."
       parameters:
-        - name: product_id
-          in: path
-          required: true
+        - name: product_type
+          in: query
+          description: "Filter by product type"
+          schema:
+            type: string
+            enum: [ingredient, batch, finished_good]
+        - name: q
+          in: query
+          description: "Partial name or odoo_code match"
+          schema:
+            type: string
+        - name: limit
+          in: query
           schema:
             type: integer
+            default: 200
+            minimum: 1
+            maximum: 500
       responses:
         '200':
-          description: Product details
+          description: "Array of {id, name, odoo_code, product_type, uom, default_batch_lb}"
   /inventory/current:
     get:
       operationId: getCurrentInventory
@@ -381,19 +399,37 @@ paths:
       responses:
         '200':
           description: Lot details with supplier lot info
-  /lots/{lot_id}:
-    get:
-      operationId: getLot
-      summary: Get lot details by ID
+  /lots/{lot_code}/supplier-lot:
+    patch:
+      operationId: updateSupplierLot
+      summary: Attach or update the supplier lot cross-reference on an existing lot
+      description: Use when a packing slip or physical label shows a supplier lot number that differs from or was missing on the system lot.
       parameters:
-        - name: lot_id
+        - name: lot_code
           in: path
           required: true
           schema:
-            type: integer
+            type: string
+          description: The system lot code (e.g., 26-03-10-FOUN-001)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [supplier_lot_code]
+              properties:
+                supplier_lot_code:
+                  type: string
+                  description: The supplier's printed lot number from the box/bag/packing slip
+                notes:
+                  type: string
+                  description: Optional context (e.g., "from packing slip during shipment SO260318001")
       responses:
         '200':
-          description: Lot details
+          description: Updated lot with previous and new supplier lot codes
+        '404':
+          description: Lot not found
   /receive:
     post:
       operationId: receive
@@ -445,7 +481,7 @@ paths:
               $ref: '#/components/schemas/PackRequest'
       responses:
         '200':
-          description: Preview result or committed pack
+          description: "Preview: includes allocation plan. When packing base batch into FG with intermediate BOM, includes add_in_ingredients, all_add_ins_sufficient, add_in_note. Commit: includes add_in_ingredients_consumed when add-ins were deducted. May include warning/warning_es if mismatch cannot be resolved via add-ins."
   /adjust:
     post:
       operationId: adjust
@@ -506,6 +542,18 @@ paths:
           in: query
           schema:
             type: string
+        - name: since
+          in: query
+          description: Start date (inclusive), format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
+        - name: until
+          in: query
+          description: End date (inclusive), format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
       responses:
         '200':
           description: Transaction history
@@ -758,10 +806,17 @@ paths:
       responses:
         '200':
           description: Preview result or committed shipment with shipment_id
-  /sales/dashboard:
+  /production/day-summary:
     get:
-      operationId: salesDashboard
-      summary: Sales dashboard with order status counts and upcoming shipments
+      operationId: productionDaySummary
+      summary: "Daily production summary: all make/pack/adjust activity grouped by product with lot-level detail. Defaults to today."
+      parameters:
+        - name: date
+          in: query
+          description: "Date in YYYY-MM-DD format; defaults to today (plant timezone)"
+          schema:
+            type: string
+            format: date
       responses:
         '200':
-          description: Sales dashboard summary
+          description: "Batch products with produced/packed/adjusted/on-hand per lot, finished goods output, and adjustments for the day"

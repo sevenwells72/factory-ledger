@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-03-19 — Add automatic add-in ingredient deduction to /pack
+- **File(s) changed:** `main.py`, `GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`
+- **What changed:** Replaced `check_pack_source_mismatch()` with `resolve_pack_add_ins()` that detects when packing from a base batch into an FG with an intermediate batch BOM containing add-in ingredients. Preview now shows add-in quantities needed with FIFO availability. Commit automatically deducts add-in ingredients via FIFO with row-level locking. Falls back to mismatch warning when intermediate BOM is missing or source batch not in BOM. Updated GPT instructions and OpenAPI schemas.
+- **Why:** Floor process blends add-in ingredients (PB Chips, Banana Bites) at the packing hopper — there is no separate /make step for flavor variants. System now matches the actual workflow.
+
+---
+
+## 2026-03-19 — Add pack source batch mismatch warning safeguard
+- **File(s) changed:** `main.py`, `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`
+- **What changed:** Added `parent_batch_product_id` column to products table (inline migration 012) linking FG products to their expected source batch. Added `check_pack_source_mismatch()` helper that returns warning fields when the /pack source batch doesn't match the target FG's expected parent batch. Warning (English + Spanish) included in both preview and commit responses. Populated mappings for all 8 BS Granola FG→batch pairs. Updated GPT instructions to display mismatch warnings prominently and suggest running /make first.
+- **Why:** Arturo packed PB Banana FG cases directly from Dark Chocolate Granola base batch, skipping the required intermediate /make step that deducts add-in ingredients (PB Chips, Banana Bites).
+
+---
+
+## 2026-03-18 — Expose listProducts endpoint to GPT; drop getProduct
+- **File(s) changed:** `openapi-v3.yaml`, `main.py`, `gpt-instructions-v3.md`
+- **What changed:** Replaced `getProduct` (GET /products/{product_id}) with `listProducts` (GET /bom/products) in OpenAPI schema to stay at 30-operation ChatGPT cap. Bumped /bom/products default limit from 50→200 and max from 200→500. Updated GPT instructions to use listProducts for catalog queries and searchProducts for single lookups; removed /products/{id} reference.
+- **Why:** GPT "list finished goods" queries only returned 7 SKUs because no catalog endpoint was exposed — it fell back to getCurrentInventory which only returns products with positive on-hand stock.
+
+---
+
 ## 2026-03-18 — Add 8oz BS panel to dashboard; fix case weight display rounding
 - **File(s) changed:** `dashboard/dashboard_config.json`, `dashboard/dashboard.js`
 - **What changed:** Added new "6x8 OZ Retail Cases (BS Line)" panel with SKUs 70085-70088 to dashboard config. Fixed case weight display: `fmtInt()` was truncating 2.63 to 2 for 7oz BS products — added `fmtWt()` formatter that preserves decimals for non-integer weights while showing whole numbers cleanly (e.g., "25" not "25.0").

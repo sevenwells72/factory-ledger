@@ -449,6 +449,36 @@ async def startup():
     except Exception as e:
         logger.warning(f"Migration 011 warning (non-fatal): {e}")
 
+    # Migration 012: Add parent_batch_product_id to products table for pack safeguard
+    # Links FG products to their expected source batch product
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS parent_batch_product_id INTEGER REFERENCES products(id)")
+                # Populate known FG → batch mappings
+                mappings = [
+                    (152, 123),   # BS Almond Butter 6x7 OZ (70079) → Batch BS Almond Butter (95001)
+                    (207, 123),   # BS Almond Butter 6x8 OZ (70086) → Batch BS Almond Butter (95001)
+                    (150, 121),   # BS Dark Chocolate 6x7 OZ (70074) → Batch BS Dark Chocolate (95002)
+                    (208, 121),   # BS Dark Chocolate 6x8 OZ (70087) → Batch BS Dark Chocolate (95002)
+                    (153, 124),   # BS Hazelnut Butter 6x7 OZ (70080) → Batch BS Hazelnut Butter (95003)
+                    (206, 124),   # BS Hazelnut Butter 6x8 OZ (70085) → Batch BS Hazelnut Butter (95003)
+                    (151, 122),   # BS PB Banana 6x7 OZ (70073) → Batch BS PB Banana (95005)
+                    (209, 122),   # BS PB Banana 6x8 OZ (70088) → Batch BS PB Banana (95005)
+                ]
+                for fg_id, batch_id in mappings:
+                    cur.execute(
+                        "UPDATE products SET parent_batch_product_id = %s WHERE id = %s AND parent_batch_product_id IS NULL",
+                        (batch_id, fg_id)
+                    )
+                conn.commit()
+                logger.info("Migration 012: parent_batch_product_id column and FG→batch mappings up to date")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 012 warning (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -2594,6 +2624,111 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
 # PACK (BATCH → FINISHED GOOD) ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> dict | None:
+    """Detect add-in ingredients needed when packing from a base batch into an FG
+    whose intermediate batch BOM bridges them. Returns add-in info dict or None."""
+    cur.execute("SELECT parent_batch_product_id FROM products WHERE id = %s", (target['id'],))
+    row = cur.fetchone()
+    parent_id = row['parent_batch_product_id'] if row else None
+    if parent_id is None or parent_id == source['id']:
+        return None  # no mismatch — normal pack
+
+    # Look up intermediate batch BOM
+    cur.execute("""
+        SELECT bf.ingredient_product_id, p.name as ingredient_name, bf.quantity_lb,
+               COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
+        FROM batch_formulas bf
+        JOIN products p ON p.id = bf.ingredient_product_id
+        WHERE bf.product_id = %s
+    """, (parent_id,))
+    formula = cur.fetchall()
+    if not formula:
+        # No BOM on intermediate — fall back to old mismatch warning
+        cur.execute("SELECT name, odoo_code FROM products WHERE id = %s", (parent_id,))
+        expected = cur.fetchone()
+        if not expected:
+            return None
+        return {
+            "warning": f"Source batch mismatch: Target FG '{target['name']}' is normally packed from '{expected['name']}' ({expected['odoo_code']}), not from '{source['name']}' ({source.get('odoo_code', 'N/A')}). No BOM found for intermediate product.",
+            "warning_es": f"Lote fuente no coincide: el producto final '{target['name']}' normalmente se empaca desde '{expected['name']}' ({expected['odoo_code']}), no desde '{source['name']}' ({source.get('odoo_code', 'N/A')}). No se encontró fórmula para el producto intermedio.",
+        }
+
+    # Find the base ingredient (source batch) in the BOM to get the ratio
+    base_qty = None
+    add_in_formulas = []
+    for ing in formula:
+        if ing['ingredient_product_id'] == source['id']:
+            base_qty = float(ing['quantity_lb'])
+        elif not ing['exclude_from_inventory']:
+            add_in_formulas.append(ing)
+
+    if base_qty is None or base_qty <= 0:
+        # Source batch not found in intermediate BOM — genuine mismatch
+        cur.execute("SELECT name, odoo_code FROM products WHERE id = %s", (parent_id,))
+        expected = cur.fetchone()
+        if not expected:
+            return None
+        return {
+            "warning": f"Source batch mismatch: Target FG '{target['name']}' is normally packed from '{expected['name']}' ({expected['odoo_code']}), not from '{source['name']}' ({source.get('odoo_code', 'N/A')}). Source batch not found in intermediate BOM.",
+            "warning_es": f"Lote fuente no coincide: el producto final '{target['name']}' normalmente se empaca desde '{expected['name']}' ({expected['odoo_code']}), no desde '{source['name']}' ({source.get('odoo_code', 'N/A')}). Lote fuente no encontrado en la fórmula intermedia.",
+        }
+
+    if not add_in_formulas:
+        return None  # no add-ins — straight repack
+
+    ratio = total_lb / base_qty
+    add_in_ingredients = []
+    all_add_in_ids = [ing['ingredient_product_id'] for ing in add_in_formulas]
+
+    # Batch-fetch available lots for all add-in ingredients
+    if all_add_in_ids:
+        cur.execute("""
+            SELECT l.product_id, l.id, l.lot_code,
+                   COALESCE(SUM(tl.quantity_lb), 0) as available
+            FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+            WHERE l.product_id = ANY(%s) GROUP BY l.id
+            HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+            ORDER BY l.product_id, COALESCE(l.received_at, l.created_at) ASC
+        """, (all_add_in_ids,))
+        add_in_lots_map = {}
+        for r in cur.fetchall():
+            pid = r['product_id']
+            if pid not in add_in_lots_map:
+                add_in_lots_map[pid] = []
+            add_in_lots_map[pid].append(dict(r))
+
+    for ing in add_in_formulas:
+        ing_id = ing['ingredient_product_id']
+        needed = round(float(ing['quantity_lb']) * ratio, 2)
+        lots = add_in_lots_map.get(ing_id, [])
+        total_avail = sum(float(lot['available']) for lot in lots)
+        lot_details = [{"lot_code": lot['lot_code'], "available_lb": round(float(lot['available']), 2)} for lot in lots]
+        add_in_ingredients.append({
+            "ingredient_id": ing_id,
+            "ingredient_name": ing['ingredient_name'],
+            "needed_lb": needed,
+            "available_lb": round(total_avail, 2),
+            "sufficient": total_avail >= needed - BALANCE_EPSILON,
+            "lots": lot_details,
+        })
+
+    all_sufficient = all(ai['sufficient'] for ai in add_in_ingredients)
+    add_in_names = " + ".join(ai['ingredient_name'] for ai in add_in_ingredients)
+    result = {
+        "add_in_ingredients": add_in_ingredients,
+        "all_add_ins_sufficient": all_sufficient,
+        "add_in_note": f"Add-in ingredients will be deducted automatically ({add_in_names} added at packing hopper)",
+        "_add_in_formulas": add_in_formulas,  # internal: used by commit
+        "_base_qty": base_qty,  # internal: used by commit
+    }
+    if not all_sufficient:
+        short = [ai for ai in add_in_ingredients if not ai['sufficient']]
+        short_names = ", ".join(f"{ai['ingredient_name']} (need {ai['needed_lb']} lb, have {ai['available_lb']} lb)" for ai in short)
+        result["warning"] = f"Insufficient add-in ingredients: {short_names}"
+        result["warning_es"] = f"Ingredientes adicionales insuficientes: {short_names}"
+    return result
+
+
 @app.post("/pack")
 def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
     """Pack batch into finished goods. mode=preview returns allocation plan; mode=commit executes."""
@@ -2646,7 +2781,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                 else:
                     output_lot_code = "UNKNOWN"
 
-                return {
+                result = {
                     "mode": "preview",
                     "source_product_id": source['id'], "source_product_name": source['name'],
                     "target_product_id": target['id'], "target_product_name": target['name'],
@@ -2657,6 +2792,12 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     "source_lots": [{"lot_code": lot['lot_code'], "available_lb": float(lot['available'])} for lot in available_lots],
                     "preview_message": f"Ready to pack {req.cases} cases ({total_lb} lb) of {target['name']} from {source['name']} ({len(available_lots)} batch lot(s))"
                 }
+                add_in_info = resolve_pack_add_ins(cur, source, target, total_lb)
+                if add_in_info:
+                    # Strip internal keys before returning
+                    public_info = {k: v for k, v in add_in_info.items() if not k.startswith('_')}
+                    result.update(public_info)
+                return result
         except HTTPException:
             raise
         except Exception as e:
@@ -2746,6 +2887,56 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['id'], qty))
                         consumed.append({"lot_code": lot['lot_code'], "consumed_lb": qty})
 
+                    # --- Add-in ingredient deduction ---
+                    add_in_info = resolve_pack_add_ins(cur, source, target, total_lb)
+                    add_in_consumed = []
+                    if add_in_info and 'add_in_ingredients' in add_in_info:
+                        # Check all add-ins are sufficient before deducting
+                        if not add_in_info.get('all_add_ins_sufficient'):
+                            short = [ai for ai in add_in_info['add_in_ingredients'] if not ai['sufficient']]
+                            short_msg = "; ".join(f"{ai['ingredient_name']}: have {ai['available_lb']} lb, need {ai['needed_lb']} lb" for ai in short)
+                            raise HTTPException(400, f"Insufficient inventory for add-in ingredient(s): {short_msg}")
+
+                        ratio = total_lb / add_in_info['_base_qty']
+                        for ing in add_in_info['_add_in_formulas']:
+                            ing_id = ing['ingredient_product_id']
+                            needed = round(float(ing['quantity_lb']) * ratio, 2)
+                            # FIFO deduction with locking
+                            cur.execute("""
+                                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                                FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                                WHERE l.product_id = %s GROUP BY l.id
+                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                                ORDER BY COALESCE(l.received_at, l.created_at) ASC
+                            """, (ing_id,))
+                            candidate_lots = cur.fetchall()
+                            lot_ids = [lot['id'] for lot in candidate_lots]
+                            cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
+                            cur.execute("""
+                                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                                FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                                WHERE l.id = ANY(%s) GROUP BY l.id
+                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                                ORDER BY COALESCE(l.received_at, l.created_at) ASC
+                            """, (lot_ids,))
+                            ing_lots = cur.fetchall()
+                            remaining = needed
+                            cur.execute("SELECT name FROM products WHERE id = %s", (ing_id,))
+                            ing_name = cur.fetchone()['name']
+                            for lot in ing_lots:
+                                if remaining <= BALANCE_EPSILON:
+                                    break
+                                avail = float(lot['available'])
+                                if avail < BALANCE_EPSILON:
+                                    continue
+                                take = min(avail, remaining)
+                                cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], -take))
+                                cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], take))
+                                add_in_consumed.append({"ingredient_name": ing_name, "lot_code": lot['lot_code'], "consumed_lb": round(take, 2)})
+                                remaining -= take
+                            if remaining > BALANCE_EPSILON:
+                                raise HTTPException(400, f"Insufficient inventory for add-in ingredient {ing_name}: need {needed} lb, could only allocate {needed - remaining:.2f} lb")
+
                     logger.info(f"Pack committed: {output_lot_code} - {total_lb} lb of {target['name']} from {source['name']}")
 
                     response = {
@@ -2758,6 +2949,15 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         "batch_lots_consumed": consumed,
                         "message": f"Packed {req.cases} cases ({total_lb} lb) of {target['name']} as lot {output_lot_code}"
                     }
+                    if add_in_consumed:
+                        response["add_in_ingredients_consumed"] = add_in_consumed
+                        add_in_names = ", ".join(set(ai['ingredient_name'] for ai in add_in_consumed))
+                        response["add_in_note"] = f"Add-in ingredients deducted: {add_in_names}"
+                        response["message"] += f" (with add-ins: {add_in_names})"
+                    elif add_in_info and add_in_info.get('warning'):
+                        response["warning"] = add_in_info["warning"]
+                        if add_in_info.get('warning_es'):
+                            response["warning_es"] = add_in_info["warning_es"]
                     response["daily_production_summary"] = get_daily_production_summary(cur)
                     return response
         except HTTPException:
@@ -3577,7 +3777,7 @@ def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends
 def list_bom_products(
     product_type: Optional[str] = Query(default=None),
     q: Optional[str] = Query(default=None),
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=200, ge=1, le=500),
     _: bool = Depends(verify_api_key)
 ):
     try:
