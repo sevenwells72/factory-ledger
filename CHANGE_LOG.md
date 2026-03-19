@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-19 — Fix /make commit crash: is_ingredient column does not exist
+- **File(s) changed:** `main.py`
+- **What changed:** Replaced `COALESCE(is_ingredient, false) = false` with `type != 'ingredient'` in the post-commit auto-prompt /pack query (line ~2622). The `is_ingredient` column never existed in the products table; the correct column is `type` with value `'ingredient'`.
+- **Why:** /make commit failed with "column is_ingredient does not exist" when trying to query finished goods for pack prompting after batch creation.
+
+---
+
 ## 2026-03-19 — Fix pallet charges counted as weight in sales order totals
 - **File(s) changed:** `main.py`, `migrations/028_add_is_service_to_products.sql`
 - **What changed:** Added `is_service` boolean column to products table (migration 028) to flag service/charge items like pallets, freight, surcharges. Updated 4 locations in main.py to exclude service products from weight totals: order detail Python loop (lines ~4441-4442), order list SQL SUM (lines ~4171-4172), dashboard overdue query (line ~5488), dashboard due-this-week query (line ~5507). Uses PostgreSQL FILTER clause in SQL queries and DB flag + keyword fallback in Python.

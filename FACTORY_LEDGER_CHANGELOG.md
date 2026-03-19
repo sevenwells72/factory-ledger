@@ -11,6 +11,7 @@ Every fix is logged here so future sessions know what breaks if a change is reve
 | 3 | 2026-03-19 | dashboard | Add 8oz BS panel and fix case weight rounding | 8oz products missing from dashboard; case weights showed too many decimals | 8oz products disappear from dashboard | `main.py`, `dashboard/` |
 | 4 | 2026-03-19 | main.py | Fix day summary for pack consumption from prior-day batch lots | Pack runs using batches made on previous days didn't show in day summary | Day summary under-reports consumption | `main.py` |
 | 5 | 2026-03-19 | dashboard | Fix dashboard API calls to use absolute Railway URL | Relative paths failed when dashboard hosted on Netlify | Dashboard API calls return 404 | `dashboard/` |
+| 6 | 2026-03-19 | main.py | Replace `is_ingredient` with `type != 'ingredient'` in /make commit pack-prompt query | /make commit crashed with "column is_ingredient does not exist" | /make commit will crash again on auto-prompt /pack query | `main.py` |
 
 ## Known Root Causes
 

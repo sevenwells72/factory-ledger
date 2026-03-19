@@ -2619,7 +2619,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         SELECT id, name, case_size_lb
                         FROM products
                         WHERE parent_batch_product_id = %s
-                          AND COALESCE(is_ingredient, false) = false
+                          AND type != 'ingredient'
                         ORDER BY name
                     """, (product['id'],))
                     fg_products = cur.fetchall()
