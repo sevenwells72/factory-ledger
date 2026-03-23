@@ -128,7 +128,8 @@ All queries use `RealDictCursor` for dict-style row access. Write operations use
 - `id` SERIAL PK, `order_number` TEXT UNIQUE (auto-generated)
 - `customer_id` FK→customers, `status` TEXT, `requested_ship_date` DATE
 - `order_date` DATE, `notes`, `notes_es` TEXT, `created_at` TIMESTAMPTZ
-- **Status state machine:** `confirmed → in_production → ready → shipped/partial_ship → invoiced` (also `cancelled`)
+- **Status state machine:** `confirmed → in_production → ready (Ready to Ship) → shipped/partial_ship → invoiced` (also `cancelled`)
+- `ready → in_production` reverse transition allowed (if production falls short or inventory consumed elsewhere)
 - `shipped` and `partial_ship` are set **automatically** by ship/commit — cannot be set manually
 
 **`sales_order_lines`** — Order line items
@@ -321,7 +322,8 @@ class AdjustRequest(BaseModel):
 
 **Status state machine:**
 ```
-confirmed → in_production → ready → shipped/partial_ship → invoiced
+confirmed → in_production → ready (Ready to Ship) → shipped/partial_ship → invoiced
+                            ↺ ready → in_production (reverse allowed)
                                   ↘ cancelled (from any non-terminal state)
 ```
 - `shipped` and `partial_ship` are set **automatically** by ship/commit — blocked from manual setting

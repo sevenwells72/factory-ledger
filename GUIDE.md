@@ -264,7 +264,7 @@ For a single order — full detail with lines, shipment history, and totals.
 
 **Status flow:**
 ```
-📦 New → ✅ Confirmed → 🏭 In Production → 📋 Ready → 🚚 Shipped → 💰 Invoiced
+📦 New → ✅ Confirmed → 🏭 In Production → 📋 Ready to Ship → 🚚 Shipped → 💰 Invoiced
 ```
 
 **What you tell the GPT:**
@@ -276,6 +276,11 @@ Mark SO-260209-001 as in production
 ```
 ```
 SO-260209-001 is ready to ship
+```
+
+**Reverse transition:** If production falls short or inventory is consumed elsewhere, you can move an order back:
+```
+Move SO-260209-001 back to in production
 ```
 
 **Result:**
@@ -602,7 +607,7 @@ Order Status:
   📦 New: 3
   ✅ Confirmed: 2
   🏭 In Production: 1
-  📋 Ready: 1
+  📋 Ready to Ship: 1
   🚚 Partial Ship: 2
 
 ⚠️ Overdue (2):

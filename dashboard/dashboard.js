@@ -1103,7 +1103,7 @@
       'new': 'New',
       'confirmed': 'Confirmed',
       'in_production': 'In Production',
-      'ready': 'Ready',
+      'ready': 'Ready to Ship',
       'partial_ship': 'Partial Ship',
       'shipped': 'Shipped',
       'invoiced': 'Invoiced',
