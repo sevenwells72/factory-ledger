@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-23 17:15 — Extend lot collision disambiguation to main dashboard
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`
+- **What changed:** Added `product_id` to `json_build_object` in shipments and receipts API responses so lot links in the Activity tab have product context. Added `product_id` to search API lots query. In dashboard.js: added `data-product-id` to shipping, receiving, and product panel lot links; added `data-search-lot-product-id` to search result lot items; pass `product_id` through all `openLotPanel` calls. Rewrote `openLotPanel` to handle HTTP 409 (ambiguous lot code) by rendering a disambiguation picker instead of a raw error. Added `renderLotDisambiguation()` helper.
+- **Why:** Main dashboard lot links (shipping, receiving, search, product panel) didn't pass `product_id` to the lot detail endpoint, causing raw 409 errors after the collision fix was deployed.
+
+---
+
 ## 2026-03-23 16:30 — Fix lot code collision bug + trace type misclassification
 - **File(s) changed:** `main.py`, `dashboard/traceability.html`
 - **What changed:** Added optional `product_id` query parameter to 5 endpoints (`/lots/by-code`, `/lots/{lot_code}/supplier-lot`, `/trace/batch`, `/trace/ingredient`, `/dashboard/api/lot`) for disambiguation when lot codes collide across products. When `product_id` is omitted and multiple lots match, endpoints return HTTP 409 with a list of matches. Added type validation to `/trace/ingredient` — returns 400 `wrong_trace_type` if called with a finished-goods lot. Fixed `/trace/batch` production query to join on `lot_id` (integer) instead of `lot_code` (string). Fixed `/trace/ingredient` downstream query to join on `lot_id`. Frontend: fixed `buildLotIndex` dedup to key on `lot_code|product_id`, added `selectedProductId` tracking, pass `product_id` in all API calls, added disambiguation modal for 409 responses, auto-route forward trace to batch endpoint on `wrong_trace_type`, escaped lot codes in onclick handlers (XSS fix), persist `product_id` in URL state.

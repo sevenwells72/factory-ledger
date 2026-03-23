@@ -6060,6 +6060,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 SELECT t.id, t.timestamp, t.customer_name, t.order_reference, t.notes,
                        json_agg(json_build_object(
                            'product_name', p.name,
+                           'product_id', p.id,
                            'lot_code', l.lot_code,
                            'quantity_lb', tl.quantity_lb
                        ) ORDER BY p.name) as lines
@@ -6106,6 +6107,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                        t.cases_received, t.case_size_lb,
                        json_agg(json_build_object(
                            'product_name', p.name,
+                           'product_id', p.id,
                            'lot_code', l.lot_code,
                            'quantity_lb', tl.quantity_lb
                        ) ORDER BY p.name) as lines
@@ -6320,7 +6322,7 @@ def dashboard_api_search(q: str = Query(min_length=1)):
 
             # Lots
             cur.execute("""
-                SELECT l.lot_code, p.name as product_name,
+                SELECT l.lot_code, l.product_id, p.name as product_name,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
                 JOIN products p ON p.id = l.product_id

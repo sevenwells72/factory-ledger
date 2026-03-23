@@ -499,7 +499,7 @@
       if (s.lines && s.lines.length > 0) {
         html += '<strong>Lots:</strong><br>';
         for (const l of s.lines) {
-          html += `<span class="lot-link" data-lot="${escHtml(l.lot_code)}">${escHtml(l.lot_code)}</span> — ${escHtml(l.product_name)}: ${fmt(Math.abs(l.quantity_lb))} lb<br>`;
+          html += `<span class="lot-link" data-lot="${escHtml(l.lot_code)}" data-product-id="${l.product_id || ''}">${escHtml(l.lot_code)}</span> — ${escHtml(l.product_name)}: ${fmt(Math.abs(l.quantity_lb))} lb<br>`;
         }
       }
       if (s.notes) html += `<br><strong>Notes:</strong> ${escHtml(s.notes)}`;
@@ -548,7 +548,7 @@
       if (r.lines && r.lines.length > 0) {
         html += '<strong>Lots:</strong><br>';
         for (const l of r.lines) {
-          html += `<span class="lot-link" data-lot="${escHtml(l.lot_code)}">${escHtml(l.lot_code)}</span> — ${escHtml(l.product_name)}: ${fmt(l.quantity_lb)} lb<br>`;
+          html += `<span class="lot-link" data-lot="${escHtml(l.lot_code)}" data-product-id="${l.product_id || ''}">${escHtml(l.lot_code)}</span> — ${escHtml(l.product_name)}: ${fmt(l.quantity_lb)} lb<br>`;
         }
       }
       if (r.cases_received) html += `<br><strong>Cases:</strong> ${r.cases_received} x ${r.case_size_lb} lb`;
@@ -570,13 +570,46 @@
     title.textContent = 'Lot: ' + lotCode;
     body.innerHTML = '<div class="loading-indicator">Loading lot detail...</div>';
     try {
-      let url = '/lot/' + encodeURIComponent(lotCode);
+      let url = API_BASE + '/lot/' + encodeURIComponent(lotCode);
       if (productId) url += '?product_id=' + encodeURIComponent(productId);
-      const data = await fetchAPI(url);
+      const res = await fetch(url);
+      if (res.status === 409) {
+        // Ambiguous lot code — show disambiguation picker
+        const err = await res.json();
+        renderLotDisambiguation(lotCode, err.matches || [], body);
+        return;
+      }
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      const data = await res.json();
       renderLotPanel(data, body);
     } catch (e) {
       body.innerHTML = `<div class="error-msg">Failed to load lot: ${escHtml(e.message)}</div>`;
     }
+  }
+
+  function renderLotDisambiguation(lotCode, matches, body) {
+    let html = '<div style="padding:8px 0;">';
+    html += `<p style="margin:0 0 12px;font-size:14px;">Lot code <strong>${escHtml(lotCode)}</strong> matches multiple products. Select the one you want:</p>`;
+    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+    for (const m of matches) {
+      html += `<button class="disambig-btn" data-product-id="${m.product_id}" style="
+        text-align:left;padding:10px 12px;border:1px solid var(--border);border-radius:6px;
+        background:var(--bg-card,#fff);cursor:pointer;font-size:13px;
+      ">`;
+      html += `<strong>${escHtml(m.product_name)}</strong>`;
+      if (m.source) html += ` <span style="color:var(--text-muted);font-size:12px;">(${escHtml(m.source)})</span>`;
+      html += '</button>';
+    }
+    html += '</div></div>';
+    body.innerHTML = html;
+    body.querySelectorAll('.disambig-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openLotPanel(lotCode, btn.dataset.productId);
+      });
+    });
   }
 
   function fmtQtyCases(lbs, cases) {
@@ -649,7 +682,7 @@
           html += '<table style="width:100%;font-size:13px;border-collapse:collapse;">';
           html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Lot Code</th><th style="text-align:left;padding:4px 8px;">Source</th><th style="text-align:right;padding:4px 8px;">On Hand</th></tr>';
           for (const l of activeLots) {
-            html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
+            html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" data-product-id="${productId}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
             html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;
             html += `<td style="padding:4px 8px;">${escHtml(l.entry_source || '')}</td>`;
             html += `<td style="text-align:right;padding:4px 8px;">${fmt(l.on_hand_lbs)} lb</td>`;
@@ -662,7 +695,7 @@
           html += `<h4 style="font-size:13px;margin:12px 0 8px;color:var(--text-muted);">Depleted Lots (${zeroLots.length})</h4>`;
           html += '<table style="width:100%;font-size:13px;border-collapse:collapse;opacity:0.6;">';
           for (const l of zeroLots.slice(0, 10)) {
-            html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
+            html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" data-product-id="${productId}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
             html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;
             html += `<td style="padding:4px 8px;">${escHtml(l.entry_source || '')}</td>`;
             html += `<td style="text-align:right;padding:4px 8px;">0 lb</td>`;
@@ -721,7 +754,7 @@
       hasResults = true;
       html += '<div class="search-category">Lots</div>';
       for (const l of data.lots) {
-        html += `<div class="search-item" data-search-lot="${escHtml(l.lot_code)}"><span class="lot-link">${escHtml(l.lot_code)}</span> <span class="si-sub">${escHtml(l.product_name)} | ${fmt(l.on_hand_lbs)} lb</span></div>`;
+        html += `<div class="search-item" data-search-lot="${escHtml(l.lot_code)}" data-search-lot-product-id="${l.product_id || ''}"><span class="lot-link">${escHtml(l.lot_code)}</span> <span class="si-sub">${escHtml(l.product_name)} | ${fmt(l.on_hand_lbs)} lb</span></div>`;
       }
     }
     if (data.orders && data.orders.length > 0) {
@@ -749,7 +782,7 @@
     // Bind lot clicks in search results
     dropdown.querySelectorAll('[data-search-lot]').forEach(el => {
       el.addEventListener('click', () => {
-        openLotPanel(el.dataset.searchLot);
+        openLotPanel(el.dataset.searchLot, el.dataset.searchLotProductId);
         dropdown.classList.add('hidden');
       });
     });
