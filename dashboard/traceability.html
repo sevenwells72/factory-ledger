@@ -350,8 +350,21 @@ async function api(path) {
   const res = await fetch(API_BASE + path, { headers });
   const data = await res.json();
   console.log('[API Response]', path, data);
-  if (!res.ok) throw new Error(data.detail || data.error || `HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(data.detail || data.error || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
   return data;
+}
+
+function productIdParam() {
+  return selectedProductId ? `product_id=${selectedProductId}` : '';
+}
+function appendParam(path, param) {
+  if (!param) return path;
+  return path + (path.includes('?') ? '&' : '?') + param;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -364,11 +377,14 @@ async function buildLotIndex() {
     for (const txn of data.transactions) {
       if (!txn.lines) continue;
       for (const line of txn.lines) {
-        if (!line.lot_code || seen.has(line.lot_code)) continue;
-        seen.add(line.lot_code);
+        if (!line.lot_code) continue;
+        const key = line.lot_code + '|' + (line.product_id || line.product_name || '');
+        if (seen.has(key)) continue;
+        seen.add(key);
         lotIndex.push({
           lot_code: line.lot_code,
           product_name: line.product_name || '',
+          product_id: line.product_id || null,
           type: txn.type,
           date: txn.date || ''
         });
@@ -381,6 +397,8 @@ async function buildLotIndex() {
   }
 }
 
+let selectedProductId = null;
+
 function renderRecentLots() {
   const el = document.getElementById('recentLots');
   el.innerHTML = '<span class="recent-label">Recent:</span>';
@@ -390,9 +408,11 @@ function renderRecentLots() {
     pill.className = 'lot-pill';
     pill.textContent = lot.lot_code;
     pill.title = lot.product_name;
+    pill.dataset.productId = lot.product_id || '';
     pill.onclick = () => {
       document.getElementById('lotSearch').value = lot.lot_code;
       selectedLotCode = lot.lot_code;
+      selectedProductId = lot.product_id || null;
       document.getElementById('traceBtn').disabled = false;
       closeDropdown();
     };
@@ -413,12 +433,15 @@ searchInput.addEventListener('input', () => {
   if (q.length < 2) { closeDropdown(); document.getElementById('traceBtn').disabled = true; return; }
   debounceTimer = setTimeout(() => filterLots(q), 200);
   selectedLotCode = q;
+  selectedProductId = null;  // clear — user is typing manually
   document.getElementById('traceBtn').disabled = false;
 });
 
 searchInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); closeDropdown(); runTrace(); }
 });
+
+function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 function filterLots(q) {
   const lower = q.toLowerCase();
@@ -435,7 +458,7 @@ function filterLots(q) {
     if (!items || items.length === 0) continue;
     html += `<div class="search-group-label">${labels[type] || type}</div>`;
     for (const it of items.slice(0, 8)) {
-      html += `<div class="search-item" onclick="selectLot('${it.lot_code}')">
+      html += `<div class="search-item" onclick="selectLot('${escAttr(it.lot_code)}', ${it.product_id || 'null'})">
         <span class="lot-code">${highlight(it.lot_code, q)}</span>
         <span class="product-name">${it.product_name}</span>
       </div>`;
@@ -452,9 +475,10 @@ function highlight(text, q) {
   return text.slice(0, idx) + '<strong style="color:var(--primary)">' + text.slice(idx, idx + q.length) + '</strong>' + text.slice(idx + q.length);
 }
 
-function selectLot(code) {
+function selectLot(code, productId) {
   searchInput.value = code;
   selectedLotCode = code;
+  selectedProductId = productId || null;
   document.getElementById('traceBtn').disabled = false;
   closeDropdown();
 }
@@ -497,7 +521,9 @@ async function runTrace() {
     updateURL(lotCode, direction);
   } catch (e) {
     console.error('[Trace]', e);
-    if (e.message.includes('404')) {
+    if (e.status === 409 && e.data && e.data.error === 'ambiguous_lot_code') {
+      showDisambiguation(lotCode, e.data.matches);
+    } else if (e.message.includes('404')) {
       setStatus('error', `No records found for lot code "${lotCode}". Check the lot code and try again.`);
       suggestSimilar(lotCode);
     } else {
@@ -506,20 +532,53 @@ async function runTrace() {
   }
 }
 
+function showDisambiguation(lotCode, matches) {
+  setStatus('error', '');
+  const el = document.getElementById('statusBar');
+  el.className = 'status-bar';
+  let html = `<div style="padding:8px 0"><strong>Multiple lots found for "${lotCode}"</strong> — select one:</div>`;
+  html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">';
+  for (const m of matches) {
+    html += `<button onclick="pickDisambiguated('${escAttr(lotCode)}', ${m.product_id})" style="
+      background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;
+      padding:8px 14px;cursor:pointer;text-align:left;font-size:13px;font-family:var(--font)">
+      <strong>${m.product_name}</strong><br>
+      <span style="font-size:11px;color:var(--text-muted)">ID: ${m.product_id} | Source: ${m.entry_source || 'unknown'}</span>
+    </button>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function pickDisambiguated(lotCode, productId) {
+  selectedLotCode = lotCode;
+  selectedProductId = productId;
+  searchInput.value = lotCode;
+  runTrace();
+}
+
 // ── BACKWARD TRACE: batch → ingredients → suppliers ──
 async function traceBackward(lotCode) {
-  let batchData;
+  let data;
   try {
-    batchData = await api(`/trace/batch/${encodeURIComponent(lotCode)}`);
+    data = await api(appendParam(`/trace/batch/${encodeURIComponent(lotCode)}`, productIdParam()));
   } catch (e) {
-    // Not a production batch — try as a lot
+    if (e.status === 409) throw e;  // disambiguation — bubble up
     if (e.message.includes('404')) {
-      await traceBackwardAsLot(lotCode);
-      return;
+      throw new Error(`404 — Lot "${lotCode}" not found`);
     }
     throw e;
   }
 
+  // Route based on trace_type returned by backend
+  if (data.trace_type === 'ingredient') {
+    await traceBackwardIngredient(data);
+  } else {
+    await traceBackwardBatch(data);
+  }
+}
+
+async function traceBackwardBatch(batchData) {
   // Center node: the batch
   const batchId = addNode({
     id: 'batch-' + batchData.batch_lot_code,
@@ -561,7 +620,7 @@ async function traceBackward(lotCode) {
   await findShipmentsForLot(batchData.batch_lot_code, batchId);
 
   currentTrace = {
-    direction: 'backward', startLot: lotCode,
+    direction: 'backward', startLot: batchData.batch_lot_code,
     product: batchData.product_name, outputLb: batchData.output_lb,
     date: batchData.produced_date, time: batchData.produced_time,
     confirmedCount, legacyCount, hasLegacy,
@@ -571,38 +630,80 @@ async function traceBackward(lotCode) {
   setStatus('ok', '');
 }
 
-async function traceBackwardAsLot(lotCode) {
-  // Try to look up as a regular lot
-  try {
-    const lotInfo = await api(`/lots/by-code/${encodeURIComponent(lotCode)}`);
-    const lotId = addNode({
-      id: 'lot-' + lotCode, type: 'ingredient',
-      label: lotCode, sublabel: lotInfo.product_name,
-      detail: `On hand: ${lotInfo.quantity_on_hand} lb`,
-      lotCode, quantity: parseFloat(lotInfo.quantity_on_hand) || 0, layer: 2
+async function traceBackwardIngredient(data) {
+  // Supplier node (layer 0)
+  let confirmedCount = 0;
+  const ingId = addNode({
+    id: 'ing-' + data.lot_code,
+    type: 'ingredient', label: data.lot_code,
+    sublabel: data.product_name,
+    detail: data.supplier_lot_code ? `Supplier lot: ${data.supplier_lot_code}` : `Source: ${data.entry_source || 'received'}`,
+    lotCode: data.lot_code, layer: 1
+  });
+
+  if (data.supplier) {
+    const s = data.supplier;
+    const suppId = addNode({
+      id: 'supplier-' + s.supplier_name + '-' + (s.bol_reference || ''),
+      type: s.supplier_name !== 'Unknown supplier' ? 'supplier' : 'gap',
+      label: s.supplier_name,
+      sublabel: s.bol_reference ? `BOL: ${s.bol_reference}` : '',
+      detail: `${s.received_date} ${s.received_time} ET | Txn #${s.transaction_id}`,
+      quantity: s.quantity_lb, layer: 0, txnId: s.transaction_id
     });
-
-    // Find receive transaction for supplier info
-    await findSupplierForLot(lotCode, lotId);
-
-    currentTrace = {
-      direction: 'backward', startLot: lotCode,
-      product: lotInfo.product_name,
-      note: 'This lot was not produced in the system (received directly or via adjustment).',
-      confirmedCount: 0, legacyCount: 0, hasLegacy: false
-    };
-    setStatus('ok', '');
-  } catch (e2) {
-    throw new Error(`404 — Lot "${lotCode}" not found`);
+    addLink(suppId, ingId, s.quantity_lb, 'confirmed');
+    confirmedCount++;
+  } else {
+    const unknownId = addNode({
+      id: 'supplier-unknown-' + data.lot_code,
+      type: 'gap', label: 'Supplier unknown',
+      sublabel: 'Receipt transaction not found', detail: '', layer: 0
+    });
+    addLink(unknownId, ingId, 0, 'legacy');
   }
+
+  // Downstream batches (layer 2) and their shipments (layer 3)
+  for (const b of data.downstream_batches) {
+    const batchId = addNode({
+      id: 'batch-' + b.batch_lot_code,
+      type: 'batch', label: b.batch_lot_code,
+      sublabel: b.batch_product,
+      detail: `Used ${b.quantity_consumed} lb | ${b.produced_date} ${b.produced_time} ET`,
+      lotCode: b.batch_lot_code, quantity: b.quantity_consumed, layer: 2
+    });
+    addLink(ingId, batchId, b.quantity_consumed, 'confirmed');
+    confirmedCount++;
+
+    await findShipmentsForLot(b.batch_lot_code, batchId);
+  }
+
+  const hasDownstream = data.downstream_batches.length > 0;
+  let note = null;
+  if (!hasDownstream) {
+    note = 'This ingredient lot has not been consumed in any production batches yet.';
+  }
+
+  currentTrace = {
+    direction: 'backward', startLot: data.lot_code,
+    product: data.product_name,
+    confirmedCount, legacyCount: 0, hasLegacy: !data.supplier,
+    note
+  };
+  setStatus('ok', '');
 }
 
 // ── FORWARD TRACE: ingredient → batches → shipments → customers ──
 async function traceForward(lotCode) {
   let ingData;
   try {
-    ingData = await api(`/trace/ingredient/${encodeURIComponent(lotCode)}`);
+    ingData = await api(appendParam(`/trace/ingredient/${encodeURIComponent(lotCode)}`, productIdParam()));
   } catch (e) {
+    if (e.status === 409) throw e;  // disambiguation — bubble up
+    if (e.status === 400 && e.data && e.data.error === 'wrong_trace_type') {
+      // Finished goods lot called with forward trace — auto-route to batch trace (shipments)
+      await traceForwardAsBatch(lotCode);
+      return;
+    }
     if (e.message.includes('404')) {
       // Not found as ingredient — try as batch lot and trace shipments
       await traceForwardAsBatch(lotCode);
@@ -678,15 +779,17 @@ async function traceForwardAsBatch(lotCode) {
   // It might be a batch/finished lot — trace its shipments
   let batchData = null;
   try {
-    batchData = await api(`/trace/batch/${encodeURIComponent(lotCode)}`);
+    batchData = await api(appendParam(`/trace/batch/${encodeURIComponent(lotCode)}`, productIdParam()));
   } catch (e) {
+    if (e.status === 409) throw e;  // disambiguation — bubble up
     // Not a batch either — try as any lot
   }
 
   let lotInfo;
   try {
-    lotInfo = await api(`/lots/by-code/${encodeURIComponent(lotCode)}`);
+    lotInfo = await api(appendParam(`/lots/by-code/${encodeURIComponent(lotCode)}`, productIdParam()));
   } catch (e) {
+    if (e.status === 409) throw e;  // disambiguation — bubble up
     throw new Error(`404 — Lot "${lotCode}" not found`);
   }
 
@@ -833,7 +936,7 @@ function suggestSimilar(query) {
   if (matches.length > 0) {
     const el = document.getElementById('statusBar');
     el.innerHTML += '<br>Did you mean: ' + matches.map(m =>
-      `<a href="#" onclick="selectLot('${m.lot_code}');runTrace();return false;" style="margin:0 4px">${m.lot_code}</a>`
+      `<a href="#" onclick="selectLot('${escAttr(m.lot_code)}', ${m.product_id || 'null'});runTrace();return false;" style="margin:0 4px">${m.lot_code}</a>`
     ).join('');
   }
 }
@@ -1075,6 +1178,7 @@ function onNodeClick(node) {
   if (node.lotCode && node.lotCode !== 'UNKNOWN') {
     searchInput.value = node.lotCode;
     selectedLotCode = node.lotCode;
+    selectedProductId = node.productId || null;
     // Auto-detect direction
     if (node.type === 'ingredient' || node.type === 'supplier') {
       setDirection('forward');
@@ -1149,7 +1253,7 @@ function renderDetailPanel() {
   panel.style.display = 'block';
 
   const t = currentTrace;
-  const dirLabel = t.direction === 'forward' ? 'Forward Trace (Ingredient \u2192 Batches \u2192 Customers)' : 'Backward Trace (Batch \u2192 Ingredients \u2192 Suppliers)';
+  const dirLabel = t.direction === 'forward' ? 'Forward Trace (Ingredient \u2192 Batches \u2192 Customers)' : (graphNodes.some(n => n.id.startsWith('ing-') && n.layer === 1 && n.id === 'ing-' + t.startLot) ? 'Backward Trace (Supplier \u2192 Ingredient \u2192 Batches \u2192 Customers)' : 'Backward Trace (Batch \u2192 Ingredients \u2192 Suppliers)');
   const now = new Date();
   const traceDate = now.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'medium', timeStyle: 'short' }) + ' ET';
 
@@ -1257,6 +1361,8 @@ function updateURL(lot, dir) {
   const url = new URL(window.location);
   url.searchParams.set('lot', lot);
   url.searchParams.set('direction', dir);
+  if (selectedProductId) url.searchParams.set('product_id', selectedProductId);
+  else url.searchParams.delete('product_id');
   history.replaceState({}, '', url);
 }
 
@@ -1264,9 +1370,11 @@ function loadFromURL() {
   const params = new URLSearchParams(window.location.search);
   const lot = params.get('lot');
   const dir = params.get('direction');
+  const pid = params.get('product_id');
   if (lot) {
     searchInput.value = lot;
     selectedLotCode = lot;
+    selectedProductId = pid ? parseInt(pid) : null;
     document.getElementById('traceBtn').disabled = false;
     if (dir === 'backward' || dir === 'forward') setDirection(dir);
     setTimeout(() => runTrace(), 500);  // wait for index

@@ -1605,10 +1605,10 @@ def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_ap
 
 
 @app.get("/lots/by-code/{lot_code}")
-def get_lot_by_code(lot_code: str, _: bool = Depends(verify_api_key)):
+def get_lot_by_code(lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("""
+            query = """
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand,
                        l.entry_source, l.found_location, l.estimated_age,
@@ -1617,11 +1617,25 @@ def get_lot_by_code(lot_code: str, _: bool = Depends(verify_api_key)):
                 JOIN products p ON p.id = l.product_id
                 LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                 WHERE LOWER(l.lot_code) = LOWER(%s)
-                GROUP BY l.id, p.id
-            """, (lot_code,))
-            lot = cur.fetchone()
-        if not lot:
+            """
+            params = [lot_code]
+            if product_id is not None:
+                query += " AND l.product_id = %s"
+                params.append(product_id)
+            query += " GROUP BY l.id, p.id"
+            cur.execute(query, params)
+            rows = cur.fetchall()
+
+        if not rows:
             raise HTTPException(status_code=404, detail=f"Lot '{lot_code}' not found")
+        if len(rows) > 1:
+            return JSONResponse(status_code=409, content={
+                "error": "ambiguous_lot_code",
+                "message": f"Lot code '{lot_code}' matches multiple products",
+                "matches": [{"lot_id": r['id'], "product_id": r['product_id'],
+                             "product_name": r['product_name'], "entry_source": r['entry_source']} for r in rows]
+            })
+        lot = rows[0]
         result = dict(lot)
         with get_transaction() as cur:
             cur.execute("""
@@ -1674,7 +1688,7 @@ class SupplierLotUpdate(BaseModel):
 
 
 @app.patch("/lots/{lot_code}/supplier-lot")
-def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, _: bool = Depends(verify_api_key)):
+def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     """Attach or update the supplier lot cross-reference on an existing lot.
 
     Use this when a packing slip or physical label shows a supplier lot number
@@ -1684,16 +1698,29 @@ def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, _: bool = Depends
     try:
         with get_transaction() as cur:
             # Find the lot
-            cur.execute("""
+            query = """
                 SELECT l.id, l.lot_code, l.supplier_lot_code, l.lot_type,
-                       p.name AS product_name
+                       p.name AS product_name, l.product_id
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 WHERE LOWER(l.lot_code) = LOWER(%s)
-            """, (lot_code,))
-            lot = cur.fetchone()
-            if not lot:
+            """
+            params = [lot_code]
+            if product_id is not None:
+                query += " AND l.product_id = %s"
+                params.append(product_id)
+            cur.execute(query, params)
+            rows = cur.fetchall()
+            if not rows:
                 raise HTTPException(404, f"Lot '{lot_code}' not found")
+            if len(rows) > 1:
+                return JSONResponse(status_code=409, content={
+                    "error": "ambiguous_lot_code",
+                    "message": f"Lot code '{lot_code}' matches multiple products. Provide product_id to disambiguate.",
+                    "matches": [{"lot_id": r['id'], "product_id": r['product_id'],
+                                 "product_name": r['product_name']} for r in rows]
+                })
+            lot = rows[0]
 
             old_supplier_lot = lot['supplier_lot_code']
             new_supplier_lot = req.supplier_lot_code.strip()
@@ -3174,9 +3201,40 @@ def void_transaction(transaction_id: int, _: bool = Depends(verify_api_key)):
 # ═══════════════════════════════════════════════════════════════
 
 @app.get("/trace/batch/{lot_code}")
-def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
+def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
+            # First: look up the lot to determine its type
+            query = """
+                SELECT l.id, l.lot_code, l.entry_source, l.supplier_lot_code,
+                       p.name as product_name, p.id as product_id
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                WHERE LOWER(l.lot_code) = LOWER(%s)
+            """
+            params = [lot_code]
+            if product_id is not None:
+                query += " AND l.product_id = %s"
+                params.append(product_id)
+            cur.execute(query, params)
+            rows = cur.fetchall()
+
+            if not rows:
+                raise HTTPException(status_code=404, detail=f"Lot '{lot_code}' not found")
+            if len(rows) > 1:
+                return JSONResponse(status_code=409, content={
+                    "error": "ambiguous_lot_code",
+                    "message": f"Lot code '{lot_code}' matches multiple products",
+                    "matches": [{"lot_id": r['id'], "product_id": r['product_id'],
+                                 "product_name": r['product_name'], "entry_source": r['entry_source']} for r in rows]
+                })
+            lot_row = rows[0]
+
+            # Ingredient lot: entry_source is receive, adjusted, found (not make/pack)
+            if lot_row['entry_source'] in ('receive', 'adjusted', 'found', None):
+                return _trace_ingredient_backward(cur, lot_row)
+
+            # Finished goods lot: entry_source is make or pack — existing logic
             cur.execute("""
                 SELECT t.id as transaction_id, t.timestamp, l.lot_code, p.name as product_name,
                        tl.quantity_lb as output_lb
@@ -3184,13 +3242,14 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
                 JOIN transaction_lines tl ON tl.transaction_id = t.id
                 JOIN lots l ON l.id = tl.lot_id
                 JOIN products p ON p.id = tl.product_id
-                WHERE t.type IN ('make', 'pack') AND COALESCE(t.status, 'posted') = 'posted' AND LOWER(l.lot_code) = LOWER(%s) AND tl.quantity_lb > 0
-            """, (lot_code,))
+                WHERE t.type IN ('make', 'pack') AND COALESCE(t.status, 'posted') = 'posted' AND l.id = %s AND tl.quantity_lb > 0
+            """, (lot_row['id'],))
             batch = cur.fetchone()
-            
+
             if not batch:
-                raise HTTPException(status_code=404, detail=f"Batch '{lot_code}' not found")
-            
+                # Lot exists but no production transaction found — treat as ingredient
+                return _trace_ingredient_backward(cur, lot_row)
+
             cur.execute("""
                 SELECT p.name as ingredient_name, l.lot_code as ingredient_lot,
                        l.supplier_lot_code, ilc.quantity_lb as quantity_consumed
@@ -3204,6 +3263,7 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
             date_str, time_str = format_timestamp(batch['timestamp'])
 
             return {
+                "trace_type": "batch",
                 "batch_lot_code": batch['lot_code'],
                 "product_name": batch['product_name'],
                 "output_lb": float(batch['output_lb']),
@@ -3225,31 +3285,120 @@ def trace_batch(lot_code: str, _: bool = Depends(verify_api_key)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+def _trace_ingredient_backward(cur, lot_row):
+    """Backward trace for an ingredient lot: supplier origin + downstream batches."""
+    lot_code = lot_row['lot_code']
+
+    # 1. Find receive transaction (supplier origin)
+    supplier_info = None
+    cur.execute("""
+        SELECT t.id as transaction_id, t.timestamp, t.shipper_name, t.bol_reference,
+               tl.quantity_lb
+        FROM transactions t
+        JOIN transaction_lines tl ON tl.transaction_id = t.id
+        JOIN lots l ON l.id = tl.lot_id
+        WHERE t.type = 'receive' AND COALESCE(t.status, 'posted') = 'posted'
+          AND l.id = %s
+        ORDER BY t.timestamp DESC LIMIT 1
+    """, (lot_row['id'],))
+    recv = cur.fetchone()
+    if recv:
+        recv_date, recv_time = format_timestamp(recv['timestamp'])
+        supplier_info = {
+            "supplier_name": recv['shipper_name'] or 'Unknown supplier',
+            "bol_reference": recv['bol_reference'],
+            "received_date": recv_date,
+            "received_time": recv_time,
+            "quantity_lb": float(recv['quantity_lb']),
+            "transaction_id": recv['transaction_id']
+        }
+
+    # 2. Find downstream batches that consumed this ingredient lot
+    cur.execute("""
+        SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product,
+               ilc.quantity_lb as quantity_consumed, t.timestamp
+        FROM ingredient_lot_consumption ilc
+        JOIN transactions t ON t.id = ilc.transaction_id
+        JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+        JOIN lots bl ON bl.id = tl.lot_id
+        JOIN products bp ON bp.id = bl.product_id
+        WHERE ilc.ingredient_lot_id = %s
+        ORDER BY t.timestamp
+    """, (lot_row['id'],))
+    downstream = cur.fetchall()
+
+    batches_out = []
+    for b in downstream:
+        b_date, b_time = format_timestamp(b['timestamp'])
+        batches_out.append({
+            "batch_lot_code": b['batch_lot'],
+            "batch_product": b['batch_product'],
+            "quantity_consumed": float(b['quantity_consumed']),
+            "produced_date": b_date,
+            "produced_time": b_time
+        })
+
+    return {
+        "trace_type": "ingredient",
+        "lot_code": lot_code,
+        "product_name": lot_row['product_name'],
+        "supplier_lot_code": lot_row['supplier_lot_code'],
+        "entry_source": lot_row['entry_source'],
+        "supplier": supplier_info,
+        "downstream_batches": batches_out
+    }
+
+
 @app.get("/trace/ingredient/{lot_code}")
-def trace_ingredient(lot_code: str, _: bool = Depends(verify_api_key)):
+def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("""
-                SELECT l.lot_code, l.supplier_lot_code, p.name as ingredient_name, l.product_id
+            query = """
+                SELECT l.id, l.lot_code, l.supplier_lot_code, l.entry_source,
+                       p.name as ingredient_name, l.product_id
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 WHERE LOWER(l.lot_code) = LOWER(%s)
-            """, (lot_code,))
-            lot = cur.fetchone()
+            """
+            params = [lot_code]
+            if product_id is not None:
+                query += " AND l.product_id = %s"
+                params.append(product_id)
+            cur.execute(query, params)
+            rows = cur.fetchall()
 
-            if not lot:
+            if not rows:
                 raise HTTPException(status_code=404, detail=f"Lot '{lot_code}' not found")
+            if len(rows) > 1:
+                return JSONResponse(status_code=409, content={
+                    "error": "ambiguous_lot_code",
+                    "message": f"Lot code '{lot_code}' matches multiple products",
+                    "matches": [{"lot_id": r['id'], "product_id": r['product_id'],
+                                 "product_name": r['ingredient_name'], "entry_source": r['entry_source']} for r in rows]
+                })
+            lot = rows[0]
+
+            # Type validation: if this is a finished goods lot, reject with guidance
+            if lot['entry_source'] in ('make', 'pack', 'production_output'):
+                return JSONResponse(status_code=400, content={
+                    "error": "wrong_trace_type",
+                    "message": f"Lot '{lot_code}' is a finished goods lot (source: {lot['entry_source']}), not an ingredient lot. Use /trace/batch instead.",
+                    "lot_id": lot['id'],
+                    "product_id": lot['product_id'],
+                    "product_name": lot['ingredient_name'],
+                    "entry_source": lot['entry_source'],
+                    "correct_endpoint": f"/trace/batch/{lot_code}"
+                })
 
             cur.execute("""
                 SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
-                JOIN lots il ON il.id = ilc.ingredient_lot_id
                 JOIN transactions t ON t.id = ilc.transaction_id
                 JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
                 JOIN lots bl ON bl.id = tl.lot_id
                 JOIN products bp ON bp.id = bl.product_id
-                WHERE LOWER(il.lot_code) = LOWER(%s)
-            """, (lot_code,))
+                WHERE ilc.ingredient_lot_id = %s
+            """, (lot['id'],))
             batches = cur.fetchall()
 
             return {
@@ -6000,31 +6149,32 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
     try:
         with get_transaction() as cur:
             # Lot info — filter by product_id when provided (lot codes can be shared)
+            query = """
+                SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
+                       l.entry_source, p.case_size_lb as product_case_size_lb,
+                       COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE LOWER(l.lot_code) = LOWER(%s)
+            """
+            params = [lot_code]
             if product_id is not None:
-                cur.execute("""
-                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                           l.entry_source, p.case_size_lb as product_case_size_lb,
-                           COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
-                    FROM lots l
-                    JOIN products p ON p.id = l.product_id
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-                    WHERE LOWER(l.lot_code) = LOWER(%s) AND l.product_id = %s
-                    GROUP BY l.id, p.id
-                """, (lot_code, product_id))
-            else:
-                cur.execute("""
-                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                           l.entry_source, p.case_size_lb as product_case_size_lb,
-                           COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
-                    FROM lots l
-                    JOIN products p ON p.id = l.product_id
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-                    WHERE LOWER(l.lot_code) = LOWER(%s)
-                    GROUP BY l.id, p.id
-                """, (lot_code,))
-            lot = cur.fetchone()
-            if not lot:
+                query += " AND l.product_id = %s"
+                params.append(product_id)
+            query += " GROUP BY l.id, p.id"
+            cur.execute(query, params)
+            rows = cur.fetchall()
+            if not rows:
                 raise HTTPException(404, f"Lot '{lot_code}' not found")
+            if len(rows) > 1:
+                return JSONResponse(status_code=409, content={
+                    "error": "ambiguous_lot_code",
+                    "message": f"Lot code '{lot_code}' matches multiple products",
+                    "matches": [{"lot_id": r['id'], "product_id": r['product_id'],
+                                 "product_name": r['product_name'], "entry_source": r['entry_source']} for r in rows]
+                })
+            lot = rows[0]
 
             # First transaction to get original quantity
             cur.execute("""

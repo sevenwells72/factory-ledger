@@ -13,6 +13,8 @@ Every fix is logged here so future sessions know what breaks if a change is reve
 | 5 | 2026-03-19 | dashboard | Fix dashboard API calls to use absolute Railway URL | Relative paths failed when dashboard hosted on Netlify | Dashboard API calls return 404 | `dashboard/` |
 | 6 | 2026-03-19 | main.py | Replace `is_ingredient` with `type != 'ingredient'` in /make commit pack-prompt query | /make commit crashed with "column is_ingredient does not exist" | /make commit will crash again on auto-prompt /pack query | `main.py` |
 | 7 | 2026-03-23 | main.py, dashboard, docs | "Ready to Ship" display label + ready→in_production reverse transition | "Ready" label was unclear; no way to move order back if production falls short | Dashboard shows "Ready" instead of "Ready to Ship"; can't reverse from ready status | `main.py`, `dashboard.js`, `index.html`, `gpt-instructions-v3.md`, `GUIDE.md`, `CONTEXT.md` |
+| 8 | 2026-03-23 | main.py, dashboard | Backward trace handles ingredient lots (supplier trace + downstream batches) | Backward trace returned "Batch not found" for ingredient lots | Ingredient lots will 404 on backward trace again | `main.py`, `dashboard/traceability.html` |
+| 9 | 2026-03-23 | main.py, dashboard | Lot code collision disambiguation (product_id param on 5 endpoints) + trace type validation on /trace/ingredient | Wrong lot returned when lot codes collide across products; /trace/ingredient returned false traces for finished goods lots | Lot collisions return wrong data; /trace/ingredient silently returns empty traces for batch lots; PATCH supplier-lot corrupts wrong lot | `main.py`, `dashboard/traceability.html` |
 
 ## Known Root Causes
 

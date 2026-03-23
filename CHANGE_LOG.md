@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-03-23 16:30 — Fix lot code collision bug + trace type misclassification
+- **File(s) changed:** `main.py`, `dashboard/traceability.html`
+- **What changed:** Added optional `product_id` query parameter to 5 endpoints (`/lots/by-code`, `/lots/{lot_code}/supplier-lot`, `/trace/batch`, `/trace/ingredient`, `/dashboard/api/lot`) for disambiguation when lot codes collide across products. When `product_id` is omitted and multiple lots match, endpoints return HTTP 409 with a list of matches. Added type validation to `/trace/ingredient` — returns 400 `wrong_trace_type` if called with a finished-goods lot. Fixed `/trace/batch` production query to join on `lot_id` (integer) instead of `lot_code` (string). Fixed `/trace/ingredient` downstream query to join on `lot_id`. Frontend: fixed `buildLotIndex` dedup to key on `lot_code|product_id`, added `selectedProductId` tracking, pass `product_id` in all API calls, added disambiguation modal for 409 responses, auto-route forward trace to batch endpoint on `wrong_trace_type`, escaped lot codes in onclick handlers (XSS fix), persist `product_id` in URL state.
+- **Why:** Lot codes like "MAR 12 2026" are shared across products (ingredient + batch). Endpoints using `WHERE LOWER(lot_code) = LOWER(...)` with `fetchone()` returned whichever row Postgres found first, causing wrong lot data, wrong traces, and wrong supplier-lot updates.
+
+---
+
+## 2026-03-23 14:00 — Fix backward trace for ingredient lots
+- **File(s) changed:** `main.py`, `dashboard/traceability.html`
+- **What changed:** Updated `/trace/batch/{lot_code}` to detect ingredient lots (entry_source = receive/adjusted/found) and return supplier origin + downstream batches instead of 404. Added `_trace_ingredient_backward()` helper. Updated traceability.html to render ingredient backward traces with supplier → ingredient → batches → customers flow.
+- **Why:** Backward trace failed with "Batch not found" for ingredient lots because the endpoint only looked for make/pack transactions.
+
+---
+
+## 2026-03-23 12:30 — Dashboard actionability audit report
+- **File(s) changed:** `DASHBOARD_ACTIONABILITY_AUDIT.md`
+- **What changed:** Created comprehensive audit report covering: complete endpoint inventory (85+ endpoints), dashboard page inventory (4 tabs, 4 standalone pages), gap analysis mapping write endpoints to dashboard locations, auth/CORS security assessment, and prioritized implementation plan with top 5 action sketches (ship order, update status, adjust inventory, receive, edit order header)
+- **Why:** Planning phase for making the Netlify dashboard actionable (write operations) instead of read-only
+
+---
+
 ## 2026-03-23 — "Ready to Ship" display label and reverse transition
 - **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `main.py`, `gpt-instructions-v3.md`, `GUIDE.md`, `CONTEXT.md`
 - **What changed:** Renamed dashboard display label from "Ready" to "Ready to Ship" in status label mapping and filter dropdown. Added `ready → in_production` reverse transition in both VALID_TRANSITIONS and MANUAL_TRANSITIONS. Updated GPT instructions to suggest marking orders as "Ready to Ship" after production completes, and documented the reverse transition. Updated GUIDE.md and CONTEXT.md to reflect the new display name and reverse transition.
