@@ -12,6 +12,7 @@ Every fix is logged here so future sessions know what breaks if a change is reve
 | 4 | 2026-03-19 | main.py | Fix day summary for pack consumption from prior-day batch lots | Pack runs using batches made on previous days didn't show in day summary | Day summary under-reports consumption | `main.py` |
 | 5 | 2026-03-19 | dashboard | Fix dashboard API calls to use absolute Railway URL | Relative paths failed when dashboard hosted on Netlify | Dashboard API calls return 404 | `dashboard/` |
 | 6 | 2026-03-19 | main.py | Replace `is_ingredient` with `type != 'ingredient'` in /make commit pack-prompt query | /make commit crashed with "column is_ingredient does not exist" | /make commit will crash again on auto-prompt /pack query | `main.py` |
+| 7 | 2026-03-23 | main.py, dashboard, docs | "Ready to Ship" display label + ready→in_production reverse transition | "Ready" label was unclear; no way to move order back if production falls short | Dashboard shows "Ready" instead of "Ready to Ship"; can't reverse from ready status | `main.py`, `dashboard.js`, `index.html`, `gpt-instructions-v3.md`, `GUIDE.md`, `CONTEXT.md` |
 
 ## Known Root Causes
 

@@ -4031,7 +4031,7 @@ VALID_TRANSITIONS = {
     'new':            ['confirmed', 'cancelled'],
     'confirmed':      ['in_production', 'cancelled'],
     'in_production':  ['ready', 'cancelled'],
-    'ready':          ['shipped', 'partial_ship', 'cancelled'],
+    'ready':          ['in_production', 'shipped', 'partial_ship', 'cancelled'],
     'partial_ship':   ['shipped', 'cancelled'],
     'shipped':        ['invoiced'],
     'invoiced':       [],   # terminal
@@ -4043,7 +4043,7 @@ MANUAL_TRANSITIONS = {
     'new':            ['confirmed', 'cancelled'],
     'confirmed':      ['in_production', 'cancelled'],
     'in_production':  ['ready', 'cancelled'],
-    'ready':          ['cancelled'],
+    'ready':          ['in_production', 'cancelled'],
     'partial_ship':   ['cancelled'],
     'shipped':        ['invoiced'],
     'invoiced':       [],

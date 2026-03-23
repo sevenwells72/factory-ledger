@@ -1,8 +1,19 @@
+# ╔════════════════════════════════════════════════════════════════╗
+# ║  ⚠️  DEPRECATED — DO NOT USE THIS FILE  ⚠️                    ║
+# ║                                                              ║
+# ║  This schema uses split /preview and /commit endpoints       ║
+# ║  (e.g. /receive/preview, /receive/commit) that were removed  ║
+# ║  from the API in v3. All mutations now use a single endpoint ║
+# ║  with a mode parameter (preview | commit).                   ║
+# ║                                                              ║
+# ║  USE INSTEAD: openapi-v3.yaml                                ║
+# ║  Deprecated: 2026-03-19                                      ║
+# ╚════════════════════════════════════════════════════════════════╝
 openapi: 3.1.0
 info:
   title: Factory Ledger API
   version: 2.7.0
-  description: "DEPRECATED — This schema uses split /preview and /commit endpoints that no longer exist in the API. Use openapi-v3.yaml instead."
+  description: "DEPRECATED — DO NOT USE. This schema uses split /preview and /commit endpoints that no longer exist. Use openapi-v3.yaml instead. All receive operations will 404 with this schema."
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
 security:

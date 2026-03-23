@@ -1,3 +1,8 @@
+# ============================================================
+# ACTIVE GPT SCHEMA — This is the canonical OpenAPI spec used
+# by the ChatGPT Custom GPT action configuration.
+# Last verified: 2026-03-19  |  Operations: 30/30
+# ============================================================
 openapi: 3.1.0
 info:
   title: Factory Ledger System

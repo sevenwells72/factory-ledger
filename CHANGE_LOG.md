@@ -1,9 +1,23 @@
 # Change Log
 
+## 2026-03-23 — "Ready to Ship" display label and reverse transition
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `main.py`, `gpt-instructions-v3.md`, `GUIDE.md`, `CONTEXT.md`
+- **What changed:** Renamed dashboard display label from "Ready" to "Ready to Ship" in status label mapping and filter dropdown. Added `ready → in_production` reverse transition in both VALID_TRANSITIONS and MANUAL_TRANSITIONS. Updated GPT instructions to suggest marking orders as "Ready to Ship" after production completes, and documented the reverse transition. Updated GUIDE.md and CONTEXT.md to reflect the new display name and reverse transition.
+- **Why:** Improve clarity of the "ready" status (now displayed as "Ready to Ship") and allow orders to move back to in_production if production falls short or inventory is consumed elsewhere.
+
+---
+
 ## 2026-03-19 — Fix /make commit crash: is_ingredient column does not exist
 - **File(s) changed:** `main.py`
 - **What changed:** Replaced `COALESCE(is_ingredient, false) = false` with `type != 'ingredient'` in the post-commit auto-prompt /pack query (line ~2622). The `is_ingredient` column never existed in the products table; the correct column is `type` with value `'ingredient'`.
 - **Why:** /make commit failed with "column is_ingredient does not exist" when trying to query finished goods for pack prompting after batch creation.
+
+---
+
+## 2026-03-19 15:20 — Add regression guard changelog and update CLAUDE.md
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CLAUDE.md`
+- **What changed:** Created FACTORY_LEDGER_CHANGELOG.md documenting all major fixes with "Breaks If Reverted" column, known root causes, and 10 permanent rules. Added Regression Guard section to CLAUDE.md so future sessions check the changelog before making changes.
+- **Why:** Prevent regressions by ensuring every Claude Code session is aware of past fixes and their dependencies.
 
 ---
 
