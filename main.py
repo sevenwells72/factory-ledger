@@ -3266,6 +3266,55 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
 
             date_str, time_str = format_timestamp(batch['timestamp'])
 
+            # Customer shipments for this batch lot
+            cur.execute("""
+                SELECT t.id as transaction_id, t.timestamp as shipped_at,
+                       ABS(tl.quantity_lb) as quantity_lb,
+                       t.customer_name, t.order_reference,
+                       so.id as sales_order_id,
+                       so.order_number,
+                       s.id as shipment_id
+                FROM transaction_lines tl
+                JOIN transactions t ON t.id = tl.transaction_id
+                LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
+                LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+                LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
+                LEFT JOIN shipment_lines sl ON sl.transaction_id = t.id
+                LEFT JOIN shipments s ON s.id = sl.shipment_id
+                WHERE tl.lot_id = %s
+                  AND t.type = 'ship'
+                  AND tl.quantity_lb < 0
+                  AND COALESCE(t.status, 'posted') = 'posted'
+                ORDER BY t.timestamp
+            """, (lot_row['id'],))
+            shipment_rows = cur.fetchall()
+
+            customer_shipments = []
+            for sh in shipment_rows:
+                sh_date, sh_time = format_timestamp(sh['shipped_at'])
+                customer_shipments.append({
+                    "transaction_id": sh['transaction_id'],
+                    "shipped_at": sh['shipped_at'].isoformat() if sh['shipped_at'] else None,
+                    "shipped_date": sh_date,
+                    "shipped_time": sh_time,
+                    "quantity_lb": float(sh['quantity_lb']),
+                    "customer_name": sh['customer_name'],
+                    "order_reference": sh['order_reference'],
+                    "sales_order_id": sh['sales_order_id'],
+                    "order_number": sh['order_number'],
+                    "shipment_id": sh['shipment_id']
+                })
+
+            total_shipped = sum(s['quantity_lb'] for s in customer_shipments)
+
+            # Current on-hand quantity
+            cur.execute("""
+                SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
+                FROM transaction_lines tl
+                WHERE tl.lot_id = %s
+            """, (lot_row['id'],))
+            on_hand = float(cur.fetchone()['on_hand'])
+
             return {
                 "trace_type": "batch",
                 "batch_lot_code": batch['lot_code'],
@@ -3280,7 +3329,10 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                         "supplier_lot_code": ing['supplier_lot_code'],
                         "quantity_lb": float(ing['quantity_consumed'])
                     } for ing in ingredients
-                ]
+                ],
+                "customer_shipments": customer_shipments,
+                "total_shipped_lb": total_shipped,
+                "on_hand_lb": on_hand
             }
     except HTTPException:
         raise
@@ -3434,29 +3486,57 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 })
             lot = rows[0]
 
-            # Type validation: if this is a finished goods lot, reject with guidance
-            if lot['entry_source'] in OUTPUT_ENTRY_SOURCES:
-                return JSONResponse(status_code=400, content={
-                    "error": "wrong_trace_type",
-                    "message": f"Lot '{lot_code}' is a finished goods lot (source: {lot['entry_source']}), not an ingredient lot. Use /trace/batch instead.",
-                    "lot_id": lot['id'],
-                    "product_id": lot['product_id'],
-                    "product_name": lot['ingredient_name'],
-                    "entry_source": lot['entry_source'],
-                    "correct_endpoint": f"/trace/batch/{lot_code}"
-                })
+            # Output lot (pack/make): don't reject, provide full picture
+            is_output_lot = lot['entry_source'] in OUTPUT_ENTRY_SOURCES
 
-            # Production consumption
-            cur.execute("""
-                SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
-                FROM ingredient_lot_consumption ilc
-                JOIN transactions t ON t.id = ilc.transaction_id
-                JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
-                JOIN lots bl ON bl.id = tl.lot_id
-                JOIN products bp ON bp.id = bl.product_id
-                WHERE ilc.ingredient_lot_id = %s
-            """, (lot['id'],))
-            batches = cur.fetchall()
+            if is_output_lot:
+                # Find upstream ingredients: get the make/pack transaction that created this lot,
+                # then pull ingredient_lot_consumption rows for that transaction
+                cur.execute("""
+                    SELECT t.id as transaction_id
+                    FROM transactions t
+                    JOIN transaction_lines tl ON tl.transaction_id = t.id
+                    WHERE t.type IN ('make', 'pack')
+                      AND COALESCE(t.status, 'posted') = 'posted'
+                      AND tl.lot_id = %s
+                      AND tl.quantity_lb > 0
+                """, (lot['id'],))
+                prod_txn = cur.fetchone()
+
+                upstream_ingredients = []
+                if prod_txn:
+                    cur.execute("""
+                        SELECT p.name as ingredient_name, l.lot_code,
+                               ilc.quantity_lb, l.supplier_lot_code
+                        FROM ingredient_lot_consumption ilc
+                        JOIN products p ON p.id = ilc.ingredient_product_id
+                        JOIN lots l ON l.id = ilc.ingredient_lot_id
+                        WHERE ilc.transaction_id = %s
+                    """, (prod_txn['transaction_id'],))
+                    upstream_ingredients = [
+                        {
+                            "ingredient_name": r['ingredient_name'],
+                            "lot_code": r['lot_code'],
+                            "quantity_lb": float(r['quantity_lb']),
+                            "supplier_lot_code": r['supplier_lot_code']
+                        } for r in cur.fetchall()
+                    ]
+
+                batches = []  # output lots aren't consumed as ingredients
+            else:
+                upstream_ingredients = None
+
+                # Production consumption
+                cur.execute("""
+                    SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
+                    FROM ingredient_lot_consumption ilc
+                    JOIN transactions t ON t.id = ilc.transaction_id
+                    JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+                    JOIN lots bl ON bl.id = tl.lot_id
+                    JOIN products bp ON bp.id = bl.product_id
+                    WHERE ilc.ingredient_lot_id = %s
+                """, (lot['id'],))
+                batches = cur.fetchall()
 
             # Direct shipments (ship transactions that deducted from this lot)
             cur.execute("""
@@ -3507,7 +3587,7 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
             """, (lot['id'],))
             on_hand = float(cur.fetchone()['on_hand'])
 
-            return {
+            result = {
                 "ingredient_lot_code": lot['lot_code'],
                 "supplier_lot_code": lot['supplier_lot_code'],
                 "ingredient_name": lot['ingredient_name'],
@@ -3522,6 +3602,16 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 "total_shipped_lb": total_shipped,
                 "on_hand_lb": on_hand
             }
+
+            if is_output_lot:
+                result["lot_origin"] = lot['entry_source']
+                result["origin_note"] = (
+                    f"This lot was created via /{lot['entry_source'].replace('_output', '')}. "
+                    f"For full upstream ingredients, see /trace/batch/{lot['lot_code']}"
+                )
+                result["upstream_ingredients"] = upstream_ingredients
+
+            return result
     except HTTPException:
         raise
     except Exception as e:

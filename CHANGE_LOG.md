@@ -1,5 +1,15 @@
 # Change Log
 
+## 2026-03-24 19:30 — Option C trace: full upstream+downstream from any trace endpoint, no dead ends
+- **File(s) changed:** `main.py`
+- **What changed:**
+  - `/trace/ingredient` no longer hard-rejects output lots (pack_output, production_output). Instead returns lot_origin, origin_note, upstream_ingredients (via ingredient_lot_consumption), plus direct_shipments/on_hand as normal
+  - `/trace/batch` now includes customer_shipments, total_shipped_lb, and on_hand_lb — queries ship transactions that deducted from the batch lot
+  - supplier_lot_code was already present on batch trace ingredient rows (no change needed)
+- **Why:** Lot 601141 (Graham Cracker Crumbs NTF 10 LB) has entry_source=pack_output but ships directly to customers. The Fix 4 guard rail blocked it from /trace/ingredient, making shipment data invisible. Now both endpoints give the full picture regardless of which one is called.
+
+---
+
 ## 2026-03-24 17:00 — Extend trace endpoints for direct-ship and supplier-lot exposure (FDA recall compliance)
 - **File(s) changed:** `main.py`
 - **What changed:**
