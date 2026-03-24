@@ -2,7 +2,7 @@
 
 ## 2026-03-25 00:15 — Accept order_number strings in all /sales/orders/{order_id} endpoints
 - **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `gpt-instructions-v3.md`
-- **What changed:** Added `resolve_order_id` dependency that accepts either integer DB id or order_number string (e.g. 'SO-260323-001') and resolves to the integer id. Applied to all 8 sales order endpoints (get, update header, update status, add lines, cancel line, update line, ship, packing slip). Updated both OpenAPI schemas to declare order_id as `type: string`. Added note to GPT instructions ORDER EDITING section.
+- **What changed:** Added `resolve_order_id` dependency that accepts either integer DB id or order_number string (e.g. 'SO-260323-001') and resolves to the integer id. Applied to all 8 sales order endpoints. Updated both OpenAPI schemas to declare order_id as `type: string`. Added note to GPT instructions ORDER EDITING section. Compressed GPT instructions to stay under 8,000 char limit (ORDER ENTRY, SUPPLIER LOT, PACKING SLIP sections).
 - **Why:** GPT only knows the order_number (not the DB integer id), so FastAPI rejected order number strings with validation errors. GPT fell back to showing curl commands instead of executing.
 
 ---
