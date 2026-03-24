@@ -3347,14 +3347,16 @@ def _trace_ingredient_backward(cur, lot_row):
         SELECT t.id as transaction_id, t.timestamp as shipped_at,
                ABS(tl.quantity_lb) as quantity_lb,
                t.customer_name, t.order_reference,
-               sos.sales_order_id,
+               so.id as sales_order_id,
                so.order_number,
                s.id as shipment_id
         FROM transaction_lines tl
         JOIN transactions t ON t.id = tl.transaction_id
         LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
-        LEFT JOIN sales_orders so ON so.id = sos.sales_order_id
-        LEFT JOIN shipments s ON s.id = sos.shipment_id
+        LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+        LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
+        LEFT JOIN shipment_lines sl ON sl.transaction_id = t.id
+        LEFT JOIN shipments s ON s.id = sl.shipment_id
         WHERE tl.lot_id = %s
           AND t.type = 'ship'
           AND tl.quantity_lb < 0
@@ -3461,14 +3463,16 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 SELECT t.id as transaction_id, t.timestamp as shipped_at,
                        ABS(tl.quantity_lb) as quantity_lb,
                        t.customer_name, t.order_reference,
-                       sos.sales_order_id,
+                       so.id as sales_order_id,
                        so.order_number,
                        s.id as shipment_id
                 FROM transaction_lines tl
                 JOIN transactions t ON t.id = tl.transaction_id
                 LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
-                LEFT JOIN sales_orders so ON so.id = sos.sales_order_id
-                LEFT JOIN shipments s ON s.id = sos.shipment_id
+                LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+                LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
+                LEFT JOIN shipment_lines sl ON sl.transaction_id = t.id
+                LEFT JOIN shipments s ON s.id = sl.shipment_id
                 WHERE tl.lot_id = %s
                   AND t.type = 'ship'
                   AND tl.quantity_lb < 0
@@ -3613,7 +3617,8 @@ def trace_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_api_key)
                     FROM transaction_lines tl
                     JOIN transactions t ON t.id = tl.transaction_id
                     LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
-                    LEFT JOIN sales_orders so ON so.id = sos.sales_order_id
+                    LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+                    LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
                     WHERE tl.lot_id = %s
                       AND t.type = 'ship'
                       AND tl.quantity_lb < 0
