@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Query, Depends
+from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
@@ -527,6 +527,22 @@ def verify_api_key_flexible(
     if not secrets.compare_digest(provided_key, API_KEY):
         raise HTTPException(status_code=401, detail="Invalid API key")
     return True
+
+
+def resolve_order_id(order_id: str = Path(...)) -> int:
+    """Accept either numeric DB id or order_number string (e.g. 'SO-260323-001').
+    Returns the integer DB id."""
+    try:
+        return int(order_id)
+    except ValueError:
+        pass
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id FROM sales_orders WHERE order_number = %s", (order_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(404, f"Order '{order_id}' not found")
+            return row['id']
 
 
 def format_timestamp(dt):
@@ -1687,6 +1703,10 @@ class SupplierLotUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+class LotRenameRequest(BaseModel):
+    new_lot_code: str
+
+
 @app.patch("/lots/{lot_code}/supplier-lot")
 def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     """Attach or update the supplier lot cross-reference on an existing lot.
@@ -1749,6 +1769,72 @@ def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optio
         raise
     except Exception as e:
         logger.error(f"Update supplier lot failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.patch("/lots/{lot_id}/rename")
+def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_key)):
+    """Rename a lot's lot_code (e.g. fix an UNKNOWN lot to the real code).
+
+    Validates no duplicate lot_code exists for the same product.
+    Only lots.lot_code needs updating — all other tables use integer FKs.
+    """
+    new_code = req.new_lot_code.strip()
+    if not new_code:
+        raise HTTPException(400, "new_lot_code must not be empty")
+
+    try:
+        with get_transaction() as cur:
+            # Fetch the lot
+            cur.execute("""
+                SELECT l.id, l.lot_code, l.product_id, p.name AS product_name
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                WHERE l.id = %s
+            """, (lot_id,))
+            lot = cur.fetchone()
+            if not lot:
+                raise HTTPException(404, f"Lot id {lot_id} not found")
+
+            old_code = lot['lot_code']
+            product_id = lot['product_id']
+
+            if old_code == new_code:
+                return {"lot_id": lot_id, "lot_code": new_code,
+                        "product_name": lot['product_name'],
+                        "renamed": False, "message": "Already has that lot_code"}
+
+            # Check for conflict
+            cur.execute("""
+                SELECT id FROM lots
+                WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)
+            """, (product_id, new_code))
+            conflict = cur.fetchone()
+            if conflict:
+                raise HTTPException(409,
+                    f"Lot code '{new_code}' already exists for product {product_id} "
+                    f"(lot id {conflict['id']})")
+
+            # Rename
+            cur.execute("""
+                UPDATE lots SET lot_code = %s WHERE id = %s
+            """, (new_code, lot_id))
+
+            logger.info(f"Lot {lot_id} renamed: '{old_code}' -> '{new_code}' "
+                        f"(product_id={product_id})")
+
+            return {
+                "lot_id": lot_id,
+                "previous_lot_code": old_code,
+                "lot_code": new_code,
+                "product_id": product_id,
+                "product_name": lot['product_name'],
+                "renamed": True
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Lot rename failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
@@ -2282,6 +2368,19 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         ship_mode = "multi_lot_fifo"
                         log_msg = f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s) (auto multi-lot FIFO)."
 
+                    # ── Create shipment + shipment_lines (unified shipping model) ──
+                    cur.execute("""
+                        INSERT INTO shipments (transaction_id, shipped_at, customer_id)
+                        VALUES (%s, %s, %s) RETURNING id
+                    """, (txn_id, now, customer_id))
+                    shipment_id = cur.fetchone()['id']
+
+                    for sl in shipped_lots:
+                        cur.execute("""
+                            INSERT INTO shipment_lines (shipment_id, transaction_id, product_id, quantity_lb)
+                            VALUES (%s, %s, %s, %s)
+                        """, (shipment_id, txn_id, product['id'], sl['shipped_lb']))
+
                     if standalone_warning:
                         logger.warning(f"force_standalone ship for {canonical_customer} who has {len(oo_payload.get('open_orders', []))} open orders: txn {txn_id}")
 
@@ -2291,6 +2390,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         "mode": "commit",
                         "success": True,
                         "transaction_id": txn_id,
+                        "shipment_id": shipment_id,
                         "confirmation_code": generate_confirmation_code(txn_id),
                         "quantity_shipped": req.quantity_lb,
                         "ship_mode": ship_mode,
@@ -4880,7 +4980,7 @@ def fulfillment_check(
 
 
 @app.get("/sales/orders/{order_id}")
-def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
+def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
             cur.execute(
@@ -5022,7 +5122,7 @@ def get_sales_order(order_id: int, _: bool = Depends(verify_api_key)):
 
 
 @app.patch("/sales/orders/{order_id}/status")
-def update_order_status(order_id: int, req: OrderStatusUpdate, _: bool = Depends(verify_api_key)):
+def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderStatusUpdate = ..., _: bool = Depends(verify_api_key)):
     all_statuses = list(VALID_TRANSITIONS.keys())
     if req.status not in all_statuses:
         raise HTTPException(400, f"Invalid status. Must be one of: {all_statuses}")
@@ -5080,7 +5180,7 @@ def update_order_status(order_id: int, req: OrderStatusUpdate, _: bool = Depends
 
 
 @app.patch("/sales/orders/{order_id}")
-def update_order_header(order_id: int, req: OrderHeaderUpdate, _: bool = Depends(verify_api_key)):
+def update_order_header(order_id: int = Depends(resolve_order_id), req: OrderHeaderUpdate = ..., _: bool = Depends(verify_api_key)):
     """Update order header fields (ship date, notes, customer). Only allowed when status is 'new' or 'confirmed'."""
     try:
         with get_db_connection() as conn:
@@ -5150,7 +5250,7 @@ def update_order_header(order_id: int, req: OrderHeaderUpdate, _: bool = Depends
 
 
 @app.post("/sales/orders/{order_id}/lines")
-def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_api_key)):
+def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLines = ..., _: bool = Depends(verify_api_key)):
     for line in req.lines:
         validate_bilingual(line.notes, line.notes_es, "notes")
     try:
@@ -5220,7 +5320,7 @@ def add_order_lines(order_id: int, req: AddOrderLines, _: bool = Depends(verify_
 
 
 @app.patch("/sales/orders/{order_id}/lines/{line_id}/cancel")
-def cancel_order_line(order_id: int, line_id: int, _: bool = Depends(verify_api_key)):
+def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = Path(...), _: bool = Depends(verify_api_key)):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -5243,8 +5343,8 @@ def cancel_order_line(order_id: int, line_id: int, _: bool = Depends(verify_api_
 
 @app.patch("/sales/orders/{order_id}/lines/{line_id}/update")
 def update_order_line(
-    order_id: int,
-    line_id: int,
+    order_id: int = Depends(resolve_order_id),
+    line_id: int = Path(...),
     quantity_lb: Optional[float] = Query(default=None),
     unit_price: Optional[float] = Query(default=None),
     _: bool = Depends(verify_api_key)
@@ -5285,7 +5385,7 @@ def update_order_line(
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/sales/orders/{order_id}/ship")
-def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
     """Ship against a sales order. mode=preview returns feasibility; mode=commit executes and creates shipment record."""
     mode = "preview" if req is None else req.mode
     if mode == "preview":
@@ -5489,7 +5589,7 @@ def ship_order(order_id: int, req: Optional[ShipOrderRequest] = None, _: bool = 
 # ═══════════════════════════════════════════════════════════════
 
 @app.get("/sales/orders/{order_id}/packing-slip")
-def generate_packing_slip(order_id: int, _: bool = Depends(verify_api_key_flexible)):
+def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = Depends(verify_api_key_flexible)):
     """Generate a printable packing slip PDF for a sales order."""
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.units import inch

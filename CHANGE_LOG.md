@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-03-25 00:15 — Accept order_number strings in all /sales/orders/{order_id} endpoints
+- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `gpt-instructions-v3.md`
+- **What changed:** Added `resolve_order_id` dependency that accepts either integer DB id or order_number string (e.g. 'SO-260323-001') and resolves to the integer id. Applied to all 8 sales order endpoints (get, update header, update status, add lines, cancel line, update line, ship, packing slip). Updated both OpenAPI schemas to declare order_id as `type: string`. Added note to GPT instructions ORDER EDITING section.
+- **Why:** GPT only knows the order_number (not the DB integer id), so FastAPI rejected order number strings with validation errors. GPT fell back to showing curl commands instead of executing.
+
+---
+
+## 2026-03-24 23:45 — Fix GPT "show don't tell" bug for ship date edits
+- **File(s) changed:** `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `gpt-instructions-v3.md`
+- **What changed:** Added `format: date` and explicit description with date conversion examples to `requested_ship_date` in both OpenAPI schemas. Strengthened ORDER EDITING section in GPT instructions to say "CALL API IMMEDIATELY" and include date format conversion rules. Added "NEVER show curl, API docs, or payloads" and "NEVER suggest cancel/recreate for edits" directives.
+- **Why:** GPT was responding with curl commands and API documentation instead of calling updateOrderHeader when asked to change a ship date. Root cause: the v3 schema had no description/format on requested_ship_date, and GPT instructions mapped the operation but didn't explicitly direct execution.
+
+---
+
+## 2026-03-24 22:30 — GAP-3: Standalone /ship writes shipments + shipment_lines
+- **File(s) changed:** `main.py`, `migrations/030_backfill_standalone_shipment_records.sql`
+- **What changed:**
+  - Standalone `/ship` commit path now creates a `shipments` row (with `transaction_id`, `shipped_at`, `customer_id`) and `shipment_lines` rows (one per lot shipped, with positive quantity) after writing transaction_lines. No sales_order_id or sales_order_line_id (left NULL).
+  - Response now includes `shipment_id` field.
+  - New migration 030: backfills `shipments` + `shipment_lines` for all existing standalone ship transactions that were missing them. Wrapped in a transaction, uses ABS() on negative transaction_line quantities.
+  - Integrity checker (ship_missing_shipment_lines) unchanged — date filter `>= 2026-02-27` already correct; backfill covers all existing orphans.
+- **Why:** Standalone shipments were invisible to anything querying shipment tables (packing slips, integrity checker, reports). Unifies shipping model so both standalone and order-linked paths write to shipments/shipment_lines.
+
+---
+
+## 2026-03-24 21:00 — Rename UNKNOWN lot to 25216 + add lot rename endpoint
+- **File(s) changed:** `migrations/029_rename_unknown_lot_to_25216.sql`, `main.py`
+- **What changed:**
+  - New migration 029: renames lot 324 (Chocolate Sprinkles 25 LB, product_id 203) from lot_code='UNKNOWN' to '25216'. Includes pre-flight/post-flight checks, conflict guard, and idempotency (skips if already renamed).
+  - New `PATCH /lots/{lot_id}/rename` endpoint in main.py: accepts `{"new_lot_code": "..."}`, validates no duplicate for same product, updates `lots.lot_code`, returns old/new codes. Schema audit confirmed only `lots` table stores lot_code as text — all other tables use integer FKs.
+  - New `LotRenameRequest` Pydantic model.
+- **Why:** Lot 324 was created with lot_code='UNKNOWN' during receive; real code from packing slip is 25216. Supplier lot was already backfilled but internal lot_code was still 'UNKNOWN'. Rename endpoint prevents future cases from needing raw SQL.
+
+---
+
 ## 2026-03-24 19:30 — Option C trace: full upstream+downstream from any trace endpoint, no dead ends
 - **File(s) changed:** `main.py`
 - **What changed:**
