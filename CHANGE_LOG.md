@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-24 10:00 — Fix order entry behavior — act don't explain, minimize exchanges
+- **File(s) changed:** `gpt-instructions-v3.md`
+- **What changed:** Added ORDER ENTRY FROM CONFIRMATIONS section with silent extract→resolve→create flow; strengthened BE CONCISE (4 lines max for order confirmations, no unprompted next steps) and ACT DON'T LOOP (no payload display, no step headers, max 1 emoji); tightened DISAMBIGUATION for order entry (one tight question only); compressed SUPPLIER LOT, PACK, and QUERIES sections to stay under 8K char limit. Version bumped to v3.4.0.
+- **Why:** GPT was acting as consultant during order entry — dumping SOPs, over-confirming, showing payloads, taking 6-7 exchanges for what should be 1-2.
+
+---
+
 ## 2026-03-23 17:15 — Extend lot collision disambiguation to main dashboard
 - **File(s) changed:** `main.py`, `dashboard/dashboard.js`
 - **What changed:** Added `product_id` to `json_build_object` in shipments and receipts API responses so lot links in the Activity tab have product context. Added `product_id` to search API lots query. In dashboard.js: added `data-product-id` to shipping, receiving, and product panel lot links; added `data-search-lot-product-id` to search result lot items; pass `product_id` through all `openLotPanel` calls. Rewrote `openLotPanel` to handle HTTP 409 (ambiguous lot code) by rendering a disambiguation picker instead of a raw error. Added `renderLotDisambiguation()` helper.
