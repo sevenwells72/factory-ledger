@@ -1,5 +1,32 @@
 # Change Log
 
+## 2026-03-24 17:00 — Extend trace endpoints for direct-ship and supplier-lot exposure (FDA recall compliance)
+- **File(s) changed:** `main.py`
+- **What changed:**
+  - Added `INGREDIENT_ENTRY_SOURCES` and `OUTPUT_ENTRY_SOURCES` constants; updated `/trace/batch` and `/trace/ingredient` to use them (fixes stale enum values like 'receive'/'make'/'pack')
+  - Added `direct_shipments`, `total_shipped_lb`, and `on_hand_lb` to both `/trace/ingredient` and `_trace_ingredient_backward()` — queries ship transactions that deducted from ingredient lots
+  - Added new `GET /trace/supplier-lot/{supplier_lot_code}` endpoint — recall-ready: finds all internal lots for a supplier lot (via `lots.supplier_lot_code` and `lot_supplier_codes` table), returns production usage, customer shipments, and exposure summary
+- **Why:** Ingredient/resale lots shipped directly to customers (sprinkles, graham crumbs) were invisible to trace endpoints because trace only followed `ingredient_lot_consumption`. FDA recall compliance requires answering "where did supplier lot X end up?" for all products.
+
+---
+
+## 2026-03-24 15:45 — Backfill supplier lots for SO-260318-005 (American Classic Specialties)
+- **File(s) changed:** API patches only (no file changes)
+- **What changed:** Linked supplier lot codes for 3 lots from the American Classic Specialties shipment:
+  - Rainbow Sprinkles lot `26-03-20-INVE-001` → supplier lot `550075853` (was missing)
+  - Chocolate Sprinkles lot `UNKNOWN` (product_id 203) → supplier lot `25216` (was set to "UNKNOWN")
+  - Graham Crumbs lot `601141` → supplier lot `601141` (was null)
+- **Why:** Physical packing slips had supplier lot numbers handwritten but system records were missing the cross-references. Note: Chocolate Sprinkles lot code remains "UNKNOWN" — no API endpoint exists to rename lot codes; a manual DB UPDATE would be needed to rename it.
+
+---
+
+## 2026-03-24 14:30 — Factory Ledger Traceability Audit Report
+- **File(s) changed:** `TRACEABILITY_AUDIT_2026-03-24.md`
+- **What changed:** Created comprehensive traceability audit report identifying 13 gaps in the trace, ship, and lot lifecycle flows. Key findings: direct-ship-from-ingredient is invisible to trace endpoints (CRITICAL), no forward trace from lot to customer (CRITICAL), standalone /ship doesn't create shipment records (HIGH). Includes priority matrix and concrete fix proposals.
+- **Why:** SO-260318-005 (Rainbow Sprinkles to American Classic Specialties) exposed broken backward traceability — lot 26-03-20-INVE-001 shows as never used despite being shipped, and supplier lot 550075853 was never linked.
+
+---
+
 ## 2026-03-24 10:00 — Fix order entry behavior — act don't explain, minimize exchanges
 - **File(s) changed:** `gpt-instructions-v3.md`
 - **What changed:** Added ORDER ENTRY FROM CONFIRMATIONS section with silent extract→resolve→create flow; strengthened BE CONCISE (4 lines max for order confirmations, no unprompted next steps) and ACT DON'T LOOP (no payload display, no step headers, max 1 emoji); tightened DISAMBIGUATION for order entry (one tight question only); compressed SUPPLIER LOT, PACK, and QUERIES sections to stay under 8K char limit. Version bumped to v3.4.0.

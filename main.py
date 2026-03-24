@@ -3200,6 +3200,10 @@ def void_transaction(transaction_id: int, _: bool = Depends(verify_api_key)):
 # TRACE ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+# Canonical entry_source values written by lot creation endpoints
+INGREDIENT_ENTRY_SOURCES = {'received', 'found_inventory', 'adjusted', None}
+OUTPUT_ENTRY_SOURCES = {'production_output', 'pack_output'}
+
 @app.get("/trace/batch/{lot_code}")
 def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     try:
@@ -3230,8 +3234,8 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 })
             lot_row = rows[0]
 
-            # Ingredient lot: entry_source is receive, adjusted, found (not make/pack)
-            if lot_row['entry_source'] in ('receive', 'adjusted', 'found', None):
+            # Ingredient lot: entry_source is received, adjusted, found_inventory (not production/pack output)
+            if lot_row['entry_source'] in INGREDIENT_ENTRY_SOURCES:
                 return _trace_ingredient_backward(cur, lot_row)
 
             # Finished goods lot: entry_source is make or pack — existing logic
@@ -3338,6 +3342,53 @@ def _trace_ingredient_backward(cur, lot_row):
             "produced_time": b_time
         })
 
+    # 3. Find direct shipments (ship transactions that deducted from this lot)
+    cur.execute("""
+        SELECT t.id as transaction_id, t.timestamp as shipped_at,
+               ABS(tl.quantity_lb) as quantity_lb,
+               t.customer_name, t.order_reference,
+               sos.sales_order_id,
+               so.order_number,
+               s.id as shipment_id
+        FROM transaction_lines tl
+        JOIN transactions t ON t.id = tl.transaction_id
+        LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
+        LEFT JOIN sales_orders so ON so.id = sos.sales_order_id
+        LEFT JOIN shipments s ON s.id = sos.shipment_id
+        WHERE tl.lot_id = %s
+          AND t.type = 'ship'
+          AND tl.quantity_lb < 0
+          AND COALESCE(t.status, 'posted') = 'posted'
+        ORDER BY t.timestamp
+    """, (lot_row['id'],))
+    shipments = cur.fetchall()
+
+    shipments_out = []
+    for sh in shipments:
+        sh_date, sh_time = format_timestamp(sh['shipped_at'])
+        shipments_out.append({
+            "transaction_id": sh['transaction_id'],
+            "shipped_at": sh['shipped_at'].isoformat() if sh['shipped_at'] else None,
+            "shipped_date": sh_date,
+            "shipped_time": sh_time,
+            "quantity_lb": float(sh['quantity_lb']),
+            "customer_name": sh['customer_name'],
+            "order_reference": sh['order_reference'],
+            "sales_order_id": sh['sales_order_id'],
+            "order_number": sh['order_number'],
+            "shipment_id": sh['shipment_id']
+        })
+
+    total_shipped = sum(s['quantity_lb'] for s in shipments_out)
+
+    # 4. Current on-hand quantity
+    cur.execute("""
+        SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
+        FROM transaction_lines tl
+        WHERE tl.lot_id = %s
+    """, (lot_row['id'],))
+    on_hand = float(cur.fetchone()['on_hand'])
+
     return {
         "trace_type": "ingredient",
         "lot_code": lot_code,
@@ -3345,7 +3396,10 @@ def _trace_ingredient_backward(cur, lot_row):
         "supplier_lot_code": lot_row['supplier_lot_code'],
         "entry_source": lot_row['entry_source'],
         "supplier": supplier_info,
-        "downstream_batches": batches_out
+        "downstream_batches": batches_out,
+        "direct_shipments": shipments_out,
+        "total_shipped_lb": total_shipped,
+        "on_hand_lb": on_hand
     }
 
 
@@ -3379,7 +3433,7 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
             lot = rows[0]
 
             # Type validation: if this is a finished goods lot, reject with guidance
-            if lot['entry_source'] in ('make', 'pack', 'production_output'):
+            if lot['entry_source'] in OUTPUT_ENTRY_SOURCES:
                 return JSONResponse(status_code=400, content={
                     "error": "wrong_trace_type",
                     "message": f"Lot '{lot_code}' is a finished goods lot (source: {lot['entry_source']}), not an ingredient lot. Use /trace/batch instead.",
@@ -3390,6 +3444,7 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                     "correct_endpoint": f"/trace/batch/{lot_code}"
                 })
 
+            # Production consumption
             cur.execute("""
                 SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
@@ -3401,6 +3456,53 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
             """, (lot['id'],))
             batches = cur.fetchall()
 
+            # Direct shipments (ship transactions that deducted from this lot)
+            cur.execute("""
+                SELECT t.id as transaction_id, t.timestamp as shipped_at,
+                       ABS(tl.quantity_lb) as quantity_lb,
+                       t.customer_name, t.order_reference,
+                       sos.sales_order_id,
+                       so.order_number,
+                       s.id as shipment_id
+                FROM transaction_lines tl
+                JOIN transactions t ON t.id = tl.transaction_id
+                LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
+                LEFT JOIN sales_orders so ON so.id = sos.sales_order_id
+                LEFT JOIN shipments s ON s.id = sos.shipment_id
+                WHERE tl.lot_id = %s
+                  AND t.type = 'ship'
+                  AND tl.quantity_lb < 0
+                  AND COALESCE(t.status, 'posted') = 'posted'
+                ORDER BY t.timestamp
+            """, (lot['id'],))
+            shipments = cur.fetchall()
+
+            direct_shipments = []
+            for sh in shipments:
+                sh_date, sh_time = format_timestamp(sh['shipped_at'])
+                direct_shipments.append({
+                    "transaction_id": sh['transaction_id'],
+                    "shipped_at": sh['shipped_at'].isoformat() if sh['shipped_at'] else None,
+                    "shipped_date": sh_date,
+                    "shipped_time": sh_time,
+                    "quantity_lb": float(sh['quantity_lb']),
+                    "customer_name": sh['customer_name'],
+                    "order_reference": sh['order_reference'],
+                    "sales_order_id": sh['sales_order_id'],
+                    "order_number": sh['order_number'],
+                    "shipment_id": sh['shipment_id']
+                })
+
+            total_shipped = sum(s['quantity_lb'] for s in direct_shipments)
+
+            # Current on-hand quantity
+            cur.execute("""
+                SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
+                FROM transaction_lines tl
+                WHERE tl.lot_id = %s
+            """, (lot['id'],))
+            on_hand = float(cur.fetchone()['on_hand'])
+
             return {
                 "ingredient_lot_code": lot['lot_code'],
                 "supplier_lot_code": lot['supplier_lot_code'],
@@ -3411,12 +3513,157 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                         "batch_product": b['batch_product'],
                         "quantity_used": float(b['quantity_consumed'])
                     } for b in batches
-                ]
+                ],
+                "direct_shipments": direct_shipments,
+                "total_shipped_lb": total_shipped,
+                "on_hand_lb": on_hand
             }
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Trace ingredient failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/trace/supplier-lot/{supplier_lot_code}")
+def trace_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_api_key)):
+    """FDA recall-ready endpoint: given a supplier lot code, find all internal lots and trace full exposure."""
+    try:
+        with get_transaction() as cur:
+            # Find all internal lots matching this supplier lot code
+            # Check both lots.supplier_lot_code and lot_supplier_codes table (commingled receipts)
+            cur.execute("""
+                SELECT DISTINCT l.id as lot_id, l.lot_code, l.supplier_lot_code,
+                       l.entry_source, p.id as product_id, p.name as product_name
+                FROM lots l
+                JOIN products p ON p.id = l.product_id
+                WHERE LOWER(l.supplier_lot_code) = LOWER(%s)
+
+                UNION
+
+                SELECT DISTINCT l.id as lot_id, l.lot_code, l.supplier_lot_code,
+                       l.entry_source, p.id as product_id, p.name as product_name
+                FROM lot_supplier_codes lsc
+                JOIN lots l ON l.id = lsc.lot_id
+                JOIN products p ON p.id = l.product_id
+                WHERE LOWER(lsc.supplier_lot_code) = LOWER(%s)
+
+                ORDER BY lot_code
+            """, (supplier_lot_code, supplier_lot_code))
+            matched_lots = cur.fetchall()
+
+            if not matched_lots:
+                raise HTTPException(status_code=404,
+                    detail=f"No internal lots found for supplier lot code '{supplier_lot_code}'")
+
+            total_received = 0.0
+            total_in_production = 0.0
+            total_shipped = 0.0
+            total_on_hand = 0.0
+
+            results = []
+            for lot in matched_lots:
+                lot_id = lot['lot_id']
+
+                # On-hand quantity
+                cur.execute("""
+                    SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
+                    FROM transaction_lines tl
+                    WHERE tl.lot_id = %s
+                """, (lot_id,))
+                on_hand = float(cur.fetchone()['on_hand'])
+
+                # Total received (positive qty from receive transactions)
+                cur.execute("""
+                    SELECT COALESCE(SUM(tl.quantity_lb), 0) as total_received
+                    FROM transaction_lines tl
+                    JOIN transactions t ON t.id = tl.transaction_id
+                    WHERE tl.lot_id = %s AND t.type = 'receive'
+                      AND tl.quantity_lb > 0
+                      AND COALESCE(t.status, 'posted') = 'posted'
+                """, (lot_id,))
+                received = float(cur.fetchone()['total_received'])
+
+                # Production consumption (ingredient_lot_consumption)
+                cur.execute("""
+                    SELECT bl.lot_code as batch_lot_code, bp.name as batch_product,
+                           ilc.quantity_lb as quantity_used_lb
+                    FROM ingredient_lot_consumption ilc
+                    JOIN transactions t ON t.id = ilc.transaction_id
+                    JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+                    JOIN lots bl ON bl.id = tl.lot_id
+                    JOIN products bp ON bp.id = bl.product_id
+                    WHERE ilc.ingredient_lot_id = %s
+                    ORDER BY t.timestamp
+                """, (lot_id,))
+                production = cur.fetchall()
+                production_usage = [{
+                    "batch_lot_code": p['batch_lot_code'],
+                    "batch_product": p['batch_product'],
+                    "quantity_used_lb": float(p['quantity_used_lb'])
+                } for p in production]
+                lot_production_total = sum(p['quantity_used_lb'] for p in production_usage)
+
+                # Direct customer shipments
+                cur.execute("""
+                    SELECT t.id as transaction_id, t.timestamp as shipped_at,
+                           ABS(tl.quantity_lb) as quantity_lb,
+                           t.customer_name, t.order_reference,
+                           so.order_number
+                    FROM transaction_lines tl
+                    JOIN transactions t ON t.id = tl.transaction_id
+                    LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
+                    LEFT JOIN sales_orders so ON so.id = sos.sales_order_id
+                    WHERE tl.lot_id = %s
+                      AND t.type = 'ship'
+                      AND tl.quantity_lb < 0
+                      AND COALESCE(t.status, 'posted') = 'posted'
+                    ORDER BY t.timestamp
+                """, (lot_id,))
+                shipments = cur.fetchall()
+                customer_shipments = []
+                for sh in shipments:
+                    sh_date, sh_time = format_timestamp(sh['shipped_at'])
+                    customer_shipments.append({
+                        "transaction_id": sh['transaction_id'],
+                        "shipped_at": sh['shipped_at'].isoformat() if sh['shipped_at'] else None,
+                        "shipped_date": sh_date,
+                        "shipped_time": sh_time,
+                        "quantity_lb": float(sh['quantity_lb']),
+                        "customer_name": sh['customer_name'],
+                        "order_number": sh['order_number']
+                    })
+                lot_shipped_total = sum(s['quantity_lb'] for s in customer_shipments)
+
+                results.append({
+                    "lot_code": lot['lot_code'],
+                    "product_name": lot['product_name'],
+                    "product_id": lot['product_id'],
+                    "on_hand_lb": on_hand,
+                    "total_received_lb": received,
+                    "production_usage": production_usage,
+                    "customer_shipments": customer_shipments
+                })
+
+                total_received += received
+                total_in_production += lot_production_total
+                total_shipped += lot_shipped_total
+                total_on_hand += on_hand
+
+            return {
+                "supplier_lot_code": supplier_lot_code,
+                "matched_internal_lots": results,
+                "total_exposure_summary": {
+                    "total_received_lb": total_received,
+                    "total_in_production_lb": total_in_production,
+                    "total_shipped_to_customers_lb": total_shipped,
+                    "total_on_hand_lb": total_on_hand
+                }
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Trace supplier lot failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
