@@ -53,6 +53,31 @@
     return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   }
 
+  /**
+   * Universal dual-display formatter.
+   * @param {number} lbs - weight in pounds
+   * @param {number|null} caseSizeLb - case_size_lb (packaged/FG) or default_batch_lb (batch)
+   * @param {string} productType - 'finished'|'batch'|'service'|'ingredient'
+   * @returns {string} formatted display string
+   */
+  function fmtQty(lbs, caseSizeLb, productType) {
+    if (lbs == null) return '\u2014';
+    const v = Number(lbs);
+    if (productType === 'service') {
+      return Number.isInteger(v) ? v.toLocaleString('en-US') + ' units' : v.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' units';
+    }
+    if (productType === 'ingredient' || !caseSizeLb || Number(caseSizeLb) <= 0) {
+      return fmtWt(v) + ' lb';
+    }
+    const cs = Number(caseSizeLb);
+    const units = Math.round(v / cs);
+    const lbStr = fmtWt(v);
+    if (productType === 'batch') {
+      return lbStr + ' lb \u00b7 ' + units.toLocaleString('en-US') + ' batches';
+    }
+    return lbStr + ' lb \u00b7 ' + units.toLocaleString('en-US') + ' units';
+  }
+
   function caseBadgeClass(cases) {
     if (cases >= 100) return 'stock-healthy';
     if (cases >= 20) return 'stock-low';
@@ -235,16 +260,15 @@
       if (day.batches.length > 0) {
         html += '<div class="day-section-label">Batches Made</div>';
         for (const b of day.batches) {
-          const batchCount = b.standard_batch_size_lbs
-            ? (b.total_lbs / b.standard_batch_size_lbs).toFixed(1)
-            : null;
+          const batchCount = b.batch_count != null ? b.batch_count
+            : (b.standard_batch_size_lbs ? (b.total_lbs / b.standard_batch_size_lbs).toFixed(1) : null);
           html += `<div class="day-item">`;
           html += `<div class="day-item-name">${escHtml(b.product_name)}</div>`;
           html += `<div class="day-item-stats"><span class="stat-lbs">${fmt(b.total_lbs)} lb</span>`;
           if (batchCount !== null) {
-            html += ` &bull; <span class="stat-batches">${batchCount} batches</span>`;
+            html += ` &middot; <span class="stat-batches">${batchCount} batches</span>`;
           } else {
-            html += ` &bull; <span class="badge unknown">batches: est.</span>`;
+            html += ` &middot; <span class="badge unknown">batches: est.</span>`;
           }
           html += `</div></div>`;
         }
@@ -253,14 +277,13 @@
       if (day.finished_goods.length > 0) {
         html += '<div class="day-section-label">Finished Goods Packed</div>';
         for (const fg of day.finished_goods) {
-          const fgBatchCount = fg.standard_batch_size_lbs
-            ? (fg.total_lbs / fg.standard_batch_size_lbs).toFixed(1)
-            : null;
+          const fgUnits = fg.unit_count != null ? fg.unit_count
+            : (fg.case_size_lb ? Math.round(fg.total_lbs / fg.case_size_lb) : null);
           html += `<div class="day-item">`;
           html += `<div class="day-item-name">${escHtml(fg.product_name)}</div>`;
           html += `<div class="day-item-stats"><span class="stat-lbs">${fmt(fg.total_lbs)} lb</span>`;
-          if (fgBatchCount !== null) {
-            html += ` &bull; <span class="stat-batches">${fgBatchCount} runs</span>`;
+          if (fgUnits !== null) {
+            html += ` &middot; <span class="stat-batches">${fmtInt(fgUnits)} units</span>`;
           }
           html += `</div></div>`;
         }
@@ -315,8 +338,10 @@
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
           if (p.lots && p.lots.length > 0) {
             for (const lot of p.lots) {
+              const lotUc = lot.unit_count;
+              const lotQty = lotUc != null ? fmt(lot.on_hand_lbs) + ' lb &middot; ' + fmtInt(lotUc) + ' units' : fmt(lot.on_hand_lbs) + ' lb';
               html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
-              html += `<td class="num">${fmt(lot.on_hand_lbs)}</td><td></td></tr>`;
+              html += `<td class="num">${lotQty}</td><td></td></tr>`;
             }
           } else {
             html += `<tr class="lot-row"><td colspan="3" style="color:var(--text-muted)">No lots on hand</td></tr>`;
@@ -379,8 +404,10 @@
         html += `<tbody class="lot-breakdown" id="${rowId}">`;
         if (b.lots && b.lots.length > 0) {
           for (const lot of b.lots) {
+            const bc = lot.batch_count;
+            const lotQty = bc != null ? fmt(lot.on_hand_lbs) + ' lb &middot; ' + bc + ' batches' : fmt(lot.on_hand_lbs) + ' lb';
             html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
-            html += `<td class="num">${fmt(lot.on_hand_lbs)}</td><td></td></tr>`;
+            html += `<td class="num">${lotQty}</td><td></td></tr>`;
           }
         } else {
           html += `<tr class="lot-row"><td colspan="3" style="color:var(--text-muted)">No lots on hand</td></tr>`;
@@ -490,16 +517,19 @@
       html += `<tr class="expandable" data-expand="${rowId}">`;
       html += `<td>${escHtml(s.date)} ${escHtml(s.time)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
-      html += `<td class="num">${fmt(s.total_lbs)}</td>`;
-      html += `<td>${escHtml(s.customer_name || '—')}</td>`;
-      html += `<td>${escHtml(s.order_reference || '—')}</td>`;
+      html += `<td class="num">${s.total_units ? fmt(s.total_lbs) + ' lb &middot; ' + fmtInt(s.total_units) + ' units' : fmt(s.total_lbs) + ' lb'}</td>`;
+      html += `<td>${escHtml(s.customer_name || '\u2014')}</td>`;
+      html += `<td>${escHtml(s.order_reference || '\u2014')}</td>`;
       html += `</tr>`;
       // Detail row
       html += `<tr class="activity-detail" id="${rowId}"><td colspan="5">`;
       if (s.lines && s.lines.length > 0) {
         html += '<strong>Lots:</strong><br>';
         for (const l of s.lines) {
-          html += `<span class="lot-link" data-lot="${escHtml(l.lot_code)}" data-product-id="${l.product_id || ''}">${escHtml(l.lot_code)}</span> — ${escHtml(l.product_name)}: ${fmt(Math.abs(l.quantity_lb))} lb<br>`;
+          const absQty = Math.abs(l.quantity_lb);
+          const uc = l.unit_count;
+          const qtyStr = uc ? fmt(absQty) + ' lb &middot; ' + fmtInt(uc) + ' units' : fmt(absQty) + ' lb';
+          html += `<span class="lot-link" data-lot="${escHtml(l.lot_code)}" data-product-id="${l.product_id || ''}">${escHtml(l.lot_code)}</span> \u2014 ${escHtml(l.product_name)}: ${qtyStr}<br>`;
         }
       }
       if (s.notes) html += `<br><strong>Notes:</strong> ${escHtml(s.notes)}`;
@@ -539,16 +569,19 @@
       html += `<tr class="expandable" data-expand="${rowId}">`;
       html += `<td>${escHtml(r.date)} ${escHtml(r.time)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
-      html += `<td class="num">${fmt(r.total_lbs)}</td>`;
-      html += `<td>${escHtml(r.shipper_name || '—')}</td>`;
-      html += `<td>${escHtml(r.bol_reference || '—')}</td>`;
+      const recvUnits = r.cases_received || null;
+      html += `<td class="num">${recvUnits ? fmt(r.total_lbs) + ' lb &middot; ' + fmtInt(recvUnits) + ' units' : fmt(r.total_lbs) + ' lb'}</td>`;
+      html += `<td>${escHtml(r.shipper_name || '\u2014')}</td>`;
+      html += `<td>${escHtml(r.bol_reference || '\u2014')}</td>`;
       html += `</tr>`;
       // Detail row
       html += `<tr class="activity-detail" id="${rowId}"><td colspan="5">`;
       if (r.lines && r.lines.length > 0) {
         html += '<strong>Lots:</strong><br>';
         for (const l of r.lines) {
-          html += `<span class="lot-link" data-lot="${escHtml(l.lot_code)}" data-product-id="${l.product_id || ''}">${escHtml(l.lot_code)}</span> — ${escHtml(l.product_name)}: ${fmt(l.quantity_lb)} lb<br>`;
+          const uc = l.unit_count;
+          const qtyStr = uc ? fmt(l.quantity_lb) + ' lb &middot; ' + fmtInt(uc) + ' units' : fmt(l.quantity_lb) + ' lb';
+          html += `<span class="lot-link" data-lot="${escHtml(l.lot_code)}" data-product-id="${l.product_id || ''}">${escHtml(l.lot_code)}</span> \u2014 ${escHtml(l.product_name)}: ${qtyStr}<br>`;
         }
       }
       if (r.cases_received) html += `<br><strong>Cases:</strong> ${r.cases_received} x ${r.case_size_lb} lb`;
@@ -613,8 +646,8 @@
   }
 
   function fmtQtyCases(lbs, cases) {
-    let s = fmt(lbs) + ' lb';
-    if (cases != null) s += ` (${cases} cs)`;
+    let s = fmtWt(lbs) + ' lb';
+    if (cases != null) s += ' \u00b7 ' + fmtInt(cases) + ' units';
     return s;
   }
 
@@ -1213,7 +1246,7 @@
       html += `<td>${formatDateShort(o.order_date)}</td>`;
       html += `<td class="${overdue ? 'date-overdue' : ''}">${formatDateShort(o.requested_ship_date)}</td>`;
       html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span></td>`;
-      html += `<td class="num">${fmtLbs(o.remaining_lb)}</td>`;
+      html += `<td class="num">${o.remaining_units ? fmtWt(o.remaining_lb) + ' lb &middot; ' + fmtInt(o.remaining_units) + ' units' : fmtLbs(o.remaining_lb)}</td>`;
       html += `</tr>`;
     }
 
@@ -1271,10 +1304,14 @@
     const totalOrdered = totals.total_ordered_lb != null ? totals.total_ordered_lb : data.total_ordered_lb;
     const totalShipped = totals.total_shipped_lb != null ? totals.total_shipped_lb : data.total_shipped_lb;
     const totalRemaining = totals.remaining_lb != null ? totals.remaining_lb : (data.total_remaining_lb != null ? data.total_remaining_lb : data.remaining_lb);
+    const orderedUnits = totals.total_ordered_units;
+    const shippedUnits = totals.total_shipped_units;
+    const remainingUnits = totals.total_remaining_units;
+    const kpiFmt = (lb, units) => units ? fmtWt(lb) + ' lb<br><small>' + fmtInt(units) + ' units</small>' : fmtLbs(lb);
     html += '<div class="order-kpi-row">';
-    html += `<div class="order-kpi"><div class="kpi-label">Total Ordered</div><div class="kpi-value">${fmtLbs(totalOrdered)}</div></div>`;
-    html += `<div class="order-kpi"><div class="kpi-label">Shipped</div><div class="kpi-value">${fmtLbs(totalShipped)}</div></div>`;
-    html += `<div class="order-kpi"><div class="kpi-label">Remaining</div><div class="kpi-value">${fmtLbs(totalRemaining)}</div></div>`;
+    html += `<div class="order-kpi"><div class="kpi-label">Total Ordered</div><div class="kpi-value">${kpiFmt(totalOrdered, orderedUnits)}</div></div>`;
+    html += `<div class="order-kpi"><div class="kpi-label">Shipped</div><div class="kpi-value">${kpiFmt(totalShipped, shippedUnits)}</div></div>`;
+    html += `<div class="order-kpi"><div class="kpi-label">Remaining</div><div class="kpi-value">${kpiFmt(totalRemaining, remainingUnits)}</div></div>`;
     html += '</div>';
 
     // Line items
@@ -1285,16 +1322,19 @@
       html += '</tr></thead><tbody>';
       for (const l of lines) {
         const remaining = l.remaining_lb != null ? l.remaining_lb : ((l.quantity_lb || 0) - (l.quantity_shipped_lb || 0));
-        const productName = l.product || l.name || '—';
+        const productName = l.product || l.name || '\u2014';
         const lineStatusClass = l.line_status === 'fulfilled' ? 'status-shipped'
           : l.line_status === 'partial' ? 'status-partial_ship'
           : l.line_status === 'cancelled' ? 'status-cancelled'
           : 'status-new';
+        const cs = l.case_size_lb;
+        const isNw = l.is_non_weight;
+        const lineFmt = (lb, units) => isNw ? (Number.isInteger(lb) ? lb : lb) + ' units' : (units != null ? fmtWt(lb) + ' lb &middot; ' + fmtInt(units) + ' units' : fmtLbs(lb));
         html += '<tr>';
         html += `<td>${escHtml(productName)}</td>`;
-        html += `<td class="num">${fmtLbs(l.quantity_lb)}</td>`;
-        html += `<td class="num">${fmtLbs(l.quantity_shipped_lb)}</td>`;
-        html += `<td class="num">${fmtLbs(remaining)}</td>`;
+        html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count)}</td>`;
+        html += `<td class="num">${lineFmt(l.quantity_shipped_lb, l.shipped_units)}</td>`;
+        html += `<td class="num">${lineFmt(remaining, l.remaining_units)}</td>`;
         html += `<td><span class="so-badge ${lineStatusClass}">${escHtml(l.line_status || 'pending')}</span></td>`;
         html += '</tr>';
       }

@@ -92,6 +92,9 @@ Commit: display `add_in_ingredients_consumed` to operator.
 ## POST-COMMIT
 After make/pack → show daily_production_summary. Ingredients: compact "{N} consumed, all FIFO."
 
+## QTY DISPLAY
+Packaged/FG: `X lb · Y units` (case_size_lb). Batch: `X lb · Y batches` (default_batch_lb). Service: units only. Ingredients: lb only. NULL case_size_lb → lb only.
+
 ## DAY SUMMARY
 "wrap up"/"done"/"shift over"/"daily summary" → GET /production/day-summary
 

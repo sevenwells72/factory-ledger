@@ -1359,7 +1359,8 @@ def search_products(
                 # Fetch full product details for each match
                 cur.execute(
                     """SELECT id, name, odoo_code, type, uom, active,
-                              COALESCE(verification_status, 'verified') as verification_status
+                              COALESCE(verification_status, 'verified') as verification_status,
+                              case_size_lb, default_batch_lb
                        FROM products WHERE id = %s""",
                     (r['id'],)
                 )
@@ -1371,6 +1372,27 @@ def search_products(
         return {"count": len(products), "products": products}
     except Exception as e:
         logger.error(f"Product search failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/products/missing-case-size")
+def products_missing_case_size(_: bool = Depends(verify_api_key)):
+    """Return active, non-service, non-ingredient SKUs where case_size_lb is NULL or 0."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT id, name, odoo_code, type, uom, case_size_lb, default_batch_lb
+                FROM products
+                WHERE COALESCE(active, true) = true
+                  AND COALESCE(is_service, false) = false
+                  AND type != 'ingredient'
+                  AND (case_size_lb IS NULL OR case_size_lb = 0)
+                ORDER BY name
+            """)
+            products = cur.fetchall()
+        return {"count": len(products), "products": products}
+    except Exception as e:
+        logger.error(f"Missing case size query failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
@@ -1482,6 +1504,7 @@ def get_current_inventory(
         with get_transaction() as cur:
             query = """
                 SELECT p.id as product_id, p.name as product_name, p.odoo_code, p.type as product_type,
+                       p.case_size_lb, p.default_batch_lb,
                        l.id as lot_id, l.lot_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                 FROM products p
@@ -1496,7 +1519,18 @@ def get_current_inventory(
             query += " GROUP BY p.id, l.id HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY p.name, l.lot_code LIMIT %s"
             params.append(limit)
             cur.execute(query, params)
-            inventory = cur.fetchall()
+            rows = cur.fetchall()
+            inventory = []
+            for r in rows:
+                item = dict(r)
+                oh = float(r['quantity_on_hand'])
+                cs = float(r['case_size_lb']) if r.get('case_size_lb') else None
+                db = float(r['default_batch_lb']) if r.get('default_batch_lb') else None
+                if cs and cs > 0 and r['product_type'] != 'ingredient':
+                    item['unit_count'] = round(oh / cs)
+                elif db and db > 0 and r['product_type'] == 'batch':
+                    item['batch_count'] = round(oh / db, 1)
+                inventory.append(item)
         return {"count": len(inventory), "inventory": inventory}
     except Exception as e:
         logger.error(f"Get current inventory failed: {e}")
@@ -1509,6 +1543,7 @@ def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
         with get_transaction() as cur:
             cur.execute("""
                 SELECT p.id, p.name, p.odoo_code, p.type, p.uom,
+                       p.case_size_lb, p.default_batch_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as total_on_hand
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
@@ -1516,7 +1551,18 @@ def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
                 WHERE LOWER(p.name) LIKE LOWER(%s) OR LOWER(p.odoo_code) LIKE LOWER(%s)
                 GROUP BY p.id
             """, (f"%{item_name}%", f"%{item_name}%"))
-            results = cur.fetchall()
+            rows = cur.fetchall()
+            results = []
+            for r in rows:
+                item = dict(r)
+                oh = float(r['total_on_hand'])
+                cs = float(r['case_size_lb']) if r.get('case_size_lb') else None
+                db = float(r['default_batch_lb']) if r.get('default_batch_lb') else None
+                if cs and cs > 0 and r['type'] != 'ingredient':
+                    item['unit_count'] = round(oh / cs)
+                elif db and db > 0 and r['type'] == 'batch':
+                    item['batch_count'] = round(oh / db, 1)
+                results.append(item)
         return {"count": len(results), "inventory": results}
     except Exception as e:
         logger.error(f"Get inventory failed: {e}")
@@ -1628,7 +1674,8 @@ def get_lot_by_code(lot_code: str, product_id: Optional[int] = Query(None), _: b
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand,
                        l.entry_source, l.found_location, l.estimated_age,
-                       l.supplier_lot_code, l.lot_type
+                       l.supplier_lot_code, l.lot_type,
+                       p.case_size_lb, p.default_batch_lb, p.type as product_type
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
@@ -1653,6 +1700,14 @@ def get_lot_by_code(lot_code: str, product_id: Optional[int] = Query(None), _: b
             })
         lot = rows[0]
         result = dict(lot)
+        # Add unit_count based on product type
+        oh = float(lot['quantity_on_hand'])
+        cs = float(lot['case_size_lb']) if lot.get('case_size_lb') else None
+        db = float(lot['default_batch_lb']) if lot.get('default_batch_lb') else None
+        if cs and cs > 0 and lot.get('product_type') != 'ingredient':
+            result['unit_count'] = round(oh / cs)
+        elif db and db > 0 and lot.get('product_type') == 'batch':
+            result['batch_count'] = round(oh / db, 1)
         with get_transaction() as cur:
             cur.execute("""
                 SELECT supplier_lot_code, supplier_name, quantity_lb, notes
@@ -1673,6 +1728,7 @@ def get_lot(lot_id: int, _: bool = Depends(verify_api_key)):
         with get_transaction() as cur:
             cur.execute("""
                 SELECT l.*, p.name as product_name, p.odoo_code,
+                       p.case_size_lb, p.default_batch_lb, p.type as product_type,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
@@ -1684,6 +1740,13 @@ def get_lot(lot_id: int, _: bool = Depends(verify_api_key)):
         if not lot:
             raise HTTPException(status_code=404, detail="Lot not found")
         result = dict(lot)
+        oh = float(lot['quantity_on_hand'])
+        cs = float(lot['case_size_lb']) if lot.get('case_size_lb') else None
+        db = float(lot['default_batch_lb']) if lot.get('default_batch_lb') else None
+        if cs and cs > 0 and lot.get('product_type') != 'ingredient':
+            result['unit_count'] = round(oh / cs)
+        elif db and db > 0 and lot.get('product_type') == 'batch':
+            result['batch_count'] = round(oh / db, 1)
         with get_transaction() as cur:
             cur.execute("""
                 SELECT supplier_lot_code, supplier_name, quantity_lb, notes
@@ -3415,11 +3478,17 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
             """, (lot_row['id'],))
             on_hand = float(cur.fetchone()['on_hand'])
 
-            return {
+            # Fetch case_size_lb for unit counts
+            cur.execute("SELECT case_size_lb, default_batch_lb, type FROM products WHERE id = %s", (lot_row['product_id'],))
+            prod_info = cur.fetchone()
+            cs_lb = float(prod_info['case_size_lb']) if prod_info and prod_info['case_size_lb'] else None
+            db_lb = float(prod_info['default_batch_lb']) if prod_info and prod_info['default_batch_lb'] else None
+            output_lb = float(batch['output_lb'])
+            result = {
                 "trace_type": "batch",
                 "batch_lot_code": batch['lot_code'],
                 "product_name": batch['product_name'],
-                "output_lb": float(batch['output_lb']),
+                "output_lb": output_lb,
                 "produced_date": date_str,
                 "produced_time": time_str,
                 "ingredients": [
@@ -3434,6 +3503,16 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 "total_shipped_lb": total_shipped,
                 "on_hand_lb": on_hand
             }
+            if cs_lb and cs_lb > 0:
+                result["case_size_lb"] = cs_lb
+                result["output_units"] = round(output_lb / cs_lb)
+                result["on_hand_units"] = round(on_hand / cs_lb)
+                result["total_shipped_units"] = round(total_shipped / cs_lb)
+            elif db_lb and db_lb > 0 and prod_info.get('type') == 'batch':
+                result["default_batch_lb"] = db_lb
+                result["output_batches"] = round(output_lb / db_lb, 1)
+                result["on_hand_batches"] = round(on_hand / db_lb, 1)
+            return result
     except HTTPException:
         raise
     except Exception as e:
@@ -3883,7 +3962,9 @@ def get_transaction_history(
                        json_agg(json_build_object(
                            'product_name', p.name,
                            'lot_code', l.lot_code,
-                           'quantity_lb', tl.quantity_lb
+                           'quantity_lb', tl.quantity_lb,
+                           'case_size_lb', p.case_size_lb,
+                           'product_type', p.type
                        )) as lines
                 FROM transactions t
                 LEFT JOIN transaction_lines tl ON tl.transaction_id = t.id
@@ -3919,6 +4000,12 @@ def get_transaction_history(
                 date_str, time_str = format_timestamp(txn['timestamp'])
                 txn['date'] = date_str
                 txn['time'] = time_str
+                # Enrich lines with unit counts
+                if txn.get('lines'):
+                    for ln in txn['lines']:
+                        cs = float(ln['case_size_lb']) if ln.get('case_size_lb') else None
+                        qty = abs(float(ln['quantity_lb'] or 0))
+                        ln['unit_count'] = round(qty / cs) if cs and cs > 0 and ln.get('product_type') != 'ingredient' else None
             
             return {"count": len(transactions), "transactions": transactions}
     except Exception as e:
@@ -4404,7 +4491,7 @@ def list_bom_products(
 ):
     try:
         with get_transaction() as cur:
-            query = "SELECT id, name, odoo_code, type, uom, default_batch_lb FROM products WHERE COALESCE(active, true) = true"
+            query = "SELECT id, name, odoo_code, type, uom, default_batch_lb, case_size_lb FROM products WHERE COALESCE(active, true) = true"
             params = []
             
             if product_type:
@@ -4760,7 +4847,9 @@ def list_sales_orders(
                        so.order_date, so.requested_ship_date, so.status,
                        COUNT(sol.id) AS line_count,
                        COALESCE(SUM(sol.quantity_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS total_lb,
-                       COALESCE(SUM(sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS shipped_lb
+                       COALESCE(SUM(sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS shipped_lb,
+                       COALESCE(SUM(sol.quantity_lb / NULLIF(p.case_size_lb, 0)) FILTER (WHERE NOT COALESCE(p.is_service, false) AND p.case_size_lb IS NOT NULL AND p.case_size_lb > 0), 0) AS total_units,
+                       COALESCE(SUM(sol.quantity_shipped_lb / NULLIF(p.case_size_lb, 0)) FILTER (WHERE NOT COALESCE(p.is_service, false) AND p.case_size_lb IS NOT NULL AND p.case_size_lb > 0), 0) AS shipped_units
                 FROM sales_orders so
                 JOIN customers c ON c.id = so.customer_id
                 LEFT JOIN sales_order_lines sol ON sol.sales_order_id = so.id
@@ -4804,6 +4893,8 @@ def list_sales_orders(
                     if total == 0 and r['line_count'] == 0:
                         order_warnings.append("⚠️ Empty order — no line items")
 
+                total_units = round(float(r['total_units'] or 0))
+                shipped_units = round(float(r['shipped_units'] or 0))
                 order = {
                     "order_id": r['id'],
                     "order_number": r['order_number'],
@@ -4815,6 +4906,9 @@ def list_sales_orders(
                     "total_lb": total,
                     "shipped_lb": shipped,
                     "remaining_lb": total - shipped,
+                    "total_units": total_units,
+                    "shipped_units": shipped_units,
+                    "remaining_units": total_units - shipped_units,
                     "overdue": ship_date is not None and ship_date < date.today() and is_open
                 }
                 if order_warnings:
@@ -5024,6 +5118,8 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
             total_ordered = 0
             total_shipped = 0
             total_value = 0
+            total_ordered_units = 0
+            total_shipped_units = 0
             for r in cur.fetchall():
                 qty = float(r['quantity_lb'])
                 shipped = float(r['quantity_shipped_lb'])
@@ -5036,6 +5132,9 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 if not is_service:
                     total_ordered += qty
                     total_shipped += shipped
+                    if case_size:
+                        total_ordered_units += round(qty / case_size)
+                        total_shipped_units += round(shipped / case_size)
 
                 # line_value = cases * price_per_case (not lb * price)
                 line_value = None
@@ -5060,14 +5159,20 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 else:
                     price_basis = "per_lb"
 
+                line_units = round(qty / case_size) if case_size else None
+                shipped_units_line = round(shipped / case_size) if case_size else None
+                remaining_units_line = (line_units - shipped_units_line) if line_units is not None and shipped_units_line is not None else None
                 line_data = {
                     "line_id": r['id'],
                     "product": r['name'],
                     "quantity_lb": qty,
                     "cases": cases,
                     "case_size_lb": case_size,
+                    "unit_count": line_units,
                     "quantity_shipped_lb": shipped,
+                    "shipped_units": shipped_units_line,
                     "remaining_lb": qty - shipped,
+                    "remaining_units": remaining_units_line,
                     "case_price": price,
                     "price_basis": price_basis,
                     "line_value": line_value,
@@ -5111,6 +5216,9 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 "total_ordered_lb": total_ordered,
                 "total_shipped_lb": total_shipped,
                 "remaining_lb": total_ordered - total_shipped,
+                "total_ordered_units": total_ordered_units,
+                "total_shipped_units": total_shipped_units,
+                "total_remaining_units": total_ordered_units - total_shipped_units,
                 "total_value": round(total_value, 2) if total_value > 0 else None
             }
             return order
@@ -5366,13 +5474,19 @@ def update_order_line(
                 cur.execute(
                     f"""UPDATE sales_order_lines SET {', '.join(fields)}
                         WHERE id = %s AND sales_order_id = %s AND line_status NOT IN ('fulfilled', 'cancelled')
-                        RETURNING id, quantity_lb, unit_price""",
+                        RETURNING id, quantity_lb, unit_price, product_id""",
                     values
                 )
                 row = cur.fetchone()
                 if not row:
                     raise HTTPException(404, "Line not found or already fulfilled/cancelled")
-                return {"line_id": row['id'], "quantity_lb": float(row['quantity_lb']), "unit_price": float(row['unit_price']) if row['unit_price'] else None}
+                # Fetch case_size_lb for unit count
+                cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (row['product_id'],))
+                prow = cur.fetchone()
+                cs = float(prow['case_size_lb']) if prow and prow['case_size_lb'] else None
+                qty = float(row['quantity_lb'])
+                return {"line_id": row['id'], "quantity_lb": qty, "unit_price": float(row['unit_price']) if row['unit_price'] else None,
+                        "case_size_lb": cs, "unit_count": round(qty / cs) if cs else None}
     except HTTPException:
         raise
     except Exception as e:
@@ -5550,8 +5664,13 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                             VALUES (%s, %s, %s, %s, %s)
                         """, (shipment_id, txn_id, item["line_id"], item["product_id"], actual_ship))
 
+                        # Fetch case_size_lb for unit count
+                        cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (item["product_id"],))
+                        cs_row = cur.fetchone()
+                        cs_lb = float(cs_row['case_size_lb']) if cs_row and cs_row['case_size_lb'] else None
                         results.append({"line_id": item["line_id"], "product": item["product_name"],
                                         "requested_lb": qty_to_ship, "shipped_lb": actual_ship,
+                                        "shipped_units": round(actual_ship / cs_lb) if cs_lb else None,
                                         "short_lb": max(0, qty_to_ship - actual_ship), "lots_used": lots_used,
                                         "transaction_id": txn_id, "confirmation_code": generate_confirmation_code(txn_id),
                                         "line_status": new_line_status})
@@ -5669,7 +5788,7 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                         qty_display = str(int(qty)) if qty == int(qty) else str(qty)
                     elif case_size and case_size > 0:
                         cases = round(qty / case_size)
-                        qty_display = f"{cases} cs"
+                        qty_display = f"{qty:g} lb \u00b7 {cases} units"
                     else:
                         qty_display = f"{qty:g} lb"
 
@@ -5741,7 +5860,7 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                         qty_display_val = take
                         if case_size and case_size > 0:
                             cases = round(take / case_size)
-                            qty_display = f"{cases} cs"
+                            qty_display = f"{take:g} lb \u00b7 {cases} units"
                         else:
                             qty_display = f"{take:g} lb"
                         line_allocations.append({
@@ -5757,7 +5876,7 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                         # Shortfall — show INSUFFICIENT row
                         if case_size and case_size > 0:
                             short_cases = math.ceil(remaining_need / case_size)
-                            qty_display = f"{short_cases} cs"
+                            qty_display = f"{remaining_need:g} lb \u00b7 {short_cases} units"
                         else:
                             qty_display = f"{remaining_need:g} lb"
                         insufficient_entry = {
@@ -5791,7 +5910,7 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                         # No lots at all
                         if case_size and case_size > 0:
                             cases = round(qty_lb / case_size)
-                            qty_display = f"{cases} cs"
+                            qty_display = f"{qty_lb:g} lb \u00b7 {cases} units"
                         else:
                             qty_display = f"{qty_lb:g} lb"
                         insufficient_entry = {
@@ -6203,7 +6322,7 @@ def dashboard_api_production(
             cur.execute(f"""
                 SELECT DATE(t.timestamp) as prod_date,
                        p.name as product_name, p.type as product_type,
-                       p.default_batch_lb,
+                       p.default_batch_lb, p.case_size_lb,
                        SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as total_lbs,
                        COUNT(DISTINCT t.id) as txn_count
                 FROM transactions t
@@ -6226,16 +6345,21 @@ def dashboard_api_production(
                 dt = r['prod_date']
                 day_name = dt.strftime("%A") if hasattr(dt, 'strftime') else d
                 days_map[d] = {"date": d, "day_name": day_name, "batches": [], "finished_goods": []}
+            total_lbs = float(r['total_lbs'] or 0)
             entry = {
                 "product_name": r['product_name'],
-                "total_lbs": float(r['total_lbs'] or 0),
+                "total_lbs": total_lbs,
                 "product_type": r['product_type']
             }
             if r['product_type'] == 'batch':
                 batch_size = float(r['default_batch_lb']) if r['default_batch_lb'] else None
                 entry["standard_batch_size_lbs"] = batch_size
+                entry["batch_count"] = round(total_lbs / batch_size) if batch_size else None
                 days_map[d]["batches"].append(entry)
             else:
+                cs = float(r['case_size_lb']) if r['case_size_lb'] else None
+                entry["case_size_lb"] = cs
+                entry["unit_count"] = round(total_lbs / cs) if cs else None
                 days_map[d]["finished_goods"].append(entry)
 
         return {"days": list(days_map.values())}
@@ -6301,6 +6425,14 @@ def dashboard_api_finished_goods():
                         "on_hand_lbs": float(lr['on_hand_lbs']),
                         "product_id": pid
                     })
+
+        # Enrich lot rows with unit counts using product case_size_lb
+        for pid, lots in lot_map.items():
+            prow = next((v for v in product_rows.values() if v['id'] == pid), None)
+            cs = float(prow['case_size_lb']) if prow and prow.get('case_size_lb') else None
+            for lot in lots:
+                lot['case_size_lb'] = cs
+                lot['unit_count'] = round(lot['on_hand_lbs'] / cs) if cs and cs > 0 else None
 
         result_panels = []
         for panel in panels:
@@ -6386,6 +6518,19 @@ def dashboard_api_batches():
                         "on_hand_lbs": float(lr['on_hand_lbs']),
                         "product_id": pid
                     })
+
+        # Enrich batch lot rows with batch counts
+        batch_size_by_pid = {}
+        for r in product_rows:
+            bs = config_batch_sizes.get(r['name'].lower())
+            if bs is None and r['default_batch_lb']:
+                bs = float(r['default_batch_lb'])
+            batch_size_by_pid[r['id']] = bs
+        for pid, lots in lot_map.items():
+            bs = batch_size_by_pid.get(pid)
+            for lot in lots:
+                lot['default_batch_lb'] = bs
+                lot['batch_count'] = round(lot['on_hand_lbs'] / bs, 1) if bs and bs > 0 else None
 
         found_names = {r['name'].lower() for r in product_rows}
         missing_skus = [n for n in sku_names if n.lower() not in found_names]
@@ -6504,7 +6649,10 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                            'product_name', p.name,
                            'product_id', p.id,
                            'lot_code', l.lot_code,
-                           'quantity_lb', tl.quantity_lb
+                           'quantity_lb', tl.quantity_lb,
+                           'case_size_lb', p.case_size_lb,
+                           'product_type', p.type,
+                           'is_service', COALESCE(p.is_service, false)
                        ) ORDER BY p.name) as lines
                 FROM transactions t
                 JOIN transaction_lines tl ON tl.transaction_id = t.id
@@ -6522,7 +6670,18 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
         result = []
         for s in shipments:
             d, tm = format_timestamp(s['timestamp'])
-            total_lbs = sum(abs(float(ln['quantity_lb'] or 0)) for ln in (s['lines'] or []))
+            total_lbs = 0
+            total_units = 0
+            enriched_lines = []
+            for ln in (s['lines'] or []):
+                qty = abs(float(ln['quantity_lb'] or 0))
+                total_lbs += qty
+                cs = float(ln['case_size_lb']) if ln.get('case_size_lb') else None
+                uc = round(qty / cs) if cs and cs > 0 else None
+                if uc is not None:
+                    total_units += uc
+                ln['unit_count'] = uc
+                enriched_lines.append(ln)
             result.append({
                 "transaction_id": s['id'],
                 "date": d,
@@ -6530,7 +6689,8 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 "customer_name": s['customer_name'],
                 "order_reference": s['order_reference'],
                 "total_lbs": total_lbs,
-                "lines": s['lines'] or [],
+                "total_units": total_units if total_units > 0 else None,
+                "lines": enriched_lines,
                 "notes": s['notes']
             })
         return {"shipments": result}
@@ -6551,7 +6711,8 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                            'product_name', p.name,
                            'product_id', p.id,
                            'lot_code', l.lot_code,
-                           'quantity_lb', tl.quantity_lb
+                           'quantity_lb', tl.quantity_lb,
+                           'case_size_lb', p.case_size_lb
                        ) ORDER BY p.name) as lines
                 FROM transactions t
                 JOIN transaction_lines tl ON tl.transaction_id = t.id
@@ -6568,7 +6729,14 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
         result = []
         for r in receipts:
             d, tm = format_timestamp(r['timestamp'])
-            total_lbs = sum(float(ln['quantity_lb'] or 0) for ln in (r['lines'] or []))
+            total_lbs = 0
+            enriched_lines = []
+            for ln in (r['lines'] or []):
+                qty = float(ln['quantity_lb'] or 0)
+                total_lbs += qty
+                cs = float(ln['case_size_lb']) if ln.get('case_size_lb') else None
+                ln['unit_count'] = round(qty / cs) if cs and cs > 0 else None
+                enriched_lines.append(ln)
             result.append({
                 "transaction_id": r['id'],
                 "date": d,
@@ -6578,7 +6746,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                 "total_lbs": total_lbs,
                 "cases_received": r['cases_received'],
                 "case_size_lb": float(r['case_size_lb']) if r['case_size_lb'] else None,
-                "lines": r['lines'] or [],
+                "lines": enriched_lines,
                 "notes": r['notes']
             })
         return {"receipts": result}
@@ -6703,12 +6871,15 @@ def dashboard_api_product_lots(product_id: int):
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT p.name, p.type, p.odoo_code
+                SELECT p.name, p.type, p.odoo_code, p.case_size_lb, p.default_batch_lb
                 FROM products p WHERE p.id = %s
             """, (product_id,))
             product = cur.fetchone()
             if not product:
                 raise HTTPException(404, f"Product {product_id} not found")
+
+            cs = float(product['case_size_lb']) if product['case_size_lb'] else None
+            db = float(product['default_batch_lb']) if product['default_batch_lb'] else None
 
             cur.execute("""
                 SELECT l.lot_code, l.entry_source,
@@ -6719,16 +6890,25 @@ def dashboard_api_product_lots(product_id: int):
                 GROUP BY l.id
                 ORDER BY l.id DESC
             """, (product_id,))
-            lots = [
-                {"lot_code": r["lot_code"], "entry_source": r["entry_source"],
-                 "on_hand_lbs": float(r["on_hand_lbs"])}
-                for r in cur.fetchall()
-            ]
+            lots = []
+            for r in cur.fetchall():
+                oh = float(r["on_hand_lbs"])
+                lot_entry = {"lot_code": r["lot_code"], "entry_source": r["entry_source"],
+                             "on_hand_lbs": oh}
+                if cs:
+                    lot_entry["case_size_lb"] = cs
+                    lot_entry["unit_count"] = round(oh / cs) if cs > 0 else None
+                elif db:
+                    lot_entry["default_batch_lb"] = db
+                    lot_entry["batch_count"] = round(oh / db, 1) if db > 0 else None
+                lots.append(lot_entry)
 
         return {
             "product_name": product["name"],
             "product_type": product["type"],
             "odoo_code": product["odoo_code"],
+            "case_size_lb": cs,
+            "default_batch_lb": db,
             "lots": lots
         }
     except HTTPException:

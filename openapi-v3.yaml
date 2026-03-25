@@ -305,7 +305,14 @@ paths:
             maximum: 100
       responses:
         '200':
-          description: Product search results with match_tier (exact, keyword, or trigram)
+          description: "Product search results with match_tier (exact, keyword, or trigram). Includes case_size_lb, default_batch_lb."
+  /products/missing-case-size:
+    get:
+      operationId: productsMissingCaseSize
+      summary: "List active non-service, non-ingredient SKUs missing case_size_lb (NULL or 0). For data quality auditing."
+      responses:
+        '200':
+          description: "Array of products needing case_size_lb populated: {id, name, odoo_code, type, uom, case_size_lb, default_batch_lb}"
   /products/resolve:
     post:
       operationId: resolveProducts
@@ -358,7 +365,7 @@ paths:
             maximum: 500
       responses:
         '200':
-          description: "Array of {id, name, odoo_code, product_type, uom, default_batch_lb}"
+          description: "Array of {id, name, odoo_code, product_type, uom, default_batch_lb, case_size_lb}"
   /inventory/current:
     get:
       operationId: getCurrentInventory
@@ -512,7 +519,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Batch trace with ingredient lots
+          description: "Batch trace with ingredient lots. Includes case_size_lb, output_units, on_hand_units for packaged products."
   /trace/ingredient/{lot_code}:
     get:
       operationId: traceIngredient
@@ -647,7 +654,7 @@ paths:
             maximum: 200
       responses:
         '200':
-          description: Sales orders
+          description: "Sales orders. Includes total_units, shipped_units, remaining_units for packaged products."
     post:
       operationId: createOrder
       summary: Create a new sales order
@@ -693,7 +700,7 @@ paths:
           description: "Order DB id (integer) or order number (e.g. 'SO-260323-001')"
       responses:
         '200':
-          description: Order details with lines
+          description: "Order details with lines. Lines include unit_count, shipped_units, remaining_units. Totals include total_ordered_units, total_shipped_units, total_remaining_units."
     patch:
       operationId: updateOrderHeader
       summary: Update order header (ship date, notes, customer)
@@ -798,7 +805,7 @@ paths:
             type: number
       responses:
         '200':
-          description: Updated line
+          description: "Updated line with case_size_lb and unit_count"
   /sales/orders/{order_id}/ship:
     post:
       operationId: shipOrder
@@ -817,7 +824,7 @@ paths:
               $ref: '#/components/schemas/ShipOrderRequest'
       responses:
         '200':
-          description: Preview result or committed shipment with shipment_id
+          description: "Preview result or committed shipment with shipment_id. Commit includes shipped_units per line."
   /production/day-summary:
     get:
       operationId: productionDaySummary

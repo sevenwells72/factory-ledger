@@ -33,7 +33,7 @@ paths:
             default: 20
       responses:
         "200":
-          description: List of matching products with match_tier field (exact, keyword, or trigram)
+          description: "Products with match_tier, case_size_lb, default_batch_lb"
   /products/resolve:
     post:
       operationId: resolveProducts
@@ -745,7 +745,7 @@ paths:
           description: "New unit price (per case)"
       responses:
         "200":
-          description: "Updated line with line_id, quantity_lb, unit_price"
+          description: "Updated line with line_id, quantity_lb, unit_price, case_size_lb, unit_count"
         "404":
           description: "Line not found or already fulfilled/cancelled"
   /sales/orders/{order_id}/lines:

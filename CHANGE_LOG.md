@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-25 12:00 — Unit Display Implementation: dual lb · units format everywhere
+- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `dashboard/dashboard.js`, `dashboard/traceability.html`, `GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`
+- **What changed:** Added unit counts (derived from case_size_lb / default_batch_lb) to all operator-facing endpoints and dashboard views. Backend: added case_size_lb/default_batch_lb to /products/search, /bom/products; new /products/missing-case-size endpoint; unit totals on sales order list/detail/ship/update-line; unit_count on production calendar FG rows, batch_count on batch rows; unit_count per line on shipments/receipts/inventory/lots/trace endpoints; packing slip qty_display changed from "N cs" to "X lb · Y units". Frontend: new fmtQty() helper; dual format in production calendar, sales orders (list/detail/KPI/lines), shipping/receiving activity, FG lot rows, batch lot rows, lot detail panel, traceability nodes. GPT instructions: added QTY DISPLAY section. OpenAPI schemas updated.
+- **Why:** Operators need to see both weight (lb) and unit count simultaneously for all product quantities to reduce manual conversion and improve operational visibility.
+
+---
+
 ## 2026-03-25 00:15 — Accept order_number strings in all /sales/orders/{order_id} endpoints
 - **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `gpt-instructions-v3.md`
 - **What changed:** Added `resolve_order_id` dependency that accepts either integer DB id or order_number string (e.g. 'SO-260323-001') and resolves to the integer id. Applied to all 8 sales order endpoints. Updated both OpenAPI schemas to declare order_id as `type: string`. Added note to GPT instructions ORDER EDITING section. Compressed GPT instructions to stay under 8,000 char limit (ORDER ENTRY, SUPPLIER LOT, PACKING SLIP sections).

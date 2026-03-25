@@ -580,11 +580,14 @@ async function traceBackward(lotCode) {
 
 async function traceBackwardBatch(batchData) {
   // Center node: the batch
+  const batchOutputStr = batchData.output_units != null
+    ? `${batchData.output_lb} lb \u00b7 ${batchData.output_units} units`
+    : (batchData.output_batches != null ? `${batchData.output_lb} lb \u00b7 ${batchData.output_batches} batches` : `${batchData.output_lb} lb`);
   const batchId = addNode({
     id: 'batch-' + batchData.batch_lot_code,
     type: 'batch', label: batchData.batch_lot_code,
     sublabel: batchData.product_name,
-    detail: `${batchData.output_lb} lb | ${batchData.produced_date} ${batchData.produced_time} ET`,
+    detail: `${batchOutputStr} | ${batchData.produced_date} ${batchData.produced_time} ET`,
     lotCode: batchData.batch_lot_code, quantity: batchData.output_lb, layer: 2
   });
 
@@ -797,7 +800,7 @@ async function traceForwardAsBatch(lotCode) {
   const mainId = addNode({
     id: 'lot-' + lotCode, type: nodeType,
     label: lotCode, sublabel: lotInfo.product_name,
-    detail: `On hand: ${lotInfo.quantity_on_hand} lb`,
+    detail: `On hand: ${lotInfo.unit_count != null ? lotInfo.quantity_on_hand + ' lb \u00b7 ' + lotInfo.unit_count + ' units' : lotInfo.quantity_on_hand + ' lb'}`,
     lotCode, quantity: parseFloat(lotInfo.quantity_on_hand) || 0, layer: 1
   });
 
@@ -878,7 +881,7 @@ async function findShipmentsForLot(lotCode, batchNodeId) {
         id: 'cust-' + key + '-' + batchNodeId,
         type: 'customer', label: cust.name,
         sublabel: cust.orders.length ? cust.orders.join(', ') : '',
-        detail: `${cust.totalQty} lb | ${cust.date} | Txn #${cust.txnIds.join(', #')}`,
+        detail: `${cust.totalQty} lb | ${cust.date} | Txn #${cust.txnIds.join(', #')}`,  // unit enrichment via node detail in trace data
         quantity: cust.totalQty, layer: 3, txnIds: cust.txnIds
       });
       addLink(batchNodeId, custId, cust.totalQty, 'confirmed');
