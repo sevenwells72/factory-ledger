@@ -517,6 +517,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response.
       responses:
         '200':
           description: "Batch trace with ingredient lots. Includes case_size_lb, output_units, on_hand_units for packaged products."
@@ -530,9 +536,34 @@ paths:
           required: true
           schema:
             type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response.
       responses:
         '200':
           description: Ingredient usage trace
+  /trace/supplier-lot/{supplier_lot_code}:
+    get:
+      operationId: traceSupplierLot
+      summary: FDA recall trace — find all internal lots and exposure for a supplier lot code
+      parameters:
+        - name: supplier_lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter to a specific product when supplier lot code matches multiple.
+      responses:
+        '200':
+          description: Supplier lot exposure trace with matched internal lots and total exposure summary
   /transactions/history:
     get:
       operationId: getTransactionHistory

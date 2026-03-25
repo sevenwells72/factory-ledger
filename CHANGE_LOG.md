@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-25 16:00 — Add product_id disambiguation to all three trace endpoints
+- **File(s) changed:** `main.py`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`, `gpt-instructions-v3.md`
+- **What changed:** Added optional `product_id` query param to `/trace/supplier-lot` in main.py (batch and ingredient already had it). Added `product_id` param to all three trace endpoints in both OpenAPI schemas. Added `/trace/supplier-lot` endpoint to both OpenAPI schemas (was missing). Updated GPT instructions trace line to include supplier-lot and note the `?product_id=` param. Removed `updateNote` operation from GPT schema to stay within 30-operation limit.
+- **Why:** GPT could detect ambiguous lot codes and ask the user to pick, but had no way to pass the chosen product_id back to any trace endpoint — the OpenAPI schemas didn't expose the parameter.
+
+---
+
 ## 2026-03-25 15:30 — Allow service items (Pallets, freight) on sales orders with zero quantity_lb
 - **File(s) changed:** `main.py`, `migrations/031_relax_quantity_lb_check_for_service_items.sql`
 - **What changed:** Added is_service detection to create_sales_order and add_order_lines endpoints. Service items now skip case weight lookup, unit-defaulting warning, and quantity sanity check. quantity_lb defaults to 0 for service items. Migration relaxes CHECK constraint from > 0 to >= 0.

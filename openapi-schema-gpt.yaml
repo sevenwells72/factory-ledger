@@ -384,6 +384,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response.
       responses:
         "200":
           description: Batch traceability
@@ -397,9 +403,34 @@ paths:
           required: true
           schema:
             type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response.
       responses:
         "200":
           description: Ingredient traceability
+  /trace/supplier-lot/{supplier_lot_code}:
+    get:
+      operationId: traceSupplierLot
+      summary: FDA recall trace — find all internal lots and exposure for a supplier lot code
+      parameters:
+        - name: supplier_lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter to a specific product when supplier lot code matches multiple.
+      responses:
+        "200":
+          description: Supplier lot exposure trace
   /transactions/history:
     get:
       operationId: getTransactionHistory
@@ -930,54 +961,3 @@ paths:
       responses:
         "200":
           description: Created note
-  /dashboard/api/notes/{note_id}:
-    put:
-      operationId: updateNote
-      summary: Update a note, to-do, or reminder. Only send fields you want to change.
-      security: []
-      parameters:
-        - name: note_id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                body:
-                  type: string
-                priority:
-                  type: string
-                  enum:
-                    - low
-                    - normal
-                    - high
-                status:
-                  type: string
-                  enum:
-                    - open
-                    - done
-                    - dismissed
-                due_date:
-                  type: string
-                  description: "YYYY-MM-DD or empty string to clear"
-                entity_type:
-                  type: string
-                  enum:
-                    - product
-                    - lot
-                    - customer
-                    - supplier
-                entity_id:
-                  type: string
-      responses:
-        "200":
-          description: Updated note
-        "404":
-          description: Note not found

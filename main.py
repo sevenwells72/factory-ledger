@@ -3799,19 +3799,24 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
 
 
 @app.get("/trace/supplier-lot/{supplier_lot_code}")
-def trace_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_api_key)):
+def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     """FDA recall-ready endpoint: given a supplier lot code, find all internal lots and trace full exposure."""
     try:
         with get_transaction() as cur:
             # Find all internal lots matching this supplier lot code
             # Check both lots.supplier_lot_code and lot_supplier_codes table (commingled receipts)
-            cur.execute("""
+            query = """
                 SELECT DISTINCT l.id as lot_id, l.lot_code, l.supplier_lot_code,
                        l.entry_source, p.id as product_id, p.name as product_name
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 WHERE LOWER(l.supplier_lot_code) = LOWER(%s)
-
+            """
+            params = [supplier_lot_code]
+            if product_id is not None:
+                query += " AND l.product_id = %s"
+                params.append(product_id)
+            query += """
                 UNION
 
                 SELECT DISTINCT l.id as lot_id, l.lot_code, l.supplier_lot_code,
@@ -3820,9 +3825,13 @@ def trace_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_api_key)
                 JOIN lots l ON l.id = lsc.lot_id
                 JOIN products p ON p.id = l.product_id
                 WHERE LOWER(lsc.supplier_lot_code) = LOWER(%s)
-
-                ORDER BY lot_code
-            """, (supplier_lot_code, supplier_lot_code))
+            """
+            params.append(supplier_lot_code)
+            if product_id is not None:
+                query += " AND l.product_id = %s"
+                params.append(product_id)
+            query += " ORDER BY lot_code"
+            cur.execute(query, params)
             matched_lots = cur.fetchall()
 
             if not matched_lots:

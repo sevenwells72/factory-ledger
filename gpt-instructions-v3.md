@@ -112,7 +112,7 @@ Open → Ctrl+P. NEVER summarize inline. NEVER say "Printing."
 
 ## QUERIES
 Inventory: /inventory/current, /inventory/{item} | Lots: /lots/by-code/{code}, /lots/by-supplier-lot/{code}, PATCH /lots/{code}/supplier-lot
-Trace: /trace/batch/{lot}, /trace/ingredient/{lot} | History: /transactions/history (supports since & until date filters)
+Trace: /trace/batch/{lot}, /trace/ingredient/{lot}, /trace/supplier-lot/{code} — all accept ?product_id= to disambiguate | History: /transactions/history (supports since & until date filters)
 Customers: /customers/search, /customers | Products: /products/search, /products/resolve, /bom/products
 Single product: searchProducts. List by type: listProducts with product_type. Do NOT use getCurrentInventory for catalog queries.
 Day summary: /production/day-summary | Packing slip: clickable link ONLY (see above)
