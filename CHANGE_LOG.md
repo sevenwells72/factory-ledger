@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-25 15:30 — Allow service items (Pallets, freight) on sales orders with zero quantity_lb
+- **File(s) changed:** `main.py`, `migrations/031_relax_quantity_lb_check_for_service_items.sql`
+- **What changed:** Added is_service detection to create_sales_order and add_order_lines endpoints. Service items now skip case weight lookup, unit-defaulting warning, and quantity sanity check. quantity_lb defaults to 0 for service items. Migration relaxes CHECK constraint from > 0 to >= 0.
+- **Why:** Service items like Pallets have no physical weight, causing the quantity_lb > 0 constraint to reject them.
+
+---
+
 ## 2026-03-25 12:00 — Unit Display Implementation: dual lb · units format everywhere
 - **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `dashboard/dashboard.js`, `dashboard/traceability.html`, `GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`
 - **What changed:** Added unit counts (derived from case_size_lb / default_batch_lb) to all operator-facing endpoints and dashboard views. Backend: added case_size_lb/default_batch_lb to /products/search, /bom/products; new /products/missing-case-size endpoint; unit totals on sales order list/detail/ship/update-line; unit_count on production calendar FG rows, batch_count on batch rows; unit_count per line on shipments/receipts/inventory/lots/trace endpoints; packing slip qty_display changed from "N cs" to "X lb · Y units". Frontend: new fmtQty() helper; dual format in production calendar, sales orders (list/detail/KPI/lines), shipping/receiving activity, FG lot rows, batch lot rows, lot detail panel, traceability nodes. GPT instructions: added QTY DISPLAY section. OpenAPI schemas updated.

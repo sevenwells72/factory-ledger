@@ -4753,31 +4753,40 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                 for line in req.lines:
                     product_id, prod_name = resolve_product_id(cur, line.product_name)
 
-                    # Fix #2: Auto-lookup case weight from product if not provided
-                    effective_case_weight = line.case_weight_lb
-                    used_unit = line.unit or 'lb'
-                    if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
-                        cur.execute(
-                            "SELECT case_size_lb FROM products WHERE id = %s",
-                            (product_id,)
-                        )
-                        prod_row = cur.fetchone()
-                        if prod_row and prod_row.get('case_size_lb'):
-                            effective_case_weight = float(prod_row['case_size_lb'])
-                        else:
-                            raise HTTPException(400,
-                                f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
-                                f"No default case weight is set for this product."
-                            )
-                        # Recalculate quantity_lb with looked-up weight
-                        line.quantity_lb = line.quantity * effective_case_weight
+                    # Detect service items (Pallets, freight, etc.) — zero weight is valid
+                    cur.execute(
+                        "SELECT case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id = %s",
+                        (product_id,)
+                    )
+                    prod_row = cur.fetchone()
+                    is_service = prod_row and prod_row['is_service']
 
-                    # Fix #1: Warn if unit was not explicitly provided and quantity was given
-                    if line.quantity is not None and line.unit is None:
-                        warnings.append(
-                            f"⚠️ '{prod_name}': No unit specified for quantity {line.quantity:,.0f} — "
-                            f"defaulting to lb. Did you mean cases?"
-                        )
+                    if is_service:
+                        # Service items get zero weight, skip case-weight logic
+                        line.quantity_lb = line.quantity_lb if line.quantity_lb else 0
+                        effective_case_weight = None
+                        used_unit = line.unit or 'each'
+                    else:
+                        # Fix #2: Auto-lookup case weight from product if not provided
+                        effective_case_weight = line.case_weight_lb
+                        used_unit = line.unit or 'lb'
+                        if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
+                            if prod_row and prod_row.get('case_size_lb'):
+                                effective_case_weight = float(prod_row['case_size_lb'])
+                            else:
+                                raise HTTPException(400,
+                                    f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
+                                    f"No default case weight is set for this product."
+                                )
+                            # Recalculate quantity_lb with looked-up weight
+                            line.quantity_lb = line.quantity * effective_case_weight
+
+                        # Fix #1: Warn if unit was not explicitly provided and quantity was given
+                        if line.quantity is not None and line.unit is None:
+                            warnings.append(
+                                f"⚠️ '{prod_name}': No unit specified for quantity {line.quantity:,.0f} — "
+                                f"defaulting to lb. Did you mean cases?"
+                            )
 
                     cur.execute(
                         """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes, notes_es)
@@ -4788,20 +4797,21 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                     total_lb += line.quantity_lb
 
                     # Fix #3: Quantity sanity check — compare to customer's average order size
-                    cur.execute("""
-                        SELECT AVG(sol.quantity_lb) as avg_qty
-                        FROM sales_order_lines sol
-                        JOIN sales_orders so ON so.id = sol.sales_order_id
-                        WHERE so.customer_id = %s AND sol.product_id = %s
-                          AND sol.id != %s
-                          AND sol.line_status != 'cancelled'
-                    """, (customer_id, product_id, line_id))
-                    avg_row = cur.fetchone()
-                    if avg_row and avg_row['avg_qty'] and line.quantity_lb < float(avg_row['avg_qty']) * 0.25:
-                        warnings.append(
-                            f"⚠️ '{prod_name}': {line.quantity_lb:,.0f} lb is unusually low for {customer_name}. "
-                            f"Their average order is {float(avg_row['avg_qty']):,.0f} lb. Double-check the quantity."
-                        )
+                    if not is_service:
+                        cur.execute("""
+                            SELECT AVG(sol.quantity_lb) as avg_qty
+                            FROM sales_order_lines sol
+                            JOIN sales_orders so ON so.id = sol.sales_order_id
+                            WHERE so.customer_id = %s AND sol.product_id = %s
+                              AND sol.id != %s
+                              AND sol.line_status != 'cancelled'
+                        """, (customer_id, product_id, line_id))
+                        avg_row = cur.fetchone()
+                        if avg_row and avg_row['avg_qty'] and line.quantity_lb < float(avg_row['avg_qty']) * 0.25:
+                            warnings.append(
+                                f"⚠️ '{prod_name}': {line.quantity_lb:,.0f} lb is unusually low for {customer_name}. "
+                                f"Their average order is {float(avg_row['avg_qty']):,.0f} lb. Double-check the quantity."
+                            )
 
                     line_results.append({
                         "line_id": line_id,
@@ -5376,30 +5386,39 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
                 for line in req.lines:
                     product_id, prod_name = resolve_product_id(cur, line.product_name)
 
-                    # Fix #2: Auto-lookup case weight from product if not provided
-                    effective_case_weight = line.case_weight_lb
-                    used_unit = line.unit or 'lb'
-                    if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
-                        cur.execute(
-                            "SELECT case_size_lb FROM products WHERE id = %s",
-                            (product_id,)
-                        )
-                        prod_row = cur.fetchone()
-                        if prod_row and prod_row.get('case_size_lb'):
-                            effective_case_weight = float(prod_row['case_size_lb'])
-                        else:
-                            raise HTTPException(400,
-                                f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
-                                f"No default case weight is set for this product."
-                            )
-                        line.quantity_lb = line.quantity * effective_case_weight
+                    # Detect service items (Pallets, freight, etc.) — zero weight is valid
+                    cur.execute(
+                        "SELECT case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id = %s",
+                        (product_id,)
+                    )
+                    prod_row = cur.fetchone()
+                    is_service = prod_row and prod_row['is_service']
 
-                    # Fix #1: Warn if unit was not explicitly provided
-                    if line.quantity is not None and line.unit is None:
-                        warnings.append(
-                            f"⚠️ '{prod_name}': No unit specified for quantity {line.quantity:,.0f} — "
-                            f"defaulting to lb. Did you mean cases?"
-                        )
+                    if is_service:
+                        # Service items get zero weight, skip case-weight logic
+                        line.quantity_lb = line.quantity_lb if line.quantity_lb else 0
+                        effective_case_weight = None
+                        used_unit = line.unit or 'each'
+                    else:
+                        # Fix #2: Auto-lookup case weight from product if not provided
+                        effective_case_weight = line.case_weight_lb
+                        used_unit = line.unit or 'lb'
+                        if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
+                            if prod_row and prod_row.get('case_size_lb'):
+                                effective_case_weight = float(prod_row['case_size_lb'])
+                            else:
+                                raise HTTPException(400,
+                                    f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
+                                    f"No default case weight is set for this product."
+                                )
+                            line.quantity_lb = line.quantity * effective_case_weight
+
+                        # Fix #1: Warn if unit was not explicitly provided
+                        if line.quantity is not None and line.unit is None:
+                            warnings.append(
+                                f"⚠️ '{prod_name}': No unit specified for quantity {line.quantity:,.0f} — "
+                                f"defaulting to lb. Did you mean cases?"
+                            )
 
                     cur.execute(
                         """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes, notes_es)
