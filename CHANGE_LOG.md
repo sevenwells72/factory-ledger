@@ -1,5 +1,54 @@
 # Change Log
 
+## 2026-03-26 — Remove temporary debug endpoint and logging from inventory lookup
+- **File(s) changed:** `main.py`
+- **What changed:** Removed `/inventory/debug/{product_id}` endpoint and all diagnostic logging from `_inventory_detail_for_product()`. The 0-lb bug was caused by uncommitted code not being deployed, not a query issue.
+- **Why:** Cleanup after confirming the inventory lookup works correctly once deployed.
+
+---
+
+## 2026-03-26 — Add debug logging and /inventory/debug/{product_id} endpoint for inventory lookup bug
+- **File(s) changed:** `main.py`
+- **What changed:** Added detailed debug logging to `_inventory_detail_for_product()` (logs all lots before HAVING, transaction_lines by product_id, and product_id mismatches). Added temporary `/inventory/debug/{product_id}` endpoint that returns raw diagnostic data (lots, txn_lines via lot join vs product_id, grouped results without HAVING, inventory_summary view).
+- **Why:** `/inventory/lookup` returns 0 lb on hand for product 10305 (Sprinkles Rainbow 25 LB) despite 3,125 lb existing in lot 26-03-20-INVE-001. Dashboard shows correct balance. Debugging whether HAVING clause, lot_id join, or product_id mismatch is the root cause.
+
+---
+
+## 2026-03-26 — Remove getInventoryItem from GPT schema to stay at 30-op limit
+- **File(s) changed:** `openapi-gpt-v3.yaml`
+- **What changed:** Removed /inventory/{item_name} (getInventoryItem) from GPT schema since /inventory/lookup fully replaces it for GPT use. Brings operation count from 31 back to 30.
+- **Why:** ChatGPT GPT actions enforce a 30-operation maximum
+
+---
+
+## 2026-03-26 — Add /inventory/lookup unified endpoint + fuzzy fallback on getInventoryItem
+- **File(s) changed:** `main.py`, `openapi-gpt-v3.yaml`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`
+- **What changed:** New GET /inventory/lookup?q= endpoint that combines fuzzy product search with lot-level inventory detail in a single call. Added _inventory_detail_for_product helper. Updated /inventory/{item_name} with fuzzy fallback (tiered search if no LIKE match; returns 404/300 for zero/multiple matches). Updated all three OpenAPI schemas with the new endpoint and revised summaries.
+- **Why:** Replace the two-step searchProducts → getInventoryItem flow with a single unified lookup for the GPT
+
+---
+
+## 2026-03-26 — Create openapi-gpt-v3.yaml (unified schema for ChatGPT GPT action)
+- **File(s) changed:** `openapi-gpt-v3.yaml`
+- **What changed:** Created trimmed GPT action schema from openapi-v3.yaml (30 operations, the ChatGPT limit). Removed productsMissingCaseSize, searchCustomers, productionDaySummary. Added back getBatchFormula (needed for /make lot overrides). Uses unified mode-in-body endpoints instead of deprecated split /preview /commit paths.
+- **Why:** The GPT is currently using the deprecated openapi-schema-gpt.yaml with split paths. This new schema uses the correct unified endpoints and fits within the 30-operation ChatGPT limit.
+
+---
+
+## 2026-03-26 — Fix GPT shipping 404: add split-path route aliases
+- **File(s) changed:** `main.py`, `openapi-schema-gpt.yaml`
+- **What changed:** Added thin wrapper routes for /preview and /commit sub-paths on all transactional endpoints (/receive, /ship, /make, /pack, /adjust, /sales/orders/{id}/ship). The GPT schema uses these split paths but the API only had the combined endpoint with mode in the body, causing 404s. Also added the missing shipOrderPreview endpoint to the GPT schema.
+- **Why:** GPT was getting "not found" when trying to ship SO-260325-003 because it called /sales/orders/SO-260325-003/ship/commit which didn't exist as a route.
+
+---
+
+## 2026-03-26 09:00 — Update GPT instructions to v3.5.0
+- **File(s) changed:** `GPT_INSTRUCTIONS.md`
+- **What changed:** Complete rewrite of GPT instructions from developer-assistant format to operator-facing GPT v3.5.0. New structure includes: critical rules, pre-flight intent/product resolution, universal disambiguation format, batched disambiguation, order entry from confirmations, transaction workflow, order editing, shipping, FIFO override, receive, supplier lot cross-reference, found inventory, make, pack (with smart resolve and source batch mismatch), adjust, sales orders, ingredient lots, pack add-ins, post-commit, qty display, day summary, FG identity, lot merges, packing slip link-only, queries, bilingual, and error codes.
+- **Why:** User requested update to new v3.5.0 instruction set
+
+---
+
 ## 2026-03-25 16:00 — Add product_id disambiguation to all three trace endpoints
 - **File(s) changed:** `main.py`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`, `gpt-instructions-v3.md`
 - **What changed:** Added optional `product_id` query param to `/trace/supplier-lot` in main.py (batch and ingredient already had it). Added `product_id` param to all three trace endpoints in both OpenAPI schemas. Added `/trace/supplier-lot` endpoint to both OpenAPI schemas (was missing). Updated GPT instructions trace line to include supplier-lot and note the `?product_id=` param. Removed `updateNote` operation from GPT schema to stay within 30-operation limit.
