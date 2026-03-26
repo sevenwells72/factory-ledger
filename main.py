@@ -5732,6 +5732,77 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
 
 
 # ═══════════════════════════════════════════════════════════════
+# SPLIT-PATH ALIASES — GPT schema uses /endpoint/preview and
+# /endpoint/commit instead of mode in the body.  These thin
+# wrappers keep the old schema working.
+# ═══════════════════════════════════════════════════════════════
+
+@app.post("/receive/preview", include_in_schema=False)
+def receive_preview(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "preview"
+    return receive(req, _)
+
+@app.post("/receive/commit", include_in_schema=False)
+def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "commit"
+    return receive(req, _)
+
+@app.post("/ship/preview", include_in_schema=False)
+def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "preview"
+    return ship(req, _)
+
+@app.post("/ship/commit", include_in_schema=False)
+def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "commit"
+    return ship(req, _)
+
+@app.post("/make/preview", include_in_schema=False)
+def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "preview"
+    return make(req, _)
+
+@app.post("/make/commit", include_in_schema=False)
+def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "commit"
+    return make(req, _)
+
+@app.post("/pack/preview", include_in_schema=False)
+def pack_preview(req: PackRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "preview"
+    return pack(req, _)
+
+@app.post("/pack/commit", include_in_schema=False)
+def pack_commit(req: PackRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "commit"
+    return pack(req, _)
+
+@app.post("/adjust/preview", include_in_schema=False)
+def adjust_preview(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "preview"
+    return adjust(req, _)
+
+@app.post("/adjust/commit", include_in_schema=False)
+def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+    req.mode = "commit"
+    return adjust(req, _)
+
+@app.post("/sales/orders/{order_id}/ship/preview", include_in_schema=False)
+def ship_order_preview(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+    if req is None:
+        req = ShipOrderRequest()
+    req.mode = "preview"
+    return ship_order(order_id, req, _)
+
+@app.post("/sales/orders/{order_id}/ship/commit", include_in_schema=False)
+def ship_order_commit(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+    if req is None:
+        req = ShipOrderRequest()
+    req.mode = "commit"
+    return ship_order(order_id, req, _)
+
+
+# ═══════════════════════════════════════════════════════════════
 # PACKING SLIP PDF (v3.0.0)
 # ═══════════════════════════════════════════════════════════════
 

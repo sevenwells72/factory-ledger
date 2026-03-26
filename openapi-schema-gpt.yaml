@@ -832,6 +832,43 @@ paths:
       responses:
         "200":
           description: Lines added
+  /sales/orders/{order_id}/ship/preview:
+    post:
+      operationId: shipOrderPreview
+      summary: Preview shipment against a sales order — shows line-by-line feasibility, on-hand stock, and any shortages before committing.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Order DB id (integer) or order number (e.g. 'SO-260323-001')"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ship_all:
+                  type: boolean
+                  default: true
+                  description: Preview all unfulfilled lines. Set false to specify individual lines.
+                lines:
+                  type: array
+                  description: Specific lines and quantities to preview (only when ship_all is false)
+                  items:
+                    type: object
+                    required:
+                      - line_id
+                      - quantity_lb
+                    properties:
+                      line_id:
+                        type: integer
+                      quantity_lb:
+                        type: number
+      responses:
+        "200":
+          description: Preview with per-line feasibility, on-hand stock, and warnings
   /sales/orders/{order_id}/ship/commit:
     post:
       operationId: shipOrderCommit
