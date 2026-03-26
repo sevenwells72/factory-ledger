@@ -1539,67 +1539,90 @@ def get_current_inventory(
 
 def _inventory_detail_for_product(cur, product_id: int) -> dict:
     """Fetch lot-level inventory detail for a single product."""
-    cur.execute(
-        """SELECT p.name, p.odoo_code, p.type, p.uom,
-                  p.case_size_lb, p.default_batch_lb
-           FROM products p WHERE p.id = %s""",
-        (product_id,)
-    )
-    prod = cur.fetchone()
-    if not prod:
-        return None
+    results = _inventory_detail_for_products(cur, [product_id])
+    return results.get(product_id)
+
+
+def _inventory_detail_for_products(cur, product_ids: list[int]) -> dict[int, dict]:
+    """Fetch lot-level inventory detail for multiple products in bulk (2 queries total)."""
+    if not product_ids:
+        return {}
 
     cur.execute(
-        """SELECT l.lot_code,
+        """SELECT p.id, p.name, p.odoo_code, p.type, p.uom,
+                  p.case_size_lb, p.default_batch_lb
+           FROM products p WHERE p.id = ANY(%s)""",
+        (product_ids,)
+    )
+    prods = {row['id']: row for row in cur.fetchall()}
+    if not prods:
+        return {}
+
+    cur.execute(
+        """SELECT l.product_id,
+                  l.lot_code,
                   COALESCE(SUM(tl.quantity_lb), 0) AS qty_on_hand
            FROM lots l
            LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
-           WHERE l.product_id = %s
-           GROUP BY l.id, l.lot_code
+           WHERE l.product_id = ANY(%s)
+           GROUP BY l.product_id, l.id, l.lot_code
            HAVING COALESCE(SUM(tl.quantity_lb), 0) != 0
-           ORDER BY l.lot_code""",
-        (product_id,)
+           ORDER BY l.product_id, l.lot_code""",
+        (product_ids,)
     )
     lot_rows = cur.fetchall()
 
-    lots = []
-    total_on_hand = 0.0
+    # Group lots by product_id
+    lots_by_product: dict[int, list] = {pid: [] for pid in prods}
     for lr in lot_rows:
-        qty = float(lr['qty_on_hand'])
-        total_on_hand += qty
-        lots.append({"lot": lr['lot_code'], "qty_on_hand": round(qty, 2), "unit": prod['uom'] or "lb"})
+        lots_by_product.setdefault(lr['product_id'], []).append(lr)
 
-    total_on_hand = round(total_on_hand, 2)
-    result = {
-        "product": prod['name'],
-        "sku": prod['odoo_code'],
-        "lots": lots,
-        "total_on_hand": total_on_hand,
-    }
+    results = {}
+    for pid, prod in prods.items():
+        lots = []
+        total_on_hand = 0.0
+        for lr in lots_by_product.get(pid, []):
+            qty = float(lr['qty_on_hand'])
+            total_on_hand += qty
+            lots.append({"lot": lr['lot_code'], "qty_on_hand": round(qty, 2), "unit": prod['uom'] or "lb"})
 
-    cs = float(prod['case_size_lb']) if prod.get('case_size_lb') else None
-    db = float(prod['default_batch_lb']) if prod.get('default_batch_lb') else None
-    if cs and cs > 0 and prod['type'] != 'ingredient':
-        result['unit_count'] = round(total_on_hand / cs)
-    elif db and db > 0 and prod['type'] == 'batch':
-        result['batch_count'] = round(total_on_hand / db, 1)
+        total_on_hand = round(total_on_hand, 2)
+        result = {
+            "product": prod['name'],
+            "sku": prod['odoo_code'],
+            "lots": lots,
+            "total_on_hand": total_on_hand,
+        }
 
-    return result
+        cs = float(prod['case_size_lb']) if prod.get('case_size_lb') else None
+        db = float(prod['default_batch_lb']) if prod.get('default_batch_lb') else None
+        if cs and cs > 0 and prod['type'] != 'ingredient':
+            result['unit_count'] = round(total_on_hand / cs)
+        elif db and db > 0 and prod['type'] == 'batch':
+            result['batch_count'] = round(total_on_hand / db, 1)
+
+        results[pid] = result
+
+    return results
 
 
 @app.get("/inventory/lookup")
 def inventory_lookup(
     q: str = Query(..., min_length=1),
-    limit: int = Query(default=10, ge=1, le=50),
+    limit: int = Query(default=5, ge=1, le=50),
     _: bool = Depends(verify_api_key)
 ):
     """Search inventory by product name (fuzzy). This is the PRIMARY endpoint for all inventory questions."""
     try:
         with get_transaction() as cur:
             matches = _tiered_product_search(cur, q, limit=limit)
+            if not matches:
+                return {"query": q, "results": []}
+            product_ids = [m['id'] for m in matches]
+            details_by_id = _inventory_detail_for_products(cur, product_ids)
             results = []
             for m in matches:
-                detail = _inventory_detail_for_product(cur, m['id'])
+                detail = details_by_id.get(m['id'])
                 if detail:
                     detail['match_tier'] = m['match_tier']
                     results.append(detail)

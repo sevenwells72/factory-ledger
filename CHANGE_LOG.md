@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-26 — Performance fix for /inventory/lookup bulk queries
+- **File(s) changed:** `main.py`
+- **What changed:** Added `_inventory_detail_for_products()` that fetches product info and lot inventory for multiple product_ids in 2 SQL queries (using `ANY(%s)`) instead of 2N. Refactored `/inventory/lookup` to call the bulk function. Changed default limit from 10 to 5 to reduce payload size for broad queries.
+- **Why:** Queries like "coconut" matching 17 products caused 34+ database round trips, making the endpoint slow.
+
+---
+
 ## 2026-03-26 — Remove temporary debug endpoint and logging from inventory lookup
 - **File(s) changed:** `main.py`
 - **What changed:** Removed `/inventory/debug/{product_id}` endpoint and all diagnostic logging from `_inventory_detail_for_product()`. The 0-lb bug was caused by uncommitted code not being deployed, not a query issue.
