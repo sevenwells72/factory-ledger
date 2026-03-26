@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-26 — Add ROUTING RULES section to GPT instructions
+- **File(s) changed:** `GPT_INSTRUCTIONS.md`
+- **What changed:** Added ROUTING RULES section before PRE-FLIGHT — INTENT. Bare product names route directly to inventoryLookup; product + "orders" routes to listOrders; product + "trace"/"lot" routes to trace endpoints; default fallback is inventoryLookup.
+- **Why:** GPT was asking unnecessary clarification questions instead of immediately calling the right endpoint.
+
+---
+
 ## 2026-03-26 — Performance fix for /inventory/lookup bulk queries
 - **File(s) changed:** `main.py`
 - **What changed:** Added `_inventory_detail_for_products()` that fetches product info and lot inventory for multiple product_ids in 2 SQL queries (using `ANY(%s)`) instead of 2N. Refactored `/inventory/lookup` to call the bulk function. Changed default limit from 10 to 5 to reduce payload size for broad queries.
