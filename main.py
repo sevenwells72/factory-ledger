@@ -1537,10 +1537,204 @@ def get_current_inventory(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.get("/inventory/{item_name}")
-def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
+def _inventory_detail_for_product(cur, product_id: int) -> dict:
+    """Fetch lot-level inventory detail for a single product."""
+    cur.execute(
+        """SELECT p.name, p.odoo_code, p.type, p.uom,
+                  p.case_size_lb, p.default_batch_lb
+           FROM products p WHERE p.id = %s""",
+        (product_id,)
+    )
+    prod = cur.fetchone()
+    if not prod:
+        return None
+
+    # DEBUG: run without HAVING to see all lots and their raw sums
+    cur.execute(
+        """SELECT l.id AS lot_id, l.lot_code,
+                  COUNT(tl.id) AS txn_line_count,
+                  COALESCE(SUM(tl.quantity_lb), 0) AS qty_on_hand
+           FROM lots l
+           LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+           WHERE l.product_id = %s
+           GROUP BY l.id, l.lot_code
+           ORDER BY l.lot_code""",
+        (product_id,)
+    )
+    debug_all_lots = cur.fetchall()
+    logger.warning(f"[DEBUG] _inventory_detail product_id={product_id} ({prod['name']}): "
+                   f"ALL lots (no HAVING): {[dict(r) for r in debug_all_lots]}")
+
+    # DEBUG: check if transaction_lines exist for this product_id directly
+    cur.execute(
+        """SELECT tl.id, tl.transaction_id, tl.product_id, tl.lot_id, tl.quantity_lb,
+                  l.lot_code, l.product_id AS lot_product_id
+           FROM transaction_lines tl
+           LEFT JOIN lots l ON l.id = tl.lot_id
+           WHERE tl.product_id = %s
+           ORDER BY tl.id DESC
+           LIMIT 20""",
+        (product_id,)
+    )
+    debug_txn_lines = cur.fetchall()
+    logger.warning(f"[DEBUG] transaction_lines for product_id={product_id}: "
+                   f"{[dict(r) for r in debug_txn_lines]}")
+
+    # DEBUG: check for product_id mismatch — lots where lot's product_id differs from txn_line's product_id
+    cur.execute(
+        """SELECT l.id AS lot_id, l.lot_code, l.product_id AS lot_product_id,
+                  tl.product_id AS tl_product_id, tl.quantity_lb
+           FROM lots l
+           JOIN transaction_lines tl ON tl.lot_id = l.id
+           WHERE l.product_id = %s AND tl.product_id != l.product_id
+           LIMIT 10""",
+        (product_id,)
+    )
+    debug_mismatch = cur.fetchall()
+    if debug_mismatch:
+        logger.warning(f"[DEBUG] PRODUCT_ID MISMATCH found: {[dict(r) for r in debug_mismatch]}")
+
+    cur.execute(
+        """SELECT l.lot_code,
+                  COALESCE(SUM(tl.quantity_lb), 0) AS qty_on_hand
+           FROM lots l
+           LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+           WHERE l.product_id = %s
+           GROUP BY l.id, l.lot_code
+           HAVING COALESCE(SUM(tl.quantity_lb), 0) != 0
+           ORDER BY l.lot_code""",
+        (product_id,)
+    )
+    lot_rows = cur.fetchall()
+    logger.warning(f"[DEBUG] after HAVING filter: {[dict(r) for r in lot_rows]}")
+
+    lots = []
+    total_on_hand = 0.0
+    for lr in lot_rows:
+        qty = float(lr['qty_on_hand'])
+        total_on_hand += qty
+        lots.append({"lot": lr['lot_code'], "qty_on_hand": round(qty, 2), "unit": prod['uom'] or "lb"})
+
+    total_on_hand = round(total_on_hand, 2)
+    result = {
+        "product": prod['name'],
+        "sku": prod['odoo_code'],
+        "lots": lots,
+        "total_on_hand": total_on_hand,
+    }
+
+    cs = float(prod['case_size_lb']) if prod.get('case_size_lb') else None
+    db = float(prod['default_batch_lb']) if prod.get('default_batch_lb') else None
+    if cs and cs > 0 and prod['type'] != 'ingredient':
+        result['unit_count'] = round(total_on_hand / cs)
+    elif db and db > 0 and prod['type'] == 'batch':
+        result['batch_count'] = round(total_on_hand / db, 1)
+
+    return result
+
+
+@app.get("/inventory/lookup")
+def inventory_lookup(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(default=10, ge=1, le=50),
+    _: bool = Depends(verify_api_key)
+):
+    """Search inventory by product name (fuzzy). This is the PRIMARY endpoint for all inventory questions."""
     try:
         with get_transaction() as cur:
+            matches = _tiered_product_search(cur, q, limit=limit)
+            results = []
+            for m in matches:
+                detail = _inventory_detail_for_product(cur, m['id'])
+                if detail:
+                    detail['match_tier'] = m['match_tier']
+                    results.append(detail)
+        return {"query": q, "results": results}
+    except Exception as e:
+        logger.error(f"Inventory lookup failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/inventory/debug/{product_id}")
+def debug_inventory(product_id: int, _: bool = Depends(verify_api_key)):
+    """TEMPORARY DEBUG: show raw inventory data for a product."""
+    try:
+        with get_transaction() as cur:
+            cur.execute("SELECT id, name, odoo_code FROM products WHERE id = %s", (product_id,))
+            prod = cur.fetchone()
+            if not prod:
+                return {"error": f"No product with id {product_id}"}
+
+            # All lots for this product
+            cur.execute("""
+                SELECT l.id AS lot_id, l.lot_code, l.product_id AS lot_product_id
+                FROM lots l WHERE l.product_id = %s ORDER BY l.id
+            """, (product_id,))
+            lots = [dict(r) for r in cur.fetchall()]
+
+            # All txn_lines for these lots (via lot_id join)
+            cur.execute("""
+                SELECT tl.id, tl.transaction_id, tl.product_id AS tl_product_id,
+                       tl.lot_id, tl.quantity_lb,
+                       l.lot_code, l.product_id AS lot_product_id
+                FROM transaction_lines tl
+                JOIN lots l ON l.id = tl.lot_id
+                WHERE l.product_id = %s
+                ORDER BY tl.id
+            """, (product_id,))
+            txn_via_lot = [dict(r) for r in cur.fetchall()]
+
+            # All txn_lines for this product_id directly
+            cur.execute("""
+                SELECT tl.id, tl.transaction_id, tl.product_id AS tl_product_id,
+                       tl.lot_id, tl.quantity_lb,
+                       l.lot_code, l.product_id AS lot_product_id
+                FROM transaction_lines tl
+                LEFT JOIN lots l ON l.id = tl.lot_id
+                WHERE tl.product_id = %s
+                ORDER BY tl.id
+            """, (product_id,))
+            txn_via_product = [dict(r) for r in cur.fetchall()]
+
+            # The actual query from _inventory_detail_for_product WITHOUT having
+            cur.execute("""
+                SELECT l.id AS lot_id, l.lot_code,
+                       COUNT(tl.id) AS txn_line_count,
+                       COALESCE(SUM(tl.quantity_lb), 0) AS qty_on_hand
+                FROM lots l
+                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                WHERE l.product_id = %s
+                GROUP BY l.id, l.lot_code
+                ORDER BY l.lot_code
+            """, (product_id,))
+            grouped_no_having = [dict(r) for r in cur.fetchall()]
+
+            # Check inventory_summary view
+            cur.execute("""
+                SELECT * FROM inventory_summary WHERE product_id = %s
+            """, (product_id,))
+            inv_summary = [dict(r) for r in cur.fetchall()]
+
+            return {
+                "product": dict(prod),
+                "lots": lots,
+                "txn_lines_via_lot_join": txn_via_lot,
+                "txn_lines_via_product_id": txn_via_product,
+                "grouped_no_having": grouped_no_having,
+                "inventory_summary_view": inv_summary,
+                "diagnosis": "Compare txn_lines_via_lot_join vs txn_lines_via_product_id — if product has txn lines but lot join finds none, lot_id is mismatched"
+            }
+    except Exception as e:
+        logger.error(f"Debug inventory failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/inventory/{item_name}")
+def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
+    """Get inventory for an exact product name. Prefer /inventory/lookup for general queries."""
+    try:
+        with get_transaction() as cur:
+            # Try exact LIKE match first (original behavior)
             cur.execute("""
                 SELECT p.id, p.name, p.odoo_code, p.type, p.uom,
                        p.case_size_lb, p.default_batch_lb,
@@ -1552,6 +1746,24 @@ def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
                 GROUP BY p.id
             """, (f"%{item_name}%", f"%{item_name}%"))
             rows = cur.fetchall()
+
+            # Fuzzy fallback: if no exact LIKE match, try tiered search
+            if not rows:
+                fuzzy_matches = _tiered_product_search(cur, item_name, limit=5)
+                if not fuzzy_matches:
+                    return JSONResponse(status_code=404, content={"error": "not_found", "message": f"No product matching '{item_name}'"})
+                if len(fuzzy_matches) == 1:
+                    # Single match — return its inventory
+                    detail = _inventory_detail_for_product(cur, fuzzy_matches[0]['id'])
+                    if detail:
+                        return {"count": 1, "inventory": [detail]}
+                    return JSONResponse(status_code=404, content={"error": "not_found", "message": f"No product matching '{item_name}'"})
+                # Multiple matches — ask caller to disambiguate
+                return JSONResponse(status_code=300, content={
+                    "error": "multiple_matches",
+                    "matches": [{"name": m['name'], "odoo_code": m['odoo_code'], "match_tier": m['match_tier']} for m in fuzzy_matches]
+                })
+
             results = []
             for r in rows:
                 item = dict(r)
