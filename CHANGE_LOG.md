@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-03-26 — Trim GPT instructions to fit 8000-char limit
+- **File(s) changed:** `GPT_INSTRUCTIONS.md`
+- **What changed:** Compressed ROUTING RULES, PRE-FLIGHT INTENT, QUERIES, and LOT MERGES sections to fit under 8,000 chars (now 7,986). Updated QUERIES to list /inventory/lookup as primary. Removed /inventory/{item} and packing-slip line from QUERIES (covered elsewhere).
+- **Why:** Adding ROUTING RULES pushed instructions to 8,279 chars, exceeding the 8,000-char GPT limit.
+
+---
+
 ## 2026-03-26 — Add ROUTING RULES section to GPT instructions
 - **File(s) changed:** `GPT_INSTRUCTIONS.md`
 - **What changed:** Added ROUTING RULES section before PRE-FLIGHT — INTENT. Bare product names route directly to inventoryLookup; product + "orders" routes to listOrders; product + "trace"/"lot" routes to trace endpoints; default fallback is inventoryLookup.
