@@ -38,6 +38,7 @@ components:
           type: string
         supplier_lot_code:
           type: string
+          description: "Supplier's printed lot code. Defaults to lot_code if omitted, or 'N/A' if neither is provided."
         lot_type:
           type: string
           enum: [single_supplier, commingled]
@@ -385,10 +386,31 @@ paths:
       responses:
         '200':
           description: Current inventory
+  /inventory/lookup:
+    get:
+      operationId: inventoryLookup
+      summary: "Search inventory by product name (fuzzy). This is the PRIMARY endpoint for all inventory questions."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Fuzzy product name query (e.g. "rainbow sprinkles")
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: "Returns {query, results[]} where each result has product, sku, lots[], total_on_hand"
   /inventory/{item_name}:
     get:
       operationId: getInventoryItem
-      summary: Get inventory for a specific product with lot-level detail
+      summary: "Get inventory for an exact product name. Prefer /inventory/lookup for general queries."
       parameters:
         - name: item_name
           in: path

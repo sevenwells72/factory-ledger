@@ -68,6 +68,7 @@ Rules:
 * Update the logs immediately after making the changes, not before.
 * If you are working outside of a project directory (e.g. directly in `~`), still log to `~/change-log.md` and skip the project-level log.
 * Use the current date and time for each entry.
+* HARD RULE: openapi-gpt-v3.yaml has a 30-operation limit. Count operations before and after any schema change. Never exceed 30.
 
 ## Regression Guard
 

@@ -1,0 +1,15 @@
+-- Migration 007: Lot-level inventory breakdown
+-- Purpose: No schema changes needed — this migration documents the new
+-- GET /inventory/lots endpoint and the enhanced make/preview + make/commit
+-- responses that now include per-lot detail (lot_code, supplier_lot,
+-- quantity_on_hand, received_date, age_days, entry_source).
+--
+-- The lots.created_at and lots.supplier_lot columns already exist from
+-- previous migrations. This feature leverages existing schema.
+--
+-- New endpoint: GET /inventory/lots?product_name=Oats
+--   (also accepts product_id or odoo_code)
+--
+-- Updated endpoints:
+--   POST /make/preview — ingredient availability now includes lots[] breakdown
+--   POST /make/commit — consumed lots now include supplier_lot and received_date

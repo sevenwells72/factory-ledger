@@ -63,10 +63,31 @@ paths:
             Each item includes: input, match (id/name/odoo_code or null), match_tier (exact/keyword/trigram/null), confidence (high/medium/low/none).
             If multiple matches exist, top match is in 'match' and rest in 'alternatives'.
             Summary shows total/resolved/unresolved counts.
+  /inventory/lookup:
+    get:
+      operationId: inventoryLookup
+      summary: "Search inventory by product name (fuzzy). This is the PRIMARY endpoint for all inventory questions."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Fuzzy product name query (e.g. "rainbow sprinkles")
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: "Returns {query, results[]} where each result has product, sku, lots[], total_on_hand"
   /inventory/{item_name}:
     get:
       operationId: getInventory
-      summary: Get inventory for a product
+      summary: "Get inventory for an exact product name. Prefer /inventory/lookup for general queries."
       parameters:
         - name: item_name
           in: path

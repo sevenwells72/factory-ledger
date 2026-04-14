@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-04-14 14:00 — Fix /receive rejecting missing supplier_lot_code
+- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-gpt-v3.yaml`
+- **What changed:** Replaced hard 400 rejection on missing supplier_lot_code with fallback logic: defaults to lot_code if provided, then 'N/A'. Added description to supplier_lot_code field in both OpenAPI schemas documenting the fallback.
+- **Why:** GPT couldn't complete receives — schema said supplier_lot_code was optional but the API hard-rejected when it was omitted.
+
+---
+
 ## 2026-03-26 — Trim GPT instructions to fit 8000-char limit
 - **File(s) changed:** `GPT_INSTRUCTIONS.md`
 - **What changed:** Compressed ROUTING RULES, PRE-FLIGHT INTENT, QUERIES, and LOT MERGES sections to fit under 8,000 chars (now 7,986). Updated QUERIES to list /inventory/lookup as primary. Removed /inventory/{item} and packing-slip line from QUERIES (covered elsewhere).

@@ -1,0 +1,187 @@
+{
+  "finished_goods_panels": [
+    {
+      "id": "bulk_25lb",
+      "title": "25 LB Bulk Cases",
+      "case_weight_lb": 25,
+      "skus": [
+        "Granola Classic 25 LB",
+        "Granola Chocolate Chip 25 LB",
+        "Granola Cinnamon Almond 25 LB",
+        "Granola Cocoa Vibes 25 LB",
+        "Granola Fruit Nut 25 LB",
+        "Granola Honey Nut 25 LB",
+        "Granola Vanilla Almond 25 LB",
+        "Granola Vanilla Crisp 25 LB",
+        "Granola Wheat Free 25 LB",
+        "Granola Setton Good Ol 25 LB",
+        "Granola Setton Cinnamon Spice Almond 25 LB",
+        "Granola Setton Cocoa Crunch 25 LB",
+        "Granola Setton French Vanilla 25 LB",
+        "Granola Setton Morning Latte Crunch 25 LB",
+        "Classic Granola 25 LB"
+      ]
+    },
+    {
+      "id": "cases_10lb",
+      "title": "10 LB Cases",
+      "case_weight_lb": 10,
+      "skus": [
+        "Granola Crunchy CNS 10 LB Case",
+        "CQ Granola 10 LB"
+      ]
+    },
+    {
+      "id": "retail_ss",
+      "title": "12x10 OZ Retail Cases (SS Line)",
+      "case_weight_lb": null,
+      "skus": [
+        "Granola SS Original 12x10 OZ Case",
+        "Granola SS Chocolate Chip 12x10 OZ Case",
+        "Granola SS Cranberry 12x10 OZ Case",
+        "Granola SS Original Low Carb 12x10 OZ Case",
+        "Granola SS Chocolate Chip Low Carb 12x10 OZ Case"
+      ]
+    },
+    {
+      "id": "retail_bs",
+      "title": "6x7 OZ Retail Cases (BS Line)",
+      "case_weight_lb": null,
+      "skus": [
+        "BS Granola \u2013 Dark Chocolate \u2013 6x7 OZ Case",
+        "BS Granola \u2013 Peanut Butter Banana \u2013 6x7 OZ Case",
+        "BS Granola \u2013 Hazelnut Butter \u2013 6x7 OZ Case",
+        "BS Almond Butter Granola \u2013 6x7 OZ Case"
+      ]
+    }
+  ],
+  "coconut_panel": {
+    "id": "coconut_fg",
+    "title": "Coconut Finished Goods",
+    "skus": [
+      "Coconut Sweetened Fancy CNS 10 LB",
+      "Coconut Sweetened Fancy CNS 25 LB",
+      "Coconut Sweetened Flake CNS 10 LB",
+      "Coconut Sweetened Flake CNS 25 LB",
+      "Coconut Sweetened Medium CNS 10 LB",
+      "Coconut Toasted Sweetened Flake CNS 10 LB",
+      "Coconut Toasted Sweetened Flake CNS 25 LB",
+      "Coconut Sweetened Fancy UNIPRO 10 LB",
+      "Coconut Sweetened Flake UNIPRO 10 LB",
+      "Coconut Sweetened Medium UNIPRO 10 LB",
+      "CQ Coconut Sweetened Flake 10 LB"
+    ]
+  },
+  "batch_skus": [
+    { "name": "Batch BS Almond Butter Granola 350", "standard_batch_size_lbs": 350 },
+    { "name": "Batch BS Dark Chocolate Granola 350", "standard_batch_size_lbs": 350 },
+    { "name": "Batch BS Hazelnut Butter Granola 350", "standard_batch_size_lbs": 350 },
+    { "name": "Batch BS Peanut Butter Banana Granola", "standard_batch_size_lbs": null },
+    { "name": "Batch Classic Chocolate Chip Granola #9", "standard_batch_size_lbs": null },
+    { "name": "Batch Classic Granola #9", "standard_batch_size_lbs": null },
+    { "name": "Batch Granola Vanilla Almond 380 lb", "standard_batch_size_lbs": 380 },
+    { "name": "Batch Setton Cinnamon Almond Granola #14", "standard_batch_size_lbs": null },
+    { "name": "Batch Setton Cocoa Crunch Granola #13", "standard_batch_size_lbs": null },
+    { "name": "Batch Setton Coffee Granola #12", "standard_batch_size_lbs": null },
+    { "name": "Batch SS Chocolate Chip Granola #2", "standard_batch_size_lbs": null },
+    { "name": "Batch SS Chocolate Chip Granola #5", "standard_batch_size_lbs": null },
+    { "name": "Batch SS Cranberry Granola #3", "standard_batch_size_lbs": null },
+    { "name": "Batch SS Low Carb Chocolate Chip Granola #8", "standard_batch_size_lbs": null },
+    { "name": "Batch SS Low Carb Original Granola #7", "standard_batch_size_lbs": null },
+    { "name": "Batch SS Original Granola #1", "standard_batch_size_lbs": null },
+    { "name": "Batch SS Original Granola #4", "standard_batch_size_lbs": null },
+    { "name": "Batch Vanilla Crisp Granola #16 (no almonds)", "standard_batch_size_lbs": null }
+  ],
+  "ingredient_categories": [
+    {
+      "id": "bs_ingredients",
+      "title": "BS Ingredients",
+      "unit": "lb",
+      "items": [
+        "BS Almond Butter",
+        "BS Almonds \u2013 Sliced \u2013 Raw",
+        "BS Banana Bites \u2013 Small",
+        "BS Cacao Fruit Sugar",
+        "BS Cacao Nibs",
+        "BS Cacao Shell Flour",
+        "BS Chia Seeds",
+        "BS Cocoa Chips",
+        "BS Cocoa Liquor",
+        "BS Cocoa Liquor \u2013 Chips",
+        "BS Coconut \u2013 Chips",
+        "BS Coconut Sugar",
+        "BS Hazelnut Butter",
+        "BS Hazelnuts",
+        "BS Hazelnuts \u2013 Diced",
+        "BS Oats GF",
+        "BS Oil \u2013 Almond",
+        "BS Peanut Butter Chips",
+        "BS Pumpkin Seeds",
+        "BS Salt"
+      ]
+    },
+    {
+      "id": "bs_packaging",
+      "title": "BS Materials (Packaging)",
+      "unit": "units",
+      "items": [
+        "Bag \u2013 Printed \u2013 BS Almond Butter 7 oz",
+        "Bag \u2013 Printed \u2013 BS Dark Chocolate 7 oz",
+        "Bag \u2013 Printed \u2013 BS Hazelnut Butter 7 oz",
+        "Bag \u2013 Printed \u2013 BS Peanut Butter 7 oz"
+      ]
+    },
+    {
+      "id": "coconut_ingredients",
+      "title": "Coconut Core Ingredients",
+      "unit": "lb",
+      "items": [
+        "Coconut Fancy Desiccated",
+        "Coconut Flake Desiccated",
+        "Coconut Medium Desiccated",
+        "Sugar \u2013 6X",
+        "Glycol",
+        "Corn Starch",
+        "Salt"
+      ]
+    },
+    {
+      "id": "granola_ingredients",
+      "title": "Granola General Ingredients",
+      "unit": "lb",
+      "items": [
+        "Oats",
+        "Oat Bran",
+        "Rice Flour",
+        "Sugar \u2013 Light Brown",
+        "Sugar \u2013 6X",
+        "Sugar \u2013 Invert (Cream)",
+        "Sugar \u2013 Monk Fruit",
+        "Honey",
+        "Oil \u2013 Canola",
+        "Coconut Macaroon Desiccated",
+        "Coconut Medium Desiccated",
+        "Almonds \u2013 Sliced",
+        "Almonds \u2013 Slivered",
+        "Almonds \u2013 Diced",
+        "Walnuts",
+        "Pumpkin Seeds",
+        "Sunflower Seeds",
+        "Flax \u2013 Ground",
+        "Chocolate Chips \u2013 Real \u2013 1,000 CT",
+        "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+        "Chocolate Chips \u2013 Sugar Free",
+        "Cocoa Powder",
+        "Cranberries Dried",
+        "Flavor \u2013 Almond",
+        "Flavor \u2013 Cinnamon",
+        "Flavor \u2013 Chocolate",
+        "Flavor \u2013 Coffee",
+        "Flavor \u2013 Vanilla",
+        "Cinnamon Ground",
+        "Coffee \u2013 Instant",
+        "Salt"
+      ]
+    }
+  ]
+}
