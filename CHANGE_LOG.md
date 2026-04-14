@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-04-14 17:30 — Fix GPT refusing to call API endpoints
+- **File(s) changed:** `GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`, `openapi-gpt-v3.yaml`
+- **What changed:** Restored missing SEARCH FIRST rule; added NEVER INSTRUCT rule (prevents GPT from telling users to run GET requests); added lot-code and supplier-lot routing rules; fixed 4 phantom endpoints in instructions that referenced API paths not in the OpenAPI schema (/lots/by-supplier-lot, /customers/search, /production/day-summary, /inventory/{product}); swapped getCurrentInventory and checkFulfillment for searchCustomers and getDaySummary in schema to match instructions; bumped instructions to v3.6.0 and schema to v3.4.0.
+- **Why:** GPT was refusing to call API endpoints for lot lookups and inventory queries, instead telling users to manually run GET requests and paste results. Root cause: missing "SEARCH FIRST" directive dropped in v3.5.0, no lot-code routing rule, and phantom endpoints creating confusion about available Actions.
+
+---
+
 ## 2026-04-14 14:00 — Fix /receive rejecting missing supplier_lot_code
 - **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-gpt-v3.yaml`
 - **What changed:** Replaced hard 400 rejection on missing supplier_lot_code with fallback logic: defaults to lot_code if provided, then 'N/A'. Added description to supplier_lot_code field in both OpenAPI schemas documenting the fallback.

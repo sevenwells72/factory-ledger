@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger System
-  version: 3.3.0
+  version: 3.4.0
   description: Inventory management, production tracking, and sales order fulfillment for food manufacturing.
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -373,25 +373,6 @@ paths:
       responses:
         '200':
           description: Batch formula with ingredient product IDs
-  /inventory/current:
-    get:
-      operationId: getCurrentInventory
-      summary: Get current inventory with on-hand quantities
-      parameters:
-        - name: product_type
-          in: query
-          schema:
-            type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 100
-            minimum: 1
-            maximum: 500
-      responses:
-        '200':
-          description: Current inventory
   /inventory/lookup:
     get:
       operationId: inventoryLookup
@@ -615,6 +596,20 @@ paths:
       responses:
         '200':
           description: Transaction history
+  /production/day-summary:
+    get:
+      operationId: getDaySummary
+      summary: "Get daily production summary — all make/pack/adjust activity grouped by product with lot-level detail."
+      parameters:
+        - name: date
+          in: query
+          description: "Date in YYYY-MM-DD format; defaults to today"
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: "Day summary with batches_made, finished_goods_packed, adjustments, ingredient consumption"
   /customers:
     get:
       operationId: listCustomers
@@ -640,6 +635,21 @@ paths:
       responses:
         '200':
           description: Created customer
+  /customers/search:
+    get:
+      operationId: searchCustomers
+      summary: "Search customers by name (fuzzy, includes aliases). Use for customer lookup and disambiguation."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: "Customer name or partial name to search"
+      responses:
+        '200':
+          description: "Matching customers with id, name, contact_name, phone, email"
   /customers/{customer_id}:
     patch:
       operationId: updateCustomer
@@ -699,26 +709,6 @@ paths:
       responses:
         '200':
           description: Created order
-  /sales/orders/fulfillment-check:
-    get:
-      operationId: checkFulfillment
-      summary: Check inventory availability for open orders
-      parameters:
-        - name: customer_name
-          in: query
-          schema:
-            type: string
-        - name: status
-          in: query
-          schema:
-            type: string
-        - name: order_id
-          in: query
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Fulfillment feasibility
   /sales/orders/{order_id}:
     get:
       operationId: getOrder
