@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-04-16 13:22 — Fix stale dashboard config SKU name for Vanilla Crisp #16
+- **File(s) changed:** `dashboard/dashboard_config.json`
+- **What changed:** Removed one space in `batch_skus` entry at line 104: `"Batch Vanilla Crisp Granola #16 (no almonds)"` → `"Batch Vanilla Crisp Granola #16(no almonds)"`, matching the canonical product name in the DB (products.id=112, odoo_code=90024).
+- **Why:** Dashboard Operations tab flagged this SKU under "Missing SKUs". Root cause: `/dashboard/api/inventory/batches` does `LOWER(p.name) = ANY(unnest(%s::text[]))` exact match (main.py:6709), and the single extra space in the config prevented a match. Product exists and is active — config was stale.
+
+---
+
+## 2026-04-16 20:10 — Product catalog cleanup (migration 032 applied)
+- **File(s) changed:** `migrations/032_backfill_skus_and_merge_bs_cocoa.sql`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Migration 032 applied via Supabase SQL Editor (MyFirstProject). (1) Backfilled odoo_code='70089' on `Classic Granola 25 LB` (id=171). (2) Merged SKU-less duplicates `BS Cocoa Chips` (id=167) and `BS Cocoa Liquor` (id=168) into canonical 15008 `BS Cocoa Liquor – Chips` (id=61): repointed 2 rows in `lots`, 3 in `transaction_lines`, 2 in `inventory_adjustments`, updated 2 rows in `product_verification_history` to action='merged' + merged_into_product_id=61, deleted the two duplicate product rows. (3) Idempotently asserted label_type='private_label' on odoo_code 70082 (already correct; no-op UPDATE). Products count 203 → 201. All 8 post-flight SELECT assertions PASS (verified via /admin/sql). Changelog row #22 added to FACTORY_LEDGER_CHANGELOG.md.
+- **Why:** Product catalog had 3 SKU-less rows (noticed during SKU printout). Two of the three (BS Cocoa Chips, BS Cocoa Liquor) were semantic duplicates of 15008; the third (Classic Granola 25 LB) just needed a code assigned from the next 700xx slot (70089). 70082 guard is defensive — it's already correct but a stale-backup restore could silently flip it to 'house'.
+
+---
+
 ## 2026-04-14 17:30 — Fix GPT refusing to call API endpoints
 - **File(s) changed:** `GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`, `openapi-gpt-v3.yaml`
 - **What changed:** Restored missing SEARCH FIRST rule; added NEVER INSTRUCT rule (prevents GPT from telling users to run GET requests); added lot-code and supplier-lot routing rules; fixed 4 phantom endpoints in instructions that referenced API paths not in the OpenAPI schema (/lots/by-supplier-lot, /customers/search, /production/day-summary, /inventory/{product}); swapped getCurrentInventory and checkFulfillment for searchCustomers and getDaySummary in schema to match instructions; bumped instructions to v3.6.0 and schema to v3.4.0.

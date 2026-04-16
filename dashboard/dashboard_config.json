@@ -101,7 +101,7 @@
     { "name": "Batch SS Low Carb Original Granola #7", "standard_batch_size_lbs": null },
     { "name": "Batch SS Original Granola #1", "standard_batch_size_lbs": null },
     { "name": "Batch SS Original Granola #4", "standard_batch_size_lbs": null },
-    { "name": "Batch Vanilla Crisp Granola #16 (no almonds)", "standard_batch_size_lbs": null }
+    { "name": "Batch Vanilla Crisp Granola #16(no almonds)", "standard_batch_size_lbs": null }
   ],
   "ingredient_categories": [
     {
