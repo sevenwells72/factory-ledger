@@ -3,3 +3,6 @@
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Environment variables (secrets)
+.env
