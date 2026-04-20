@@ -1,5 +1,64 @@
 # Change Log
 
+## 2026-04-20 12:20 — FOLLOWUPS #5 added (createOrder auto-create audit) + Pass 1 merge
+- **File(s) changed:** `FOLLOWUPS.md`
+- **What changed:** Added section #5 — deferred audit item flagging that `create_sales_order` (main.py:5010) calls `resolve_customer_id` without `auto_create=False`, so a typo'd name with no address silently creates a duplicate customer row. Proposed fix: trigram-similarity guard (>0.7) before the auto-create branch fires.
+- **Why:** Known gap in Pass 1's address-tiebreaker coverage. Address is optional on OrderCreate, so typos-without-address still slip through. Not blocking Pass 1 merge — recorded for a follow-up PR.
+
+---
+
+## 2026-04-20 12:05 — Pre-merge verification: Pass 1 Setton tests + FOLLOWUPS additions
+- **File(s) changed:** `FOLLOWUPS.md`
+- **What changed:** Ran pytest `tests/` inside the Railway fastapi container (Python 3.11, Supabase prod DB via SAVEPOINT+ROLLBACK fixture) against the Pass 1 local `main.py` — 4/4 tests PASSED. Added two items to FOLLOWUPS: (3) threshold tuning for `_pick_by_address` after 2–4 weeks of traffic, (4) GPT instruction headroom note (7,987/8,000 chars).
+- **Why:** Four pre-merge checklist items for Pass 1: actual test run (not just compile check), audit of `resolve_customer_id` call sites, FOLLOWUPS additions, and CUSTOMER_NOT_FOUND reachability trace from createOrder. Audit and trace reported in-chat; no code changes required.
+
+---
+
+## 2026-04-20 — Pass 1: customer address tiebreaker + 4xx error shape normalization
+- **File(s) changed:** `main.py`, `gpt-instructions-v3.md`, `openapi-gpt-v3.yaml`, `tests/__init__.py` (new), `tests/conftest.py` (new), `tests/test_resolve_customer.py` (new), `pytest.ini` (new), `FOLLOWUPS.md` (new)
+- **What changed:**
+  - `resolve_customer_id` now accepts an optional `address` kwarg; when the fuzzy name match returns >1 candidate and an address is supplied, a trigram-similarity tiebreaker on `customers.address` (thresholds 0.6 absolute + 0.2 gap) collapses to a single match. Fully additive: no address → behavior unchanged. New helper `_pick_by_address` in main.py.
+  - `customer_address` field added to `OrderCreate` (POST /sales/orders) and `ShipRequest` (POST /ship), threaded through both `resolve_customer_id` call sites.
+  - `resolve_customer_id` final 404 "Customer not found" now uses the standard dict error shape (error_code=CUSTOMER_NOT_FOUND). Auto-insert now persists supplied address.
+  - `resolve_product_id` and `resolve_product_full` normalized to dict shape. Status-code shift 400 → 409 for PRODUCT_AMBIGUOUS and PRODUCT_UNCERTAIN (matches CUSTOMER_AMBIGUOUS). 404 PRODUCT_NOT_FOUND unchanged.
+  - `resolve_order_id` 404 normalized to dict shape (error_code=ORDER_NOT_FOUND).
+  - Sales-order endpoints `createOrder`, `getOrder`, `updateOrderHeader`, `addOrderLines`, `updateOrderLine` — all string-detail 4xx raises converted to dict shape (error_codes: ORDER_NOT_FOUND, CUSTOMER_NOT_FOUND, ORDER_HEADER_LOCKED, NO_FIELDS_TO_UPDATE, CASE_WEIGHT_REQUIRED, ORDER_LINES_LOCKED, LINE_NOT_FOUND).
+  - `gpt-instructions-v3.md`: added PRE-FLIGHT — CUSTOMER section (searchCustomers before resolveProducts on PO entry; batched disambiguation notation); removed duplicate DAY SUMMARY routing line; expanded ERRORS section with "4xx with detail.error_code + detail.suggestions → show suggestions" rule. 7,643 → 7,987 chars (under 8,000 cap).
+  - `openapi-gpt-v3.yaml`: added `components.schemas.ErrorResponse`; added `customer_address` field to OrderCreate/ShipRequest; added 400/404/409 response blocks referencing ErrorResponse on createOrder, getOrder, updateOrderHeader, addOrderLines, updateOrderLine (only status codes each operation actually raises). Operation count held at 30/30.
+  - `tests/` scaffolding: pytest.ini, conftest.py with `db_cursor` fixture (SAVEPOINT + ROLLBACK per test), test_resolve_customer.py with 4 tests covering Setton-style tiebreaker (seeds temp rows in a rolled-back txn).
+  - `FOLLOWUPS.md`: (a) NULL-address backfill for recurring customers (Setton Farms address is currently NULL — tiebreaker can't fire); (b) full list of the ~25 remaining 4xx raise sites to normalize in a follow-up PR.
+- **Why:** Two real-world failures: GPT was asking for customer disambiguation even when a PO address uniquely identified the right row; plain-string 4xx error responses forced the GPT into a generic "something went wrong" fallback instead of surfacing the structured suggestions to the operator.
+
+---
+
+## 2026-04-16 22:00 — Applied migration 034: SO-260414-003 force-closed to shipped
+- **File(s) changed:** `migrations/034_force_close_so260414003_hannas.sql` (applied in Supabase SQL Editor), `FACTORY_LEDGER_CHANGELOG.md` (added row #24)
+- **What changed:** Migration ran successfully — `sales_orders.status` for SO-260414-003 is now `shipped`; paper-trail note (Hannas Gourmet ship-to, 03/11/2026 customer pickup, invoice 28123-I dated 03/02/2026, PO 2026-0099-SW, lot JAN 20 2026 on 10 × Granola Vanilla Almond 25 LB + 1 pallet charge) appended to notes. Post-flight assertions passed.
+- **Why:** Same as #033 — paper-only close for an order that shipped before being entered into the ledger.
+
+---
+
+## 2026-04-16 21:45 — Draft migration 034: force-close SO-260414-003 (Hannas Gourmet) to shipped
+- **File(s) changed:** `migrations/034_force_close_so260414003_hannas.sql`
+- **What changed:** New migration (same pattern as 033) flips `sales_orders.status` from `confirmed` → `shipped` for SO-260414-003 and appends paper-trail note: Hannas Gourmet ship-to (1330-14 Lincoln Ave, Holbrook NY 11741), 03/11/2026 customer pickup, invoice 28123-I dated 03/02/2026, PO 2026-0099-SW, lot JAN 20 2026 on 10 units of Granola Vanilla Almond 25 LB, + 1 pallet charge. Pre- and post-flight asserts included.
+- **Why:** Order physically shipped in March but entered retroactively on 04/14/2026 without underlying ledger transactions. User chose paper-only close over transaction backfill — same trade-offs as migration 033 (dashboard `Shipped` stays 0, no on-hand decrement, no shipment rows). Migration not yet applied — awaiting user run.
+
+---
+
+## 2026-04-16 21:25 — Applied migration 033: SO-260326-002 force-closed to shipped
+- **File(s) changed:** `migrations/033_force_close_so260326002_ace_endico.sql` (applied in Supabase SQL Editor), `FACTORY_LEDGER_CHANGELOG.md` (added row #23)
+- **What changed:** Migration ran successfully — `sales_orders.status` for SO-260326-002 is now `shipped` and paper-trail note (Ace Endico ship-to, 04/13/2026 customer pickup, invoice 28159-I, PO 624249, lot breakdown) is appended to `sales_orders.notes`. Post-flight assertions passed.
+- **Why:** Order physically shipped but never entered as ledger transactions. User elected paper-only close over a transaction backfill. Bypassed the main.py:5375 manual-'shipped' guard via direct SQL; dashboard `Shipped` remains 0 lb for this order by design.
+
+---
+
+## 2026-04-16 21:05 — Draft migration 033: force-close SO-260326-002 (Ace Endico) to shipped
+- **File(s) changed:** `migrations/033_force_close_so260326002_ace_endico.sql`
+- **What changed:** New migration flips `sales_orders.status` from `confirmed` → `shipped` for SO-260326-002 and appends a paper-trail note (Ace Endico ship-to address, 04/13/2026 customer pickup, invoice 28159-I, PO 624249, lot/production-date breakdown for 140 cases Fancy + 20 cases Medium). Includes pre- and post-flight assertion blocks.
+- **Why:** Order was physically shipped but never entered as shipment/transactions in the ledger. User chose to bypass the `/status` endpoint's manual-'shipped' guard (main.py:5375) rather than backfill real shipment records. Dashboard `Shipped` column will remain 0 lb for this order because no transaction_lines or sales_order_shipments rows are written. Migration not yet applied — awaiting user to run in Supabase SQL Editor.
+
+---
+
 ## 2026-04-16 13:22 — Fix stale dashboard config SKU name for Vanilla Crisp #16
 - **File(s) changed:** `dashboard/dashboard_config.json`
 - **What changed:** Removed one space in `batch_skus` entry at line 104: `"Batch Vanilla Crisp Granola #16 (no almonds)"` → `"Batch Vanilla Crisp Granola #16(no almonds)"`, matching the canonical product name in the DB (products.id=112, odoo_code=90024).

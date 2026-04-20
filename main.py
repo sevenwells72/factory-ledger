@@ -541,7 +541,15 @@ def resolve_order_id(order_id: str = Path(...)) -> int:
             cur.execute("SELECT id FROM sales_orders WHERE order_number = %s", (order_id,))
             row = cur.fetchone()
             if not row:
-                raise HTTPException(404, f"Order '{order_id}' not found")
+                raise HTTPException(
+                    status_code=404,
+                    detail={
+                        "error_code": "ORDER_NOT_FOUND",
+                        "message": f"Order '{order_id}' not found",
+                        "input": order_id,
+                        "suggestions": [],
+                    }
+                )
             return row['id']
 
 
@@ -682,6 +690,7 @@ class ShipRequest(BaseModel):
     product_name: str
     quantity_lb: float
     customer_name: str
+    customer_address: Optional[str] = None
     order_reference: str
     lot_code: Optional[str] = None
     force_standalone: bool = False
@@ -920,6 +929,7 @@ class OrderLineInput(BaseModel):
 
 class OrderCreate(BaseModel):
     customer_name: str
+    customer_address: Optional[str] = None
     requested_ship_date: Optional[str] = None
     lines: List[OrderLineInput]
     notes: Optional[str] = None
@@ -956,7 +966,15 @@ def resolve_product_id(cur, product_name: str) -> tuple:
     For sales orders: auto-resolves high confidence, raises on ambiguous/none."""
     results = _tiered_product_search(cur, product_name, limit=5)
     if not results:
-        raise HTTPException(404, f"Product not found: '{product_name}'")
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "PRODUCT_NOT_FOUND",
+                "message": f"Product not found: '{product_name}'",
+                "input": product_name,
+                "suggestions": [],
+            }
+        )
 
     best = results[0]
     tier = best['match_tier']
@@ -967,17 +985,48 @@ def resolve_product_id(cur, product_name: str) -> tuple:
 
     # Multiple keyword matches → ambiguous
     if tier == 'keyword' and len(results) > 1:
-        suggestions = [r['name'] for r in results]
-        raise HTTPException(400, f"Multiple products match '{product_name}': {suggestions}")
+        suggestions = [
+            {"product_id": r['id'], "name": r['name'], "odoo_code": r['odoo_code']}
+            for r in results
+        ]
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error_code": "PRODUCT_AMBIGUOUS",
+                "message": f"Multiple products match '{product_name}'.",
+                "input": product_name,
+                "suggestions": suggestions,
+            }
+        )
 
     # Trigram: accept if similarity is high enough and only one strong match
     if tier == 'trigram':
         if best['similarity'] > 0.4 and (len(results) == 1 or results[0]['similarity'] - results[1]['similarity'] > 0.15):
             return best['id'], best['name']
-        suggestions = [f"{r['name']} ({r['similarity']:.0%})" for r in results]
-        raise HTTPException(400, f"Uncertain match for '{product_name}'. Did you mean: {suggestions}")
+        suggestions = [
+            {"product_id": r['id'], "name": r['name'], "odoo_code": r['odoo_code'],
+             "similarity": round(float(r['similarity']), 2)}
+            for r in results
+        ]
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error_code": "PRODUCT_UNCERTAIN",
+                "message": f"No confident match for '{product_name}'.",
+                "input": product_name,
+                "suggestions": suggestions,
+            }
+        )
 
-    raise HTTPException(404, f"Product not found: '{product_name}'")
+    raise HTTPException(
+        status_code=404,
+        detail={
+            "error_code": "PRODUCT_NOT_FOUND",
+            "message": f"Product not found: '{product_name}'",
+            "input": product_name,
+            "suggestions": [],
+        }
+    )
 
 
 def resolve_product_full(cur, product_name: str) -> dict:
@@ -985,7 +1034,15 @@ def resolve_product_full(cur, product_name: str) -> dict:
     Used by receive/ship/make endpoints that need extra columns."""
     results = _tiered_product_search(cur, product_name, limit=5)
     if not results:
-        raise HTTPException(404, f"Product not found: '{product_name}'")
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "PRODUCT_NOT_FOUND",
+                "message": f"Product not found: '{product_name}'",
+                "input": product_name,
+                "suggestions": [],
+            }
+        )
 
     best = results[0]
     tier = best['match_tier']
@@ -994,16 +1051,47 @@ def resolve_product_full(cur, product_name: str) -> dict:
     if tier == 'exact' or (tier == 'keyword' and len(results) == 1):
         product_id = best['id']
     elif tier == 'keyword' and len(results) > 1:
-        suggestions = [f"{r['name']} ({r['odoo_code'] or 'no code'})" for r in results]
-        raise HTTPException(400, f"Multiple products match '{product_name}': {suggestions}")
+        suggestions = [
+            {"product_id": r['id'], "name": r['name'], "odoo_code": r['odoo_code']}
+            for r in results
+        ]
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error_code": "PRODUCT_AMBIGUOUS",
+                "message": f"Multiple products match '{product_name}'.",
+                "input": product_name,
+                "suggestions": suggestions,
+            }
+        )
     elif tier == 'trigram':
         if best['similarity'] > 0.4 and (len(results) == 1 or results[0]['similarity'] - results[1]['similarity'] > 0.15):
             product_id = best['id']
         else:
-            suggestions = [f"{r['name']} ({r['odoo_code'] or 'no code'}) ({r['similarity']:.0%})" for r in results]
-            raise HTTPException(400, f"Uncertain match for '{product_name}'. Did you mean: {suggestions}")
+            suggestions = [
+                {"product_id": r['id'], "name": r['name'], "odoo_code": r['odoo_code'],
+                 "similarity": round(float(r['similarity']), 2)}
+                for r in results
+            ]
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error_code": "PRODUCT_UNCERTAIN",
+                    "message": f"No confident match for '{product_name}'.",
+                    "input": product_name,
+                    "suggestions": suggestions,
+                }
+            )
     else:
-        raise HTTPException(404, f"Product not found: '{product_name}'")
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "PRODUCT_NOT_FOUND",
+                "message": f"Product not found: '{product_name}'",
+                "input": product_name,
+                "suggestions": [],
+            }
+        )
 
     # Fetch full product row
     cur.execute(
@@ -1014,7 +1102,15 @@ def resolve_product_full(cur, product_name: str) -> dict:
     )
     row = cur.fetchone()
     if not row:
-        raise HTTPException(404, f"Product not found: '{product_name}'")
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "PRODUCT_NOT_FOUND",
+                "message": f"Product not found: '{product_name}'",
+                "input": product_name,
+                "suggestions": [],
+            }
+        )
     return dict(row)
 
 
@@ -1169,14 +1265,46 @@ def get_sibling_skus(cur, product_id: int) -> list:
     return [dict(r) for r in cur.fetchall()]
 
 
-def resolve_customer_id(cur, customer_name: str, auto_create: bool = True, force_create: bool = False) -> tuple:
+def _pick_by_address(cur, candidate_ids: list, address: str) -> Optional[dict]:
+    """Given >1 candidate customer rows and an incoming address, return the single
+    best match by trigram similarity on customers.address — but only if the top
+    candidate is clearly ahead. Returns {id, name} or None (no confident pick)."""
+    if not candidate_ids or not address or not address.strip():
+        return None
+    cur.execute(
+        """SELECT id, name, COALESCE(address, '') AS address,
+                  similarity(LOWER(COALESCE(address, '')), LOWER(%s)) AS addr_sim
+           FROM customers
+           WHERE id = ANY(%s)
+           ORDER BY addr_sim DESC""",
+        (address, candidate_ids)
+    )
+    ranked = cur.fetchall()
+    if not ranked:
+        return None
+    top = ranked[0]
+    top_sim = float(top['addr_sim'])
+    # Require strong absolute match AND clear gap vs runner-up (or no runner-up)
+    if top_sim < 0.6:
+        return None
+    if len(ranked) > 1:
+        second_sim = float(ranked[1]['addr_sim'])
+        if top_sim - second_sim < 0.2:
+            return None
+    return {"id": top['id'], "name": top['name']}
+
+
+def resolve_customer_id(cur, customer_name: str, auto_create: bool = True,
+                        force_create: bool = False, address: Optional[str] = None) -> tuple:
     """Find or create customer by name/alias. Returns (customer_id, canonical_name).
 
     Resolution order:
     1. Exact match on canonical name
     2. Exact match on alias
-    3. Fuzzy LIKE across names + aliases → single match returns, multiple → 409
-    4. No match → first-word prefix check before auto-create → if close, 409
+    3. Fuzzy LIKE across names + aliases → single match returns, multiple → address
+       tiebreaker (if address provided) → still ambiguous → 409
+    4. No match → first-word prefix check before auto-create → address tiebreaker
+       (if address provided) → still ambiguous → 409
     """
     # Step 1: Exact match on canonical name
     cur.execute(
@@ -1211,6 +1339,9 @@ def resolve_customer_id(cur, customer_name: str, auto_create: bool = True, force
     if len(rows) == 1:
         return rows[0]['id'], rows[0]['name']
     elif len(rows) > 1:
+        picked = _pick_by_address(cur, [r['id'] for r in rows], address) if address else None
+        if picked:
+            return picked['id'], picked['name']
         suggestions = [{"customer_id": r['id'], "name": r['name']} for r in rows]
         raise HTTPException(
             status_code=409,
@@ -1237,6 +1368,9 @@ def resolve_customer_id(cur, customer_name: str, auto_create: bool = True, force
             )
             prefix_rows = cur.fetchall()
             if prefix_rows:
+                picked = _pick_by_address(cur, [r['id'] for r in prefix_rows], address) if address else None
+                if picked:
+                    return picked['id'], picked['name']
                 suggestions = [{"customer_id": r['id'], "name": r['name']} for r in prefix_rows]
                 raise HTTPException(
                     status_code=409,
@@ -1251,12 +1385,20 @@ def resolve_customer_id(cur, customer_name: str, auto_create: bool = True, force
 
     if auto_create or force_create:
         cur.execute(
-            "INSERT INTO customers (name) VALUES (%s) RETURNING id, name",
-            (customer_name,)
+            "INSERT INTO customers (name, address) VALUES (%s, %s) RETURNING id, name",
+            (customer_name, address)
         )
         row = cur.fetchone()
         return row['id'], row['name']
-    raise HTTPException(404, f"Customer not found: '{customer_name}'")
+    raise HTTPException(
+        status_code=404,
+        detail={
+            "error_code": "CUSTOMER_NOT_FOUND",
+            "message": f"Customer not found: '{customer_name}'",
+            "input": customer_name,
+            "suggestions": [],
+        }
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -2322,7 +2464,9 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
 
                 open_orders_warning = None
                 try:
-                    cust_id, cust_canonical = resolve_customer_id(cur, req.customer_name, auto_create=False)
+                    cust_id, cust_canonical = resolve_customer_id(
+                        cur, req.customer_name, auto_create=False, address=req.customer_address
+                    )
                 except HTTPException as e:
                     if e.status_code == 409:
                         raise
@@ -2422,7 +2566,8 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     customer_id, canonical_customer = resolve_customer_id(
                         cur, req.customer_name,
                         auto_create=True,
-                        force_create=req.force_create_customer
+                        force_create=req.force_create_customer,
+                        address=req.customer_address
                     )
 
                     standalone_warning = None
@@ -4862,7 +5007,9 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                customer_id, customer_name = resolve_customer_id(cur, req.customer_name)
+                customer_id, customer_name = resolve_customer_id(
+                    cur, req.customer_name, address=req.customer_address
+                )
 
                 cur.execute(
                     """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number, status)
@@ -4900,9 +5047,14 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                             if prod_row and prod_row.get('case_size_lb'):
                                 effective_case_weight = float(prod_row['case_size_lb'])
                             else:
-                                raise HTTPException(400,
-                                    f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
-                                    f"No default case weight is set for this product."
+                                raise HTTPException(
+                                    status_code=400,
+                                    detail={
+                                        "error_code": "CASE_WEIGHT_REQUIRED",
+                                        "message": f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. No default case weight is set for this product.",
+                                        "input": prod_name,
+                                        "suggestions": [],
+                                    }
                                 )
                             # Recalculate quantity_lb with looked-up weight
                             line.quantity_lb = line.quantity * effective_case_weight
@@ -5223,7 +5375,15 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
             )
             row = cur.fetchone()
             if not row:
-                raise HTTPException(404, f"Order #{order_id} not found")
+                raise HTTPException(
+                    status_code=404,
+                    detail={
+                        "error_code": "ORDER_NOT_FOUND",
+                        "message": f"Order #{order_id} not found",
+                        "input": str(order_id),
+                        "suggestions": [],
+                    }
+                )
 
             date_str, time_str = format_timestamp(row['created_at'])
             order = {
@@ -5435,11 +5595,25 @@ def update_order_header(order_id: int = Depends(resolve_order_id), req: OrderHea
                 )
                 order = cur.fetchone()
                 if not order:
-                    raise HTTPException(404, f"Order #{order_id} not found")
+                    raise HTTPException(
+                        status_code=404,
+                        detail={
+                            "error_code": "ORDER_NOT_FOUND",
+                            "message": f"Order #{order_id} not found",
+                            "input": order_id,
+                            "suggestions": [],
+                        }
+                    )
 
                 if order['status'] not in ('new', 'confirmed'):
-                    raise HTTPException(400,
-                        f"Order {order['order_number']} is '{order['status']}' — header edits only allowed when status is 'new' or 'confirmed'."
+                    raise HTTPException(
+                        status_code=400,
+                        detail={
+                            "error_code": "ORDER_HEADER_LOCKED",
+                            "message": f"Order {order['order_number']} is '{order['status']}' — header edits only allowed when status is 'new' or 'confirmed'.",
+                            "input": str(order_id),
+                            "suggestions": [],
+                        }
                     )
 
                 updates = {}
@@ -5454,11 +5628,27 @@ def update_order_header(order_id: int = Depends(resolve_order_id), req: OrderHea
                     cur.execute("SELECT id, name FROM customers WHERE id = %s", (req.customer_id,))
                     cust = cur.fetchone()
                     if not cust:
-                        raise HTTPException(404, f"Customer ID {req.customer_id} not found")
+                        raise HTTPException(
+                            status_code=404,
+                            detail={
+                                "error_code": "CUSTOMER_NOT_FOUND",
+                                "message": f"Customer ID {req.customer_id} not found",
+                                "input": str(req.customer_id),
+                                "suggestions": [],
+                            }
+                        )
                     updates['customer_id'] = req.customer_id
 
                 if not updates:
-                    raise HTTPException(400, "No fields to update")
+                    raise HTTPException(
+                        status_code=400,
+                        detail={
+                            "error_code": "NO_FIELDS_TO_UPDATE",
+                            "message": "No fields to update",
+                            "input": "",
+                            "suggestions": [],
+                        }
+                    )
 
                 set_clause = ", ".join(f"{k} = %s" for k in updates)
                 values = list(updates.values()) + [order_id]
@@ -5503,9 +5693,25 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
                 cur.execute("SELECT order_number, status FROM sales_orders WHERE id = %s", (order_id,))
                 row = cur.fetchone()
                 if not row:
-                    raise HTTPException(404, f"Order #{order_id} not found")
+                    raise HTTPException(
+                        status_code=404,
+                        detail={
+                            "error_code": "ORDER_NOT_FOUND",
+                            "message": f"Order #{order_id} not found",
+                            "input": str(order_id),
+                            "suggestions": [],
+                        }
+                    )
                 if row['status'] in ('shipped', 'invoiced', 'cancelled'):
-                    raise HTTPException(400, f"Cannot add lines to {row['status']} order")
+                    raise HTTPException(
+                        status_code=400,
+                        detail={
+                            "error_code": "ORDER_LINES_LOCKED",
+                            "message": f"Cannot add lines to {row['status']} order",
+                            "input": str(order_id),
+                            "suggestions": [],
+                        }
+                    )
 
                 results = []
                 warnings = []
@@ -5533,9 +5739,14 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
                             if prod_row and prod_row.get('case_size_lb'):
                                 effective_case_weight = float(prod_row['case_size_lb'])
                             else:
-                                raise HTTPException(400,
-                                    f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. "
-                                    f"No default case weight is set for this product."
+                                raise HTTPException(
+                                    status_code=400,
+                                    detail={
+                                        "error_code": "CASE_WEIGHT_REQUIRED",
+                                        "message": f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. No default case weight is set for this product.",
+                                        "input": prod_name,
+                                        "suggestions": [],
+                                    }
                                 )
                             line.quantity_lb = line.quantity * effective_case_weight
 
@@ -5614,7 +5825,15 @@ def update_order_line(
                     fields.append("unit_price = %s")
                     values.append(unit_price)
                 if not fields:
-                    raise HTTPException(400, "Nothing to update")
+                    raise HTTPException(
+                        status_code=400,
+                        detail={
+                            "error_code": "NO_FIELDS_TO_UPDATE",
+                            "message": "Nothing to update",
+                            "input": "",
+                            "suggestions": [],
+                        }
+                    )
                 values.extend([line_id, order_id])
                 cur.execute(
                     f"""UPDATE sales_order_lines SET {', '.join(fields)}
@@ -5624,7 +5843,15 @@ def update_order_line(
                 )
                 row = cur.fetchone()
                 if not row:
-                    raise HTTPException(404, "Line not found or already fulfilled/cancelled")
+                    raise HTTPException(
+                        status_code=404,
+                        detail={
+                            "error_code": "LINE_NOT_FOUND",
+                            "message": "Line not found or already fulfilled/cancelled",
+                            "input": str(line_id),
+                            "suggestions": [],
+                        }
+                    )
                 # Fetch case_size_lb for unit count
                 cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (row['product_id'],))
                 prow = cur.fetchone()

@@ -14,6 +14,26 @@ components:
       in: header
       name: X-API-Key
   schemas:
+    ErrorResponse:
+      type: object
+      description: "Structured 4xx error. GPT surfaces detail.suggestions to the operator."
+      properties:
+        detail:
+          type: object
+          properties:
+            error_code:
+              type: string
+              description: "Stable machine code, e.g. CUSTOMER_AMBIGUOUS, PRODUCT_NOT_FOUND, ORDER_NOT_FOUND."
+            message:
+              type: string
+            input:
+              type: string
+              description: "The raw input that triggered the error."
+            suggestions:
+              type: array
+              items:
+                type: object
+              description: "Candidate matches when applicable. Surface to operator for disambiguation."
     ReceiveRequest:
       type: object
       required: [product_name, cases, case_size_lb, shipper_name, bol_reference]
@@ -69,6 +89,9 @@ components:
           type: number
         customer_name:
           type: string
+        customer_address:
+          type: string
+          description: "Optional. Address-similarity tiebreaker used when name fuzzy-match is ambiguous."
         order_reference:
           type: string
         lot_code:
@@ -223,6 +246,9 @@ components:
       properties:
         customer_name:
           type: string
+        customer_address:
+          type: string
+          description: "Optional. When customer name is ambiguous across fuzzy matches, server uses address similarity as a tiebreaker to collapse to a single existing customer. Pass the full ship-to or bill-to address from the PO/confirmation when available."
         requested_ship_date:
           type: string
         lines:
@@ -709,6 +735,24 @@ paths:
       responses:
         '200':
           description: Created order
+        '400':
+          description: "Validation error (e.g. CASE_WEIGHT_REQUIRED when ordering in cases/bags/boxes with no default case size)"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: "PRODUCT_NOT_FOUND or CUSTOMER_NOT_FOUND"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: "CUSTOMER_AMBIGUOUS, PRODUCT_AMBIGUOUS, or PRODUCT_UNCERTAIN — suggestions[] lists candidates for disambiguation"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /sales/orders/{order_id}:
     get:
       operationId: getOrder
@@ -723,6 +767,12 @@ paths:
       responses:
         '200':
           description: "Order details with lines. Lines include unit_count, shipped_units, remaining_units. Totals include total_ordered_units, total_shipped_units, total_remaining_units."
+        '404':
+          description: "ORDER_NOT_FOUND"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
       operationId: updateOrderHeader
       summary: Update order header (ship date, notes, customer)
@@ -742,6 +792,18 @@ paths:
       responses:
         '200':
           description: Updated order
+        '400':
+          description: "NO_FIELDS_TO_UPDATE or ORDER_HEADER_LOCKED (status past 'confirmed')"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: "ORDER_NOT_FOUND or CUSTOMER_NOT_FOUND"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /sales/orders/{order_id}/status:
     patch:
       operationId: updateOrderStatus
@@ -782,6 +844,24 @@ paths:
       responses:
         '200':
           description: Added lines
+        '400':
+          description: "ORDER_LINES_LOCKED (shipped/invoiced/cancelled) or CASE_WEIGHT_REQUIRED"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: "ORDER_NOT_FOUND or PRODUCT_NOT_FOUND"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: "PRODUCT_AMBIGUOUS or PRODUCT_UNCERTAIN — suggestions[] lists candidates"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /sales/orders/{order_id}/lines/{line_id}/cancel:
     patch:
       operationId: cancelOrderLine
@@ -828,6 +908,18 @@ paths:
       responses:
         '200':
           description: "Updated line with case_size_lb and unit_count"
+        '400':
+          description: "NO_FIELDS_TO_UPDATE"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: "ORDER_NOT_FOUND or LINE_NOT_FOUND"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /sales/orders/{order_id}/ship:
     post:
       operationId: shipOrder
