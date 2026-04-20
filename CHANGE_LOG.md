@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-04-20 12:14 — Gitignore .env + archive migrations 032-034
+- **File(s) changed:** `.gitignore`, `migrations/032_backfill_skus_and_merge_bs_cocoa.sql`, `migrations/033_force_close_so260326002_ace_endico.sql`, `migrations/034_force_close_so260414003_hannas.sql`
+- **What changed:** Appended `.env` to `.gitignore` (history confirmed clean — `git log --all --full-history -- .env` returned empty, so no credential rotation needed). Committed migrations 032-034 into the repo; all three were already applied to prod, this aligns the checked-in history with deployed schema.
+- **Why:** Pre-smoke-test housekeeping. `.env` was previously untracked but unignored, one `git add .` away from leaking Supabase/Railway/Google OAuth creds. Migrations 032-034 had been sitting untracked since application; committing them keeps `migrations/` in sync with prod.
+
+---
+
 ## 2026-04-20 12:20 — FOLLOWUPS #5 added (createOrder auto-create audit) + Pass 1 merge
 - **File(s) changed:** `FOLLOWUPS.md`
 - **What changed:** Added section #5 — deferred audit item flagging that `create_sales_order` (main.py:5010) calls `resolve_customer_id` without `auto_create=False`, so a typo'd name with no address silently creates a duplicate customer row. Proposed fix: trigram-similarity guard (>0.7) before the auto-create branch fires.
