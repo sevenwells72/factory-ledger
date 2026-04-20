@@ -90,20 +90,43 @@ error shape is contractual. Reference the existing
 
 ---
 
-## 3. Tune `_pick_by_address` thresholds
+## 3. Tune `_pick_by_address` thresholds after real traffic
 
-Tune `_pick_by_address` thresholds (currently 0.6 absolute / 0.2 gap) after
-observing 2–4 weeks of real order-entry traffic. Watch for false negatives
-where the gap check rejects legitimate matches — especially multi-tenant
-addresses or customers with multiple locations in the same city.
+**Context.** Current defaults are 0.6 absolute / 0.2 gap, chosen conservatively
+for Pass 1. The Setton case ("85 Austin Blvd, Commack, NY 11725" vs whatever
+Setton Farms gets backfilled to — see #1) specifically may or may not clear
+the gap.
+
+**Action.**
+- Revisit after 2–4 weeks of real order-entry traffic.
+- Instrument: log every `_pick_by_address` call that falls through to the 409
+  (no winner picked), capturing the top two `addr_sim` scores and the names.
+- From those logs, check whether loosening to 0.5 / 0.15 would have helped
+  without creating false positives.
+- Watch for false negatives where the gap check rejects legitimate matches —
+  especially multi-tenant addresses or customers with multiple locations in
+  the same city.
+- **Tune from data, not intuition.**
 
 ---
 
 ## 4. GPT instruction headroom
 
-GPT instructions at 7,987 / 8,000 chars — 13 char headroom. Before adding any
-new instruction content, free ~200+ chars via ROUTING RULES consolidation. The
-section has visible redundancy that wasn't trimmed in Pass 1.
+**Context.** GPT instructions at 7,987 / 8,000 chars — 13 char headroom. Next
+instruction edit will likely overflow.
+
+**Action.**
+- Before adding any new instruction content, free ~200+ chars via ROUTING
+  RULES consolidation. The section has visible redundancy across the intent
+  hierarchy and endpoint-specific sections that wasn't trimmed in Pass 1.
+
+**Estimate calibration.** Pass 1 estimated ~52 chars of additions; actual was
+91 — a 39-char delta. Before the next edit, review the Pass 1 diff
+(`git log -p -- gpt-instructions-v3.md` around 2026-04-20) and identify where
+the extra chars went, so future estimates are more accurate. If the source of
+the overage can't be pinned down from the diff, record "delta unaccounted —
+review diff before next edit to calibrate estimates" here and treat the next
+pass's estimate as lower-bound only.
 
 ---
 
@@ -118,3 +141,27 @@ adding a name-similarity guard before the auto-create branch fires — if the
 new name has >0.7 trigram similarity to any existing customer, raise
 CUSTOMER_AMBIGUOUS with the near-matches as suggestions instead of
 auto-creating. Tune threshold after observing real traffic.
+
+---
+
+## 6. `factory-ledger` service in `gleaming-solace` is crashlooping
+
+**Context.** During Pass 1 verification (running pytest via `railway ssh`
+into the FastAPI service container), discovered the sibling `factory-ledger`
+service in the same Railway project (`gleaming-solace`) is crashlooping with
+`password authentication failed for user "postgres"` against the Supabase
+pooler.
+
+**Impact.** Prod traffic is **unaffected** — the `FastAPI` service
+(`fastapi-production-b73a.up.railway.app`) is what serves GPT requests and
+that service is healthy. But the dead `factory-ledger` service is consuming
+restart budget and polluting the project's deployment log.
+
+**Action.** One of:
+- Fix its `DATABASE_URL` if it's meant to be running (pull the working value
+  from the `FastAPI` service's env and set it on `factory-ledger`).
+- Delete the service if it's a leftover from a rename / split.
+- Document what it was intended for if keeping it around for future use.
+
+Cheap to investigate — 5 minutes in the Railway dashboard. Worth closing out
+before it becomes unexplained project clutter.

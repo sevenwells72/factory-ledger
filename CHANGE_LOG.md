@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-04-20 12:55 — FOLLOWUPS #3 & #4 enriched + #6 added (factory-ledger service crashlooping)
+- **File(s) changed:** `FOLLOWUPS.md`
+- **What changed:** Enriched #3 (`_pick_by_address` threshold tuning) with the Setton address specifics, instrumentation guidance (log fallthrough-to-409 calls with top-two `addr_sim` scores), 0.5/0.15 loosening proposal, and "tune from data, not intuition" framing. Enriched #4 (GPT instruction headroom) with Pass 1 estimate-calibration detail (estimated ~52 chars, actual 91, 39-char delta unaccounted). Added #6 — `factory-ledger` service in Railway project `gleaming-solace` is crashlooping with "password authentication failed for user postgres"; prod traffic unaffected (FastAPI service serves GPT), but dead service consumes restart budget.
+- **Why:** Pass 1 merge close-out. Reviewer asked for Setton-specific threshold context and estimate-calibration ask so next pass has concrete levers. Crashloop was stumbled into during pytest verification via `railway ssh`; capturing now so it's not lost.
+
+---
+
 ## 2026-04-20 12:14 — Gitignore .env + archive migrations 032-034
 - **File(s) changed:** `.gitignore`, `migrations/032_backfill_skus_and_merge_bs_cocoa.sql`, `migrations/033_force_close_so260326002_ace_endico.sql`, `migrations/034_force_close_so260414003_hannas.sql`
 - **What changed:** Appended `.env` to `.gitignore` (history confirmed clean — `git log --all --full-history -- .env` returned empty, so no credential rotation needed). Committed migrations 032-034 into the repo; all three were already applied to prod, this aligns the checked-in history with deployed schema.
