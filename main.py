@@ -5886,7 +5886,8 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                 if order_row['status'] in ('invoiced', 'cancelled'):
                     raise HTTPException(400, f"Cannot ship {order_row['status']} order")
                 ship_all = (req is None) or (req.ship_all)
-                cur.execute("""SELECT sol.id, p.id AS product_id, p.name, sol.quantity_lb, sol.quantity_shipped_lb
+                cur.execute("""SELECT sol.id, p.id AS product_id, p.name, sol.quantity_lb, sol.quantity_shipped_lb,
+                                      COALESCE(p.is_service, false) AS is_service
                                FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
                                WHERE sol.sales_order_id = %s AND sol.line_status NOT IN ('fulfilled', 'cancelled') ORDER BY sol.id""", (order_id,))
                 lines = cur.fetchall()
@@ -5895,8 +5896,6 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                 for line in lines:
                     remaining = float(line['quantity_lb']) - float(line['quantity_shipped_lb'])
                     if remaining <= 0: continue
-                    cur.execute("SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand FROM lots l JOIN transaction_lines tl ON tl.lot_id = l.id WHERE l.product_id = %s", (line['product_id'],))
-                    on_hand = float(cur.fetchone()['on_hand'])
                     if ship_all:
                         ship_qty = remaining
                     elif req and req.lines:
@@ -5905,6 +5904,16 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                         ship_qty = match.quantity_lb
                     else:
                         ship_qty = remaining
+                    # F05-04: service lines auto-fulfill at commit — skip the stock lookup
+                    # so preview doesn't misleadingly report "no stock" for a pallet charge.
+                    if line['is_service']:
+                        preview.append({"line_id": line['id'], "product": line['name'], "ordered_lb": float(line['quantity_lb']),
+                                        "already_shipped_lb": float(line['quantity_shipped_lb']), "remaining_lb": remaining,
+                                        "requested_ship_lb": ship_qty, "can_ship_lb": ship_qty, "on_hand_lb": None,
+                                        "short": 0, "is_service": True})
+                        continue
+                    cur.execute("SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand FROM lots l JOIN transaction_lines tl ON tl.lot_id = l.id WHERE l.product_id = %s", (line['product_id'],))
+                    on_hand = float(cur.fetchone()['on_hand'])
                     can_ship = min(ship_qty, on_hand)
                     if can_ship < ship_qty:
                         warnings.append(f"{line['name']}: only {on_hand:.1f} lb on hand, need {ship_qty:.1f} lb")
@@ -5936,18 +5945,21 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                     ship_all = (req is None) or (req.ship_all)
 
                     if ship_all:
-                        cur.execute("""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name
+                        cur.execute("""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
+                                              COALESCE(p.is_service, false) AS is_service
                                        FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
                                        WHERE sol.sales_order_id = %s AND sol.line_status NOT IN ('fulfilled', 'cancelled') ORDER BY sol.id""", (order_id,))
                         lines_to_ship = [{"line_id": r['id'], "product_id": r['product_id'],
                                           "quantity_lb": float(r['quantity_lb']) - float(r['quantity_shipped_lb']),
-                                          "product_name": r['name']}
+                                          "product_name": r['name'],
+                                          "is_service": r['is_service']}
                                          for r in cur.fetchall()
                                          if float(r['quantity_lb']) - float(r['quantity_shipped_lb']) > 0]
                     else:
                         lines_to_ship = []
                         for rl in (req.lines or []):
-                            cur.execute("""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name
+                            cur.execute("""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
+                                                  COALESCE(p.is_service, false) AS is_service
                                            FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
                                            WHERE sol.id = %s AND sol.sales_order_id = %s""", (rl.line_id, order_id))
                             r = cur.fetchone()
@@ -5958,7 +5970,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                                 raise HTTPException(status_code=409, detail={"error_code": "LINE_ALREADY_FULFILLED", "message": f"Line #{rl.line_id} ({r['name']}) is already fully shipped.", "line_id": rl.line_id, "product": r['name'], "ordered_lb": float(r['quantity_lb']), "shipped_lb": float(r['quantity_shipped_lb']), "remaining_lb": 0})
                             if rl.quantity_lb > remaining:
                                 raise HTTPException(status_code=422, detail={"error_code": "QTY_EXCEEDS_REMAINING", "message": f"Line #{rl.line_id} ({r['name']}): requested {rl.quantity_lb} lb but only {remaining} lb remaining.", "line_id": rl.line_id, "product": r['name'], "requested_lb": rl.quantity_lb, "remaining_lb": remaining, "suggestion": f"Retry with quantity_lb={remaining}"})
-                            lines_to_ship.append({"line_id": r['id'], "product_id": r['product_id'], "quantity_lb": rl.quantity_lb, "product_name": r['name']})
+                            lines_to_ship.append({"line_id": r['id'], "product_id": r['product_id'], "quantity_lb": rl.quantity_lb, "product_name": r['name'], "is_service": r['is_service']})
 
                     if not lines_to_ship:
                         raise HTTPException(status_code=409, detail={"error_code": "ORDER_ALREADY_FULFILLED", "message": f"Order {order_row['order_number']} has no remaining lines to ship.", "order_id": order_id, "order_number": order_row['order_number'], "status": order_row['status']})
@@ -5977,6 +5989,25 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
 
                     for item in lines_to_ship:
                         qty_to_ship = item["quantity_lb"]
+
+                        # F05-04: service lines (pallet charges, freight, etc.) auto-fulfill
+                        # with no inventory lookup — they represent billing, not stock movement.
+                        if item["is_service"]:
+                            cur.execute(
+                                "UPDATE sales_order_lines SET quantity_shipped_lb = quantity_shipped_lb + %s, line_status = 'fulfilled' WHERE id = %s",
+                                (qty_to_ship, item["line_id"]),
+                            )
+                            results.append({
+                                "line_id": item["line_id"],
+                                "product": item["product_name"],
+                                "requested_lb": qty_to_ship,
+                                "shipped_lb": qty_to_ship,
+                                "status": "fulfilled",
+                                "line_status": "fulfilled",
+                                "is_service": True,
+                            })
+                            continue
+
                         cur.execute("""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
                                        FROM lots l JOIN transaction_lines tl ON tl.lot_id = l.id
                                        WHERE l.product_id = %s GROUP BY l.id
@@ -6049,8 +6080,12 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                         if actual_ship < qty_to_ship:
                             all_fully_shipped = False
 
-                    # Block zero-shipment: if no line items shipped any quantity, roll back
-                    any_actually_shipped = any(r.get("shipped_lb", 0) > 0 for r in results)
+                    # Block zero-shipment: if no PHYSICAL line items shipped any quantity, roll back.
+                    # Service lines (pallet charges, etc.) don't count — they auto-fulfill without
+                    # inventory movement and shouldn't bypass this guard on their own.
+                    any_actually_shipped = any(
+                        r.get("shipped_lb", 0) > 0 and not r.get("is_service") for r in results
+                    )
                     if not any_actually_shipped:
                         cur.execute("DELETE FROM shipment_lines WHERE shipment_id = %s", (shipment_id,))
                         cur.execute("DELETE FROM shipments WHERE id = %s", (shipment_id,))
