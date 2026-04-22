@@ -2301,6 +2301,8 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                     response["commingled"] = True
                     response["supplier_lot_entries"] = req.supplier_lot_entries
                 return response
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Receive preview failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
