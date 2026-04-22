@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-04-22 12:10 — Reorganize GPT instruction + schema files into gpt-configs/
+- **File(s) changed:** `gpt-configs/sources/shared-rules.md` (new), `gpt-configs/sources/floor-specific.md` (new), `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md` (new), `gpt-configs/schemas/openapi-floor.yaml` (new), `gpt-configs/README.md` (new), `build_gpt_instructions.py` (new, moved from ~/Downloads + path update)
+- **What changed:** Created `gpt-configs/{sources,dist,schemas,archive}/` layout. Moved today's Floor & Fulfillment artifacts (shared-rules, floor-specific, GPT_FLOOR_INSTRUCTIONS, openapi-floor) from `~/Downloads` into the new structure. Placed `build_gpt_instructions.py` at repo root and updated its path constants to read from `gpt-configs/sources/` and write to `gpt-configs/dist/`. Added `parents=True` to the DIST_DIR mkdir. Wrote `gpt-configs/README.md` explaining the layout and edit-build-paste workflow. Verified script: `python build_gpt_instructions.py floor` → exit 0, 6,623 chars, generated header intact.
+- **Why:** Scales cleanly from today's single Floor GPT to the planned 3-GPT split (Floor & Fulfillment, Sales & Admin, Trace & Recall). Keeps canonical sources separate from generated outputs so drift stops being possible. Legacy root-level GPT files (`GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`, `openapi-gpt-v3.yaml`) left in place per instructions — they migrate to `archive/` once the three new GPTs replace the current production one.
+
+---
+
 ## 2026-04-22 — Let HTTPException pass through in /receive preview
 - **File(s) changed:** `main.py`
 - **What changed:** Added `except HTTPException: raise` clause before the existing `except Exception as e` block at the end of the `/receive` preview branch (around line 2304). Other endpoints' preview branches already have this pattern.

@@ -1,0 +1,648 @@
+openapi: 3.1.0
+info:
+  title: Factory Ledger — Floor & Fulfillment
+  version: 4.0.0
+  description: Physical production, packing, shipping, and inbound receipts for CNS Confectionery Products. Scoped to floor operator workflow.
+servers:
+  - url: https://fastapi-production-b73a.up.railway.app
+security:
+  - ApiKeyAuth: []
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    ReceiveRequest:
+      type: object
+      required: [product_name, cases, case_size_lb, shipper_name, bol_reference, supplier_lot_code]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        product_name:
+          type: string
+        cases:
+          type: integer
+          minimum: 1
+        case_size_lb:
+          type: number
+          exclusiveMinimum: 0
+        shipper_name:
+          type: string
+        bol_reference:
+          type: string
+        shipper_code_override:
+          type: string
+        lot_code:
+          type: string
+        supplier_lot_code:
+          type: string
+          description: "Supplier's printed lot code. REQUIRED per floor policy — use 'UNKNOWN' with a note if unreadable. Defaults to lot_code if omitted, or 'N/A' if neither is provided."
+        lot_type:
+          type: string
+          enum: [single_supplier, commingled]
+        supplier_lot_entries:
+          type: array
+          description: "For commingled lots — one entry per supplier lot in the bin."
+          items:
+            type: object
+            properties:
+              supplier_lot_code:
+                type: string
+              supplier_name:
+                type: string
+              quantity_lb:
+                type: number
+              notes:
+                type: string
+    ShipRequest:
+      type: object
+      required: [product_name, quantity_lb, customer_name, order_reference]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        product_name:
+          type: string
+        quantity_lb:
+          type: number
+          exclusiveMinimum: 0
+        customer_name:
+          type: string
+        order_reference:
+          type: string
+        lot_code:
+          type: string
+        force_standalone:
+          type: boolean
+          default: false
+          description: "Bypass the open-sales-order check. Use only when operator explicitly says 'standalone' or no open order exists."
+    MakeRequest:
+      type: object
+      required: [product_name, batches]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        product_name:
+          type: string
+        batches:
+          type: integer
+          minimum: 1
+        lot_code:
+          type: string
+        ingredient_lot_overrides:
+          oneOf:
+            - type: object
+              additionalProperties:
+                type: string
+            - type: string
+          description: "Map of ingredient_product_id (as string) to lot_code, e.g. {\"45\": \"26-03-15-QUAL-001\"}. Used for FIFO override on specific ingredients."
+        excluded_ingredients:
+          type: array
+          items:
+            type: integer
+          description: "List of ingredient_product_ids to skip for this batch (e.g., a substitution that's not in the BOM). Water/utility ingredients are auto-excluded server-side."
+        confirmed_sku:
+          type: boolean
+          description: "Set to true on commit ONLY after operator confirms the correct FG SKU from sibling disambiguation. See sku_confirmation_required in preview response."
+    PackRequest:
+      type: object
+      required: [source_product, target_product, cases]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        source_product:
+          type: string
+          description: "Batch product name or odoo_code (e.g., '31011' or 'Graham Cracker Crumbs - 50 LB')"
+        target_product:
+          type: string
+          description: "Finished good name or odoo_code (e.g., '31012' or 'Graham Cracker Crumbs - 10 LB')"
+        cases:
+          type: integer
+          minimum: 1
+        case_weight_lb:
+          type: number
+          exclusiveMinimum: 0
+          description: "Override case weight in lb; defaults to target product's case_size_lb."
+        lot_allocations:
+          type: array
+          description: "SOURCE lot overrides only (pull from specific batch lots). Omit for FIFO. Do NOT put the output/FG lot here — use target_lot_code instead."
+          items:
+            type: object
+            required: [lot_code, quantity_lb]
+            properties:
+              lot_code:
+                type: string
+              quantity_lb:
+                type: number
+                exclusiveMinimum: 0
+        target_lot_code:
+          type: string
+          description: "OUTPUT lot code on the finished good. Defaults to the primary source lot code. If the operator provides a lot code for the physical batch they are packing FROM, that is a SOURCE lot — put it in lot_allocations, not here."
+    AdjustRequest:
+      type: object
+      required: [product_name, lot_code, adjustment_lb, reason]
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        product_name:
+          type: string
+        lot_code:
+          type: string
+        adjustment_lb:
+          type: number
+          description: "Positive = increase, negative = decrease."
+        reason:
+          type: string
+        reason_es:
+          type: string
+    ShipOrderRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [preview, commit]
+          default: preview
+        ship_all:
+          type: boolean
+          default: false
+          description: "Ship all remaining lines in full. Ignored if 'lines' is provided."
+        lines:
+          type: array
+          description: "Per-line ship quantities. Omit to use ship_all."
+          items:
+            type: object
+            required: [line_id, quantity_lb]
+            properties:
+              line_id:
+                type: integer
+              quantity_lb:
+                type: number
+                exclusiveMinimum: 0
+    OrderStatus:
+      type: string
+      enum: [new, confirmed, in_production, ready, partial_ship, shipped, invoiced, cancelled]
+      description: "All possible sales order statuses. Auto-set (not manually settable): shipped, partial_ship. Manual transitions only: confirmed, in_production, ready, invoiced, cancelled. Initial status on order creation: confirmed. Legacy status no longer used for new orders: new. Terminal statuses (no further changes): invoiced, cancelled."
+    OrderStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [confirmed, in_production, ready, invoiced, cancelled]
+          description: "Target status for a manual transition. Must be one of the manual-transition values from OrderStatus; 'shipped' and 'partial_ship' are auto-set by shipOrder commit and cannot be sent here."
+    LotRenameRequest:
+      type: object
+      required: [new_lot_code]
+      properties:
+        new_lot_code:
+          type: string
+          description: "The corrected lot_code. Server validates no duplicate exists for the same product."
+    SupplierLotUpdate:
+      type: object
+      required: [supplier_lot_code]
+      properties:
+        supplier_lot_code:
+          type: string
+          description: "The supplier's printed lot number from the box/bag/packing slip."
+        notes:
+          type: string
+          description: "Optional context (e.g., 'from packing slip during shipment SO-260318-001')."
+paths:
+  /products/search:
+    get:
+      operationId: searchProducts
+      summary: "Search products using 3-tier matching: exact → keyword (word-order independent) → trigram similarity. Returns match_tier per result."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: "Product name, partial name, or odoo_code. Word order does not matter — 'Chocolate Sprinkles 10' finds 'Sprinkles Chocolate 10 LB'."
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: "Product search results with match_tier (exact, keyword, or trigram). Includes case_size_lb, default_batch_lb."
+  /bom/products:
+    get:
+      operationId: listProducts
+      summary: "List all active products, optionally filtered by type (ingredient, batch, finished_good) and name search."
+      parameters:
+        - name: product_type
+          in: query
+          description: "Filter by product type"
+          schema:
+            type: string
+            enum: [ingredient, batch, finished]
+        - name: q
+          in: query
+          description: "Partial name or odoo_code match"
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 200
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: "Array of {id, name, odoo_code, product_type, uom, default_batch_lb, case_size_lb}"
+  /bom/batches/{batch_id}/formula:
+    get:
+      operationId: getBatchFormula
+      summary: "Get batch formula with ingredient IDs needed for lot overrides and exclusions."
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: "Batch formula with ingredient product IDs."
+  /inventory/lookup:
+    get:
+      operationId: inventoryLookup
+      summary: "Search inventory by product name (fuzzy). PRIMARY endpoint for all inventory questions."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "Fuzzy product name query (e.g. 'rainbow sprinkles')."
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: "Returns {query, results[]} where each result has product, sku, lots[], total_on_hand."
+  /lots/by-code/{lot_code}:
+    get:
+      operationId: getLotByCode
+      summary: "Look up lot by lot code (includes supplier_lot_code and supplier_lot_entries)."
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: "Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response to retry."
+      responses:
+        '200':
+          description: "Lot details with supplier lot info."
+        '409':
+          description: "ambiguous_lot_code — lot_code matches multiple products. Response includes matches[] with product_id; retry with product_id query param."
+  /lots/by-supplier-lot/{supplier_lot_code}:
+    get:
+      operationId: getLotsBySupplierLot
+      summary: "Lightweight lookup: find internal lots by supplier lot code."
+      description: "Use when a supplier lot code comes up during receiving or inventory questions to quickly check if we already have any of that supplier lot internally. For full FDA recall exposure across all downstream usage, use traceSupplierLot instead."
+      parameters:
+        - name: supplier_lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Matching internal lots with lot_code, product_name, quantity_on_hand, and match_source."
+        '404':
+          description: "No lots found with that supplier lot code."
+  /lots/{lot_code}/supplier-lot:
+    patch:
+      operationId: updateSupplierLot
+      summary: "Attach or update the supplier lot cross-reference on an existing lot."
+      description: "Use when a packing slip or physical label shows a supplier lot number that differs from or was missing on the system lot."
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "The system lot code (e.g., 26-03-10-FOUN-001)."
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: "Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response to retry."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierLotUpdate'
+      responses:
+        '200':
+          description: "Updated lot with previous and new supplier lot codes."
+        '404':
+          description: "Lot not found."
+        '409':
+          description: "ambiguous_lot_code — lot_code matches multiple products. Retry with product_id query param."
+  /lots/{lot_id}/rename:
+    patch:
+      operationId: renameLot
+      summary: "Rename a lot's lot_code (e.g., fix an UNKNOWN or mistyped lot to the real code)."
+      description: "Path takes lot_id (integer), not lot_code. Get lot_id from getLotByCode first. Server validates no duplicate lot_code exists for the same product."
+      parameters:
+        - name: lot_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "The numeric lot id (from getLotByCode response)."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LotRenameRequest'
+      responses:
+        '200':
+          description: "Renamed lot with previous_lot_code and new lot_code."
+        '404':
+          description: "Lot id not found."
+        '409':
+          description: "New lot_code already exists for this product."
+  /receive:
+    post:
+      operationId: receive
+      summary: "Receive inventory (preview or commit)."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiveRequest'
+      responses:
+        '200':
+          description: "Preview result or committed receipt. Commit returns transaction_id, lot_id, lot_code, confirmation_code."
+  /ship:
+    post:
+      operationId: ship
+      summary: "Ship inventory STANDALONE (no sales order). Use only when no open order exists or operator explicitly says 'standalone'."
+      description: "If the customer has open orders, the API returns 409 OPEN_SALES_ORDER_EXISTS with the order ship endpoint to use instead. Do not set force_standalone=true without explicit operator instruction."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipRequest'
+      responses:
+        '200':
+          description: "Preview allocation plan or committed shipment. Commit returns transaction_id, shipment_id, confirmation_code."
+        '409':
+          description: "OPEN_SALES_ORDER_EXISTS — use the endpoint in the response body instead. Or CUSTOMER_AMBIGUOUS — disambiguate."
+  /make:
+    post:
+      operationId: make
+      summary: "Record batch production (preview or commit)."
+      description: "Preview checks ingredient availability; if sibling SKUs share the formula, response includes sku_confirmation_required and sibling_skus. Commit requires confirmed_sku=true when siblings exist."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MakeRequest'
+      responses:
+        '200':
+          description: "Preview ingredient check or committed production. Commit returns transaction_id, lot_id, lot_code, daily_production_summary."
+  /pack:
+    post:
+      operationId: pack
+      summary: "Pack batch into finished goods (preview or commit). Pack = batch → FG; use /make for batch production."
+      description: "FIFO on source batch by default. For intermediate BOM packs (e.g., base batch → flavored FG), preview includes add_in_ingredients showing what will be added at the hopper. Commit returns add_in_ingredients_consumed. target_lot_code is the OUTPUT FG lot — don't put source lot codes there."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackRequest'
+      responses:
+        '200':
+          description: "Preview allocation plan (with add-in info if applicable) or committed pack. Commit returns transaction_id, output_lot_id, output_lot_code, daily_production_summary."
+  /adjust:
+    post:
+      operationId: adjust
+      summary: "Adjust inventory quantity (preview or commit)."
+      description: "Positive adjustment_lb = increase, negative = decrease. Private-label SKUs block merge/deprecate reasons (403)."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustRequest'
+      responses:
+        '200':
+          description: "Preview balance check or committed adjustment. Commit returns transaction_id, new_balance_lb, confirmation_code."
+        '403':
+          description: "Private-label SKU protection — blocked reason. Surface the warning verbatim."
+  /void/{transaction_id}:
+    post:
+      operationId: voidTransaction
+      summary: "Void a transaction and post offsetting reversal lines."
+      description: "transaction_id MUST come from a prior API response this conversation or from an explicit lookup via getTransactionHistory. Never void from memory or from operator description alone. Confirm the id with the operator before voiding if they name the transaction by description."
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: "Void result with voided_transaction_id, reversal_transaction_id, and reversal_lines[]."
+        '400':
+          description: "Transaction already voided."
+        '404':
+          description: "Transaction not found."
+  /trace/supplier-lot/{supplier_lot_code}:
+    get:
+      operationId: traceSupplierLot
+      summary: "FDA recall trace — find all internal lots and full downstream exposure for a supplier lot code."
+      parameters:
+        - name: supplier_lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: "Filter to a specific product when supplier lot code matches multiple."
+      responses:
+        '200':
+          description: "Supplier lot exposure trace with matched internal lots and total exposure summary (received, in_production, shipped, on_hand)."
+  /transactions/history:
+    get:
+      operationId: getTransactionHistory
+      summary: "Get recent transaction history. Use to look up a transaction_id before voiding."
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: transaction_type
+          in: query
+          schema:
+            type: string
+            enum: [receive, ship, make, pack, adjust]
+        - name: product_name
+          in: query
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: "Start date (inclusive), format YYYY-MM-DD."
+          schema:
+            type: string
+            format: date
+        - name: until
+          in: query
+          description: "End date (inclusive), format YYYY-MM-DD."
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: "Transaction history with id, type, timestamp, lines, references."
+  /production/day-summary:
+    get:
+      operationId: getDaySummary
+      summary: "Daily production summary — all make/pack/adjust activity grouped by product with lot-level detail."
+      parameters:
+        - name: date
+          in: query
+          description: "Date in YYYY-MM-DD format; defaults to today."
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: "Day summary with batch_products, finished_goods, adjustments."
+  /sales/orders:
+    get:
+      operationId: listOrders
+      summary: "List sales orders with filters. Use status=open for active orders needing work."
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: "Filter by status, or 'open' for all non-terminal statuses."
+        - name: customer
+          in: query
+          schema:
+            type: string
+          description: "Filter by customer name (fuzzy, includes aliases)."
+        - name: overdue_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: "Sales orders. Includes total_units, shipped_units, remaining_units for packaged products."
+  /sales/orders/{order_id}:
+    get:
+      operationId: getOrder
+      summary: "Get sales order details."
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Order DB id (integer) or order number (e.g. 'SO-260323-001')."
+      responses:
+        '200':
+          description: "Order with lines (unit_count, shipped_units, remaining_units) and totals."
+  /sales/orders/{order_id}/status:
+    patch:
+      operationId: updateOrderStatus
+      summary: "Update order status (manual transitions only)."
+      description: "Valid manual transitions: confirmed→in_production→ready; ready↔in_production; shipped→invoiced; any→cancelled. 'shipped' and 'partial_ship' are auto-set by shipOrder commit and CANNOT be set manually (400). Walk multi-step paths one step at a time."
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Order DB id (integer) or order number."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdate'
+      responses:
+        '200':
+          description: "Updated order status with previous_status and new status."
+        '400':
+          description: "Invalid transition or attempted to manually set shipped/partial_ship."
+  /sales/orders/{order_id}/ship:
+    post:
+      operationId: shipOrder
+      summary: "Ship against a sales order (preview or commit). Preferred over standalone /ship when an open order exists."
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Order DB id (integer) or order number."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipOrderRequest'
+      responses:
+        '200':
+          description: "Preview feasibility or committed shipment with shipment_id, transaction_id per line, and new order_status (shipped or partial_ship)."
+        '400':
+          description: "Order in non-shippable status (new/invoiced/cancelled)."
+        '409':
+          description: "LINE_ALREADY_FULFILLED or ORDER_ALREADY_FULFILLED or ZERO_SHIPMENT."
+        '422':
+          description: "QTY_EXCEEDS_REMAINING — reduce to remaining_lb in suggestion."
