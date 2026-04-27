@@ -1,0 +1,1481 @@
+meta:
+  captured_at: 2026-04-23T00:00:00-04:00
+  captured_from: Michael (CNS owner)
+  factory: CNS Confectionery Products
+  interviewer: Claude Code
+  bom_source_of_truth:
+    batches: batch_formulas
+    finished_goods: product_bom
+  notes: |
+    `has_bom` column on products is stale (all false) — ignore it.
+    `product_category` is NULL on all in-scope products.
+
+scope:
+  batches_total: 23
+  finished_goods_total: 37   # original 37; entire BS 6x8 OZ line (70085/70086/70087/70088) confirmed discontinued by owner 2026-04-23
+  discontinued:
+    - { sku: "90012", name: "Batch SS Chocolate Chip #5", status: discontinued, reason: "no downstream FG refs; confirmed discontinued by owner 2026-04-23" }
+    - { sku: "90017", name: "Batch SS Original #4",       status: discontinued, reason: "no downstream FG refs; confirmed discontinued by owner 2026-04-23" }
+    - { sku: "70085", name: "BS Granola – Hazelnut Butter – 6x8 OZ Case", status: discontinued, reason: "BS 6x8 OZ line fully discontinued — only 6x7 OZ in production. Owner 2026-04-23." }
+    - { sku: "70086", name: "BS Almond Butter Granola – 6x8 OZ Case",     status: discontinued, reason: "BS 6x8 OZ line fully discontinued — only 6x7 OZ in production. Owner 2026-04-23." }
+    - { sku: "70087", name: "BS Granola – Dark Chocolate – 6x8 OZ Case",  status: discontinued, reason: "BS 6x8 OZ line fully discontinued — only 6x7 OZ in production. Owner 2026-04-23." }
+    - { sku: "70088", name: "BS Granola – Peanut Butter Banana – 6x8 OZ Case", status: discontinued, reason: "BS 6x8 OZ line fully discontinued — only 6x7 OZ in production. Owner 2026-04-23. (Was added to scope earlier in this same interview; revised out.)" }
+  ingredient_dependencies_noted:
+    - ingredient_id: 56
+      odoo: "15003"
+      name: "BS Banana Bites – Small"
+      kind: sourced_ingredient
+      used_in_batches:
+        - { parent_odoo: "95005", parent_name: "Batch BS Peanut Butter Banana Granola", qty_lb: 35.04 }
+    - ingredient_id: 69
+      odoo: "15016"
+      name: "BS Peanut Butter Chips"
+      kind: sourced_ingredient
+      used_in_batches:
+        - { parent_odoo: "95005", parent_name: "Batch BS Peanut Butter Banana Granola", qty_lb: 66.57 }
+
+shift_structure:
+  mon_thu: { start: "08:00", end: "17:00", breaks_minutes: 45, working_hours: 8.25 }
+  fri: { start: "08:00", end: "14:30", breaks_minutes: 0, working_hours: 6.0 }
+  sat_sun: { working_hours: 0 }
+  weekly_working_hours: 39.0   # 4 × 8.25 + 6
+  seasonal_variation: none
+  derived_weekly_capacity:
+    granola_batches: ~75        # 4 × 16/day + ~11 on Fri (6/8.25 × 16)
+    coconut_batches: ~57        # 4 × 12/day + ~8.7 on Fri
+    note: "Fri capacity is ~73% of a full day; derived numbers assume linear scaling. Owner didn't explicitly confirm Fri batch counts — treat as planning estimates."
+shared_resources:
+  - name: coconut_line
+    kind: plant_capacity
+    independent_of_granola: true       # owner 2026-04-23: "coconut is run on a different line, completely"
+    applies_to: all_coconut_batches
+    capacity_batches_per_day: 12       # owner 2026-04-23
+    bottleneck_piece: TBD              # kettle/tumbler/dryer — not asked
+    labor:
+      people: 2.5                      # owner 2026-04-23: "12 batches - 2.5 people"
+      note: "0.5 likely means one worker shared/part-time. Distinct from granola-line crew."
+    notes: "Coconut is a cook-syrup + coat-coconut + dry/toast process — distinct from the granola oven bake. Runs in parallel with the granola line; does NOT consume granola capacity."
+
+  - name: pack_25_lb
+    kind: pack_throughput
+    cases_per_hour_per_person: 19        # owner 2026-04-23
+    pack_crew: 1
+    lb_per_hour: 475                      # 19 × 25
+    applies_to: "all 25 LB bulk granola cases (house and private-label, including BS brand)"
+    notes: "1 person runs the pack line; typically 1 batch (~13 × 25 LB cases) packs out in ~40 min."
+
+  - name: pack_10_lb
+    kind: pack_throughput
+    cases_per_hour_per_person: 52        # owner 2026-04-23
+    pack_crew: 1
+    lb_per_hour: 520                      # 52 × 10
+    applies_to: "all 10 LB bulk granola cases"
+    notes: "1 person runs the pack line; 1 batch of 90002 (32 × 10 LB cases) packs out in ~37 min."
+
+  - name: pouch_line
+    kind: pack_throughput
+    bags_per_hour: [750, 1000]            # owner 2026-04-23 — range
+    pack_crew: 3
+    applies_to: "SS 12x10 OZ cases (70002/70003/70010/70011/70070) and BS 6x7 OZ + 6x8 OZ cases (70073/70074/70079/70080/70088)"
+    notes: "3 people. Bags, not cases. SS = 12 bags/case → 62-83 cases/hr. BS = 6 bags/case → 125-167 cases/hr."
+
+  - name: coconut_pack
+    kind: pack_throughput
+    cases_per_hour_per_person: null       # same-day-as-production, not independently rate-limited
+    pack_crew: 2                          # combined make+pack for coconut
+    applies_to: "all coconut FGs (10006/10007/67470/10001/10020/67476/893/10002/67473/10010/10029)"
+    notes: "Owner 2026-04-23: 'coconut packed same day as production, not rate-limited separately.' The 2 people are the same coconut_line make+pack crew (matches 2.5 people on the line overall)."
+
+  - name: pack_support
+    kind: pack_throughput
+    applies_to: "cross-cutting support functions — may run concurrently with pack line or pre-staged"
+    functions:
+      - { name: box_making, people: 1 }
+      - { name: labeling_25_lb, people: 1 }
+    notes: "Owner 2026-04-23: separate workstations from the pack line itself. A full 25 LB pack run may need up to 3 people total across pack + box-making + labeling if all are running concurrently."
+
+  - name: granola_line
+    kind: plant_capacity
+    capacity_batches_per_day: 16
+    applies_to: all_granola_batches    # confirmed by owner 2026-04-23
+    parallelism: none                  # owner 2026-04-23: "everything queues behind the same constraint"
+    bottleneck_piece: ["oven", "mixing_pan"]   # owner 2026-04-23: both gate throughput; one-in-flight
+    labor:
+      people_required_for_16_bpd: 3
+      roles:
+        - { count: 2, role: mixing_and_treying }
+        - { count: 1, role: oven_load_unload }
+    notes: "Safe number to assume across any granola SKU. Single-threaded pipeline — no two granola batches run in parallel on different equipment. Bottleneck is the shared oven + single mixing pan (one batch in flight at a time from mix through bake). To hit 16 batches/day need 2 people mixing+treying and 1 running the ovens (load/unload)."
+priority_rules:
+  policy: manual_judgment
+  decision_maker: owner
+  note: "When two same-day orders can't both be made, the owner makes the call — no hard-coded tiebreaker (customer size, margin, order size, FIFO, etc.). Planner should surface the conflict for review, not auto-resolve."
+
+customer_lead_time_days:
+  promise_from_order: 14        # "~2 weeks from order"
+  once_ready_to_ship: 0          # "ships same day"
+  note: "Owner promises ~2 weeks lead time from order receipt to shipment. Once a case is packed, it ships same-day. Implies the planner has up to ~14 days of production runway per order by default."
+
+standing_orders:
+  formal: []
+  informal:
+    - customer: "Sunshine"
+      demand_pattern: "consistent ongoing"
+      sku_list: null              # not captured during interview — follow up separately
+      note: "Owner: 'Sunshine = consistent ongoing demand.' Treat as known baseline demand even without an SO; specific SKUs and cadence need separate confirmation."
+
+raw_material_lead_times:
+  long_lead_known:
+    - category: printed_bags
+      items_seen_in_BOMs:
+        - "Bag – Printed – SS Chocolate Chip Granola"
+        - "Bag – Printed – SS Cranberry Granola"
+        - "Bag – Printed – SS Chocolate Chip Granola Low Carb"
+        - "Bag – Printed – SS Original Granola Low Carb"
+        - "Bag – Printed – SS Original Granola"
+        - "Bag – Printed – BS Almond Butter 7 oz"
+        - "Bag – Printed – BS Dark Chocolate 7 oz"
+        - "Bag – Printed – BS Hazelnut Butter 7 oz"
+        - "Bag – Printed – BS Peanut Butter 7 oz"
+    - category: printed_boxes
+      items_seen_in_BOMs:
+        - "Box – CQ – Printed – Granola"
+        - "Box – CQ – Printed – Coconut"
+        - "Box Unipro Printed 10 LB"
+        - "Box 38F Toasted 25 LB"
+  risk_items:
+    kind: specialty_or_low_frequency_ingredients
+    examples_given: ["fruit nut inclusions (dried cranberries, raisins, walnuts, sliced almonds)", "vanilla flavor / vanilla-line inclusions"]
+    note: "Owner 2026-04-23: 'specialty / infrequently used ingredients are risk items' — low turnover means higher stock-out probability relative to high-turnover oats/sugar/canola oil."
+
+shelf_life_policy:
+  status: not_defined
+  note: "Owner 2026-04-23: not currently considered / not defined. See discrepancies.md #10 — backfill needed before demand planning can honor shelf-life constraints."
+
+batches:
+  - sku: "90001"
+    product_id: 108
+    name: "Batch Classic Chocolate Chip Granola #9"
+    status: active
+    target_batch_lb: 348
+    target_batch_source: owner_confirmed  # confirmed 2026-04-23, matches default_batch_lb and BOM sum (347.6 lb)
+    cycle_time_minutes: {}   # owner answered at throughput level, not per-step
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]   # single-threaded; see shared_resources.granola_line
+    labor:
+      people: 3
+      dedicated: true
+      roles:
+        - { count: 2, role: mixing_and_treying }
+        - { count: 1, role: oven_load_unload }
+      note: "Staffing is plant-wide for the granola line, not SKU-specific. See shared_resources.granola_line.labor."
+    min_run_batches: 1                  # owner 2026-04-23: 1 batch is acceptable; changeover minimization is preference, not floor
+    changeover_minutes_to_different_product: null
+    changeover_policy: "minimize where possible"   # owner 2026-04-23 — planner should prefer same-SKU runs
+    yield_variance_lb:
+      magnitude: small                  # owner 2026-04-23: "it might have a small variance"
+      planning_recommendation: "Treat 348 lb as reliable target; no safety buffer needed."
+      data_note: "No per-batch yields in ledger — each 'make' transaction is an exact multiple of 348 lb."
+    storage_hold:
+      location: bulk_bin
+      container_capacity_lb: 1100
+      batches_per_container: 3.16       # 1100 / 348
+      typical_pack_delay: "usually packed next day, not same day"
+      max_hold_days: 14                 # owner 2026-04-23: "can also sit in the bin for 2 weeks"
+      planning_note: "1 bin holds ~3 batches. Runs beyond that need either a 2nd bin or same-day/next-day pack capacity. 2-week cap means produce-ahead horizon is bounded."
+    upstream_dependencies: []           # owner 2026-04-23: all BOM ingredients are sourced and on-hand
+    is_input_to_other_batches: false    # DB-verified 2026-04-23: not referenced in any batch_formulas.ingredient_product_id
+    confirmed_bom: true                 # owner walked through BOM during interview; no corrections offered
+    notes: ""
+
+  - sku: "90002"
+    product_id: 107
+    name: "Batch Classic Granola #9"
+    status: active
+    target_batch_lb: 323
+    target_batch_source: owner_confirmed   # confirmed 2026-04-23, matches default_batch_lb and BOM sum (322.6)
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]   # inherited from granola line (single-threaded)
+    labor:
+      inherited_from: granola_line
+      people: 3
+      dedicated: true
+      roles:
+        - { count: 2, role: mixing_and_treying }
+        - { count: 1, role: oven_load_unload }
+    min_run_batches: 1                    # inherited from 90001 default; not re-asked (fast path)
+    changeover_minutes_to_different_product: null
+    changeover_policy: "minimize where possible"   # inherited
+    yield_variance_lb:
+      magnitude: small
+      inherited_from: "90001 (fast path)"
+      planning_recommendation: "Treat 323 lb as reliable target."
+      data_note: "No per-batch yields in ledger — each 'make' transaction is an exact multiple of 323 lb."
+    storage_hold:
+      inherited_from: "90001 (fast path)"
+      location: bulk_bin
+      container_capacity_lb: 1100
+      batches_per_container: 3.41          # 1100 / 323
+      typical_pack_delay: "usually packed next day, not same day"
+      max_hold_days: 14
+    upstream_dependencies: []              # fast path: all BOM ingredients sourced (same 7 ingredients as 90001 minus chocolate chips)
+    is_input_to_other_batches: true        # DB-verified 2026-04-23
+    downstream_batches:
+      - { batch_odoo: "90008", batch_name: "Batch Granola Fruit Nut", qty_lb_per_batch: 20 }
+    downstream_finished_goods:
+      - { odoo: "1614",  name: "CQ Granola 10 LB" }
+      - { odoo: "70050", name: "Granola Classic 25 LB" }
+      - { odoo: "10300", name: "Granola Crunchy CNS 10 LB Case" }
+      - { odoo: "70081", name: "Granola Setton Good Ol 25 LB" }
+      - { odoo: "70012", name: "Granola Wheat Free 25 LB" }
+    confirmed_bom: true
+    notes: |
+      Workhorse SKU — feeds 5 finished goods and is an input to Batch Granola Fruit Nut (90008).
+      Planner must produce 90002 before 90008 can run.
+      Fast-path captured: all non-target-batch-lb fields inherited from 90001 via the shared granola line, per owner 2026-04-23.
+
+  - sku: "90010"
+    product_id: 113
+    name: "Batch Granola Vanilla Almond 380 lb"
+    status: active
+    target_batch_lb: 380
+    target_batch_source: owner_confirmed   # 2026-04-23
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor:
+      inherited_from: granola_line
+      people: 3
+      dedicated: true
+      roles:
+        - { count: 2, role: mixing_and_treying }
+        - { count: 1, role: oven_load_unload }
+    min_run_batches: 1                     # fast-path default
+    changeover_minutes_to_different_product: null
+    changeover_policy: "minimize where possible"
+    yield_variance_lb:
+      magnitude: small
+      inherited_from: "90001 (fast path)"
+      planning_recommendation: "Treat 380 lb as reliable target."
+    storage_hold:
+      inherited_from: "90001 (fast path)"
+      location: bulk_bin
+      container_capacity_lb: 1100
+      batches_per_container: 2.89          # 1100 / 380
+      typical_pack_delay: "usually packed next day, not same day"
+      max_hold_days: 14
+    upstream_dependencies: []              # all BOM ingredients sourced; distinct formula (6X sugar, rice flour, invert sugar, vanilla flavor)
+    is_input_to_other_batches: false       # DB-verified 2026-04-23
+    downstream_finished_goods:
+      - { odoo: "70048", name: "Granola Vanilla Almond 25 LB" }
+    confirmed_bom: true
+    notes: "Distinct formula from Classic line (no honey, no brown sugar — uses 6X sugar + rice flour + invert sugar). Fast-path captured per owner 2026-04-23."
+
+  - sku: "90024"
+    product_id: 112
+    name: "Batch Vanilla Crisp Granola #16 (no almonds)"
+    status: active
+    target_batch_lb: 370
+    target_batch_source: owner_confirmed   # 2026-04-23
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor:
+      inherited_from: granola_line
+      people: 3
+      dedicated: true
+      roles:
+        - { count: 2, role: mixing_and_treying }
+        - { count: 1, role: oven_load_unload }
+    min_run_batches: 1
+    changeover_minutes_to_different_product: null
+    changeover_policy: "minimize where possible"
+    yield_variance_lb:
+      magnitude: small
+      inherited_from: "90001 (fast path)"
+      planning_recommendation: "Treat 370 lb as reliable target."
+    storage_hold:
+      inherited_from: "90001 (fast path)"
+      location: bulk_bin
+      container_capacity_lb: 1100
+      batches_per_container: 2.97
+      typical_pack_delay: "usually packed next day, not same day"
+      max_hold_days: 14
+    upstream_dependencies: []              # all BOM ingredients sourced
+    is_input_to_other_batches: false       # DB-verified 2026-04-23
+    downstream_finished_goods:
+      - { odoo: "70082", name: "Granola Setton French Vanilla 25 LB" }
+      - { odoo: "70052", name: "Granola Vanilla Crisp 25 LB (French Vanilla)" }
+    confirmed_bom: true
+    notes: "Literally 90010 Vanilla Almond minus the 10 lb almonds (same formula, 370 vs 380 lb). Fast-path captured per owner 2026-04-23."
+
+  - sku: "90019"
+    product_id: 109
+    name: "Batch Setton Cinnamon Almond Granola #14"
+    status: active
+    customer_private_label: Setton
+    target_batch_lb: 330
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor:
+      inherited_from: granola_line
+      people: 3
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: "granola_line" }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.33, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70077", name: "Granola Setton Cinnamon Spice Almond 25 LB" }
+      - { odoo: "70057", name: "Granola Cinnamon Almond 25 LB" }
+    confirmed_bom: true
+    notes: "Setton private-label + generic Cinnamon Almond share this batch. 0 lifetime runs recorded."
+
+  - sku: "90020"
+    product_id: 111
+    name: "Batch Setton Cocoa Crunch Granola #13"
+    status: active
+    customer_private_label: Setton
+    target_batch_lb: 338
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: "granola_line" }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.25, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70056", name: "Granola Setton Cocoa Crunch 25 LB" }
+      - { odoo: "70059", name: "Granola Cocoa Vibes 25 LB" }
+    confirmed_bom: true
+    notes: "Distinct recipe — uses pumpkin seeds + cocoa + chocolate flavor. Setton + Cocoa Vibes share this batch. 1 lifetime run."
+
+  - sku: "90021"
+    product_id: 110
+    name: "Batch Setton Coffee Granola #12"
+    status: active
+    customer_private_label: Setton
+    target_batch_lb: 336
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: "granola_line" }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.27, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70078", name: "Granola Setton Morning Latte Crunch 25 LB" }
+    confirmed_bom: true
+    notes: "Distinct recipe — walnuts + coffee flavor + instant coffee + trace cocoa. 0 lifetime runs."
+
+  - sku: "90011"
+    product_id: 114
+    name: "Batch SS Chocolate Chip Granola #2"
+    status: active
+    target_batch_lb: 393
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: granola_line }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 2.80, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70003", name: "Granola SS Chocolate Chip 12x10 OZ Case" }
+    confirmed_bom: true
+    notes: "SS = Single Serve. 10 lifetime runs — most-produced SS SKU."
+
+  - sku: "90013"
+    product_id: 118
+    name: "Batch SS Cranberry Granola #3"
+    status: active
+    target_batch_lb: 379
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: granola_line }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 2.90, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70011", name: "Granola SS Cranberry 12x10 OZ Case" }
+    confirmed_bom: true
+    notes: "0 lifetime runs yet."
+
+  - sku: "90014"
+    product_id: 119
+    name: "Batch SS Low Carb Chocolate Chip Granola #8"
+    status: active
+    target_batch_lb: 350
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: granola_line }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.14, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70070", name: "Granola SS Chocolate Chip Low Carb 12x10 OZ Case" }
+    confirmed_bom: true
+    notes: "Distinct Low-Carb formula — low oats (78 lb), heavy on slivered + diced almonds, monk-fruit sugar, ground flax, sugar-free chocolate chips. Owner confirmed same oven profile as other granolas."
+
+  - sku: "90015"
+    product_id: 120
+    name: "Batch SS Low Carb Original Granola #7"
+    status: active
+    target_batch_lb: 350
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: granola_line }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.14, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70010", name: "Granola SS Original Low Carb 12x10 OZ Case" }
+    confirmed_bom: true
+    notes: "Distinct Low-Carb formula — similar to 90014 but without chocolate chips. Owner confirmed same oven profile."
+
+  - sku: "90016"
+    product_id: 116
+    name: "Batch SS Original Granola #1"
+    status: active
+    target_batch_lb: 350
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: granola_line }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.14, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70060", name: "Granola Honey Nut 25 LB" }
+      - { odoo: "70002", name: "Granola SS Original 12x10 OZ Case" }
+    confirmed_bom: true
+    notes: "Same batch feeds both the Honey Nut 25 LB bulk AND the SS Original 12x10 OZ case — cross-brand sharing. 6 lifetime runs."
+
+  - sku: "95001"
+    product_id: 123
+    name: "Batch BS Almond Butter Granola 350"
+    status: active
+    brand: "Blue Stripes"
+    target_batch_lb: 350
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: granola_line }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.14, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70079", name: "BS Almond Butter Granola – 6x7 OZ Case" }
+    confirmed_bom: true
+    notes: "2 lifetime runs. BS-specific raw ingredients (coconut sugar, cacao liquor, cacao nibs, almond oil, almond butter)."
+
+  - sku: "95002"
+    product_id: 121
+    name: "Batch BS Dark Chocolate Granola 350"
+    status: active
+    brand: "Blue Stripes"
+    target_batch_lb: 350
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: granola_line }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.14, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: true                                    # critical — feeds 95005 PB Banana
+    downstream_batches:
+      - { batch_odoo: "95005", batch_name: "Batch BS Peanut Butter Banana Granola", qty_lb_per_batch: 350, note: "A full 95002 batch is dedicated upstream of every 95005 batch." }
+    downstream_finished_goods:
+      - { odoo: "70074", name: "BS Granola – Dark Chocolate – 6x7 OZ Case" }
+    confirmed_bom: true
+    notes: "Most-produced BS batch (9 lifetime runs). DUAL DOWNSTREAM — feeds both the Dark Chocolate FG AND (as an input) the 95005 PB Banana batch. Planner must allocate 95002 production either to its own FG OR to feed 95005, not both."
+
+  - sku: "95003"
+    product_id: 124
+    name: "Batch BS Hazelnut Butter Granola 350"
+    status: active
+    brand: "Blue Stripes"
+    target_batch_lb: 350
+    target_batch_source: owner_confirmed
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 16-granola-batches/day plant capacity — see shared_resources.granola_line"
+    bottleneck_equipment: ["oven", "mixing_pan"]
+    labor: { inherited_from: granola_line, people: 3 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: granola_line }
+    storage_hold: { inherited_from: granola_line, location: bulk_bin, container_capacity_lb: 1100, batches_per_container: 3.14, typical_pack_delay: "next day", max_hold_days: 14 }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70080", name: "BS Granola – Hazelnut Butter – 6x7 OZ Case" }
+    confirmed_bom: true
+    notes: "Uses GF Oats (separate ingredient SKU). 3 lifetime runs. GF segregation handled via cleanout/changeover on shared equipment, not separate line."
+
+  - sku: "95005"
+    product_id: 122
+    name: "Batch BS Peanut Butter Banana Granola"
+    status: active
+    brand: "Blue Stripes"
+    category: cold_inclusion_mix_post_bake   # like 90008 but at full-batch scale
+    target_batch_lb: 452
+    target_batch_source: owner_confirmed
+    consumes_granola_line_capacity: false     # the upstream 95002 consumes line capacity; the 95005 mix step does not require a second oven bake
+    cycle_time_minutes: {}
+    bottleneck_equipment: null                # the cold-mix step runs off-oven
+    labor:
+      assignment: pack_line_crew               # inclusions premixed separately; combined with granola at pack time
+      people_required: 1                       # owner 2026-04-23 — same as 90008
+      workflow_note: "Owner 2026-04-23: 'The peanut butter chips and bananas are premixed and then added to the granola at the time of packing.' So there is no single 452 lb 95005 bulk tote — it's 95002 (in its own bin) + a separate premixed-inclusions container, combined per case on the pack line."
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, planning_recommendation: "Treat as deterministic: 350 lb 95002 + 101.61 lb inclusions → 1 × 95005 batch (452 lb)." }
+    storage_hold:
+      granola_component: "95002 bin (shared; inherited_from granola_line)"
+      inclusion_premix: "separate container; prep-as-needed for pack runs"
+      note: "No combined 452 lb 95005 tote exists — granola and premixed inclusions stay separate until pack time."
+    upstream_dependencies:
+      - { batch_odoo: "95002", qty_lb_per_batch: 350, note: "Must have a full 95002 batch (350 lb) on-hand before 95005 can run; 1:1 dedication." }
+      - { ingredient: "BS Peanut Butter Chips", qty_lb_per_batch: 66.57 }
+      - { ingredient: "BS Banana Bites – Small", qty_lb_per_batch: 35.04 }
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "70073", name: "BS Granola – Peanut Butter Banana – 6x7 OZ Case" }
+    confirmed_bom: true
+    notes: |
+      NOT an independent oven bake. It's a cold post-bake inclusion mix: take a full 350 lb batch of
+      95002 BS Dark Chocolate (already baked + cooled), add 66.57 lb PB Chips + 35.04 lb Banana Bites,
+      mix → pack. The oven capacity cost is charged to the 95002 batch upstream, not here. Planner must
+      allocate one 95002 batch per 95005 batch, meaning if demand wants 3 × 95005, you need 3 × 95002
+      earmarked for this mix (those 3 × 95002 cannot also feed the 95002 Dark Chocolate FG).
+      0 lifetime runs — process may not be fully validated yet.
+
+  - sku: "90003"
+    product_id: 125
+    name: "Batch Coconut Sweetened Fancy"
+    status: active
+    target_batch_lb: 360                  # post-processing yield, owner-confirmed 2026-04-23
+    target_batch_source: owner_confirmed
+    ingredient_draw_lb: 389.5             # 324.5 dry + 65 water (excluded from inventory)
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 12-coconut-batches/day plant capacity — see shared_resources.coconut_line"
+    bottleneck_equipment: see_shared_resources_coconut_line
+    labor: { inherited_from: coconut_line, people: 2.5 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: coconut_line }
+    storage_hold: { location: coconut_bin, note: "Separate from granola bins; details not captured beyond line-level" }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "10006", name: "Coconut Sweetened Fancy CNS 10 LB" }
+      - { odoo: "10007", name: "Coconut Sweetened Fancy CNS 25 LB" }
+      - { odoo: "67470", name: "Coconut Sweetened Fancy UNIPRO 10 LB" }
+    confirmed_bom: true
+    notes: "8 lifetime runs. Uses 200 lb Fancy-cut desiccated coconut."
+
+  - sku: "90004"
+    product_id: 126
+    name: "Batch Coconut Sweetened Flake"
+    status: active
+    target_batch_lb: 360
+    target_batch_source: owner_confirmed
+    ingredient_draw_lb: 389.5
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 12-coconut-batches/day plant capacity — see shared_resources.coconut_line"
+    bottleneck_equipment: see_shared_resources_coconut_line
+    labor: { inherited_from: coconut_line, people: 2.5 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: coconut_line }
+    storage_hold: { location: coconut_bin, note: "Separate from granola bins" }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "10001", name: "Coconut Sweetened Flake CNS 10 LB" }
+      - { odoo: "10020", name: "Coconut Sweetened Flake CNS 25 LB" }
+      - { odoo: "67476", name: "Coconut Sweetened Flake UNIPRO 10 LB" }
+      - { odoo: "893",   name: "CQ Coconut Sweetened Flake 10 LB" }
+    confirmed_bom: true
+    notes: "HIGHEST-VOLUME batch in the plant — 31 lifetime runs. Feeds 4 FGs across CNS, UNIPRO, and CQ customers."
+
+  - sku: "90005"
+    product_id: 127
+    name: "Batch Coconut Sweetened Medium"
+    status: active
+    target_batch_lb: 360
+    target_batch_source: owner_confirmed
+    ingredient_draw_lb: 389.5
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 12-coconut-batches/day plant capacity — see shared_resources.coconut_line"
+    bottleneck_equipment: see_shared_resources_coconut_line
+    labor: { inherited_from: coconut_line, people: 2.5 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: coconut_line }
+    storage_hold: { location: coconut_bin, note: "Separate from granola bins" }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "10002", name: "Coconut Sweetened Medium CNS 10 LB" }
+      - { odoo: "67473", name: "Coconut Sweetened Medium UNIPRO 10 LB" }
+    confirmed_bom: true
+    notes: "5 lifetime runs. Uses 200 lb Medium-cut desiccated coconut."
+
+  - sku: "90007"
+    product_id: 128
+    name: "Batch Coconut Toasted Sweetened Flake"
+    status: active
+    target_batch_lb: 300                  # lower yield than sweetened — more water driven off during toasting; owner-confirmed 2026-04-23
+    target_batch_source: owner_confirmed
+    ingredient_draw_lb: 324.5             # NOTE: BOM is missing water line — see discrepancy #8; real draw likely ~389.5 lb with water added
+    cycle_time_minutes: {}
+    throughput_note: "Shares the 12-coconut-batches/day plant capacity — see shared_resources.coconut_line"
+    bottleneck_equipment: see_shared_resources_coconut_line
+    labor: { inherited_from: coconut_line, people: 2.5 }
+    min_run_batches: 1
+    changeover_policy: "minimize where possible"
+    yield_variance_lb: { magnitude: small, inherited_from: coconut_line }
+    storage_hold: { location: coconut_bin, note: "Separate from granola bins" }
+    upstream_dependencies: []
+    is_input_to_other_batches: false
+    downstream_finished_goods:
+      - { odoo: "10010", name: "Coconut Toasted Sweetened Flake CNS 10 LB" }
+      - { odoo: "10029", name: "Coconut Toasted Sweetened Flake CNS 25 LB" }
+    confirmed_bom: false                  # BOM is missing the water line — see discrepancy #8
+    notes: "3 lifetime runs. Toasted finish = lower yield (300 vs 360). Recipe currently missing water; flagged in discrepancies.md #8."
+
+  - sku: "90008"
+    product_id: 179
+    name: "Batch Granola Fruit Nut"
+    status: active
+    category: cold_inclusion_mix_at_pack   # not an oven bake — confirmed owner 2026-04-23
+    target_batch_lb: 25
+    target_batch_source: owner_confirmed   # 25 lb = exactly one finished 70061 case; batch-per-case
+    consumes_granola_line_capacity: false  # does NOT use the 16-bpd oven/mixer budget
+    cycle_time_minutes: {}                 # mix-at-pack — minutes, not hours; not a scheduling constraint
+    bottleneck_equipment: null             # off-line; runs at pack station
+    labor:
+      assignment: pack_line_crew           # not the granola-line 3 people
+      people_required: 1                   # owner 2026-04-23
+    min_run_batches: 1                     # 1 case at a time
+    changeover_minutes_to_different_product: null
+    changeover_policy: "effectively none — per-case mix at pack"
+    yield_variance_lb:
+      magnitude: negligible
+      planning_recommendation: "Treat as deterministic: 20 lb 90002 + 5 lb inclusions → exactly 1 × 70061 case."
+    storage_hold:
+      location: "none — made-to-pack"
+      note: "No bulk-bin intermediate; mixed into the finished case."
+    upstream_dependencies:
+      - { batch_odoo: "90002", qty_lb_per_batch: 20, note: "Must have ≥20 lb on-hand in 90002 bin before 90008 can run" }
+      - { ingredient: "Almonds – Sliced", qty_lb_per_batch: 1.25 }
+      - { ingredient: "Cranberries Dried", qty_lb_per_batch: 1.25 }
+      - { ingredient: "Raisins", qty_lb_per_batch: 1.25 }
+      - { ingredient: "Walnuts", qty_lb_per_batch: 1.25 }
+    is_input_to_other_batches: false       # DB-verified 2026-04-23: zero references
+    downstream_finished_goods:
+      - { odoo: "70061", name: "Granola Fruit Nut 25 LB", cases_per_batch: 1 }
+    confirmed_bom: true
+    notes: |
+      Unique SKU in this set — NOT an oven batch. It's a cold inclusion mix done at the pack line:
+      take 20 lb of already-baked Classic Granola (90002), add 5 lb of fruit/nut inclusions,
+      output = 1 × 70061 Granola Fruit Nut 25 LB case. Planner should treat as 1:1 case-for-mix,
+      with 90002 as a prerequisite and no oven capacity cost.
+      Production history is minimal (1 run since Feb 2026) — very low-volume SKU.
+
+finished_goods:
+  # ── Group 1: Classic/CNS bulk granola pack-outs (10 FGs) ──
+  # All captured via fast-path 2026-04-23 using reference 70050. Pack rates/crew from shared_resources.pack_25_lb / pack_10_lb.
+
+  # 1A — 25 LB house-label bulk (6 SKUs; same Bag Clear #25 + Box 14-12 + 25 lb batch)
+  - odoo: "70053"
+    product_id: 143
+    name: "Granola Chocolate Chip 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90001"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: []   # not called out
+    min_pack_run_cases: 1                    # owner: no minimum
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null                 # not captured
+    qa_hold_steps: []                        # not defined; see discrepancies.md #11
+    shelf_life_days: null                    # not defined; see discrepancies.md #10
+    date_code_format: null                   # not defined
+    confirmed_bom: true
+    notes: "Fast-path capture per owner 2026-04-23."
+
+  - odoo: "70050"
+    product_id: 136
+    name: "Granola Classic 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90002"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Reference SKU for FG Group 1 fast-path."
+
+  - odoo: "70012"
+    product_id: 138
+    name: "Granola Wheat Free 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90002"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Fast-path; same physical pack as 70050. Formula differs at batch level (sub-set of 90002 ingredients that are wheat-free — worth verifying separately that 90002 is truly wheat-free)."
+
+  - odoo: "70048"
+    product_id: 135
+    name: "Granola Vanilla Almond 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90010"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Fast-path per 70050 reference."
+
+  - odoo: "70052"
+    product_id: 134
+    name: "Granola Vanilla Crisp 25 LB (French Vanilla)"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90024"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Fast-path per 70050 reference."
+
+  - odoo: "70061"
+    product_id: 142
+    name: "Granola Fruit Nut 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90008"
+    add_ins_at_pack: []                    # note: inclusions are added AT 90008 mix step (1 batch = 1 case), not at this pack step
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: false                    # BOM currently has only 1 line — see discrepancies.md #3
+    bom_fix_needed:
+      add_rows: ["Bag Clear #25 (1 unit)", "Box 14-12 (1 unit)"]
+      confirmed_by_owner: true              # 2026-04-23
+    notes: "Owner 2026-04-23 confirmed we should add the missing Bag Clear #25 + Box 14-12 rows to product_bom so this matches every other 25 LB house SKU. 1 batch 90008 = 1 case 70061 (so pack rate is limited by 90008 cold-mix throughput, not by pack_25_lb)."
+
+  # 1B — 25 LB private-label (2 SKUs)
+  - odoo: "70081"
+    product_id: 129
+    name: "Granola Setton Good Ol 25 LB"
+    case_size_lb: 25
+    label_type: private_label
+    customer: Setton
+    base_batch_sku: "90002"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels_setton", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Same physical pack as 70050 (clear bag, Box 14-12); only the case label is Setton-specific."
+
+  - odoo: "70082"
+    product_id: 133
+    name: "Granola Setton French Vanilla 25 LB"
+    case_size_lb: 25
+    label_type: private_label
+    customer: Setton
+    base_batch_sku: "90024"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Blue #25", "Box 14-12", "tape", "pallet_wrap", "labels_setton", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Uses BLUE 25-lb bag (not clear) — the only non-clear-bag 25 LB SKU. Potential minor changeover between this and other 25 LB SKUs (bag swap)."
+
+  # 1C — 10 LB bulk (2 SKUs)
+  - odoo: "10300"
+    product_id: 137
+    name: "Granola Crunchy CNS 10 LB Case"
+    case_size_lb: 10
+    label_type: house
+    base_batch_sku: "90002"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 52, realistic: 52, inherited_from: pack_10_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #10", "Box F28", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "10 LB house-label; same granola as 70050 Classic, packed in smaller case."
+
+  - odoo: "1614"
+    product_id: 144
+    name: "CQ Granola 10 LB"
+    case_size_lb: 10
+    label_type: private_label
+    customer: CQ
+    base_batch_sku: "90002"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 52, realistic: 52, inherited_from: pack_10_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #10", "Box – CQ – Printed – Granola", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Box – CQ – Printed – Granola"]   # printed box, customer-specific
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    changeover_minutes: null
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "CQ private-label; same granola as 10300 but in a printed customer-specific box. Printed boxes are usually long-lead."
+
+  # ── Group 2: Setton-batch-sourced 25 LB pack-outs (5 FGs) ──
+  # All captured via fast-path 2026-04-23. Same pack_25_lb defaults as Group 1.
+
+  - odoo: "70057"
+    product_id: 140
+    name: "Granola Cinnamon Almond 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90019"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "House-label twin of 70077; identical pack, different case label."
+
+  - odoo: "70077"
+    product_id: 131
+    name: "Granola Setton Cinnamon Spice Almond 25 LB"
+    case_size_lb: 25
+    label_type: private_label
+    customer: Setton
+    base_batch_sku: "90019"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels_setton", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Setton-label twin of 70057."
+
+  - odoo: "70059"
+    product_id: 139
+    name: "Granola Cocoa Vibes 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90020"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "House-label twin of 70056; uses clear bag (70056 uses blue)."
+
+  - odoo: "70056"
+    product_id: 132
+    name: "Granola Setton Cocoa Crunch 25 LB"
+    case_size_lb: 25
+    label_type: private_label
+    customer: Setton
+    base_batch_sku: "90020"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Blue #25", "Box 14-12", "tape", "pallet_wrap", "labels_setton", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Setton-label version of 70059; uses BLUE #25 bag (not clear). Minor changeover when switching between clear-bag and blue-bag siblings."
+
+  - odoo: "70078"
+    product_id: 130
+    name: "Granola Setton Morning Latte Crunch 25 LB"
+    case_size_lb: 25
+    label_type: private_label
+    customer: Setton
+    base_batch_sku: "90021"
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels_setton", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Setton private-label only (no house-label sibling). Fast-path per reference."
+
+  # ── Group 3: SS-batch-sourced pack-outs (6 FGs — 5 pouch line + 1 bulk) ──
+  # 5 pouch-line cases use pouch_line defaults (750-1000 bags/hr with 3 crew).
+  # 70060 Honey Nut is a cross-brand oddball — SS Original batch, 25 LB bulk case. Uses pack_25_lb defaults.
+
+  - odoo: "70003"
+    product_id: 145
+    name: "Granola SS Chocolate Chip 12x10 OZ Case"
+    case_size_lb: 7.5
+    case_format: "12 x 10 OZ"
+    label_type: private_label
+    base_batch_sku: "90011"
+    add_ins_at_pack: []
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [62, 83], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – SS Chocolate Chip Granola", "Box F28", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – SS Chocolate Chip Granola"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Runs on pouch_line. Printed bag is SKU-specific, long-lead."
+
+  - odoo: "70011"
+    product_id: 147
+    name: "Granola SS Cranberry 12x10 OZ Case"
+    case_size_lb: 7.5
+    case_format: "12 x 10 OZ"
+    label_type: private_label
+    base_batch_sku: "90013"
+    add_ins_at_pack: []
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [62, 83], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – SS Cranberry Granola", "Box F28", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – SS Cranberry Granola"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Runs on pouch_line. Printed bag is SKU-specific, long-lead."
+
+  - odoo: "70070"
+    product_id: 148
+    name: "Granola SS Chocolate Chip Low Carb 12x10 OZ Case"
+    case_size_lb: 7.5
+    case_format: "12 x 10 OZ"
+    label_type: private_label
+    base_batch_sku: "90014"
+    add_ins_at_pack: []
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [62, 83], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – SS Chocolate Chip Granola Low Carb", "Box F28", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – SS Chocolate Chip Granola Low Carb"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Runs on pouch_line. Printed bag is SKU-specific, long-lead."
+
+  - odoo: "70010"
+    product_id: 149
+    name: "Granola SS Original Low Carb 12x10 OZ Case"
+    case_size_lb: 7.5
+    case_format: "12 x 10 OZ"
+    label_type: private_label
+    base_batch_sku: "90015"
+    add_ins_at_pack: []
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [62, 83], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – SS Original Granola Low Carb", "Box F28", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – SS Original Granola Low Carb"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Runs on pouch_line. Printed bag is SKU-specific, long-lead."
+
+  - odoo: "70002"
+    product_id: 146
+    name: "Granola SS Original 12x10 OZ Case"
+    case_size_lb: 7.5
+    case_format: "12 x 10 OZ"
+    label_type: private_label
+    base_batch_sku: "90016"
+    add_ins_at_pack: []
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [62, 83], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – SS Original Granola", "Box F28", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – SS Original Granola"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Runs on pouch_line. Printed bag is SKU-specific, long-lead."
+
+  - odoo: "70060"
+    product_id: 141
+    name: "Granola Honey Nut 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90016"   # cross-brand: uses SS Original batch but packed as 25 LB bulk
+    add_ins_at_pack: []
+    cases_per_hour: { best: 19, realistic: 19, inherited_from: pack_25_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Cross-brand oddball: base batch is 90016 SS Original (shared with the 70002 pouch-line case), but this packs as 25 LB bulk using pack_25_lb defaults — not the pouch line."
+
+  # ── Group 4: Blue Stripes 6x7 OZ pouch-line cases (4 FGs) ──
+  # All 4 via pouch_line defaults. 70073 has premixed PB-chip + Banana-bite inclusions added at this pack step (see 95005).
+  # Note: BS 6x8 OZ line (70085/70086/70087/70088) fully discontinued per owner 2026-04-23.
+
+  - odoo: "70079"
+    product_id: 152
+    name: "BS Almond Butter Granola – 6x7 OZ Case"
+    case_size_lb: 2.63
+    case_format: "6 x 7 OZ"
+    label_type: private_label
+    brand: "Blue Stripes"
+    base_batch_sku: "95001"
+    add_ins_at_pack: []
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [125, 167], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – BS Almond Butter 7 oz", "Case – Generic – 7 OZ Master", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – BS Almond Butter 7 oz"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "BS 6x7 OZ on pouch_line. Printed bag SKU-specific, long-lead."
+
+  - odoo: "70074"
+    product_id: 150
+    name: "BS Granola – Dark Chocolate – 6x7 OZ Case"
+    case_size_lb: 2.63
+    case_format: "6 x 7 OZ"
+    label_type: private_label
+    brand: "Blue Stripes"
+    base_batch_sku: "95002"
+    add_ins_at_pack: []
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [125, 167], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – BS Dark Chocolate 7 oz", "Case – Generic – 7 OZ Master", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – BS Dark Chocolate 7 oz"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "BS 6x7 OZ on pouch_line. 95002 batch is dual-duty — feeds this FG AND the 95005 PB Banana cold-mix batch upstream."
+
+  - odoo: "70080"
+    product_id: 153
+    name: "BS Granola – Hazelnut Butter – 6x7 OZ Case"
+    case_size_lb: 2.63
+    case_format: "6 x 7 OZ"
+    label_type: private_label
+    brand: "Blue Stripes"
+    base_batch_sku: "95003"
+    add_ins_at_pack: []
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [125, 167], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – BS Hazelnut Butter 7 oz", "Case – Generic – 7 OZ Master", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – BS Hazelnut Butter 7 oz"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "BS 6x7 OZ on pouch_line. Uses GF oats at the batch level (95003)."
+
+  # ── Group 5: Coconut FGs (11 FGs) ──
+  # All via coconut_pack defaults. 10 LB cases use Bag Blue #10 with customer-specific boxes.
+  # 25 LB cases use Bag Blue #25 with Box 14-12 (except 10029 Toasted which uses Box 38F Toasted).
+  # Pack throughput is NOT a separate constraint — coconut is packed same-day by the coconut_line crew.
+
+  # 5A — 10 LB coconut cases (8 FGs)
+  - odoo: "10006"
+    product_id: 154
+    name: "Coconut Sweetened Fancy CNS 10 LB"
+    case_size_lb: 10
+    label_type: house
+    base_batch_sku: "90003"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack, note: "not rate-limited; packed same-day by coconut crew" }
+    pack_crew: 2   # shared with coconut_line make step
+    packaging_materials: ["Bag Blue #10", "Box 10 LB White Plain #13", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "House plain box. Base batch 90003 Fancy."
+
+  - odoo: "67470"
+    product_id: 161
+    name: "Coconut Sweetened Fancy UNIPRO 10 LB"
+    case_size_lb: 10
+    label_type: private_label
+    customer: Unipro
+    base_batch_sku: "90003"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #10", "Box Unipro Printed 10 LB", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Box Unipro Printed 10 LB"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Unipro private-label. Printed box is long-lead."
+
+  - odoo: "10001"
+    product_id: 156
+    name: "Coconut Sweetened Flake CNS 10 LB"
+    case_size_lb: 10
+    label_type: house
+    base_batch_sku: "90004"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #10", "Box 10 LB White Plain #13", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "House plain box. Base batch 90004 Flake — highest-volume batch in plant."
+
+  - odoo: "67476"
+    product_id: 162
+    name: "Coconut Sweetened Flake UNIPRO 10 LB"
+    case_size_lb: 10
+    label_type: private_label
+    customer: Unipro
+    base_batch_sku: "90004"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #10", "Box Unipro Printed 10 LB", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Box Unipro Printed 10 LB"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Unipro private-label."
+
+  - odoo: "893"
+    product_id: 164
+    name: "CQ Coconut Sweetened Flake 10 LB"
+    case_size_lb: 10
+    label_type: private_label
+    customer: CQ
+    base_batch_sku: "90004"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #10", "Box – CQ – Printed – Coconut", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Box – CQ – Printed – Coconut"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "CQ private-label. Printed box long-lead."
+
+  - odoo: "10002"
+    product_id: 158
+    name: "Coconut Sweetened Medium CNS 10 LB"
+    case_size_lb: 10
+    label_type: house
+    base_batch_sku: "90005"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #10", "Box 10 LB White Plain #13", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "House plain box."
+
+  - odoo: "67473"
+    product_id: 163
+    name: "Coconut Sweetened Medium UNIPRO 10 LB"
+    case_size_lb: 10
+    label_type: private_label
+    customer: Unipro
+    base_batch_sku: "90005"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #10", "Box Unipro Printed 10 LB", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Box Unipro Printed 10 LB"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Unipro private-label."
+
+  - odoo: "10010"
+    product_id: 159
+    name: "Coconut Toasted Sweetened Flake CNS 10 LB"
+    case_size_lb: 10
+    label_type: house
+    base_batch_sku: "90007"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #10", "Box 10 LB White Plain #13", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "House plain box. Toasted base batch."
+
+  # 5B — 25 LB coconut cases (3 FGs)
+  - odoo: "10007"
+    product_id: 155
+    name: "Coconut Sweetened Fancy CNS 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90003"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Shares Box 14-12 with 25 LB granola but Bag Blue #25 is coconut-specific."
+
+  - odoo: "10020"
+    product_id: 157
+    name: "Coconut Sweetened Flake CNS 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90004"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #25", "Box 14-12", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Largest-volume 25 LB coconut SKU (feeds off the 31-run 90004 batch)."
+
+  # ── Group 6: Graham (1 FG, no batch step) ──
+
+  - odoo: "31012"
+    product_id: 165
+    name: "Graham Cracker Crumbs – 10 LB"
+    case_size_lb: 10
+    label_type: house
+    base_batch_sku: null                    # direct repack from sourced 50 LB ingredient — no batch step
+    repack_source:
+      ingredient_name: "Graham Cracker Crumbs – 50 LB"
+      qty_per_case_lb: 10                   # 1 input 50 LB ingredient → 5 output cases
+    add_ins_at_pack: []
+    cases_per_hour: { best: 52, realistic: 52, inherited_from: pack_10_lb }
+    pack_crew: 1
+    packaging_materials: ["Bag Clear #10", "Box 24", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "No batch step. Direct repack from sourced 50 LB ingredient to 10 LB cases. Recent high-volume activity (2800 lb packed 2026-03-30, 800 lb packed 2026-04-22)."
+
+  - odoo: "10029"
+    product_id: 160
+    name: "Coconut Toasted Sweetened Flake CNS 25 LB"
+    case_size_lb: 25
+    label_type: house
+    base_batch_sku: "90007"
+    add_ins_at_pack: []
+    cases_per_hour: { inherited_from: coconut_pack }
+    pack_crew: 2
+    packaging_materials: ["Bag Blue #25", "Box 38F Toasted 25 LB", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Box 38F Toasted 25 LB"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: "Only coconut 25 LB SKU using the custom Box 38F Toasted (not standard Box 14-12). Long-lead box."
+
+  - odoo: "70073"
+    product_id: 151
+    name: "BS Granola – Peanut Butter Banana – 6x7 OZ Case"
+    case_size_lb: 2.63
+    case_format: "6 x 7 OZ"
+    label_type: private_label
+    brand: "Blue Stripes"
+    base_batch_sku: "95005"   # cold-mix batch; dependent on 95002 upstream
+    add_ins_at_pack:
+      - { name: "premixed PB Chips + Banana Bites", source: "95005 inclusion premix step" }
+    cases_per_hour: { bags_per_hour_range: [750, 1000], cases_per_hour_range: [125, 167], inherited_from: pouch_line }
+    pack_crew: 3
+    packaging_materials: ["Bag – Printed – BS Peanut Butter 7 oz", "Case – Generic – 7 OZ Master", "tape", "pallet_wrap", "labels", "printing_supplies"]
+    long_lead_materials: ["Bag – Printed – BS Peanut Butter 7 oz"]
+    min_pack_run_cases: 1
+    changeover_policy: "minimize; prefer grouping by same-case-format"
+    qa_hold_steps: []
+    shelf_life_days: null
+    date_code_format: null
+    confirmed_bom: true
+    notes: |
+      BS 6x7 OZ on pouch_line. Uniquely among BS SKUs, this one combines the granola (from a 95002
+      Dark Chocolate batch) with a separately-premixed PB Chips + Banana Bites inclusion container
+      at the pack line. Planner must schedule a dedicated 95002 batch + the inclusion premix step
+      upstream of this FG's pack run.
+

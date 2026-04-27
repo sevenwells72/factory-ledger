@@ -6,3 +6,6 @@
 
 # Environment variables (secrets)
 .env
+keepalive.log
+planner_v2.html
+demand_plan.html

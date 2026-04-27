@@ -1,5 +1,117 @@
 # Change Log
 
+## 2026-04-27 13:35 — Add `RUNBOOK_ACTUAL.md` and `BACKLOG.md` at repo root
+- **File(s) changed:** `RUNBOOK_ACTUAL.md` (new), `BACKLOG.md` (new)
+- **What changed:** Wrote a runbook documenting the primary v2 / secondary v1 planner workflow, install commands (`python3 -m pip install --user …`), the psql-not-on-PATH smoke-test pattern (psycopg2 one-liner), and 5-item troubleshooting list. Wrote a 6-item backlog of deferred items (Pallet Charge filtering, duplicate SO numbers, over-capacity callout, pouch line load, coconut visual, discrepancies tracking).
+- **Why:** Lock in v2 work — onboarding doc + deferred-items inventory before commit + push.
+
+---
+
+## 2026-04-27 13:28 — Strengthen zebra-stripe shade in `render_planner_v2.py`
+- **File(s) changed:** `render_planner_v2.py`
+- **What changed:** Replaced `var(--color-background-secondary, #F8F9FA)` with explicit `#F1F5F9` on the `.so-table tbody tr:nth-child(even)` rule. Past-due override unchanged.
+- **Why:** Prior shade was too faint to read against the white surface.
+
+---
+
+## 2026-04-27 13:24 — Add zebra striping to SO table in `render_planner_v2.py`
+- **File(s) changed:** `render_planner_v2.py`
+- **What changed:** Added `.so-table tbody tr:nth-child(even)` rule using `var(--color-background-secondary, #F8F9FA)`. Increased the past-due selector specificity (`table.so-table tbody tr.past-due, table.so-table tbody tr.past-due:nth-child(even)`) so past-due rows keep the red tint regardless of row position.
+- **Why:** Improve SO panel readability without disturbing the past-due visual signal.
+
+---
+
+## 2026-04-27 13:18 — Remove all truncation from week cards in `render_planner_v2.py`
+- **File(s) changed:** `render_planner_v2.py`
+- **What changed:** Dropped the `[:max_batches=8]` and `[:fg_max=6]` slices and the `+N more` lines from the W1–W3 batches and finished-goods sections in the Jinja template. Every entry now renders. Added a per-week stderr line confirming `K entries, all shown` for both lists. Beyond card untouched.
+- **Why:** Prior round was supposed to remove truncation but didn't apply — Week 1 was still hiding 6 batches and 15 FGs behind `+N more`.
+
+---
+
+## 2026-04-27 13:08 — Switch `render_planner_v2.py` to gross batch requirements
+- **File(s) changed:** `render_planner_v2.py`
+- **What changed:** Stop reading SQL's net `base_batches_to_run` / `upstream_batches_to_run` (which subtract on-hand inventory). Compute gross batch requirements from `fg_remaining_lb` against YAML `target_batch_lb` instead. Added five new helpers: `gross_base_batches`, `gross_upstream_batches`, `batch_target_lb_map`, `upstream_rule_map`, `fetch_db_batch_targets`. Two known upstream rules wired explicitly: 95005 → 95002 (per_batch, 1:1) and 90008 → 90002 (per_case, 20 lb each). YAML-vs-DB target drift logged to stderr. Module-level assertions cover the 5 base-math cases and 2 upstream cases. Stdout now labels totals as `(gross)`.
+- **Why:** v2 is a sketch tool — owner wants to see "this many batches' worth of demand walked in the door" regardless of stock coverage. Net inventory-aware view stays available in `demand_plan.html` (v1, untouched). Resolves the Classic 25 LB SO-260422-001 case where 25 cs of pack-out demand was shown with 0 batches because base inventory covered it.
+
+---
+
+## 2026-04-27 12:55 — Add Beyond Week 3 card to `render_planner_v2.py`
+- **File(s) changed:** `render_planner_v2.py`
+- **What changed:** Grid extended from 3 to 4 columns. New `aggregate_beyond()` builds a Beyond Week 3 card showing granola + coconut totals (muted palette) and a "Next big week" section listing the top 3 future production weeks by total batch count. Added `working_week_tuesday()` and `_format_date_range_label()` helpers, each guarded by inline assertions covering boundary cases (Mon/Tue/Sat/Sun for Tuesday math; same-month / cross-month / cross-year for date labels). `bucket_rows_into_weeks()` now returns `(weeks, beyond)`. SO panel horizon cap dropped — every open SO appears.
+- **Why:** v2 first run revealed ~75 coconut batches were legitimately past Week 3 (May 27 / Jun 1 / Jun 24) and falling off the right edge of the report. The Beyond card surfaces them without compressing W1-W3.
+
+---
+
+## 2026-04-27 12:42 — Add FG name cleanup audit to `render_planner_v2.py`
+- **File(s) changed:** `render_planner_v2.py`
+- **What changed:** Added `audit_fg_names(rows)` — prints before/after for every unique FG name to stderr on each run, so name-cleanup regressions are caught immediately.
+- **Why:** User requested a sanity-check audit before relying on the cleaned names for display.
+
+---
+
+## 2026-04-27 12:36 — Add `render_planner_v2.py` (3-week rolling planner, awaiting approval to run)
+- **File(s) changed:** `render_planner_v2.py` (new)
+- **What changed:** New renderer alongside `render_demand_plan.py`. Builds three week cards (granola/coconut totals, batch breakdown, FG case counts) plus a single sales-orders panel with past-due highlighting. Reuses `load_env` / `load_knowledge` / `run_sql` / `filter_discontinued` patterns from v1. Adds week-bucketing (Tue→Mon, past-due rolls into Week 1), batch + FG name cleanup, and a supplemental `(order_number → customer_name)` query.
+- **Why:** v1 dashboard is too dense for actual planning. v2 is a static report keyed to the 3-week horizon. Output filename: `planner_v2.html`. Renderer not yet executed — pending user approval.
+
+---
+
+## 2026-04-23 15:19 — First successful run of `render_demand_plan.py` → `demand_plan.html`
+- **File(s) changed:** `demand_plan.html` (new, 39,237 bytes)
+- **What changed:** First end-to-end execution. Rendered 27 granola batches + 99 coconut batches across 58 open SO lines. Runtime 0.84s. Exit 0. No stderr output (defensive discontinued-SKU filter did not fire — SQL-side filtering is sufficient).
+- **Why:** Phase 3 of production-planner first-run workflow. Output deferred to Phase 4 for structural verification.
+
+---
+
+## 2026-04-23 15:18 — Rotated local `.env` DATABASE_URL (old credential stale)
+- **File(s) changed:** `.env`
+- **What changed:** Replaced DATABASE_URL value with a fresh Supabase transaction-pooler URL supplied by owner. New URL adds `?sslmode=require` query param (old one lacked it). Same host/port/dbname/user-ref — only password + sslmode changed. Value not reproduced here (gitignored secret).
+- **Why:** Phase 2 demand-plan smoke test failed with `FATAL: password authentication failed for user "postgres"` against the pre-existing .env (last touched 2026-04-15). Diagnostic ruled out URL-parsing / encoding issues; credential was simply stale. After rotation the same smoke test returned 58 rows cleanly.
+
+---
+
+## 2026-04-23 15:05 — Logged Python 3.9.6 local-env constraint as discrepancy #15
+- **File(s) changed:** `discrepancies.md`
+- **What changed:** Appended discrepancy #15 documenting that the local dev machine's only `python3` is system 3.9.6 with pip 21.2.4 — renderer ran only because of `from __future__ import annotations`; PEP 604 runtime unions and eager-annotation libraries will break. Workaround captured: stringify annotations, install via `python3 -m pip install --user …`. Long-term fix: Homebrew Python 3.11+ or pyenv.
+- **Why:** Trip hazard for any future local Python script; also explains why `main.py` can't be pytest-ed locally. Logging now before the knowledge decays.
+
+---
+
+## 2026-04-23 14:58 — Revised demand-plan renderer before first run
+- **File(s) changed:** `render_demand_plan.py`, `discrepancies.md`
+- **What changed:** (1) Prepended a verbatim copy of the commented `/* ... */` summary block from `demand_planning_v1.sql` inside `compute_tier1()` as a drift-detection reference — if the SQL summary is edited without also editing this function, the mismatch becomes visible on read. (2) Flipped Tier 1 card: **14-day load** is now the primary big number (`load_14d / two_week_cap`), 7-day load moved to sub-text. Traffic-light color still computed from 7-day load vs weekly cap (green <70%, amber 70–95%, red >95%) — threshold logic unchanged. Tier 1 h2 header updated to "(14-day horizon; color from 7-day load)". (3) Refactored `filter_discontinued()` to return `(rows, dropped_count, matched_skus)`; `main()` prints a stderr warning when `dropped_count > 0` pointing at `demand_planning_v1.sql` as the place to tighten. Normal stdout success line unchanged. (4) Appended discrepancy #14 to `discrepancies.md` documenting that pouch line is info-only in Tier 1 — YAML has pouch throughput as bags/hr but the SQL doesn't emit per-pouch-FG hours; resolution path is to extend the SQL. Used `## 14.` style to match file's existing pattern (not the `### #13` placeholder from owner's spec — #13 was already taken). HTML output remains fully self-contained: no external CSS/JS/fonts, no CDN, no Netlify asset references. Still not run — awaiting owner approval.
+- **Why:** Owner pre-review feedback on the initial renderer. 14-day matches the customer lead-time promise, so it should be the decision-relevant number. Drift-detection comment future-proofs against SQL-vs-Python divergence. Stderr warning surfaces SQL-side filter gaps without polluting the success line. Pouch-line gap logged so it isn't forgotten once the granola/coconut tiers are in use.
+
+---
+
+## 2026-04-23 14:42 — Added demand-plan HTML renderer (not yet executed)
+- **File(s) changed:** `render_demand_plan.py` (new)
+- **What changed:** Created `render_demand_plan.py` — a single-file Python renderer that loads `DATABASE_URL` from `.env` via python-dotenv, executes `demand_planning_v1.sql` via psycopg2, reads capacity ceilings + discontinued SKU list from `production_planning_knowledge.yaml`, aggregates Tier 1 (capacity load vs weekly cap with green/amber/red traffic-light at <70%/70–95%/>95% of 7-day batches-due) and Tier 2 (one row per unique batch SKU, summed across open SO lines, sorted by earliest requested_ship_date) in Python from the SQL's detail rowset, and renders all three tiers via an inline Jinja2 template to `demand_plan.html` in the repo root. Dark industrial theme mirrors `dashboard/dashboard.css` CSS variables. Defensive post-filter drops any row referencing a discontinued SKU (90012, 90017, 70085–70088). Prints a single terminal summary line on success. **Not yet run — awaiting owner review.**
+- **Why:** Renderer was specified in the production-planning capture but never built. Owner requested a minimal first version (no PDF / email / multi-week projection) that produces a review-ready HTML dashboard off the existing SQL.
+
+---
+
+## 2026-04-23 — First-pass demand planning SQL against open SOs
+- **File(s) changed:** `demand_planning_v1.sql` (new), `discrepancies.md`
+- **What changed:** Wrote `demand_planning_v1.sql` — a first-pass demand planning query that joins open sales-order lines (`status NOT IN ('shipped','cancelled')`, unshipped-qty > 0) against `product_bom` to resolve each FG → base batch, then walks `batch_formulas` one level deeper to catch the cold-mix upstream dependencies (90008 Fruit Nut → 90002 Classic, 95005 BS PB Banana → 95002 Dark Chocolate). Computes FG on-hand, base-batch on-hand, upstream-batch on-hand, shortfall, batches-to-run, and tags each batch with its production line (`granola_line` / `coconut_line` / `cold_mix_at_pack`). Detail query returns a ranked work list by `requested_ship_date`; summary query aggregates batches-due by line against weekly capacity (75 granola, 57 coconut — derived from the 39-hr work week captured in the knowledge YAML). Validated against production: 58 open SO lines, 29 need production, coconut_line shows **99 batches due within 14 days vs 114 two-week capacity** (largely driven by three large Toasted Flake / Flake coconut orders 2026-05-27 through 2026-06-24). Added discrepancy #13 to `discrepancies.md` for 7 FGs in open SOs without `product_bom` (Desiccated Flake 50 LB, Sprinkles ×4, Graham Crumbs 50 LB, Pallet Charge) — decide per-SKU whether to treat as repack FGs or pure passthroughs.
+- **Why:** Phase 4 closeout deliverable of the production planning knowledge capture. Converts the captured YAML into actionable planner output.
+
+---
+
+## 2026-04-23 — Complete production planning knowledge capture (all 23 batches + 37 FGs)
+- **File(s) changed:** `production_planning_knowledge.yaml`, `discrepancies.md`
+- **What changed:** Completed all phases of the production planning interview. YAML now contains: full `shared_resources` (granola_line 16 bpd, coconut_line 12 bpd independent, pouch_line, pack_25_lb, pack_10_lb, coconut_pack, pack_support for box-making + labeling); all 23 batches (21 active + 2 discontinued SS) with target lb, bottleneck equipment, labor structure, storage, upstream/downstream dependencies; all 37 active finished goods with per-SKU pack throughput, packaging materials, long-lead flags, and base-batch linkage; and cross-cutting shift structure (Mon-Thu 8-5 × 45-min breaks, Fri 8-2:30, ~39 working hrs/wk), priority rules (manual owner judgment), customer lead time (14 days promised, same-day ship once packed), standing orders (no formal; Sunshine ongoing baseline), raw-material long-lead items (printed bags/boxes + specialty ingredients), and shelf-life policy (not defined). Identified and documented 12 discrepancies total, including 4 resolved inline (stale has_bom, coconut default_batch_lb interpretation, 70088 → entire BS 6x8 OZ line discontinued, the two SS batches with no FG refs) and 8 open (Fruit Nut BOM missing packaging rows — spawned migration follow-up; NULL product_category; 90007 missing water line; Glycol→Glycerin typo; shelf_life_days NULL on all FGs; no formal QA hold gates; changeover minutes not captured). Identified 2 batch-to-batch dependencies (90002→90008 at 20 lb and 95002→95005 at 350 lb full-batch dedication) and one cross-brand batch reuse (90016 SS Original → both 70002 SS case and 70060 Honey Nut 25 LB bulk).
+- **Why:** Phase 2-3 completion of production planning knowledge capture. YAML is now a complete input for downstream dashboards / GPT endpoints / scheduling tools.
+
+---
+
+## 2026-04-23 — Kick off production planning knowledge capture
+- **File(s) changed:** `discrepancies.md` (new), `production_planning_knowledge.yaml` (new)
+- **What changed:** Created `discrepancies.md` with 6 logged discrepancies (stale `has_bom` flag, coconut `default_batch_lb` vs recipe-sum mismatch, Fruit Nut 25 LB missing packaging BOM lines, Graham Crumbs has no base batch, NULL `product_category`, and two SS batches with zero FG references). Created `production_planning_knowledge.yaml` skeleton (meta, scope, empty batches/finished_goods sections) as the capture target for the ongoing interview. Dependency check confirmed `BS Banana Bites – Small` (id=56) and `BS Peanut Butter Chips` (id=69) are sourced ingredients (type=ingredient, not batch parents); both are consumed only by Batch BS Peanut Butter Banana Granola (95005) — 35.04 lb Banana Bites + 66.57 lb PB Chips per batch — so neither needs interview scope.
+- **Why:** Phase 1 of production planning knowledge capture — per owner instructions, log discrepancies and create the capture file before starting the interview loop. Dependency check explicitly requested to catch any missed batch-to-batch inputs.
+
+---
+
 ## 2026-04-22 — Let HTTPException pass through in /receive preview
 - **File(s) changed:** `main.py`
 - **What changed:** Added `except HTTPException: raise` clause before the existing `except Exception as e` block at the end of the `/receive` preview branch (around line 2304). Other endpoints' preview branches already have this pattern.
