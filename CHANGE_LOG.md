@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-04-30 11:22 — Stage migration 035 (backfill parent_batch_product_id, archive retired FGs)
+- **File(s) changed:** `migrations/035_backfill_parent_batch_product_id_and_archive_retired_fgs.sql` (new), `FACTORY_LEDGER_CHANGELOG.md`, `CLAUDE.md`
+- **What changed:** Added migration 035 SQL (33 Group-B `parent_batch_product_id` UPDATEs + 3 Group-C `active=false` archives + 4 DO-block verification gates wrapped in BEGIN/COMMIT, plus a commented rollback block). Added row #29 to FACTORY_LEDGER_CHANGELOG.md describing the migration, the 24 dual-role NULL FGs, and revert risks. Added new "Dual-role finished goods (NULL parent_batch_product_id is intentional)" top-level section to CLAUDE.md listing the 24 dual-role FGs grouped as Coconut/Desiccated (15), Real Chocolate Chips (2), Sprinkles (4), Other (3). Fixed two header counts from the source snippet ("16 SKUs"→"15 SKUs" for Coconut/Desiccated and "2 SKUs"→"3 SKUs" for Other) so headers match list contents (15+2+4+3=24, matching the migration's expected post-state).
+- **Why:** Stage docs and SQL in repo before applying the migration manually via Supabase SQL Editor. SQL has not yet been applied to any database; once applied, the changelog row and CLAUDE.md section anchor the dual-role classification so future operator tooling won't treat the 24 intentional NULLs as TODOs.
+
+---
+
 ## 2026-04-27 13:35 — Add `RUNBOOK_ACTUAL.md` and `BACKLOG.md` at repo root
 - **File(s) changed:** `RUNBOOK_ACTUAL.md` (new), `BACKLOG.md` (new)
 - **What changed:** Wrote a runbook documenting the primary v2 / secondary v1 planner workflow, install commands (`python3 -m pip install --user …`), the psql-not-on-PATH smoke-test pattern (psycopg2 one-liner), and 5-item troubleshooting list. Wrote a 6-item backlog of deferred items (Pallet Charge filtering, duplicate SO numbers, over-capacity callout, pouch line load, coconut visual, discrepancies tracking).
