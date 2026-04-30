@@ -92,6 +92,12 @@ Before making ANY changes to `main.py`, GPT instructions, migrations, or the das
 - Dashboard: cns-factory-ledger.netlify.app
 - API: fastapi-production-b73a.up.railway.app
 
+### Design specs:
+Locked design specs live in `docs/specs/`. Treat them as the contract — implementation must conform; if a spec is wrong, update the spec first and bump its version, then change code.
+
+- `docs/specs/PACK_PREVIEW_RESPONSE_v1.md` — pack-preview endpoint response contract (top-level fields, line/lot/allocation shapes, status enums, invariants, worked examples). **Pack-preview is the entry point for order workflow planning** — every order-to-ship workflow should start with a single call to this endpoint and use its response to drive subsequent commit calls.
+- `docs/specs/WARNING_CATALOG_v1.md` — the 15-warning catalog consumed by pack-preview (and later reconcile-preview). Codes, scopes (line/lot/allocation), severities (info/acknowledge/block), trigger predicates, example messages.
+
 ## Dual-role finished goods (NULL parent_batch_product_id is intentional)
 
 A finished-good product with `parent_batch_product_id IS NULL` is **not**
