@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-05-14 18:35 — Execute coconut flake misreceive remediation (Path A / Option B)
+- **File(s) changed:** `audits/2026-05/coconut-flake-misreceive-2026-05-14.md`
+- **What changed:** Posted 10 `POST /void/{id}` calls against bad transactions 911, 913, 914, 915, 916, 918, 924, 925, 926, 927 (reversal txns 932–941) and 5 `POST /inventory/found` calls against product id 12 for lots 6012 (14,400 lb), 6013 (12,800 lb, new lot row 624), 6020 (44,800 lb), 6036 (4,900 lb), 6037 (3,200 lb). `performed_by="blubber-via-claude-code"`, `suspected_supplier="Franklin Baker"`. Audit file updated with execution log + FB-abbreviation clarification ("FB" = Franklin Baker, not Fancy Bakers — likely contributed to prior session's mis-routing of lot 6012 to product id 10 "Coconut Fancy Desiccated").
+- **Why:** Bring product 12 on-hand for these 5 lots to the count-sheet target of 80,100 lb after a prior session split the same physical inventory across products id 10/12/14 with wrong/doubled quantities. All 15 API calls returned HTTP 200; final state verified via direct DB roll-up and `/trace/ingredient/{lot}?product_id=12`.
+
+---
+
 ## 2026-05-14 18:15 — Audit file for coconut flake misreceive
 - **File(s) changed:** `audits/2026-05/coconut-flake-misreceive-2026-05-14.md` (new), `audits/2026-05/` (new dir)
 - **What changed:** Created audit record of 10 erroneous `/inventory/found` + `/adjust` transactions from prior session (txns 911, 913, 914, 915, 916, 918, 924, 925, 926, 927) that mis-routed lots 6012/6020/6036/6037 across products id 10/12/14 with wrong/doubled quantities, and that never entered lot 6013. Includes full transaction snapshot, inventory_adjustments snapshot, lot snapshot, and remediation plan (Path A: reversing adjusts on the 10 bad transactions, then 5 fresh `/inventory/found` calls against product id 12 at corrected image quantities — 14,400/12,800/44,800/4,900/3,200 lb).

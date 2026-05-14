@@ -136,6 +136,102 @@ zero on-hand under lot codes 6012 and 6020 (and will not have any lot 6012 /
   `inventory_adjustments`, or `lots` rows would destroy the audit trail and
   risk FK damage elsewhere. Zero-balance orphans are intentional.
 
+## Abbreviation note — "FB" on count sheets = Franklin Baker
+
+The "FB" abbreviation that appears on the source count sheet for these five
+lots refers to **Franklin Baker** (the supplier), not "Fancy Bakers" — and
+not a product attribute at all. Prior sessions (and any future
+investigation pass) need to interpret it that way. It is plausible that the
+2026-05-14 13:18 ET session's mis-routing of lot 6012 to product id 10
+"Coconut **Fancy** Desiccated" was driven in part by misreading "FB" as
+"Fancy Bakers" → "Fancy", which then anchored the wrong product
+disambiguation for the whole reconciliation.
+
+Confirmed corroborating evidence:
+- All six prior `inventory_adjustments` rows already record
+  `suspected_supplier = "Franklin Baker"`.
+- The pre-existing receive against product id 190 from 2026-04-22 uses
+  shipper-code `FRAN` (Franklin Baker) and supplier_lot_code `6011` — same
+  numeric series as 6012/6013/6020/6036/6037, supporting that all six lots
+  came from one supplier.
+
+Convention going forward: on Coconut counts, "FB" = Franklin Baker
+(supplier). Use product `id 12 Coconut Flake Desiccated` (ingredient, lb)
+for receipts from this supplier of 50 lb bags of plain desiccated flake.
+
+## Execution result (2026-05-14, post-remediation)
+
+Executed Path A / Option B (10 `/void/{txn_id}` calls + 5 fresh
+`/inventory/found` calls) — all 15 API calls returned HTTP 200.
+
+### Voids posted
+
+All 10 originals updated to `status='voided'` with notes suffixed
+`| Voided at 2026-05-14 16:18` (server clock; container TZ differs from
+plant ET — see Gotchas in MEMORY). Each created an offsetting reversal:
+
+| Voided txn | Reversal txn | (lot_id, product_id) | Reversal qty (lb) |
+|------------|--------------|----------------------|-------------------|
+| 911 | 932 | (610, 10) | -10,000 |
+| 913 | 933 | (612, 12) | -1,900  |
+| 924 | 934 | (612, 12) | -1,900  |
+| 914 | 935 | (613, 12) | -1,075  |
+| 918 | 936 | (617, 14) | -10,000 |
+| 925 | 937 | (613, 12) | -1,075  |
+| 915 | 938 | (614, 12) | -3,300  |
+| 926 | 939 | (614, 12) | -3,300  |
+| 916 | 940 | (615, 12) | -3,400  |
+| 927 | 941 | (615, 12) | -3,400  |
+
+### Re-entries
+
+| lot_code | product_id | quantity (lb) | lot_id | new lot row? |
+|----------|------------|---------------|--------|--------------|
+| 6012     | 12         | 14,400        | 612    | no (rode on existing zero-balance row) |
+| 6013     | 12         | 12,800        | 624    | **yes** (first time entered) |
+| 6020     | 12         | 44,800        | 613    | no |
+| 6036     | 12         |  4,900        | 614    | no |
+| 6037     | 12         |  3,200        | 615    | no |
+
+All five used `performed_by="blubber-via-claude-code"` (column allows up to
+varchar(100)), `reason_code="found_during_count"`,
+`suspected_supplier="Franklin Baker"`,
+`notes="Physical inventory reconciliation 2026-05-14 — corrected entry,
+supersedes prior bad entries voided this session. See
+audits/2026-05/coconut-flake-misreceive-2026-05-14.md"`.
+
+### Final on-hand state
+
+Product 12 "Coconut Flake Desiccated":
+
+| lot_code | on_hand_lb |
+|----------|------------|
+| 6012     | 14,400     |
+| 6013     | 12,800     |
+| 6020     | 44,800     |
+| 6036     | 4,900      |
+| 6037     | 3,200      |
+| **Sum**  | **80,100** |
+
+Matches the count-sheet total to the pound.
+
+Products 10 and 14 — orphan zero-balance lot rows remain (lot_id 610 on
+pid 10, lot_id 617 on pid 14), both at **0 lb**. No phantom inventory.
+
+### Trace verification
+
+`GET /trace/ingredient/{lot}?product_id=12` returned HTTP 200 for all 5
+lots with `on_hand_lb` matching the targets above, `used_in_batches=[]`,
+`direct_shipments=[]`, `total_shipped_lb=0`.
+
+`GET /trace/ingredient/{lot}` without the disambiguator returns HTTP 409
+`ambiguous_lot_code` for **6012** and **6020** because the orphan
+zero-balance lot rows on products 10 and 14 still match by lot code alone.
+This is correct endpoint behavior and surfaces both matches in the
+response, but UI surfaces will need to pass `?product_id=12` (or the
+lot_id) for clean traces on these two codes until/unless the orphans are
+soft-deleted. Tracked as a follow-up.
+
 ## Out of scope for this remediation
 
 * Product id 190 "Desiccated Flake 50 LB" (type=finished, case_size=50.0).
