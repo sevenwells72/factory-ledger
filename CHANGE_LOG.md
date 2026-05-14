@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-05-14 18:15 — Audit file for coconut flake misreceive
+- **File(s) changed:** `audits/2026-05/coconut-flake-misreceive-2026-05-14.md` (new), `audits/2026-05/` (new dir)
+- **What changed:** Created audit record of 10 erroneous `/inventory/found` + `/adjust` transactions from prior session (txns 911, 913, 914, 915, 916, 918, 924, 925, 926, 927) that mis-routed lots 6012/6020/6036/6037 across products id 10/12/14 with wrong/doubled quantities, and that never entered lot 6013. Includes full transaction snapshot, inventory_adjustments snapshot, lot snapshot, and remediation plan (Path A: reversing adjusts on the 10 bad transactions, then 5 fresh `/inventory/found` calls against product id 12 at corrected image quantities — 14,400/12,800/44,800/4,900/3,200 lb).
+- **Why:** Image of 5 coconut flake lots (1,602 bags / 80,100 lb intended) revealed a prior reconciliation session had partially and incorrectly entered the same physical inventory. User asked for an immutable audit record before any reversing writes so the (likely hallucinated) prior numbers aren't lost forever.
+
+---
+
 ## 2026-04-22 12:10 — Reorganize GPT instruction + schema files into gpt-configs/
 - **File(s) changed:** `gpt-configs/sources/shared-rules.md` (new), `gpt-configs/sources/floor-specific.md` (new), `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md` (new), `gpt-configs/schemas/openapi-floor.yaml` (new), `gpt-configs/README.md` (new), `build_gpt_instructions.py` (new, moved from ~/Downloads + path update)
 - **What changed:** Created `gpt-configs/{sources,dist,schemas,archive}/` layout. Moved today's Floor & Fulfillment artifacts (shared-rules, floor-specific, GPT_FLOOR_INSTRUCTIONS, openapi-floor) from `~/Downloads` into the new structure. Placed `build_gpt_instructions.py` at repo root and updated its path constants to read from `gpt-configs/sources/` and write to `gpt-configs/dist/`. Added `parents=True` to the DIST_DIR mkdir. Wrote `gpt-configs/README.md` explaining the layout and edit-build-paste workflow. Verified script: `python build_gpt_instructions.py floor` → exit 0, 6,623 chars, generated header intact.
