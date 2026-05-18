@@ -508,6 +508,43 @@ def get_transaction():
             yield cur
 
 
+READONLY_PROBE_SQL = """
+SELECT
+  current_setting('default_transaction_read_only') AS default_ro,
+  current_setting('transaction_read_only')          AS txn_ro,
+  inet_server_addr()::text                          AS server_ip,
+  current_database()                                AS db,
+  current_user                                      AS usr,
+  pg_is_in_recovery()                               AS is_replica,
+  version()                                         AS pg_version
+"""
+
+
+def _is_readonly_error(exc: Exception) -> bool:
+    return "read-only transaction" in str(exc).lower()
+
+
+def _capture_readonly_diagnostics() -> dict:
+    """Probe DB session state on a fresh pooled connection.
+    Wrapped in its own try/except so a probe failure can't mask the original error."""
+    conn = None
+    try:
+        conn = db_pool.getconn()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(READONLY_PROBE_SQL)
+            row = cur.fetchone()
+        conn.rollback()
+        return dict(row) if row else {"probe_error": "no row"}
+    except Exception as probe_exc:
+        return {"probe_error": str(probe_exc)}
+    finally:
+        if conn is not None:
+            try:
+                db_pool.putconn(conn)
+            except Exception:
+                pass
+
+
 def verify_api_key(x_api_key: str = Header(None, alias="X-API-Key")):
     if not x_api_key:
         raise HTTPException(status_code=401, detail="API key required")
@@ -5682,6 +5719,16 @@ def update_order_header(order_id: int = Depends(resolve_order_id), req: OrderHea
         raise
     except Exception as e:
         logger.error(f"Update order header failed: {e}")
+        if _is_readonly_error(e):
+            diagnostics = _capture_readonly_diagnostics()
+            logger.error(
+                "READONLY_TRIPWIRE: "
+                + json.dumps({"error": str(e), "diagnostics": diagnostics}, default=str)
+            )
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e), "diagnostics": diagnostics},
+            )
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
