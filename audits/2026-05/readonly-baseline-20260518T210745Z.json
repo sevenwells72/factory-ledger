@@ -1,0 +1,1 @@
+{"count":1,"rows":[{"default_ro":"off","txn_ro":"off","server_ip":"2600:1f18:2e13:9d59:c972:35a9:c872:4d9a/128","db":"postgres","usr":"postgres","is_replica":false,"pg_version":"PostgreSQL 17.6 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit"}]}
