@@ -715,6 +715,13 @@ async function traceForward(lotCode) {
     throw e;
   }
 
+  // Backend soft-handles production/pack output lots from /trace/ingredient.
+  // Route them to the output forward path so they do not render as supplier-less ingredients.
+  if (ingData.lot_origin || Array.isArray(ingData.upstream_ingredients)) {
+    await traceForwardAsBatch(lotCode);
+    return;
+  }
+
   // Origin node: the ingredient
   const ingId = addNode({
     id: 'ing-' + ingData.ingredient_lot_code,
