@@ -84,6 +84,16 @@
     return 'stock-critical';
   }
 
+  // Cases per pallet keyed by per-case pack size (lb). Extend as needed.
+  const CASES_PER_PALLET = { 10: 140, 25: 60 };
+
+  function fmtPallets(cases, caseWt) {
+    if (cases == null || caseWt == null) return '—';
+    const perPallet = CASES_PER_PALLET[Number(caseWt)];
+    if (!perPallet) return '—';
+    return (cases / perPallet).toFixed(1);
+  }
+
   function escHtml(s) {
     if (!s) return '';
     const d = document.createElement('div');
@@ -324,7 +334,7 @@
       html += `<div id="${panelId}" class="collapsible-body${expanded ? ' expanded' : ''}">`;
 
       if (panel.products.length > 0) {
-        html += '<table class="inv-table"><thead><tr><th>Product</th><th class="num">On Hand (lb)</th><th>Cases</th></tr></thead><tbody>';
+        html += '<table class="inv-table"><thead><tr><th>Product</th><th class="num">On Hand (lb)</th><th>Cases</th><th class="num">Pallets</th></tr></thead><tbody>';
         for (const p of panel.products) {
           const rowId = panelId + '-' + p.product_name.replace(/\W/g, '_');
           const caseWt = p.case_weight_lb || panel.case_weight_lb;
@@ -333,6 +343,7 @@
           html += `<td>${escHtml(p.product_name)}</td>`;
           html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtWt(caseWt)} lb)` : ''}</td>`;
           html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
+          html += `<td class="num">${fmtPallets(cases, caseWt)}</td>`;
           html += `</tr>`;
           // Lot breakdown
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
@@ -341,10 +352,10 @@
               const lotUc = lot.unit_count;
               const lotQty = lotUc != null ? fmt(lot.on_hand_lbs) + ' lb &middot; ' + fmtInt(lotUc) + ' units' : fmt(lot.on_hand_lbs) + ' lb';
               html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
-              html += `<td class="num">${lotQty}</td><td></td></tr>`;
+              html += `<td class="num">${lotQty}</td><td></td><td></td></tr>`;
             }
           } else {
-            html += `<tr class="lot-row"><td colspan="3" style="color:var(--text-muted)">No lots on hand</td></tr>`;
+            html += `<tr class="lot-row"><td colspan="4" style="color:var(--text-muted)">No lots on hand</td></tr>`;
           }
           html += `</tbody>`;
         }
