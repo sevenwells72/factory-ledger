@@ -218,6 +218,45 @@ components:
         notes:
           type: string
           description: "Optional context (e.g., 'from packing slip during shipment SO-260318-001')."
+    AddFoundInventoryRequest:
+      type: object
+      required: [product_id, quantity, reason_code]
+      properties:
+        product_id:
+          type: integer
+          description: "DB id of the EXISTING product the found stock belongs to. Get it from searchProducts or inventoryLookup."
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+          description: "Amount found, expressed in uom."
+        uom:
+          type: string
+          default: lb
+        reason_code:
+          type: string
+          description: "Why the stock is being recorded as found (e.g., 'physical_count', 'uncounted_stock')."
+        found_location:
+          type: string
+          description: "Where the stock was physically found."
+        estimated_age:
+          type: string
+          default: unknown
+          description: "Operator's estimate of how old the found stock is."
+        suspected_supplier:
+          type: string
+        suspected_bol:
+          type: string
+        notes:
+          type: string
+          description: "Required by floor policy — record where and when the stock was found."
+        notes_es:
+          type: string
+        performed_by:
+          type: string
+          default: system
+        lot_code:
+          type: string
+          description: "Physical lot code if the stock carries one. Omit to auto-generate a YY-MM-DD-FOUND-NNN code."
 paths:
   /products/search:
     get:
@@ -467,6 +506,22 @@ paths:
           description: "Preview balance check or committed adjustment. Commit returns transaction_id, new_balance_lb, confirmation_code."
         '403':
           description: "Private-label SKU protection — blocked reason. Surface the warning verbatim."
+  /inventory/found:
+    post:
+      operationId: addFoundInventory
+      summary: "Record found inventory as a new FOUND system lot (commits immediately — no preview/commit mode)."
+      description: "Creates a brand-new FOUND lot for an EXISTING product; never adjusts into an existing lot. There is no preview step — the call commits directly. The 200 response does NOT include a transaction_id; quote lot_code as the receipt."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddFoundInventoryRequest'
+      responses:
+        '200':
+          description: "Committed found inventory. Returns lot_id, lot_code, product_name, quantity, uom, and entry_source ('found_inventory'). NOTE: no transaction_id is returned — use lot_code as the receipt."
+        '404':
+          description: "Product ID not found."
   /void/{transaction_id}:
     post:
       operationId: voidTransaction
