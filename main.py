@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Reques
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
-from typing import Optional, List, Dict, Union, Literal
+from typing import Optional, List, Dict, Union, Literal, Callable, Any
 import json
 import pathlib
 from datetime import datetime, date, timezone, timedelta
@@ -637,11 +637,16 @@ def get_db_connection():
     try:
         yield conn
         conn.commit()
-    except Exception:
+    except Exception as exc:
+        if _is_readonly_error(exc):
+            _discard_readonly_connection(conn, "get_db_connection")
+            conn = None
+            raise
         conn.rollback()
         raise
     finally:
-        db_pool.putconn(conn)
+        if conn is not None:
+            db_pool.putconn(conn)
 
 
 @contextmanager
@@ -665,6 +670,83 @@ SELECT
 
 def _is_readonly_error(exc: Exception) -> bool:
     return "read-only transaction" in str(exc).lower()
+
+
+class ReadOnlyRecoveryError(RuntimeError):
+    """Raised when a fresh connection still proves read-only before retry."""
+
+
+READONLY_WRITABLE_CHECK_SQL = """
+SELECT
+  current_setting('transaction_read_only') AS txn_ro,
+  pg_is_in_recovery()                      AS is_replica
+"""
+
+
+def _discard_readonly_connection(conn, context: str):
+    """Remove a known/suspect read-only connection from the psycopg2 pool."""
+    try:
+        conn.rollback()
+    except Exception as rollback_exc:
+        logger.warning(
+            f"READONLY_RECOVERY_ROLLBACK_FAILED: context={context} error={rollback_exc}"
+        )
+    try:
+        db_pool.putconn(conn, close=True)
+        logger.warning(f"READONLY_RECOVERY_DISCARD: context={context} close=True")
+    except Exception as put_exc:
+        logger.error(f"READONLY_RECOVERY_DISCARD_FAILED: context={context} error={put_exc}")
+
+
+def _verify_connection_writable(conn, context: str) -> dict:
+    """Verify a fresh connection is on a writable primary before retrying a write."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(READONLY_WRITABLE_CHECK_SQL)
+        row = dict(cur.fetchone() or {})
+    conn.rollback()
+    txn_ro = str(row.get("txn_ro", "")).lower()
+    is_replica = bool(row.get("is_replica"))
+    if txn_ro in ("on", "true", "1") or is_replica:
+        raise ReadOnlyRecoveryError(
+            f"fresh database connection is still in a read-only transaction; context={context}; "
+            f"txn_ro={row.get('txn_ro')}; is_replica={row.get('is_replica')}"
+        )
+    return row
+
+
+def _run_db_write(operation_name: str, work: Callable[[Any], Any], *, verify_writable: bool = False):
+    conn = db_pool.getconn()
+    try:
+        if verify_writable:
+            state = _verify_connection_writable(conn, operation_name)
+            logger.info(
+                "READONLY_RECOVERY_WRITABLE_CHECK: "
+                + json.dumps({"operation": operation_name, "state": state}, default=str)
+            )
+        result = work(conn)
+        conn.commit()
+        return result
+    except Exception as exc:
+        if _is_readonly_error(exc):
+            _discard_readonly_connection(conn, operation_name)
+            conn = None
+            raise
+        conn.rollback()
+        raise
+    finally:
+        if conn is not None:
+            db_pool.putconn(conn)
+
+
+def run_idempotent_write_with_readonly_retry(operation_name: str, work: Callable[[Any], Any]):
+    """Retry an explicitly safe/idempotent write once after discarding read-only conn."""
+    try:
+        return _run_db_write(operation_name, work)
+    except Exception as exc:
+        if not _is_readonly_error(exc):
+            raise
+        logger.warning(f"READONLY_RECOVERY_RETRY_ONCE: operation={operation_name}")
+        return _run_db_write(operation_name, work, verify_writable=True)
 
 
 def _capture_readonly_diagnostics() -> dict:
@@ -5084,7 +5166,7 @@ def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
 @app.patch("/customers/{customer_id}")
 def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(verify_api_key)):
     try:
-        with get_db_connection() as conn:
+        def _work(conn):
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Separate aliases from customer table fields
                 aliases = req.aliases
@@ -5134,6 +5216,7 @@ def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(ver
                     "aliases": current_aliases,
                     "message": "Customer updated"
                 }
+        return run_idempotent_write_with_readonly_retry("PATCH /customers/{customer_id}", _work)
     except HTTPException:
         raise
     except Exception as e:

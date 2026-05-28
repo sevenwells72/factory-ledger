@@ -136,6 +136,59 @@ class _ReadOnlyError(Exception):
         return READONLY_ERROR_STR
 
 
+class _PoolForRecovery:
+    def __init__(self, conns):
+        self._conns = list(conns)
+        self.putconn_calls = []
+
+    def getconn(self):
+        if not self._conns:
+            raise AssertionError("getconn() called more times than expected")
+        return self._conns.pop(0)
+
+    def putconn(self, conn, close=False):
+        self.putconn_calls.append((conn, close))
+
+
+class _RecoveryCursor:
+    def __init__(self, conn):
+        self.conn = conn
+        self._row = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def execute(self, sql, *args, **kwargs):
+        self.conn.executed.append(sql)
+        if self.conn.readonly_on_write and not str(sql).lstrip().upper().startswith("SELECT"):
+            raise _ReadOnlyError()
+        if "transaction_read_only" in str(sql):
+            self._row = {"txn_ro": "off", "is_replica": False}
+
+    def fetchone(self):
+        return self._row or {"ok": True}
+
+
+class _RecoveryConn:
+    def __init__(self, readonly_on_write=False):
+        self.readonly_on_write = readonly_on_write
+        self.executed = []
+        self.commits = 0
+        self.rollbacks = 0
+
+    def cursor(self, *args, **kwargs):
+        return _RecoveryCursor(self)
+
+    def commit(self):
+        self.commits += 1
+
+    def rollback(self):
+        self.rollbacks += 1
+
+
 # ─── Case 1: positive — ship_commit returns 503 with diagnostics ─────────────
 
 @pytest.mark.anyio
@@ -279,3 +332,40 @@ async def test_global_handler_fires_for_each_route(
     payload = json.loads(tripwire[0].getMessage()[len("READONLY_TRIPWIRE: "):])
     assert payload["path"] == path, f"[{label}] path mismatch: {payload['path']}"
     assert payload["method"] == method, f"[{label}] method mismatch: {payload['method']}"
+
+
+# ─── Case 4: recovery plumbing — discard bad conn, retry only when opted in ──
+
+def test_get_db_connection_discards_readonly_connection(monkeypatch):
+    bad_conn = _RecoveryConn(readonly_on_write=True)
+    fake_pool = _PoolForRecovery([bad_conn])
+    monkeypatch.setattr(main, "db_pool", fake_pool)
+
+    with pytest.raises(_ReadOnlyError):
+        with main.get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("INSERT INTO anything VALUES (1)")
+
+    assert bad_conn.rollbacks == 1
+    assert fake_pool.putconn_calls == [(bad_conn, True)]
+
+
+def test_idempotent_write_retries_once_after_fresh_writable_check(monkeypatch):
+    bad_conn = _RecoveryConn(readonly_on_write=True)
+    retry_conn = _RecoveryConn(readonly_on_write=False)
+    fake_pool = _PoolForRecovery([bad_conn, retry_conn])
+    monkeypatch.setattr(main, "db_pool", fake_pool)
+
+    def _work(conn):
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO safe_update VALUES (1)")
+        return "ok"
+
+    assert main.run_idempotent_write_with_readonly_retry("safe test op", _work) == "ok"
+
+    assert fake_pool.putconn_calls == [(bad_conn, True), (retry_conn, False)]
+    assert bad_conn.commits == 0
+    assert retry_conn.commits == 1
+    assert retry_conn.rollbacks == 1  # rollback after the pre-retry writable SELECT
+    assert any("transaction_read_only" in sql for sql in retry_conn.executed)
+    assert retry_conn.executed[-1] == "INSERT INTO safe_update VALUES (1)"
