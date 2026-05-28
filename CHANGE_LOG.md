@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-05-28 — Add PALLETS column to Coconut Finished Goods table
+- **File(s) changed:** `dashboard/dashboard.js`
+- **What changed:** Added a right-aligned "PALLETS" column to the right of CASES in the finished-goods inventory tables (`renderFinishedGoodsPanels`). New `CASES_PER_PALLET = { 10: 140, 25: 60 }` lookup and `fmtPallets(cases, caseWt)` helper compute pallets = cases / cases_per_pallet, keyed off the existing per-case pack size (`caseWt`) — not by parsing the product name. Rounded to 1 decimal; pack sizes not in the map (or rows with no case weight) render "—". Bumped lot-breakdown rows to a 4th empty cell and the "No lots" row colspan 3→4 to keep alignment.
+- **Why:** Presentation-only derived value requested for at-a-glance pallet counts; no DB/schema change.
+
+---
+
 ## 2026-04-30 12:53 — Lock pack-preview v1 design specs (response contract + warning catalog)
 - **File(s) changed:** `docs/specs/PACK_PREVIEW_RESPONSE_v1.md` (new), `docs/specs/WARNING_CATALOG_v1.md` (new), `FACTORY_LEDGER_CHANGELOG.md`, `CLAUDE.md`
 - **What changed:** Created `docs/specs/` (no prior `docs/`/`specs/` directory existed in repo) and committed two locked v1 design specs: response contract (`PACK_PREVIEW_RESPONSE_v1.md` — top-level fields, line/lot/allocation shapes, 6 status enums, cancelled-order short-circuit, 7 invariants, 3 worked examples, 10-bullet design rationale, versioning) and warning catalog (`WARNING_CATALOG_v1.md` — 15 warnings split 7 line / 7 lot / 1 allocation, severities info/acknowledge/block including the dynamic `PRODUCT_INACTIVE` rule, trigger predicates, top-level boolean aggregation rules). Added row #30 to `FACTORY_LEDGER_CHANGELOG.md` referencing both spec files (no migration, design only). Added a new "Design specs:" subsection to `CLAUDE.md` under "Architecture" pointing at `docs/specs/` and noting that pack-preview is the entry point for order workflow planning. In-content auto-link rendering artifacts from the source paste (e.g. `[v1.md](http://v1.md)`, `[product.id](http://product.id)`) were normalised to plain references when writing the spec files.
