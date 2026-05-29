@@ -84,12 +84,21 @@
     return 'stock-critical';
   }
 
-  // Cases per pallet keyed by per-case pack size (lb). Extend as needed.
-  const CASES_PER_PALLET = { 10: 140, 25: 60 };
+  // Cases per pallet, keyed by the finished-goods panel's stable id (the `id`
+  // field in dashboard_config.json → finished_goods_panels). Keyed on the panel
+  // id rather than case weight so fractional retail case weights (e.g. 7.5 lb,
+  // 2.63 lb) never need fragile float matching. Extend as needed.
+  const CASES_PER_PALLET = {
+    cases_10lb: 140,  // 10 LB Cases
+    bulk_25lb: 60,    // 25 LB Bulk Cases
+    retail_ss: 115,   // 12x10 OZ Retail Cases (SS Line)
+    retail_bs: 144,   // 6x7 OZ Retail Cases (BS Line)
+    // retail_bs_8oz (6x8 OZ Retail Cases) intentionally omitted → renders "—"
+  };
 
-  function fmtPallets(cases, caseWt) {
-    if (cases == null || caseWt == null) return '—';
-    const perPallet = CASES_PER_PALLET[Number(caseWt)];
+  function fmtPallets(cases, panelId) {
+    if (cases == null) return '—';
+    const perPallet = CASES_PER_PALLET[panelId];
     if (!perPallet) return '—';
     return (cases / perPallet).toFixed(1);
   }
@@ -329,7 +338,9 @@
       const panelId = 'fg-' + panel.id;
       const expanded = isPanelExpanded(panelId);
       html += `<div class="collapsible-header${expanded ? ' expanded' : ''}" data-panel="${panelId}">`;
-      html += `<h3>${escHtml(panel.title)} <span class="panel-count">(${panel.products.length} SKUs)</span></h3>`;
+      const palletRatio = CASES_PER_PALLET[panel.id];
+      const ratioNote = palletRatio ? ` <span class="pallet-ratio">${palletRatio}/pallet</span>` : '';
+      html += `<h3>${escHtml(panel.title)} <span class="panel-count">(${panel.products.length} SKUs)</span>${ratioNote}</h3>`;
       html += `<span class="chevron"></span></div>`;
       html += `<div id="${panelId}" class="collapsible-body${expanded ? ' expanded' : ''}">`;
 
@@ -343,7 +354,7 @@
           html += `<td>${escHtml(p.product_name)}</td>`;
           html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtWt(caseWt)} lb)` : ''}</td>`;
           html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
-          html += `<td class="num">${fmtPallets(cases, caseWt)}</td>`;
+          html += `<td class="num">${fmtPallets(cases, panel.id)}</td>`;
           html += `</tr>`;
           // Lot breakdown
           html += `<tbody class="lot-breakdown" id="${rowId}">`;

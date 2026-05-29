@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-05-29 — Add SS/BS retail pack formats to pallet lookup + per-section ratio note
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`
+- **What changed:** Re-keyed the finished-goods `CASES_PER_PALLET` lookup from per-case pack weight (`{10,25}`) onto the panel's stable `id` (the `id` field in `dashboard_config.json → finished_goods_panels`), so fractional retail case weights (7.5 lb, 2.63 lb) never need fragile float matching. Lookup is now `{ cases_10lb:140, bulk_25lb:60, retail_ss:115, retail_bs:144 }`. Added the two new retail formats: `retail_ss` (12x10 OZ Retail Cases, SS Line) = 115/pallet and `retail_bs` (6x7 OZ Retail Cases, BS Line) = 144/pallet. `retail_bs_8oz` (6x8 OZ) intentionally left out → renders "—". `fmtPallets(cases, panelId)` now looks up by panel id. Added a muted `pallet-ratio` annotation next to each finished-goods section header (e.g. "12x10 OZ Retail Cases (SS Line) … 115/pallet") pulled straight from the same lookup so the note and the math can't drift; new `.collapsible-header .pallet-ratio` CSS rule mirrors the existing `.panel-count` muted style.
+- **Why:** Make pallet counts available for the SS and BS retail lines and surface the cases-per-pallet ratio on the dashboard for transparency. Presentation-only; no DB/schema change.
+
+---
+
 ## 2026-05-28 — Add PALLETS column to Coconut Finished Goods table
 - **File(s) changed:** `dashboard/dashboard.js`
 - **What changed:** Added a right-aligned "PALLETS" column to the right of CASES in the finished-goods inventory tables (`renderFinishedGoodsPanels`). New `CASES_PER_PALLET = { 10: 140, 25: 60 }` lookup and `fmtPallets(cases, caseWt)` helper compute pallets = cases / cases_per_pallet, keyed off the existing per-case pack size (`caseWt`) — not by parsing the product name. Rounded to 1 decimal; pack sizes not in the map (or rows with no case weight) render "—". Bumped lot-breakdown rows to a 4th empty cell and the "No lots" row colspan 3→4 to keep alignment.
