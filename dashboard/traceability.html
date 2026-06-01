@@ -346,10 +346,8 @@ const headers = { 'X-Api-Key': API_KEY };
 // API HELPERS
 // ═══════════════════════════════════════════════════════
 async function api(path) {
-  console.log('[API]', path);
   const res = await fetch(API_BASE + path, { headers });
   const data = await res.json();
-  console.log('[API Response]', path, data);
   if (!res.ok) {
     const err = new Error(data.detail || data.error || `HTTP ${res.status}`);
     err.status = res.status;
