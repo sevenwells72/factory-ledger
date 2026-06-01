@@ -13,6 +13,12 @@
     calendarMode: 'rolling', // 'rolling' | 'month'
     calendarOffset: 0,       // 0 = current period, -1 = previous, etc.
     searchTimeout: null,
+    planning: {
+      openOrders: [],
+      batchSummary: null,
+      weeklySchedule: [],
+      draggedItemId: null,
+    },
   };
 
   // ── Theme ──
@@ -152,6 +158,18 @@
       const body = await res.text();
       throw new Error(`HTTP ${res.status}: ${body}`);
     }
+    return res.json();
+  }
+
+  async function fetchPlanningAPI(path, options = {}) {
+    const headers = { ...(options.headers || {}) };
+    if (SALES_API_KEY) headers['X-API-Key'] = SALES_API_KEY;
+    const res = await fetch(SALES_API_BASE + path, { ...options, headers });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+    if (res.status === 204) return null;
     return res.json();
   }
 
@@ -315,6 +333,261 @@
       html += '</div>';
     }
     container.innerHTML = html;
+  }
+
+  // ── Production Planning Layer ──
+  const PLANNING_CAPACITY = {
+    granola: 15,
+    coconut: 12,
+  };
+
+  function roundPlanningAmount(value) {
+    return Math.round((Number(value) || 0) * 10) / 10;
+  }
+
+  function amountForOrder(order) {
+    const lbs = Number(order.quantity_lbs) || 0;
+    if (order.product_type === 'coconut') return roundPlanningAmount(lbs / 360);
+    if (order.product_type === 'granola') return roundPlanningAmount(lbs / 350);
+    return 0;
+  }
+
+  function planningUnit(type, amount) {
+    const singular = type === 'coconut' ? 'pan' : 'batch';
+    const plural = type === 'coconut' ? 'pans' : 'batches';
+    return Number(amount) === 1 ? singular : plural;
+  }
+
+  function normalizePlanningItem(item) {
+    const type = item.type || item.product_type || 'granola';
+    const amount = roundPlanningAmount(item.amount != null ? item.amount : (type === 'coconut' ? item.coconut_pans : item.granola_batches));
+    return {
+      ...item,
+      id: String(item.id),
+      type,
+      amount,
+      label: item.label || `${item.item || 'Production item'} — ${fmt(amount)} ${planningUnit(type, amount)}`,
+    };
+  }
+
+  function recalculatePlanningDay(day) {
+    const items = (day.items || []).map(normalizePlanningItem);
+    const granola = roundPlanningAmount(items
+      .filter(item => item.type === 'granola')
+      .reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
+    const coconut = roundPlanningAmount(items
+      .filter(item => item.type === 'coconut')
+      .reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
+    const loadRatio = Math.max(
+      PLANNING_CAPACITY.granola ? granola / PLANNING_CAPACITY.granola : 0,
+      PLANNING_CAPACITY.coconut ? coconut / PLANNING_CAPACITY.coconut : 0
+    );
+    const loadStatus = loadRatio > 1 ? 'heavy' : loadRatio < 0.5 ? 'light' : 'ok';
+    return {
+      ...day,
+      items,
+      granola_batches: granola,
+      coconut_pans: coconut,
+      load_status: loadStatus,
+    };
+  }
+
+  function normalizePlanningSchedule(schedule) {
+    return (schedule || []).map(recalculatePlanningDay);
+  }
+
+  async function refreshProductionPlanning() {
+    hideError('planning-error');
+    const summaryContainer = document.getElementById('planning-summary');
+    const calendarContainer = document.getElementById('planning-weekly-schedule');
+    const ordersContainer = document.getElementById('planning-open-orders');
+    summaryContainer.innerHTML = '';
+    ordersContainer.innerHTML = '';
+    calendarContainer.innerHTML = '<div class="loading-indicator loading-spinner">Loading production plan...</div>';
+    try {
+      const [openOrders, batchSummary, weeklySchedule] = await Promise.all([
+        fetchPlanningAPI('/planning/open-orders'),
+        fetchPlanningAPI('/planning/batch-summary'),
+        fetchPlanningAPI('/planning/weekly-schedule'),
+      ]);
+      state.planning.openOrders = (openOrders || []).map(order => ({
+        ...order,
+        planning_amount: amountForOrder(order),
+      }));
+      state.planning.batchSummary = batchSummary || {};
+      state.planning.weeklySchedule = normalizePlanningSchedule(weeklySchedule || []);
+      renderPlanningDashboard();
+    } catch (e) {
+      summaryContainer.innerHTML = '';
+      calendarContainer.innerHTML = '';
+      ordersContainer.innerHTML = '';
+      showError('planning-error', 'Failed to load production plan: ' + e.message);
+    }
+  }
+
+  function renderPlanningDashboard() {
+    renderPlanningSummary();
+    renderPlanningSchedule();
+    renderPlanningOrders();
+  }
+
+  function renderPlanningSummary() {
+    const container = document.getElementById('planning-summary');
+    const s = state.planning.batchSummary || {};
+    const tiles = [
+      ['Granola Batches', s.granola_batches_total],
+      ['Coconut Pans', s.coconut_pans_total],
+      ['Overdue Orders', s.overdue_orders],
+      ['Due This Week', s.due_this_week],
+    ];
+    container.innerHTML = `<div class="planning-summary-grid">${tiles.map(([label, value]) => `
+      <div class="planning-summary-tile">
+        <div class="planning-summary-label">${escHtml(label)}</div>
+        <div class="planning-summary-value">${fmt(value)}</div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  function renderPlanningSchedule() {
+    const container = document.getElementById('planning-weekly-schedule');
+    const days = state.planning.weeklySchedule || [];
+    container.classList.remove('month-view');
+
+    if (days.length === 0) {
+      container.innerHTML = '<div class="loading-indicator">No weekly schedule found.</div>';
+      return;
+    }
+
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    let html = '';
+    for (const day of days) {
+      const isToday = day.date === todayStr;
+      const hasProduction = (day.items || []).length > 0;
+      const classes = ['day-card', 'planning-day', 'load-' + (day.load_status || 'ok')];
+      if (isToday) classes.push('today');
+      if (hasProduction) classes.push('has-production');
+      html += `<div class="${classes.join(' ')}" data-planning-day="${escHtml(day.date)}">`;
+      html += `<div class="day-card-date"><span class="day-name">${escHtml(day.day)}</span> &mdash; ${escHtml(day.date)}</div>`;
+      html += `<div class="planning-day-totals">
+        <span class="planning-total granola">${fmt(day.granola_batches)} batches</span>
+        <span class="planning-total coconut">${fmt(day.coconut_pans)} pans</span>
+        <span class="planning-load ${escHtml(day.load_status || 'ok')}">${escHtml(day.load_status || 'ok')}</span>
+      </div>`;
+
+      html += '<div class="planning-dropzone" data-drop-date="' + escHtml(day.date) + '">';
+      for (const item of day.items || []) {
+        html += `<div class="day-item planning-item type-${escHtml(item.type)}" draggable="true" data-planning-item-id="${escHtml(item.id)}">`;
+        html += `<div class="day-item-name">${escHtml(item.label)}</div>`;
+        html += `<div class="day-item-stats"><span class="stat-batches">${fmt(item.amount)} ${escHtml(planningUnit(item.type, item.amount))}</span></div>`;
+        html += `</div>`;
+      }
+
+      if (!hasProduction) {
+        html += '<div class="no-production">No scheduled work</div>';
+      }
+
+      html += '</div></div>';
+    }
+    container.innerHTML = html;
+    bindPlanningDragDrop(container);
+  }
+
+  function renderPlanningOrders() {
+    const container = document.getElementById('planning-open-orders');
+    const orders = state.planning.openOrders || [];
+    if (orders.length === 0) {
+      container.innerHTML = '<div class="loading-indicator">No open planning orders found.</div>';
+      return;
+    }
+
+    let html = '<table class="orders-table planning-orders-table"><thead><tr>';
+    html += '<th>Customer</th><th>Item</th><th class="num">Cases</th><th class="num">Lbs</th><th>Due</th><th class="num">Production</th>';
+    html += '</tr></thead><tbody>';
+    for (const order of orders) {
+      const amount = order.planning_amount != null ? order.planning_amount : amountForOrder(order);
+      html += '<tr>';
+      html += `<td>${escHtml(order.customer)}</td>`;
+      html += `<td><span class="planning-type-dot ${escHtml(order.product_type)}"></span>${escHtml(order.item)}</td>`;
+      html += `<td class="num">${fmt(order.quantity_cases)}</td>`;
+      html += `<td class="num">${fmt(order.quantity_lbs)}</td>`;
+      html += `<td>${formatDateShort(order.due_date)}</td>`;
+      html += `<td class="num">${fmt(amount)} ${escHtml(planningUnit(order.product_type, amount))}</td>`;
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  function bindPlanningDragDrop(container) {
+    container.querySelectorAll('.planning-item').forEach(item => {
+      item.addEventListener('dragstart', event => {
+        state.planning.draggedItemId = item.dataset.planningItemId;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', state.planning.draggedItemId);
+        item.classList.add('dragging');
+      });
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        state.planning.draggedItemId = null;
+      });
+    });
+
+    container.querySelectorAll('.planning-dropzone').forEach(zone => {
+      zone.addEventListener('dragover', event => {
+        event.preventDefault();
+        zone.classList.add('drag-over');
+      });
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('drag-over');
+      });
+      zone.addEventListener('drop', event => {
+        event.preventDefault();
+        zone.classList.remove('drag-over');
+        const itemId = event.dataTransfer.getData('text/plain') || state.planning.draggedItemId;
+        movePlanningItem(itemId, zone.dataset.dropDate);
+      });
+    });
+  }
+
+  function movePlanningItem(itemId, targetDate) {
+    if (!itemId || !targetDate) return;
+
+    let movedItem = null;
+    let sourceDate = null;
+    const nextSchedule = state.planning.weeklySchedule.map(day => {
+      const remaining = [];
+      for (const item of day.items || []) {
+        if (String(item.id) === String(itemId)) {
+          movedItem = item;
+          sourceDate = day.date;
+        } else {
+          remaining.push(item);
+        }
+      }
+      return { ...day, items: remaining };
+    });
+
+    if (!movedItem || sourceDate === targetDate) return;
+
+    state.planning.weeklySchedule = nextSchedule.map(day => {
+      const items = day.date === targetDate ? [...(day.items || []), movedItem] : (day.items || []);
+      return recalculatePlanningDay({ ...day, items });
+    });
+
+    renderPlanningSchedule();
+    persistPlanningSchedule();
+  }
+
+  async function persistPlanningSchedule() {
+    try {
+      await fetchPlanningAPI('/planning/update-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weekly_schedule: state.planning.weeklySchedule }),
+      });
+    } catch (e) {
+      showError('planning-error', 'Schedule moved locally. Backend save failed: ' + e.message);
+    }
   }
 
   // ── Finished Goods Inventory ──
@@ -1447,6 +1720,7 @@
 
     const ops = [
       refreshProductionCalendar(),
+      refreshProductionPlanning(),
       refreshFinishedGoods(),
       refreshBatchInventory(),
       refreshIngredients(),

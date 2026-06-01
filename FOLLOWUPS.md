@@ -144,7 +144,7 @@ auto-creating. Tune threshold after observing real traffic.
 
 ---
 
-## 6. `factory-ledger` service in `gleaming-solace` is crashlooping
+## 6. `factory-ledger` service in `gleaming-solace` is crashlooping — RESOLVED 2026-04-20
 
 **Context.** During Pass 1 verification (running pytest via `railway ssh`
 into the FastAPI service container), discovered the sibling `factory-ledger`
@@ -157,11 +157,20 @@ pooler.
 that service is healthy. But the dead `factory-ledger` service is consuming
 restart budget and polluting the project's deployment log.
 
-**Action.** One of:
-- Fix its `DATABASE_URL` if it's meant to be running (pull the working value
-  from the `FastAPI` service's env and set it on `factory-ledger`).
-- Delete the service if it's a leftover from a rename / split.
-- Document what it was intended for if keeping it around for future use.
+**Resolution (2026-04-20).** Confirmed legacy clutter and deleted via Railway
+dashboard. Investigation findings:
 
-Cheap to investigate — 5 minutes in the Railway dashboard. Worth closing out
-before it becomes unexplained project clutter.
+- Both services deploy the same `main.py` from the same GitHub repo (crash
+  trace showed identical `/app/main.py:164` startup pool init).
+- Identical 14 env-var key set — zero unique vars on either side.
+- Only difference was `DATABASE_URL`: `factory-ledger` had a stale Supabase
+  pooler password (no `?sslmode=require`); `FastAPI` had the rotated one.
+- `factory-ledger-production.up.railway.app` appears **nowhere** in the repo
+  (GPT instructions, OpenAPI specs, dashboard config, Netlify config — all
+  clean). No external caller depended on it.
+- Live check: `factory-ledger` returned HTTP 502; `FastAPI` returned HTTP 200.
+
+Most likely origin: `factory-ledger` was the original service (named after
+the repo); when the Supabase pooler password rotated, a fresh `FastAPI`
+service was spun up with the new creds rather than updating the old one, and
+the original was never cleaned up.

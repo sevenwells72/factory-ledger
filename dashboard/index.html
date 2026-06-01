@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=4">
+  <link rel="stylesheet" href="dashboard.css?v=5">
 </head>
 <body>
 
@@ -65,6 +65,17 @@
       </div>
       <div id="production-calendar" class="calendar-grid"></div>
       <div id="production-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- A1b: Production Planning Layer -->
+    <section class="section" id="section-production-planning">
+      <div class="section-header">
+        <h2>Production Planning</h2>
+      </div>
+      <div id="planning-summary"></div>
+      <div id="planning-weekly-schedule" class="calendar-grid"></div>
+      <div id="planning-open-orders"></div>
+      <div id="planning-error" class="error-msg hidden"></div>
     </section>
 
     <!-- A2: Finished Goods On-Hand -->
@@ -261,7 +272,7 @@
     </div>
   </div>
 
-  <script src="dashboard.js?v=6"></script>
+  <script src="dashboard.js?v=7"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>
