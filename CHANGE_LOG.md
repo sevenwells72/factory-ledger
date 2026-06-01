@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-06-01 — Sync 25 LB dashboard config with origin/main to clear Missing SKUs alert
+- **File(s) changed:** `dashboard/dashboard_config.json`
+- **What changed:** Replaced the `bulk_25lb` panel's SKU array (15 → 13 entries) so it is byte-identical to `origin/main` HEAD (`42a403f`). Renamed `Granola Vanilla Crisp 25 LB` → `Granola Vanilla Crisp 25 LB (French Vanilla)` to match the active DB product name; removed `Granola Setton Morning Latte Crunch 25 LB` (no finished-good record exists) and the `Classic Granola 25 LB` duplicate (real FG `Granola Classic 25 LB` already listed). No other panels or files changed.
+- **Why:** The `feat/planner-v2` branch's config was stale — it predated `main`'s fix `42a403f`, so the dashboard flagged these three SKUs under "Missing SKUs". The finished-goods endpoint matches config names exactly (case-insensitive) against active products, so the variant/absent names never resolved.
+
+---
+
 ## 2026-05-29 — Add SS/BS retail pack formats to pallet lookup + per-section ratio note
 - **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`
 - **What changed:** Re-keyed the finished-goods `CASES_PER_PALLET` lookup from per-case pack weight (`{10,25}`) onto the panel's stable `id` (the `id` field in `dashboard_config.json → finished_goods_panels`), so fractional retail case weights (7.5 lb, 2.63 lb) never need fragile float matching. Lookup is now `{ cases_10lb:140, bulk_25lb:60, retail_ss:115, retail_bs:144 }`. Added the two new retail formats: `retail_ss` (12x10 OZ Retail Cases, SS Line) = 115/pallet and `retail_bs` (6x7 OZ Retail Cases, BS Line) = 144/pallet. `retail_bs_8oz` (6x8 OZ) intentionally left out → renders "—". `fmtPallets(cases, panelId)` now looks up by panel id. Added a muted `pallet-ratio` annotation next to each finished-goods section header (e.g. "12x10 OZ Retail Cases (SS Line) … 115/pallet") pulled straight from the same lookup so the note and the math can't drift; new `.collapsible-header .pallet-ratio` CSS rule mirrors the existing `.panel-count` muted style.
@@ -11,6 +18,20 @@
 - **File(s) changed:** `dashboard/dashboard.js`
 - **What changed:** Added a right-aligned "PALLETS" column to the right of CASES in the finished-goods inventory tables (`renderFinishedGoodsPanels`). New `CASES_PER_PALLET = { 10: 140, 25: 60 }` lookup and `fmtPallets(cases, caseWt)` helper compute pallets = cases / cases_per_pallet, keyed off the existing per-case pack size (`caseWt`) — not by parsing the product name. Rounded to 1 decimal; pack sizes not in the map (or rows with no case weight) render "—". Bumped lot-breakdown rows to a 4th empty cell and the "No lots" row colspan 3→4 to keep alignment.
 - **Why:** Presentation-only derived value requested for at-a-glance pallet counts; no DB/schema change.
+
+---
+
+## 2026-05-27 19:30 — Diagnose ship_order read-only transaction failure (SO-260514-001)
+- **File(s) changed:** `READONLY_SHIP_DIAGNOSIS_2026-05-27.md` (new)
+- **What changed:** Findings doc for Arturo's dispatch failure on SO-260514-001 (`cannot execute INSERT in a read-only transaction`). Confirms PR #6's tripwire (`_is_readonly_error` / `_capture_readonly_diagnostics` / `READONLY_TRIPWIRE:` log) is wired *only* to `PUT /sales/orders/{order_id}` ([main:main.py:5722](main.py:5722)) and was NOT invoked by `ship_order` ([main:main.py:6158](main.py:6158)), which falls through to a generic `except Exception` returning the raw psycopg2 string. Documents that `stash@{0}` on `interesting-lehmann` (global exception handlers, `maxconn=20→50`, `getconn` retry, GPT error docs) is still stashed and unmerged — would have made the error a cleaner 503 envelope but would not have prevented the underlying read-only condition. Names Supabase HA/failover as the most likely root cause (matches PR #6's hypothesis + baseline healthy state). Notes local `.env` DATABASE_URL = `aws-1-us-east-1.pooler.supabase.com:6543` (canonical Transaction Pooler); Railway value not verified — CLI was logged out. Recommends: (1) wire tripwire to all UPDATE endpoints via global `@app.exception_handler`, (2) re-login Railway and grep logs for the incident timestamp, (3) decide stash disposition (rebase vs. re-derive vs. cherry-pick subset).
+- **Why:** User requested a short findings doc to determine whether PR #6's tripwire produced a receipt for today's incident and what the next move is. Answer: tripwire didn't fire because it isn't wired to `ship_order`; without that wiring, the next occurrence will also produce no diagnostic.
+
+---
+
+## 2026-05-19 14:10 — Create Product → SKU mapping knowledge file for Factory Ledger Custom GPT
+- **File(s) changed:** `docs/gpt/product_sku_mapping.md` (new, 99 lines; `docs/gpt/` directory also new)
+- **What changed:** Generated a knowledge file mapping finished SKUs to their batch recipes and packaging lines for the Factory Ledger Custom GPT. File contains three sections: a usage preamble explaining the two-resource model (bake-side = `granola_oven` or `coconut_line`; pack-side for granola SKUs = `pouch_line` or `bulk_line`; coconut runs as a single combined make+pack line; `resale` = inventory/PO only, never plan production), a 20-row batch recipe lookup (16 granola_oven + 4 coconut_line, sourced from products where id ∈ distinct `parent_batch_product_id`), and a 63-row finished-SKU table with `sku`, `name`, `brand`, `bake_equipment`, `pack_line`, `parent_batch`, `batch_lb`, `case_size_lb`, `cases_per_pan`, `is_copack`, and `notes` columns. Section 3 sorted by equipment (granola_oven, coconut_line, resale), then brand, then sku. Excluded SKUs 25013 and 25014 (Real Chocolate Chips 50/30 LB) — both have zero orders trailing 12 months. SKU 70061 (Granola Fruit Nut) flagged in notes as a composite batch (parent 179 consumes Classic batch 107 as a sub-batch, creates upstream Classic demand). Four Blue Stripes 6x8 OZ SKUs (70085, 70086, 70087, 70088) flagged "brand blank in DB — should be Blue Stripes" pending separate DB cleanup task. SKUs 70004 (Bulk per/lb) and 70006 (Mini 100) flagged "pack process to confirm" — both have NULL `case_size_lb`. File written, NOT staged, NOT committed.
+- **Why:** Source-of-truth knowledge file for the Custom GPT so it can deterministically map order line SKUs to bake/pack resources during capacity planning without guessing. Follow-ups still pending: Step 4 (GPT rules referencing this file) and Step 5 (smoke tests).
 
 ---
 
