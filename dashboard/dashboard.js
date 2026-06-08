@@ -13,6 +13,11 @@
     calendarMode: 'rolling', // 'rolling' | 'month'
     calendarOffset: 0,       // 0 = current period, -1 = previous, etc.
     searchTimeout: null,
+    salesOrderInventory: {
+      data: null,
+      promise: null,
+      error: null
+    },
   };
 
   // ── Theme ──
@@ -76,6 +81,68 @@
       return lbStr + ' lb \u00b7 ' + units.toLocaleString('en-US') + ' batches';
     }
     return lbStr + ' lb \u00b7 ' + units.toLocaleString('en-US') + ' units';
+  }
+
+  function inventoryUnitCount(lbs, caseWeightLb) {
+    if (lbs == null || !caseWeightLb || Number(caseWeightLb) <= 0) return null;
+    return Math.floor(Number(lbs) / Number(caseWeightLb));
+  }
+
+  const CASES_PER_PALLET_BY_CASE_SIZE_LB = {
+    10: 140,
+    25: 60
+  };
+
+  function normalizeCaseSizeLb(value) {
+    if (value == null || value === '') return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Number.isInteger(n) ? n : null;
+  }
+
+  function palletsForCases(caseSizeLb, cases, casesPerPalletOverride) {
+    if (cases == null) return null;
+    const casesPerPallet = casesPerPalletOverride
+      || CASES_PER_PALLET_BY_CASE_SIZE_LB[normalizeCaseSizeLb(caseSizeLb)];
+    if (!casesPerPallet) return null;
+    const caseCount = Number(cases);
+    if (!Number.isFinite(caseCount)) return null;
+    if (caseCount <= 0) return 0;
+    return Math.ceil(caseCount / casesPerPallet);
+  }
+
+  function parseCaseSizeLbFromText(text) {
+    if (!text) return null;
+    const match = String(text).match(/\b(10|25)\s*LB\b/i);
+    return match ? Number(match[1]) : null;
+  }
+
+  function getSalesOrderLineCaseSizeLb(line) {
+    const fieldCaseSize = normalizeCaseSizeLb(line.case_weight_lb)
+      || normalizeCaseSizeLb(line.case_size_lb)
+      || normalizeCaseSizeLb(line.default_case_weight_lb);
+    if (fieldCaseSize) return fieldCaseSize;
+    return parseCaseSizeLbFromText([
+      line.product,
+      line.product_name,
+      line.name,
+      line.sku,
+      line.odoo_code
+    ].filter(Boolean).join(' '));
+  }
+
+  function salesOrderLinePallets(line, cases) {
+    if (!line || line.is_non_weight || cases == null) return null;
+    const caseSizeLb = getSalesOrderLineCaseSizeLb(line);
+    return palletsForCases(caseSizeLb, cases);
+  }
+
+  function formatInventoryUnits(units, pallets) {
+    if (units == null) return '\u2014';
+    const unitText = fmtInt(units) + ' units';
+    if (pallets == null) return unitText;
+    const label = pallets === 1 ? 'pallet' : 'pallets';
+    return unitText + ' \u00b7 ' + fmtInt(pallets) + ' ' + label;
   }
 
   function caseBadgeClass(cases) {
@@ -349,7 +416,7 @@
         for (const p of panel.products) {
           const rowId = panelId + '-' + p.product_name.replace(/\W/g, '_');
           const caseWt = p.case_weight_lb || panel.case_weight_lb;
-          const cases = caseWt ? Math.floor(p.on_hand_lbs / caseWt) : null;
+          const cases = inventoryUnitCount(p.on_hand_lbs, caseWt);
           html += `<tr class="expandable" data-expand="${rowId}">`;
           html += `<td>${escHtml(p.product_name)}</td>`;
           html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtWt(caseWt)} lb)` : ''}</td>`;
@@ -1305,6 +1372,88 @@
     }
   }
 
+  function flattenFinishedGoodsInventory(data) {
+    const inventory = {};
+    for (const panel of (data.panels || [])) {
+      for (const product of (panel.products || [])) {
+        inventory[(product.product_name || '').toLowerCase()] = {
+          productName: product.product_name,
+          onHandLbs: Number(product.on_hand_lbs || 0),
+          caseWeightLb: product.case_weight_lb || panel.case_weight_lb || null
+        };
+      }
+    }
+    return inventory;
+  }
+
+  async function getSalesOrderInventory() {
+    if (state.salesOrderInventory.data) return state.salesOrderInventory.data;
+    if (!state.salesOrderInventory.promise) {
+      state.salesOrderInventory.error = null;
+      state.salesOrderInventory.promise = fetchAPI('/inventory/finished-goods')
+        .then(data => {
+          state.salesOrderInventory.data = flattenFinishedGoodsInventory(data);
+          return state.salesOrderInventory.data;
+        })
+        .catch(err => {
+          state.salesOrderInventory.error = err;
+          state.salesOrderInventory.promise = null;
+          throw err;
+        });
+    }
+    return state.salesOrderInventory.promise;
+  }
+
+  function renderOrderInventoryContent(line, inventoryByProduct) {
+    if (!line) return '<div class="loading-indicator order-inventory-message">Unable to load inventory</div>';
+    const productName = line.product || line.name || '';
+    const inventory = inventoryByProduct[(productName || '').toLowerCase()];
+    const caseWeight = inventory ? inventory.caseWeightLb : (line.case_size_lb || null);
+    const onHandLbs = inventory ? inventory.onHandLbs : 0;
+    const remainingLbs = line.remaining_lb != null ? line.remaining_lb : ((line.quantity_lb || 0) - (line.quantity_shipped_lb || 0));
+    const onHandUnits = inventoryUnitCount(onHandLbs, caseWeight);
+    const remainingUnits = line.remaining_units != null ? line.remaining_units : inventoryUnitCount(remainingLbs, caseWeight);
+    const deltaUnits = onHandUnits != null && remainingUnits != null ? onHandUnits - remainingUnits : null;
+    const onHandPallets = salesOrderLinePallets(line, onHandUnits);
+    const remainingPallets = salesOrderLinePallets(line, remainingUnits);
+    const deltaPallets = salesOrderLinePallets(line, deltaUnits == null ? null : Math.abs(deltaUnits));
+    const deltaClass = deltaUnits < 0 ? 'inventory-delta-negative' : 'inventory-delta-positive';
+    const deltaPrefix = deltaUnits > 0 ? '+' : (deltaUnits < 0 ? '\u2212' : '');
+    const deltaValue = deltaUnits == null ? '\u2014' : deltaPrefix + formatInventoryUnits(Math.abs(deltaUnits), deltaPallets);
+
+    return '<table class="order-inventory-table"><tbody>' +
+      `<tr><th>On Hand</th><td>${formatInventoryUnits(onHandUnits, onHandPallets)}</td></tr>` +
+      `<tr><th>Remaining</th><td>${formatInventoryUnits(remainingUnits, remainingPallets)}</td></tr>` +
+      `<tr><th>Delta</th><td class="${deltaClass}">${deltaValue}</td></tr>` +
+      '</tbody></table>';
+  }
+
+  function bindOrderInventoryToggles(container, lines) {
+    const linesById = new Map(lines.map(line => [String(line.line_id), line]));
+    container.querySelectorAll('.order-inventory-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const lineId = btn.dataset.lineId;
+        const detailRow = document.getElementById(`order-inventory-${lineId}`);
+        const detailCell = detailRow ? detailRow.querySelector('td') : null;
+        if (!detailRow || !detailCell) return;
+
+        const expanding = detailRow.classList.contains('hidden');
+        detailRow.classList.toggle('hidden', !expanding);
+        btn.setAttribute('aria-expanded', expanding ? 'true' : 'false');
+        if (!expanding || detailRow.dataset.loaded === 'true') return;
+
+        detailCell.innerHTML = '<div class="loading-indicator order-inventory-message">Loading\u2026</div>';
+        try {
+          const inventoryByProduct = await getSalesOrderInventory();
+          detailCell.innerHTML = renderOrderInventoryContent(linesById.get(String(lineId)), inventoryByProduct);
+          detailRow.dataset.loaded = 'true';
+        } catch (e) {
+          detailCell.innerHTML = '<div class="loading-indicator order-inventory-message">Unable to load inventory</div>';
+        }
+      });
+    });
+  }
+
   function renderOrderDetail(data, container) {
     let html = '';
 
@@ -1353,12 +1502,13 @@
         const isNw = l.is_non_weight;
         const lineFmt = (lb, units) => isNw ? (Number.isInteger(lb) ? lb : lb) + ' units' : (units != null ? fmtWt(lb) + ' lb &middot; ' + fmtInt(units) + ' units' : fmtLbs(lb));
         html += '<tr>';
-        html += `<td>${escHtml(productName)}</td>`;
+        html += `<td><div class="order-product-cell"><span>${escHtml(productName)}</span><button type="button" class="btn-sm order-inventory-toggle" data-line-id="${l.line_id}" aria-expanded="false" aria-controls="order-inventory-${l.line_id}">Inventory</button></div></td>`;
         html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count)}</td>`;
         html += `<td class="num">${lineFmt(l.quantity_shipped_lb, l.shipped_units)}</td>`;
         html += `<td class="num">${lineFmt(remaining, l.remaining_units)}</td>`;
         html += `<td><span class="so-badge ${lineStatusClass}">${escHtml(l.line_status || 'pending')}</span></td>`;
         html += '</tr>';
+        html += `<tr id="order-inventory-${l.line_id}" class="order-inventory-row hidden"><td colspan="5"></td></tr>`;
       }
       html += '</tbody></table>';
     }
@@ -1372,6 +1522,7 @@
     }
 
     container.innerHTML = html;
+    bindOrderInventoryToggles(container, lines);
   }
 
   function closeOrderDetail() {

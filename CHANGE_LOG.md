@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-06-08 15:32 — Bumped dashboard asset cache versions for SO Inventory UI
+- **File(s) changed:** `dashboard/index.html`, `CHANGE_LOG.md`
+- **What changed:** Updated dashboard asset query strings to `dashboard.css?v=5` and `dashboard.js?v=7` so browsers fetch the new Sales Order Inventory UI after deploy.
+- **Why:** The feature branch changed both dashboard CSS and JS; without a cache-buster bump, the deployed page could keep serving stale assets.
+
+---
+
+## 2026-06-08 15:02 — Added SO line Inventory summaries and active-lot FG filter
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`
+- **What changed:** Extended the existing `/dashboard/api/inventory/finished-goods` query to include only active lots. Added lazy per-line Inventory toggles on Sales Order detail lines that render On Hand, Remaining, and Delta using the existing case/pallet display math.
+- **Why:** Operators need a fast on-hand vs. remaining comparison directly on Sales Order detail lines without showing lot-level or allocation detail.
+
+---
+
 ## 2026-06-01 12:38 — Cleaned stale 25 LB Bulk Cases SKUs to clear dashboard "Missing SKUs" alert
 - **File(s) changed:** `dashboard/dashboard_config.json`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** In the `bulk_25lb` panel's `skus` list: renamed `"Granola Vanilla Crisp 25 LB"` → `"Granola Vanilla Crisp 25 LB (French Vanilla)"` (matches active product id=134); removed `"Granola Setton Morning Latte Crunch 25 LB"` (retired, id=130 archived in migration 035); removed `"Classic Granola 25 LB"` (dead duplicate of active id=136 `"Granola Classic 25 LB"`; the id=171 row is deactivated) and stripped the resulting dangling trailing comma off `"Granola Setton French Vanilla 25 LB"`. List count 15→13; file re-validated with `python3 -m json.tool`. Added regression-guard row #29 to `FACTORY_LEDGER_CHANGELOG.md`.

@@ -1005,6 +1005,7 @@ body {
 .orders-table tr:nth-child(even) td { background: var(--row-alt); }
 .orders-table tr.order-row { cursor: pointer; transition: background-color 0.15s ease; }
 .orders-table tr.order-row:hover td { background: var(--surface-hover); }
+.orders-table tr.order-inventory-row.hidden { display: none; }
 
 .orders-table .num {
   text-align: right;
@@ -1046,6 +1047,65 @@ body {
 .so-badge.status-cancelled { background: var(--badge-red-bg); color: var(--badge-red-text); }
 
 .date-overdue { color: var(--danger); font-weight: 600; }
+
+.order-product-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.order-inventory-row > td {
+  padding: 0 12px 8px 12px;
+  background: var(--surface) !important;
+}
+
+.order-inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-inventory-table th,
+.order-inventory-table td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.order-inventory-table tr:last-child th,
+.order-inventory-table tr:last-child td {
+  border-bottom: none;
+}
+
+.order-inventory-table th {
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+  width: 120px;
+}
+
+.order-inventory-table td {
+  color: var(--text);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.order-inventory-message {
+  padding: 8px 0;
+  text-align: left;
+}
+
+.inventory-delta-positive {
+  color: var(--badge-green-text) !important;
+}
+
+.inventory-delta-negative {
+  color: var(--badge-red-text) !important;
+}
 
 /* Back button */
 .btn-back {
