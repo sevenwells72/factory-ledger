@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-06-08 15:32 — Bumped dashboard asset cache versions for SO Inventory UI
+- **File(s) changed:** `dashboard/index.html`, `CHANGE_LOG.md`
+- **What changed:** Updated dashboard asset query strings to `dashboard.css?v=5` and `dashboard.js?v=7` so browsers fetch the new Sales Order Inventory UI after deploy.
+- **Why:** The feature branch changed both dashboard CSS and JS; without a cache-buster bump, the deployed page could keep serving stale assets.
+
+---
+
 ## 2026-06-08 15:02 — Added SO line Inventory summaries and active-lot FG filter
 - **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`
 - **What changed:** Extended the existing `/dashboard/api/inventory/finished-goods` query to include only active lots. Added lazy per-line Inventory toggles on Sales Order detail lines that render On Hand, Remaining, and Delta using the existing case/pallet display math.
