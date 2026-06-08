@@ -6921,6 +6921,7 @@ def dashboard_api_finished_goods():
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
+                  AND COALESCE(l.status, 'active') = 'active'
                 LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                 WHERE COALESCE(p.active, true) = true
                   AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
@@ -6939,6 +6940,7 @@ def dashboard_api_finished_goods():
                     FROM lots l
                     LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
                     WHERE l.product_id = ANY(%s)
+                      AND COALESCE(l.status, 'active') = 'active'
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
                     ORDER BY COALESCE(l.received_at, l.created_at) ASC
