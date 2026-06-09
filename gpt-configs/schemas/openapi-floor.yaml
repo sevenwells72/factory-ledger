@@ -470,7 +470,7 @@ paths:
   /void/{transaction_id}:
     post:
       operationId: voidTransaction
-      summary: "Void a transaction and post offsetting reversal lines."
+      summary: "Void a transaction — its lines are excluded from all balances; no reversal is posted."
       description: "transaction_id MUST come from a prior API response this conversation or from an explicit lookup via getTransactionHistory. Never void from memory or from operator description alone. Confirm the id with the operator before voiding if they name the transaction by description."
       parameters:
         - name: transaction_id
@@ -480,7 +480,7 @@ paths:
             type: integer
       responses:
         '200':
-          description: "Void result with voided_transaction_id, reversal_transaction_id, and reversal_lines[]."
+          description: "Void result with voided_transaction_id. reversal_transaction_id is always null and reversal_lines[] always empty (kept for backward compatibility — voids no longer post reversals)."
         '400':
           description: "Transaction already voided."
         '404':

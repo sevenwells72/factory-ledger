@@ -117,6 +117,27 @@ def check_private_label_merge(product_name: str, label_type: str, reason: str, q
 # Tolerance for floating point dust (e.g., 9.99999999997 treated as 10.0)
 BALANCE_EPSILON = 0.0001
 
+# ── Void semantics: single source of truth for all balance math ──────────────
+# Only lines whose parent transaction has status='posted' count toward any
+# on-hand / balance / availability figure. Voided transactions are excluded
+# everywhere; POST /void flips status and does NOT post reversal lines.
+# Every balance query must read transaction lines through POSTED_LINES (or the
+# lot_on_hand() helper) — never from the raw transaction_lines table.
+POSTED_LINES = (
+    "(SELECT tl.* FROM transaction_lines tl"
+    " JOIN transactions _pt ON _pt.id = tl.transaction_id"
+    " WHERE COALESCE(_pt.status, 'posted') = 'posted')"
+)
+
+
+def lot_on_hand(cur, lot_id: int) -> float:
+    """Posted-only on-hand balance for a single lot, in lb."""
+    cur.execute(
+        f"SELECT COALESCE(SUM(quantity_lb), 0) as balance FROM {POSTED_LINES} tl WHERE lot_id = %s",
+        (lot_id,)
+    )
+    return float(cur.fetchone()['balance'])
+
 
 def validate_lot_deduction(cur, lot_id: int, lot_code: str, requested_lb: float):
     """Validate that deducting requested_lb from a lot won't push it negative.
@@ -129,11 +150,7 @@ def validate_lot_deduction(cur, lot_id: int, lot_code: str, requested_lb: float)
 
     NOT used for adjust transactions — adjustments are the escape hatch for corrections.
     """
-    cur.execute(
-        "SELECT COALESCE(SUM(quantity_lb), 0) as balance FROM transaction_lines WHERE lot_id = %s",
-        (lot_id,)
-    )
-    balance = float(cur.fetchone()['balance'])
+    balance = lot_on_hand(cur, lot_id)
 
     # Snap near-zero balances to zero
     if abs(balance) < BALANCE_EPSILON:
@@ -1681,14 +1698,14 @@ def get_current_inventory(
 ):
     try:
         with get_transaction() as cur:
-            query = """
+            query = f"""
                 SELECT p.id as product_id, p.name as product_name, p.odoo_code, p.type as product_type,
                        p.case_size_lb, p.default_batch_lb,
                        l.id as lot_id, l.lot_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                 FROM products p
                 JOIN lots l ON l.product_id = p.id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE COALESCE(p.active, true) = true
             """
             params = []
@@ -1738,11 +1755,11 @@ def _inventory_detail_for_products(cur, product_ids: list[int]) -> dict[int, dic
         return {}
 
     cur.execute(
-        """SELECT l.product_id,
+        f"""SELECT l.product_id,
                   l.lot_code,
                   COALESCE(SUM(tl.quantity_lb), 0) AS qty_on_hand
            FROM lots l
-           LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+           LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
            WHERE l.product_id = ANY(%s)
            GROUP BY l.product_id, l.id, l.lot_code
            HAVING COALESCE(SUM(tl.quantity_lb), 0) != 0
@@ -1817,13 +1834,13 @@ def get_inventory(item_name: str, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
             # Try exact LIKE match first (original behavior)
-            cur.execute("""
+            cur.execute(f"""
                 SELECT p.id, p.name, p.odoo_code, p.type, p.uom,
                        p.case_size_lb, p.default_batch_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as total_on_hand
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE LOWER(p.name) LIKE LOWER(%s) OR LOWER(p.odoo_code) LIKE LOWER(%s)
                 GROUP BY p.id
             """, (f"%{item_name}%", f"%{item_name}%"))
@@ -1873,20 +1890,20 @@ def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_ap
     try:
         with get_transaction() as cur:
             # Search lots table (direct supplier_lot_code on lot)
-            cur.execute("""
+            cur.execute(f"""
                 SELECT l.id, l.lot_code, l.supplier_lot_code, l.lot_type,
                        l.product_id, p.name AS product_name, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) AS quantity_on_hand
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE LOWER(l.supplier_lot_code) = LOWER(%s)
                 GROUP BY l.id, p.id
             """, (supplier_lot_code,))
             direct_matches = cur.fetchall()
 
             # Search lot_supplier_codes table (commingled entries)
-            cur.execute("""
+            cur.execute(f"""
                 SELECT DISTINCT l.id, l.lot_code, l.supplier_lot_code, l.lot_type,
                        l.product_id, p.name AS product_name, p.odoo_code,
                        COALESCE(oh.on_hand, 0) AS quantity_on_hand,
@@ -1897,7 +1914,7 @@ def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_ap
                 JOIN products p ON p.id = l.product_id
                 LEFT JOIN LATERAL (
                     SELECT COALESCE(SUM(tl2.quantity_lb), 0) AS on_hand
-                    FROM transaction_lines tl2 WHERE tl2.lot_id = l.id
+                    FROM {POSTED_LINES} tl2 WHERE tl2.lot_id = l.id
                 ) oh ON TRUE
                 WHERE LOWER(lsc.supplier_lot_code) = LOWER(%s)
             """, (supplier_lot_code,))
@@ -1964,7 +1981,7 @@ def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_ap
 def get_lot_by_code(lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            query = """
+            query = f"""
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand,
                        l.entry_source, l.found_location, l.estimated_age,
@@ -1972,7 +1989,7 @@ def get_lot_by_code(lot_code: str, product_id: Optional[int] = Query(None), _: b
                        p.case_size_lb, p.default_batch_lb, p.type as product_type
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE LOWER(l.lot_code) = LOWER(%s)
             """
             params = [lot_code]
@@ -2020,13 +2037,13 @@ def get_lot_by_code(lot_code: str, product_id: Optional[int] = Query(None), _: b
 def get_lot(lot_id: int, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("""
+            cur.execute(f"""
                 SELECT l.*, p.name as product_name, p.odoo_code,
                        p.case_size_lb, p.default_batch_lb, p.type as product_type,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE l.id = %s
                 GROUP BY l.id, p.id
             """, (lot_id,))
@@ -2516,10 +2533,10 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     if oo_payload:
                         open_orders_warning = oo_payload
 
-                cur.execute("""
+                cur.execute(f"""
                     SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                     FROM lots l
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.product_id = %s
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -2630,10 +2647,10 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     else:
                         pinned_lot_id = None
 
-                    cur.execute("""
+                    cur.execute(f"""
                         SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                         FROM lots l
-                        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                         WHERE l.product_id = %s
                         GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -2689,10 +2706,10 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                             "SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE",
                             (lot_ids,)
                         )
-                        cur.execute("""
+                        cur.execute(f"""
                             SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
                             FROM lots l
-                            LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                            LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                             WHERE l.id = ANY(%s)
                             GROUP BY l.id
                             HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -2815,11 +2832,11 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                                if ing['ingredient_product_id'] not in excluded_ids]
                 ingredient_lots_map = {}
                 if all_ing_ids:
-                    cur.execute("""
+                    cur.execute(f"""
                         SELECT l.product_id, l.id, l.lot_code,
                                COALESCE(SUM(tl.quantity_lb), 0) as available
                         FROM lots l
-                        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                         WHERE l.product_id = ANY(%s)
                         GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -2843,9 +2860,9 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         continue
                     if lot_overrides and str(ing_id) in lot_overrides:
                         override_code = lot_overrides[str(ing_id)]
-                        cur.execute("""
+                        cur.execute(f"""
                             SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                            FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                            FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                             WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s) GROUP BY l.id
                         """, (ing_id, override_code))
                         override_lot = cur.fetchone()
@@ -3041,9 +3058,9 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             consumed_by_ingredient[ing_id]["total_consumed_lb"] += needed
                             consumed_by_ingredient[ing_id]["lots"].append({"lot_code": override_lot['lot_code'], "consumed_lb": needed, "override": True})
                         else:
-                            cur.execute("""
+                            cur.execute(f"""
                                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                                FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                                 WHERE l.product_id = %s GROUP BY l.id
                                 HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                             """, (ing_id,))
@@ -3052,9 +3069,9 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                                 raise HTTPException(status_code=400, detail=f"No inventory available for ingredient ID {ing_id}")
                             lot_ids = [lot['id'] for lot in candidate_lots]
                             cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
-                            cur.execute("""
+                            cur.execute(f"""
                                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                                FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                                 WHERE l.id = ANY(%s) GROUP BY l.id
                                 HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                             """, (lot_ids,))
@@ -3204,10 +3221,10 @@ def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> di
 
     # Batch-fetch available lots for all add-in ingredients
     if all_add_in_ids:
-        cur.execute("""
+        cur.execute(f"""
             SELECT l.product_id, l.id, l.lot_code,
                    COALESCE(SUM(tl.quantity_lb), 0) as available
-            FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+            FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
             WHERE l.product_id = ANY(%s) GROUP BY l.id
             HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
             ORDER BY l.product_id, COALESCE(l.received_at, l.created_at) ASC
@@ -3266,9 +3283,9 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no case_size_lb set. Provide case_weight_lb parameter to override.")
                 total_lb = req.cases * case_weight
 
-                cur.execute("""
+                cur.execute(f"""
                     SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                    FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.product_id = %s GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                 """, (source['id'],))
@@ -3340,9 +3357,9 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     total_lb = req.cases * case_weight
                     now = get_plant_now()
 
-                    cur.execute("""
+                    cur.execute(f"""
                         SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                        FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                         WHERE l.product_id = %s GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                     """, (source['id'],))
@@ -3352,9 +3369,9 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
 
                     lot_ids = [lot['id'] for lot in candidate_lots]
                     cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
-                    cur.execute("""
+                    cur.execute(f"""
                         SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                        FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                         WHERE l.id = ANY(%s) GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
                     """, (lot_ids,))
@@ -3424,9 +3441,9 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                             ing_id = ing['ingredient_product_id']
                             needed = round(float(ing['quantity_lb']) * ratio, 2)
                             # FIFO deduction with locking
-                            cur.execute("""
+                            cur.execute(f"""
                                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                                FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                                 WHERE l.product_id = %s GROUP BY l.id
                                 HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
                                 ORDER BY COALESCE(l.received_at, l.created_at) ASC
@@ -3434,9 +3451,9 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                             candidate_lots = cur.fetchall()
                             lot_ids = [lot['id'] for lot in candidate_lots]
                             cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
-                            cur.execute("""
+                            cur.execute(f"""
                                 SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                                FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                                 WHERE l.id = ANY(%s) GROUP BY l.id
                                 HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
                                 ORDER BY COALESCE(l.received_at, l.created_at) ASC
@@ -3500,14 +3517,14 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT p.id as product_id, p.name, p.odoo_code,
                            COALESCE(p.label_type, 'house') as label_type,
                            l.id as lot_id, l.lot_code,
                            COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                     FROM products p
                     JOIN lots l ON l.product_id = p.id
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE (LOWER(p.name) LIKE LOWER(%s) OR LOWER(p.odoo_code) LIKE LOWER(%s))
                       AND LOWER(l.lot_code) = LOWER(%s)
                     GROUP BY p.id, l.id
@@ -3564,8 +3581,7 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
                     txn_id = cur.fetchone()['id']
                     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
 
-                    cur.execute("SELECT COALESCE(SUM(tl.quantity_lb), 0) as new_balance FROM transaction_lines tl WHERE tl.lot_id = %s", (result['lot_id'],))
-                    new_balance = float(cur.fetchone()['new_balance'])
+                    new_balance = lot_on_hand(cur, result['lot_id'])
                     logger.info(f"Adjust committed: {req.adjustment_lb} lb to lot {result['lot_code']} (balance: {new_balance} lb)")
 
                     response = {
@@ -3591,13 +3607,22 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
 # VOID TRANSACTION ENDPOINT
 # ═══════════════════════════════════════════════════════════════
 
-@app.post("/void/{transaction_id}")
-def void_transaction(transaction_id: int, _: bool = Depends(verify_api_key)):
-    """Void a transaction by marking it as voided and posting reversal lines.
+class VoidRequest(BaseModel):
+    reason: Optional[str] = None
 
-    Sets status='voided' on the original transaction (UI suppression only).
-    Posts a new reversal transaction with offsetting transaction_lines so
-    the ledger stays balanced. Inventory math never filters by status.
+
+@app.post("/void/{transaction_id}")
+def void_transaction(transaction_id: int, req: Optional[VoidRequest] = None, _: bool = Depends(verify_api_key)):
+    """Void a transaction by flipping its status to 'voided'.
+
+    All balance math reads lines through POSTED_LINES (status='posted' only),
+    so the original's lines drop out of every on-hand figure the moment the
+    status flips. No reversal transaction is posted. The optional request
+    body {"reason": "..."} is appended to the transaction's notes.
+
+    Response keeps the historical shape: reversal_transaction_id and
+    reversal_lines are retained for backward compatibility but are always
+    null/empty now that voiding no longer posts reversals.
     """
     try:
         with get_db_connection() as conn:
@@ -3609,49 +3634,24 @@ def void_transaction(transaction_id: int, _: bool = Depends(verify_api_key)):
                 if txn['status'] == 'voided':
                     raise HTTPException(400, f"Transaction #{transaction_id} is already voided")
 
-                # Get original transaction lines
-                cur.execute("SELECT product_id, lot_id, quantity_lb FROM transaction_lines WHERE transaction_id = %s", (transaction_id,))
-                original_lines = cur.fetchall()
-
                 now = get_plant_now()
+                reason = req.reason.strip() if req and req.reason and req.reason.strip() else None
+                void_note = f" | Voided at {now.strftime('%Y-%m-%d %H:%M')}"
+                if reason:
+                    void_note += f" — {reason}"
 
-                # Mark original as voided (UI suppression only)
                 cur.execute(
                     "UPDATE transactions SET status = 'voided', notes = COALESCE(notes, '') || %s WHERE id = %s",
-                    (f" | Voided at {now.strftime('%Y-%m-%d %H:%M')}", transaction_id)
+                    (void_note, transaction_id)
                 )
 
-                # Post reversal transaction with offsetting lines
-                reversal_lines = []
-                if original_lines:
-                    cur.execute("""
-                        INSERT INTO transactions (type, timestamp, status, notes)
-                        VALUES (%s, %s, 'posted', %s) RETURNING id
-                    """, (txn['type'], now, f"Reversal of transaction #{transaction_id}"))
-                    reversal_txn_id = cur.fetchone()['id']
-
-                    for line in original_lines:
-                        reversed_qty = -float(line['quantity_lb'])
-                        cur.execute(
-                            "INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)",
-                            (reversal_txn_id, line['product_id'], line['lot_id'], reversed_qty)
-                        )
-                        reversal_lines.append({
-                            "product_id": line['product_id'],
-                            "lot_id": line['lot_id'],
-                            "original_qty": float(line['quantity_lb']),
-                            "reversal_qty": reversed_qty
-                        })
-                else:
-                    reversal_txn_id = None
-
-                logger.info(f"Voided transaction #{transaction_id} (type={txn['type']}, {len(original_lines)} lines reversed)")
+                logger.info(f"Voided transaction #{transaction_id} (type={txn['type']}, reason={reason or 'n/a'})")
                 return {
                     "success": True,
                     "voided_transaction_id": transaction_id,
-                    "reversal_transaction_id": reversal_txn_id,
-                    "reversal_lines": reversal_lines,
-                    "message": f"Transaction #{transaction_id} voided with {len(reversal_lines)} offsetting line(s)"
+                    "reversal_transaction_id": None,
+                    "reversal_lines": [],
+                    "message": f"Transaction #{transaction_id} voided; its lines are excluded from all balances"
                 }
     except HTTPException:
         raise
@@ -3771,13 +3771,8 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
 
             total_shipped = sum(s['quantity_lb'] for s in customer_shipments)
 
-            # Current on-hand quantity
-            cur.execute("""
-                SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
-                FROM transaction_lines tl
-                WHERE tl.lot_id = %s
-            """, (lot_row['id'],))
-            on_hand = float(cur.fetchone()['on_hand'])
+            # Current on-hand quantity (posted-only)
+            on_hand = lot_on_hand(cur, lot_row['id'])
 
             # Fetch case_size_lb for unit counts
             cur.execute("SELECT case_size_lb, default_batch_lb, type FROM products WHERE id = %s", (lot_row['product_id'],))
@@ -3915,13 +3910,8 @@ def _trace_ingredient_backward(cur, lot_row):
 
     total_shipped = sum(s['quantity_lb'] for s in shipments_out)
 
-    # 4. Current on-hand quantity
-    cur.execute("""
-        SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
-        FROM transaction_lines tl
-        WHERE tl.lot_id = %s
-    """, (lot_row['id'],))
-    on_hand = float(cur.fetchone()['on_hand'])
+    # 4. Current on-hand quantity (posted-only)
+    on_hand = lot_on_hand(cur, lot_row['id'])
 
     return {
         "trace_type": "ingredient",
@@ -4059,13 +4049,8 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
 
             total_shipped = sum(s['quantity_lb'] for s in direct_shipments)
 
-            # Current on-hand quantity
-            cur.execute("""
-                SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
-                FROM transaction_lines tl
-                WHERE tl.lot_id = %s
-            """, (lot['id'],))
-            on_hand = float(cur.fetchone()['on_hand'])
+            # Current on-hand quantity (posted-only)
+            on_hand = lot_on_hand(cur, lot['id'])
 
             result = {
                 "ingredient_lot_code": lot['lot_code'],
@@ -4148,13 +4133,8 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
             for lot in matched_lots:
                 lot_id = lot['lot_id']
 
-                # On-hand quantity
-                cur.execute("""
-                    SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
-                    FROM transaction_lines tl
-                    WHERE tl.lot_id = %s
-                """, (lot_id,))
-                on_hand = float(cur.fetchone()['on_hand'])
+                # On-hand quantity (posted-only)
+                on_hand = lot_on_hand(cur, lot_id)
 
                 # Total received (positive qty from receive transactions)
                 cur.execute("""
@@ -4432,13 +4412,13 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
                            COALESCE(p.label_type, 'house') as label_type,
                            COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                     FROM lots l
                     JOIN products p ON p.id = l.product_id
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.id = %s
                     GROUP BY l.id, p.id
                     FOR UPDATE OF l
@@ -4701,13 +4681,13 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
 def get_found_inventory_queue(limit: int = Query(default=50, ge=1, le=200), _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("""
+            cur.execute(f"""
                 SELECT l.id as lot_id, l.lot_code, p.id as product_id, p.name as product_name,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand,
                        l.entry_source, l.found_location, l.estimated_age, l.entry_source_notes
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE l.entry_source = 'found_inventory'
                 GROUP BY l.id, p.id
                 HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -5326,9 +5306,9 @@ def fulfillment_check(
 
                     # Same inventory query as shipOrderPreview
                     cur.execute(
-                        """SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
+                        f"""SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
                            FROM lots l
-                           JOIN transaction_lines tl ON tl.lot_id = l.id
+                           JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                            WHERE l.product_id = %s""",
                         (line['product_id'],)
                     )
@@ -5961,7 +5941,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                                         "requested_ship_lb": ship_qty, "can_ship_lb": ship_qty, "on_hand_lb": None,
                                         "short": 0, "is_service": True})
                         continue
-                    cur.execute("SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand FROM lots l JOIN transaction_lines tl ON tl.lot_id = l.id WHERE l.product_id = %s", (line['product_id'],))
+                    cur.execute(f"SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand FROM lots l JOIN {POSTED_LINES} tl ON tl.lot_id = l.id WHERE l.product_id = %s", (line['product_id'],))
                     on_hand = float(cur.fetchone()['on_hand'])
                     can_ship = min(ship_qty, on_hand)
                     if can_ship < ship_qty:
@@ -6057,16 +6037,16 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                             })
                             continue
 
-                        cur.execute("""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
-                                       FROM lots l JOIN transaction_lines tl ON tl.lot_id = l.id
+                        cur.execute(f"""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
+                                       FROM lots l JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                                        WHERE l.product_id = %s GROUP BY l.id
                                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC""", (item["product_id"],))
                         candidates = cur.fetchall()
                         lot_ids = [c['id'] for c in candidates]
                         if lot_ids:
                             cur.execute("SELECT id FROM lots WHERE id = ANY(%s) FOR UPDATE", (lot_ids,))
-                            cur.execute("""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
-                                           FROM lots l JOIN transaction_lines tl ON tl.lot_id = l.id
+                            cur.execute(f"""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
+                                           FROM lots l JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                                            WHERE l.id = ANY(%s) GROUP BY l.id
                                            HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC""", (lot_ids,))
                             lots = cur.fetchall()
@@ -6365,11 +6345,11 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                         continue
 
                     # Query FIFO lots
-                    cur.execute("""
+                    cur.execute(f"""
                         SELECT l.id, l.lot_code, l.supplier_lot_code,
                                COALESCE(SUM(tl.quantity_lb), 0) AS available
                         FROM lots l
-                        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                        LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                         WHERE l.product_id = %s
                         GROUP BY l.id
                         HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -6414,13 +6394,13 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                         # Check if unpacked batch inventory exists for this FG product.
                         # If /make was run but /pack was not, batch inventory sits idle
                         # while the FG SKU shows zero on-hand.
-                        cur.execute("""
+                        cur.execute(f"""
                             SELECT p2.name AS batch_name,
                                    COALESCE(SUM(tl.quantity_lb), 0) AS batch_available
                             FROM products p
                             JOIN products p2 ON p2.id = p.parent_batch_product_id
                             JOIN lots l ON l.product_id = p2.id
-                            JOIN transaction_lines tl ON tl.lot_id = l.id
+                            JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                             WHERE p.id = %s AND p.parent_batch_product_id IS NOT NULL
                             GROUP BY p2.name
                             HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -6446,13 +6426,13 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                             "qty_display": qty_display
                         }
                         # Same batch-inventory cross-reference for zero-lot case
-                        cur.execute("""
+                        cur.execute(f"""
                             SELECT p2.name AS batch_name,
                                    COALESCE(SUM(tl.quantity_lb), 0) AS batch_available
                             FROM products p
                             JOIN products p2 ON p2.id = p.parent_batch_product_id
                             JOIN lots l ON l.product_id = p2.id
-                            JOIN transaction_lines tl ON tl.lot_id = l.id
+                            JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                             WHERE p.id = %s AND p.parent_batch_product_id IS NOT NULL
                             GROUP BY p2.name
                             HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -6916,13 +6896,13 @@ def dashboard_api_finished_goods():
 
         with get_transaction() as cur:
             # Get on-hand per product
-            cur.execute("""
+            cur.execute(f"""
                 SELECT p.id, p.name, COALESCE(p.case_size_lb, p.case_size_lb) as case_size_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
                   AND COALESCE(l.status, 'active') = 'active'
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE COALESCE(p.active, true) = true
                   AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
                 GROUP BY p.id
@@ -6933,12 +6913,12 @@ def dashboard_api_finished_goods():
             matched_ids = [r['id'] for r in product_rows.values()]
             lot_map = {}
             if matched_ids:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT l.product_id, l.lot_code,
                            COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs,
                            l.id as lot_id
                     FROM lots l
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.product_id = ANY(%s)
                       AND COALESCE(l.status, 'active') = 'active'
                     GROUP BY l.id
@@ -7012,12 +6992,12 @@ def dashboard_api_batches():
         config_batch_sizes = {b["name"].lower(): b.get("standard_batch_size_lbs") for b in batch_skus}
 
         with get_transaction() as cur:
-            cur.execute("""
+            cur.execute(f"""
                 SELECT p.id, p.name, p.default_batch_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE COALESCE(p.active, true) = true
                   AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
                 GROUP BY p.id
@@ -7028,11 +7008,11 @@ def dashboard_api_batches():
             matched_ids = [r['id'] for r in product_rows]
             lot_map = {}
             if matched_ids:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT l.product_id, l.lot_code,
                            COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                     FROM lots l
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.product_id = ANY(%s)
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -7100,12 +7080,12 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
             all_names.extend(cat.get("items", []))
 
         with get_transaction() as cur:
-            cur.execute("""
+            cur.execute(f"""
                 SELECT p.id, p.name,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE COALESCE(p.active, true) = true
                   AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
                 GROUP BY p.id
@@ -7117,11 +7097,11 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
             matched_ids = [r['id'] for r in rows]
             lot_map = {}
             if matched_ids:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT l.product_id, l.lot_code,
                            COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                     FROM lots l
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.product_id = ANY(%s)
                     GROUP BY l.id
                     HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
@@ -7290,13 +7270,13 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
     try:
         with get_transaction() as cur:
             # Lot info — filter by product_id when provided (lot codes can be shared)
-            query = """
+            query = f"""
                 SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
                        l.entry_source, p.case_size_lb as product_case_size_lb,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE LOWER(l.lot_code) = LOWER(%s)
             """
             params = [lot_code]
@@ -7323,6 +7303,7 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
                 FROM transaction_lines tl
                 JOIN transactions t ON t.id = tl.transaction_id
                 WHERE tl.lot_id = %s
+                  AND COALESCE(t.status, 'posted') = 'posted'
                 ORDER BY t.timestamp ASC
                 LIMIT 1
             """, (lot['id'],))
@@ -7339,6 +7320,7 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
                 FROM transaction_lines tl
                 JOIN transactions t ON t.id = tl.transaction_id
                 WHERE tl.lot_id = %s
+                  AND COALESCE(t.status, 'posted') = 'posted'
                 ORDER BY t.timestamp ASC
             """, (lot['id'],))
             timeline_rows = cur.fetchall()
@@ -7410,11 +7392,11 @@ def dashboard_api_product_lots(product_id: int):
             cs = float(product['case_size_lb']) if product['case_size_lb'] else None
             db = float(product['default_batch_lb']) if product['default_batch_lb'] else None
 
-            cur.execute("""
+            cur.execute(f"""
                 SELECT l.lot_code, l.entry_source,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE l.product_id = %s
                 GROUP BY l.id
                 ORDER BY l.id DESC
@@ -7455,12 +7437,12 @@ def dashboard_api_search(q: str = Query(min_length=1)):
         results = {}
         with get_transaction() as cur:
             # Products
-            cur.execute("""
+            cur.execute(f"""
                 SELECT p.id as product_id, p.name, p.type, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE COALESCE(p.active, true) = true
                   AND (p.name ILIKE %s OR p.odoo_code ILIKE %s)
                 GROUP BY p.id
@@ -7472,12 +7454,12 @@ def dashboard_api_search(q: str = Query(min_length=1)):
                 p["on_hand_lbs"] = float(p["on_hand_lbs"])
 
             # Lots
-            cur.execute("""
+            cur.execute(f"""
                 SELECT l.lot_code, l.product_id, p.name as product_name,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE l.lot_code ILIKE %s
                 GROUP BY l.id, p.id
                 ORDER BY l.id DESC
@@ -8163,13 +8145,8 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                     WHERE id = %s
                 """, (req.target_lot_id, now, req.reason, req.source_lot_id))
 
-                # 7. Recalculate target lot balance from ledger
-                cur.execute("""
-                    SELECT COALESCE(SUM(quantity_lb), 0) AS computed_balance
-                    FROM transaction_lines
-                    WHERE lot_id = %s
-                """, (req.target_lot_id,))
-                computed_balance = float(cur.fetchone()['computed_balance'])
+                # 7. Recalculate target lot balance from ledger (posted-only)
+                computed_balance = lot_on_hand(cur, req.target_lot_id)
 
                 total_rows = sum(rows_moved.values())
                 logger.info(
@@ -8291,10 +8268,10 @@ def production_requirements(
                 has_sub_bom = cur.fetchone()['cnt'] > 0
 
                 # Get current inventory
-                cur.execute("""
+                cur.execute(f"""
                     SELECT COALESCE(SUM(tl.quantity_lb), 0) AS available
                     FROM lots l
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.product_id = %s
                 """, (ing['ingredient_product_id'],))
                 available = float(cur.fetchone()['available'])
@@ -8333,9 +8310,9 @@ def production_requirements(
                     sub_ingredients = []
                     for sub in sub_formula:
                         sub_needed = float(sub['quantity_lb']) * sub_num_batches
-                        cur.execute("""
+                        cur.execute(f"""
                             SELECT COALESCE(SUM(tl.quantity_lb), 0) AS available
-                            FROM lots l LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                            FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                             WHERE l.product_id = %s
                         """, (sub['ingredient_product_id'],))
                         sub_avail = float(cur.fetchone()['available'])
@@ -8537,10 +8514,10 @@ def production_day_summary(
             # Get current on-hand for each batch lot
             if batch_lots:
                 lot_ids = list(batch_lots.keys())
-                cur.execute("""
+                cur.execute(f"""
                     SELECT l.id as lot_id, COALESCE(SUM(tl.quantity_lb), 0) as on_hand
                     FROM lots l
-                    LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.id = ANY(%s)
                     GROUP BY l.id
                 """, (lot_ids,))
@@ -8692,12 +8669,12 @@ def _load_demand(cur, horizon_end: date):
 
 def _load_finished_inventory(cur):
     """Load on-hand inventory for finished and batch products."""
-    cur.execute("""
+    cur.execute(f"""
         SELECT p.id AS product_id, p.name AS product_name,
                COALESCE(SUM(tl.quantity_lb), 0) AS on_hand_lb
         FROM products p
         LEFT JOIN lots l ON l.product_id = p.id
-        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+        LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
         WHERE p.active = true AND p.type IN ('finished', 'batch')
         GROUP BY p.id, p.name
     """)
@@ -8706,12 +8683,12 @@ def _load_finished_inventory(cur):
 
 def _load_ingredient_inventory(cur):
     """Load on-hand inventory for ingredient products."""
-    cur.execute("""
+    cur.execute(f"""
         SELECT p.id AS product_id, p.name AS product_name,
                COALESCE(SUM(tl.quantity_lb), 0) AS on_hand_lb
         FROM products p
         LEFT JOIN lots l ON l.product_id = p.id
-        LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+        LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
         WHERE p.active = true AND p.type = 'ingredient'
         GROUP BY p.id, p.name
     """)
@@ -9442,11 +9419,11 @@ def audit_integrity():
             now = get_plant_now()
 
             # 1. Negative lot balances [CRITICAL]
-            cur.execute("""
+            cur.execute(f"""
                 SELECT l.id as lot_id, l.lot_code, p.name as product_name,
                        COALESCE(SUM(tl.quantity_lb), 0) as balance
                 FROM lots l
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 JOIN products p ON p.id = l.product_id
                 GROUP BY l.id, p.name
                 HAVING COALESCE(SUM(tl.quantity_lb), 0) < -%s
@@ -9536,6 +9513,7 @@ def audit_integrity():
                 JOIN transaction_lines tl ON tl.product_id = p.id
                 JOIN transactions t ON t.id = tl.transaction_id
                 WHERE t.type = 'pack' AND tl.quantity_lb > 0
+                  AND COALESCE(t.status, 'posted') = 'posted'
                   AND p.case_size_lb IS NULL
             """)
             missing_cs = cur.fetchall()
@@ -9547,11 +9525,11 @@ def audit_integrity():
             })
 
             # 7. Floating point dust [MINOR]
-            cur.execute("""
+            cur.execute(f"""
                 SELECT l.id as lot_id, l.lot_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as balance
                 FROM lots l
-                LEFT JOIN transaction_lines tl ON tl.lot_id = l.id
+                LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 GROUP BY l.id
                 HAVING ABS(COALESCE(SUM(tl.quantity_lb), 0)) < 0.01
                    AND COALESCE(SUM(tl.quantity_lb), 0) != 0
