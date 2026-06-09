@@ -117,6 +117,93 @@
     return match ? Number(match[1]) : null;
   }
 
+  function getProductCategory(product) {
+    const explicitCategory = String(product?.category || product?.family || '').trim().toLowerCase();
+    if (explicitCategory.includes('coconut')) return 'coconut';
+    if (explicitCategory.includes('granola')) return 'granola';
+
+    const productName = String(product?.product_name || product?.name || '').trim();
+    const normalizedName = productName.replace(/^Batch\s+/i, '');
+    if (/coconut/i.test(normalizedName)) return 'coconut';
+    if (/granola/i.test(normalizedName) || /^(CQ|SS)\b/i.test(normalizedName)) return 'granola';
+    console.warn('Unrendered production calendar product category:', product);
+    return 'other';
+  }
+
+  function formatItemName(name, category) {
+    let itemName = String(name || '').trim();
+    itemName = itemName
+      .replace(/^Batch\s+/i, '')
+      .replace(/^SS\s+/i, '')
+      .replace(/\bSweetened\b/gi, '')
+      .replace(/\bChocolate Chip\b/gi, 'Choc Chip')
+      .replace(/\bCase\b/gi, '')
+      .replace(/\bCNS\b/gi, '');
+
+    if (category === 'coconut') {
+      itemName = itemName
+        .replace(/\bCoconut\b/gi, '')
+        .replace(/\b\d+\s*LB\b/gi, '');
+    } else if (category === 'granola') {
+      itemName = itemName
+        .replace(/\bGranola\b/gi, '');
+    }
+
+    return itemName.replace(/\s+/g, ' ').trim();
+  }
+
+  function productionBatchCount(batch) {
+    if (batch.batch_count != null) return Number(batch.batch_count);
+    if (batch.standard_batch_size_lbs) return Number(batch.total_lbs) / Number(batch.standard_batch_size_lbs);
+    return null;
+  }
+
+  function productionUnitCount(finishedGood) {
+    if (finishedGood.unit_count != null) return Number(finishedGood.unit_count);
+    if (finishedGood.case_size_lb) return Math.round(Number(finishedGood.total_lbs) / Number(finishedGood.case_size_lb));
+    return null;
+  }
+
+  function formatBatchCount(count) {
+    if (count == null || !Number.isFinite(count)) return '\u2014';
+    const display = Number.isInteger(count) ? fmtInt(count) : count.toFixed(1);
+    return `${display} ${Number(count) === 1 ? 'batch' : 'batches'}`;
+  }
+
+  function formatUnitCount(count) {
+    if (count == null || !Number.isFinite(count)) return '\u2014';
+    return `${fmtInt(count)} units`;
+  }
+
+  function buildProductionCategorySummary(day) {
+    const summary = {
+      coconut: { totalLbs: 0, batches: [], packed: [] },
+      granola: { totalLbs: 0, batches: [], packed: [] }
+    };
+
+    for (const batch of (day.batches || [])) {
+      const category = getProductCategory(batch);
+      if (!summary[category]) continue;
+      summary[category].totalLbs += Number(batch.total_lbs) || 0;
+      summary[category].batches.push({
+        name: formatItemName(batch.product_name, category),
+        count: formatBatchCount(productionBatchCount(batch))
+      });
+    }
+
+    for (const finishedGood of (day.finished_goods || [])) {
+      const category = getProductCategory(finishedGood);
+      if (!summary[category]) continue;
+      summary[category].totalLbs += Number(finishedGood.total_lbs) || 0;
+      summary[category].packed.push({
+        name: formatItemName(finishedGood.product_name, category),
+        count: formatUnitCount(productionUnitCount(finishedGood))
+      });
+    }
+
+    return summary;
+  }
+
   function getSalesOrderLineCaseSizeLb(line) {
     const fieldCaseSize = normalizeCaseSizeLb(line.case_weight_lb)
       || normalizeCaseSizeLb(line.case_size_lb)
@@ -335,7 +422,9 @@
     let html = '';
     for (const day of displayDays) {
       const isToday = day.date === todayStr;
-      const hasProduction = day.batches.length > 0 || day.finished_goods.length > 0;
+      const dayBatches = day.batches || [];
+      const dayFinishedGoods = day.finished_goods || [];
+      const hasProduction = dayBatches.length > 0 || dayFinishedGoods.length > 0;
       const classes = ['day-card'];
       if (isToday) classes.push('today');
       if (hasProduction) classes.push('has-production');
@@ -343,39 +432,39 @@
       html += `<div class="${classes.join(' ')}">`;
       html += `<div class="day-card-date"><span class="day-name">${escHtml(day.day_name)}</span> &mdash; ${escHtml(day.date)}</div>`;
 
-      if (day.batches.length > 0) {
-        html += '<div class="day-section-label">Batches Made</div>';
-        for (const b of day.batches) {
-          const batchCount = b.batch_count != null ? b.batch_count
-            : (b.standard_batch_size_lbs ? (b.total_lbs / b.standard_batch_size_lbs).toFixed(1) : null);
-          html += `<div class="day-item">`;
-          html += `<div class="day-item-name">${escHtml(b.product_name)}</div>`;
-          html += `<div class="day-item-stats"><span class="stat-lbs">${fmt(b.total_lbs)} lb</span>`;
-          if (batchCount !== null) {
-            html += ` &middot; <span class="stat-batches">${batchCount} batches</span>`;
+      if (hasProduction) {
+        const categorySummary = buildProductionCategorySummary(day);
+        const categoryColumns = [
+          { key: 'coconut', label: 'COCONUT' },
+          { key: 'granola', label: 'GRANOLA' }
+        ];
+        html += '<div class="production-category-grid">';
+        for (const column of categoryColumns) {
+          const category = categorySummary[column.key];
+          html += `<div class="production-category-column category-${column.key}">`;
+          html += `<div class="production-category-header"><span class="category-dot"></span><span>${column.label}</span><span class="category-total">&middot; ${fmt(category.totalLbs)} lb</span></div>`;
+
+          html += '<div class="day-section-label">Batches</div>';
+          if (category.batches.length > 0) {
+            for (const item of category.batches) {
+              html += `<div class="day-item production-row"><div class="day-item-name">${escHtml(item.name)}</div><div class="day-item-stats">${escHtml(item.count)}</div></div>`;
+            }
           } else {
-            html += ` &middot; <span class="badge unknown">batches: est.</span>`;
+            html += '<div class="production-empty">\u2014</div>';
           }
-          html += `</div></div>`;
-        }
-      }
 
-      if (day.finished_goods.length > 0) {
-        html += '<div class="day-section-label">Finished Goods Packed</div>';
-        for (const fg of day.finished_goods) {
-          const fgUnits = fg.unit_count != null ? fg.unit_count
-            : (fg.case_size_lb ? Math.round(fg.total_lbs / fg.case_size_lb) : null);
-          html += `<div class="day-item">`;
-          html += `<div class="day-item-name">${escHtml(fg.product_name)}</div>`;
-          html += `<div class="day-item-stats"><span class="stat-lbs">${fmt(fg.total_lbs)} lb</span>`;
-          if (fgUnits !== null) {
-            html += ` &middot; <span class="stat-batches">${fmtInt(fgUnits)} units</span>`;
+          html += '<div class="day-section-label">Packed</div>';
+          if (category.packed.length > 0) {
+            for (const item of category.packed) {
+              html += `<div class="day-item production-row"><div class="day-item-name">${escHtml(item.name)}</div><div class="day-item-stats">${escHtml(item.count)}</div></div>`;
+            }
+          } else {
+            html += '<div class="production-empty">\u2014</div>';
           }
-          html += `</div></div>`;
+          html += '</div>';
         }
-      }
-
-      if (!hasProduction) {
+        html += '</div>';
+      } else {
         html += '<div class="no-production">No production</div>';
       }
 

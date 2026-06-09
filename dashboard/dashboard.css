@@ -321,7 +321,7 @@ body {
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 1px;
   background: var(--border);
 }
@@ -344,6 +344,7 @@ body {
 /* Today: tinted header + subtle glow */
 .day-card.today {
   background: var(--surface);
+  border-left: 3px solid var(--primary);
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
 }
 .day-card.today .day-card-date {
@@ -378,24 +379,105 @@ body {
   margin-bottom: 2px;
 }
 
+.production-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+}
+
+.production-category-column {
+  min-width: 0;
+}
+
+.production-category-column + .production-category-column {
+  border-left: 1px solid var(--border);
+  padding-left: 8px;
+  margin-left: 8px;
+}
+
+.production-category-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.category-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.category-coconut .category-dot { background: var(--badge-text); }
+.category-granola .category-dot { background: var(--badge-amber-text); }
+.category-coconut .production-category-header { color: var(--badge-text); }
+.category-granola .production-category-header { color: var(--badge-amber-text); }
+
+.category-total {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
 .day-item {
   font-size: 12px;
   padding: 2px 0;
 }
 
-.day-item-name { font-weight: 500; color: var(--text); }
+.day-item-name {
+  font-weight: 500;
+  color: var(--text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.production-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: baseline;
+}
 
 .day-item-stats {
   font-size: 11px;
   font-family: var(--mono);
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
 }
 .day-item-stats .stat-lbs { color: var(--text-secondary); }
 .day-item-stats .stat-batches { color: var(--text-muted); }
+
+.production-empty {
+  color: var(--text-dimmed);
+  font-size: 12px;
+  line-height: 1.4;
+}
 
 .no-production {
   color: var(--text-dimmed);
   font-size: 12px;
   font-style: italic;
+}
+
+@media (max-width: 680px) {
+  .production-category-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .production-category-column + .production-category-column {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 8px;
+    margin-left: 0;
+  }
 }
 
 /* === Collapsible Panels === */
