@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factory Floor Demo</title>
+  <style>
+    :root {
+      --bg: #f4f7f5;
+      --panel: #ffffff;
+      --text: #101820;
+      --muted: #53605a;
+      --border: #d4ddd7;
+      --green: #087a36;
+      --green-pressed: #05642c;
+      --blue: #174ea6;
+      --blue-pressed: #123f85;
+      --red: #b3261e;
+      --red-pressed: #8f1d18;
+      --shadow: 0 14px 36px rgba(16, 24, 32, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.2;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .screen {
+      display: none;
+      width: min(100%, 720px);
+      min-height: min(720px, calc(100vh - 36px));
+      padding: clamp(20px, 5vw, 40px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.1rem, 7vw, 3.4rem);
+      letter-spacing: 0;
+      text-align: center;
+    }
+
+    .product-name {
+      min-height: 2.8em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1.7rem, 5.8vw, 2.7rem);
+    }
+
+    .button-stack {
+      display: grid;
+      gap: 16px;
+      width: 100%;
+    }
+
+    button {
+      width: 100%;
+      min-height: 86px;
+      border: 0;
+      border-radius: 8px;
+      color: #ffffff;
+      font: inherit;
+      font-weight: 800;
+      letter-spacing: 0;
+      cursor: pointer;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18);
+      transition: transform 80ms ease, box-shadow 80ms ease, background-color 80ms ease;
+    }
+
+    button:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    .product-button {
+      min-height: 112px;
+      padding: 18px;
+      background: var(--blue);
+      font-size: clamp(1.35rem, 5vw, 2.2rem);
+    }
+
+    .product-button:active {
+      background: var(--blue-pressed);
+    }
+
+    .case-button {
+      font-size: clamp(1.55rem, 6vw, 2.5rem);
+    }
+
+    .case-button.primary {
+      min-height: 132px;
+      background: var(--green);
+      font-size: clamp(2.2rem, 9vw, 4rem);
+    }
+
+    .case-button.primary:active {
+      background: var(--green-pressed);
+    }
+
+    .case-button.secondary {
+      background: var(--blue);
+    }
+
+    .case-button.secondary:active {
+      background: var(--blue-pressed);
+    }
+
+    .case-button.danger {
+      background: var(--red);
+    }
+
+    .case-button.danger:active {
+      background: var(--red-pressed);
+    }
+
+    .total-panel {
+      display: grid;
+      gap: 6px;
+      margin-top: auto;
+      padding: 18px;
+      border: 3px solid var(--text);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .total-label {
+      color: var(--muted);
+      font-size: clamp(1rem, 3.8vw, 1.35rem);
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .total-value {
+      font-size: clamp(4.5rem, 18vw, 8rem);
+      font-weight: 900;
+      line-height: 0.95;
+    }
+
+    .change-button {
+      min-height: 72px;
+      background: #2f3a45;
+      font-size: clamp(1.1rem, 4vw, 1.45rem);
+    }
+
+    .flash {
+      min-height: 44px;
+      color: var(--green);
+      font-size: clamp(1.15rem, 4.4vw, 1.6rem);
+      font-weight: 900;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+
+    .flash.visible {
+      opacity: 1;
+    }
+
+    @media (min-width: 740px) {
+      .screen {
+        min-height: 680px;
+      }
+
+      .action-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .case-button.primary {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .app {
+        padding: 10px;
+      }
+
+      .screen {
+        min-height: calc(100vh - 20px);
+        padding: 16px;
+        gap: 14px;
+      }
+
+      .product-button {
+        min-height: 98px;
+      }
+
+      .case-button.primary {
+        min-height: 118px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="screen active" id="productScreen" aria-labelledby="productTitle">
+      <h1 id="productTitle">Select Product</h1>
+      <div class="button-stack" id="productButtons"></div>
+    </section>
+
+    <section class="screen" id="countScreen" aria-live="polite">
+      <h1 class="product-name" id="selectedProduct"></h1>
+
+      <div class="button-stack action-grid">
+        <button class="case-button primary" type="button" data-change="1">+1 CASE</button>
+        <button class="case-button secondary" type="button" data-change="5">+5 CASES</button>
+        <button class="case-button danger" type="button" data-change="-1">-1 CASE</button>
+      </div>
+
+      <div class="flash" id="flashMessage" aria-live="assertive"></div>
+
+      <div class="total-panel">
+        <div class="total-label">Total Today</div>
+        <div class="total-value" id="totalValue">0</div>
+      </div>
+
+      <button class="change-button" type="button" id="changeProductButton">Change Product</button>
+    </section>
+  </main>
+
+  <script>
+    const products = [
+      "CQ Coconut Flake 10 LB",
+      "CNS Coconut Flake 10 LB",
+      "Granola Classic 25 LB"
+    ];
+
+    const productScreen = document.getElementById("productScreen");
+    const countScreen = document.getElementById("countScreen");
+    const productButtons = document.getElementById("productButtons");
+    const selectedProduct = document.getElementById("selectedProduct");
+    const totalValue = document.getElementById("totalValue");
+    const flashMessage = document.getElementById("flashMessage");
+    const changeProductButton = document.getElementById("changeProductButton");
+
+    let currentProduct = "";
+    let total = 0;
+    let flashTimer;
+
+    function showScreen(screen) {
+      productScreen.classList.toggle("active", screen === "products");
+      countScreen.classList.toggle("active", screen === "count");
+    }
+
+    function showFlash(message, isCorrection) {
+      window.clearTimeout(flashTimer);
+      flashMessage.textContent = message;
+      flashMessage.style.color = isCorrection ? "#b3261e" : "#087a36";
+      flashMessage.classList.add("visible");
+
+      flashTimer = window.setTimeout(() => {
+        flashMessage.classList.remove("visible");
+      }, 1000);
+    }
+
+    function updateTotal(change) {
+      const previousTotal = total;
+      total = Math.max(0, total + change);
+      totalValue.textContent = total;
+
+      if (change > 0) {
+        showFlash(`Added ${change} ${change === 1 ? "case" : "cases"}`, false);
+        return;
+      }
+
+      if (previousTotal === 0) {
+        showFlash("Total is 0", true);
+      } else {
+        showFlash("Removed 1 case", true);
+      }
+    }
+
+    products.forEach((product) => {
+      const button = document.createElement("button");
+      button.className = "product-button";
+      button.type = "button";
+      button.textContent = product;
+      button.addEventListener("click", () => {
+        currentProduct = product;
+        total = 0;
+        selectedProduct.textContent = currentProduct;
+        totalValue.textContent = total;
+        flashMessage.classList.remove("visible");
+        showScreen("count");
+      });
+      productButtons.appendChild(button);
+    });
+
+    document.querySelectorAll("[data-change]").forEach((button) => {
+      button.addEventListener("click", () => {
+        updateTotal(Number(button.dataset.change));
+      });
+    });
+
+    changeProductButton.addEventListener("click", () => {
+      showScreen("products");
+    });
+  </script>
+</body>
+</html>

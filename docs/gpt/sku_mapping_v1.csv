@@ -1,0 +1,66 @@
+odoo_code,name,bake_line,pack_format,unit_size_oz,unit_size_lb,units_per_case,case_size_lb,default_batch_lb,cases_per_pan,is_copack
+70079,BS Almond Butter Granola – 6x7 OZ Case,Blue Stripes,pouch,7,,,2.63,,,false
+70086,BS Almond Butter Granola – 6x8 OZ Case,Blue Stripes,pouch,8,,,3,,,false
+70074,BS Granola – Dark Chocolate – 6x7 OZ Case,Blue Stripes,pouch,7,,,2.63,,,false
+70087,BS Granola – Dark Chocolate – 6x8 OZ Case,Blue Stripes,pouch,8,,,3,,,false
+70080,BS Granola – Hazelnut Butter – 6x7 OZ Case,Blue Stripes,pouch,7,,,2.63,,,false
+70085,BS Granola – Hazelnut Butter – 6x8 OZ Case,Blue Stripes,pouch,8,,,3,,,false
+70073,BS Granola – Peanut Butter Banana – 6x7 OZ Case,Blue Stripes,pouch,7,,,2.63,,,false
+70088,BS Granola – Peanut Butter Banana – 6x8 OZ Case,Blue Stripes,pouch,8,,,3,,,false
+70051,Coconut Chips 25 LB,—,25 lb box,,25,1,25,,,false
+10006,Coconut Sweetened Fancy CNS 10 LB,—,10 lb box,,10,1,10,,,false
+10007,Coconut Sweetened Fancy CNS 25 LB,—,25 lb box,,25,1,25,,,false
+67470,Coconut Sweetened Fancy UNIPRO 10 LB,—,10 lb box,,10,1,10,,,false
+10001,Coconut Sweetened Flake CNS 10 LB,—,10 lb box,,10,1,10,,,false
+10020,Coconut Sweetened Flake CNS 25 LB,—,25 lb box,,25,1,25,,,false
+67476,Coconut Sweetened Flake UNIPRO 10 LB,—,10 lb box,,10,1,10,,,false
+10002,Coconut Sweetened Medium CNS 10 LB,—,10 lb box,,10,1,10,,,false
+67473,Coconut Sweetened Medium UNIPRO 10 LB,—,10 lb box,,10,1,10,,,false
+10010,Coconut Toasted Sweetened Flake CNS 10 LB,—,10 lb box,,10,1,10,,,false
+10029,Coconut Toasted Sweetened Flake CNS 25 LB,—,25 lb box,,25,1,25,,,false
+893,CQ Coconut Sweetened Flake 10 LB,—,10 lb box,,10,1,10,,,false
+1614,CQ Granola 10 LB,Most,10 lb box,,10,1,10,,35.00,false
+10050,Desiccated Coconut Chips 15 LB,—,UNKNOWN,,,,15,,,false
+10049,Desiccated Coconut Chips 25 LB,—,25 lb box,,25,1,25,,,false
+10046,Desiccated Fancy Bakers 50 LB,UNMAPPED,50 lb bag,,50,1,50,,,false
+10047,Desiccated Flake 50 LB,—,50 lb bag,,50,1,50,,,false
+10055,Desiccated Flake 55 LB,—,UNKNOWN,,,,55,,,false
+10056,Desiccated Flake 80 LB,—,UNKNOWN,,,,80,,,false
+10048,Desiccated Flake CNS 25 LB,—,25 lb box,,25,1,25,,,false
+10059,Desiccated Macaroon 55 LB,UNMAPPED,UNKNOWN,,,,55,,,false
+10053,Desiccated Macaroon Bakers 25 LB,UNMAPPED,25 lb box,,25,1,25,,,false
+10045,Desiccated Macaroon Bakers 50 LB,UNMAPPED,50 lb bag,,50,1,50,,,false
+10058,Desiccated Macaroon CNS 25 LB,UNMAPPED,25 lb box,,25,1,25,,,false
+10051,Desiccated Medium Bakers 50 LB,UNMAPPED,50 lb bag,,50,1,50,,,false
+10054,Desiccated Medium CNS 100 LB,UNMAPPED,UNKNOWN,,,,100,,,false
+10052,Desiccated Medium CNS 25 LB,UNMAPPED,25 lb box,,25,1,25,,,false
+31012,Graham Cracker Crumbs – 10 LB,Blue Stripes,10 lb box,,10,1,10,,35.00,true
+70053,Granola Chocolate Chip 25 LB,—,25 lb box,,25,1,25,,,false
+70057,Granola Cinnamon Almond 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70050,Granola Classic 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70059,Granola Cocoa Vibes 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+10300,Granola Crunchy CNS 10 LB Case,Most,10 lb box,,10,1,10,,35.00,false
+70061,Granola Fruit Nut 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70060,Granola Honey Nut 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70077,Granola Setton Cinnamon Spice Almond 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70056,Granola Setton Cocoa Crunch 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70082,Granola Setton French Vanilla 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70081,Granola Setton Good Ol 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70003,Granola SS Chocolate Chip 12x10 OZ Case,—,pouch,10,,12,7.5,,,false
+70070,Granola SS Chocolate Chip Low Carb 12x10 OZ Case,—,pouch,10,,12,7.5,,,false
+70011,Granola SS Cranberry 12x10 OZ Case,Most,pouch,10,,12,7.5,,46.67,false
+70006,Granola SS Mini 100,Most,UNKNOWN,,,,,,,false
+70002,Granola SS Original 12x10 OZ Case,Most,pouch,10,,12,7.5,,46.67,false
+70004,Granola SS Original Bulk per/lb,Most,UNKNOWN,,,,,,,false
+70010,Granola SS Original Low Carb 12x10 OZ Case,Most,pouch,10,,12,7.5,,46.67,false
+70048,Granola Vanilla Almond 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+70052,Granola Vanilla Crisp 25 LB (French Vanilla),Most,25 lb box,,25,1,25,,14.00,false
+70012,Granola Wheat Free 25 LB,Most,25 lb box,,25,1,25,,14.00,false
+10301,Kookies & Kreme – 10 LB,UNMAPPED,10 lb box,,10,1,10,,,true
+10304,Kookies & Kreme – 25 LB,UNMAPPED,25 lb box,,25,1,25,,,true
+25014,Real Chocolate Chips 10000ct 30 LB,—,UNKNOWN,,,,30,,,true
+25013,Real Chocolate Chips 10000ct 50 LB,—,50 lb bag,,50,1,50,,,true
+10303,Sprinkles Chocolate 10 LB,—,10 lb box,,10,1,10,,,true
+10306,Sprinkles Chocolate 25 LB,—,25 lb box,,25,1,25,,,true
+10302,Sprinkles Rainbow 10 LB,—,10 lb box,,10,1,10,,,true
+10305,Sprinkles Rainbow 25 LB,—,25 lb box,,25,1,25,,,true
