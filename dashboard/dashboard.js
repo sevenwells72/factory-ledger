@@ -59,6 +59,159 @@
     return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
   }
 
+  const CASES_PER_PALLET_BY_CASE_SIZE_LB = {
+    10: 140,
+    25: 60
+  };
+
+  function normalizeCaseSizeLb(value) {
+    if (value == null || value === '') return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Number.isInteger(n) ? n : null;
+  }
+
+  function palletsForCases(caseSizeLb, cases, casesPerPalletOverride) {
+    if (cases == null) return null;
+    const casesPerPallet = casesPerPalletOverride
+      || CASES_PER_PALLET_BY_CASE_SIZE_LB[normalizeCaseSizeLb(caseSizeLb)];
+    if (!casesPerPallet) return null;
+    const caseCount = Number(cases);
+    if (!Number.isFinite(caseCount)) return null;
+    if (caseCount <= 0) return 0;
+    return Math.ceil(caseCount / casesPerPallet);
+  }
+
+  function parseCaseSizeLbFromText(text) {
+    if (!text) return null;
+    const match = String(text).match(/\b(10|25)\s*LB\b/i);
+    return match ? Number(match[1]) : null;
+  }
+
+  function getSalesOrderLineCaseSizeLb(line) {
+    const fieldCaseSize = normalizeCaseSizeLb(line.case_weight_lb)
+      || normalizeCaseSizeLb(line.case_size_lb)
+      || normalizeCaseSizeLb(line.default_case_weight_lb);
+    if (fieldCaseSize) return fieldCaseSize;
+    return parseCaseSizeLbFromText([
+      line.product,
+      line.product_name,
+      line.name,
+      line.sku,
+      line.odoo_code
+    ].filter(Boolean).join(' '));
+  }
+
+  function salesOrderLinePallets(line, cases) {
+    if (line.is_non_weight || cases == null) return null;
+    const caseSizeLb = getSalesOrderLineCaseSizeLb(line);
+    return palletsForCases(caseSizeLb, cases);
+  }
+
+  function fmtSalesOrderPallets(pallets) {
+    if (pallets == null) return '\u2014';
+    const label = pallets === 1 ? 'pallet' : 'pallets';
+    return fmtInt(pallets) + ' ' + label;
+  }
+
+  function sumSalesOrderPallets(lines, unitsKey) {
+    let total = 0;
+    let hasPallets = false;
+    for (const line of lines) {
+      if (line.is_non_weight) continue;
+      const units = line[unitsKey];
+      if (units == null || Number(units) <= 0) continue;
+      const pallets = salesOrderLinePallets(line, units);
+      if (pallets == null) return null;
+      total += pallets;
+      hasPallets = true;
+    }
+    return hasPallets ? total : null;
+  }
+
+  const FINISHED_GOODS_CASES_PER_PALLET_BY_LINE = {
+    retail_ss: 115,   // 12x10 OZ Retail Cases (SS Line)
+    retail_bs: 144,   // 6x7 OZ Retail Cases (BS Line)
+    // retail_bs_8oz (6x8 OZ) intentionally omitted → renders "—"
+  };
+
+  function finishedGoodsLineCasesPerPallet(lineId) {
+    return FINISHED_GOODS_CASES_PER_PALLET_BY_LINE[lineId] || null;
+  }
+
+  function finishedGoodsCasesPerPallet(caseSizeLb, lineId) {
+    return finishedGoodsLineCasesPerPallet(lineId)
+      || CASES_PER_PALLET_BY_CASE_SIZE_LB[normalizeCaseSizeLb(caseSizeLb)]
+      || null;
+  }
+
+  function finishedGoodsPallets(caseSizeLb, cases, lineId) {
+    return palletsForCases(caseSizeLb, cases, finishedGoodsLineCasesPerPallet(lineId));
+  }
+
+  function fmtPalletBadge(pallets) {
+    if (pallets == null) return '\u2014';
+    const label = pallets === 1 ? 'pallet' : 'pallets';
+    return `<span class="badge stock-default">${fmtInt(pallets)} ${label}</span>`;
+  }
+
+  function decorateFinishedGoodsPallets(data, container) {
+    const panels = data.panels || [];
+    const panelBodies = Array.from(container.querySelectorAll('.collapsible-body'));
+    for (let panelIdx = 0; panelIdx < panels.length; panelIdx++) {
+      const panel = panels[panelIdx];
+      const body = panelBodies[panelIdx];
+      const table = body ? body.querySelector('.inv-table') : null;
+      if (!table) continue;
+
+      const ratio = finishedGoodsCasesPerPallet(panel.case_weight_lb, panel.id);
+      const header = container.querySelector(`.collapsible-header[data-panel="fg-${panel.id}"] h3`);
+      if (ratio && header && !header.querySelector('.pallet-ratio')) {
+        const ratioNote = document.createElement('span');
+        ratioNote.className = 'pallet-ratio';
+        ratioNote.textContent = `${ratio}/pallet`;
+        header.appendChild(document.createTextNode(' '));
+        header.appendChild(ratioNote);
+      }
+
+      const headerRow = table.querySelector('thead tr');
+      if (!headerRow) continue;
+      let palletCol = Array.from(headerRow.children).findIndex(th => th.textContent.trim().toLowerCase() === 'pallets');
+      if (palletCol === -1) {
+        const th = document.createElement('th');
+        th.className = 'num';
+        th.textContent = 'Pallets';
+        headerRow.appendChild(th);
+        palletCol = headerRow.children.length - 1;
+      }
+
+      const productRows = Array.from(table.querySelectorAll('tr.expandable'));
+      for (let productIdx = 0; productIdx < productRows.length; productIdx++) {
+        const row = productRows[productIdx];
+        const product = (panel.products || [])[productIdx];
+        if (!product) continue;
+        while (row.children.length <= palletCol) {
+          row.appendChild(document.createElement('td'));
+        }
+        const caseWt = product.case_weight_lb || panel.case_weight_lb;
+        const cases = caseWt ? Math.floor(product.on_hand_lbs / caseWt) : null;
+        const pallets = finishedGoodsPallets(caseWt, cases, panel.id);
+        row.children[palletCol].className = 'num';
+        row.children[palletCol].innerHTML = fmtPalletBadge(pallets);
+      }
+
+      table.querySelectorAll('tr.lot-row').forEach(row => {
+        if (row.children.length === 1 && row.children[0].colSpan > 1) {
+          row.children[0].colSpan = headerRow.children.length;
+          return;
+        }
+        while (row.children.length < headerRow.children.length) {
+          row.appendChild(document.createElement('td'));
+        }
+      });
+    }
+  }
+
   /**
    * Universal dual-display formatter.
    * @param {number} lbs - weight in pounds
@@ -88,25 +241,6 @@
     if (cases >= 100) return 'stock-healthy';
     if (cases >= 20) return 'stock-low';
     return 'stock-critical';
-  }
-
-  // Cases per pallet, keyed by the finished-goods panel's stable id (the `id`
-  // field in dashboard_config.json → finished_goods_panels). Keyed on the panel
-  // id rather than case weight so fractional retail case weights (e.g. 7.5 lb,
-  // 2.63 lb) never need fragile float matching. Extend as needed.
-  const CASES_PER_PALLET = {
-    cases_10lb: 140,  // 10 LB Cases
-    bulk_25lb: 60,    // 25 LB Bulk Cases
-    retail_ss: 115,   // 12x10 OZ Retail Cases (SS Line)
-    retail_bs: 144,   // 6x7 OZ Retail Cases (BS Line)
-    // retail_bs_8oz (6x8 OZ Retail Cases) intentionally omitted → renders "—"
-  };
-
-  function fmtPallets(cases, panelId) {
-    if (cases == null) return '—';
-    const perPallet = CASES_PER_PALLET[panelId];
-    if (!perPallet) return '—';
-    return (cases / perPallet).toFixed(1);
   }
 
   function escHtml(s) {
@@ -611,7 +745,7 @@
       const panelId = 'fg-' + panel.id;
       const expanded = isPanelExpanded(panelId);
       html += `<div class="collapsible-header${expanded ? ' expanded' : ''}" data-panel="${panelId}">`;
-      const palletRatio = CASES_PER_PALLET[panel.id];
+      const palletRatio = finishedGoodsCasesPerPallet(panel.case_weight_lb, panel.id);
       const ratioNote = palletRatio ? ` <span class="pallet-ratio">${palletRatio}/pallet</span>` : '';
       html += `<h3>${escHtml(panel.title)} <span class="panel-count">(${panel.products.length} SKUs)</span>${ratioNote}</h3>`;
       html += `<span class="chevron"></span></div>`;
@@ -627,7 +761,7 @@
           html += `<td>${escHtml(p.product_name)}</td>`;
           html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtWt(caseWt)} lb)` : ''}</td>`;
           html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
-          html += `<td class="num">${fmtPallets(cases, panel.id)}</td>`;
+          html += '<td class="num"></td>';
           html += `</tr>`;
           // Lot breakdown
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
@@ -655,6 +789,7 @@
       html += '</div>';
     }
     container.innerHTML = html;
+    decorateFinishedGoodsPallets(data, container);
     bindCollapsibles(container);
     bindExpandableRows(container);
     bindLotLinks(container);
@@ -1602,15 +1737,23 @@
     const orderedUnits = totals.total_ordered_units;
     const shippedUnits = totals.total_shipped_units;
     const remainingUnits = totals.total_remaining_units;
-    const kpiFmt = (lb, units) => units ? fmtWt(lb) + ' lb<br><small>' + fmtInt(units) + ' units</small>' : fmtLbs(lb);
+    const lines = data.lines || [];
+    const orderedPallets = sumSalesOrderPallets(lines, 'unit_count');
+    const shippedPallets = sumSalesOrderPallets(lines, 'shipped_units');
+    const remainingPallets = sumSalesOrderPallets(lines, 'remaining_units');
+    const kpiFmt = (lb, units, pallets) => {
+      if (!units) return fmtLbs(lb);
+      let out = fmtWt(lb) + ' lb<br><small>' + fmtInt(units) + ' units</small>';
+      out += '<br><small>' + fmtSalesOrderPallets(pallets) + '</small>';
+      return out;
+    };
     html += '<div class="order-kpi-row">';
-    html += `<div class="order-kpi"><div class="kpi-label">Total Ordered</div><div class="kpi-value">${kpiFmt(totalOrdered, orderedUnits)}</div></div>`;
-    html += `<div class="order-kpi"><div class="kpi-label">Shipped</div><div class="kpi-value">${kpiFmt(totalShipped, shippedUnits)}</div></div>`;
-    html += `<div class="order-kpi"><div class="kpi-label">Remaining</div><div class="kpi-value">${kpiFmt(totalRemaining, remainingUnits)}</div></div>`;
+    html += `<div class="order-kpi"><div class="kpi-label">Total Ordered</div><div class="kpi-value">${kpiFmt(totalOrdered, orderedUnits, orderedPallets)}</div></div>`;
+    html += `<div class="order-kpi"><div class="kpi-label">Shipped</div><div class="kpi-value">${kpiFmt(totalShipped, shippedUnits, shippedPallets)}</div></div>`;
+    html += `<div class="order-kpi"><div class="kpi-label">Remaining</div><div class="kpi-value">${kpiFmt(totalRemaining, remainingUnits, remainingPallets)}</div></div>`;
     html += '</div>';
 
     // Line items
-    const lines = data.lines || [];
     if (lines.length > 0) {
       html += '<table class="orders-table"><thead><tr>';
       html += '<th>Product</th><th class="num">Ordered</th><th class="num">Shipped</th><th class="num">Remaining</th><th>Status</th>';
@@ -1622,14 +1765,17 @@
           : l.line_status === 'partial' ? 'status-partial_ship'
           : l.line_status === 'cancelled' ? 'status-cancelled'
           : 'status-new';
-        const cs = l.case_size_lb;
         const isNw = l.is_non_weight;
-        const lineFmt = (lb, units) => isNw ? (Number.isInteger(lb) ? lb : lb) + ' units' : (units != null ? fmtWt(lb) + ' lb &middot; ' + fmtInt(units) + ' units' : fmtLbs(lb));
+        const lineFmt = (lb, units, pallets) => {
+          if (isNw) return (Number.isInteger(lb) ? lb : lb) + ' units';
+          if (units == null) return fmtLbs(lb);
+          return fmtWt(lb) + ' lb &middot; ' + fmtInt(units) + ' units<br><small>' + fmtSalesOrderPallets(pallets) + '</small>';
+        };
         html += '<tr>';
         html += `<td>${escHtml(productName)}</td>`;
-        html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count)}</td>`;
-        html += `<td class="num">${lineFmt(l.quantity_shipped_lb, l.shipped_units)}</td>`;
-        html += `<td class="num">${lineFmt(remaining, l.remaining_units)}</td>`;
+        html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count, salesOrderLinePallets(l, l.unit_count))}</td>`;
+        html += `<td class="num">${lineFmt(l.quantity_shipped_lb, l.shipped_units, salesOrderLinePallets(l, l.shipped_units))}</td>`;
+        html += `<td class="num">${lineFmt(remaining, l.remaining_units, salesOrderLinePallets(l, l.remaining_units))}</td>`;
         html += `<td><span class="so-badge ${lineStatusClass}">${escHtml(l.line_status || 'pending')}</span></td>`;
         html += '</tr>';
       }
