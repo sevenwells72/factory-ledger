@@ -4,7 +4,8 @@ Covers the three cases from proposal v2 §4a:
   1. Positive — ship_commit returns 503 with diagnostics; READONLY_TRIPWIRE
      log line emitted with expected JSON shape.
   2. Negative (regression guard) — a non-readonly RuntimeError in ship_commit
-     follows the per-route 500 path, body is exactly {"error": "boom"}, and
+     follows the per-route 500 path ({"error": "boom"} + the
+     write_response_envelope keys, but NO error_code/diagnostics), and
      NO READONLY_TRIPWIRE log line is emitted. Guards against future removal
      of the `if _is_readonly_error(e): raise` line silently routing every
      error through the global handler.
@@ -12,6 +13,14 @@ Covers the three cases from proposal v2 §4a:
      (commit-branch, lot rename PATCH, admin BOM POST, dashboard notes POST)
      all return 503 with READONLY_TRANSACTION error_code via the global
      handler. Proves the wiring is per-route, not just on ship.
+  4. Recovery plumbing — poisoned-connection discard and the opt-in
+     idempotent-write retry.
+  5. Coexistence with write_response_envelope — a real psycopg2 readonly
+     error is handled by the psycopg2.Error registration (ExceptionMiddleware,
+     inside the middleware stack), so the envelope post-processes the 503 and
+     adds error_detail. Cases 1/3 use a plain-Exception stand-in and therefore
+     exercise the bare-Exception safety net (ServerErrorMiddleware, outside
+     the envelope), which replicates error_detail itself.
 """
 
 from __future__ import annotations
@@ -21,6 +30,8 @@ import logging
 from contextlib import contextmanager
 
 import httpx
+import psycopg2
+import psycopg2.errors
 import pytest
 
 try:
@@ -238,8 +249,11 @@ async def test_generic_runtimeerror_in_ship_commit_uses_per_route_500(
     RuntimeError) would bubble to the global handler, which returns
     `{"success": False, "error_code": "INTERNAL_SERVER_ERROR", "error": "boom"}`.
 
-    This test asserts the OLD per-route shape exactly, so removal of the
-    re-raise line would fail the equality assertion below.
+    The per-route 500 is `{"error": "boom"}`, which write_response_envelope
+    then extends with `success: false` and `error_detail` — so the body can
+    no longer be asserted with bare equality. The discriminator between the
+    per-route path and the global handler is `error_code`: only the global
+    handler sets it.
     """
     monkeypatch.setattr(
         main, "get_db_connection", _make_raising_get_db_connection(RuntimeError("boom"))
@@ -252,15 +266,19 @@ async def test_generic_runtimeerror_in_ship_commit_uses_per_route_500(
             headers={"X-API-Key": api_key},
         )
 
-    # Per-route legacy shape — no `success`, `error_code`, or `diagnostics`
+    # Per-route shape (+ envelope) — no `error_code` or `diagnostics`
     assert resp.status_code == 500, resp.text
     body = resp.json()
-    assert body == {"error": "boom"}, (
-        "Body must match the legacy per-route shape exactly. If you see "
-        "{'success': False, 'error_code': 'INTERNAL_SERVER_ERROR', ...} here, "
-        "someone removed the `if _is_readonly_error(e): raise` line from "
-        "ship_order's commit-branch except. Restore it."
+    assert body["error"] == "boom"
+    assert body["success"] is False  # added by write_response_envelope
+    assert body["error_detail"] == {"code": "HTTP_500", "message": "boom"}
+    assert "error_code" not in body, (
+        "error_code is only set by the global handler. If you see "
+        "'INTERNAL_SERVER_ERROR' here, someone removed the "
+        "`if _is_readonly_error(e): raise` line from ship_order's "
+        "commit-branch except. Restore it."
     )
+    assert "diagnostics" not in body
 
     # Global tripwire must NOT have fired
     tripwire = [r for r in caplog.records if r.getMessage().startswith("READONLY_TRIPWIRE: ")]
@@ -369,3 +387,59 @@ def test_idempotent_write_retries_once_after_fresh_writable_check(monkeypatch):
     assert retry_conn.rollbacks == 1  # rollback after the pre-retry writable SELECT
     assert any("transaction_read_only" in sql for sql in retry_conn.executed)
     assert retry_conn.executed[-1] == "INSERT INTO safe_update VALUES (1)"
+
+
+# ─── Case 5: coexistence — envelope post-processes the readonly 503 ──────────
+
+@pytest.mark.anyio
+async def test_readonly_503_is_wrapped_by_write_response_envelope(
+    client, api_key, stub_diagnostics, monkeypatch, caplog
+):
+    """A real psycopg2 readonly error (what production actually raises) must be
+    handled by the psycopg2.Error registration, which runs in
+    ExceptionMiddleware — INSIDE write_response_envelope — so the envelope
+    post-processes the handler's 503.
+
+    The proof that the envelope did the wrapping (and not the bare-Exception
+    safety net, which sits outside the envelope) is error_detail.code:
+    the envelope derives "HTTP_503" from the payload's `error` string, while
+    the safety net replicates error_detail from its own error_code and would
+    yield "READONLY_TRANSACTION"."""
+    exc = psycopg2.errors.ReadOnlySqlTransaction(READONLY_ERROR_STR)
+    monkeypatch.setattr(
+        main, "get_db_connection", _make_raising_get_db_connection(exc)
+    )
+
+    with caplog.at_level(logging.ERROR, logger="main"):
+        resp = await client.post(
+            "/sales/orders/1/ship",
+            json={"mode": "commit", "ship_all": True},
+            headers={"X-API-Key": api_key},
+        )
+
+    # Tripwire receipt — the handler's contribution
+    assert resp.status_code == 503, resp.text
+    body = resp.json()
+    assert body["success"] is False
+    assert body["error_code"] == "READONLY_TRANSACTION"
+    assert body["retryable"] is True
+    assert body["diagnostics"] == stub_diagnostics
+    assert READONLY_ERROR_STR in body["error"]
+
+    # Envelope contract — the middleware's contribution
+    assert body["error_detail"]["code"] == "HTTP_503", (
+        "error_detail.code should be HTTP_503 (set by write_response_envelope "
+        "wrapping the ExceptionMiddleware-level psycopg2.Error handler). "
+        "READONLY_TRANSACTION here means the error was handled by the "
+        "bare-Exception safety net in ServerErrorMiddleware instead — i.e. "
+        "the psycopg2.Error registration is gone and the envelope no longer "
+        "post-processes readonly 503s."
+    )
+    assert READONLY_ERROR_STR in body["error_detail"]["message"]
+
+    # Tripwire log still fires exactly once on this path
+    tripwire = [r for r in caplog.records if r.getMessage().startswith("READONLY_TRIPWIRE: ")]
+    assert len(tripwire) == 1
+    payload = json.loads(tripwire[0].getMessage()[len("READONLY_TRIPWIRE: "):])
+    assert payload["path"] == "/sales/orders/1/ship"
+    assert payload["method"] == "POST"

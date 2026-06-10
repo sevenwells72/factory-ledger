@@ -148,10 +148,19 @@ async def write_response_envelope(request, call_next):
 # `except Exception` would otherwise swallow a read-only error have a
 # `if _is_readonly_error(e): raise` line that lets the error bubble here
 # so we can run the PR #6 probe and leave a structured receipt.
+#
+# Registration placement (Starlette): a handler keyed on bare `Exception`
+# is hoisted into ServerErrorMiddleware — the OUTERMOST layer, beyond
+# write_response_envelope — so its responses skip the envelope. Handlers
+# keyed on a specific class run in ExceptionMiddleware, the INNERMOST
+# layer, whose output the envelope post-processes. Readonly failures are
+# psycopg2 errors, so the psycopg2.Error registration below is the
+# production path (503 + diagnostics, envelope adds error_detail); the
+# bare-Exception registration is the safety net for non-psycopg2 escapes
+# and adds error_detail itself because the envelope never sees its output.
 # ═══════════════════════════════════════════════════════════════
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+async def _exception_receipt_response(request: Request, exc: Exception) -> JSONResponse:
     if _is_readonly_error(exc):
         diagnostics = _capture_readonly_diagnostics()
         logger.error(
@@ -182,6 +191,31 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"success": False, "error_code": "INTERNAL_SERVER_ERROR", "error": str(exc)},
     )
+
+
+@app.exception_handler(psycopg2.Error)
+async def db_exception_handler(request: Request, exc: Exception):
+    # Runs in ExceptionMiddleware (innermost): write_response_envelope
+    # post-processes this response, adding error_detail {code, message}.
+    return await _exception_receipt_response(request, exc)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # Runs in ServerErrorMiddleware (outermost): the envelope never sees
+    # this response, so replicate its error_detail contract here. Uses the
+    # receipt's own error_code (vs the envelope's HTTP_<status>), which also
+    # lets tests tell the two paths apart.
+    response = await _exception_receipt_response(request, exc)
+    payload = json.loads(bytes(response.body))
+    payload.setdefault(
+        "error_detail",
+        {
+            "code": payload.get("error_code") or f"HTTP_{response.status_code}",
+            "message": payload.get("message") or payload.get("error") or "Request failed",
+        },
+    )
+    return JSONResponse(status_code=response.status_code, content=payload)
 
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
