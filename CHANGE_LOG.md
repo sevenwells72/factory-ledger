@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-06-09 15:39 — Unified void semantics: posted-only balance math, void no longer posts reversals
+- **File(s) changed:** `main.py`, `tests/test_void_semantics.py`, `scripts/cleanup_void_reversals.sh`, `VOID_SEMANTICS_RUNBOOK.md`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `FACTORY_LEDGER_CHANGELOG.md`, `.gitignore`
+- **What changed:** Added `POSTED_LINES` subquery constant + `lot_on_hand()` helper as the single source of truth for balance math; all ~50 balance/on-hand/availability queries (inventory, lots, ship/make/pack/adjust availability, sales-order ship, dashboard panels, production requirements, day summary, planner loaders, audit checks, trace on-hand scalars, lot timeline) now read transaction lines through a `status='posted'` filter. Reworked `POST /void/{id}`: flips status to 'voided' with optional `{"reason"}` body appended to notes, no reversal transaction inserted; response keeps `reversal_transaction_id`/`reversal_lines` keys (now always null/empty) for backward compatibility. Added 4 tests (void restores balance with no new row; all balance endpoints agree with voided rows present; lot-582 regression pattern; double-void fails cleanly). Added post-deploy cleanup script for the 12 historical reversal transactions (470, 864, 932–941) with expected-balance verification, plus runbook with deploy-timing warnings. Floor GPT schema/instructions prose updated to stop describing reversals (contract/keys unchanged, 21 ops; openapi-gpt-v3.yaml untouched at 30 ops). No schema migration needed.
+- **Why:** The old void endpoint marked the original voided AND posted a reversal, while some balance queries counted voided lines and others filtered posted — so views disagreed by exactly the voided amounts (lots 582/293/612). Branch `fix/void-semantics`; NOT deployed.
+
+---
+
 ## 2026-06-08 15:32 — Bumped dashboard asset cache versions for SO Inventory UI
 - **File(s) changed:** `dashboard/index.html`, `CHANGE_LOG.md`
 - **What changed:** Updated dashboard asset query strings to `dashboard.css?v=5` and `dashboard.js?v=7` so browsers fetch the new Sales Order Inventory UI after deploy.

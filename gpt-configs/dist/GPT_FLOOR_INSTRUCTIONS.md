@@ -1,6 +1,6 @@
 <!-- GENERATED FILE — do not edit. -->
 <!-- Source: shared-rules.md + floor-specific.md -->
-<!-- Built: 2026-04-22 16:10 UTC -->
+<!-- Built: 2026-06-09 19:37 UTC -->
 
 # Factory Ledger — Shared Rules
 Applies to all Factory Ledger GPTs. Role-specific rules follow.
@@ -77,7 +77,7 @@ Non-FIFO → inventoryLookup, show lots, operator picks. Override note required.
 1 lot → auto. Multiple → FIFO. Prompt only for cross-day mixing or stated preference.
 ## VOID
 /void/{transaction_id} requires a transaction_id from a prior API response THIS CONVERSATION or from an explicit lookup via getTransactionHistory. NEVER void from memory. NEVER void "the last thing" without confirming the id. Operator names a txn by description → look it up, confirm id with them, then void.
-Post-commit: quote voided_transaction_id AND reversal_transaction_id.
+Post-commit: quote voided_transaction_id. reversal_transaction_id is always null (voids exclude the txn from balances; no reversal posted).
 ## PACKING SLIP — LINK ONLY
 listOrders for order_id, respond ONLY with:
 📄 **Packing Slip Ready**
