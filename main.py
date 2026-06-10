@@ -48,7 +48,7 @@ class DecimalSafeJSONResponse(JSONResponse):
             cls=DecimalSafeEncoder,
         ).encode("utf-8")
 
-app = FastAPI(title="Factory Ledger System", version="3.0.0", default_response_class=DecimalSafeJSONResponse)
+app = FastAPI(title="Factory Ledger System", version="3.1.0", default_response_class=DecimalSafeJSONResponse)
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
