@@ -56,6 +56,13 @@
 
 ---
 
+## 2026-05-28 13:30 — Idempotency key plan (design artifact, no implementation)
+- **File(s) changed:** `IDEMPOTENCY_KEY_PLAN.md` (new)
+- **What changed:** Created design document covering idempotency keys for ship, make, pack, adjust, and ship_order commit endpoints. Covers: what makes each request uniquely identifiable, shared `idempotency_keys` table schema, client-supplied `Idempotency-Key` header contract, replay detection flow, per-endpoint write inventory (what gets skipped on replay), no-double-write test plans, implementation sequence, and open questions.
+- **Why:** Layer 3 of the readonly-transaction incident fix stack. Layers 1 (tripwire) and 2 (connection discard) are committed; this plan makes client retry safe by detecting and refusing duplicate writes.
+
+---
+
 ## 2026-05-28 13:05 — Readonly connection discard + safe idempotent-write recovery path
 - **File(s) changed:** `main.py`, `tests/test_readonly_tripwire.py`, `FACTORY_LEDGER_CHANGELOG.md` (row #30)
 - **What changed:** `get_db_connection()` now detects readonly errors and calls `putconn(conn, close=True)` to evict the poisoned connection from the psycopg2 pool instead of returning it. New helpers: `_discard_readonly_connection` (rollback + close), `_verify_connection_writable` (SELECT checks `transaction_read_only` + `pg_is_in_recovery()`), `_run_db_write` (conn lifecycle with discard-on-readonly), `run_idempotent_write_with_readonly_retry` (retry once after discarding bad conn + verifying fresh conn is writable). `PATCH /customers/{customer_id}` rewired through the retry helper as proof-of-concept. Ship/make/pack/adjust intentionally NOT wired — they fail loud with 503 via the global handler (#29). Two new tests added to `tests/test_readonly_tripwire.py`: discard test verifies `putconn(close=True)`, retry test verifies one retry on fresh writable connection. All 8 tests pass (6 existing + 2 new).
