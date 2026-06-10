@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-06-10 13:06 — Fixed FACTORY_LEDGER_CHANGELOG row-31 placement
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 31 (write-response contract deploy) had been appended at the end of the file, below the "Permanent Rules" section, instead of in the main change table; moved it to its correct position directly after row 30. Content unchanged.
+- **Why:** Keep the regression-guard table scannable — a row outside the table is invisible to the "Breaks If Reverted" pre-change check.
+
+---
+
 ## 2026-06-10 13:02 — Bumped app version 3.0.0 → 3.1.0 (deploy probe)
 - **File(s) changed:** `main.py`
 - **What changed:** FastAPI app version string bumped to "3.1.0" (surfaces as `info.version` in /openapi.json).
