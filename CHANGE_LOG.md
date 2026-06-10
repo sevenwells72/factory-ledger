@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-06-10 14:48 — Bump app version 3.1.0→3.1.1 (deploy probe for notes-auth deploy)
+- **File(s) changed:** `main.py`, `CHANGE_LOG.md`
+- **What changed:** FastAPI `version` string 3.1.0→3.1.1 (main.py:51), no functional change.
+- **Why:** Deploy probe — `/openapi.json` `info.version` flipping to 3.1.1 positively confirms the Railway build serving the notes-auth change, same protocol as the 3.1.0 tripwire deploy.
+
+---
+
+## 2026-06-10 14:26 — Required API key on the 4 notes write endpoints (branch fix/auth-unauthenticated-writes, NOT merged/deployed)
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_notes_auth.py` (new), `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Added the standard `Depends(verify_api_key)` to the only four mutating routes without auth — `POST /dashboard/api/notes`, `PUT /dashboard/api/notes/{note_id}`, `DELETE /dashboard/api/notes/{note_id}`, `PUT /dashboard/api/notes/{note_id}/toggle` (missing key → 401, wrong key → 403; same mechanism as every other write route, no new auth scheme). The four notes fetches in dashboard.js now send `X-API-Key` via the existing in-file `SALES_API_KEY` const; index.html cache-buster bumped `dashboard.js?v=8`→`v=9` (v=8 was already taken by commit 1ff7efa, so not v=7→v=8 as originally planned). Read endpoints (incl. `GET /dashboard/api/notes`) untouched; no OpenAPI changes (gpt-v3 stays at 30 ops). Tests: new `tests/test_notes_auth.py` with 8 tests (401 without key on all four, 403 wrong key, rejected create leaves no row, with-key happy path per endpoint, with-key 404 domain errors preserved); confirmed first that the existing tripwire/contract tests pass unmodified under the new requirement (they already send the key — 43/43 before adding the new file); full suite 51/51 green against local TEST_DATABASE_URL. **Plainly: this change adds consistency, not security — the API key remains published in dashboard.js (served to anyone by Netlify). Its purpose is to make a future key rotation actually cover the full write surface; until that rotation, anyone who reads the dashboard source can still call every endpoint.** **CD race note:** one merge to main triggers both Railway (API) and Netlify (dashboard); if Railway finishes first there is a brief window where the live notes UI 401s on writes until Netlify serves the new JS. Expected, self-healing, no action needed.
+- **Why:** June 9 audit's unauthenticated-write exposure: the notes CRUD endpoints were the only mutating routes callable with no key, so a key rotation alone would have left a keyless write door open. Caller analysis showed the four dashboard.js fetches are the only callers (no GPT schemas, no scripts), making this the complete blast radius.
+
+---
+
 ## 2026-06-10 13:56 — Housekeeping: gitignore .DS_Store, untrack stray copy; removed merged tripwire branch/worktree
 - **File(s) changed:** `.gitignore`, `.DS_Store` (untracked, file kept on disk), `CHANGE_LOG.md`
 - **What changed:** Added `.DS_Store` to `.gitignore` and ran `git rm --cached .DS_Store` to stop tracking the stray root copy (the only tracked one). Separately (no file change): removed the now-merged `fix/readonly-tripwire-global-handler` worktree and deleted the branch local (`git branch -d`, merge-safe) + remote.
