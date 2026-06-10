@@ -10,3 +10,6 @@
 # Local test venv and Python caches
 .venv-test/
 __pycache__/
+
+# macOS Finder metadata
+.DS_Store

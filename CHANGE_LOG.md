@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-06-10 13:56 — Housekeeping: gitignore .DS_Store, untrack stray copy; removed merged tripwire branch/worktree
+- **File(s) changed:** `.gitignore`, `.DS_Store` (untracked, file kept on disk), `CHANGE_LOG.md`
+- **What changed:** Added `.DS_Store` to `.gitignore` and ran `git rm --cached .DS_Store` to stop tracking the stray root copy (the only tracked one). Separately (no file change): removed the now-merged `fix/readonly-tripwire-global-handler` worktree and deleted the branch local (`git branch -d`, merge-safe) + remote.
+- **Why:** Post-deploy cleanup of the readonly-tripwire work; keep Finder metadata out of the repo.
+
+---
+
 ## 2026-06-10 13:30 — Deployed global readonly tripwire + recovery (merged fix/readonly-tripwire-global-handler to main)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md` (plus git: pushed branch `fix/readonly-tripwire-global-handler` to origin, merged into `main` as `--no-ff` merge commit `0777df7`, pushed → Railway deploy)
 - **What changed:** Deployed the global readonly tripwire (503 + diagnostics + `READONLY_TRIPWIRE` log on every mutating route), the poisoned-connection discard / idempotent-write recovery path, and the rework that composes the tripwire handler with the live `write_response_envelope` (a `psycopg2.Error` handler runs inside ExceptionMiddleware so the envelope post-processes its 503 and adds `error_detail`; the bare-`Exception` handler stays as an outermost safety net). Deploy probe: app version bumped 3.0.0→3.1.0; `/openapi.json` `info.version` flipped to "3.1.0" at 13:24:34 ET (was 3.0.0 through 13:24:18), confirming the new build is serving. Post-deploy smoke checks, all green:
