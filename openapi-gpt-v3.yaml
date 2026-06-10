@@ -16,8 +16,19 @@ components:
   schemas:
     ErrorResponse:
       type: object
-      description: "Structured 4xx error. GPT surfaces detail.suggestions to the operator."
+      description: "Structured 4xx error. GPT surfaces detail.suggestions to the operator. All write failures also carry success: false and error_detail {code, message}."
       properties:
+        success:
+          type: boolean
+          description: "Always false on error responses."
+        error_detail:
+          type: object
+          description: "Uniform structured error: code (stable machine code or HTTP_<status>) and message."
+          properties:
+            code:
+              type: string
+            message:
+              type: string
         detail:
           type: object
           properties:
@@ -358,7 +369,7 @@ paths:
       responses:
         '200':
           description: |
-            Each item: input, match {id, name, odoo_code} or null, match_tier (exact/keyword/trigram/null), confidence (high/medium/low/none).
+            success: true, plus each item: input, match {id, name, odoo_code} or null, match_tier (exact/keyword/trigram/null), confidence (high/medium/low/none).
             Multiple matches -> top in 'match', rest in 'alternatives'. Summary has total/resolved/unresolved.
   /bom/products:
     get:
@@ -660,7 +671,7 @@ paths:
               $ref: '#/components/schemas/CustomerCreate'
       responses:
         '200':
-          description: Created customer
+          description: "Created customer: success (true), customer_id, name, message"
   /customers/search:
     get:
       operationId: searchCustomers
@@ -734,7 +745,7 @@ paths:
               $ref: '#/components/schemas/OrderCreate'
       responses:
         '200':
-          description: Created order
+          description: "Created order: success (true), order_id, order_number, status, total_lb, lines[] each with line_id, warnings[], message"
         '400':
           description: "Validation error (e.g. CASE_WEIGHT_REQUIRED when ordering in cases/bags/boxes with no default case size)"
           content:
@@ -791,7 +802,7 @@ paths:
               $ref: '#/components/schemas/OrderHeaderUpdate'
       responses:
         '200':
-          description: Updated order
+          description: "Updated order: success (true), order_id, order_number, status, customer_id, customer_name, requested_ship_date, notes, fields_updated[], message"
         '400':
           description: "NO_FIELDS_TO_UPDATE or ORDER_HEADER_LOCKED (status past 'confirmed')"
           content:
@@ -823,7 +834,7 @@ paths:
               $ref: '#/components/schemas/OrderStatusUpdate'
       responses:
         '200':
-          description: Updated order status
+          description: "Updated order status: success (true), order_id, order_number, previous_status, status, message"
   /sales/orders/{order_id}/lines:
     post:
       operationId: addOrderLines
@@ -843,7 +854,7 @@ paths:
               $ref: '#/components/schemas/AddOrderLines'
       responses:
         '200':
-          description: Added lines
+          description: "Added lines: success (true), order_id, order_number, lines_added[] each with line_id, warnings[], message"
         '400':
           description: "ORDER_LINES_LOCKED (shipped/invoiced/cancelled) or CASE_WEIGHT_REQUIRED"
           content:
@@ -880,7 +891,7 @@ paths:
             type: integer
       responses:
         '200':
-          description: Cancelled line
+          description: "Cancelled line: success (true), order_id, line_id, line_status ('cancelled'), message"
   /sales/orders/{order_id}/lines/{line_id}/update:
     patch:
       operationId: updateOrderLine
@@ -907,7 +918,7 @@ paths:
             type: number
       responses:
         '200':
-          description: "Updated line with case_size_lb and unit_count"
+          description: "Updated line: success (true), line_id, quantity_lb, unit_price, case_size_lb, unit_count"
         '400':
           description: "NO_FIELDS_TO_UPDATE"
           content:

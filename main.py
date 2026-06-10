@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path
+from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
@@ -57,6 +57,88 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ═══════════════════════════════════════════════════════════════
+# UNIFORM WRITE-RESPONSE CONTRACT (additive envelope)
+# Every JSON response to a mutating request carries `success: bool`;
+# failures additionally carry `error_detail: {code, message}`. Existing
+# keys are never removed, renamed, or overwritten — endpoints that already
+# set `success` (the 9 core inventory ops) pass through untouched.
+# Registered AFTER CORSMiddleware, so it is the OUTERMOST middleware: it
+# wraps the output of every route, exception handler, and any middleware
+# registered earlier (CORS headers are already on the response it rebuilds).
+# ═══════════════════════════════════════════════════════════════
+
+_WRITE_ENVELOPE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+def _structured_error(payload: dict, status_code: int) -> dict:
+    """Derive {code, message} from whatever error shape the response used:
+    dict detail (error_code/message), string detail, validation-error list,
+    or the legacy {"error": str} body."""
+    detail = payload.get("detail")
+    if isinstance(detail, dict):
+        return {
+            "code": detail.get("error_code") or f"HTTP_{status_code}",
+            "message": detail.get("message") or str(detail),
+        }
+    if isinstance(detail, list):  # FastAPI request-validation errors (422)
+        msgs = "; ".join(
+            str(item.get("msg", item)) if isinstance(item, dict) else str(item)
+            for item in detail
+        )
+        return {"code": "VALIDATION_ERROR", "message": msgs or "Validation error"}
+    if isinstance(detail, str):
+        return {"code": f"HTTP_{status_code}", "message": detail}
+    if isinstance(payload.get("error"), str):
+        return {"code": f"HTTP_{status_code}", "message": payload["error"]}
+    return {"code": f"HTTP_{status_code}", "message": "Request failed"}
+
+
+@app.middleware("http")
+async def write_response_envelope(request, call_next):
+    response = await call_next(request)
+    if request.method not in _WRITE_ENVELOPE_METHODS:
+        return response
+    if "application/json" not in (response.headers.get("content-type") or ""):
+        return response
+
+    body = b""
+    async for chunk in response.body_iterator:
+        body += chunk
+
+    headers = dict(response.headers)
+    headers.pop("content-length", None)
+    headers.pop("content-type", None)
+
+    try:
+        payload = json.loads(body)
+    except Exception:
+        payload = None
+    if not isinstance(payload, dict):
+        # Non-object JSON (lists, scalars) — pass through unchanged.
+        return Response(
+            content=body,
+            status_code=response.status_code,
+            headers=headers,
+            media_type="application/json",
+        )
+
+    if response.status_code < 400:
+        payload.setdefault("success", True)
+    else:
+        payload.setdefault("success", False)
+        payload.setdefault("error_detail", _structured_error(payload, response.status_code))
+
+    return Response(
+        content=json.dumps(
+            payload, ensure_ascii=False, allow_nan=False,
+            separators=(",", ":"), cls=DecimalSafeEncoder,
+        ).encode("utf-8"),
+        status_code=response.status_code,
+        headers=headers,
+        media_type="application/json",
+    )
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
@@ -4412,21 +4494,28 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(f"""
+                # Postgres forbids FOR UPDATE with GROUP BY (same bug fixed in
+                # the ship paths in 89e15ae): lock the lot row first, then
+                # aggregate on-hand in a separate query.
+                cur.execute("""
                     SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                           COALESCE(p.label_type, 'house') as label_type,
-                           COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
+                           COALESCE(p.label_type, 'house') as label_type
                     FROM lots l
                     JOIN products p ON p.id = l.product_id
-                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                     WHERE l.id = %s
-                    GROUP BY l.id, p.id
                     FOR UPDATE OF l
                 """, (lot_id,))
                 lot = cur.fetchone()
 
                 if not lot:
                     raise HTTPException(status_code=404, detail=f"Lot ID {lot_id} not found")
+
+                cur.execute(f"""
+                    SELECT COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
+                    FROM {POSTED_LINES} tl
+                    WHERE tl.lot_id = %s
+                """, (lot_id,))
+                lot['quantity_on_hand'] = cur.fetchone()['quantity_on_hand']
 
                 if lot['product_id'] == req.to_product_id:
                     return JSONResponse(status_code=400, content={
@@ -4478,15 +4567,19 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     UPDATE transaction_lines SET product_id = %s WHERE lot_id = %s
                 """, (req.to_product_id, lot_id))
                 
+                reassignment_id = None
                 try:
                     cur.execute("""
                         INSERT INTO lot_reassignments
                         (lot_id, lot_code, from_product_id, from_product_name, to_product_id, to_product_name,
                          quantity_affected, uom, reason_code, reason_notes, reason_notes_es, reassigned_by)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id
                     """, (lot_id, lot['lot_code'], lot['product_id'], lot['product_name'],
                           req.to_product_id, to_product['name'], float(lot['quantity_on_hand']), 'lb',
                           req.reason_code, req.reason_notes, req.reason_notes_es, req.performed_by))
+                    _hist = cur.fetchone()
+                    reassignment_id = _hist['id'] if _hist else None
                 except Exception as e:
                     logger.warning(f"Failed to record lot reassignment history: {e}")
 
@@ -4495,6 +4588,7 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                 response = {
                     "success": True,
                     "lot_id": lot_id,
+                    "reassignment_id": reassignment_id,
                     "lot_code": lot['lot_code'],
                     "from_product": lot['product_name'],
                     "to_product": to_product['name'],
@@ -5590,6 +5684,7 @@ def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderSta
                 updated = cur.fetchone()
                 logger.info(f"Order {updated['order_number']} status: {current} → {req.status}")
                 return {
+                    "order_id": order_id,
                     "order_number": updated['order_number'],
                     "previous_status": current,
                     "status": updated['status'],
@@ -5801,7 +5896,7 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
                         "case_weight_lb": effective_case_weight
                     })
 
-                response = {"order_number": row['order_number'], "lines_added": results, "message": f"Added {len(results)} line(s) to {row['order_number']}"}
+                response = {"order_id": order_id, "order_number": row['order_number'], "lines_added": results, "message": f"Added {len(results)} line(s) to {row['order_number']}"}
                 if warnings:
                     response["warnings"] = warnings
                 return response
@@ -5826,7 +5921,7 @@ def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = 
                 row = cur.fetchone()
                 if not row:
                     raise HTTPException(404, "Line not found or already fulfilled")
-                return {"line_id": line_id, "line_status": "cancelled", "message": "Line cancelled"}
+                return {"order_id": order_id, "line_id": line_id, "line_status": "cancelled", "message": "Line cancelled"}
     except HTTPException:
         raise
     except Exception as e:

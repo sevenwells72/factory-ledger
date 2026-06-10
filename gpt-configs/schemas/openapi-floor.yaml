@@ -618,9 +618,9 @@ paths:
               $ref: '#/components/schemas/OrderStatusUpdate'
       responses:
         '200':
-          description: "Updated order status with previous_status and new status."
+          description: "Updated order status: success (true), order_id, order_number, previous_status, status, message."
         '400':
-          description: "Invalid transition or attempted to manually set shipped/partial_ship."
+          description: "Invalid transition or attempted to manually set shipped/partial_ship. Body carries success: false and error_detail {code, message}."
   /sales/orders/{order_id}/ship:
     post:
       operationId: shipOrder
