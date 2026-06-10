@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-06-10 15:05 — Deployed notes-write auth (merged fix/auth-unauthenticated-writes to main)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md` (plus git: pushed branch `fix/auth-unauthenticated-writes` da9ad73 to origin, merged into `main` as `--no-ff` merge commit `60c6f62`, pushed 14:31:58 ET → Railway + Netlify deploys)
+- **What changed:** Deployed the API-key requirement on the 4 notes write endpoints plus the paired dashboard.js/key + index.html v=9 changes. Deploy probe positive: `/openapi.json` `info.version` flipped to "3.1.1" at 14:33:10 ET. CD race resolved benignly — Netlify served v=9 at 14:32:29, BEFORE Railway went live, so new JS sent the key to the old API for ~40s (harmless); notes UI had zero downtime. Post-deploy smoke checks all green, replayable (`BASE=https://fastapi-production-b73a.up.railway.app`, key redacted as `<key>`):
+  - (a) `curl -X POST $BASE/dashboard/api/notes -H "Content-Type: application/json" -d '{"category":"note","title":"x"}'` → HTTP 401 `{"detail":"API key required","success":false,"error_detail":{"code":"HTTP_401","message":"API key required"}}`
+  - (b) `curl -X POST $BASE/dashboard/api/notes -H "X-API-Key: <key>" -H "Content-Type: application/json" -d '{"category":"note","title":"auth smoke - delete me"}'` → id 21 + `success:true`; `curl -X DELETE $BASE/dashboard/api/notes/21 -H "X-API-Key: <key>"` → `{"deleted":true,"id":21,"success":true}`; `curl $BASE/dashboard/api/notes` → 0 matches for id 21/title (18 notes total)
+  - (c) `curl -X DELETE $BASE/dashboard/api/notes/999999` (no key) → HTTP 401 same envelope — auth fires before the domain 404
+  - (d) `curl -X PATCH $BASE/sales/orders/999999/status -H "X-API-Key: <key>" -H "Content-Type: application/json" -d '{"status":"confirmed"}'` → HTTP 404 `{"detail":"Order #999999 not found","success":false,"error_detail":{"code":"HTTP_404","message":"Order #999999 not found"}}` — byte-shape unchanged from the 12:34 deploy record
+  - (e) `railway logs --service FastAPI --since 30m` (both `-d` deploy and runtime streams): clean startup through "Application startup complete", `grep -c READONLY_TRIPWIRE` → 0, `grep -ciE 'error|exception|traceback'` → 0; access log shows exactly the smoke-check requests with expected statuses
+  - Netlify verified directly: live index.html references `dashboard.js?v=9`; live dashboard.js shows all four notes fetches sending `X-API-Key`
+  - Marked FACTORY_LEDGER_CHANGELOG.md row 32 DEPLOYED (Breaks-If-Reverted intact).
+- **Why:** Deploy the June 9 audit's unauthenticated-write fix per the approved plan (consistency, not security — key still published in dashboard.js; this closes the keyless side door so a future rotation covers the full write surface).
+
+---
+
 ## 2026-06-10 14:48 — Bump app version 3.1.0→3.1.1 (deploy probe for notes-auth deploy)
 - **File(s) changed:** `main.py`, `CHANGE_LOG.md`
 - **What changed:** FastAPI `version` string 3.1.0→3.1.1 (main.py:51), no functional change.
