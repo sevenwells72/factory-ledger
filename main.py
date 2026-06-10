@@ -7842,8 +7842,8 @@ def dashboard_api_notes(
 
 
 @app.post("/dashboard/api/notes")
-def dashboard_api_notes_create(req: NoteCreate):
-    """Create a note/todo/reminder. NO AUTH."""
+def dashboard_api_notes_create(req: NoteCreate, _: bool = Depends(verify_api_key)):
+    """Create a note/todo/reminder."""
     try:
         with get_transaction() as cur:
             due = None
@@ -7867,8 +7867,8 @@ def dashboard_api_notes_create(req: NoteCreate):
 
 
 @app.put("/dashboard/api/notes/{note_id}")
-def dashboard_api_notes_update(note_id: int, req: NoteUpdate):
-    """Update a note/todo/reminder. NO AUTH."""
+def dashboard_api_notes_update(note_id: int, req: NoteUpdate, _: bool = Depends(verify_api_key)):
+    """Update a note/todo/reminder."""
     try:
         with get_transaction() as cur:
             # Build SET clause dynamically from provided fields
@@ -7910,8 +7910,8 @@ def dashboard_api_notes_update(note_id: int, req: NoteUpdate):
 
 
 @app.delete("/dashboard/api/notes/{note_id}")
-def dashboard_api_notes_delete(note_id: int):
-    """Delete a note/todo/reminder. NO AUTH."""
+def dashboard_api_notes_delete(note_id: int, _: bool = Depends(verify_api_key)):
+    """Delete a note/todo/reminder."""
     try:
         with get_transaction() as cur:
             cur.execute("DELETE FROM notes WHERE id = %s RETURNING id", (note_id,))
@@ -7926,8 +7926,8 @@ def dashboard_api_notes_delete(note_id: int):
 
 
 @app.put("/dashboard/api/notes/{note_id}/toggle")
-def dashboard_api_notes_toggle(note_id: int):
-    """Toggle a note's status between open and done. NO AUTH."""
+def dashboard_api_notes_toggle(note_id: int, _: bool = Depends(verify_api_key)):
+    """Toggle a note's status between open and done."""
     try:
         with get_transaction() as cur:
             cur.execute("SELECT status FROM notes WHERE id = %s", (note_id,))

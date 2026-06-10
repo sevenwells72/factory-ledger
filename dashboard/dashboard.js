@@ -1173,7 +1173,10 @@
       cb.addEventListener('change', async () => {
         const id = cb.dataset.id;
         try {
-          await fetch(API_BASE + '/notes/' + id + '/toggle', { method: 'PUT' });
+          await fetch(API_BASE + '/notes/' + id + '/toggle', {
+            method: 'PUT',
+            headers: { 'X-API-Key': SALES_API_KEY },
+          });
           refreshNotes();
         } catch (err) {
           showError('notes-error', 'Toggle failed: ' + err.message);
@@ -1198,7 +1201,10 @@
         const id = btn.dataset.id;
         if (!confirm('Delete this item?')) return;
         try {
-          await fetch(API_BASE + '/notes/' + id, { method: 'DELETE' });
+          await fetch(API_BASE + '/notes/' + id, {
+            method: 'DELETE',
+            headers: { 'X-API-Key': SALES_API_KEY },
+          });
           refreshNotes();
         } catch (err) {
           showError('notes-error', 'Delete failed: ' + err.message);
@@ -1252,7 +1258,7 @@
         // Update
         await fetch(API_BASE + '/notes/' + state.editingNoteId, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': SALES_API_KEY },
           body: JSON.stringify(payload),
         });
       } else {
@@ -1260,7 +1266,7 @@
         payload.category = category;
         await fetch(API_BASE + '/notes', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': SALES_API_KEY },
           body: JSON.stringify(payload),
         });
       }
