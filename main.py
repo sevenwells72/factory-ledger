@@ -1,8 +1,8 @@
-from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Response
+from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
-from typing import Optional, List, Dict, Union, Literal
+from typing import Optional, List, Dict, Union, Literal, Callable, Any
 import json
 import pathlib
 from datetime import datetime, date, timezone, timedelta
@@ -16,6 +16,7 @@ import os
 import re
 import logging
 import secrets
+import traceback
 import math
 import uuid
 import io
@@ -47,7 +48,7 @@ class DecimalSafeJSONResponse(JSONResponse):
             cls=DecimalSafeEncoder,
         ).encode("utf-8")
 
-app = FastAPI(title="Factory Ledger System", version="3.0.0", default_response_class=DecimalSafeJSONResponse)
+app = FastAPI(title="Factory Ledger System", version="3.1.0", default_response_class=DecimalSafeJSONResponse)
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -139,6 +140,83 @@ async def write_response_envelope(request, call_next):
         headers=headers,
         media_type="application/json",
     )
+
+
+# ═══════════════════════════════════════════════════════════════
+# GLOBAL EXCEPTION HANDLER — uniform JSON envelope + readonly tripwire
+# Fires on exceptions that escape a route. Routes whose per-route
+# `except Exception` would otherwise swallow a read-only error have a
+# `if _is_readonly_error(e): raise` line that lets the error bubble here
+# so we can run the PR #6 probe and leave a structured receipt.
+#
+# Registration placement (Starlette): a handler keyed on bare `Exception`
+# is hoisted into ServerErrorMiddleware — the OUTERMOST layer, beyond
+# write_response_envelope — so its responses skip the envelope. Handlers
+# keyed on a specific class run in ExceptionMiddleware, the INNERMOST
+# layer, whose output the envelope post-processes. Readonly failures are
+# psycopg2 errors, so the psycopg2.Error registration below is the
+# production path (503 + diagnostics, envelope adds error_detail); the
+# bare-Exception registration is the safety net for non-psycopg2 escapes
+# and adds error_detail itself because the envelope never sees its output.
+# ═══════════════════════════════════════════════════════════════
+
+async def _exception_receipt_response(request: Request, exc: Exception) -> JSONResponse:
+    if _is_readonly_error(exc):
+        diagnostics = _capture_readonly_diagnostics()
+        logger.error(
+            "READONLY_TRIPWIRE: "
+            + json.dumps(
+                {"path": request.url.path, "method": request.method,
+                 "error": str(exc), "diagnostics": diagnostics},
+                default=str,
+            )
+        )
+        return JSONResponse(
+            status_code=503,
+            content={
+                "success": False,
+                "error_code": "READONLY_TRANSACTION",
+                "error": str(exc),
+                "diagnostics": diagnostics,
+                "retryable": True,
+                "message": "Database is temporarily read-only (likely Supabase failover). Retry the same request in a few seconds.",
+            },
+        )
+
+    logger.error(
+        f"Unhandled exception on {request.method} {request.url.path}: {exc}\n"
+        + traceback.format_exc()
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"success": False, "error_code": "INTERNAL_SERVER_ERROR", "error": str(exc)},
+    )
+
+
+@app.exception_handler(psycopg2.Error)
+async def db_exception_handler(request: Request, exc: Exception):
+    # Runs in ExceptionMiddleware (innermost): write_response_envelope
+    # post-processes this response, adding error_detail {code, message}.
+    return await _exception_receipt_response(request, exc)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # Runs in ServerErrorMiddleware (outermost): the envelope never sees
+    # this response, so replicate its error_detail contract here. Uses the
+    # receipt's own error_code (vs the envelope's HTTP_<status>), which also
+    # lets tests tell the two paths apart.
+    response = await _exception_receipt_response(request, exc)
+    payload = json.loads(bytes(response.body))
+    payload.setdefault(
+        "error_detail",
+        {
+            "code": payload.get("error_code") or f"HTTP_{response.status_code}",
+            "message": payload.get("message") or payload.get("error") or "Request failed",
+        },
+    )
+    return JSONResponse(status_code=response.status_code, content=payload)
+
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
@@ -593,11 +671,16 @@ def get_db_connection():
     try:
         yield conn
         conn.commit()
-    except Exception:
+    except Exception as exc:
+        if _is_readonly_error(exc):
+            _discard_readonly_connection(conn, "get_db_connection")
+            conn = None
+            raise
         conn.rollback()
         raise
     finally:
-        db_pool.putconn(conn)
+        if conn is not None:
+            db_pool.putconn(conn)
 
 
 @contextmanager
@@ -621,6 +704,83 @@ SELECT
 
 def _is_readonly_error(exc: Exception) -> bool:
     return "read-only transaction" in str(exc).lower()
+
+
+class ReadOnlyRecoveryError(RuntimeError):
+    """Raised when a fresh connection still proves read-only before retry."""
+
+
+READONLY_WRITABLE_CHECK_SQL = """
+SELECT
+  current_setting('transaction_read_only') AS txn_ro,
+  pg_is_in_recovery()                      AS is_replica
+"""
+
+
+def _discard_readonly_connection(conn, context: str):
+    """Remove a known/suspect read-only connection from the psycopg2 pool."""
+    try:
+        conn.rollback()
+    except Exception as rollback_exc:
+        logger.warning(
+            f"READONLY_RECOVERY_ROLLBACK_FAILED: context={context} error={rollback_exc}"
+        )
+    try:
+        db_pool.putconn(conn, close=True)
+        logger.warning(f"READONLY_RECOVERY_DISCARD: context={context} close=True")
+    except Exception as put_exc:
+        logger.error(f"READONLY_RECOVERY_DISCARD_FAILED: context={context} error={put_exc}")
+
+
+def _verify_connection_writable(conn, context: str) -> dict:
+    """Verify a fresh connection is on a writable primary before retrying a write."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(READONLY_WRITABLE_CHECK_SQL)
+        row = dict(cur.fetchone() or {})
+    conn.rollback()
+    txn_ro = str(row.get("txn_ro", "")).lower()
+    is_replica = bool(row.get("is_replica"))
+    if txn_ro in ("on", "true", "1") or is_replica:
+        raise ReadOnlyRecoveryError(
+            f"fresh database connection is still in a read-only transaction; context={context}; "
+            f"txn_ro={row.get('txn_ro')}; is_replica={row.get('is_replica')}"
+        )
+    return row
+
+
+def _run_db_write(operation_name: str, work: Callable[[Any], Any], *, verify_writable: bool = False):
+    conn = db_pool.getconn()
+    try:
+        if verify_writable:
+            state = _verify_connection_writable(conn, operation_name)
+            logger.info(
+                "READONLY_RECOVERY_WRITABLE_CHECK: "
+                + json.dumps({"operation": operation_name, "state": state}, default=str)
+            )
+        result = work(conn)
+        conn.commit()
+        return result
+    except Exception as exc:
+        if _is_readonly_error(exc):
+            _discard_readonly_connection(conn, operation_name)
+            conn = None
+            raise
+        conn.rollback()
+        raise
+    finally:
+        if conn is not None:
+            db_pool.putconn(conn)
+
+
+def run_idempotent_write_with_readonly_retry(operation_name: str, work: Callable[[Any], Any]):
+    """Retry an explicitly safe/idempotent write once after discarding read-only conn."""
+    try:
+        return _run_db_write(operation_name, work)
+    except Exception as exc:
+        if not _is_readonly_error(exc):
+            raise
+        logger.warning(f"READONLY_RECOVERY_RETRY_ONCE: operation={operation_name}")
+        return _run_db_write(operation_name, work, verify_writable=True)
 
 
 def _capture_readonly_diagnostics() -> dict:
@@ -2224,6 +2384,7 @@ def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optio
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Update supplier lot failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -2290,6 +2451,7 @@ def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Lot rename failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -2520,6 +2682,7 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
         except HTTPException:
             raise
         except Exception as e:
+            if _is_readonly_error(e): raise
             logger.error(f"Receive commit failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -2869,6 +3032,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
         except HTTPException:
             raise
         except Exception as e:
+            if _is_readonly_error(e): raise
             logger.error(f"Ship commit failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -3237,6 +3401,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
         except HTTPException:
             raise
         except Exception as e:
+            if _is_readonly_error(e): raise
             logger.error(f"Make commit failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -3584,6 +3749,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
         except HTTPException:
             raise
         except Exception as e:
+            if _is_readonly_error(e): raise
             logger.error(f"Pack commit failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -3681,6 +3847,7 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
         except HTTPException:
             raise
         except Exception as e:
+            if _is_readonly_error(e): raise
             logger.error(f"Adjust commit failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -3738,6 +3905,7 @@ def void_transaction(transaction_id: int, req: Optional[VoidRequest] = None, _: 
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Void transaction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -4436,6 +4604,7 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Quick-create product failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -4480,6 +4649,7 @@ def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = De
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Quick-create batch product failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -4604,6 +4774,7 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Lot reassignment failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -4692,6 +4863,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Add found inventory failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -4767,6 +4939,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Add found inventory with new product failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -4858,6 +5031,7 @@ def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Verify product failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -5016,6 +5190,7 @@ def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         if "unique" in str(e).lower():
             raise HTTPException(409, f"Customer '{req.name}' already exists")
         logger.error(f"Create customer failed: {e}")
@@ -5025,7 +5200,7 @@ def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
 @app.patch("/customers/{customer_id}")
 def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(verify_api_key)):
     try:
-        with get_db_connection() as conn:
+        def _work(conn):
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Separate aliases from customer table fields
                 aliases = req.aliases
@@ -5075,9 +5250,11 @@ def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(ver
                     "aliases": current_aliases,
                     "message": "Customer updated"
                 }
+        return run_idempotent_write_with_readonly_retry("PATCH /customers/{customer_id}", _work)
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         if "idx_customer_aliases_lower_alias" in str(e):
             raise HTTPException(409, f"One of the aliases is already in use by another customer")
         logger.error(f"Update customer failed: {e}")
@@ -5229,6 +5406,7 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Create sales order failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -5693,6 +5871,7 @@ def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderSta
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Update order status failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -5903,6 +6082,7 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Add order lines failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -5925,6 +6105,7 @@ def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = 
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Cancel order line failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -5986,6 +6167,7 @@ def update_order_line(
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Update order line failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -6230,6 +6412,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
         except HTTPException:
             raise
         except Exception as e:
+            if _is_readonly_error(e): raise
             logger.error(f"Ship order commit failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -7678,6 +7861,7 @@ def dashboard_api_notes_create(req: NoteCreate):
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Dashboard notes create failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -7720,6 +7904,7 @@ def dashboard_api_notes_update(note_id: int, req: NoteUpdate):
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Dashboard notes update failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -7735,6 +7920,7 @@ def dashboard_api_notes_delete(note_id: int):
                 return JSONResponse(status_code=404, content={"error": "Note not found"})
             return {"deleted": True, "id": note_id}
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Dashboard notes delete failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -7755,6 +7941,7 @@ def dashboard_api_notes_toggle(note_id: int):
             """, (new_status, note_id))
             return _note_row_to_dict(cur.fetchone())
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Dashboard notes toggle failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -7821,6 +8008,7 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Admin product update failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -7919,6 +8107,7 @@ def admin_bom_add_line(product_id: int, req: BomLineCreate, _: bool = Depends(ve
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Admin BOM add line failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -7964,6 +8153,7 @@ def admin_bom_update_line(line_id: int, req: BomLineUpdate, _: bool = Depends(ve
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Admin BOM update line failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -7996,6 +8186,7 @@ def admin_bom_delete_line(line_id: int, _: bool = Depends(verify_api_key)):
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Admin BOM delete line failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -8065,6 +8256,7 @@ def admin_create_product_bom(req: ProductBomCreate, _: bool = Depends(verify_api
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Admin product-bom create failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -8091,6 +8283,7 @@ def admin_delete_product_bom(mapping_id: int, _: bool = Depends(verify_api_key))
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Admin product-bom delete failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -8265,6 +8458,7 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
     except HTTPException:
         raise
     except Exception as e:
+        if _is_readonly_error(e): raise
         logger.error(f"Lot merge failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
