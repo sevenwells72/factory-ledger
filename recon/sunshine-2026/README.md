@@ -22,8 +22,10 @@ after posting).
 
 - **Transactions: 1325–1342** (`type='ship'`, `status='posted'`)
 - **Shipments: 240–257** (one `shipments` + one `shipment_lines` row per transaction)
-- **Customer: `Sunshine Granola (RECON)`** — a placeholder customer auto-created for
-  this purpose; not a real customer record
+- **Customer: `Sunshine Granola` (customer id 217)** — the real customer. The record
+  was initially auto-created as a placeholder named `Sunshine Granola (RECON)` and
+  renamed to the real name later the same day (2026-06-11); the denormalized
+  `transactions.customer_name` on all 18 interim transactions was updated to match
 - Every transaction carries `order_reference = 'SUNSHINE-RECON-2026'` and the note:
   *"INTERIM — actual ship dates/orders pending backdated customer data. To be voided
   and replaced."*
@@ -58,8 +60,10 @@ reality while the customer's backdated shipment data is assembled.
 3. **Clean up shipment rows.** `POST /void` does NOT touch the `shipments` /
    `shipment_lines` rows created by `/ship`. Delete them for the voided transaction ids
    (`shipment_lines` first, then `shipments`, keyed on `transaction_id`), or they will
-   linger in shipment-based views. Optionally deactivate the placeholder customer
-   `Sunshine Granola (RECON)` once nothing references it.
+   linger in shipment-based views. The customer record `Sunshine Granola` (id 217) is
+   real and permanent — do **NOT** delete or deactivate it during Phase 2 cleanup; only
+   the interim transactions get voided and their `shipments`/`shipment_lines` rows
+   deleted.
 
 4. **Post the real backdated ships** from the customer's data (real customer, real
    order references, real quantities per lot). Caveat: `POST /ship` always stamps
