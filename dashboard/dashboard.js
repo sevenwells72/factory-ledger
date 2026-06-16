@@ -250,9 +250,10 @@
     // retail_bs_8oz (6x8 OZ Retail Cases) intentionally omitted → renders "—"
   };
 
-  function fmtPallets(cases, panelId) {
+  function fmtPallets(cases, panelId, caseWeightLb) {
     if (cases == null) return '—';
-    const perPallet = CASES_PER_PALLET[panelId];
+    const perPallet = CASES_PER_PALLET[panelId]
+      || CASES_PER_PALLET_BY_CASE_SIZE_LB[normalizeCaseSizeLb(caseWeightLb)];
     if (!perPallet) return '—';
     return (cases / perPallet).toFixed(1);
   }
@@ -510,7 +511,7 @@
           html += `<td>${escHtml(p.product_name)}</td>`;
           html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtWt(caseWt)} lb)` : ''}</td>`;
           html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
-          html += `<td class="num">${fmtPallets(cases, panel.id)}</td>`;
+          html += `<td class="num">${fmtPallets(cases, panel.id, caseWt)}</td>`;
           html += `</tr>`;
           // Lot breakdown
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
