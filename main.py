@@ -1154,6 +1154,12 @@ class NoteUpdate(BaseModel):
         return v
 
 
+class SalesOrderReadyFlagRequest(BaseModel):
+    ready: bool
+    by: Optional[str] = "floor"
+    note: Optional[str] = None
+
+
 # ═══════════════════════════════════════════════════════════════
 # SALES PYDANTIC MODELS (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
@@ -5424,6 +5430,8 @@ def list_sales_orders(
             query = """
                 SELECT so.id, so.order_number, c.name AS customer,
                        so.order_date, so.requested_ship_date, so.status,
+                       COALESCE(sof.ready, false) AS ready,
+                       sof.ready_at, sof.ready_by, sof.note AS ready_note,
                        COUNT(sol.id) AS line_count,
                        COALESCE(SUM(sol.quantity_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS total_lb,
                        COALESCE(SUM(sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS shipped_lb,
@@ -5433,6 +5441,7 @@ def list_sales_orders(
                 JOIN customers c ON c.id = so.customer_id
                 LEFT JOIN sales_order_lines sol ON sol.sales_order_id = so.id
                 LEFT JOIN products p ON p.id = sol.product_id
+                LEFT JOIN sales_order_flags sof ON sof.so_number = so.order_number
                 LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
                 WHERE 1=1
             """
@@ -5450,7 +5459,7 @@ def list_sales_orders(
             if overdue_only:
                 query += " AND so.requested_ship_date < CURRENT_DATE AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')"
 
-            query += " GROUP BY so.id, c.name ORDER BY so.requested_ship_date ASC NULLS LAST LIMIT %s"
+            query += " GROUP BY so.id, c.name, sof.ready, sof.ready_at, sof.ready_by, sof.note ORDER BY so.requested_ship_date ASC NULLS LAST LIMIT %s"
             params.append(limit)
             cur.execute(query, params)
             rows = cur.fetchall()
@@ -5488,6 +5497,10 @@ def list_sales_orders(
                     "total_units": total_units,
                     "shipped_units": shipped_units,
                     "remaining_units": total_units - shipped_units,
+                    "ready": bool(r['ready']),
+                    "ready_at": r['ready_at'].isoformat() if r['ready_at'] else None,
+                    "ready_by": r['ready_by'],
+                    "note": r['ready_note'],
                     "overdue": ship_date is not None and ship_date < date.today() and is_open
                 }
                 if order_warnings:
@@ -5496,6 +5509,61 @@ def list_sales_orders(
             return {"orders": orders, "count": len(orders)}
     except Exception as e:
         logger.error(f"List sales orders failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+def _sales_order_flag_row_to_dict(row):
+    d = dict(row)
+    if d.get("ready_at"):
+        d["ready_at"] = d["ready_at"].isoformat()
+    if d.get("updated_at"):
+        d["updated_at"] = d["updated_at"].isoformat()
+    return d
+
+
+@app.post("/sales-orders/{so_number}/ready")
+def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest, _: bool = Depends(verify_api_key)):
+    """Upsert the dashboard-only Factory Ready annotation for a sales order."""
+    try:
+        with get_transaction() as cur:
+            cur.execute(
+                """
+                SELECT order_number, status
+                FROM sales_orders
+                WHERE order_number = %s
+                """,
+                (so_number,)
+            )
+            order = cur.fetchone()
+            if not order:
+                return JSONResponse(status_code=404, content={"error": "Sales order not found"})
+            if order["status"] in ("shipped", "invoiced", "cancelled"):
+                return JSONResponse(status_code=400, content={"error": "Factory Ready can only be set on open sales orders"})
+
+            ready_by = (req.by or "floor").strip() or "floor"
+            note = req.note.strip() if isinstance(req.note, str) else req.note
+
+            cur.execute(
+                """
+                INSERT INTO sales_order_flags (so_number, ready, ready_at, ready_by, note, updated_at)
+                VALUES (%s, %s, CASE WHEN %s THEN NOW() ELSE NULL END, %s, %s, NOW())
+                ON CONFLICT (so_number) DO UPDATE SET
+                    ready = EXCLUDED.ready,
+                    ready_at = CASE
+                        WHEN EXCLUDED.ready THEN COALESCE(sales_order_flags.ready_at, EXCLUDED.ready_at)
+                        ELSE NULL
+                    END,
+                    ready_by = EXCLUDED.ready_by,
+                    note = EXCLUDED.note,
+                    updated_at = NOW()
+                RETURNING so_number, ready, ready_at, ready_by, note, updated_at
+                """,
+                (order["order_number"], req.ready, req.ready, ready_by, note)
+            )
+            return _sales_order_flag_row_to_dict(cur.fetchone())
+    except Exception as e:
+        if _is_readonly_error(e): raise
+        logger.error(f"Sales order ready flag update failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
