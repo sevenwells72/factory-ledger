@@ -18,6 +18,7 @@
       promise: null,
       error: null
     },
+    orderLinesCache: {}, // order_id -> full order detail (cached for inline expand)
   };
 
   // ── Theme ──
@@ -1420,12 +1421,13 @@
     }
 
     let html = '<table class="orders-table"><thead><tr>';
-    html += '<th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th class="num">Remaining</th>';
+    html += '<th class="order-expand-col" aria-label="Expand"></th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th class="num">Remaining</th>';
     html += '</tr></thead><tbody>';
 
     for (const o of orders) {
       const overdue = isOrderOverdue(o);
       html += `<tr class="order-row" data-order-id="${o.order_id}">`;
+      html += `<td class="order-expand-cell"><button type="button" class="order-expand-toggle" data-order-id="${o.order_id}" aria-expanded="false" aria-controls="order-lines-${o.order_id}" title="Show line items"><span class="order-expand-caret">&#9656;</span></button></td>`;
       html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
@@ -1433,18 +1435,89 @@
       html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span></td>`;
       html += `<td class="num">${o.remaining_units ? fmtWt(o.remaining_lb) + ' lb &middot; ' + fmtInt(o.remaining_units) + ' units' : fmtLbs(o.remaining_lb)}</td>`;
       html += `</tr>`;
+      // Hidden inline detail row — line items loaded on demand when expanded
+      html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="7"><div class="order-lines-content"></div></td></tr>`;
     }
 
     html += '</tbody></table>';
     container.innerHTML = html;
 
-    // Bind row clicks
+    // Bind row clicks — clicking the row (incl. the SO number) opens the full detail page
     container.querySelectorAll('.order-row').forEach(row => {
       row.addEventListener('click', () => {
         const orderId = row.dataset.orderId;
         // Save scroll position
         state.ordersScrollTop = document.getElementById('tab-orders').scrollTop || window.scrollY;
         openOrderDetail(orderId);
+      });
+    });
+
+    // Bind the separate inline expand/collapse controls
+    bindOrderExpandToggles(container);
+  }
+
+  function renderOrderLinesContent(order) {
+    const lines = (order && order.lines) || [];
+    if (lines.length === 0) {
+      return '<div class="order-lines-empty">No line items on this order.</div>';
+    }
+
+    let html = '<table class="order-lines-table"><thead><tr>';
+    html += '<th>SKU</th><th>Product</th><th class="num">Ordered</th><th>UoM</th><th class="num">Remaining</th>';
+    html += '</tr></thead><tbody>';
+    for (const l of lines) {
+      const nonWeight = l.is_non_weight;
+      const uom = nonWeight ? 'units' : (l.uom || 'lb');
+      const orderedQty = nonWeight
+        ? fmtInt(l.unit_quantity != null ? l.unit_quantity : l.quantity_lb)
+        : fmtWt(l.quantity_lb) + (l.unit_count != null ? ` <small>(${fmtInt(l.unit_count)} cs)</small>` : '');
+      const remVal = l.remaining_lb != null ? l.remaining_lb : ((l.quantity_lb || 0) - (l.quantity_shipped_lb || 0));
+      const remaining = remVal == null ? '&mdash;' : (nonWeight
+        ? fmtInt(remVal)
+        : fmtWt(remVal) + (l.remaining_units != null ? ` <small>(${fmtInt(l.remaining_units)} cs)</small>` : ''));
+      html += '<tr>';
+      html += `<td class="order-line-sku">${escHtml(l.sku || '—')}</td>`;
+      html += `<td>${escHtml(l.product || l.name || '—')}</td>`;
+      html += `<td class="num">${orderedQty}</td>`;
+      html += `<td>${escHtml(uom)}</td>`;
+      html += `<td class="num">${remaining}</td>`;
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    return html;
+  }
+
+  function bindOrderExpandToggles(container) {
+    container.querySelectorAll('.order-expand-toggle').forEach(btn => {
+      btn.addEventListener('click', async (ev) => {
+        // Keep this control independent of the row click (which opens the detail page)
+        ev.stopPropagation();
+        const orderId = btn.dataset.orderId;
+        const detailRow = container.querySelector(`.order-lines-row[data-order-id="${orderId}"]`);
+        if (!detailRow) return;
+        const contentCell = detailRow.querySelector('.order-lines-content');
+
+        const expanding = detailRow.classList.contains('hidden');
+        detailRow.classList.toggle('hidden', !expanding);
+        btn.classList.toggle('expanded', expanding);
+        btn.setAttribute('aria-expanded', expanding ? 'true' : 'false');
+        btn.setAttribute('title', expanding ? 'Hide line items' : 'Show line items');
+
+        // Collapsing, or already rendered — nothing more to do (allows multiple open at once)
+        if (!expanding || detailRow.dataset.loaded === 'true') return;
+
+        contentCell.innerHTML = '<div class="loading-indicator">Loading line items…</div>';
+        try {
+          let data = state.orderLinesCache[orderId];
+          if (!data) {
+            data = await fetchSalesAPI('/sales/orders/' + orderId);
+            state.orderLinesCache[orderId] = data;
+          }
+          contentCell.innerHTML = renderOrderLinesContent(data);
+          detailRow.dataset.loaded = 'true';
+        } catch (e) {
+          contentCell.innerHTML = `<div class="order-lines-error">Failed to load line items: ${escHtml(e.message)}</div>`;
+        }
       });
     });
   }

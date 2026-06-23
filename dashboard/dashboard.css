@@ -1088,6 +1088,91 @@ body {
 .orders-table tr.order-row { cursor: pointer; transition: background-color 0.15s ease; }
 .orders-table tr.order-row:hover td { background: var(--surface-hover); }
 .orders-table tr.order-inventory-row.hidden { display: none; }
+.orders-table tr.order-lines-row.hidden { display: none; }
+
+/* Inline expand/collapse control on each order row */
+.orders-table th.order-expand-col { width: 32px; padding-left: 12px; padding-right: 0; }
+.orders-table td.order-expand-cell { width: 32px; padding-right: 0; }
+
+.order-expand-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.order-expand-toggle:hover { background: var(--surface-hover); color: var(--text); }
+
+.order-expand-caret {
+  display: inline-block;
+  font-size: 10px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+.order-expand-toggle.expanded .order-expand-caret { transform: rotate(90deg); }
+
+/* Inline line-items panel */
+.order-lines-row > td {
+  padding: 0 12px 10px 12px;
+  background: var(--surface) !important;
+}
+
+.order-lines-content { padding-top: 4px; }
+
+.order-lines-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-lines-table th {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+}
+
+.order-lines-table td {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.order-lines-table tr:last-child td { border-bottom: none; }
+
+.order-lines-table .num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-lines-table .num small { color: var(--text-muted); }
+
+.order-line-sku {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.order-lines-empty,
+.order-lines-error {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.order-lines-error { color: var(--danger); }
 
 .orders-table .num {
   text-align: right;
