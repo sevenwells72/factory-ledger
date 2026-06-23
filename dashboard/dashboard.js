@@ -266,6 +266,10 @@
     return d.innerHTML;
   }
 
+  function escAttr(s) {
+    return escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function saveExpandedPanels() {
     sessionStorage.setItem('expandedPanels', JSON.stringify([...state.expandedPanels]));
   }
@@ -1319,10 +1323,9 @@
   state.ordersLoaded = false;
   state.ordersScrollTop = 0;
 
-  async function fetchSalesAPI(path) {
-    const res = await fetch(SALES_API_BASE + path, {
-      headers: { 'X-API-Key': SALES_API_KEY }
-    });
+  async function fetchSalesAPI(path, options = {}) {
+    const headers = { 'X-API-Key': SALES_API_KEY, ...(options.headers || {}) };
+    const res = await fetch(SALES_API_BASE + path, { ...options, headers });
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`HTTP ${res.status}: ${body}`);
@@ -1335,6 +1338,17 @@
     const parts = dateStr.split('-');
     if (parts.length !== 3) return dateStr;
     return parts[1] + '/' + parts[2] + '/' + parts[0].slice(2);
+  }
+
+  function formatReadyTime(value) {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'America/New_York'
+    });
   }
 
   function fmtLbs(n) {
@@ -1368,6 +1382,7 @@
     const statusFilter = document.getElementById('orders-status-filter').value;
     const customerSearch = document.getElementById('orders-customer-search').value.trim().toLowerCase();
     const overdueOnly = document.getElementById('orders-overdue-only').checked;
+    const hideReady = document.getElementById('orders-hide-ready').checked;
 
     const openStatuses = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship'];
 
@@ -1389,8 +1404,20 @@
         return false;
       }
 
+      if (hideReady && order.ready) {
+        return false;
+      }
+
       return true;
     });
+  }
+
+  function orderReadyPill(order) {
+    if (!order.ready) return '';
+    const parts = ['&#10003; READY'];
+    if (order.ready_by) parts.push(escHtml(order.ready_by));
+    if (order.ready_at) parts.push(escHtml(formatReadyTime(order.ready_at)));
+    return `<span class="so-ready-pill">${parts.join(' &middot; ')}</span>`;
   }
 
   async function refreshOrders() {
@@ -1421,22 +1448,23 @@
     }
 
     let html = '<table class="orders-table"><thead><tr>';
-    html += '<th class="order-expand-col" aria-label="Expand"></th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th class="num">Remaining</th>';
+    html += '<th class="order-expand-col" aria-label="Expand"></th><th class="order-ready-col" aria-label="Factory Ready"></th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th class="num">Remaining</th>';
     html += '</tr></thead><tbody>';
 
     for (const o of orders) {
       const overdue = isOrderOverdue(o);
-      html += `<tr class="order-row" data-order-id="${o.order_id}">`;
+      html += `<tr class="order-row ${o.ready ? 'so-ready' : ''}" data-order-id="${o.order_id}">`;
       html += `<td class="order-expand-cell"><button type="button" class="order-expand-toggle" data-order-id="${o.order_id}" aria-expanded="false" aria-controls="order-lines-${o.order_id}" title="Show line items"><span class="order-expand-caret">&#9656;</span></button></td>`;
+      html += `<td class="order-ready-cell"><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} title="Factory Ready"></td>`;
       html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
       html += `<td class="${overdue ? 'date-overdue' : ''}">${formatDateShort(o.requested_ship_date)}</td>`;
-      html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span></td>`;
+      html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span>${orderReadyPill(o)}</td>`;
       html += `<td class="num">${o.remaining_units ? fmtWt(o.remaining_lb) + ' lb &middot; ' + fmtInt(o.remaining_units) + ' units' : fmtLbs(o.remaining_lb)}</td>`;
       html += `</tr>`;
       // Hidden inline detail row — line items loaded on demand when expanded
-      html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="7"><div class="order-lines-content"></div></td></tr>`;
+      html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="8"><div class="order-lines-content"></div></td></tr>`;
     }
 
     html += '</tbody></table>';
@@ -1454,15 +1482,25 @@
 
     // Bind the separate inline expand/collapse controls
     bindOrderExpandToggles(container);
+    bindOrderReadyToggles(container);
   }
 
   function renderOrderLinesContent(order) {
     const lines = (order && order.lines) || [];
+    const listOrder = state.ordersData.find(o => String(o.order_id) === String(order.order_id)) || order;
+    const readyNote = listOrder.note || '';
+    let html = '<div class="order-ready-drawer">';
+    html += '<label>Factory Ready note</label>';
+    html += `<div class="order-ready-note-row"><input type="text" class="order-ready-note-input" data-order-id="${order.order_id}" value="${escAttr(readyNote)}" placeholder="Optional note for the floor">`;
+    html += `<button type="button" class="btn-sm order-ready-note-save" data-order-id="${order.order_id}">Save</button></div>`;
+    if (readyNote) html += `<div class="order-ready-note-text">${escHtml(readyNote)}</div>`;
+    html += '</div>';
+
     if (lines.length === 0) {
-      return '<div class="order-lines-empty">No line items on this order.</div>';
+      return html + '<div class="order-lines-empty">No line items on this order.</div>';
     }
 
-    let html = '<table class="order-lines-table"><thead><tr>';
+    html += '<table class="order-lines-table"><thead><tr>';
     html += '<th>SKU</th><th>Product</th><th class="num">Ordered</th><th>UoM</th><th class="num">Remaining</th>';
     html += '</tr></thead><tbody>';
     for (const l of lines) {
@@ -1485,6 +1523,82 @@
     }
     html += '</tbody></table>';
     return html;
+  }
+
+  async function postOrderReady(order, ready, note) {
+    return fetchSalesAPI('/sales-orders/' + encodeURIComponent(order.order_number) + '/ready', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ready, by: 'floor', note: note || null })
+    });
+  }
+
+  function updateCachedOrderReady(orderId, flag) {
+    const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
+    if (!order) return;
+    order.ready = Boolean(flag.ready);
+    order.ready_at = flag.ready_at || null;
+    order.ready_by = flag.ready_by || 'floor';
+    order.note = flag.note || null;
+  }
+
+  function bindOrderReadyNoteControls(container) {
+    container.querySelectorAll('.order-ready-note-save').forEach(btn => {
+      btn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        const orderId = btn.dataset.orderId;
+        const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
+        const input = container.querySelector(`.order-ready-note-input[data-order-id="${orderId}"]`);
+        if (!order || !input) return;
+        const oldNote = order.note || null;
+        order.note = input.value.trim() || null;
+        btn.disabled = true;
+        try {
+          const saved = await postOrderReady(order, Boolean(order.ready), order.note);
+          updateCachedOrderReady(orderId, saved);
+          renderOrdersList();
+        } catch (e) {
+          order.note = oldNote;
+          showError('orders-error', 'Factory Ready note save failed: ' + e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  function bindOrderReadyToggles(container) {
+    container.querySelectorAll('.order-ready-checkbox').forEach(cb => {
+      cb.addEventListener('click', ev => ev.stopPropagation());
+      cb.addEventListener('change', async (ev) => {
+        ev.stopPropagation();
+        const orderId = cb.dataset.orderId;
+        const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
+        if (!order) return;
+
+        const oldFlag = {
+          ready: Boolean(order.ready),
+          ready_at: order.ready_at || null,
+          ready_by: order.ready_by || 'floor',
+          note: order.note || null
+        };
+        const nextReady = cb.checked;
+        order.ready = nextReady;
+        order.ready_at = nextReady ? (order.ready_at || new Date().toISOString()) : null;
+        order.ready_by = 'floor';
+
+        renderOrdersList();
+        try {
+          const saved = await postOrderReady(order, nextReady, order.note || null);
+          updateCachedOrderReady(orderId, saved);
+          renderOrdersList();
+        } catch (e) {
+          Object.assign(order, oldFlag);
+          renderOrdersList();
+          showError('orders-error', 'Factory Ready update failed: ' + e.message);
+        }
+      });
+    });
   }
 
   function bindOrderExpandToggles(container) {
@@ -1514,6 +1628,7 @@
             state.orderLinesCache[orderId] = data;
           }
           contentCell.innerHTML = renderOrderLinesContent(data);
+          bindOrderReadyNoteControls(contentCell);
           detailRow.dataset.loaded = 'true';
         } catch (e) {
           contentCell.innerHTML = `<div class="order-lines-error">Failed to load line items: ${escHtml(e.message)}</div>`;
@@ -1722,6 +1837,10 @@
 
     // Overdue toggle
     document.getElementById('orders-overdue-only').addEventListener('change', () => {
+      if (state.ordersLoaded) renderOrdersList();
+    });
+
+    document.getElementById('orders-hide-ready').addEventListener('change', () => {
       if (state.ordersLoaded) renderOrdersList();
     });
 

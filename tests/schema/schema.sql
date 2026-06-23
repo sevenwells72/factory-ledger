@@ -1013,6 +1013,20 @@ CREATE TABLE public.sales_order_lines (
 
 
 --
+-- Name: sales_order_flags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_order_flags (
+    so_number text NOT NULL,
+    ready boolean DEFAULT false NOT NULL,
+    ready_at timestamp with time zone,
+    ready_by text DEFAULT 'floor'::text,
+    note text,
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
 -- Name: sales_orders; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2261,6 +2275,14 @@ ALTER TABLE ONLY public.reassignment_reason_codes
 
 
 --
+-- Name: sales_order_flags sales_order_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_flags
+    ADD CONSTRAINT sales_order_flags_pkey PRIMARY KEY (so_number);
+
+
+--
 -- Name: sales_order_lines sales_order_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3092,4 +3114,3 @@ ALTER TABLE ONLY public.transaction_lines
 --
 
 \unrestrict 6fmBgPHv2EQChrKr60f5cP5EQtgT9aAnnpLlYHpzp41mxpIZHaQsnnhlRdMwP1z
-

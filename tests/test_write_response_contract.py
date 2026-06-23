@@ -136,6 +136,48 @@ def test_create_sales_order_success_and_ids(client, _db_connection):
 
 
 @pytest.mark.db
+def test_sales_order_ready_flag_success_and_list_fields(client, _db_connection):
+    customer = "Ready Flag Contract Customer"
+    product = "READY FLAG CONTRACT GRANOLA ZQX"
+    _seed_customer(_db_connection, customer)
+    _seed_product(_db_connection, product)
+    order = _create_order(client, customer=customer, product=product)
+
+    resp = client.post(
+        f"/sales-orders/{order['order_number']}/ready",
+        json={"ready": True, "by": "floor", "note": "Staged by door 2"},
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert data["success"] is True
+    assert data["so_number"] == order["order_number"]
+    assert data["ready"] is True
+    assert data["ready_by"] == "floor"
+    assert data["ready_at"]
+    assert data["note"] == "Staged by door 2"
+
+    listing = client.get("/sales/orders", params={"customer": customer, "limit": 200})
+    assert listing.status_code == 200, listing.text
+    listed = next(o for o in listing.json()["orders"] if o["order_number"] == order["order_number"])
+    assert listed["ready"] is True
+    assert listed["ready_at"] == data["ready_at"]
+    assert listed["ready_by"] == "floor"
+    assert listed["note"] == "Staged by door 2"
+
+
+def test_sales_order_ready_flag_requires_api_key(client):
+    resp = client.post(
+        "/sales-orders/SO-TEST-READY/ready",
+        json={"ready": True, "by": "floor", "note": None},
+        headers={"X-API-Key": ""},
+    )
+    assert resp.status_code == 401
+    body = resp.json()
+    assert body["success"] is False
+    assert body["error_detail"]["code"] == "HTTP_401"
+
+
+@pytest.mark.db
 def test_update_order_status_success_and_id(client, _db_connection):
     _seed_customer(_db_connection)
     _seed_product(_db_connection)
