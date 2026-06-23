@@ -5692,7 +5692,7 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 order["notes_es"] = row['notes_es']
 
             cur.execute(
-                """SELECT sol.id, p.name, sol.quantity_lb, sol.quantity_shipped_lb,
+                """SELECT sol.id, p.name, p.odoo_code, p.uom, sol.quantity_lb, sol.quantity_shipped_lb,
                           sol.unit_price, sol.line_status, sol.notes, sol.notes_es,
                           p.case_size_lb, COALESCE(p.is_service, false) AS is_service
                    FROM sales_order_lines sol
@@ -5752,6 +5752,8 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 line_data = {
                     "line_id": r['id'],
                     "product": r['name'],
+                    "sku": r['odoo_code'],
+                    "uom": r['uom'] or "lb",
                     "quantity_lb": qty,
                     "cases": cases,
                     "case_size_lb": case_size,
