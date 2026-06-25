@@ -1340,6 +1340,21 @@
     return parts[1] + '/' + parts[2] + '/' + parts[0].slice(2);
   }
 
+  function getLocalDateFromISO(dateStr) {
+    if (!dateStr) return null;
+    const parts = dateStr.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function formatShipByDate(dateStr) {
+    const formattedDate = formatDateShort(dateStr);
+    const localDate = getLocalDateFromISO(dateStr);
+    if (!localDate) return escHtml(formattedDate);
+    const weekday = localDate.toLocaleDateString(undefined, { weekday: 'short' });
+    return `<span class="ship-by-date">${escHtml(formattedDate)}</span><span class="ship-by-weekday">${escHtml(weekday)}</span>`;
+  }
+
   function formatReadyTime(value) {
     if (!value) return '';
     const d = new Date(value);
@@ -1459,7 +1474,7 @@
       html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
-      html += `<td class="${overdue ? 'date-overdue' : ''}">${formatDateShort(o.requested_ship_date)}</td>`;
+      html += `<td class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date)}</td>`;
       html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span>${orderReadyPill(o)}</td>`;
       html += `<td class="num">${o.remaining_units ? fmtWt(o.remaining_lb) + ' lb &middot; ' + fmtInt(o.remaining_units) + ' units' : fmtLbs(o.remaining_lb)}</td>`;
       html += `</tr>`;

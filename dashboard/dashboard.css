@@ -1240,6 +1240,32 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.ship-by-cell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ship-by-date,
+.ship-by-weekday {
+  display: block;
+  line-height: 1.25;
+}
+
+.ship-by-date {
+  color: inherit;
+}
+
+.ship-by-weekday {
+  margin-top: 1px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.date-overdue .ship-by-weekday {
+  color: color-mix(in srgb, var(--danger) 72%, var(--text-muted));
+}
+
 .order-link {
   color: var(--primary);
   font-family: var(--mono);

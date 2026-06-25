@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=8">
+  <link rel="stylesheet" href="dashboard.css?v=9">
+  <link rel="stylesheet" href="mini-calendar.css?v=1">
 </head>
 <body>
 
@@ -34,6 +35,7 @@
       </div>
     </div>
     <div class="header-right">
+      <div data-mini-calendar aria-label="Calendar"></div>
       <span id="health-badge" class="health-badge" title="System Health">--</span>
       <button id="theme-toggle" class="btn-theme" title="Toggle light/dark mode">&#9790;</button>
       <button id="refresh-btn" class="btn-refresh" title="Refresh all data">Refresh</button>
@@ -264,7 +266,8 @@
     </div>
   </div>
 
-  <script src="dashboard.js?v=11"></script>
+  <script src="mini-calendar.js?v=1"></script>
+  <script src="dashboard.js?v=12"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

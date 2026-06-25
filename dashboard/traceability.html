@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Ledger — Lot Traceability</title>
+<link rel="stylesheet" href="mini-calendar.css?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
 :root {
@@ -262,7 +263,9 @@ svg text { font-family: var(--font); }
 <!-- Header -->
 <div class="header">
   <h1><span class="icon">&#x1f50d;</span> Lot Traceability</h1>
-  <div class="header-right"></div>
+  <div class="header-right">
+    <div data-mini-calendar aria-label="Calendar"></div>
+  </div>
 </div>
 
 <!-- Search -->
@@ -1390,6 +1393,7 @@ function loadFromURL() {
   loadFromURL();
 })();
 </script>
+<script src="mini-calendar.js?v=1"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

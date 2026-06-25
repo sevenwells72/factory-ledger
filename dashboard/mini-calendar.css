@@ -1,0 +1,110 @@
+.mini-calendar-strip {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface, var(--card-bg, #1e293b)) 88%, #000 12%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.mini-calendar-nav {
+  width: 20px;
+  min-width: 20px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mini-calendar-nav:hover {
+  border-color: var(--border, rgba(255, 255, 255, 0.12));
+  background: var(--surface-hover, var(--surface2, rgba(255, 255, 255, 0.08)));
+  color: var(--text, #f1f5f9);
+}
+
+.mini-calendar-months {
+  display: grid;
+  grid-template-columns: repeat(3, 60px);
+  gap: 4px;
+}
+
+.mini-calendar-month {
+  min-width: 0;
+  padding: 3px 4px 4px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  background: var(--surface-alt, var(--surface2, rgba(255, 255, 255, 0.06)));
+}
+
+.mini-calendar-title {
+  margin-bottom: 2px;
+  color: var(--text-secondary, var(--text, #cbd5e1));
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mini-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+}
+
+.mini-calendar-dow,
+.mini-calendar-day {
+  height: 6px;
+  min-width: 0;
+  border-radius: 2px;
+  font-size: 6px;
+  line-height: 6px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-calendar-dow {
+  color: var(--text-dimmed, var(--text-dim, #64748b));
+  font-weight: 600;
+}
+
+.mini-calendar-day {
+  color: var(--text-muted, #94a3b8);
+}
+
+.mini-calendar-day.is-outside {
+  opacity: 0;
+}
+
+.mini-calendar-day.is-today {
+  background: color-mix(in srgb, var(--primary, #3b82f6) 24%, transparent);
+  color: var(--text, #f1f5f9);
+  outline: 1px solid color-mix(in srgb, var(--primary, #3b82f6) 68%, transparent);
+  font-weight: 700;
+}
+
+@media (max-width: 1050px) {
+  .mini-calendar-months { grid-template-columns: repeat(3, 56px); }
+  .mini-calendar-title { font-size: 8px; }
+  .mini-calendar-dow,
+  .mini-calendar-day {
+    height: 6px;
+    font-size: 6px;
+    line-height: 6px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mini-calendar-strip {
+    order: 10;
+    width: 100%;
+    justify-content: center;
+    overflow-x: auto;
+  }
+}
