@@ -1317,6 +1317,7 @@
 
   const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
   const SALES_API_KEY = 'ledger-secret-2026-factory';
+  const SALES_ORDER_OPEN_STATUSES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship'];
 
   // Orders sub-state
   state.ordersData = [];
@@ -1399,12 +1400,10 @@
     const overdueOnly = document.getElementById('orders-overdue-only').checked;
     const hideReady = document.getElementById('orders-hide-ready').checked;
 
-    const openStatuses = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship'];
-
     return state.ordersData.filter(order => {
       // Status filter
       if (statusFilter === 'open') {
-        if (!openStatuses.includes(order.status)) return false;
+        if (!SALES_ORDER_OPEN_STATUSES.includes(order.status)) return false;
       } else if (statusFilter !== 'all') {
         if (order.status !== statusFilter) return false;
       }
@@ -1443,11 +1442,21 @@
       const data = await fetchSalesAPI('/sales/orders?limit=200');
       state.ordersData = data.orders || [];
       state.ordersLoaded = true;
+      updateShipByCalendarIndicators();
       renderOrdersList();
     } catch (e) {
       container.innerHTML = '';
       showError('orders-error', 'Failed to load sales orders: ' + e.message);
     }
+  }
+
+  function updateShipByCalendarIndicators() {
+    const counts = {};
+    for (const order of state.ordersData) {
+      if (!order.requested_ship_date || !SALES_ORDER_OPEN_STATUSES.includes(order.status)) continue;
+      counts[order.requested_ship_date] = (counts[order.requested_ship_date] || 0) + 1;
+    }
+    window.dispatchEvent(new CustomEvent('factory-ledger:ship-dates', { detail: { counts } }));
   }
 
   function renderOrdersList() {
