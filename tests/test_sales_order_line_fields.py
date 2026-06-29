@@ -77,12 +77,12 @@ def _seed_customer(conn, name="Line Fields Test Customer"):
         return cur.fetchone()[0]
 
 
-def _seed_product(conn, name, odoo_code, uom="lb"):
+def _seed_product(conn, name, odoo_code, uom="lb", case_size_lb=None):
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, odoo_code, active) "
-            "VALUES (%s, 'finished', %s, %s, true) RETURNING id",
-            (name, uom, odoo_code),
+            "INSERT INTO products (name, type, uom, odoo_code, case_size_lb, active) "
+            "VALUES (%s, 'finished', %s, %s, %s, true) RETURNING id",
+            (name, uom, odoo_code, case_size_lb),
         )
         return cur.fetchone()[0]
 
@@ -137,3 +137,38 @@ def test_uom_defaults_to_lb_when_null(client, _db_connection):
     line = resp.json()["lines"][0]
     assert line["uom"] == "lb"
     assert line["sku"] == "70998"
+
+
+@pytest.mark.db
+def test_order_list_exposes_compact_case_line_data_for_pallet_display(client, _db_connection):
+    """The list response carries case counts so the UI never derives pallets from pounds."""
+    _seed_customer(_db_connection, "Pallet Summary Test Customer")
+    _seed_product(
+        _db_connection,
+        "PALLET SUMMARY GRANOLA 25 LB ZQX",
+        "70997",
+        uom="25 lb case",
+        case_size_lb=25,
+    )
+
+    created = client.post("/sales/orders", json={
+        "customer_name": "Pallet Summary Test Customer",
+        "lines": [{"product_name": "PALLET SUMMARY GRANOLA 25 LB ZQX", "quantity_lb": 600}],
+    })
+    assert created.status_code == 200, created.text
+    order_id = created.json()["order_id"]
+
+    resp = client.get("/sales/orders", params={"customer": "Pallet Summary Test Customer"})
+    assert resp.status_code == 200, resp.text
+    order = next(item for item in resp.json()["orders"] if item["order_id"] == order_id)
+    assert order["pallet_lines"] == [{
+        "line_id": order["pallet_lines"][0]["line_id"],
+        "product": "PALLET SUMMARY GRANOLA 25 LB ZQX",
+        "sku": "70997",
+        "uom": "25 lb case",
+        "case_size_lb": 25.0,
+        "unit_count": 24,
+        "shipped_units": 0,
+        "remaining_units": 24,
+        "is_non_weight": False,
+    }]

@@ -1172,6 +1172,46 @@ body {
 
 .order-lines-table .num small { color: var(--text-muted); }
 
+.order-pallet-total,
+.order-line-pallets {
+  color: var(--text-secondary) !important;
+  white-space: nowrap;
+}
+
+.order-pallet-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 10px 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.order-pallet-summary strong {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.pallet-secondary {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.order-kpi-pallets .kpi-value {
+  font-size: 16px;
+}
+
 .order-line-sku {
   font-family: var(--mono);
   font-size: 12px;

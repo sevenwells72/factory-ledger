@@ -1,5 +1,5 @@
 # Test-only dependencies (install into a Python >= 3.10 venv, e.g. .venv-test):
 #   python3 -m venv .venv-test && .venv-test/bin/pip install -r requirements.txt -r tests/requirements-test.txt
 pytest
-httpx          # FastAPI TestClient transport
+httpx<0.28     # FastAPI 0.104 / Starlette 0.27 TestClient compatibility
 pyyaml         # OpenAPI op-count checks

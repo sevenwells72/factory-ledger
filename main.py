@@ -5436,7 +5436,23 @@ def list_sales_orders(
                        COALESCE(SUM(sol.quantity_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS total_lb,
                        COALESCE(SUM(sol.quantity_shipped_lb) FILTER (WHERE NOT COALESCE(p.is_service, false)), 0) AS shipped_lb,
                        COALESCE(SUM(sol.quantity_lb / NULLIF(p.case_size_lb, 0)) FILTER (WHERE NOT COALESCE(p.is_service, false) AND p.case_size_lb IS NOT NULL AND p.case_size_lb > 0), 0) AS total_units,
-                       COALESCE(SUM(sol.quantity_shipped_lb / NULLIF(p.case_size_lb, 0)) FILTER (WHERE NOT COALESCE(p.is_service, false) AND p.case_size_lb IS NOT NULL AND p.case_size_lb > 0), 0) AS shipped_units
+                       COALESCE(SUM(sol.quantity_shipped_lb / NULLIF(p.case_size_lb, 0)) FILTER (WHERE NOT COALESCE(p.is_service, false) AND p.case_size_lb IS NOT NULL AND p.case_size_lb > 0), 0) AS shipped_units,
+                       COALESCE((
+                           SELECT jsonb_agg(jsonb_build_object(
+                               'line_id', pallet_sol.id,
+                               'product', pallet_p.name,
+                               'sku', pallet_p.odoo_code,
+                               'uom', COALESCE(pallet_p.uom, 'lb'),
+                               'case_size_lb', pallet_p.case_size_lb,
+                               'unit_count', CASE WHEN pallet_p.case_size_lb > 0 THEN ROUND(pallet_sol.quantity_lb / pallet_p.case_size_lb) END,
+                               'shipped_units', CASE WHEN pallet_p.case_size_lb > 0 THEN ROUND(pallet_sol.quantity_shipped_lb / pallet_p.case_size_lb) END,
+                               'remaining_units', CASE WHEN pallet_p.case_size_lb > 0 THEN ROUND((pallet_sol.quantity_lb - pallet_sol.quantity_shipped_lb) / pallet_p.case_size_lb) END,
+                               'is_non_weight', COALESCE(pallet_p.is_service, false)
+                           ) ORDER BY pallet_sol.id)
+                           FROM sales_order_lines pallet_sol
+                           JOIN products pallet_p ON pallet_p.id = pallet_sol.product_id
+                           WHERE pallet_sol.sales_order_id = so.id
+                       ), '[]'::jsonb) AS pallet_lines
                 FROM sales_orders so
                 JOIN customers c ON c.id = so.customer_id
                 LEFT JOIN sales_order_lines sol ON sol.sales_order_id = so.id
@@ -5497,6 +5513,7 @@ def list_sales_orders(
                     "total_units": total_units,
                     "shipped_units": shipped_units,
                     "remaining_units": total_units - shipped_units,
+                    "pallet_lines": r['pallet_lines'],
                     "ready": bool(r['ready']),
                     "ready_at": r['ready_at'].isoformat() if r['ready_at'] else None,
                     "ready_by": r['ready_by'],

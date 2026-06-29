@@ -94,6 +94,11 @@
     25: 60
   };
 
+  const {
+    calculateLinePallets,
+    calculateOrderPallets
+  } = window.PalletCalculations;
+
   function normalizeCaseSizeLb(value) {
     if (value == null || value === '') return null;
     const n = Number(value);
@@ -1472,7 +1477,7 @@
     }
 
     let html = '<table class="orders-table"><thead><tr>';
-    html += '<th class="order-expand-col" aria-label="Expand"></th><th class="order-ready-col" aria-label="Factory Ready"></th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th class="num">Remaining</th>';
+    html += '<th class="order-expand-col" aria-label="Expand"></th><th class="order-ready-col" aria-label="Factory Ready"></th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th class="num">Pallets</th><th class="num">Remaining</th>';
     html += '</tr></thead><tbody>';
 
     for (const o of orders) {
@@ -1485,10 +1490,11 @@
       html += `<td>${formatDateShort(o.order_date)}</td>`;
       html += `<td class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date)}</td>`;
       html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span>${orderReadyPill(o)}</td>`;
+      html += `<td class="num order-pallet-total">${escHtml(calculateOrderPallets(o.pallet_lines || [], 'unit_count').display)}</td>`;
       html += `<td class="num">${o.remaining_units ? fmtWt(o.remaining_lb) + ' lb &middot; ' + fmtInt(o.remaining_units) + ' units' : fmtLbs(o.remaining_lb)}</td>`;
       html += `</tr>`;
       // Hidden inline detail row — line items loaded on demand when expanded
-      html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="8"><div class="order-lines-content"></div></td></tr>`;
+      html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="9"><div class="order-lines-content"></div></td></tr>`;
     }
 
     html += '</tbody></table>';
@@ -1524,8 +1530,10 @@
       return html + '<div class="order-lines-empty">No line items on this order.</div>';
     }
 
+    const totalPallets = calculateOrderPallets(lines, 'unit_count');
+    html += `<div class="order-pallet-summary"><span>Order pallets</span><strong>${escHtml(totalPallets.display)}</strong></div>`;
     html += '<table class="order-lines-table"><thead><tr>';
-    html += '<th>SKU</th><th>Product</th><th class="num">Ordered</th><th>UoM</th><th class="num">Remaining</th>';
+    html += '<th>SKU</th><th>Product</th><th class="num">Ordered</th><th class="num">Pallets</th><th>UoM</th><th class="num">Remaining</th>';
     html += '</tr></thead><tbody>';
     for (const l of lines) {
       const nonWeight = l.is_non_weight;
@@ -1537,10 +1545,12 @@
       const remaining = remVal == null ? '&mdash;' : (nonWeight
         ? fmtInt(remVal)
         : fmtWt(remVal) + (l.remaining_units != null ? ` <small>(${fmtInt(l.remaining_units)} cs)</small>` : ''));
+      const linePallets = calculateLinePallets(l, l.unit_count);
       html += '<tr>';
       html += `<td class="order-line-sku">${escHtml(l.sku || '—')}</td>`;
       html += `<td>${escHtml(l.product || l.name || '—')}</td>`;
       html += `<td class="num">${orderedQty}</td>`;
+      html += `<td class="num order-line-pallets">${escHtml(linePallets.display)}</td>`;
       html += `<td>${escHtml(uom)}</td>`;
       html += `<td class="num">${remaining}</td>`;
       html += '</tr>';
@@ -1786,15 +1796,18 @@
     const orderedUnits = totals.total_ordered_units;
     const shippedUnits = totals.total_shipped_units;
     const remainingUnits = totals.total_remaining_units;
+    const lines = data.lines || [];
+    const orderedPallets = calculateOrderPallets(lines, 'unit_count');
+    const remainingPallets = calculateOrderPallets(lines, 'remaining_units');
     const kpiFmt = (lb, units) => units ? fmtWt(lb) + ' lb<br><small>' + fmtInt(units) + ' units</small>' : fmtLbs(lb);
     html += '<div class="order-kpi-row">';
     html += `<div class="order-kpi"><div class="kpi-label">Total Ordered</div><div class="kpi-value">${kpiFmt(totalOrdered, orderedUnits)}</div></div>`;
     html += `<div class="order-kpi"><div class="kpi-label">Shipped</div><div class="kpi-value">${kpiFmt(totalShipped, shippedUnits)}</div></div>`;
     html += `<div class="order-kpi"><div class="kpi-label">Remaining</div><div class="kpi-value">${kpiFmt(totalRemaining, remainingUnits)}</div></div>`;
+    html += `<div class="order-kpi order-kpi-pallets"><div class="kpi-label">Pallets</div><div class="kpi-value">${escHtml(orderedPallets.display)}<br><small>Remaining: ${escHtml(remainingPallets.display)}</small></div></div>`;
     html += '</div>';
 
     // Line items
-    const lines = data.lines || [];
     if (lines.length > 0) {
       html += '<table class="orders-table"><thead><tr>';
       html += '<th>Product</th><th class="num">Ordered</th><th class="num">Shipped</th><th class="num">Remaining</th><th>Status</th>';
@@ -1806,14 +1819,15 @@
           : l.line_status === 'partial' ? 'status-partial_ship'
           : l.line_status === 'cancelled' ? 'status-cancelled'
           : 'status-new';
-        const cs = l.case_size_lb;
         const isNw = l.is_non_weight;
         const lineFmt = (lb, units) => isNw ? (Number.isInteger(lb) ? lb : lb) + ' units' : (units != null ? fmtWt(lb) + ' lb &middot; ' + fmtInt(units) + ' units' : fmtLbs(lb));
+        const orderedLinePallets = calculateLinePallets(l, l.unit_count);
+        const remainingLinePallets = calculateLinePallets(l, l.remaining_units);
         html += '<tr>';
         html += `<td><div class="order-product-cell"><span>${escHtml(productName)}</span><button type="button" class="btn-sm order-inventory-toggle" data-line-id="${l.line_id}" aria-expanded="false" aria-controls="order-inventory-${l.line_id}">Inventory</button></div></td>`;
-        html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count)}</td>`;
+        html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count)}<small class="pallet-secondary">${escHtml(orderedLinePallets.display)}</small></td>`;
         html += `<td class="num">${lineFmt(l.quantity_shipped_lb, l.shipped_units)}</td>`;
-        html += `<td class="num">${lineFmt(remaining, l.remaining_units)}</td>`;
+        html += `<td class="num">${lineFmt(remaining, l.remaining_units)}<small class="pallet-secondary">${escHtml(remainingLinePallets.display)}</small></td>`;
         html += `<td><span class="so-badge ${lineStatusClass}">${escHtml(l.line_status || 'pending')}</span></td>`;
         html += '</tr>';
         html += `<tr id="order-inventory-${l.line_id}" class="order-inventory-row hidden"><td colspan="5"></td></tr>`;
