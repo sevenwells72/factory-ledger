@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-06-29 13:17 — Deployed Sales Order pallet display
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md` (plus git: pushed `fa091e6` to `main`, triggering Railway and Netlify CD)
+- **What changed:** Confirmed Railway deployment `d0c13a45-9ec6-4ff6-8388-0994716afa20` and Netlify deploy `6a42a80a626e1c0008f39d53` succeeded for commit `fa091e6`. Live checks confirmed the additive `pallet_lines` API field, the published helper/cache-busters, `26 pallets` for Restaurant Depot's 3,640-case order, `2.8 pallets / 3 physical mixed pallets` for Juliette's seven-line order, per-line `0.4 pallet`, remaining pallet values on detail, quiet `—` for unknown mappings, working expand/detail navigation, preserved Factory Ready controls, and no browser-console or Railway error-log matches.
+- **Why:** Close the release with reproducible production evidence and a regression guard.
+
+---
+
 ## 2026-06-29 13:09 — Add Sales Order pallet calculations and display
 - **File(s) changed:** `main.py`, `dashboard/pallet-calculations.js`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/test_pallet_calculations.js`, `tests/test_sales_order_line_fields.py`, `tests/requirements-test.txt`
 - **What changed:** Added a reusable browser/Node pallet utility that maps 10-lb cases to 140 cases/pallet and 25-lb cases to 60 cases/pallet, calculates exact and rounded-up physical pallets, formats singular/plural labels, totals mixed orders, and returns a quiet em dash for unknown products. Added compact case-count line summaries to the Sales Orders list read response so the UI calculates pallets from cases rather than pounds. Added pallet totals to the list, expanded drawer, and detail KPI area, plus per-line ordered/remaining pallet information. Added Node helper tests and an API regression test. Pinned the test-only httpx dependency below 0.28 to match the repo's FastAPI/Starlette TestClient. No order, inventory, shipment, lot, or production database data changes.
