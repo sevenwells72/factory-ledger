@@ -5779,7 +5779,8 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
             cur.execute(
                 """SELECT sol.id, p.name, p.odoo_code, p.uom, sol.quantity_lb, sol.quantity_shipped_lb,
                           sol.unit_price, sol.line_status, sol.notes, sol.notes_es,
-                          p.case_size_lb, COALESCE(p.is_service, false) AS is_service
+                          p.case_size_lb, COALESCE(p.is_service, false) AS is_service,
+                          COALESCE(p.no_production, false) AS no_production
                    FROM sales_order_lines sol
                    JOIN products p ON p.id = sol.product_id
                    WHERE sol.sales_order_id = %s
@@ -5839,6 +5840,7 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                     "product": r['name'],
                     "sku": r['odoo_code'],
                     "uom": r['uom'] or "lb",
+                    "no_production": bool(r['no_production']),
                     "quantity_lb": qty,
                     "cases": cases,
                     "case_size_lb": case_size,

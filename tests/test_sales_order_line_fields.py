@@ -77,12 +77,12 @@ def _seed_customer(conn, name="Line Fields Test Customer"):
         return cur.fetchone()[0]
 
 
-def _seed_product(conn, name, odoo_code, uom="lb", case_size_lb=None):
+def _seed_product(conn, name, odoo_code, uom="lb", case_size_lb=None, no_production=False):
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, odoo_code, case_size_lb, active) "
-            "VALUES (%s, 'finished', %s, %s, %s, true) RETURNING id",
-            (name, uom, odoo_code, case_size_lb),
+            "INSERT INTO products (name, type, uom, odoo_code, case_size_lb, active, no_production) "
+            "VALUES (%s, 'finished', %s, %s, %s, true, %s) RETURNING id",
+            (name, uom, odoo_code, case_size_lb, no_production),
         )
         return cur.fetchone()[0]
 
@@ -106,10 +106,34 @@ def test_order_lines_expose_sku_and_uom(client, _db_connection):
     # New additive fields for the inline-expand panel
     assert line["sku"] == "70999"
     assert line["uom"] == "lb"
+    assert line["no_production"] is False
     # Pre-existing fields untouched
     assert line["product"] == "LINE FIELDS GRANOLA ZQX"
     assert line["quantity_lb"] == 100
     assert "remaining_lb" in line
+
+
+@pytest.mark.db
+def test_order_lines_expose_no_production_flag(client, _db_connection):
+    _seed_customer(_db_connection, "No Production Line Fields Customer")
+    _seed_product(
+        _db_connection,
+        "NO PRODUCTION LINE FIELDS ZQX",
+        "70996",
+        uom="25 lb case",
+        case_size_lb=25,
+        no_production=True,
+    )
+
+    created = client.post("/sales/orders", json={
+        "customer_name": "No Production Line Fields Customer",
+        "lines": [{"product_name": "NO PRODUCTION LINE FIELDS ZQX", "quantity_lb": 50}],
+    })
+    assert created.status_code == 200, created.text
+
+    resp = client.get(f"/sales/orders/{created.json()['order_id']}")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["lines"][0]["no_production"] is True
 
 
 @pytest.mark.db

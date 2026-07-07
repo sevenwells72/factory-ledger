@@ -987,6 +987,7 @@ CREATE TABLE public.products (
     parent_batch_product_id integer,
     is_service boolean DEFAULT false NOT NULL,
     is_copack boolean DEFAULT false NOT NULL,
+    no_production boolean DEFAULT false NOT NULL,
     CONSTRAINT products_type_check CHECK ((type = ANY (ARRAY['ingredient'::text, 'packaging'::text, 'batch'::text, 'finished'::text])))
 );
 

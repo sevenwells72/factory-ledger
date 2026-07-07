@@ -1431,6 +1431,97 @@
     });
   }
 
+  function csvField(value) {
+    const text = value == null ? '' : String(value);
+    return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  }
+
+  function csvDate(dateValue) {
+    if (!dateValue) return '';
+    const isoMatch = String(dateValue).match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoMatch) return isoMatch[1];
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  }
+
+  function getExportLineQuantity(line) {
+    if (line.unit_count != null) return line.unit_count;
+    return Number(line.quantity_lb) || 0;
+  }
+
+  async function loadOrderDetails(orders) {
+    const details = new Array(orders.length);
+    let nextIndex = 0;
+    const workerCount = Math.min(6, orders.length);
+
+    async function loadNext() {
+      while (nextIndex < orders.length) {
+        const index = nextIndex++;
+        const orderId = orders[index].order_id;
+        let detail = state.orderLinesCache[orderId];
+        if (!detail) {
+          detail = await fetchSalesAPI('/sales/orders/' + orderId);
+          state.orderLinesCache[orderId] = detail;
+        }
+        details[index] = detail;
+      }
+    }
+
+    await Promise.all(Array.from({ length: workerCount }, loadNext));
+    return details;
+  }
+
+  async function exportOrdersCsv() {
+    const button = document.getElementById('orders-export-btn');
+    const orders = getFilteredOrders();
+    const originalText = button.textContent;
+    button.textContent = 'Exporting...';
+    button.classList.add('loading');
+    button.disabled = true;
+    hideError('orders-error');
+
+    try {
+      const details = await loadOrderDetails(orders);
+      const rows = [['order_id', 'customer', 'sku', 'product_name', 'qty', 'uom', 'due_date', 'notes']];
+
+      details.forEach((detail, index) => {
+        const summary = orders[index];
+        for (const line of (detail.lines || [])) {
+          const sku = line.sku || line.code || '';
+          if (line.is_non_weight || line.is_service || line.no_production || !String(sku).trim()) continue;
+          rows.push([
+            detail.order_number || summary.order_number || '',
+            detail.customer || summary.customer || '',
+            sku,
+            line.product || line.name || line.description || '',
+            getExportLineQuantity(line),
+            line.uom || (line.is_non_weight ? 'units' : 'lb'),
+            csvDate(detail.requested_ship_date || summary.requested_ship_date),
+            line.notes || line.note || ''
+          ]);
+        }
+      });
+
+      const csv = rows.map(row => row.map(csvField).join(',')).join('\r\n') + '\r\n';
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cns_open_orders_' + new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }) + '.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (e) {
+      showError('orders-error', 'Failed to export sales orders: ' + e.message);
+    } finally {
+      button.textContent = originalText;
+      button.classList.remove('loading');
+      button.disabled = false;
+    }
+  }
+
   function orderReadyPill(order) {
     if (!order.ready) return '';
     const parts = ['&#10003; READY'];
@@ -1884,6 +1975,7 @@
 
     // Refresh button
     document.getElementById('orders-refresh-btn').addEventListener('click', refreshOrders);
+    document.getElementById('orders-export-btn').addEventListener('click', exportOrdersCsv);
 
     // Back button
     document.getElementById('order-back-btn').addEventListener('click', closeOrderDetail);

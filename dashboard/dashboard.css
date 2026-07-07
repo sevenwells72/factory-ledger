@@ -1020,6 +1020,13 @@ body {
   flex-wrap: wrap;
 }
 
+.orders-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .orders-select {
   padding: 7px 10px;
   background: var(--search-bg);
