@@ -1177,7 +1177,7 @@ function renderBoard(){
   h+="</tr></thead><tbody>";
   for(const st of rowsToShow){
     const M=STN_META[st];
-    h+="<tr><th class='stn'>"+M.label+"<small>"+({bake:"pans/day · WIP to bins",pouch:"bags→cases",box10:"cases/day",box25:"cases/day",coconut:"pans · make+pack",toasted:"mix → next-day empty",repack:"cases/day ⚠ rate",packonly:"unconstrained"})[st]+"</small></th>";
+    h+="<tr><th class='stn'>"+M.label+"<small>"+({bake:"pans/day · WIP to bins",pouch:"bags→cases",box10:"cases/day · from bulk-bin WIP",box25:"cases/day · from bulk-bin WIP",coconut:"pans · make+pack",toasted:"mix → next-day empty",repack:"cases/day ⚠ rate",packonly:"unconstrained"})[st]+"</small></th>";
     for(const d of days){
       const dt=pD(d.date), we=!isWk(dt);
       if(d.off){h+="<td class='cell off"+(we?" wkend":"")+"' data-day='"+d.date+"' data-st='"+st+"'></td>"; continue;}
