@@ -83,6 +83,7 @@ table.mini{width:100%; border-collapse:collapse; font-size:11.5px;}
 table.mini th{ text-align:left; color:var(--ink2); font-weight:600; padding:2px 4px; border-bottom:1px solid var(--line); font-size:10px; text-transform:uppercase; letter-spacing:.04em;}
 table.mini td{padding:2px 4px; border-bottom:1px solid #eeece5;}
 table.mini input{width:62px; padding:2px 4px; border:1px solid var(--line); border-radius:4px; text-align:right; font-size:11.5px;}
+table.mini input.floor-name{display:block; width:128px; margin-top:3px; text-align:left; font-size:10.5px;}
 table.mini select{font-size:11px; padding:1px 2px; border:1px solid var(--line); border-radius:4px;}
 
 /* ---------- Production board ---------- */
@@ -95,6 +96,8 @@ table.mini select{font-size:11px; padding:1px 2px; border:1px solid var(--line);
 th.day .dnum{font-weight:700; font-size:12px;}
 th.day .dname{color:var(--ink2); font-size:10px; text-transform:uppercase; letter-spacing:.05em;}
 th.day .dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:4px; vertical-align:middle;}
+th.day .copyday{border:0; background:transparent; color:var(--pin); cursor:pointer; font-size:10px; line-height:1; margin-left:3px; padding:1px 2px; vertical-align:middle;}
+th.day .copyday:hover{text-decoration:underline;}
 th.day.wkend{background:#e9e7dd; min-width:52px;}
 th.day.wkend .otbtn{font-size:9.5px; color:var(--pin); cursor:pointer; text-decoration:underline;}
 th.day.fri{background:#ece9dd;}
@@ -157,7 +160,7 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
 
 /* ---------- Print ---------- */
 @media print{
-  #leftpanel,#rightpanel,#topbar button,#legendbar,.otbtn{display:none !important;}
+  #leftpanel,#rightpanel,#topbar button,#legendbar,.otbtn,.copyday{display:none !important;}
   #main{grid-template-columns:1fr;}
   #app{height:auto;}
   #center{overflow:visible;}
@@ -183,6 +186,7 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
     <div class="spacer"></div>
     <button id="btn-baseline" class="primary" title="Snapshot the current plan. Every change afterward shows a delta view against this baseline.">Set as baseline</button>
     <button id="btn-print">Print</button>
+    <button id="btn-copyweek" title="Copy every day in the planning horizon">Copy week</button>
   </div>
   <div id="legendbar">
     <span style="font-weight:700; letter-spacing:.05em; text-transform:uppercase; font-size:10px;">Constraint key</span>
@@ -217,6 +221,7 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
    tier: 'def' 18 pans/day | 'slow' 16 pans/day (Sunshine + Blue Stripes only)
    line: pouch | box10 | box25 | bulk (bake SKUs' pack station)
    bpc: bags per case (pouch line)
+   floorName: optional floor-facing name used by copied schedules
    flag: seeded assumption/placeholder — verify                        */
 const CATALOG=[
 // -- Coconut, sweetened (2 cycles/day, same-day pan release) --
@@ -941,6 +946,69 @@ function shortName(p){
 }
 function recalc(){ computeSchedule(); renderAll(); saveState(); }
 
+/* ---------------- Floor schedule copy ---------------- */
+function runQty(value){
+  const rounded=Math.round((Number(value)||0)*10)/10;
+  return String(rounded);
+}
+function floorProductName(sku){
+  const p=prod(sku);
+  return p&&String(p.floorName||"").trim()?String(p.floorName).trim():(p?p.n:sku);
+}
+function dailyScheduleText(day){
+  const cells=day&&day.cells||{};
+  const sections=[];
+  const addSection=(title,lines)=>{if(lines.length)sections.push(title+":\n"+lines.join("\n"));};
+  const detail=st=>{
+    const runs=[];
+    for(const item of cells[st]&&cells[st].detail||[]){
+      let run=runs.find(x=>x.sku===item.sku);
+      if(!run){run={...item,qty:0};runs.push(run);}
+      run.qty+=Number(item.qty)||0;
+    }
+    return runs;
+  };
+
+  addSection("Baking",detail("bake").map(x=>"- "+runQty(x.qty)+" pans "+floorProductName(x.sku)));
+
+  const coconut=[];
+  for(const st of ["coconut","toasted"]){
+    for(const x of detail(st)){
+      const p=prod(x.sku),cases=p&&p.cpp?Math.floor(Number(x.qty)*Number(p.cpp)+1e-9):null;
+      const pack=p&&p.cl?(" → pack into "+runQty(p.cl)+"lb cases"+(cases!=null?" ("+runQty(cases)+" cs)":"")):"";
+      coconut.push("- "+runQty(x.qty)+" pans "+floorProductName(x.sku)+pack);
+    }
+  }
+  addSection("Coconut",coconut);
+
+  const packing=[];
+  const packLabels={pouch:"Pouch Pack",box10:"10-lb boxes",box25:"25-lb boxes",packonly:"Pack-only"};
+  for(const st of ["pouch","box10","box25","packonly"]){
+    for(const x of detail(st))packing.push("- "+packLabels[st]+": "+runQty(x.qty)+" cs "+floorProductName(x.sku));
+  }
+  addSection("Packing",packing);
+  addSection("Repack",detail("repack").map(x=>"- "+runQty(x.qty)+" cs "+floorProductName(x.sku)));
+
+  return "Today's Schedule — "+fmtShort(day.date)+(sections.length?"\n\n"+sections.join("\n\n"):"");
+}
+function weekScheduleText(){return R.days.map(dailyScheduleText).join("\n\n");}
+function copyFallback(text){
+  const area=document.createElement("textarea");
+  area.value=text; area.style.cssText="position:fixed;left:-9999px;top:0";
+  document.body.appendChild(area); area.select();
+  const copied=document.execCommand("copy"); area.remove();
+  if(!copied)throw new Error("Clipboard unavailable");
+}
+async function copyScheduleText(text,button){
+  const original=button.textContent;
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(text);
+    else copyFallback(text);
+    button.textContent="Copied";
+  }catch(e){button.textContent="Copy failed";}
+  setTimeout(()=>{button.textContent=original;},1400);
+}
+
 /* ---------------- Top bar ---------------- */
 function renderTop(){
   $("#kpi-done").textContent=R.allDoneDate?fmtShort(R.allDoneDate):"— beyond horizon";
@@ -1081,7 +1149,8 @@ function renderCatalog(){
   const rows=CATALOG.map(c=>{
     const p=PRODS[c.s]; const isBake=p.r==="bake", isCoco=p.r==="coconut"||p.r==="toasted";
     return "<tr><td title='"+esc((p.flag||"")+" "+p.n)+"'>"+c.s+(p.flag?" <span class='flagged'>⚠</span>":"")
-      +"<br><span style='color:var(--ink2)'>"+esc(p.n.slice(0,24))+"</span></td>"
+      +"<br><span style='color:var(--ink2)'>"+esc(p.n.slice(0,24))+"</span>"
+      +"<input class='floor-name' data-cattext='"+c.s+":floorName' value='"+esc(p.floorName||"")+"' placeholder='Floor name'></td>"
       +"<td>"+p.r+(isBake?"·"+p.line:"")+"</td>"
       +"<td>"+(isBake?"<input data-cat='"+c.s+":pl' value='"+p.pl+"' title='base lbs/pan'>":isCoco?"<input data-cat='"+c.s+":cpp' value='"+p.cpp+"' title='cases/pan'>":"—")+"</td>"
       +"<td>"+(isBake?"<select data-cats='"+c.s+":tier'><option "+(p.tier==="def"?"selected":"")+" value='def'>18</option><option "+(p.tier==="slow"?"selected":"")+" value='slow'>16</option></select>":"")+"</td></tr>";
@@ -1092,6 +1161,8 @@ function renderCatalog(){
     (ST.prodOv[s]=ST.prodOv[s]||{})[f]=parseFloat(i.value)||PRODS[s][f]; recalc();});
   b.querySelectorAll("[data-cats]").forEach(i=>i.onchange=()=>{const[s,f]=i.dataset.cats.split(":");
     (ST.prodOv[s]=ST.prodOv[s]||{})[f]=i.value; recalc();});
+  b.querySelectorAll("[data-cattext]").forEach(i=>i.onchange=()=>{const[s,f]=i.dataset.cattext.split(":"),value=i.value.trim();
+    (ST.prodOv[s]=ST.prodOv[s]||{})[f]=value; PRODS[s][f]=value; saveState();});
 }
 function bindLeft(){
   document.querySelectorAll("#leftpanel [data-set]").forEach(i=>{
@@ -1168,6 +1239,7 @@ function renderBoard(){
     const dotCls=d.bn?(d.bn.cls==="ok"?"var(--ok)":d.bn.cls==="wipb"?"var(--wip)":d.bn.cls==="pans"?"var(--coco)":"var(--amber)"):"transparent";
     h+="<th class='day"+(we?" wkend":"")+(fri?" fri":"")+"' data-day='"+d.date+"'>"
       +"<span class='dnum'>"+fmtShort(d.date).split(" ")[1]+"</span> <span class='dname'>"+fmtShort(d.date).split(" ")[0]+"</span>"
+      +" <button type='button' class='copyday' data-copy-day='"+d.date+"' title='Copy schedule for "+fmtShort(d.date)+"' aria-label='Copy schedule for "+fmtShort(d.date)+"'>⧉</button>"
       +(d.bn&&!d.off?"<span class='dot' style='background:"+dotCls+"' title='"+esc(d.bn.label)+"'></span>":"")
       +(we?"<br><span class='otbtn' data-ot='"+d.date+"'>"+(ST.ot[d.date]?ST.ot[d.date]+"m OT":"+ OT")+"</span>"
           :(fri?"<br><span class='dname'>"+Math.round(d.factor*100||S.fridayFactor)+"%</span>":""))
@@ -1222,6 +1294,9 @@ function renderBoard(){
   h+="</tr></tbody>";
   T.innerHTML=h;
   T.querySelectorAll("td.cell").forEach(td=>td.onclick=()=>openPin(td.dataset.day,td.dataset.st));
+  T.querySelectorAll(".copyday").forEach(btn=>btn.onclick=e=>{e.preventDefault();e.stopPropagation();
+    const day=R.days.find(d=>d.date===btn.dataset.copyDay); if(day)copyScheduleText(dailyScheduleText(day),btn);
+  });
   T.querySelectorAll(".more-toggle").forEach(btn=>btn.onclick=e=>{e.preventDefault(); e.stopPropagation();
     const td=btn.closest("td.cell"),expanded=td.classList.toggle("expanded");
     btn.textContent=expanded?"show less":"+"+btn.dataset.more+" more";
@@ -1367,13 +1442,14 @@ function renderOrders(){
 }
 
 /* ---------------- Wire-up ---------------- */
-const APP_VER="v1.5";
+const APP_VER="v1.6";
 function renderAll(){renderTop(); renderBoard(); renderOrders();}
 window.clearBaseline=clearBaseline;
 document.addEventListener("DOMContentLoaded",()=>{
   loadState(); S=ST.settings; buildProds();
   $("#btn-baseline").onclick=()=>{ST.baseline=snapshot(); saveState(); renderDelta();};
   $("#btn-print").onclick=()=>window.print();
+  $("#btn-copyweek").onclick=e=>copyScheduleText(weekScheduleText(),e.currentTarget);
   $("#modalbg").onclick=e=>{if(e.target.id==="modalbg")closeModal();};
   // clickable info popovers (info buttons also keep native hover tooltips)
   document.addEventListener("click",e=>{
