@@ -109,6 +109,8 @@ td.cell .u{font-size:9.5px; color:var(--ink2); margin-left:2px;}
 td.cell .dtl{font-size:9.5px; color:var(--ink2); line-height:1.35; margin-top:1px;}
 td.cell .dtl-item.extra{display:none;}
 td.cell.expanded .dtl-item.extra{display:block;}
+.dtl-breakdown{display:none; margin:1px 0 2px 8px; color:#687386; font-size:9px; line-height:1.3;}
+td.cell.expanded .dtl-breakdown{display:block;}
 .more-toggle{border:0; background:none; color:var(--pin); cursor:pointer; font:inherit; font-weight:700; padding:0; margin-left:3px; text-decoration:underline;}
 td.cell.off{background:var(--idlebg);}
 td.cell.wkend{background:#efede5; min-width:52px;}
@@ -170,6 +172,7 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
   #board thead th{position:static;} #board tbody th.stn{position:static;}
   td.cell,td.cell .cwrap{height:auto !important; min-height:0 !important;}
   td.cell .dtl-item.extra{display:block !important;}
+  td.cell .dtl-breakdown{display:block !important;}
   .more-toggle{display:none !important;}
 }
 </style>
@@ -955,19 +958,22 @@ function floorProductName(sku){
   const p=prod(sku);
   return p&&String(p.floorName||"").trim()?String(p.floorName).trim():(p?p.n:sku);
 }
+function aggregateStationDetail(items){
+  const runs=[];
+  for(const item of items||[]){
+    let run=runs.find(x=>x.sku===item.sku);
+    if(!run){run={sku:item.sku,qty:0,allocations:[]};runs.push(run);}
+    run.qty+=Number(item.qty)||0;
+    const line=Number.isInteger(item.line)&&item.line>=0&&R&&R.lines?R.lines[item.line]:null;
+    if(line)run.allocations.push({qty:Number(item.qty)||0,customer:line.o.customer||"—",orderId:line.o.orderId||""});
+  }
+  return runs;
+}
 function dailyScheduleText(day){
   const cells=day&&day.cells||{};
   const sections=[];
   const addSection=(title,lines)=>{if(lines.length)sections.push(title+":\n"+lines.join("\n"));};
-  const detail=st=>{
-    const runs=[];
-    for(const item of cells[st]&&cells[st].detail||[]){
-      let run=runs.find(x=>x.sku===item.sku);
-      if(!run){run={...item,qty:0};runs.push(run);}
-      run.qty+=Number(item.qty)||0;
-    }
-    return runs;
-  };
+  const detail=st=>aggregateStationDetail(cells[st]&&cells[st].detail||[]);
 
   addSection("Baking",detail("bake").map(x=>"- "+runQty(x.qty)+" pans "+floorProductName(x.sku)));
 
@@ -1260,11 +1266,15 @@ function renderBoard(){
       if(c){
         cls+=c.infeas?" infeas":(d.bn&&d.bn.st===st&&d.bn.w>0?" "+(d.bn.cls==="wipb"?"wipb":d.bn.cls==="pans"?"pans":"cap"):" run");
         if(c.pin)cls+=" pinned";
-        const items=(c.detail||[]);
+        const items=aggregateStationDetail(c.detail||[]);
         const hiddenCount=Math.max(0,items.length-3);
+        const hasBreakdown=items.some(x=>x.allocations.length>1);
+        const toggleIndex=hiddenCount?2:(hasBreakdown?Math.max(0,items.length-1):-1);
+        const collapsedLabel=hiddenCount?"+"+hiddenCount+" more":"details";
         const dtl=items.map((x,i)=>"<div class='dtl-item"+(i>=3?" extra":"")+"'>"
           +esc(shortName(prod(x.sku)))+" ×"+(Math.round(x.qty*10)/10)
-          +(i===2&&hiddenCount?" <button type='button' class='more-toggle' data-more='"+hiddenCount+"' aria-expanded='false'>+"+hiddenCount+" more</button>":"")
+          +(i===toggleIndex?" <button type='button' class='more-toggle' data-label='"+collapsedLabel+"' aria-expanded='false'>"+collapsedLabel+"</button>":"")
+          +(x.allocations.length?"<div class='dtl-breakdown'>"+x.allocations.map(a=>"×"+(Math.round(a.qty*10)/10)+" "+esc(a.customer)).join(" / ")+"</div>":"")
           +"</div>").join("");
         const full=items.map(x=>x.sku+" "+(prod(x.sku)?prod(x.sku).n:"")+" × "+x.qty).join("\n");
         inner="<div class='cwrap'>"+(c.pin?"<span class='pinbadge'>📌</span>":"")
@@ -1299,7 +1309,7 @@ function renderBoard(){
   });
   T.querySelectorAll(".more-toggle").forEach(btn=>btn.onclick=e=>{e.preventDefault(); e.stopPropagation();
     const td=btn.closest("td.cell"),expanded=td.classList.toggle("expanded");
-    btn.textContent=expanded?"show less":"+"+btn.dataset.more+" more";
+    btn.textContent=expanded?"show less":btn.dataset.label;
     btn.setAttribute("aria-expanded",expanded?"true":"false");
   });
   T.querySelectorAll(".otbtn").forEach(sp=>sp.onclick=e=>{e.stopPropagation();
@@ -1442,7 +1452,7 @@ function renderOrders(){
 }
 
 /* ---------------- Wire-up ---------------- */
-const APP_VER="v1.6";
+const APP_VER="v1.7";
 function renderAll(){renderTop(); renderBoard(); renderOrders();}
 window.clearBaseline=clearBaseline;
 document.addEventListener("DOMContentLoaded",()=>{
