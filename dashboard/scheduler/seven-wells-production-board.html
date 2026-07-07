@@ -103,7 +103,10 @@ td.cell:hover{outline:2px solid #b9c6dd; outline-offset:-2px;}
 td.cell .cwrap{padding:4px 6px 3px; border-left:4px solid transparent; height:100%;}
 td.cell .q{font-weight:700; font-size:13px;}
 td.cell .u{font-size:9.5px; color:var(--ink2); margin-left:2px;}
-td.cell .dtl{font-size:9.5px; color:var(--ink2); line-height:1.35; margin-top:1px; max-height:30px; overflow:hidden;}
+td.cell .dtl{font-size:9.5px; color:var(--ink2); line-height:1.35; margin-top:1px;}
+td.cell .dtl-item.extra{display:none;}
+td.cell.expanded .dtl-item.extra{display:block;}
+.more-toggle{border:0; background:none; color:var(--pin); cursor:pointer; font:inherit; font-weight:700; padding:0; margin-left:3px; text-decoration:underline;}
 td.cell.off{background:var(--idlebg);}
 td.cell.wkend{background:#efede5; min-width:52px;}
 td.cell.run .cwrap{border-left-color:var(--ok); background:var(--okbg);}
@@ -162,6 +165,9 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
   #topbar{background:#fff; color:#000; border-bottom:2px solid #000;}
   .kpi .k-label{color:#555;} .kpi .k-sub{color:#555;}
   #board thead th{position:static;} #board tbody th.stn{position:static;}
+  td.cell,td.cell .cwrap{height:auto !important; min-height:0 !important;}
+  td.cell .dtl-item.extra{display:block !important;}
+  .more-toggle{display:none !important;}
 }
 </style>
 </head>
@@ -1183,8 +1189,11 @@ function renderBoard(){
         cls+=c.infeas?" infeas":(d.bn&&d.bn.st===st&&d.bn.w>0?" "+(d.bn.cls==="wipb"?"wipb":d.bn.cls==="pans"?"pans":"cap"):" run");
         if(c.pin)cls+=" pinned";
         const items=(c.detail||[]);
-        const dtl=items.slice(0,2).map(x=>esc(shortName(prod(x.sku)))+" ×"+(Math.round(x.qty*10)/10)).join("<br>")
-          +(items.length>2?"<br>+"+(items.length-2)+" more":"");
+        const hiddenCount=Math.max(0,items.length-3);
+        const dtl=items.map((x,i)=>"<div class='dtl-item"+(i>=3?" extra":"")+"'>"
+          +esc(shortName(prod(x.sku)))+" ×"+(Math.round(x.qty*10)/10)
+          +(i===2&&hiddenCount?" <button type='button' class='more-toggle' data-more='"+hiddenCount+"' aria-expanded='false'>+"+hiddenCount+" more</button>":"")
+          +"</div>").join("");
         const full=items.map(x=>x.sku+" "+(prod(x.sku)?prod(x.sku).n:"")+" × "+x.qty).join("\n");
         inner="<div class='cwrap'>"+(c.pin?"<span class='pinbadge'>📌</span>":"")
           +"<span class='q num'>"+(Math.round(c.qty*10)/10)+"</span><span class='u'>"+c.unit+(c.sub?" · "+esc(c.sub):"")+"</span>"
@@ -1213,6 +1222,11 @@ function renderBoard(){
   h+="</tr></tbody>";
   T.innerHTML=h;
   T.querySelectorAll("td.cell").forEach(td=>td.onclick=()=>openPin(td.dataset.day,td.dataset.st));
+  T.querySelectorAll(".more-toggle").forEach(btn=>btn.onclick=e=>{e.preventDefault(); e.stopPropagation();
+    const td=btn.closest("td.cell"),expanded=td.classList.toggle("expanded");
+    btn.textContent=expanded?"show less":"+"+btn.dataset.more+" more";
+    btn.setAttribute("aria-expanded",expanded?"true":"false");
+  });
   T.querySelectorAll(".otbtn").forEach(sp=>sp.onclick=e=>{e.stopPropagation();
     const d=sp.dataset.ot;
     const cur=ST.ot[d]||"";
@@ -1353,7 +1367,7 @@ function renderOrders(){
 }
 
 /* ---------------- Wire-up ---------------- */
-const APP_VER="v1.4";
+const APP_VER="v1.5";
 function renderAll(){renderTop(); renderBoard(); renderOrders();}
 window.clearBaseline=clearBaseline;
 document.addEventListener("DOMContentLoaded",()=>{
