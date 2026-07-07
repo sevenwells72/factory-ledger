@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seven Wells — Production Board</title>
+<style>
+:root{
+  --paper:#f4f3ee; --card:#ffffff; --ink:#1b2431; --ink2:#4a5568; --line:#dcd9cf;
+  --ok:#2e7d4f; --okbg:#e8f3ec;
+  --amber:#b46a00; --amberbg:#fdf1de;
+  --late:#bf2f24; --latebg:#fbe9e7;
+  --pin:#1f5fbf; --pinbg:#e7effb;
+  --wip:#7b5ea7; --wipbg:#f1ecf8;
+  --idle:#98a0aa; --idlebg:#f0f1f3;
+  --coco:#8a6d3b;
+  font-size:14px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--paper); color:var(--ink);
+}
+.num{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums;}
+#app{display:grid; grid-template-rows:auto auto 1fr; height:100vh;}
+
+/* ---------- Top bar ---------- */
+#topbar{background:var(--ink); color:#f4f3ee; display:flex; align-items:center; gap:18px; padding:9px 16px; flex-wrap:wrap;}
+#topbar h1{font-size:15px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-right:6px; white-space:nowrap;}
+#topbar h1 span{color:#e8b04b; font-weight:600;}
+.kpi{display:flex; flex-direction:column; min-width:110px;}
+.kpi .k-label{font-size:10px; text-transform:uppercase; letter-spacing:.09em; color:#9aa5b5; display:flex; gap:4px; align-items:center;}
+.kpi .k-val{font-size:16px; font-weight:700;}
+.kpi .k-sub{font-size:10.5px; color:#c4cbd6;}
+.k-val.risk{color:#ff8a7a;} .k-val.good{color:#7fd8a4;} .k-val.warn{color:#f2c063;}
+#topbar .spacer{flex:1;}
+#topbar button{background:#2c3a4f; color:#f4f3ee; border:1px solid #46566e; border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer;}
+#topbar button:hover{background:#3a4b64;}
+#topbar button.primary{background:#e8b04b; color:#1b2431; border-color:#e8b04b; font-weight:700;}
+
+/* ---------- Legend / delta strip ---------- */
+#legendbar{background:#efede6; border-bottom:1px solid var(--line); padding:4px 16px; display:flex; gap:16px; align-items:center; font-size:11px; color:var(--ink2); flex-wrap:wrap;}
+.lg{display:flex; align-items:center; gap:5px;}
+.sw{width:11px; height:11px; border-radius:3px; display:inline-block;}
+#deltapanel{background:#fffbe9; border-bottom:1px solid #e5d9a8; padding:8px 16px; font-size:12px; display:none;}
+#deltapanel.show{display:block;}
+#deltapanel table{border-collapse:collapse; margin-top:5px;}
+#deltapanel th,#deltapanel td{padding:2px 12px 2px 0; text-align:left; font-size:12px;}
+#deltapanel th{color:var(--ink2); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;}
+.d-better{color:var(--ok); font-weight:700;} .d-worse{color:var(--late); font-weight:700;} .d-same{color:var(--idle);}
+
+/* ---------- Main 3-column layout ---------- */
+#main{display:grid; grid-template-columns:305px 1fr 340px; min-height:0;}
+#leftpanel,#rightpanel{overflow-y:auto; background:var(--card);}
+#leftpanel{border-right:1px solid var(--line); padding:10px 12px 40px;}
+#rightpanel{border-left:1px solid var(--line); padding:10px 12px 40px;}
+#center{overflow:auto; padding:10px 12px 30px;}
+
+/* ---------- Left panel controls ---------- */
+.panel-h{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--ink2); margin:14px 0 6px; display:flex; align-items:center; gap:5px;}
+.panel-h:first-child{margin-top:2px;}
+.ctl{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:3px 0; font-size:12.5px;}
+.ctl label{color:var(--ink); display:flex; align-items:center; gap:4px; line-height:1.25;}
+.ctl input[type=number],.ctl input[type=date],.ctl select{width:76px; padding:3px 5px; border:1px solid var(--line); border-radius:5px; font-size:12.5px; text-align:right; background:#fdfdfb;}
+.ctl input[type=date]{width:128px; text-align:left;}
+.ctl input[type=checkbox]{width:15px; height:15px;}
+.info{display:inline-flex; width:14px; height:14px; border-radius:50%; background:#e3e0d6; color:var(--ink2); font-size:9.5px; font-weight:700; align-items:center; justify-content:center; cursor:pointer; flex:none;}
+.info:hover{background:var(--ink); color:#fff;}
+.flagged{color:var(--amber); font-weight:700;}
+details{border:1px solid var(--line); border-radius:7px; margin:8px 0; background:#fbfaf7;}
+details summary{padding:6px 9px; font-size:12px; font-weight:700; cursor:pointer; color:var(--ink2); user-select:none;}
+details .dbody{padding:4px 9px 9px; font-size:12px;}
+button.act{background:var(--ink); color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; margin:3px 4px 3px 0;}
+button.act.sec{background:#e7e4da; color:var(--ink);}
+button.act:hover{opacity:.88;}
+.hint{font-size:11px; color:var(--ink2); line-height:1.45; margin:4px 0;}
+.warnbox{background:var(--amberbg); border:1px solid #ecd2a0; border-radius:6px; padding:6px 8px; font-size:11.5px; margin:6px 0; color:#7a4c07;}
+.errbox{background:var(--latebg); border:1px solid #e8b3ac; border-radius:6px; padding:6px 8px; font-size:11.5px; margin:6px 0; color:#8c221a;}
+
+/* mini tables (FG/WIP/catalog editors) */
+table.mini{width:100%; border-collapse:collapse; font-size:11.5px;}
+table.mini th{ text-align:left; color:var(--ink2); font-weight:600; padding:2px 4px; border-bottom:1px solid var(--line); font-size:10px; text-transform:uppercase; letter-spacing:.04em;}
+table.mini td{padding:2px 4px; border-bottom:1px solid #eeece5;}
+table.mini input{width:62px; padding:2px 4px; border:1px solid var(--line); border-radius:4px; text-align:right; font-size:11.5px;}
+table.mini select{font-size:11px; padding:1px 2px; border:1px solid var(--line); border-radius:4px;}
+
+/* ---------- Production board ---------- */
+#board{border-collapse:separate; border-spacing:0; font-size:12px; background:var(--card); border:1px solid var(--line); border-radius:8px;}
+#board th,#board td{border-right:1px solid #eceade; border-bottom:1px solid #eceade; padding:0; vertical-align:top;}
+#board thead th{position:sticky; top:0; background:#f0eee6; z-index:3; padding:5px 7px; text-align:center; min-width:118px; font-size:11px;}
+#board thead th.stn{left:0; z-index:4; min-width:118px; text-align:left;}
+#board tbody th.stn{position:sticky; left:0; background:#f7f6f0; z-index:2; padding:7px 8px; text-align:left; font-size:11.5px; font-weight:700; white-space:nowrap;}
+#board tbody th.stn small{display:block; font-weight:400; color:var(--ink2); font-size:10px;}
+th.day .dnum{font-weight:700; font-size:12px;}
+th.day .dname{color:var(--ink2); font-size:10px; text-transform:uppercase; letter-spacing:.05em;}
+th.day .dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:4px; vertical-align:middle;}
+th.day.wkend{background:#e9e7dd; min-width:52px;}
+th.day.wkend .otbtn{font-size:9.5px; color:var(--pin); cursor:pointer; text-decoration:underline;}
+th.day.fri{background:#ece9dd;}
+td.cell{min-width:118px; height:58px; cursor:pointer; position:relative; background:#fff;}
+td.cell:hover{outline:2px solid #b9c6dd; outline-offset:-2px;}
+td.cell .cwrap{padding:4px 6px 3px; border-left:4px solid transparent; height:100%;}
+td.cell .q{font-weight:700; font-size:13px;}
+td.cell .u{font-size:9.5px; color:var(--ink2); margin-left:2px;}
+td.cell .dtl{font-size:9.5px; color:var(--ink2); line-height:1.35; margin-top:1px; max-height:30px; overflow:hidden;}
+td.cell.off{background:var(--idlebg);}
+td.cell.wkend{background:#efede5; min-width:52px;}
+td.cell.run .cwrap{border-left-color:var(--ok); background:var(--okbg);}
+td.cell.cap .cwrap{border-left-color:var(--amber); background:var(--amberbg);}
+td.cell.wipb .cwrap{border-left-color:var(--wip); background:var(--wipbg);}
+td.cell.pans .cwrap{border-left-color:var(--coco); background:#f5efe3;}
+td.cell.infeas .cwrap{border-left-color:var(--late); background:var(--latebg);}
+td.cell.pinned .cwrap{box-shadow:inset 0 0 0 2px var(--pin);}
+.pinbadge{position:absolute; top:2px; right:3px; font-size:9px; color:var(--pin); font-weight:700;}
+.crewbadge{position:absolute; bottom:2px; right:3px; font-size:9px; color:var(--ink2); background:rgba(255,255,255,.75); border-radius:3px; padding:0 3px; font-weight:700;}
+#tippop{position:fixed; z-index:99; max-width:270px; background:var(--ink); color:#f4f3ee; font-size:11.5px; line-height:1.5; padding:8px 11px; border-radius:7px; box-shadow:0 6px 24px rgba(0,0,0,.35);}
+tr.laborrow th.stn{background:#eef1f6;}
+tr.laborrow td{background:#f4f7fb; font-size:10px; color:var(--ink2); padding:4px 6px; height:auto; cursor:default;}
+tr.laborrow td b{color:var(--ink); font-size:11px;}
+#bnrow td{font-size:9.5px; padding:3px 6px; color:var(--ink2); background:#fbfaf5; height:auto; cursor:default; max-width:110px;}
+
+/* ---------- Order book ---------- */
+.ord{border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-bottom:7px; background:#fdfdfa; font-size:12px;}
+.ord.excluded{opacity:.45;}
+.ord .o-top{display:flex; justify-content:space-between; align-items:center; gap:6px;}
+.ord .o-cust{font-weight:700; font-size:12.5px;}
+.ord .o-id{color:var(--ink2); font-size:10.5px;}
+.ord .o-dates{display:flex; gap:12px; margin-top:3px; font-size:11px; color:var(--ink2);}
+.ord .o-dates b{color:var(--ink);}
+.ord .o-lines{margin-top:3px; font-size:10.5px; color:var(--ink2); line-height:1.4;}
+.chip{display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; letter-spacing:.03em;}
+.chip.early{background:var(--okbg); color:var(--ok);}
+.chip.ontime{background:#e4f0e9; color:#256a44;}
+.chip.tight{background:var(--amberbg); color:var(--amber);}
+.chip.late{background:var(--latebg); color:var(--late);}
+.chip.stock{background:var(--pinbg); color:var(--pin);}
+.chip.inc{background:#f3d9d6; color:#8c221a;}
+.o-days{font-size:10.5px; font-weight:700;}
+.o-days.pos{color:var(--ok);} .o-days.neg{color:var(--late);}
+
+/* ---------- Modal ---------- */
+#modalbg{position:fixed; inset:0; background:rgba(20,26,36,.45); display:none; align-items:center; justify-content:center; z-index:50;}
+#modalbg.show{display:flex;}
+#modal{background:#fff; border-radius:10px; padding:16px 18px; width:400px; max-width:94vw; box-shadow:0 12px 40px rgba(0,0,0,.25); font-size:13px;}
+#modal h3{font-size:14px; margin-bottom:2px;}
+#modal .m-sub{font-size:11.5px; color:var(--ink2); margin-bottom:10px;}
+#modal .m-row{display:flex; justify-content:space-between; align-items:center; padding:5px 0; gap:10px;}
+#modal input[type=number],#modal select{width:110px; padding:4px 6px; border:1px solid var(--line); border-radius:5px; text-align:right;}
+#modal .m-feas{border-radius:6px; padding:7px 9px; font-size:11.5px; margin:8px 0; line-height:1.45;}
+#modal .m-feas.ok{background:var(--okbg); color:#1e5c39;}
+#modal .m-feas.bad{background:var(--latebg); color:#8c221a;}
+#modal .m-btns{display:flex; justify-content:flex-end; gap:8px; margin-top:10px;}
+
+/* ---------- Print ---------- */
+@media print{
+  #leftpanel,#rightpanel,#topbar button,#legendbar,.otbtn{display:none !important;}
+  #main{grid-template-columns:1fr;}
+  #app{height:auto;}
+  #center{overflow:visible;}
+  body{background:#fff;}
+  #topbar{background:#fff; color:#000; border-bottom:2px solid #000;}
+  .kpi .k-label{color:#555;} .kpi .k-sub{color:#555;}
+  #board thead th{position:static;} #board tbody th.stn{position:static;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>Seven Wells <span>Production Board</span></h1>
+    <div class="kpi"><div class="k-label">Everything done by <span class="info" title="The date the last open order is 100% packed under the current plan.">i</span></div><div class="k-val num" id="kpi-done">—</div><div class="k-sub" id="kpi-done-sub"></div></div>
+    <div class="kpi"><div class="k-label">Orders at risk <span class="info" title="Orders that finish late, exactly on their due date (tight), or don't finish inside the planning horizon.">i</span></div><div class="k-val num" id="kpi-risk">—</div><div class="k-sub" id="kpi-risk-sub"></div></div>
+    <div class="kpi"><div class="k-label">Dominant bottleneck <span class="info" title="The constraint that limits the most urgent work across the most days of the plan. Each day's binding constraint is shown in the day-header dot and the bottom row of the board.">i</span></div><div class="k-val" id="kpi-bn" style="font-size:13px;">—</div><div class="k-sub" id="kpi-bn-sub"></div></div>
+    <div class="kpi"><div class="k-label">Labor utilization <span class="info" title="Workers assigned ÷ workers available, averaged over workdays until everything is done.">i</span></div><div class="k-val num" id="kpi-labor">—</div><div class="k-sub" id="kpi-labor-sub"></div></div>
+    <div class="kpi"><div class="k-label">Late days (total) <span class="info" title="Sum of days late across all orders. 0 means nothing ships late.">i</span></div><div class="k-val num" id="kpi-late">—</div><div class="k-sub" id="kpi-late-sub"></div></div>
+    <div class="spacer"></div>
+    <button id="btn-baseline" class="primary" title="Snapshot the current plan. Every change afterward shows a delta view against this baseline.">Set as baseline</button>
+    <button id="btn-print">Print</button>
+  </div>
+  <div id="legendbar">
+    <span style="font-weight:700; letter-spacing:.05em; text-transform:uppercase; font-size:10px;">Constraint key</span>
+    <span class="lg"><span class="sw" style="background:var(--ok)"></span>Running, capacity to spare</span>
+    <span class="lg"><span class="sw" style="background:var(--amber)"></span>At capacity (rate/labor-bound)</span>
+    <span class="lg"><span class="sw" style="background:var(--wip)"></span>WIP-starved (waiting on bake)</span>
+    <span class="lg"><span class="sw" style="background:var(--coco)"></span>Pan-bound (coconut pool)</span>
+    <span class="lg"><span class="sw" style="background:var(--late)"></span>Infeasible pin / late</span>
+    <span class="lg"><span class="sw" style="border:2px solid var(--pin); background:#fff;"></span>Pinned by you</span>
+    <span class="lg" style="margin-left:auto; color:#8a8878;">Click any cell to pin a quantity or crew · click a weekend header to add overtime</span>
+  </div>
+  <div id="deltapanel"></div>
+  <div id="main">
+    <div id="leftpanel"></div>
+    <div id="center"><table id="board"></table></div>
+    <div id="rightpanel"></div>
+  </div>
+</div>
+<div id="modalbg"><div id="modal"></div></div>
+<script>
+"use strict";
+/* =====================================================================
+   SEVEN WELLS PRODUCTION BOARD — finite-capacity daily planning simulator
+   Seed data: CNS SCHEDULER SEED DATA — RECONCILED v1 — 2026-07-02
+   ===================================================================== */
+
+/* ---------------- Product catalog (57 active SKUs) ----------------
+   r: coconut | toasted | repack | packonly | bake
+   cl: lbs per case (cl=1 → demand is in lbs, e.g. 70004 bulk)
+   cpp: cases per pan (coconut routings)
+   pl: base lbs per pan (bake) · fl: finished lbs per pan (post-premix)
+   tier: 'def' 18 pans/day | 'slow' 16 pans/day (Sunshine + Blue Stripes only)
+   line: pouch | box10 | box25 | bulk (bake SKUs' pack station)
+   bpc: bags per case (pouch line)
+   flag: seeded assumption/placeholder — verify                        */
+const CATALOG=[
+// -- Coconut, sweetened (2 cycles/day, same-day pan release) --
+{s:"10001",n:"Coconut Sweetened Flake CNS 10 LB",r:"coconut",cl:10,cpp:36},
+{s:"10002",n:"Coconut Sweetened Medium CNS 10 LB",r:"coconut",cl:10,cpp:36},
+{s:"10006",n:"Coconut Sweetened Fancy CNS 10 LB",r:"coconut",cl:10,cpp:36},
+{s:"10007",n:"Coconut Sweetened Fancy CNS 25 LB",r:"coconut",cl:25,cpp:14.5},
+{s:"10020",n:"Coconut Sweetened Flake CNS 25 LB",r:"coconut",cl:25,cpp:14.5},
+{s:"67470",n:"Coconut Sweetened Fancy UNIPRO 10 LB",r:"coconut",cl:10,cpp:36},
+{s:"67473",n:"Coconut Sweetened Medium UNIPRO 10 LB",r:"coconut",cl:10,cpp:36},
+{s:"67476",n:"Coconut Sweetened Flake UNIPRO 10 LB",r:"coconut",cl:10,cpp:36},
+{s:"893",n:"CQ Coconut Sweetened Flake 10 LB",r:"coconut",cl:10,cpp:36},
+// -- Coconut, toasted (1 cycle, pans locked until emptied next workday) --
+{s:"10010",n:"Coconut Toasted Swt Flake CNS 10 LB",r:"toasted",cl:10,cpp:30},
+{s:"10029",n:"Coconut Toasted Swt Flake CNS 25 LB",r:"toasted",cl:25,cpp:12},
+// -- Repack (3-person crew) --
+{s:"10045",n:"Desiccated Macaroon Bakers 50 LB",r:"repack",cl:50},
+{s:"10046",n:"Desiccated Fancy Bakers 50 LB",r:"repack",cl:50},
+{s:"10047",n:"Desiccated Flake 50 LB",r:"repack",cl:50},
+{s:"10048",n:"Desiccated Flake CNS 25 LB",r:"repack",cl:25},
+{s:"10049",n:"Desiccated Coconut Chips 25 LB",r:"repack",cl:25},
+{s:"10051",n:"Desiccated Medium Bakers 50 LB",r:"repack",cl:50},
+{s:"10052",n:"Desiccated Medium CNS 25 LB",r:"repack",cl:25},
+{s:"10053",n:"Desiccated Macaroon Bakers 25 LB",r:"repack",cl:25},
+{s:"10054",n:"Desiccated Medium CNS 100 LB",r:"repack",cl:100},
+{s:"10055",n:"Desiccated Flake 55 LB",r:"repack",cl:55},
+{s:"10056",n:"Desiccated Flake 80 LB",r:"repack",cl:80},
+{s:"10058",n:"Desiccated Macaroon CNS 25 LB",r:"repack",cl:25},
+{s:"10059",n:"Desiccated Macaroon 55 LB",r:"repack",cl:55},
+{s:"70051",n:"Coconut Chips 25 LB",r:"repack",cl:25},
+{s:"31012",n:"Graham Cracker Crumbs 10 LB",r:"repack",cl:10},
+{s:"31011",n:"Graham Cracker Crumbs 50 LB",r:"packonly",cl:50,flag:"sold as purchased 50-lb ingredient — ship-through, zero line load (verify routing)"},
+// -- Pack-only (co-pack; unconstrained for now) --
+{s:"10301",n:"Kookies & Kreme 10 LB",r:"packonly",cl:10},
+{s:"10302",n:"Sprinkles Rainbow 10 LB",r:"packonly",cl:10},
+{s:"10303",n:"Sprinkles Chocolate 10 LB",r:"packonly",cl:10},
+{s:"10304",n:"Kookies & Kreme 25 LB",r:"packonly",cl:25},
+{s:"10305",n:"Sprinkles Rainbow 25 LB",r:"packonly",cl:25},
+{s:"10306",n:"Sprinkles Chocolate 25 LB",r:"packonly",cl:25},
+// -- Bake+pack: bulk boxes --
+{s:"70050",n:"Granola Classic 25 LB",r:"bake",cl:25,pl:322.6,tier:"def",line:"box25"},
+{s:"70012",n:"Granola Wheat Free 25 LB",r:"bake",cl:25,pl:322.6,tier:"def",line:"box25"},
+{s:"10300",n:"Granola Crunchy CNS 10 LB",r:"bake",cl:10,pl:322.6,tier:"def",line:"box10"},
+{s:"1614",n:"CQ Granola 10 LB",r:"bake",cl:10,pl:322.6,tier:"def",line:"box10"},
+{s:"70053",n:"Granola Chocolate Chip 25 LB",r:"bake",cl:25,pl:347.6,tier:"def",line:"box25"},
+{s:"70048",n:"Granola Vanilla Almond 25 LB",r:"bake",cl:25,pl:380.12,tier:"def",line:"box25"},
+{s:"70052",n:"Granola Vanilla Crisp 25 LB",r:"bake",cl:25,pl:370.12,tier:"def",line:"box25"},
+{s:"70057",n:"Granola Cinnamon Almond 25 LB",r:"bake",cl:25,pl:329.7,tier:"def",line:"box25",flag:"batch 90019 assumed"},
+{s:"70061",n:"Granola Fruit Nut 25 LB",r:"bake",cl:25,pl:328.3,tier:"def",line:"box25"},
+{s:"70060",n:"Granola Honey Nut 25 LB",r:"bake",cl:25,pl:350,tier:"slow",line:"box25",flag:"bake 16 inherited from SS batch — flip to 18 if slowness is brand-driven"},
+{s:"70056",n:"Granola Setton Cocoa Crunch 25 LB",r:"bake",cl:25,pl:337.6,tier:"def",line:"box25"},
+{s:"70077",n:"Granola Setton Cinn Spice Almond 25 LB",r:"bake",cl:25,pl:329.7,tier:"def",line:"box25",flag:"batch 90019 assumed (same as 70057)"},
+{s:"70081",n:"Granola Setton Good Ol 25 LB",r:"bake",cl:25,pl:330,tier:"def",line:"box25",flag:"BATCH UNMAPPED — 330 lb/pan placeholder"},
+{s:"70082",n:"Granola Setton French Vanilla 25 LB",r:"bake",cl:25,pl:370.12,tier:"def",line:"box25",flag:"batch 90024 assumed"},
+{s:"70059",n:"Granola Cocoa Vibes 25 LB",r:"bake",cl:25,pl:340,tier:"def",line:"box25",flag:"BATCH PENDING — 340 lb/pan placeholder"},
+// -- Bake+pack: Sunshine pouch line (slow tier 16) --
+{s:"70002",n:"Granola SS Original 12x10oz",r:"bake",cl:7.5,pl:350,tier:"slow",line:"pouch",bpc:12},
+{s:"70003",n:"Granola SS Chocolate Chip 12x10oz",r:"bake",cl:7.5,pl:393,tier:"slow",line:"pouch",bpc:12},
+{s:"70010",n:"Granola SS Original Low Carb 12x10oz",r:"bake",cl:7.5,pl:350,tier:"slow",line:"pouch",bpc:12},
+{s:"70011",n:"Granola SS Cranberry 12x10oz",r:"bake",cl:7.5,pl:379,tier:"slow",line:"pouch",bpc:12},
+{s:"70070",n:"Granola SS Choc Chip Low Carb 12x10oz",r:"bake",cl:7.5,pl:349,tier:"slow",line:"pouch",bpc:12},
+{s:"70004",n:"Granola SS Original Bulk per-lb",r:"bake",cl:1,pl:350,tier:"slow",line:"bulk"},
+// -- Bake+pack: Blue Stripes pouch line (slow tier 16) --
+{s:"70073",n:"BS Granola PB Banana 6x7oz",r:"bake",cl:2.625,pl:341,fl:426,tier:"slow",line:"pouch",bpc:6,flag:"+85 lb premix post-bake; pan=341 base, finished 426"},
+{s:"70074",n:"BS Granola Dark Chocolate 6x7oz",r:"bake",cl:2.625,pl:341,tier:"slow",line:"pouch",bpc:6},
+{s:"70079",n:"BS Almond Butter Granola 6x7oz",r:"bake",cl:2.625,pl:349.4,tier:"slow",line:"pouch",bpc:6},
+{s:"70080",n:"BS Granola Hazelnut Butter 6x7oz",r:"bake",cl:2.625,pl:349.4,tier:"slow",line:"pouch",bpc:6},
+];
+
+/* ---------------- Default settings ---------------- */
+const DEF_SETTINGS={
+  startDate: null,            // set at init → today
+  totalWorkers:10,
+  minutesFullDay:495,         // 8h15m productive
+  fridayFactor:75,            // % of nominal
+  sameDayWipPct:50,           // % of today's bake packable today (cooling ~1 hr)
+  changeoverMin:0,            // per extra SKU per station per day (dial; restore later)
+  // bake
+  bakeDef3:18, bakeSlow3:16, bakeDef4:25, allow4:true,
+  ovens:3, granolaPans:3,
+  // coconut
+  coconutPool:6, sweetCycles:2, coconutMinPans:2, crewCoconut:2,
+  // pack lines
+  crewPouch:3, pouchBags:8500,
+  crewBox10:3, box10Rate:1400,
+  crewBox25:1, box25Rate:240,
+  // repack
+  crewRepack:3, repackRate:250, // PLACEHOLDER — no measured rate supplied
+};
+
+/* ---------------- State ---------------- */
+const LS_KEY="sw_prodboard_v1";
+let S=null; // settings
+let ST=null; // full state
+function freshState(){
+  return {
+    settings:{...DEF_SETTINGS, startDate:todayStr()},
+    prodOv:{},          // per-SKU overrides {sku:{pl,cl,cpp,tier,line,repackRateOv...}}
+    orders:[],          // {id,orderId,customer,sku,name,qty,uom,due,notes,included}
+    fg:{},              // finished goods on hand, cases (lbs for cl=1)
+    wip:{},             // bulk-bin WIP, base lbs by sku (baked, not packed)
+    pins:{},            // {date:{qty:{station:val}, crews:{area:n}}}
+    ot:{},              // {date:minutes} overtime/override productive minutes
+    baseline:null,
+    nextId:1,
+  };
+}
+function saveState(){ try{localStorage.setItem(LS_KEY,JSON.stringify(ST));}catch(e){} }
+function loadState(){
+  try{const raw=localStorage.getItem(LS_KEY); if(raw){ST=JSON.parse(raw); ST.settings={...DEF_SETTINGS,...ST.settings}; return;}}catch(e){}
+  ST=freshState();
+}
+
+/* ---------------- Product accessor (catalog + overrides) ---------------- */
+let PRODS={};
+function buildProds(){
+  PRODS={};
+  for(const c of CATALOG){
+    const ov=ST.prodOv[c.s]||{};
+    const p={...c,...ov};
+    p.fl=p.fl||p.pl||0;
+    if(p.r==="bake"){ p.baseLbsPerCase = p.cl*(p.pl/p.fl); }
+    PRODS[p.s]=p;
+  }
+}
+function prod(sku){return PRODS[sku];}
+
+/* ---------------- Date utils (UTC, ISO) ---------------- */
+function todayStr(){const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function pD(s){const[a,b,c]=s.split("-").map(Number); return new Date(Date.UTC(a,b-1,c));}
+function fD(d){return d.toISOString().slice(0,10);}
+function addD(d,n){const x=new Date(d); x.setUTCDate(x.getUTCDate()+n); return x;}
+function dow(d){return d.getUTCDay();} // 0 Sun … 5 Fri, 6 Sat
+function isWk(d){const w=dow(d); return w>=1&&w<=5;}
+function dayFactor(d){
+  const ds=fD(d);
+  if(ST.ot[ds]!=null) return ST.ot[ds]/S.minutesFullDay;
+  if(!isWk(d)) return 0;
+  if(dow(d)===5) return S.fridayFactor/100;
+  return 1;
+}
+function isProdDay(d){return dayFactor(d)>0;}
+function nextProdDay(d){let x=addD(d,1),g=0; while(!isProdDay(x)&&g++<14)x=addD(x,1); return x;}
+function calDays(a,b){return Math.round((pD(b)-pD(a))/86400000);} // b-a
+function fmtShort(ds){const d=pD(ds); return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow(d)]+" "+(d.getUTCMonth()+1)+"/"+d.getUTCDate();}
+
+/* ---------------- CSV parsing (forgiving format, strict schema) ---------------- */
+function parseCSV(text){
+  const rows=[]; let row=[],cur="",q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','){row.push(cur);cur="";}
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n')i++; row.push(cur);cur=""; if(row.some(c=>c.trim()!=="")) rows.push(row); row=[]; }
+    else cur+=ch;
+  }
+  if(cur!==""||row.length){row.push(cur); if(row.some(c=>c.trim()!==""))rows.push(row);}
+  return rows;
+}
+function importOrdersCSV(text){
+  const rows=parseCSV(text);
+  if(rows.length<2) return {err:"CSV has no data rows."};
+  const hdr=rows[0].map(h=>h.trim().toLowerCase());
+  // Factory Ledger open-sales-orders export: auto-detected and mapped to the spec
+  const fl=hdr.includes("sales_order_number")&&hdr.includes("open_qty_cases");
+  const alias=fl?{order_id:"sales_order_number",customer:"customer_name",qty:"open_qty_cases",
+    due_date:"requested_ship_date",sku:"sku",product_name:"product_name",notes:"notes",uom:"__none"}:{};
+  const col=h=>hdr.indexOf(alias[h]||h);
+  const REQ=["order_id","customer","sku","qty","due_date"];
+  const idx={}; for(const h of["order_id","customer","sku","product_name","qty","uom","due_date","notes"]) idx[h]=col(h);
+  const idxOpenLbs=fl?hdr.indexOf("open_lbs"):-1;
+  const missing=REQ.filter(h=>idx[h]===-1);
+  if(missing.length) return {err:"Missing required column(s): "+missing.join(", ")+". Required: order_id, customer, sku, qty, due_date."};
+  const orderKey=(orderId,sku)=>orderId+"\u0000"+sku;
+  const existingByKey=new Map();
+  for(const order of ST.orders) existingByKey.set(orderKey(order.orderId,order.sku),order);
+  const importedByKey=new Map();
+  const unknown=new Set(); const bad=[]; let nonProduct=0, fulfilled=0;
+  for(let r=1;r<rows.length;r++){
+    const g=h=>idx[h]>=0?String(rows[r][idx[h]]||"").trim():"";
+    const orderId=g("order_id"), sku=g("sku"), due=g("due_date");
+    let qty=parseFloat(g("qty"));
+    if(!sku){ if(fl){nonProduct++; continue;} if(!orderId)continue; }
+    if(!PRODS[sku]){unknown.add(sku||"(blank)"); continue;}
+    if(fl&&PRODS[sku].cl===1&&idxOpenLbs>=0) qty=parseFloat(rows[r][idxOpenLbs]);
+    if(fl&&!(qty>0)){fulfilled++; continue;}
+    if(!(qty>0)){bad.push("row "+(r+1)+": qty"); continue;}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(due)){bad.push("row "+(r+1)+": due_date must be YYYY-MM-DD"); continue;}
+    importedByKey.set(orderKey(orderId,sku),{orderId, customer:g("customer"), sku,
+      name:g("product_name")||PRODS[sku].n, qty, uom:g("uom")||(PRODS[sku].cl===1?"lb":"case"),
+      due, notes:g("notes")});
+  }
+  let replaced=0;
+  ST.orders=[...importedByKey].map(([key,order])=>{
+    const existing=existingByKey.get(key);
+    if(existing)replaced++;
+    return {...order,id:existing?existing.id:ST.nextId++,included:existing?existing.included!==false:true};
+  });
+  const orderCount=new Set(ST.orders.map(order=>order.orderId)).size;
+  return {added:ST.orders.length,orderCount,replaced,unknown:[...unknown],bad,fl,nonProduct,fulfilled};
+}
+
+/* ---------------- Sample orders (relative to today) ---------------- */
+function loadSampleOrders(){
+  const t=pD(S.startDate);
+  const mk=(off,orderId,customer,sku,qty)=>({id:ST.nextId++,orderId,customer,sku,name:PRODS[sku].n,qty,
+    uom:PRODS[sku].cl===1?"lb":"case",due:fD(addD(t,off)),notes:"sample",included:true});
+  ST.orders.push(
+    mk(5,"SO-1001","UNIPRO","67470",500),
+    mk(6,"SO-1002","Restaurant Depot","10300",600),
+    mk(8,"SO-1003","Sunshine","70002",800),
+    mk(8,"SO-1003","Sunshine","70003",400),
+    mk(9,"SO-1004","DOT Foods","70050",400),
+    mk(10,"SO-1005","QUALI-PACK","31012",200),
+    mk(11,"SO-1006","Setton Farms","10010",100),
+    mk(12,"SO-1007","Setton Farms","70056",250),
+    mk(14,"SO-1008","Blue Stripes","70073",300),
+    mk(14,"SO-1008","Blue Stripes","70074",200),
+  );
+}
+
+/* =====================================================================
+   SCHEDULING ENGINE
+   Greedy day-by-day simulation. Each day, every feasible crew allocation
+   (≤96 combos) is simulated; the highest-scoring one is committed.
+   ===================================================================== */
+const STATIONS=["bake","pouch","box10","box25","coconut","toasted","repack","packonly"];
+const STN_META={
+  bake:{label:"Granola Bake",unit:"pans",area:"bake"},
+  pouch:{label:"Pouch Pack",unit:"cs",area:"pouch"},
+  box10:{label:"10-lb Box Pack",unit:"cs",area:"box10"},
+  box25:{label:"25-lb Box Pack",unit:"cs",area:"box25"},
+  coconut:{label:"Coconut (sweet)",unit:"pans",area:"coconut"},
+  toasted:{label:"Coconut (toasted)",unit:"pans",area:"coconut"},
+  repack:{label:"Repack",unit:"cs",area:"repack"},
+  packonly:{label:"Pack-only",unit:"cs",area:null},
+};
+const AREAS=["bake","coconut","pouch","box10","box25","repack"];
+
+let R=null; // last computed result
+
+function urg(due, dayStr){
+  const dd=calDays(dayStr,due); // days until due (negative = overdue)
+  return dd<=0 ? 60+(-dd)*12 : Math.max(1, 26-dd*1.6);
+}
+
+/* Build demand lines: allocate FG first (by due date within SKU) */
+function buildLines(){
+  const lines=[];
+  for(const o of ST.orders){
+    if(!o.included) continue;
+    const p=prod(o.sku); if(!p) continue;
+    lines.push({o, sku:o.sku, p, due:o.due, qty:o.qty, remaining:o.qty, inbound:0,
+      fgUsed:0, readyDay:null, packedBy:{}});
+  }
+  lines.sort((a,b)=>a.due<b.due?-1:a.due>b.due?1:0);
+  const fg={...ST.fg};
+  for(const L of lines){
+    const have=fg[L.sku]||0;
+    if(have>0){const use=Math.min(have,L.remaining); L.remaining-=use; L.fgUsed=use; fg[L.sku]=have-use;}
+    if(L.remaining<=1e-6){L.remaining=0; L.readyDay=S.startDate; L.fromStock=true;}
+  }
+  return lines;
+}
+
+function bakeTierPans(p, crew){
+  const base=p.tier==="slow"?S.bakeSlow3:S.bakeDef3;
+  return crew===4 ? base*(S.bakeDef4/S.bakeDef3) : base;
+}
+
+/* ---- simulate one day under a given allocation; pure w.r.t. ctx ---- */
+function simDay(ctx, alloc, dayStr, factor, pins){
+  const rem=ctx.lines.map(l=>l.remaining - l.inbound); // effective remaining
+  const wip={...ctx.wip};
+  const out={score:0, alloc, workers:0, baked:{}, packed:[], coco:[], toastMix:[], repacked:[], bulk:[], packonly:[],
+    cells:{}, chCount:0, diag:{}};
+  for(const a of AREAS) out.workers+=alloc[a]||0;
+  const qpin=(pins&&pins.qty)||{};
+  const chFrac=q=>q>0?S.changeoverMin/S.minutesFullDay*q:0;
+
+  /* ---------- BAKE ---------- */
+  let bakedToday={};
+  {
+    const crew=alloc.bake;
+    const active=crew>0 || qpin.bake!=null;
+    if(active){
+      // per-SKU need in base lbs (packing demand net of WIP)
+      const needs=[]; const seen={};
+      ctx.lines.forEach((L,i)=>{
+        if(L.p.r!=="bake"||rem[i]<=1e-6) return;
+        if(seen[L.sku]==null){seen[L.sku]=needs.length; needs.push({sku:L.sku,p:L.p,due:L.due,lbs:0});}
+        needs[seen[L.sku]].lbs+=rem[i]*L.p.baseLbsPerCase;
+      });
+      for(const nd of needs) nd.lbs=Math.max(0, nd.lbs-(wip[nd.sku]||0));
+      const list=needs.filter(n=>n.lbs>1e-6);
+      let capFrac=(crew>0?factor:0), skus=0, pansTotal=0, detail=[];
+      const effCrew=crew>0?crew:3;
+      if(qpin.bake!=null){
+        // pinned pans: distribute across needy SKUs by urgency, overflow to most urgent
+        let pinLeft=qpin.bake;
+        const targets=list.length?list:( // nothing needed → overbake most urgent bake SKU if any demand ever, else first bake SKU
+          [{sku:(list[0]&&list[0].sku)||"70050",p:prod("70050"),due:dayStr,lbs:0}]);
+        let capUsed=0;
+        for(const nd of targets){
+          if(pinLeft<=0)break;
+          let pans=Math.min(pinLeft, Math.max(1,Math.ceil(nd.lbs/nd.p.pl)));
+          if(nd===targets[targets.length-1]) pans=pinLeft; // dump remainder
+          pans=Math.min(pans,pinLeft);
+          if(pans<=0)continue;
+          if(detail.length)capUsed+=chFrac(1);
+          capUsed+=pans/bakeTierPans(nd.p,effCrew===4?4:3);
+          bakedToday[nd.sku]=(bakedToday[nd.sku]||0)+pans*nd.p.pl;
+          detail.push({sku:nd.sku,qty:pans}); pansTotal+=pans; pinLeft-=pans; skus++;
+        }
+        out.diag.bakeCapFrac=crew>0?factor:0; out.diag.bakeUsedFrac=capUsed;
+        out.diag.bakeInfeas=(crew===0&&pansTotal>0)||capUsed>(crew>0?factor:0)+1e-9;
+      }else{
+        for(const nd of list){
+          if(capFrac<=1e-9)break;
+          const co=skus>0?chFrac(1):0;
+          if(capFrac-co<=1e-9)break;
+          const tier=bakeTierPans(nd.p,crew);
+          const maxPans=Math.floor((capFrac-co)/(1/tier)+1e-9);
+          const pans=Math.min(maxPans, Math.ceil(nd.lbs/nd.p.pl));
+          if(pans<=0)continue;
+          capFrac-=co+pans/tier;
+          bakedToday[nd.sku]=(bakedToday[nd.sku]||0)+pans*nd.p.pl;
+          detail.push({sku:nd.sku,qty:pans}); pansTotal+=pans; skus++;
+          // score: WIP creation valued at 0.55× urgency of that SKU's earliest due line
+          out.score+=(pans*nd.p.fl/ (nd.p.cl||1))*0*0 + pans*nd.p.fl/(nd.p.cl===1?25:nd.p.cl)*urg(nd.due,dayStr)*0.55;
+        }
+        out.diag.bakeUsedFrac=factor-capFrac; out.diag.bakeCapFrac=factor;
+        out.diag.bakeNeedLeft=list.reduce((a,n)=>a+Math.max(0,n.lbs-((bakedToday[n.sku]||0))),0);
+      }
+      if(pansTotal>0||qpin.bake!=null){
+        out.baked=bakedToday; out.chCount+=Math.max(0,skus-1);
+        out.cells.bake={qty:pansTotal,unit:"pans",detail,pin:qpin.bake!=null,infeas:!!out.diag.bakeInfeas};
+      }
+    }
+  }
+  const availWip=sku=>(wip[sku]||0)+(bakedToday[sku]||0)*(S.sameDayWipPct/100)-(out._wipUsed&&out._wipUsed[sku]||0);
+  out._wipUsed={};
+
+  /* ---------- PACK LINES ---------- */
+  const lineDefs={pouch:{cap:S.pouchBags*factor,crew:alloc.pouch},
+                  box10:{cap:S.box10Rate*factor,crew:alloc.box10},
+                  box25:{cap:S.box25Rate*factor,crew:alloc.box25}};
+  for(const st of["pouch","box10","box25"]){
+    const D=lineDefs[st];
+    const pinQ=qpin[st];
+    const active=D.crew>0||pinQ!=null;
+    if(!active) continue;
+    let capUnits=D.crew>0?D.cap:0;
+    let done=0, skus=[], detail=[], demandLeft=0, wipShort=0;
+    ctx.lines.forEach((L,i)=>{
+      if(L.p.r!=="bake"||L.p.line!==st||rem[i]<=1e-6) return;
+      const upc=st==="pouch"?(L.p.bpc||1):1;
+      const wCases=availWip(L.sku)/L.p.baseLbsPerCase;
+      let cap=pinQ!=null?Math.max(0,pinQ-done):Math.floor(capUnits/upc);
+      let take=Math.min(rem[i], cap, pinQ!=null?cap:Math.floor(wCases));
+      if(pinQ!=null) take=Math.min(take, rem[i]); // pins may exceed WIP → allowed, flagged
+      take=Math.floor(take);
+      if(take>0){
+        rem[i]-=take; done+=take;
+        out._wipUsed[L.sku]=(out._wipUsed[L.sku]||0)+take*L.p.baseLbsPerCase;
+        if(pinQ==null)capUnits-=take*upc + (skus.includes(L.sku)?0:(skus.length?S.changeoverMin/S.minutesFullDay*D.cap:0));
+        if(!skus.includes(L.sku)){skus.push(L.sku); if(skus.length>1)out.chCount++;}
+        detail.push({sku:L.sku,qty:take,line:i});
+        out.packed.push({line:i,cases:take,st});
+        out.score+=take*urg(L.due,dayStr)*(st==="pouch"?1/((L.p.bpc||1)/8):1); // scale pouch score per case still by urgency
+      }
+      if(rem[i]>1e-6){demandLeft+=rem[i]*urg(L.due,dayStr); if(wCases<rem[i])wipShort+=rem[i]-Math.max(0,wCases);}
+    });
+    if(done>0||pinQ!=null){
+      const wipUsedTotal=Object.values(out._wipUsed).reduce((a,b)=>a+b,0);
+      const infeas=pinQ!=null&&(D.crew===0||pinQ>D.cap+1e-9||done<pinQ- 1e-9);
+      out.cells[st]={qty:done,unit:"cs",detail,pin:pinQ!=null,infeas};
+    }
+    out.diag[st]={capLeft:capUnits,capTotal:D.cap,demandLeft,wipShort,crew:D.crew};
+  }
+
+  /* ---------- BULK granola (70004 etc.) — unconstrained pack from WIP ---------- */
+  ctx.lines.forEach((L,i)=>{
+    if(L.p.r!=="bake"||L.p.line!=="bulk"||rem[i]<=1e-6)return;
+    const avail=availWip(L.sku); // base lbs; cl=1 → lbs
+    const take=Math.min(rem[i],Math.floor(avail));
+    if(take>0){rem[i]-=take; out._wipUsed[L.sku]=(out._wipUsed[L.sku]||0)+take;
+      out.bulk.push({line:i,cases:take}); out.score+=take/25*urg(L.due,dayStr);
+      out.cells.bulkNote=(out.cells.bulkNote||0)+take;}
+  });
+
+  /* ---------- COCONUT ---------- */
+  {
+    const crew=alloc.coconut;
+    const pinS=qpin.coconut, pinT=qpin.toasted;
+    const active=crew>0||pinS!=null||pinT!=null;
+    if(active){
+      const availPans=Math.max(0,S.coconutPool-ctx.lockedPans);
+      const sweetCapPans=Math.floor(availPans*S.sweetCycles*factor+1e-9);
+      // Joint pool: sweet cycles cost 1/cycles pan-days, toasted 1 pan-day.
+      // Constraint: usedCycles/cycles + toastPans <= availPans × factor.
+      const poolBudget=availPans*factor;
+      let poolUsed=0;
+      let usedCycles=0, detail=[], casesTot=0, extraFG={};
+      let tUsed=0, tDetail=[];
+      const jobs=[]; ctx.lines.forEach((L,i)=>{
+        if((L.p.r==="coconut"||L.p.r==="toasted")&&rem[i]>1e-6)jobs.push({i,L,t:L.p.r==="toasted"});});
+      jobs.sort((a,b)=>a.L.due<b.L.due?-1:a.L.due>b.L.due?1:0);
+      const sweetForced=pinS!=null, toastForced=pinT!=null;
+      for(const J of jobs){
+        const L=J.L, i=J.i;
+        if(J.t){
+          if(toastForced||crew<=0)continue; // pinned toasted handled below
+          const maxPans=Math.floor(poolBudget-poolUsed+1e-9);
+          const pans=Math.min(maxPans,Math.ceil(rem[i]/L.p.cpp));
+          if(pans<=0)continue;
+          const cases=Math.min(rem[i],Math.floor(pans*L.p.cpp));
+          tUsed+=pans; poolUsed+=pans;
+          tDetail.push({sku:L.sku,qty:pans,cases,line:i});
+          out.toastMix.push({line:i,sku:L.sku,pans,cases});
+          rem[i]-=cases; // reserved; lands as inbound on empty day
+          out.score+=cases*urg(L.due,dayStr)*0.9*(L.p.cl===25?2.2:1);
+        }else{
+          if(sweetForced||crew<=0)continue;
+          const maxCyc=Math.min(sweetCapPans-usedCycles,
+            Math.floor((poolBudget-poolUsed)*S.sweetCycles+1e-9));
+          const pans=Math.min(maxCyc,Math.ceil(rem[i]/L.p.cpp));
+          if(pans<=0)continue;
+          const cases=Math.min(rem[i],Math.floor(pans*L.p.cpp));
+          rem[i]-=cases; usedCycles+=pans; poolUsed+=pans/S.sweetCycles; casesTot+=cases;
+          const over=pans*L.p.cpp-cases; if(over>=1)extraFG[L.sku]=(extraFG[L.sku]||0)+Math.floor(over);
+          detail.push({sku:L.sku,qty:pans,cases,line:i});
+          out.coco.push({line:i,cases});
+          out.score+=cases*urg(L.due,dayStr)*(L.p.cl===25?2.2:1);
+        }
+      }
+      // pinned sweetened cycles: fill demand in due order up to the pin, overage → FG
+      if(sweetForced){
+        let left=pinS;
+        for(const J of jobs){ if(J.t||left<=0)continue; const L=J.L,i=J.i;
+          const pans=Math.min(left,Math.ceil(rem[i]/L.p.cpp)); if(pans<=0)continue;
+          const cases=Math.min(rem[i],Math.floor(pans*L.p.cpp));
+          rem[i]-=cases; usedCycles+=pans; left-=pans; casesTot+=cases;
+          const over=pans*L.p.cpp-cases; if(over>=1)extraFG[L.sku]=(extraFG[L.sku]||0)+Math.floor(over);
+          detail.push({sku:L.sku,qty:pans,cases,line:i}); out.coco.push({line:i,cases});
+          out.score+=cases*urg(L.due,dayStr)*(L.p.cl===25?2.2:1);
+        }
+        if(left>0){const skuX=detail.length?detail[detail.length-1].sku:"10001";
+          extraFG[skuX]=(extraFG[skuX]||0)+Math.floor(left*prod(skuX).cpp);
+          if(detail.length)detail[detail.length-1].qty+=left; else detail.push({sku:skuX,qty:left,cases:0});
+          usedCycles+=left;}
+        poolUsed+=usedCycles/S.sweetCycles;
+      }
+      // pinned toasted pans
+      if(toastForced){
+        let left=pinT;
+        for(const J of jobs){ if(!J.t||left<=0)continue; const L=J.L,i=J.i;
+          const pans=Math.min(left,Math.ceil(rem[i]/L.p.cpp)); if(pans<=0)continue;
+          const cases=Math.min(rem[i],Math.floor(pans*L.p.cpp));
+          tUsed+=pans; left-=pans; tDetail.push({sku:L.sku,qty:pans,cases,line:i});
+          out.toastMix.push({line:i,sku:L.sku,pans,cases}); rem[i]-=cases;
+          out.score+=cases*urg(L.due,dayStr)*0.9*(L.p.cl===25?2.2:1);
+        }
+        if(left>0){out.toastMix.push({line:-1,sku:"10010",pans:left,cases:Math.floor(left*prod("10010").cpp)});
+          tDetail.push({sku:"10010",qty:left}); tUsed+=left;}
+        poolUsed+=tUsed;
+      }
+      // min-run: if sweetened runs at all, run at least minPans (overage → FG)
+      if(usedCycles>0&&usedCycles<S.coconutMinPans&&!sweetForced&&sweetCapPans>=S.coconutMinPans&&detail.length){
+        const add=S.coconutMinPans-usedCycles, d0=detail[detail.length-1], L=ctx.lines[d0.line];
+        d0.qty+=add; usedCycles+=add; poolUsed+=add/S.sweetCycles;
+        extraFG[L.sku]=(extraFG[L.sku]||0)+Math.floor(add*L.p.cpp);
+      }
+      out.extraFG=extraFG;
+      const sweetInfeas=sweetForced&&(crew===0||pinS>sweetCapPans+1e-9||poolUsed>poolBudget+1e-6);
+      if(usedCycles>0||sweetForced)
+        out.cells.coconut={qty:usedCycles,unit:"pans",detail,pin:sweetForced,infeas:sweetInfeas,
+          sub:casesTot+" cs"};
+      out.diag.coconut={availPans,sweetCapPans,usedCycles,locked:ctx.lockedPans,poolUsed,poolBudget,
+        demandLeft:jobs.reduce((a,J)=>a+(!J.t?rem[J.i]*urg(J.L.due,dayStr):0),0)};
+      const tInfeas=toastForced&&(crew===0||poolUsed>poolBudget+1e-6);
+      if(tUsed>0||toastForced)
+        out.cells.toasted={qty:tUsed,unit:"pans",detail:tDetail,pin:toastForced,infeas:tInfeas,
+          sub:"empty "+fmtShort(fD(nextProdDay(pD(dayStr))))};
+      out.diag.toasted={tUsed,
+        demandLeft:jobs.reduce((a,J)=>a+(J.t?rem[J.i]*urg(J.L.due,dayStr):0),0)};
+    }
+  }
+
+  /* ---------- REPACK ---------- */
+  {
+    const crew=alloc.repack, pinQ=qpin.repack;
+    const active=crew>0||pinQ!=null;
+    if(active){
+      let cap=pinQ!=null?pinQ:(crew>0?S.repackRate*factor:0);
+      let done=0, detail=[], skus=[];
+      ctx.lines.forEach((L,i)=>{
+        if(L.p.r!=="repack"||rem[i]<=1e-6||cap-done<=0)return;
+        const take=Math.floor(Math.min(rem[i],cap-done));
+        if(take>0){rem[i]-=take; done+=take; detail.push({sku:L.sku,qty:take});
+          out.repacked.push({line:i,cases:take});
+          if(!skus.includes(L.sku)){skus.push(L.sku); if(skus.length>1)out.chCount++;}
+          out.score+=take*urg(L.due,dayStr)*(L.p.cl>=50?2:1);}
+      });
+      const infeas=pinQ!=null&&(crew===0||pinQ>S.repackRate*factor+1e-9);
+      if(done>0||pinQ!=null)out.cells.repack={qty:done,unit:"cs",detail,pin:pinQ!=null,infeas};
+      out.diag.repack={cap:S.repackRate*factor,done,crew,
+        demandLeft:ctx.lines.reduce((a,L,i)=>a+(L.p.r==="repack"?rem[i]*urg(L.due,dayStr):0),0)};
+    }
+  }
+
+  /* ---------- PACK-ONLY (unconstrained, zero labor) ---------- */
+  {
+    let done=0, detail=[];
+    ctx.lines.forEach((L,i)=>{
+      if(L.p.r!=="packonly"||rem[i]<=1e-6)return;
+      const take=rem[i]; rem[i]=0; done+=take; detail.push({sku:L.sku,qty:take});
+      out.packonly.push({line:i,cases:take});
+      out.score+=take*0.2*urg(L.due,dayStr);
+    });
+    if(done>0)out.cells.packonly={qty:done,unit:"cs",detail,pin:false,infeas:false,sub:"unconstrained"};
+  }
+
+  out.score-=out.workers*0.15; // slight preference for smaller crews on ties
+  return out;
+}
+
+/* ---- generate allocation combos, honoring crew pins & qty pins ---- */
+function genCombos(pins){
+  const cp=(pins&&pins.crews)||{};
+  const qp=(pins&&pins.qty)||{};
+  const opt=a=>{
+    if(cp[a]!=null)return[cp[a]];
+    if(a==="bake")return S.allow4?[0,3,4]:[0,3];
+    if(a==="coconut")return[0,S.crewCoconut];
+    if(a==="pouch")return[0,S.crewPouch];
+    if(a==="box10")return[0,S.crewBox10];
+    if(a==="box25")return[0,S.crewBox25];
+    if(a==="repack")return[0,S.crewRepack];
+  };
+  const need={bake:qp.bake!=null,coconut:(qp.coconut!=null||qp.toasted!=null),
+    pouch:qp.pouch!=null,box10:qp.box10!=null,box25:qp.box25!=null,repack:qp.repack!=null};
+  const combos=[];
+  for(const b of opt("bake"))for(const c of opt("coconut"))for(const p of opt("pouch"))
+  for(const x of opt("box10"))for(const y of opt("box25"))for(const r of opt("repack")){
+    const al={bake:b,coconut:c,pouch:p,box10:x,box25:y,repack:r};
+    let sum=0; for(const a of AREAS)sum+=al[a];
+    if(sum>S.totalWorkers)continue;
+    // if a qty pin exists, require its crew unless the crew itself was pinned lower
+    let ok=true;
+    for(const a of AREAS)if(need[a]&&al[a]===0&&cp[a]==null){ok=false;break;}
+    if(ok)combos.push(al);
+  }
+  if(!combos.length)combos.push({bake:0,coconut:0,pouch:0,box10:0,box25:0,repack:0});
+  return combos;
+}
+
+/* ---- day bottleneck classification (from committed sim) ---- */
+function classifyDay(sim, alloc, dayStr, factor){
+  const cand=[]; const d=sim.diag;
+  const workers=sim.workers, laborFull=workers>=S.totalWorkers-0.001;
+  if(d.bakeNeedLeft>1&&alloc.bake>0&&(d.bakeCapFrac-d.bakeUsedFrac)<0.02){
+    const hint=alloc.bake===3&&S.allow4?"add 4th worker → 3rd pan":"ovens/pans at limit";
+    cand.push({w:d.bakeNeedLeft*0.08,label:"Bake capacity ("+hint+")",cls:"cap",st:"bake"});
+  }
+  for(const st of["pouch","box10","box25"]){
+    const g=d[st]; if(!g)continue;
+    if(g.demandLeft>1&&g.crew>0){
+      if(g.wipShort>0.5&&g.capLeft>g.capTotal*0.05)
+        cand.push({w:g.demandLeft,label:STN_META[st].label+" starved for WIP — bake more first",cls:"wipb",st});
+      else if(g.capLeft<=g.capTotal*0.02)
+        cand.push({w:g.demandLeft,label:STN_META[st].label+" line rate",cls:"cap",st});
+    }
+  }
+  if(d.coconut&&alloc.coconut>0&&d.coconut.poolUsed>=d.coconut.poolBudget-0.05){
+    const left=(d.coconut.demandLeft||0)+((d.toasted&&d.toasted.demandLeft)||0);
+    if(left>1){
+      const lockNote=d.coconut.locked>0?" ("+d.coconut.locked+" pans cooling toasted)":"";
+      cand.push({w:left,label:"Coconut pan pool"+lockNote,cls:"pans",st:"coconut"});
+    }
+  }
+  if(d.repack&&d.repack.demandLeft>1&&d.repack.crew>0&&d.repack.done>=d.repack.cap-0.5)
+    cand.push({w:d.repack.demandLeft,label:"Repack rate (placeholder dial!)",cls:"cap",st:"repack"});
+  // labor: any area with urgent demand left that got no crew, while all workers used
+  if(laborFull){
+    let unstaffed=0;
+    if(alloc.bake===0&&d.bakeNeedLeft>1)unstaffed+=d.bakeNeedLeft*0.08;
+    for(const st of["pouch","box10","box25"]){const g=d[st]; }
+    // approximate: any demand left overall while at full labor counts toward labor
+    const anyLeft=cand.reduce((a,c)=>a+c.w,0);
+    if(anyLeft>0)cand.push({w:anyLeft*1.1,label:"Labor — all "+S.totalWorkers+" workers assigned",cls:"cap",st:null});
+  }
+  cand.sort((a,b)=>b.w-a.w);
+  let top=cand[0]||{label:"Demand-limited (capacity idle)",cls:"ok",st:null,w:0};
+  if(dow(pD(dayStr))===5&&factor<1&&top.w>0)top={...top,label:top.label+" · Friday "+Math.round(factor*100)+"%"};
+  return top;
+}
+
+/* ---- main compute ---- */
+function computeSchedule(){
+  buildProds();
+  S=ST.settings;
+  const lines=buildLines();
+  const ctx={lines, wip:{...ST.wip}, lockedPans:0};
+  const locks=[]; // {emptyDay, pans, allocations:[{line,cases,sku}]}
+  const days=[];
+  let d=pD(S.startDate);
+  let guard=0;
+  const allDone=()=>lines.every(L=>L.remaining<=1e-6);
+  const HMAX=84;
+  while(guard++<HMAX*2 && days.length<HMAX){
+    const ds=fD(d);
+    // release toasted locks whose emptyDay == today (FG lands, pans free tomorrow-morning model: free after today)
+    for(const lk of locks)if(lk.emptyDay===ds&&!lk.done){
+      for(const al of lk.allocations){
+        if(al.line>=0){const L=lines[al.line]; L.remaining=Math.max(0,L.remaining-al.cases); L.inbound-=al.cases;
+          if(L.remaining<=1e-6&&!L.readyDay)L.readyDay=ds;}
+        else ST._toastFG=(ST._toastFG||0)+al.cases;
+      }
+      lk.done=true;
+    }
+    ctx.lockedPans=locks.reduce((a,l)=>a+(l.mixDay<=ds&&ds<l.emptyDay?l.pans:0),0);
+    const factor=dayFactor(d);
+    if(factor<=0){
+      if(allDone()&&days.length>=14)break;
+      days.push({date:ds,off:true,factor:0}); d=addD(d,1);
+      if(days.length>=HMAX)break; continue;
+    }
+    const pins=ST.pins[ds];
+    const combos=genCombos(pins);
+    let best=null;
+    for(const al of combos){
+      const sim=simDay(ctx,al,ds,factor,pins);
+      if(!best||sim.score>best.score)best=sim;
+    }
+    // commit best
+    const sim=best;
+    for(const sku in sim.baked)ctx.wip[sku]=(ctx.wip[sku]||0)+sim.baked[sku];
+    for(const sku in sim._wipUsed)ctx.wip[sku]=Math.max(0,(ctx.wip[sku]||0)-sim._wipUsed[sku]);
+    const applyRem=(arr)=>{for(const x of arr){const L=lines[x.line]; L.remaining=Math.max(0,L.remaining-x.cases);
+      if(L.remaining<=1e-6&&!L.readyDay)L.readyDay=ds;}};
+    applyRem(sim.packed); applyRem(sim.coco); applyRem(sim.repacked); applyRem(sim.bulk); applyRem(sim.packonly);
+    if(sim.extraFG)for(const sku in sim.extraFG){/* surplus coconut FG — informational only */}
+    if(sim.toastMix.length){
+      const emptyDay=fD(nextProdDay(d));
+      let pans=0; const allocations=[];
+      for(const t of sim.toastMix){pans+=t.pans;
+        if(t.line>=0){lines[t.line].inbound+=t.cases; lines[t.line].remaining=lines[t.line].remaining; allocations.push({line:t.line,cases:t.cases,sku:t.sku});}
+        else allocations.push({line:-1,cases:t.cases,sku:t.sku});
+      }
+      locks.push({mixDay:ds,emptyDay,pans,allocations,done:false});
+    }
+    const bn=classifyDay(sim,sim.alloc,ds,factor);
+    days.push({date:ds,off:false,factor,alloc:sim.alloc,workers:sim.workers,cells:sim.cells,bn,ch:sim.chCount,
+      lockedPans:ctx.lockedPans});
+    d=addD(d,1);
+    if(allDone()){ // pad a couple days for context, ensure ≥14 shown
+      let pad=0; while((days.length<14||pad<2)&&days.length<HMAX){const ds2=fD(d);
+        // still release pending toast locks visually
+        for(const lk of locks)if(lk.emptyDay===ds2&&!lk.done){for(const al of lk.allocations){if(al.line>=0){const L=lines[al.line];L.remaining=Math.max(0,L.remaining-al.cases);L.inbound-=al.cases;if(L.remaining<=1e-6&&!L.readyDay)L.readyDay=ds2;}}lk.done=true;}
+        days.push({date:ds2,off:!isProdDay(d),factor:dayFactor(d),cells:{},alloc:null,workers:0,bn:null,pad:true});
+        d=addD(d,1); pad++;}
+      break;
+    }
+  }
+  // ---- order rollup ----
+  const byOrder={};
+  for(const L of lines){
+    const k=L.o.orderId||("#"+L.o.id);
+    (byOrder[k]=byOrder[k]||{orderId:k,customer:L.o.customer,lines:[],due:L.due}).lines.push(L);
+    if(L.due>byOrder[k].due)byOrder[k].due=L.due;
+  }
+  const orders=Object.values(byOrder);
+  for(const O of orders){
+    O.ready=null; O.incomplete=false;
+    for(const L of O.lines){
+      if(!L.readyDay){O.incomplete=true;}
+      else if(!O.ready||L.readyDay>O.ready)O.ready=L.readyDay;
+    }
+    if(O.incomplete){O.status="inc"; O.days=null;}
+    else{
+      const dl=calDays(O.ready,O.due); // + = early
+      O.days=dl;
+      O.status=dl<0?"late":dl===0?"tight":dl===1?"ontime":"early";
+      if(O.lines.every(L=>L.fromStock))O.status="stock";
+    }
+  }
+  const workDays=days.filter(x=>!x.off&&!x.pad);
+  const doneDates=lines.filter(L=>L.readyDay).map(L=>L.readyDay);
+  const allDoneDate=lines.every(L=>L.readyDay)?(doneDates.sort().pop()||S.startDate):null;
+  const lateDays=orders.reduce((a,O)=>a+(O.days!=null&&O.days<0?-O.days:0),0);
+  const chTotal=workDays.reduce((a,x)=>a+(x.ch||0),0);
+  const cap=workDays.length*S.totalWorkers;
+  const used=workDays.reduce((a,x)=>a+(x.workers||0),0);
+  // dominant bottleneck
+  const tally={};
+  for(const x of workDays)if(x.bn&&x.bn.w>0)tally[x.bn.label]=(tally[x.bn.label]||0)+x.bn.w;
+  let domLabel="Demand-limited",domCls="ok";
+  let mx=0; for(const k in tally)if(tally[k]>mx){mx=tally[k];domLabel=k;
+    domCls=(workDays.find(x=>x.bn&&x.bn.label===k)||{bn:{cls:"cap"}}).bn.cls;}
+  const atRisk=orders.filter(O=>O.status==="late"||O.status==="tight"||O.status==="inc");
+  R={days,lines,orders,allDoneDate,lateDays,chTotal,
+     laborUtil:cap>0?used/cap:0, atRisk, domLabel, domCls,
+     incomplete:lines.some(L=>!L.readyDay)};
+  return R;
+}
+
+/* =====================================================================
+   RENDERING + INTERACTION
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+function esc(x){return String(x).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function shortName(p){
+  if(!p)return"";
+  let n=p.n
+    .replace(/Toasted Swt/g,"Toasted").replace(/Granola /g,"").replace(/Coconut /g,"Coco ")
+    .replace(/Sweetened/g,"Swt").replace(/Desiccated/g,"Dsc").replace(/Cracker Crumbs/g,"Crumbs")
+    .replace(/Chocolate/g,"Choc").replace(/ CNS/g,"").replace(/UNIPRO/g,"UNI")
+    .replace(/12x10oz/g,"10oz").replace(/6x7oz/g,"7oz").replace(/ LB\b/g,"lb").replace(/ Case\b/g,"");
+  return n.length>24?n.slice(0,23)+"…":n;
+}
+function recalc(){ computeSchedule(); renderAll(); saveState(); }
+
+/* ---------------- Top bar ---------------- */
+function renderTop(){
+  $("#kpi-done").textContent=R.allDoneDate?fmtShort(R.allDoneDate):"— beyond horizon";
+  $("#kpi-done-sub").textContent=R.incomplete?"some orders don't finish in "+R.days.length+" days":"all open orders 100% packed";
+  const el=$("#kpi-risk"); el.textContent=R.atRisk.length;
+  el.className="k-val num "+(R.atRisk.length?"risk":"good");
+  $("#kpi-risk-sub").textContent=R.atRisk.length?R.atRisk.slice(0,3).map(o=>o.customer).join(", "):"nothing late or tight";
+  $("#kpi-bn").textContent=R.domLabel;
+  $("#kpi-bn-sub").textContent="most-binding constraint across the plan";
+  $("#kpi-labor").textContent=Math.round(R.laborUtil*100)+"%";
+  $("#kpi-labor-sub").textContent="of "+S.totalWorkers+" workers, avg per workday";
+  const kl=$("#kpi-late"); kl.textContent=R.lateDays;
+  kl.className="k-val num "+(R.lateDays?"risk":"good");
+  $("#kpi-late-sub").textContent=R.chTotal+" changeovers in plan";
+  renderDelta();
+}
+function snapshot(){
+  const o={}; for(const O of R.orders)o[O.orderId]={ready:O.ready,inc:O.incomplete,due:O.due,customer:O.customer};
+  return {orders:o,lateDays:R.lateDays,ch:R.chTotal,util:R.laborUtil,done:R.allDoneDate};
+}
+function renderDelta(){
+  const p=$("#deltapanel"); const B=ST.baseline;
+  if(!B){p.className="";p.innerHTML="";return;}
+  const rows=[];
+  for(const O of R.orders){
+    const b=B.orders[O.orderId];
+    let shift="new order", cls="d-same";
+    if(b){
+      if(b.inc&&!O.incomplete){shift="now completes"; cls="d-better";}
+      else if(!b.inc&&O.incomplete){shift="no longer completes"; cls="d-worse";}
+      else if(O.incomplete){shift="incomplete"; cls="d-same";}
+      else{const dd=calDays(O.ready,b.ready); // + = earlier than baseline
+        shift=dd===0?"no change":(dd>0?dd+"d earlier":(-dd)+"d later");
+        cls=dd===0?"d-same":dd>0?"d-better":"d-worse";}
+    }
+    rows.push("<tr><td>"+esc(O.customer)+" <span style='color:var(--ink2)'>"+esc(O.orderId)+"</span></td><td class='num'>"+(O.incomplete?"—":fmtShort(O.ready))+"</td><td class='"+cls+"'>"+shift+"</td></tr>");
+  }
+  const md=(v,b,inv)=>{const d=v-b; if(Math.abs(d)<1e-6)return"<span class='d-same'>±0</span>";
+    const good=inv?d<0:d>0; return"<span class='"+(good?"d-better":"d-worse")+"'>"+(d>0?"+":"")+(Math.round(d*100)/100)+"</span>";};
+  p.innerHTML="<b>Δ vs baseline</b> — late days: "+R.lateDays+" ("+md(R.lateDays,B.lateDays,true)+") · changeovers: "
+    +R.chTotal+" ("+md(R.chTotal,B.ch,true)+") · labor util: "+Math.round(R.laborUtil*100)+"% ("
+    +md(Math.round(R.laborUtil*100),Math.round(B.util*100),false)+" pts) · all done: "
+    +(R.allDoneDate?fmtShort(R.allDoneDate):"—")+(B.done?" (baseline "+fmtShort(B.done)+")":"")
+    +" &nbsp; <button class='act sec' style='padding:2px 8px;font-size:11px' onclick='clearBaseline()'>Clear baseline</button>"
+    +"<table><tr><th>Order</th><th>Ready</th><th>Shift vs baseline</th></tr>"+rows.join("")+"</table>";
+  p.className="show";
+}
+function clearBaseline(){ST.baseline=null; saveState(); renderDelta();}
+
+/* ---------------- Left panel ---------------- */
+function ctl(label,key,attrs,tip,flag){
+  return "<div class='ctl'><label>"+label+(flag?" <span class='flagged' title='"+esc(flag)+"'>⚠</span>":"")
+    +(tip?" <span class='info' title='"+esc(tip)+"'>i</span>":"")+"</label>"
+    +"<input type='number' data-set='"+key+"' value='"+S[key]+"' "+(attrs||"")+"></div>";
+}
+function renderLeft(){
+  const el=$("#leftpanel");
+  const flaggedProds=CATALOG.filter(c=>c.flag);
+  el.innerHTML=
+  "<div class='panel-h'>Plan horizon</div>"
+  +"<div class='ctl'><label>Start date <span class='info' title='Day 1 of the plan. Pin past days to lock in what actually happened, then move this forward.'>i</span></label><input type='date' data-set='startDate' value='"+S.startDate+"'></div>"
+  +"<div class='panel-h'>Labor</div>"
+  +ctl("Total workers","totalWorkers","min='0' max='30'","Shared across the whole factory. The optimizer assigns crews day by day and never exceeds this unless you pin over it.")
+  +ctl("Productive min/day","minutesFullDay","min='60'","8:00–5:00 with 10:00 and 12:00 breaks = 495 min.")
+  +ctl("Friday factor %","fridayFactor","min='10' max='100'","All crewed production runs at this % of nominal on Fridays (day ends 2:30).")
+  +ctl("Changeover min/extra SKU","changeoverMin","min='0'","Each additional SKU run at a station in a day deducts this many minutes from that station. Currently 0 by decision — restore later.")
+  +"<div class='panel-h'>Granola bake</div>"
+  +ctl("Pans/day @ 3 workers","bakeDef3","min='1'","Default flavors. 2 kitchen + 1 emptying ovens.")
+  +ctl("Pans/day slow tier","bakeSlow3","min='1'","Sunshine + Blue Stripes flavors only (and 70060 by assumption).")
+  +ctl("Pans/day @ 4 workers","bakeDef4","min='1'","4th worker enables the 3rd pan (~23–27). Slow tier scales proportionally.")
+  +"<div class='ctl'><label>Allow 4th bake worker <span class='info' title='Let the optimizer pull a 4th worker into baking when it helps.'>i</span></label><input type='checkbox' data-set='allow4' "+(S.allow4?"checked":"")+"></div>"
+  +ctl("Same-day WIP %","sameDayWipPct","min='0' max='100'","Share of today's bake cooled (~1 hr) in time to pack today. The rest is packable from tomorrow.")
+  +"<div class='panel-h'>Coconut line</div>"
+  +ctl("Pan pool (shared)","coconutPool","min='0'","Sweetened and toasted share these pans. Toasted locks pans from mix day until emptied the next production day.")
+  +ctl("Sweetened cycles/day","sweetCycles","min='1'","Same-day pan release → pans/day = pool × cycles.")
+  +ctl("Min pans per run","coconutMinPans","min='0'","Order-driven with a min-run: if coconut runs at all, it makes at least this many pans; overage goes to finished goods.")
+  +ctl("Coconut crew","crewCoconut","min='1'","Integrated make + pack — no separate coconut packing labor.")
+  +"<div class='panel-h'>Pack lines</div>"
+  +ctl("Pouch bags/day","pouchBags","min='0'","3-person line, 7,000–10,000 bags/day depending on bag size. SS = 12 bags/cs, BS = 6 bags/cs.")
+  +ctl("Pouch crew","crewPouch","min='1'","")
+  +ctl("10-lb boxes/day","box10Rate","min='0'","")
+  +ctl("10-lb crew","crewBox10","min='1'","")
+  +ctl("25-lb boxes/day","box25Rate","min='0'","")
+  +ctl("25-lb crew","crewBox25","min='1'","")
+  +"<div class='hint'>Box prep is a feeder task (any free labor, runs ahead) — modeled as non-constraining.</div>"
+  +"<div class='panel-h'>Repack</div>"
+  +ctl("Repack cases/day","repackRate","min='0'","No measured rate was supplied — this is a placeholder. Set the real 3-person crew rate.","PLACEHOLDER rate — set real value")
+  +ctl("Repack crew","crewRepack","min='1'","")
+  +"<details><summary>Finished goods on hand ("+Object.keys(ST.fg).filter(k=>ST.fg[k]>0).length+")</summary><div class='dbody' id='fgbody'></div></details>"
+  +"<details><summary>Bulk-bin WIP, baked lbs ("+Object.keys(ST.wip).filter(k=>ST.wip[k]>0).length+")</summary><div class='dbody' id='wipbody'></div></details>"
+  +"<details><summary>Product catalog ("+CATALOG.length+" SKUs, "+flaggedProds.length+" ⚠ flagged)</summary><div class='dbody' id='catbody'></div></details>"
+  +"<div class='panel-h'>Orders in / plans out</div>"
+  +"<button class='act' id='btn-csv'>Import orders CSV</button><input type='file' id='csvfile' accept='.csv,text/csv' style='display:none'>"
+  +"<button class='act sec' id='btn-sample'>Load sample orders</button>"
+  +"<div class='hint'>CSV columns (any order, case-insensitive, extras ignored): order_id, customer, sku, product_name, qty, uom, due_date (YYYY-MM-DD), notes.</div>"
+  +"<div id='csvmsg'></div>"
+  +"<button class='act sec' id='btn-savejson'>Save scenario (JSON)</button>"
+  +"<button class='act sec' id='btn-loadjson'>Load scenario</button><input type='file' id='jsonfile' accept='.json' style='display:none'>"
+  +"<button class='act sec' id='btn-exportcsv'>Export schedule CSV</button>"
+  +"<button class='act sec' id='btn-reset' style='color:var(--late)'>Reset everything</button>"
+  +"<details><summary>How this works</summary><div class='dbody hint'>"
+  +"Each day the optimizer tries every feasible crew split across bake / coconut / pouch / 10-lb / 25-lb / repack (never more than your total workers), simulates the day, and keeps the split that moves the most urgent cases. Earlier-due orders get capacity first; leftover capacity pulls later orders forward — capacity is never left idle just because an order isn't due yet.<br><br>"
+  +"Finished goods are subtracted from demand before anything is scheduled. Packing draws only from cooled bulk-bin WIP — you can never pack granola that hasn't been baked. Sweetened and toasted coconut compete for the shared pan pool strictly by due date. Toasted locks its pans from mix day until they're emptied at the start of the next production day (Fri mix → Mon empty over a weekend), then they're free again — so toasted alone sustains up to the full pool per day. Pins are honored even when infeasible, and flagged red with what it would take to make them real.<br><br>"
+  +"Weekends are off unless you click a weekend header and grant overtime minutes. Pin past days to lock in actuals, then replan forward.</div></details>";
+  renderFG(); renderWIP(); renderCatalog();
+  bindLeft();
+}
+function demandSkus(){
+  const set=new Set(ST.orders.map(o=>o.sku));
+  Object.keys(ST.fg).forEach(k=>ST.fg[k]>0&&set.add(k));
+  Object.keys(ST.wip).forEach(k=>ST.wip[k]>0&&set.add(k));
+  return [...set].filter(s=>PRODS[s]);
+}
+function skuPicker(id){
+  return "<select id='"+id+"'><option value=''>+ add SKU…</option>"
+    +CATALOG.map(c=>"<option value='"+c.s+"'>"+c.s+" — "+esc(c.n)+"</option>").join("")+"</select>";
+}
+function renderFG(){
+  const b=$("#fgbody"); if(!b)return;
+  const rows=demandSkus().map(s=>"<tr><td>"+s+"<br><span style='color:var(--ink2)'>"+esc(PRODS[s].n.slice(0,26))+"</span></td>"
+    +"<td><input type='number' min='0' data-fg='"+s+"' value='"+(ST.fg[s]||0)+"'></td><td>"+(PRODS[s].cl===1?"lb":"cs")+"</td></tr>").join("");
+  b.innerHTML="<div class='hint'>Deducted from demand before scheduling (earliest-due orders first).</div>"
+    +"<table class='mini'><tr><th>SKU</th><th>On hand</th><th></th></tr>"+rows+"</table>"+skuPicker("fgadd");
+  b.querySelectorAll("[data-fg]").forEach(i=>i.onchange=()=>{ST.fg[i.dataset.fg]=parseFloat(i.value)||0; recalc();});
+  $("#fgadd").onchange=e=>{if(e.target.value){ST.fg[e.target.value]=ST.fg[e.target.value]||0; saveState(); renderLeft();}};
+}
+function renderWIP(){
+  const b=$("#wipbody"); if(!b)return;
+  const skus=demandSkus().filter(s=>PRODS[s].r==="bake");
+  const rows=skus.map(s=>"<tr><td>"+s+"<br><span style='color:var(--ink2)'>"+esc(PRODS[s].n.slice(0,26))+"</span></td>"
+    +"<td><input type='number' min='0' data-wip='"+s+"' value='"+(ST.wip[s]||0)+"'></td><td>lb</td></tr>").join("");
+  b.innerHTML="<div class='hint'>Granola already baked and cooling in bulk bins — packable immediately, no bake needed.</div>"
+    +"<table class='mini'><tr><th>SKU</th><th>WIP lbs</th><th></th></tr>"+rows+"</table>";
+  b.querySelectorAll("[data-wip]").forEach(i=>i.onchange=()=>{ST.wip[i.dataset.wip]=parseFloat(i.value)||0; recalc();});
+}
+function renderCatalog(){
+  const b=$("#catbody"); if(!b)return;
+  const rows=CATALOG.map(c=>{
+    const p=PRODS[c.s]; const isBake=p.r==="bake", isCoco=p.r==="coconut"||p.r==="toasted";
+    return "<tr><td title='"+esc((p.flag||"")+" "+p.n)+"'>"+c.s+(p.flag?" <span class='flagged'>⚠</span>":"")
+      +"<br><span style='color:var(--ink2)'>"+esc(p.n.slice(0,24))+"</span></td>"
+      +"<td>"+p.r+(isBake?"·"+p.line:"")+"</td>"
+      +"<td>"+(isBake?"<input data-cat='"+c.s+":pl' value='"+p.pl+"' title='base lbs/pan'>":isCoco?"<input data-cat='"+c.s+":cpp' value='"+p.cpp+"' title='cases/pan'>":"—")+"</td>"
+      +"<td>"+(isBake?"<select data-cats='"+c.s+":tier'><option "+(p.tier==="def"?"selected":"")+" value='def'>18</option><option "+(p.tier==="slow"?"selected":"")+" value='slow'>16</option></select>":"")+"</td></tr>";
+  }).join("");
+  b.innerHTML="<div class='hint'>Edit pan yields / cases-per-pan / bake tier. ⚠ = seeded assumption or placeholder from the reconciliation.</div>"
+    +"<table class='mini'><tr><th>SKU</th><th>Route</th><th>Yield</th><th>Tier</th></tr>"+rows+"</table>";
+  b.querySelectorAll("[data-cat]").forEach(i=>i.onchange=()=>{const[s,f]=i.dataset.cat.split(":");
+    (ST.prodOv[s]=ST.prodOv[s]||{})[f]=parseFloat(i.value)||PRODS[s][f]; recalc();});
+  b.querySelectorAll("[data-cats]").forEach(i=>i.onchange=()=>{const[s,f]=i.dataset.cats.split(":");
+    (ST.prodOv[s]=ST.prodOv[s]||{})[f]=i.value; recalc();});
+}
+function bindLeft(){
+  document.querySelectorAll("#leftpanel [data-set]").forEach(i=>{
+    i.onchange=()=>{
+      const k=i.dataset.set;
+      if(i.type==="checkbox")ST.settings[k]=i.checked;
+      else if(i.type==="date")ST.settings[k]=i.value;
+      else ST.settings[k]=parseFloat(i.value)||0;
+      recalc();
+    };
+  });
+  $("#btn-csv").onclick=()=>$("#csvfile").click();
+  $("#csvfile").onchange=e=>{
+    const f=e.target.files[0]; if(!f)return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      const res=importOrdersCSV(rd.result);
+      const m=$("#csvmsg");
+      if(res.err)m.innerHTML="<div class='errbox'>"+esc(res.err)+"</div>";
+      else{
+        let h="<div class='hint'>"+(res.fl?"Detected Factory Ledger export — columns mapped automatically. ":"")+"Imported "+res.added+" lines · "+res.orderCount+" orders · replaced "+res.replaced+" existing lines."
+          +(res.nonProduct?" Skipped "+res.nonProduct+" non-product line(s) (e.g., pallet charges).":"")
+          +(res.fulfilled?" Skipped "+res.fulfilled+" fully-fulfilled line(s).":"")+"</div>";
+        if(res.unknown.length)h+="<div class='warnbox'>Unknown SKU(s) skipped: "+esc(res.unknown.join(", "))+"</div>";
+        if(res.bad.length)h+="<div class='warnbox'>Skipped rows: "+esc(res.bad.join("; "))+"</div>";
+        m.innerHTML=h; recalc();
+      }
+      e.target.value="";
+    };
+    rd.readAsText(f);
+  };
+  $("#btn-sample").onclick=()=>{loadSampleOrders(); recalc();};
+  $("#btn-savejson").onclick=()=>{
+    const blob=new Blob([JSON.stringify(ST,null,1)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="scenario-"+todayStr()+".json"; a.click();
+  };
+  $("#btn-loadjson").onclick=()=>$("#jsonfile").click();
+  $("#jsonfile").onchange=e=>{
+    const f=e.target.files[0]; if(!f)return;
+    const rd=new FileReader();
+    rd.onload=()=>{try{ST=JSON.parse(rd.result); ST.settings={...DEF_SETTINGS,...ST.settings}; recalc(); renderLeft();}
+      catch(err){$("#csvmsg").innerHTML="<div class='errbox'>Not a valid scenario file.</div>";} e.target.value="";};
+    rd.readAsText(f);
+  };
+  $("#btn-exportcsv").onclick=()=>{
+    let csv="date,station,sku,qty,unit\n";
+    for(const day of R.days){if(!day.cells)continue;
+      for(const st of STATIONS){const c=day.cells[st]; if(!c||!c.detail)continue;
+        for(const dd of c.detail)csv+=day.date+","+STN_META[st].label.replace(/,/g,"")+","+dd.sku+","+dd.qty+","+(STN_META[st].unit)+"\n";}}
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+    a.download="schedule-"+S.startDate+".csv"; a.click();
+  };
+  $("#btn-reset").onclick=()=>{if(confirm("Clear all orders, pins, inventory, and settings?")){ST=freshState(); recalc(); renderLeft();}};
+}
+
+/* ---------------- Board ---------------- */
+function renderBoard(){
+  const T=$("#board");
+  const days=R.days;
+  const rowsToShow=STATIONS.filter(st=>{
+    if(["bake","pouch","box25","coconut"].includes(st))return true;
+    return days.some(d=>d.cells&&d.cells[st]) || R.lines.some(L=>{
+      if(st==="box10")return L.p.line==="box10";
+      if(st==="toasted")return L.p.r==="toasted";
+      if(st==="repack")return L.p.r==="repack";
+      if(st==="packonly")return L.p.r==="packonly";
+      return false;});
+  });
+  let h="<thead><tr><th class='stn'>Station</th>";
+  for(const d of days){
+    const dt=pD(d.date), we=!isWk(dt), fri=dow(dt)===5;
+    const dotCls=d.bn?(d.bn.cls==="ok"?"var(--ok)":d.bn.cls==="wipb"?"var(--wip)":d.bn.cls==="pans"?"var(--coco)":"var(--amber)"):"transparent";
+    h+="<th class='day"+(we?" wkend":"")+(fri?" fri":"")+"' data-day='"+d.date+"'>"
+      +"<span class='dnum'>"+fmtShort(d.date).split(" ")[1]+"</span> <span class='dname'>"+fmtShort(d.date).split(" ")[0]+"</span>"
+      +(d.bn&&!d.off?"<span class='dot' style='background:"+dotCls+"' title='"+esc(d.bn.label)+"'></span>":"")
+      +(we?"<br><span class='otbtn' data-ot='"+d.date+"'>"+(ST.ot[d.date]?ST.ot[d.date]+"m OT":"+ OT")+"</span>"
+          :(fri?"<br><span class='dname'>"+Math.round(d.factor*100||S.fridayFactor)+"%</span>":""))
+      +(!we&&ST.ot[d.date]?"<br><span class='otbtn' data-ot='"+d.date+"'>"+ST.ot[d.date]+"m ⏱</span>":"")
+      +"</th>";
+  }
+  h+="</tr></thead><tbody>";
+  for(const st of rowsToShow){
+    const M=STN_META[st];
+    h+="<tr><th class='stn'>"+M.label+"<small>"+({bake:"pans/day · WIP to bins",pouch:"bags→cases",box10:"cases/day",box25:"cases/day",coconut:"pans · make+pack",toasted:"mix → next-day empty",repack:"cases/day ⚠ rate",packonly:"unconstrained"})[st]+"</small></th>";
+    for(const d of days){
+      const dt=pD(d.date), we=!isWk(dt);
+      if(d.off){h+="<td class='cell off"+(we?" wkend":"")+"' data-day='"+d.date+"' data-st='"+st+"'></td>"; continue;}
+      const c=d.cells&&d.cells[st];
+      const area=STN_META[st].area;
+      const crew=(!d.off&&d.alloc&&area)?(d.alloc[area]||0):0;
+      let cls="cell", inner="";
+      if(c){
+        cls+=c.infeas?" infeas":(d.bn&&d.bn.st===st&&d.bn.w>0?" "+(d.bn.cls==="wipb"?"wipb":d.bn.cls==="pans"?"pans":"cap"):" run");
+        if(c.pin)cls+=" pinned";
+        const items=(c.detail||[]);
+        const dtl=items.slice(0,2).map(x=>esc(shortName(prod(x.sku)))+" ×"+(Math.round(x.qty*10)/10)).join("<br>")
+          +(items.length>2?"<br>+"+(items.length-2)+" more":"");
+        const full=items.map(x=>x.sku+" "+(prod(x.sku)?prod(x.sku).n:"")+" × "+x.qty).join("\n");
+        inner="<div class='cwrap'>"+(c.pin?"<span class='pinbadge'>📌</span>":"")
+          +"<span class='q num'>"+(Math.round(c.qty*10)/10)+"</span><span class='u'>"+c.unit+(c.sub?" · "+esc(c.sub):"")+"</span>"
+          +"<div class='dtl' title='"+esc(full)+"'>"+dtl+"</div>"
+          +(crew>0?"<span class='crewbadge' title='"+crew+" worker"+(crew>1?"s":"")+" on "+esc(STN_META[st].label)+" this day'>"+crew+"👤</span>":"")
+          +"</div>";
+      }else inner="<div class='cwrap'>"+(crew>0?"<span class='crewbadge'>"+crew+"👤</span>":"")+"</div>";
+      h+="<td class='"+cls+(we?" wkend":"")+"' data-day='"+d.date+"' data-st='"+st+"'>"+inner+"</td>";
+    }
+    h+="</tr>";
+  }
+  // labor row
+  h+="<tr class='laborrow'><th class='stn'>Labor<small>assigned / "+S.totalWorkers+"</small></th>";
+  for(const d of days){
+    if(d.off||!d.alloc){h+="<td></td>";continue;}
+    const a=d.alloc, parts=[];
+    if(a.bake)parts.push("Bake "+a.bake); if(a.coconut)parts.push("Coco "+a.coconut);
+    if(a.pouch)parts.push("Pouch "+a.pouch); if(a.box10)parts.push("10-lb "+a.box10);
+    if(a.box25)parts.push("25-lb "+a.box25); if(a.repack)parts.push("Repack "+a.repack);
+    const pinned=ST.pins[d.date]&&ST.pins[d.date].crews&&Object.keys(ST.pins[d.date].crews).length;
+    h+="<td title='Bake "+a.bake+" · Coconut "+a.coconut+" · Pouch "+a.pouch+" · 10-lb "+a.box10+" · 25-lb "+a.box25+" · Repack "+a.repack+"'>"
+      +"<b>"+d.workers+"</b>/"+S.totalWorkers+(pinned?" 📌":"")+"<br>"+parts.join(" · ")+"</td>";
+  }
+  h+="</tr><tr id='bnrow'><th class='stn' style='font-weight:400;color:var(--ink2);font-size:10px'>Day bottleneck</th>";
+  for(const d of days)h+="<td>"+(d.bn&&!d.off?esc(d.bn.label):"")+"</td>";
+  h+="</tr></tbody>";
+  T.innerHTML=h;
+  T.querySelectorAll("td.cell").forEach(td=>td.onclick=()=>openPin(td.dataset.day,td.dataset.st));
+  T.querySelectorAll(".otbtn").forEach(sp=>sp.onclick=e=>{e.stopPropagation();
+    const d=sp.dataset.ot;
+    const cur=ST.ot[d]||"";
+    const v=prompt("Overtime for "+fmtShort(d)+" — total productive minutes (blank to remove; full day = "+S.minutesFullDay+"):",cur);
+    if(v===null)return;
+    if(v.trim()==="")delete ST.ot[d]; else ST.ot[d]=Math.max(0,parseFloat(v)||0);
+    recalc();});
+}
+
+/* ---------------- Pin modal ---------------- */
+let modalCtx=null;
+function openPin(day,st){
+  if(st==="packonly")return;
+  const M=STN_META[st], area=M.area;
+  const pins=ST.pins[day]||{qty:{},crews:{}};
+  const dayObj=R.days.find(x=>x.date===day)||{};
+  const c=dayObj.cells&&dayObj.cells[st];
+  modalCtx={day,st,area};
+  const crewOpts=area==="bake"?(S.allow4?[0,3,4]:[0,3])
+    :area==="coconut"?[0,S.crewCoconut]:area==="pouch"?[0,S.crewPouch]
+    :area==="box10"?[0,S.crewBox10]:area==="box25"?[0,S.crewBox25]:[0,S.crewRepack];
+  const curCrew=pins.crews&&pins.crews[area]!=null?pins.crews[area]:(dayObj.alloc?dayObj.alloc[area]:"");
+  $("#modal").innerHTML=
+    "<h3>Pin — "+M.label+"</h3><div class='m-sub'>"+fmtShort(day)+" · planned: "+(c?Math.round(c.qty*10)/10+" "+M.unit:"nothing")+(dayObj.bn?" · day bottleneck: "+esc(dayObj.bn.label):"")+"</div>"
+    +"<div class='m-row'><label>Force quantity ("+M.unit+") <span class='info' title='The plan will honor this exactly and replan every other day around it. Also use this to lock in what actually happened.'>i</span></label>"
+    +"<input type='number' id='pin-qty' min='0' value='"+(pins.qty&&pins.qty[st]!=null?pins.qty[st]:"")+"' placeholder='auto'></div>"
+    +"<div class='m-row'><label>Crew for "+(area==="coconut"?"coconut":M.label.toLowerCase())+" this day</label>"
+    +"<select id='pin-crew'><option value=''>auto</option>"+crewOpts.map(o=>"<option "+(String(curCrew)===String(o)&&pins.crews&&pins.crews[area]!=null?"selected":"")+" value='"+o+"'>"+o+" workers</option>").join("")+"</select></div>"
+    +"<div class='m-feas' id='pin-feas'></div>"
+    +"<div class='m-btns'><button class='act sec' id='pin-clear'>Clear pins</button><button class='act sec' id='pin-cancel'>Cancel</button><button class='act' id='pin-save'>Pin &amp; replan</button></div>";
+  $("#modalbg").className="show";
+  const feas=()=>{
+    const q=parseFloat($("#pin-qty").value);
+    const el=$("#pin-feas");
+    if(isNaN(q)){el.className="m-feas ok"; el.textContent="No quantity pin — the optimizer decides. You can still pin the crew."; return;}
+    const cap=stationCapacity(st,day,$("#pin-crew").value);
+    if(q<=cap.cap+1e-9){el.className="m-feas ok"; el.textContent="Feasible: capacity ≈ "+Math.round(cap.cap*10)/10+" "+M.unit+" ("+cap.why+").";}
+    else{el.className="m-feas bad"; el.textContent="Over capacity: ≈ "+Math.round(cap.cap*10)/10+" "+M.unit+" available ("+cap.why+"). To make "+q+" real: "+cap.fix+" The pin will be honored but flagged red.";}
+  };
+  $("#pin-qty").oninput=feas; $("#pin-crew").onchange=feas; feas();
+  $("#pin-cancel").onclick=closeModal;
+  $("#pin-clear").onclick=()=>{if(ST.pins[day]){delete (ST.pins[day].qty||{})[st]; if(ST.pins[day].crews)delete ST.pins[day].crews[area];
+    if(!Object.keys(ST.pins[day].qty||{}).length&&!Object.keys(ST.pins[day].crews||{}).length)delete ST.pins[day];}
+    closeModal(); recalc();};
+  $("#pin-save").onclick=()=>{
+    const q=parseFloat($("#pin-qty").value);
+    const cw=$("#pin-crew").value;
+    const P=ST.pins[day]=ST.pins[day]||{qty:{},crews:{}};
+    P.qty=P.qty||{}; P.crews=P.crews||{};
+    if(!isNaN(q))P.qty[st]=q; else delete P.qty[st];
+    if(cw!=="")P.crews[area]=parseInt(cw); else delete P.crews[area];
+    if(!Object.keys(P.qty).length&&!Object.keys(P.crews).length)delete ST.pins[day];
+    closeModal(); recalc();
+  };
+}
+function stationCapacity(st,day,crewSel){
+  const f=dayFactor(pD(day));
+  const crew=crewSel===""?null:parseInt(crewSel);
+  if(st==="bake"){
+    const four=(crew===4)||(crew==null&&S.allow4);
+    const tier=four?S.bakeDef4:S.bakeDef3;
+    return {cap:tier*f,why:(four?"4-worker":"3-worker")+" crew, default tier ×"+Math.round(f*100)+"% day",
+      fix:four?"more ovens/pans or a longer day (overtime).":"add a 4th bake worker (3rd pan) or overtime."};
+  }
+  if(st==="pouch")return{cap:S.pouchBags*f/8,why:"~"+Math.round(S.pouchBags*f)+" bags at 8–12 bags/cs",fix:"raise pouch bags/day or add overtime."};
+  if(st==="box10")return{cap:S.box10Rate*f,why:"line rate ×"+Math.round(f*100)+"%",fix:"raise the 10-lb line rate or add overtime."};
+  if(st==="box25")return{cap:S.box25Rate*f,why:"line rate ×"+Math.round(f*100)+"%",fix:"raise the 25-lb line rate or add overtime."};
+  if(st==="coconut"){
+    const dayObj=R.days.find(x=>x.date===day)||{lockedPans:0};
+    const avail=Math.max(0,S.coconutPool-(dayObj.lockedPans||0));
+    return{cap:avail*S.sweetCycles*f,why:avail+" free pans × "+S.sweetCycles+" cycles"+((dayObj.lockedPans||0)>0?" ("+dayObj.lockedPans+" locked by toasted)":""),
+      fix:"free pans (don't mix toasted the prior day) or add pans to the pool."};
+  }
+  if(st==="toasted"){
+    const dayObj=R.days.find(x=>x.date===day)||{lockedPans:0};
+    const avail=Math.max(0,S.coconutPool-(dayObj.lockedPans||0));
+    return{cap:avail*f,why:avail+" free pans × 1 cycle",fix:"free pans from sweetened or grow the pool."};
+  }
+  return{cap:S.repackRate*f,why:"repack dial (placeholder rate) ×"+Math.round(f*100)+"%",fix:"correct the repack cases/day dial."};
+}
+function closeModal(){$("#modalbg").className=""; modalCtx=null;}
+
+/* ---------------- Order book ---------------- */
+function renderOrders(){
+  const el=$("#rightpanel");
+  const included=R.orders;
+  const excluded=ST.orders.filter(o=>!o.included);
+  const chip=O=>({early:"<span class='chip early'>Early</span>",ontime:"<span class='chip ontime'>On time</span>",
+    tight:"<span class='chip tight'>Tight</span>",late:"<span class='chip late'>Late</span>",
+    stock:"<span class='chip stock'>From stock</span>",inc:"<span class='chip inc'>Won't finish</span>"})[O.status];
+  let h="<div class='panel-h'>Order book ("+included.length+")"
+    +" <span class='info' title='Ready = the day the last case of the order is packed. Early ≥2 days before due · On time = 1 day before · Tight = ready exactly on due · Late = after due.'>i</span></div>"
+    +"<button class='act sec' id='btn-addorder' style='width:100%'>+ Add order line</button><div id='addform'></div>";
+  const sorted=[...included].sort((a,b)=>a.due<b.due?-1:1);
+  for(const O of sorted){
+    const dTxt=O.days==null?"":O.days<0?(-O.days)+"d late":O.days===0?"on the day":O.days+"d early";
+    h+="<div class='ord'><div class='o-top'><div><span class='o-cust'>"+esc(O.customer)+"</span> <span class='o-id'>"+esc(O.orderId)+"</span></div>"
+      +chip(O)+"</div>"
+      +"<div class='o-dates'><span>Ship <b class='num'>"+fmtShort(O.due)+"</b></span><span>Ready <b class='num'>"+(O.incomplete?"—":fmtShort(O.ready))+"</b></span>"
+      +"<span class='o-days "+(O.days!=null&&O.days<0?"neg":"pos")+"'>"+dTxt+"</span></div>"
+      +"<div class='o-lines'>"+O.lines.map(L=>{
+        const oid=L.o.id;
+        return "<div>"+L.sku+" · "+esc(L.p.n.slice(0,30))+" — <b class='num'>"+L.qty+"</b> "+esc(L.o.uom)
+          +(L.fgUsed?" <span style='color:var(--pin)'>("+Math.round(L.fgUsed)+" from stock)</span>":"")
+          +" <a href='#' data-excl='"+oid+"' style='color:var(--ink2)'>exclude</a> <a href='#' data-del='"+oid+"' style='color:var(--late)'>✕</a></div>";
+      }).join("")+"</div></div>";
+  }
+  if(excluded.length){
+    h+="<div class='panel-h'>Excluded ("+excluded.length+")</div>";
+    for(const o of excluded)h+="<div class='ord excluded'><div class='o-top'><div><span class='o-cust'>"+esc(o.customer)+"</span> <span class='o-id'>"+esc(o.orderId)+" · "+o.sku+" × "+o.qty+"</span></div>"
+      +"<a href='#' data-incl='"+o.id+"'>include</a></div></div>";
+  }
+  if(!included.length&&!excluded.length)
+    h+="<div class='hint' style='margin-top:8px'>No open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive.</div>";
+  el.innerHTML=h;
+  el.querySelectorAll("[data-excl]").forEach(a=>a.onclick=e=>{e.preventDefault();
+    const o=ST.orders.find(x=>x.id==a.dataset.excl); if(o){o.included=false; recalc();}});
+  el.querySelectorAll("[data-incl]").forEach(a=>a.onclick=e=>{e.preventDefault();
+    const o=ST.orders.find(x=>x.id==a.dataset.incl); if(o){o.included=true; recalc();}});
+  el.querySelectorAll("[data-del]").forEach(a=>a.onclick=e=>{e.preventDefault();
+    ST.orders=ST.orders.filter(x=>x.id!=a.dataset.del); recalc();});
+  $("#btn-addorder").onclick=()=>{
+    $("#addform").innerHTML="<div class='dbody' style='border:1px solid var(--line);border-radius:7px;padding:8px;margin:6px 0'>"
+      +"<div class='ctl'><label>Order ID</label><input id='ao-id' style='width:110px' value='SO-'></div>"
+      +"<div class='ctl'><label>Customer</label><input id='ao-cust' style='width:110px'></div>"
+      +"<div class='ctl'><label>SKU</label>"+skuPicker("ao-sku")+"</div>"
+      +"<div class='ctl'><label>Qty</label><input id='ao-qty' type='number' min='1' style='width:80px'></div>"
+      +"<div class='ctl'><label>Due</label><input id='ao-due' type='date' value='"+fD(addD(pD(S.startDate),7))+"'></div>"
+      +"<button class='act' id='ao-save'>Add</button></div>";
+    $("#ao-save").onclick=()=>{
+      const sku=$("#ao-sku").value, qty=parseFloat($("#ao-qty").value), due=$("#ao-due").value;
+      if(!sku||!(qty>0)||!due)return alert("SKU, qty, and due date are required.");
+      ST.orders.push({id:ST.nextId++,orderId:$("#ao-id").value||("#"+ST.nextId),customer:$("#ao-cust").value||"—",
+        sku,name:PRODS[sku].n,qty,uom:PRODS[sku].cl===1?"lb":"case",due,notes:"",included:true});
+      recalc();
+    };
+  };
+}
+
+/* ---------------- Wire-up ---------------- */
+const APP_VER="v1.4";
+function renderAll(){renderTop(); renderBoard(); renderOrders();}
+window.clearBaseline=clearBaseline;
+document.addEventListener("DOMContentLoaded",()=>{
+  loadState(); S=ST.settings; buildProds();
+  $("#btn-baseline").onclick=()=>{ST.baseline=snapshot(); saveState(); renderDelta();};
+  $("#btn-print").onclick=()=>window.print();
+  $("#modalbg").onclick=e=>{if(e.target.id==="modalbg")closeModal();};
+  // clickable info popovers (info buttons also keep native hover tooltips)
+  document.addEventListener("click",e=>{
+    const old=document.getElementById("tippop"); 
+    const t=e.target.closest(".info");
+    if(old)old.remove();
+    if(!t||!t.title)return;
+    const pop=document.createElement("div"); pop.id="tippop"; pop.textContent=t.title;
+    document.body.appendChild(pop);
+    const r=t.getBoundingClientRect();
+    pop.style.left=Math.min(r.left, window.innerWidth-pop.offsetWidth-12)+"px";
+    pop.style.top=(r.bottom+6+pop.offsetHeight>window.innerHeight?r.top-pop.offsetHeight-6:r.bottom+6)+"px";
+    e.stopPropagation();
+  },true);
+  const ver=document.createElement("span");
+  ver.style.cssText="color:#8a8878;font-weight:700;"; ver.textContent=APP_VER;
+  $("#legendbar").appendChild(ver);
+  computeSchedule(); renderLeft(); renderAll();
+});
+
+</script>
+</body>
+</html>
