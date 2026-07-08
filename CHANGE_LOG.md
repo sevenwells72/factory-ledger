@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-07-08 16:15 — Clarify sub-tenth pan requirements in matrix notes
+- **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Positive pan calculations that would render as 0.0 at one decimal now display `<0.1 pans`; added Cases and Pounds assertions for the fractional 70073 seed.
+- **Why:** Avoid presenting a small positive production requirement as zero.
+
+---
+
+## 2026-07-08 16:10 — Verify serialized matrix comment dimensions
+- **File(s) changed:** `tests/test_orders_matrix_export.py`, `CHANGE_LOG.md`
+- **What changed:** Changed the comment-size assertion to inspect the generated XLSX VML shape data for 260×80 boxes because openpyxl intentionally reloads legacy comments with default dimensions even when the serialized workbook contains the requested size.
+- **Why:** Test the actual dimensions Excel receives instead of openpyxl's lossy comment reload representation.
+
+---
+
+## 2026-07-08 16:07 — Add per-cell pan notes to orders matrix export
+- **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Added 260×80 Factory Ledger comments to every nonzero quantity cell on the Cases and Pounds sheets with case, pound, pan-yield, documented batch, 70073 finished-weight, and 31012 repack details. Added BATCHES / PANS calculation comments without replacing the existing source-citation comments, plus regression coverage for both sheets and special routing.
+- **Why:** Put production conversion math and exceptions directly on the matrix cells planners use.
+
+---
+
 ## 2026-07-08 14:44 — Deploy styled open-orders matrix export
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Fast-forwarded feature commit `5aec509` to `main`. Railway deployment `369dfadb-2fc5-43d7-a51a-12a06f6f423e` completed successfully at `fastapi-production-b73a.up.railway.app`; authenticated production smoke returned HTTP 200 and the XLSX media type. Netlify served dashboard JS v17 with the matrix button and export handler. No OpenAPI change; GPT schema remains at 30 operations.

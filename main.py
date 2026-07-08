@@ -5429,6 +5429,11 @@ _ORDERS_MATRIX_PAN_YIELD = {
     "67476": 360, "893": 360, "10010": 300, "10029": 300,
     "31012": None,
 }
+_ORDERS_MATRIX_BATCH_NUMBER = {
+    "70050": "90002",
+    "10300": "90002",
+    "70052": "90024",
+}
 
 _MATRIX_COLORS = {
     "left": "2F5496", "granola": "C55A11", "coconut": "2E7D5B",
@@ -5497,6 +5502,40 @@ def _matrix_short_header(product_name: str) -> str:
 def _matrix_apply_numeric(cell, number_format='#,##0;(#,##0);"—"'):
     cell.alignment = Alignment(horizontal="center", vertical="center")
     cell.number_format = number_format
+
+
+def _matrix_quantity_note(sku: str, qty_cases: float, lb_per_case: float, sheet_name: str) -> str:
+    """Build the production-planning note for one nonzero matrix quantity."""
+    pounds = qty_cases * lb_per_case
+    qty_text = f"{qty_cases:,g}"
+    if sheet_name == "Cases":
+        lead = f"{qty_text} cases = {pounds:,.0f} lb"
+    else:
+        lead = f"{pounds:,.0f} lb ({qty_text} cases)"
+
+    if sku == "31012":
+        return f"{lead} — repack from 50 lb bulk, no pans"
+
+    pan_yield = _ORDERS_MATRIX_PAN_YIELD.get(sku)
+    if pan_yield is None:
+        return f"{lead} — no pan yield on file"
+
+    pans = pounds / pan_yield
+    pans_text = "<0.1" if pans > 0 and f"{pans:,.1f}" == "0.0" else f"{pans:,.1f}"
+    note = f"{lead} ≈ {pans_text} pans @ {pan_yield:g} lb/pan"
+    batch_number = _ORDERS_MATRIX_BATCH_NUMBER.get(sku)
+    if batch_number:
+        note += f" (Batch {batch_number})"
+    if sku == "70073":
+        note += " (finished wt; oven load 341 lb + 85 lb premix)"
+    return note
+
+
+def _matrix_comment(text: str) -> Comment:
+    comment = Comment(text, "Factory Ledger")
+    comment.width = 260
+    comment.height = 80
+    return comment
 
 
 def _build_orders_matrix_workbook(lines: List[dict], export_date: date) -> Workbook:
@@ -5575,6 +5614,12 @@ def _build_orders_matrix_workbook(lines: List[dict], export_date: date) -> Workb
                 cell = ws.cell(row_offset, product_index)
                 if qty is not None:
                     cell.value = qty if sheet_name == "Cases" else qty * product["lb_per_case"]
+                    if not math.isclose(qty, 0, abs_tol=1e-9):
+                        cell.comment = _matrix_comment(
+                            _matrix_quantity_note(
+                                product["sku"], qty, product["lb_per_case"], sheet_name
+                            )
+                        )
                 cell.fill = PatternFill("solid", fgColor=_MATRIX_BANDS[product["family"]][row_offset % 2])
                 _matrix_apply_numeric(
                     cell,
@@ -5635,12 +5680,28 @@ def _build_orders_matrix_workbook(lines: List[dict], export_date: date) -> Workb
                     note += ". Finished batch weight = 341 lb oven base + 85 lb premix; never schedule 426 lb through the oven."
                 elif product["sku"] == "31012":
                     note += ". Repack routing; batch/pan input is not applicable."
-                input_cell.comment = Comment(note, "Factory Ledger")
+                input_cell.comment = _matrix_comment(note)
             else:
                 input_cell.fill = PatternFill("solid", fgColor="FFF2CC")
                 input_cell.font = Font(name="Arial", size=10, bold=True, color="0000FF")
-            ws.cell(batches_row, product_index, f'=IF(N({letter}{input_row})>0,{letter}{pounds_row}/{letter}{input_row},"—")')
-            _matrix_apply_numeric(ws.cell(batches_row, product_index), '#,##0.0;(#,##0.0);"—"')
+            batches_cell = ws.cell(
+                batches_row, product_index,
+                f'=IF(N({letter}{input_row})>0,{letter}{pounds_row}/{letter}{input_row},"—")',
+            )
+            pan_yield = _ORDERS_MATRIX_PAN_YIELD.get(product["sku"])
+            if pan_yield is not None:
+                total_lb = sum(
+                    quantities.get(product["sku"], 0) * product["lb_per_case"]
+                    for _, quantities in rows
+                )
+                batches_cell.comment = _matrix_comment(
+                    f"{total_lb:,.0f} lb ÷ {pan_yield:g} lb/pan"
+                )
+            elif product["sku"] == "31012":
+                batches_cell.comment = _matrix_comment("Repack from 50 lb bulk; no pans")
+            else:
+                batches_cell.comment = _matrix_comment("No pan yield on file")
+            _matrix_apply_numeric(batches_cell, '#,##0.0;(#,##0.0);"—"')
             if product["has_fractional_qty"]:
                 for row_num in (total_row, lb_case_row, pounds_row, input_row):
                     _matrix_apply_numeric(ws.cell(row_num, product_index), '#,##0.#;(#,##0.#);"—"')
