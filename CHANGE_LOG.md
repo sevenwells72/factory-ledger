@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-07-08 14:40 — Show fractional case quantities in matrix exports
+- **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `CHANGE_LOG.md`
+- **What changed:** Detects any non-integer quantity per SKU and applies `#,##0.#;(#,##0.#);"—"` to that product column on both Cases and Pounds sheets, including its numeric summary cells. Added regression assertions for a 1.5-case 6x7 oz line and for retaining the integer format on whole-case columns. Confirmed the dashboard handler already checks `response.ok`, reads failure text, and sends it through the existing Sales Orders error alert before calling `blob()`.
+- **Why:** Prevent partial cases from appearing silently rounded while preserving current whole-case formatting and safe dashboard error handling.
+
+---
+
+## 2026-07-08 14:31 — Isolate matrix endpoint tests from database startup
+- **File(s) changed:** `tests/test_orders_matrix_export.py`, `CHANGE_LOG.md`
+- **What changed:** Changed the seeded endpoint tests to issue ASGI requests without entering the application lifespan, preventing the real database startup hook from running while the endpoint's transaction source is replaced by deterministic seeded rows.
+- **Why:** Keep the regression test self-contained and ensure it exercises the HTTP route/workbook response without requiring or risking any database connection.
+
+---
+
+## 2026-07-08 14:28 — Preserve undated open orders in matrix export
+- **File(s) changed:** `main.py`, `CHANGE_LOG.md`
+- **What changed:** Kept open order lines with no due date in the export (sorted after dated orders with blank date/weekday) while retaining 422 rejection for unknown UoMs or unusable case quantities; simplified grouped-SKU accumulation without changing totals.
+- **Why:** The matrix must query the same open-order population as the existing CSV rather than silently dropping or rejecting otherwise valid undated orders.
+
+---
+
+## 2026-07-08 14:25 — Add Sales Orders matrix download and regression tests
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `tests/test_orders_matrix_export.py`, `CHANGE_LOG.md`
+- **What changed:** Added the Sales Orders "Export Matrix (xlsx)" button with authenticated binary download handling and a dashboard cache-buster bump. Added endpoint tests covering both sheets, hidden order ID, header typography, case/pound conversion, grand totals, Monday week separators, autofilter scope, and 422 handling for unknown UoMs. Not deployed or committed.
+- **Why:** Complete the dashboard workflow and protect the workbook contract with executable regression coverage.
+
+---
+
+## 2026-07-08 14:25 — Begin styled open-orders matrix Excel export
+- **File(s) changed:** `main.py`, `requirements.txt`, `CHANGE_LOG.md`
+- **What changed:** Added the authenticated dashboard-only `/export/orders-matrix.xlsx` endpoint and openpyxl workbook builder with Cases/Pounds sheets, UoM validation, family styling, formulas, week banding/separators, past-due emphasis, and production-planning summary rows; added the openpyxl runtime dependency. Work remains under review on `feat/orders-matrix-export`; not deployed.
+- **Why:** Give Sales Orders users a production-ready matrix export without adding an operation to the capped GPT OpenAPI schema.
+
+---
+
 ## 2026-06-29 13:17 — Deployed Sales Order pallet display
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md` (plus git: pushed `fa091e6` to `main`, triggering Railway and Netlify CD)
 - **What changed:** Confirmed Railway deployment `d0c13a45-9ec6-4ff6-8388-0994716afa20` and Netlify deploy `6a42a80a626e1c0008f39d53` succeeded for commit `fa091e6`. Live checks confirmed the additive `pallet_lines` API field, the published helper/cache-busters, `26 pallets` for Restaurant Depot's 3,640-case order, `2.8 pallets / 3 physical mixed pallets` for Juliette's seven-line order, per-line `0.4 pallet`, remaining pallet values on detail, quiet `—` for unknown mappings, working expand/detail navigation, preserved Factory Ready controls, and no browser-console or Railway error-log matches.

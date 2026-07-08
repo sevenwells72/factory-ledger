@@ -21,6 +21,10 @@ import math
 import uuid
 import io
 from decimal import Decimal, ROUND_HALF_UP
+from openpyxl import Workbook
+from openpyxl.comments import Comment
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 
 def to_decimal(value) -> Decimal:
     """Convert a value to Decimal safely, rounding to 4 decimal places."""
@@ -5415,6 +5419,306 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
         if _is_readonly_error(e): raise
         logger.error(f"Create sales order failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+_ORDERS_MATRIX_PAN_YIELD = {
+    # Source: CNS Production Source of Truth v1.0, 2026-07-02.
+    "70050": 322.6, "10300": 322.6, "70048": 380.12, "70052": 370.12,
+    "70012": 322.6, "1614": 322.6, "70073": 426, "10001": 360,
+    "10020": 360, "10002": 360, "67470": 360, "67473": 360,
+    "67476": 360, "893": 360, "10010": 300, "10029": 300,
+    "31012": None,
+}
+
+_MATRIX_COLORS = {
+    "left": "2F5496", "granola": "C55A11", "coconut": "2E7D5B",
+    "graham": "7B6A50", "other": "2F5496",
+}
+_MATRIX_BANDS = {
+    "granola": ("FDF3EC", "FAE5D5"),
+    "coconut": ("EDF7F1", "DCEEE4"),
+    "graham": ("F5F2EC", "EAE4D8"),
+    "other": ("FFFFFF", "EFEFEF"),
+}
+_MATRIX_SKU_ORDER = {
+    sku: rank for rank, sku in enumerate(
+        ("70050", "10300", "70048", "70052", "70012", "1614", "70073",
+         "10001", "10020", "10002", "67470", "67473", "67476", "893",
+         "10010", "10029", "31012")
+    )
+}
+
+
+def _matrix_lb_per_case(uom: str) -> Optional[float]:
+    """Parse the product's declared case UoM without guessing."""
+    normalized = re.sub(r"\s+", " ", (uom or "").strip().lower())
+    lb_match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*lb\s*case", normalized)
+    if lb_match:
+        return float(lb_match.group(1))
+    oz_match = re.fullmatch(r"(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*oz\s*case", normalized)
+    if oz_match:
+        return int(oz_match.group(1)) * float(oz_match.group(2)) / 16
+    return None
+
+
+def _matrix_family(product_name: str) -> str:
+    name = (product_name or "").lower()
+    if "granola" in name:
+        return "granola"
+    if "coconut" in name or re.search(r"\bcoco\b", name):
+        return "coconut"
+    if "graham" in name:
+        return "graham"
+    return "other"
+
+
+def _matrix_product_sort(product: dict):
+    name = product["product_name"].lower()
+    family = product["family"]
+    family_rank = {"granola": 0, "coconut": 1, "graham": 3, "other": 4}[family]
+    coconut_rank = 0
+    vendor_rank = 0
+    if family == "coconut":
+        coconut_rank = 1 if "toast" in name else 0
+        vendor_rank = 0 if "cns" in name else 1 if "unipro" in name else 2 if "cq" in name else 3
+    return (family_rank + coconut_rank, vendor_rank, _MATRIX_SKU_ORDER.get(product["sku"], 999), name, product["sku"])
+
+
+def _matrix_short_header(product_name: str) -> str:
+    header = (product_name or "").replace("–", "-").replace("—", "-")
+    header = re.sub(r"\bCoconut\b", "Coco", header, flags=re.IGNORECASE)
+    header = re.sub(r"\bSweetened\b", "Swt", header, flags=re.IGNORECASE)
+    header = re.sub(r"\s*-\s*", " ", header)
+    header = re.sub(r"\s+Case\b", "", header, flags=re.IGNORECASE)
+    header = re.sub(r"\b(\d+(?:\.\d+)?)\s*LB\b", r"\1#", header, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", header).strip()
+
+
+def _matrix_apply_numeric(cell, number_format='#,##0;(#,##0);"—"'):
+    cell.alignment = Alignment(horizontal="center", vertical="center")
+    cell.number_format = number_format
+
+
+def _build_orders_matrix_workbook(lines: List[dict], export_date: date) -> Workbook:
+    products_by_sku = {}
+    grouped = {}
+    for line in lines:
+        sku = str(line["sku"])
+        qty = float(line["qty"])
+        product = products_by_sku.setdefault(sku, {
+            "sku": sku,
+            "product_name": line["product_name"],
+            "lb_per_case": line["lb_per_case"],
+            "family": _matrix_family(line["product_name"]),
+            "has_fractional_qty": False,
+        })
+        product["has_fractional_qty"] = product["has_fractional_qty"] or not math.isclose(
+            qty, round(qty), abs_tol=1e-9
+        )
+        key = (line["due_date"], line["customer"], line["order_id"])
+        order_quantities = grouped.setdefault(key, {})
+        order_quantities[sku] = order_quantities.get(sku, 0) + qty
+
+    products = sorted(products_by_sku.values(), key=_matrix_product_sort)
+    rows = sorted(grouped.items(), key=lambda item: (item[0][0] or date.max, item[0][1].lower(), str(item[0][2])))
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+
+    thin_bottom = Side(style="thin", color="D0D0D0")
+    medium_top = Side(style="medium", color="404040")
+    source_text = "CNS Production Source of Truth v1.0, 2026-07-02"
+
+    for sheet_name in ("Cases", "Pounds"):
+        ws = workbook.create_sheet(sheet_name)
+        total_col = 5 + len(products)
+        headers = ["Due date", "Weekday", "Customer", "Order ID"] + [
+            _matrix_short_header(p["product_name"]) for p in products
+        ] + ["Row total"]
+        ws.append(headers)
+        ws.row_dimensions[1].height = 34
+        for col, value in enumerate(headers, 1):
+            family = products[col - 5]["family"] if 5 <= col < total_col else "left"
+            cell = ws.cell(1, col, value)
+            cell.font = Font(name="Arial", size=7, bold=True, color="FFFFFF")
+            cell.fill = PatternFill("solid", fgColor=_MATRIX_COLORS[family])
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        ws.column_dimensions["A"].width = 20
+        ws.column_dimensions["B"].width = 11
+        ws.column_dimensions["C"].width = 18
+        ws.column_dimensions["D"].width = 15
+        ws.column_dimensions["D"].hidden = True
+        for col in range(5, total_col + 1):
+            ws.column_dimensions[get_column_letter(col)].width = 11
+
+        week_indices = {}
+        previous_week = None
+        for row_offset, ((due_date, customer, order_id), quantities) in enumerate(rows, 2):
+            week_key = due_date - timedelta(days=due_date.weekday()) if due_date else None
+            if week_key not in week_indices:
+                week_indices[week_key] = len(week_indices)
+            week_band = week_indices[week_key] % 2
+            values = [due_date, due_date.strftime("%A") if due_date else "", customer, order_id]
+            ws.append(values)
+            ws.cell(row_offset, 1).number_format = "mm/dd/yyyy"
+
+            for col in range(1, total_col + 1):
+                cell = ws.cell(row_offset, col)
+                cell.font = Font(name="Arial", size=6 if col == 3 else 10)
+                cell.border = Border(bottom=thin_bottom)
+                cell.alignment = Alignment(vertical="center")
+                if col <= 4:
+                    cell.fill = PatternFill("solid", fgColor="FFFFFF" if week_band == 0 else "DCE6F1")
+
+            for product_index, product in enumerate(products, 5):
+                qty = quantities.get(product["sku"])
+                cell = ws.cell(row_offset, product_index)
+                if qty is not None:
+                    cell.value = qty if sheet_name == "Cases" else qty * product["lb_per_case"]
+                cell.fill = PatternFill("solid", fgColor=_MATRIX_BANDS[product["family"]][row_offset % 2])
+                _matrix_apply_numeric(
+                    cell,
+                    '#,##0.#;(#,##0.#);"—"' if product["has_fractional_qty"] else '#,##0;(#,##0);"—"',
+                )
+
+            total_cell = ws.cell(row_offset, total_col)
+            total_cell.value = f"=SUM(E{row_offset}:{get_column_letter(total_col - 1)}{row_offset})"
+            total_cell.fill = PatternFill("solid", fgColor=("FFFFFF", "EFEFEF")[row_offset % 2])
+            _matrix_apply_numeric(total_cell)
+
+            if previous_week is not None and week_key != previous_week:
+                for col in range(1, total_col + 1):
+                    old = ws.cell(row_offset, col).border
+                    ws.cell(row_offset, col).border = Border(top=medium_top, bottom=old.bottom)
+            previous_week = week_key
+
+            if due_date and due_date < export_date:
+                for col in range(1, 5):
+                    ws.cell(row_offset, col).font = Font(
+                        name="Arial", size=6 if col == 3 else 10, bold=True, color="C00000"
+                    )
+
+        data_end = 1 + len(rows)
+        total_label = "TOTAL CASES" if sheet_name == "Cases" else "TOTAL LB"
+        summary_specs = [total_label, "Lb per case", "TOTAL POUNDS", "Lb per batch/pan (input)", "BATCHES / PANS"]
+        summary_start = data_end + 1
+        for offset, label in enumerate(summary_specs):
+            row_num = summary_start + offset
+            ws.cell(row_num, 1, label)
+            ws.merge_cells(start_row=row_num, start_column=1, end_row=row_num, end_column=4)
+            ws.cell(row_num, 1).font = Font(name="Arial", size=10, bold=True)
+            ws.cell(row_num, 1).fill = PatternFill("solid", fgColor="D9D2C4")
+            ws.cell(row_num, 1).alignment = Alignment(vertical="center")
+            for col in range(2, 5):
+                ws.cell(row_num, col).fill = PatternFill("solid", fgColor="D9D2C4")
+            for product_index, product in enumerate(products, 5):
+                cell = ws.cell(row_num, product_index)
+                cell.fill = PatternFill("solid", fgColor=_MATRIX_COLORS[product["family"]])
+                cell.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+                _matrix_apply_numeric(cell)
+
+        total_row, lb_case_row, pounds_row, input_row, batches_row = range(summary_start, summary_start + 5)
+        first_product = "E"
+        last_product = get_column_letter(total_col - 1)
+        for product_index, product in enumerate(products, 5):
+            letter = get_column_letter(product_index)
+            ws.cell(total_row, product_index, f"=SUM({letter}2:{letter}{data_end})")
+            ws.cell(lb_case_row, product_index, product["lb_per_case"])
+            ws.cell(pounds_row, product_index, f"={letter}{total_row}*{letter}{lb_case_row}" if sheet_name == "Cases" else f"={letter}{total_row}")
+
+            input_cell = ws.cell(input_row, product_index)
+            if product["sku"] in _ORDERS_MATRIX_PAN_YIELD:
+                pan_yield = _ORDERS_MATRIX_PAN_YIELD[product["sku"]]
+                input_cell.value = "n/a" if pan_yield is None else pan_yield
+                note = source_text
+                if product["sku"] == "70073":
+                    note += ". Finished batch weight = 341 lb oven base + 85 lb premix; never schedule 426 lb through the oven."
+                elif product["sku"] == "31012":
+                    note += ". Repack routing; batch/pan input is not applicable."
+                input_cell.comment = Comment(note, "Factory Ledger")
+            else:
+                input_cell.fill = PatternFill("solid", fgColor="FFF2CC")
+                input_cell.font = Font(name="Arial", size=10, bold=True, color="0000FF")
+            ws.cell(batches_row, product_index, f'=IF(N({letter}{input_row})>0,{letter}{pounds_row}/{letter}{input_row},"—")')
+            _matrix_apply_numeric(ws.cell(batches_row, product_index), '#,##0.0;(#,##0.0);"—"')
+            if product["has_fractional_qty"]:
+                for row_num in (total_row, lb_case_row, pounds_row, input_row):
+                    _matrix_apply_numeric(ws.cell(row_num, product_index), '#,##0.#;(#,##0.#);"—"')
+
+        for row_num in (total_row, pounds_row):
+            ws.cell(row_num, total_col, f"=SUM({first_product}{row_num}:{last_product}{row_num})")
+        ws.cell(lb_case_row, total_col, "")
+        ws.cell(input_row, total_col, "")
+        ws.cell(batches_row, total_col, f'=IF(COUNT({first_product}{batches_row}:{last_product}{batches_row})>0,SUM({first_product}{batches_row}:{last_product}{batches_row}),"—")')
+        for row_num in range(summary_start, summary_start + 5):
+            total_cell = ws.cell(row_num, total_col)
+            total_cell.fill = PatternFill("solid", fgColor=_MATRIX_COLORS["left"])
+            total_cell.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+            _matrix_apply_numeric(total_cell, '#,##0.0;(#,##0.0);"—"' if row_num == batches_row else '#,##0;(#,##0);"—"')
+
+        for col in range(1, total_col + 1):
+            cell = ws.cell(summary_start, col)
+            cell.border = Border(top=medium_top)
+        ws.freeze_panes = "E2"
+        ws.auto_filter.ref = f"A1:{get_column_letter(total_col)}{data_end}"
+
+    return workbook
+
+
+@app.get("/export/orders-matrix.xlsx", include_in_schema=False)
+def export_orders_matrix(_: bool = Depends(verify_api_key)):
+    """Dashboard-only styled matrix of open, production-relevant sales-order lines."""
+    with get_transaction() as cur:
+        cur.execute(
+            """
+            SELECT c.name AS customer, so.order_number AS order_id,
+                   so.requested_ship_date AS due_date, p.odoo_code AS sku,
+                   p.name AS product_name,
+                   sol.quantity_lb / NULLIF(p.case_size_lb, 0) AS qty,
+                   COALESCE(p.uom, '') AS uom
+            FROM sales_orders so
+            JOIN customers c ON c.id = so.customer_id
+            JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+            JOIN products p ON p.id = sol.product_id
+            WHERE so.status NOT IN ('shipped', 'invoiced', 'cancelled')
+              AND NOT COALESCE(p.is_service, false)
+              AND NOT COALESCE(p.no_production, false)
+              AND NULLIF(TRIM(p.odoo_code), '') IS NOT NULL
+            ORDER BY so.requested_ship_date ASC NULLS LAST, c.name, so.order_number, sol.id
+            """
+        )
+        raw_lines = [dict(row) for row in cur.fetchall()]
+
+    offending = []
+    lines = []
+    for line in raw_lines:
+        lb_per_case = _matrix_lb_per_case(line["uom"])
+        if lb_per_case is None or line["qty"] is None:
+            offending.append(str(line["sku"]))
+            continue
+        line["lb_per_case"] = lb_per_case
+        lines.append(line)
+    if offending:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error_code": "UNRECOGNIZED_ORDER_EXPORT_UOM",
+                "message": "Cannot export orders matrix: missing case size or unrecognized UoM",
+                "offending_skus": sorted(set(offending)),
+            },
+        )
+
+    export_date = datetime.now(ZoneInfo("America/New_York")).date()
+    workbook = _build_orders_matrix_workbook(lines, export_date)
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    filename = f"CNS_Open_Orders_Matrix_{export_date.isoformat()}.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/sales/orders")

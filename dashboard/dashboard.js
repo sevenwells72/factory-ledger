@@ -1522,6 +1522,45 @@
     }
   }
 
+  async function exportOrdersMatrix() {
+    const button = document.getElementById('orders-matrix-export-btn');
+    const originalText = button.textContent;
+    button.textContent = 'Exporting...';
+    button.classList.add('loading');
+    button.disabled = true;
+    hideError('orders-error');
+
+    try {
+      const response = await fetch(SALES_API_BASE + '/export/orders-matrix.xlsx', {
+        headers: { 'X-API-Key': SALES_API_KEY }
+      });
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`HTTP ${response.status}: ${body}`);
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = filenameMatch
+        ? filenameMatch[1]
+        : 'CNS_Open_Orders_Matrix_' + new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }) + '.xlsx';
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (e) {
+      showError('orders-error', 'Failed to export orders matrix: ' + e.message);
+    } finally {
+      button.textContent = originalText;
+      button.classList.remove('loading');
+      button.disabled = false;
+    }
+  }
+
   function orderReadyPill(order) {
     if (!order.ready) return '';
     const parts = ['&#10003; READY'];
@@ -1976,6 +2015,7 @@
     // Refresh button
     document.getElementById('orders-refresh-btn').addEventListener('click', refreshOrders);
     document.getElementById('orders-export-btn').addEventListener('click', exportOrdersCsv);
+    document.getElementById('orders-matrix-export-btn').addEventListener('click', exportOrdersMatrix);
 
     // Back button
     document.getElementById('order-back-btn').addEventListener('click', closeOrderDetail);
