@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-08 14:44 — Deploy styled open-orders matrix export
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Fast-forwarded feature commit `5aec509` to `main`. Railway deployment `369dfadb-2fc5-43d7-a51a-12a06f6f423e` completed successfully at `fastapi-production-b73a.up.railway.app`; authenticated production smoke returned HTTP 200 and the XLSX media type. Netlify served dashboard JS v17 with the matrix button and export handler. No OpenAPI change; GPT schema remains at 30 operations.
+- **Why:** Record reproducible deployment evidence and the regression guard for the production release.
+
+---
+
 ## 2026-07-08 14:40 — Show fractional case quantities in matrix exports
 - **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `CHANGE_LOG.md`
 - **What changed:** Detects any non-integer quantity per SKU and applies `#,##0.#;(#,##0.#);"—"` to that product column on both Cases and Pounds sheets, including its numeric summary cells. Added regression assertions for a 1.5-case 6x7 oz line and for retaining the integer format on whole-case columns. Confirmed the dashboard handler already checks `response.ok`, reads failure text, and sends it through the existing Sales Orders error alert before calling `blob()`.
