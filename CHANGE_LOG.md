@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-08 16:18 — Deploy orders matrix pan-note enhancement
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Fast-forwarded feature commit `7127468` to `main`. Railway deployment `cc49789b-3e4b-4607-a7e3-21e4c2e5d328` completed successfully; production `/health` returned HTTP 200 with database connected and pool active. Matrix tests passed 2/2 before merge.
+- **Why:** Record reproducible deployment evidence and the regression guard for the production release.
+
+---
+
 ## 2026-07-08 16:15 — Clarify sub-tenth pan requirements in matrix notes
 - **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Positive pan calculations that would render as 0.0 at one decimal now display `<0.1 pans`; added Cases and Pounds assertions for the fractional 70073 seed.
