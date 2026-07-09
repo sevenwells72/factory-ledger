@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-07-09 11:57 — Bring GPT instructions under 8,000 chars
+- **File(s) changed:** `gpt-instructions-v3.md`, `CHANGE_LOG.md`, `~/change-log.md`
+- **What changed:** Condensed the Factory Ledger intro and CRITICAL RULES wording for NEVER INSTRUCT, BE CONCISE, and NEVER CLAIM UNAVAILABILITY; final full instruction character count is 7,991.
+- **Why:** Keep the fabricated-unavailability guard while fitting the Custom GPT 8,000-character instruction limit.
+
+---
+
+## 2026-07-09 11:52 — Condense unavailability rule error handling
+- **File(s) changed:** `gpt-instructions-v3.md`, `CHANGE_LOG.md`, `~/change-log.md`
+- **What changed:** Removed the separate SURFACE API ERRORS DIRECTLY line and folded verbatim API-error handling into NEVER CLAIM UNAVAILABILITY; new full instruction character count is 8,153.
+- **Why:** Preserve the fabricated-unavailability guard while recovering instruction budget.
+
+---
+
+## 2026-07-09 11:47 — Add NEVER CLAIM UNAVAILABILITY rule
+- **File(s) changed:** `gpt-instructions-v3.md`, `CHANGE_LOG.md`, `~/change-log.md`
+- **What changed:** Added a CRITICAL RULE preventing the GPT from claiming services, APIs, or actions are unavailable in the chat; recorded the exact post-change instruction character count as 8,257.
+- **Why:** Prevent recurrence of the 2026-07-09 fabricated-unavailability incident.
+
+---
+
 ## 2026-07-08 16:18 — Deploy orders matrix pan-note enhancement
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Fast-forwarded feature commit `7127468` to `main`. Railway deployment `cc49789b-3e4b-4607-a7e3-21e4c2e5d328` completed successfully; production `/health` returned HTTP 200 with database connected and pool active. Matrix tests passed 2/2 before merge.
