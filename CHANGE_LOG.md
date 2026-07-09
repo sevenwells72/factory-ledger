@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-09 12:08 — Bump GPT instructions to v3.7.0
+- **File(s) changed:** `gpt-instructions-v3.md`, `CHANGE_LOG.md`, `~/change-log.md`
+- **What changed:** Updated the Factory Ledger GPT instruction header from v3.6.0 to v3.7.0; no instruction body text changed.
+- **Why:** Prepare the Custom GPT instructions for the v3.7.0 release while preserving the under-8,000-character budget.
+
+---
+
 ## 2026-07-09 11:57 — Bring GPT instructions under 8,000 chars
 - **File(s) changed:** `gpt-instructions-v3.md`, `CHANGE_LOG.md`, `~/change-log.md`
 - **What changed:** Condensed the Factory Ledger intro and CRITICAL RULES wording for NEVER INSTRUCT, BE CONCISE, and NEVER CLAIM UNAVAILABILITY; final full instruction character count is 7,991.
