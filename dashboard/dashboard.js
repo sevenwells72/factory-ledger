@@ -1323,11 +1323,15 @@
   const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
   const SALES_API_KEY = 'ledger-secret-2026-factory';
   const SALES_ORDER_OPEN_STATUSES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship'];
+  const SALES_ORDER_STATUS_VALUES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship', 'shipped', 'invoiced', 'cancelled'];
+  const SALES_ORDER_HEADER_EDIT_STATUSES = ['new', 'confirmed'];
 
   // Orders sub-state
   state.ordersData = [];
   state.ordersLoaded = false;
   state.ordersScrollTop = 0;
+  state.currentOrderDetail = null;
+  state.orderDetailEditMode = false;
 
   async function fetchSalesAPI(path, options = {}) {
     const headers = { 'X-API-Key': SALES_API_KEY, ...(options.headers || {}) };
@@ -1813,11 +1817,30 @@
 
     try {
       const data = await fetchSalesAPI('/sales/orders/' + orderId);
+      state.currentOrderDetail = data;
+      state.orderDetailEditMode = false;
+      state.orderLinesCache[orderId] = data;
       renderOrderDetail(data, container);
     } catch (e) {
       container.innerHTML = '';
       showError('order-detail-error', 'Failed to load order detail: ' + e.message);
     }
+  }
+
+  async function refreshOrderDetail(orderId, successMessage) {
+    const container = document.getElementById('order-detail-container');
+    const data = await fetchSalesAPI('/sales/orders/' + orderId);
+    state.currentOrderDetail = data;
+    state.orderDetailEditMode = false;
+    state.orderLinesCache[orderId] = data;
+    const existing = state.ordersData.find(order => String(order.order_id) === String(orderId));
+    if (existing) {
+      existing.status = data.status;
+      existing.requested_ship_date = data.requested_ship_date;
+      existing.customer = data.customer;
+      existing.order_number = data.order_number;
+    }
+    renderOrderDetail(data, container, false, successMessage || '');
   }
 
   function flattenFinishedGoodsInventory(data) {
@@ -1902,20 +1925,235 @@
     });
   }
 
-  function renderOrderDetail(data, container) {
+  function canEditOrderHeader(order) {
+    return SALES_ORDER_HEADER_EDIT_STATUSES.includes(order.status);
+  }
+
+  function parseApiErrorMessage(error) {
+    const raw = error && error.message ? error.message : String(error);
+    const match = raw.match(/^HTTP\s+\d+:\s*([\s\S]*)$/);
+    if (!match) return raw;
+    const body = match[1];
+    try {
+      const payload = JSON.parse(body);
+      if (payload && payload.detail) {
+        if (typeof payload.detail === 'string') return payload.detail;
+        if (payload.detail.message) return payload.detail.message;
+      }
+      if (payload && payload.error) return payload.error;
+      if (payload && payload.error_detail && payload.error_detail.message) return payload.error_detail.message;
+    } catch (_) {
+      // Fall through to the raw response body.
+    }
+    return body;
+  }
+
+  function setOrderDetailMessage(container, message, kind) {
+    const el = container.querySelector('.order-edit-message');
+    if (!el) return;
+    el.textContent = message || '';
+    el.className = 'order-edit-message';
+    if (message) el.classList.add(kind === 'success' ? 'success' : 'error');
+  }
+
+  function renderStatusOptions(currentStatus) {
+    return SALES_ORDER_STATUS_VALUES.map(status => (
+      `<option value="${escAttr(status)}"${status === currentStatus ? ' selected' : ''}>${escHtml(soStatusLabel(status))}</option>`
+    )).join('');
+  }
+
+  function renderOrderEditActions(order, editMode) {
+    if (!canEditOrderHeader(order)) {
+      return `<div class="order-edit-locked">Editing opens only while the order is New or Confirmed. Current status: ${escHtml(soStatusLabel(order.status))}.</div>`;
+    }
+    if (editMode) {
+      return '<div class="order-detail-actions">' +
+        '<button type="button" class="btn-refresh order-save-header-btn">Save Header</button>' +
+        '<button type="button" class="btn-refresh order-save-lines-btn">Save Lines</button>' +
+        '<button type="button" class="btn-secondary order-cancel-edit-btn">Done</button>' +
+        '</div>';
+    }
+    return '<div class="order-detail-actions"><button type="button" class="btn-refresh order-edit-toggle-btn">Edit Order</button></div>';
+  }
+
+  async function saveOrderHeader(container) {
+    const order = state.currentOrderDetail;
+    if (!order) return;
+    const payload = {};
+    const dateValue = container.querySelector('.order-edit-ship-date').value;
+    const notesValue = container.querySelector('.order-edit-notes').value;
+    if ((dateValue || '') !== (order.requested_ship_date || '')) payload.requested_ship_date = dateValue || '';
+    if ((notesValue || '') !== (order.notes || '')) payload.notes = notesValue;
+
+    if (Object.keys(payload).length === 0) {
+      setOrderDetailMessage(container, 'No header changes to save.', 'error');
+      return;
+    }
+
+    const button = container.querySelector('.order-save-header-btn');
+    if (button) button.disabled = true;
+    setOrderDetailMessage(container, '', 'success');
+    hideError('order-detail-error');
+    try {
+      await fetchSalesAPI('/sales/orders/' + order.order_id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      await refreshOrderDetail(order.order_id, 'Header saved.');
+    } catch (e) {
+      setOrderDetailMessage(container, parseApiErrorMessage(e), 'error');
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function saveOrderLines(container) {
+    const order = state.currentOrderDetail;
+    if (!order) return;
+    const changes = [];
+    for (const row of container.querySelectorAll('tr.order-line-edit-row')) {
+      const lineId = row.dataset.lineId;
+      const original = (order.lines || []).find(line => String(line.line_id) === String(lineId));
+      if (!original) continue;
+      const qtyInput = row.querySelector('.order-line-qty-input');
+      const priceInput = row.querySelector('.order-line-price-input');
+      if (!qtyInput || !priceInput) continue;
+      const params = new URLSearchParams();
+      const nextQty = qtyInput.value === '' ? null : Number(qtyInput.value);
+      const nextPrice = priceInput.value === '' ? null : Number(priceInput.value);
+      if (nextQty != null && !Number.isFinite(nextQty)) {
+        setOrderDetailMessage(container, 'Quantity must be a valid number.', 'error');
+        return;
+      }
+      if (nextPrice != null && !Number.isFinite(nextPrice)) {
+        setOrderDetailMessage(container, 'Price must be a valid number.', 'error');
+        return;
+      }
+      if (nextQty != null && nextQty !== Number(original.quantity_lb || 0)) params.set('quantity_lb', String(nextQty));
+      const originalPrice = original.case_price == null ? null : Number(original.case_price);
+      if (nextPrice !== originalPrice) {
+        if (nextPrice == null) {
+          setOrderDetailMessage(container, 'Price cannot be blank for a line edit.', 'error');
+          return;
+        }
+        params.set('unit_price', String(nextPrice));
+      }
+      if ([...params.keys()].length > 0) {
+        changes.push({ lineId, params });
+      }
+    }
+
+    if (changes.length === 0) {
+      setOrderDetailMessage(container, 'No line changes to save.', 'error');
+      return;
+    }
+
+    const button = container.querySelector('.order-save-lines-btn');
+    if (button) button.disabled = true;
+    setOrderDetailMessage(container, '', 'success');
+    hideError('order-detail-error');
+    let savedCount = 0;
+    try {
+      for (const change of changes) {
+        await fetchSalesAPI('/sales/orders/' + order.order_id + '/lines/' + change.lineId + '/update?' + change.params.toString(), {
+          method: 'PATCH'
+        });
+        savedCount += 1;
+      }
+      await refreshOrderDetail(order.order_id, changes.length === 1 ? 'Line saved.' : `${changes.length} lines saved.`);
+    } catch (e) {
+      if (savedCount > 0) {
+        await refreshOrderDetail(order.order_id);
+        setOrderDetailMessage(document.getElementById('order-detail-container'), parseApiErrorMessage(e), 'error');
+      } else {
+        setOrderDetailMessage(container, parseApiErrorMessage(e), 'error');
+      }
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function saveOrderStatus(container) {
+    const order = state.currentOrderDetail;
+    if (!order) return;
+    const select = container.querySelector('.order-status-select');
+    const nextStatus = select ? select.value : order.status;
+    if (nextStatus === order.status) return;
+    const ok = window.confirm(`Change ${order.order_number} status from ${soStatusLabel(order.status)} to ${soStatusLabel(nextStatus)}?`);
+    if (!ok) {
+      select.value = order.status;
+      return;
+    }
+    select.disabled = true;
+    setOrderDetailMessage(container, '', 'success');
+    hideError('order-detail-error');
+    try {
+      await fetchSalesAPI('/sales/orders/' + order.order_id + '/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      await refreshOrderDetail(order.order_id, 'Status updated.');
+    } catch (e) {
+      select.value = order.status;
+      setOrderDetailMessage(container, parseApiErrorMessage(e), 'error');
+    } finally {
+      select.disabled = false;
+    }
+  }
+
+  function bindOrderDetailEditControls(container) {
+    const editBtn = container.querySelector('.order-edit-toggle-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        state.orderDetailEditMode = true;
+        renderOrderDetail(state.currentOrderDetail, container, true);
+      });
+    }
+    const cancelBtn = container.querySelector('.order-cancel-edit-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => {
+        state.orderDetailEditMode = false;
+        renderOrderDetail(state.currentOrderDetail, container, false);
+      });
+    }
+    const headerBtn = container.querySelector('.order-save-header-btn');
+    if (headerBtn) headerBtn.addEventListener('click', () => saveOrderHeader(container));
+    const linesBtn = container.querySelector('.order-save-lines-btn');
+    if (linesBtn) linesBtn.addEventListener('click', () => saveOrderLines(container));
+    const statusSelect = container.querySelector('.order-status-select');
+    if (statusSelect) statusSelect.addEventListener('change', () => saveOrderStatus(container));
+  }
+
+  function renderOrderDetail(data, container, editMode = state.orderDetailEditMode, successMessage = '') {
     let html = '';
+    const editable = canEditOrderHeader(data);
+    editMode = Boolean(editMode && editable);
 
     // Header
     html += '<div class="order-detail-header">';
     html += '<div class="order-detail-top">';
     html += `<span class="order-number">${escHtml(data.order_number)}</span>`;
-    html += `<span class="so-badge status-${data.status}">${soStatusLabel(data.status)}</span>`;
+    if (editMode) {
+      html += `<select class="order-status-select" aria-label="Order status">${renderStatusOptions(data.status)}</select>`;
+    } else {
+      html += `<span class="so-badge status-${data.status}">${soStatusLabel(data.status)}</span>`;
+    }
     html += '</div>';
     html += `<div class="order-detail-top"><span class="order-customer">${escHtml(data.customer)}</span></div>`;
     html += '<div class="order-detail-dates">';
     html += `<span><strong>Order Date:</strong> ${formatDateShort(data.order_date)}</span>`;
-    html += `<span><strong>Ship By:</strong> ${formatDateShort(data.requested_ship_date)}</span>`;
+    if (editMode) {
+      html += '<label class="order-edit-field"><strong>Ship By:</strong> ' +
+        `<input type="date" class="order-edit-input order-edit-ship-date" value="${escAttr(data.requested_ship_date || '')}">` +
+        '</label>';
+    } else {
+      html += `<span><strong>Ship By:</strong> ${formatDateShort(data.requested_ship_date)}</span>`;
+    }
     html += '</div>';
+    html += renderOrderEditActions(data, editMode);
+    html += `<div class="order-edit-message${successMessage ? ' success' : ''}">${escHtml(successMessage)}</div>`;
     html += '</div>';
 
     // KPI row — totals may be nested under data.totals or at top level
@@ -1940,7 +2178,9 @@
     // Line items
     if (lines.length > 0) {
       html += '<table class="orders-table"><thead><tr>';
-      html += '<th>Product</th><th class="num">Ordered</th><th class="num">Shipped</th><th class="num">Remaining</th><th>Status</th>';
+      html += '<th>Product</th><th class="num">Ordered</th>';
+      if (editMode) html += '<th class="num">Price</th>';
+      html += '<th class="num">Shipped</th><th class="num">Remaining</th><th>Status</th>';
       html += '</tr></thead><tbody>';
       for (const l of lines) {
         const remaining = l.remaining_lb != null ? l.remaining_lb : ((l.quantity_lb || 0) - (l.quantity_shipped_lb || 0));
@@ -1953,20 +2193,40 @@
         const lineFmt = (lb, units) => isNw ? (Number.isInteger(lb) ? lb : lb) + ' units' : (units != null ? fmtWt(lb) + ' lb &middot; ' + fmtInt(units) + ' units' : fmtLbs(lb));
         const orderedLinePallets = calculateLinePallets(l, l.unit_count);
         const remainingLinePallets = calculateLinePallets(l, l.remaining_units);
-        html += '<tr>';
+        const lineEditable = editMode && !['fulfilled', 'cancelled'].includes(l.line_status);
+        html += `<tr class="${lineEditable ? 'order-line-edit-row' : ''}" data-line-id="${escAttr(l.line_id)}">`;
         html += `<td><div class="order-product-cell"><span>${escHtml(productName)}</span><button type="button" class="btn-sm order-inventory-toggle" data-line-id="${l.line_id}" aria-expanded="false" aria-controls="order-inventory-${l.line_id}">Inventory</button></div></td>`;
-        html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count)}<small class="pallet-secondary">${escHtml(orderedLinePallets.display)}</small></td>`;
+        if (lineEditable) {
+          html += '<td class="num order-edit-num-cell">' +
+            `<input type="number" class="order-edit-input order-line-qty-input" min="0" step="0.01" value="${escAttr(String(l.quantity_lb == null ? '' : l.quantity_lb))}">` +
+            `<small class="pallet-secondary">${escHtml(l.uom || 'lb')} · ${escHtml(orderedLinePallets.display)}</small>` +
+            '</td>';
+          html += '<td class="num order-edit-num-cell">' +
+            `<input type="number" class="order-edit-input order-line-price-input" min="0" step="0.01" value="${escAttr(String(l.case_price == null ? '' : l.case_price))}">` +
+            `<small class="pallet-secondary">${escHtml((l.price_basis || 'price').replace('_', ' '))}</small>` +
+            '</td>';
+        } else {
+          html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count)}<small class="pallet-secondary">${escHtml(orderedLinePallets.display)}</small></td>`;
+          if (editMode) {
+            html += `<td class="num">${l.case_price == null ? '\u2014' : '$' + Number(l.case_price).toFixed(2)}<small class="pallet-secondary">${escHtml((l.price_basis || '').replace('_', ' '))}</small></td>`;
+          }
+        }
         html += `<td class="num">${lineFmt(l.quantity_shipped_lb, l.shipped_units)}</td>`;
         html += `<td class="num">${lineFmt(remaining, l.remaining_units)}<small class="pallet-secondary">${escHtml(remainingLinePallets.display)}</small></td>`;
         html += `<td><span class="so-badge ${lineStatusClass}">${escHtml(l.line_status || 'pending')}</span></td>`;
         html += '</tr>';
-        html += `<tr id="order-inventory-${l.line_id}" class="order-inventory-row hidden"><td colspan="5"></td></tr>`;
+        html += `<tr id="order-inventory-${l.line_id}" class="order-inventory-row hidden"><td colspan="${editMode ? 6 : 5}"></td></tr>`;
       }
       html += '</tbody></table>';
     }
 
     // Notes
-    if (data.notes && data.notes.trim()) {
+    if (editMode) {
+      html += '<div class="order-notes-card order-notes-edit">';
+      html += '<h4>Notes</h4>';
+      html += `<textarea class="order-edit-input order-edit-notes" rows="4">${escHtml(data.notes || '')}</textarea>`;
+      html += '</div>';
+    } else if (data.notes && data.notes.trim()) {
       html += '<div class="order-notes-card">';
       html += '<h4>Notes</h4>';
       html += `<p>${escHtml(data.notes)}</p>`;
@@ -1975,6 +2235,7 @@
 
     container.innerHTML = html;
     bindOrderInventoryToggles(container, lines);
+    bindOrderDetailEditControls(container);
   }
 
   function closeOrderDetail() {
