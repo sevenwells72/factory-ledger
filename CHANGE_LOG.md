@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-07-09 20:16 — Mark dashboard order editing tested
+- **File(s) changed:** `dashboard/index.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Bumped dashboard cache-busters to `dashboard.css?v=13` and `dashboard.js?v=19`. Recorded production manual test results for dashboard order editing: server rejection gate verified on cancelled `SO-260709-003`; dashboard header and line edits verified on confirmed `SO-260710-001`, including derived cases and `line_value` recalculation. Backlog notes: (a) `GET /sales/orders` silently ignores the `?search=` query param; (b) `cancelled` is terminal — document the allowed status transition graph, including whether `shipped` → `cancelled` is blocked.
+- **Why:** Prepare the tested dashboard order-editing branch for merge while preserving known follow-ups.
+
+---
+
+## 2026-07-09 19:51 — Tighten order line edit save scan
+- **File(s) changed:** `dashboard/dashboard.js`
+- **What changed:** Limited the line-save scan to rows with editable quantity/price inputs so fulfilled or cancelled lines shown read-only in edit mode are skipped safely.
+- **Why:** Prevent read-only line rows from causing a client-side save error.
+
+---
+
+## 2026-07-09 19:50 — Add dashboard sales order editing controls
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`
+- **What changed:** Added order-detail edit mode for ship-by date, notes, status, and editable line quantity/price fields. Writes use the existing authenticated Railway API helper, wait for 2xx responses, show API rejection text, and re-fetch order detail after successful edits; status changes require confirmation. Bumped dashboard JS/CSS cache-busters.
+- **Why:** Let dashboard users edit eligible sales orders from the order detail view without API or OpenAPI schema changes.
+
+---
+
 ## 2026-07-09 12:08 — Bump GPT instructions to v3.7.0
 - **File(s) changed:** `gpt-instructions-v3.md`, `CHANGE_LOG.md`, `~/change-log.md`
 - **What changed:** Updated the Factory Ledger GPT instruction header from v3.6.0 to v3.7.0; no instruction body text changed.
