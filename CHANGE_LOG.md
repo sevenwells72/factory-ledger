@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-14 13:29 — Reorder SO detail sections
+- **File(s) changed:** `dashboard/dashboard.js`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Moved the unchanged TOTAL ORDERED / SHIPPED / REMAINING and PALLETS summary markup below the product line-items table and before NOTES in the sales order detail view.
+- **Why:** Put product details directly beneath the order header while keeping NOTES last.
+
+---
+
 ## 2026-07-09 20:16 — Mark dashboard order editing tested
 - **File(s) changed:** `dashboard/index.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Bumped dashboard cache-busters to `dashboard.css?v=13` and `dashboard.js?v=19`. Recorded production manual test results for dashboard order editing: server rejection gate verified on cancelled `SO-260709-003`; dashboard header and line edits verified on confirmed `SO-260710-001`, including derived cases and `line_value` recalculation. Backlog notes: (a) `GET /sales/orders` silently ignores the `?search=` query param; (b) `cancelled` is terminal — document the allowed status transition graph, including whether `shipped` → `cancelled` is blocked.
