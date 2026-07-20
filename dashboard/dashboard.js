@@ -1578,7 +1578,10 @@
     const container = document.getElementById('orders-table-container');
     container.innerHTML = '<div class="loading-indicator">Loading sales orders...</div>';
     try {
-      const data = await fetchSalesAPI('/sales/orders?limit=200');
+      const statusFilter = document.getElementById('orders-status-filter').value;
+      const params = new URLSearchParams({ limit: '200' });
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const data = await fetchSalesAPI('/sales/orders?' + params.toString());
       state.ordersData = data.orders || [];
       state.ordersLoaded = true;
       updateShipByCalendarIndicators();
@@ -2254,7 +2257,7 @@
   function initOrders() {
     // Status filter
     document.getElementById('orders-status-filter').addEventListener('change', () => {
-      if (state.ordersLoaded) renderOrdersList();
+      refreshOrders();
     });
 
     // Customer search (debounced)

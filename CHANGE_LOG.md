@@ -1,9 +1,23 @@
 # Change Log
 
+## 2026-07-20 14:25 — Merge pan-product mapping with dashboard order-fetch fix
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/scheduler/seven-wells-production-board.html`
+- **What changed:** Merged the independently completed pan-product mapping and dashboard order-fetch histories; resolved the two changelog conflicts by preserving both original entries in newest-first order.
+- **Why:** Bring both production-board scheduling behavior and the deployed dashboard order-fetch correction together on `main` without altering either code change.
+
+---
+
 ## 2026-07-20 14:10 — Phase 1 pan-product mapping
 - **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added the explicit pan-product catalog mapping and `panOf()` fallback/override model; bake changeovers now count and deduct capacity by distinct pan product rather than distinct SKU; bumped the board to `v1.8-dev`. Rendering and SKU-based pack/repack changeovers are unchanged.
 - **Why:** Model SKUs that share a baked or mixed batch as one pan product so the scheduler does not report false bake changeovers.
+
+---
+
+## 2026-07-20 11:37 — Fetch sales orders by selected server-side status
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Changed the Sales Orders list request to send the selected status to `GET /sales/orders` with the existing 200-row safety cap. The default request now uses `status=open`; changing the status dropdown refetches that status from the API, while All Orders omits the status parameter. Bumped the dashboard JavaScript cache-buster to v23.
+- **Why:** Prevent closed historical orders from consuming the 200-row response before later-dated open orders are returned, while keeping every status dropdown option backed by an appropriate server request.
 
 ---
 
