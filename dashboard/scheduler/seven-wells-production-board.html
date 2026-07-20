@@ -967,27 +967,61 @@ function aggregateStationDetail(items){
   const runs=[];
   for(const item of items||[]){
     let run=runs.find(x=>x.sku===item.sku);
-    if(!run){run={sku:item.sku,qty:0,allocations:[]};runs.push(run);}
+    if(!run){run={sku:item.sku,qty:0,cases:null,allocations:[]};runs.push(run);}
     run.qty+=Number(item.qty)||0;
+    if(Number.isFinite(Number(item.cases)))run.cases=(run.cases||0)+Number(item.cases);
     const line=Number.isInteger(item.line)&&item.line>=0&&R&&R.lines?R.lines[item.line]:null;
     if(line)run.allocations.push({qty:Number(item.qty)||0,customer:line.o.customer||"—",orderId:line.o.orderId||""});
   }
   return runs;
 }
+function aggregatePanDetail(items){
+  const pans=[];
+  for(const member of aggregateStationDetail(items)){
+    const p=prod(member.sku),label=panOf(p);
+    let pan=pans.find(x=>x.label===label);
+    if(!pan){pan={label,qty:0,members:[]};pans.push(pan);}
+    pan.qty+=member.qty;
+    pan.members.push(member);
+  }
+  return pans;
+}
+function coconutDestination(p,spacedLb){
+  if(!p)return "—";
+  const name=String(p.n||"");
+  const brand=/\bUNIPRO\b/i.test(name)?"UNIPRO":/\bCNS\b/i.test(name)?"CNS":/^CQ\b/i.test(name)?"CQ":"Pack";
+  return brand+" "+runQty(p.cl)+(spacedLb?" lb":"lb");
+}
+const COCONUT_PAN_CLIPBOARD_NAMES={
+  "Swt Fancy":"Coconut Sweetened Fancy",
+  "Swt Medium":"Coconut Sweetened Medium",
+  "Swt Flake":"Coconut Sweetened Flake",
+  "Toasted Swt Flake":"Coconut Toasted Sweetened Flake",
+};
+function bakeMemberScheduleName(sku){return floorProductName(sku).replace(/^Granola\s+/,"");}
 function dailyScheduleText(day){
   const cells=day&&day.cells||{};
   const sections=[];
   const addSection=(title,lines)=>{if(lines.length)sections.push(title+":\n"+lines.join("\n"));};
   const detail=st=>aggregateStationDetail(cells[st]&&cells[st].detail||[]);
 
-  addSection("Baking",detail("bake").map(x=>"- "+runQty(x.qty)+" pans "+floorProductName(x.sku)));
+  const baking=aggregatePanDetail(cells.bake&&cells.bake.detail||[]).map(x=>{
+    const only=x.members.length===1?x.members[0]:null;
+    if(only)return "- "+runQty(x.qty)+" pans "+floorProductName(only.sku);
+    const members=x.members.map(m=>bakeMemberScheduleName(m.sku)+" ×"+runQty(m.qty)).join(", ");
+    return "- "+runQty(x.qty)+" pans "+x.label+(members?" (→ "+members+")":"");
+  });
+  addSection("Baking",baking);
 
   const coconut=[];
   for(const st of ["coconut","toasted"]){
-    for(const x of detail(st)){
-      const p=prod(x.sku),cases=p&&p.cpp?Math.floor(Number(x.qty)*Number(p.cpp)+1e-9):null;
-      const pack=p&&p.cl?(" → pack into "+runQty(p.cl)+"lb cases"+(cases!=null?" ("+runQty(cases)+" cs)":"")):"";
-      coconut.push("- "+runQty(x.qty)+" pans "+floorProductName(x.sku)+pack);
+    for(const x of aggregatePanDetail(cells[st]&&cells[st].detail||[])){
+      const destinations=x.members.map(m=>{
+        const p=prod(m.sku),cases=m.cases;
+        return coconutDestination(p,true)+" cases"+(cases!=null?" ("+runQty(cases)+" cs)":"");
+      }).join(", ");
+      coconut.push("- "+runQty(x.qty)+" pans "+(COCONUT_PAN_CLIPBOARD_NAMES[x.label]||x.label)
+        +(destinations?" → pack into "+destinations:""));
     }
   }
   addSection("Coconut",coconut);
@@ -1271,17 +1305,30 @@ function renderBoard(){
       if(c){
         cls+=c.infeas?" infeas":(d.bn&&d.bn.st===st&&d.bn.w>0?" "+(d.bn.cls==="wipb"?"wipb":d.bn.cls==="pans"?"pans":"cap"):" run");
         if(c.pin)cls+=" pinned";
-        const items=aggregateStationDetail(c.detail||[]);
+        const items=(st==="bake"||st==="coconut")?aggregatePanDetail(c.detail||[]):aggregateStationDetail(c.detail||[]);
         const hiddenCount=Math.max(0,items.length-3);
-        const hasBreakdown=items.some(x=>x.allocations.length>1);
+        const hasBreakdown=items.some(x=>x.members?x.members.some(m=>m.allocations.length>1):x.allocations.length>1);
         const toggleIndex=hiddenCount?2:(hasBreakdown?Math.max(0,items.length-1):-1);
         const collapsedLabel=hiddenCount?"+"+hiddenCount+" more":"details";
-        const dtl=items.map((x,i)=>"<div class='dtl-item"+(i>=3?" extra":"")+"'>"
-          +esc(shortName(prod(x.sku)))+" ×"+(Math.round(x.qty*10)/10)
-          +(i===toggleIndex?" <button type='button' class='more-toggle' data-label='"+collapsedLabel+"' aria-expanded='false'>"+collapsedLabel+"</button>":"")
-          +(x.allocations.length?"<div class='dtl-breakdown'>"+x.allocations.map(a=>"×"+(Math.round(a.qty*10)/10)+" "+esc(a.customer)).join(" / ")+"</div>":"")
-          +"</div>").join("");
-        const full=items.map(x=>x.sku+" "+(prod(x.sku)?prod(x.sku).n:"")+" × "+x.qty).join("\n");
+        const allocations=x=>x.allocations.length?" ("+x.allocations.map(a=>"×"+(Math.round(a.qty*10)/10)+" "+esc(a.customer)).join(" / ")+")":"";
+        const dtl=items.map((x,i)=>{
+          const isPan=!!x.members,only=isPan&&x.members.length===1?x.members[0]:null;
+          const unsharedBake=st==="bake"&&only&&x.label===shortName(prod(only.sku));
+          const primary=unsharedBake?shortName(prod(only.sku)):(isPan?x.label:shortName(prod(x.sku)));
+          let sub="";
+          if(st==="bake"&&isPan&&!unsharedBake)sub=x.members.map(m=>esc(shortName(prod(m.sku)))+" ×"+(Math.round(m.qty*10)/10)+allocations(m)).join(" · ");
+          else if(st==="coconut"&&isPan)sub=x.members.map(m=>{
+            const p=prod(m.sku),cases=m.cases;
+            return "→ "+esc(coconutDestination(p,false))+" ×"+(cases==null?"—":Math.round(cases*10)/10)+" cs"+allocations(m);
+          }).join("<br>");
+          const baseAlloc=!isPan?x.allocations:(unsharedBake?only.allocations:[]);
+          return "<div class='dtl-item"+(i>=3?" extra":"")+"'>"+esc(primary)+" ×"+(Math.round(x.qty*10)/10)
+            +(i===toggleIndex?" <button type='button' class='more-toggle' data-label='"+collapsedLabel+"' aria-expanded='false'>"+collapsedLabel+"</button>":"")
+            +(sub?"<div class='dtl-breakdown'>"+sub+"</div>":"")
+            +(baseAlloc.length?"<div class='dtl-breakdown'>"+baseAlloc.map(a=>"×"+(Math.round(a.qty*10)/10)+" "+esc(a.customer)).join(" / ")+"</div>":"")
+            +"</div>";
+        }).join("");
+        const full=(c.detail||[]).map(x=>x.sku+" "+(prod(x.sku)?prod(x.sku).n:"")+" × "+x.qty).join("\n");
         inner="<div class='cwrap'>"+(c.pin?"<span class='pinbadge'>📌</span>":"")
           +"<span class='q num'>"+(Math.round(c.qty*10)/10)+"</span><span class='u'>"+c.unit+(c.sub?" · "+esc(c.sub):"")+"</span>"
           +"<div class='dtl' title='"+esc(full)+"'>"+dtl+"</div>"
@@ -1457,7 +1504,7 @@ function renderOrders(){
 }
 
 /* ---------------- Wire-up ---------------- */
-const APP_VER="v1.8-dev";
+const APP_VER="v1.9-dev";
 function renderAll(){renderTop(); renderBoard(); renderOrders();}
 window.clearBaseline=clearBaseline;
 document.addEventListener("DOMContentLoaded",()=>{

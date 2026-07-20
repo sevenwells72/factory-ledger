@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-07-20 14:39 — Keep toasted board cells unchanged
+- **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Limited pan-product cell rendering to Granola Bake and Coconut (sweet); Coconut (toasted) board cells continue using the prior SKU presentation, while toasted clipboard text still uses the requested coconut pan format.
+- **Why:** Match the Phase 2 board-cell scope exactly and avoid an unrequested visual change to the toasted station.
+
+---
+
+## 2026-07-20 14:34 — Preserve coconut detail cases and single-SKU bake text
+- **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Pan-presentation aggregation now carries the scheduler's existing coconut `cases` values instead of recalculating them; copied baking schedules retain today's wording whenever a pan group has one SKU that day.
+- **Why:** Keep case counts byte-for-byte tied to scheduled cell data and preserve the required Vanilla Crisp/single-SKU clipboard behavior.
+
+---
+
+## 2026-07-20 14:31 — Phase 2 pan-product schedule presentation
+- **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Grouped Bake and Coconut board details and copied daily schedules by pan product, retained SKU/destination sub-lines and customer allocations, left packing sections SKU-based, and bumped the board to `v1.9-dev`.
+- **Why:** Present shared bake/mix runs as the pan products the floor actually makes without changing schedule calculations, station data, totals, or changeovers.
+
+---
+
 ## 2026-07-20 14:25 — Merge pan-product mapping with dashboard order-fetch fix
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/scheduler/seven-wells-production-board.html`
 - **What changed:** Merged the independently completed pan-product mapping and dashboard order-fetch histories; resolved the two changelog conflicts by preserving both original entries in newest-first order.
