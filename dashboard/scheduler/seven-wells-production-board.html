@@ -51,10 +51,10 @@ body{
 .d-better{color:var(--ok); font-weight:700;} .d-worse{color:var(--late); font-weight:700;} .d-same{color:var(--idle);}
 
 /* ---------- Main 3-column layout ---------- */
-#main{display:grid; grid-template-columns:305px 1fr 340px; min-height:0;}
+#main{display:grid; grid-template-columns:240px minmax(0,1fr) 340px; min-height:0;}
 #leftpanel,#rightpanel{overflow-y:auto; background:var(--card);}
-#leftpanel{border-right:1px solid var(--line); padding:10px 12px 40px;}
-#rightpanel{border-left:1px solid var(--line); padding:10px 12px 40px;}
+#leftpanel{border-right:1px solid var(--line); padding:8px 10px 32px; color:#596476;}
+#rightpanel{border-left:1px solid var(--line); padding:10px 12px 40px; color:#596476;}
 #center{overflow:auto; padding:10px 12px 30px;}
 
 /* ---------- Day schedule panel ---------- */
@@ -68,19 +68,19 @@ body{
 #schedule-body{padding:12px; white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.5; color:var(--ink);}
 
 /* ---------- Left panel controls ---------- */
-.panel-h{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--ink2); margin:14px 0 6px; display:flex; align-items:center; gap:5px;}
+.panel-h{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--ink2); margin:11px 0 4px; display:flex; align-items:center; gap:5px;}
 .panel-h:first-child{margin-top:2px;}
-.ctl{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:3px 0; font-size:12.5px;}
-.ctl label{color:var(--ink); display:flex; align-items:center; gap:4px; line-height:1.25;}
-.ctl input[type=number],.ctl input[type=date],.ctl select{width:76px; padding:3px 5px; border:1px solid var(--line); border-radius:5px; font-size:12.5px; text-align:right; background:#fdfdfb;}
-.ctl input[type=date]{width:128px; text-align:left;}
+.ctl{display:flex; align-items:center; justify-content:space-between; gap:6px; padding:2px 0; font-size:11px;}
+.ctl label{color:#596476; display:flex; align-items:center; gap:3px; line-height:1.2;}
+.ctl input[type=number],.ctl input[type=date],.ctl select{width:68px; min-height:25px; padding:2px 4px; border:1px solid #c8c5bb; border-radius:4px; font-size:11px; text-align:right; color:var(--ink); background:#fdfdfb;}
+.ctl input[type=date]{width:116px; text-align:left;}
 .ctl input[type=checkbox]{width:15px; height:15px;}
 .info{display:inline-flex; width:14px; height:14px; border-radius:50%; background:#e3e0d6; color:var(--ink2); font-size:9.5px; font-weight:700; align-items:center; justify-content:center; cursor:pointer; flex:none;}
 .info:hover{background:var(--ink); color:#fff;}
 .flagged{color:var(--amber); font-weight:700;}
-details{border:1px solid var(--line); border-radius:7px; margin:8px 0; background:#fbfaf7;}
-details summary{padding:6px 9px; font-size:12px; font-weight:700; cursor:pointer; color:var(--ink2); user-select:none;}
-details .dbody{padding:4px 9px 9px; font-size:12px;}
+details{border:1px solid var(--line); border-radius:7px; margin:6px 0; background:#fbfaf7;}
+details summary{padding:5px 7px; font-size:11px; font-weight:700; cursor:pointer; color:var(--ink2); user-select:none;}
+details .dbody{padding:3px 7px 7px; font-size:11px;}
 button.act{background:var(--ink); color:#fff; border:none; border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; margin:3px 4px 3px 0;}
 button.act.sec{background:#e7e4da; color:var(--ink);}
 button.act:hover{opacity:.88;}
@@ -97,29 +97,29 @@ table.mini input.floor-name{display:block; width:128px; margin-top:3px; text-ali
 table.mini select{font-size:11px; padding:1px 2px; border:1px solid var(--line); border-radius:4px;}
 
 /* ---------- Production board ---------- */
-#board{border-collapse:separate; border-spacing:0; font-size:12px; background:var(--card); border:1px solid var(--line); border-radius:8px;}
+#board{border-collapse:separate; border-spacing:0; font-size:13.5px; background:var(--card); border:1px solid var(--line); border-radius:8px;}
 #board th,#board td{border-right:1px solid #eceade; border-bottom:1px solid #eceade; padding:0; vertical-align:top;}
-#board thead th{position:sticky; top:0; background:#f0eee6; z-index:3; padding:5px 7px; text-align:center; min-width:118px; font-size:11px;}
+#board thead th{position:sticky; top:0; background:#f0eee6; z-index:3; padding:6px 7px; text-align:center; min-width:124px; font-size:12px;}
 #board thead th.stn{left:0; z-index:4; min-width:118px; text-align:left;}
-#board tbody th.stn{position:sticky; left:0; background:#f7f6f0; z-index:2; padding:7px 8px; text-align:left; font-size:11.5px; font-weight:700; white-space:nowrap;}
-#board tbody th.stn small{display:block; font-weight:400; color:var(--ink2); font-size:10px;}
-th.day .dnum{font-weight:700; font-size:12px;}
-th.day .dname{color:var(--ink2); font-size:10px; text-transform:uppercase; letter-spacing:.05em;}
+#board tbody th.stn{position:sticky; left:0; background:#f7f6f0; z-index:2; padding:8px; text-align:left; font-size:12.5px; font-weight:700; white-space:nowrap;}
+#board tbody th.stn small{display:block; font-weight:400; color:var(--ink2); font-size:11px;}
+th.day .dnum{font-weight:700; font-size:13px;}
+th.day .dname{color:var(--ink2); font-size:11px; text-transform:uppercase; letter-spacing:.05em;}
 th.day .dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:4px; vertical-align:middle;}
 th.day .copyday{border:0; background:transparent; color:var(--pin); cursor:pointer; font-size:10px; line-height:1; margin-left:3px; padding:1px 2px; vertical-align:middle;}
 th.day .copyday:hover{text-decoration:underline;}
 th.day.wkend{background:#e9e7dd; min-width:52px;}
 th.day.wkend .otbtn{font-size:9.5px; color:var(--pin); cursor:pointer; text-decoration:underline;}
 th.day.fri{background:#ece9dd;}
-td.cell{min-width:118px; height:58px; cursor:pointer; position:relative; background:#fff;}
+td.cell{min-width:124px; height:72px; cursor:pointer; position:relative; background:#fff;}
 td.cell:hover{outline:2px solid #b9c6dd; outline-offset:-2px;}
-td.cell .cwrap{padding:4px 6px 3px; border-left:4px solid transparent; height:100%;}
-td.cell .q{font-weight:700; font-size:13px;}
-td.cell .u{font-size:9.5px; color:var(--ink2); margin-left:2px;}
-td.cell .dtl{font-size:9.5px; color:var(--ink2); line-height:1.35; margin-top:1px;}
+td.cell .cwrap{padding:5px 7px 16px; border-left:4px solid transparent; min-height:100%;}
+td.cell .q{font-weight:700; font-size:16px;}
+td.cell .u{font-size:11px; color:var(--ink2); margin-left:2px;}
+td.cell .dtl{font-size:11px; color:var(--ink2); line-height:1.35; margin-top:2px;}
 td.cell .dtl-item.extra{display:none;}
 td.cell.expanded .dtl-item.extra{display:block;}
-.dtl-breakdown{display:none; margin:1px 0 2px 8px; color:#687386; font-size:9px; line-height:1.3;}
+.dtl-breakdown{display:none; margin:1px 0 2px 8px; color:#687386; font-size:10px; line-height:1.3;}
 td.cell.expanded .dtl-breakdown{display:block;}
 .more-toggle{border:0; background:none; color:var(--pin); cursor:pointer; font:inherit; font-weight:700; padding:0; margin-left:3px; text-decoration:underline;}
 td.cell.off{background:var(--idlebg);}
@@ -131,7 +131,7 @@ td.cell.pans .cwrap{border-left-color:var(--coco); background:#f5efe3;}
 td.cell.infeas .cwrap{border-left-color:var(--late); background:var(--latebg);}
 td.cell.pinned .cwrap{box-shadow:inset 0 0 0 2px var(--pin);}
 .pinbadge{position:absolute; top:2px; right:3px; font-size:9px; color:var(--pin); font-weight:700;}
-.crewbadge{position:absolute; bottom:2px; right:3px; font-size:9px; color:var(--ink2); background:rgba(255,255,255,.75); border-radius:3px; padding:0 3px; font-weight:700;}
+.crewbadge{position:absolute; bottom:2px; right:3px; font-size:10px; color:var(--ink2); background:rgba(255,255,255,.88); border-radius:3px; padding:0 3px; font-weight:700;}
 #tippop{position:fixed; z-index:99; max-width:270px; background:var(--ink); color:#f4f3ee; font-size:11.5px; line-height:1.5; padding:8px 11px; border-radius:7px; box-shadow:0 6px 24px rgba(0,0,0,.35);}
 tr.laborrow th.stn{background:#eef1f6;}
 tr.laborrow td{background:#f4f7fb; font-size:10px; color:var(--ink2); padding:4px 6px; height:auto; cursor:default;}
@@ -139,14 +139,25 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
 #bnrow td{font-size:9.5px; padding:3px 6px; color:var(--ink2); background:#fbfaf5; height:auto; cursor:default; max-width:110px;}
 
 /* ---------- Order book ---------- */
-.ord{border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-bottom:7px; background:#fdfdfa; font-size:12px;}
+.ord{border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-bottom:7px; background:#fdfdfa; font-size:12px; color:#596476;}
 .ord.excluded{opacity:.45;}
-.ord .o-top{display:flex; justify-content:space-between; align-items:center; gap:6px;}
+.ord .o-top{display:flex; align-items:baseline; gap:6px; min-width:0;}
 .ord .o-cust{font-weight:700; font-size:12.5px;}
 .ord .o-id{color:var(--ink2); font-size:10.5px;}
-.ord .o-dates{display:flex; gap:12px; margin-top:3px; font-size:11px; color:var(--ink2);}
+.ord .o-dates{display:flex; align-items:center; gap:8px; margin-top:2px; font-size:10.5px; color:var(--ink2); white-space:nowrap;}
 .ord .o-dates b{color:var(--ink);}
-.ord .o-lines{margin-top:3px; font-size:10.5px; color:var(--ink2); line-height:1.4;}
+.ord .o-lines{margin-top:4px; font-size:10.5px; color:#596476;}
+.ord .o-line{display:grid; grid-template-columns:minmax(0,1fr) 42px; align-items:center; gap:5px; min-height:22px; border-top:1px solid #efede7;}
+.ord .o-line-main{display:flex; align-items:baseline; min-width:0; white-space:nowrap; overflow:hidden;}
+.ord .o-sku{flex:none; color:var(--ink2);}
+.ord .o-product{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ord .o-qty{flex:none; color:var(--ink);}
+.ord .o-stock{flex:none; color:var(--pin);}
+.ord .o-actions{display:flex; justify-content:flex-end; align-items:center; gap:2px; width:42px; white-space:nowrap;}
+.ord .o-action{display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:4px; text-decoration:none; font-size:13px; line-height:1;}
+.ord .o-action:hover,.ord .o-action:focus-visible{background:#ece9e1; outline:1px solid #c8c5bb;}
+.ord .o-excl{color:var(--ink2);}
+.ord .o-del{color:var(--late); font-size:12px;}
 .chip{display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; letter-spacing:.03em;}
 .chip.early{background:var(--okbg); color:var(--ok);}
 .chip.ontime{background:#e4f0e9; color:#256a44;}
@@ -1505,18 +1516,26 @@ function renderOrders(){
   let h="<div class='panel-h'>Order book ("+included.length+")"
     +" <span class='info' title='Ready = the day the last case of the order is packed. Early ≥2 days before due · On time = 1 day before · Tight = ready exactly on due · Late = after due.'>i</span></div>"
     +"<button class='act sec' id='btn-addorder' style='width:100%'>+ Add order line</button><div id='addform'></div>";
-  const sorted=[...included].sort((a,b)=>a.due<b.due?-1:1);
+  const statusPriority={late:0,inc:0,tight:1,ontime:2,early:2,stock:2};
+  const sorted=[...included]
+    .sort((a,b)=>a.due<b.due?-1:a.due>b.due?1:0)
+    .sort((a,b)=>(statusPriority[a.status]??2)-(statusPriority[b.status]??2));
   for(const O of sorted){
     const dTxt=O.days==null?"":O.days<0?(-O.days)+"d late":O.days===0?"on the day":O.days+"d early";
-    h+="<div class='ord'><div class='o-top'><div><span class='o-cust'>"+esc(O.customer)+"</span> <span class='o-id'>"+esc(O.orderId)+"</span></div>"
-      +chip(O)+"</div>"
+    h+="<div class='ord'><div class='o-top'><span class='o-cust'>"+esc(O.customer)+"</span> <span class='o-id'>"+esc(O.orderId)+"</span></div>"
       +"<div class='o-dates'><span>Ship <b class='num'>"+fmtShort(O.due)+"</b></span><span>Ready <b class='num'>"+(O.incomplete?"—":fmtShort(O.ready))+"</b></span>"
-      +"<span class='o-days "+(O.days!=null&&O.days<0?"neg":"pos")+"'>"+dTxt+"</span></div>"
+      +chip(O)+"<span class='o-days "+(O.days!=null&&O.days<0?"neg":"pos")+"'>"+dTxt+"</span></div>"
       +"<div class='o-lines'>"+O.lines.map(L=>{
         const oid=L.o.id;
-        return "<div>"+L.sku+" · "+esc(L.p.n.slice(0,30))+" — <b class='num'>"+L.qty+"</b> "+esc(L.o.uom)
-          +(L.fgUsed?" <span style='color:var(--pin)'>("+Math.round(L.fgUsed)+" from stock)</span>":"")
-          +" <a href='#' data-excl='"+oid+"' style='color:var(--ink2)'>exclude</a> <a href='#' data-del='"+oid+"' style='color:var(--late)'>✕</a></div>";
+        const fullName=L.p.n,productName=shortName(L.p);
+        return "<div class='o-line'><div class='o-line-main' title='"+esc(fullName)+"'>"
+          +"<span class='o-sku'>"+esc(L.sku)+" ·&nbsp;</span><span class='o-product'>"+esc(productName)+"</span>"
+          +"<span class='o-qty'>&nbsp;· <b class='num'>"+L.qty+"</b> "+esc(L.o.uom)+"</span>"
+          +(L.fgUsed?" <span class='o-stock'>&nbsp;("+Math.round(L.fgUsed)+" stock)</span>":"")
+          +"</div><span class='o-actions'>"
+          +"<a href='#' class='o-action o-excl' data-excl='"+oid+"' title='Exclude from plan' aria-label='Exclude "+esc(fullName)+" from plan'>✕</a>"
+          +"<a href='#' class='o-action o-del' data-del='"+oid+"' title='Delete order line' aria-label='Delete "+esc(fullName)+" order line'>⌫</a>"
+          +"</span></div>";
       }).join("")+"</div></div>";
   }
   if(excluded.length){
@@ -1552,7 +1571,7 @@ function renderOrders(){
 }
 
 /* ---------------- Wire-up ---------------- */
-const APP_VER="v2.0-dev";
+const APP_VER="v2.1";
 function renderAll(){renderTop(); renderBoard(); renderOrders();}
 window.clearBaseline=clearBaseline;
 document.addEventListener("DOMContentLoaded",()=>{

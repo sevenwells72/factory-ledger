@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-20 14:51 — Polish production board hierarchy and Order Book
+- **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Combined Phase 4+5 visual polish: widened and enlarged the production grid, compacted and muted both side rails, converted Order Book lines to ellipsized no-wrap rows with pinned exclude/delete actions and shared short product names, tightened card headers, prioritized late/tight active orders, and bumped the board to `v2.1`.
+- **Why:** Make the production grid the primary visual focus while keeping dense order details readable and all existing scheduling, exclude/include, delete, add-order, and print behaviors intact.
+
+---
+
 ## 2026-07-20 14:40 — Add Phase 3 on-screen day schedule panel
 - **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added a center-column schedule panel opened by day-header copy buttons, with byte-identical displayed/copied text, Copy/Print/Close controls, isolated schedule-only printing, and board version `v2.0-dev`.
