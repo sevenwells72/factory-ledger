@@ -224,22 +224,23 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
    tier: 'def' 18 pans/day | 'slow' 16 pans/day (Sunshine + Blue Stripes only)
    line: pouch | box10 | box25 | bulk (bake SKUs' pack station)
    bpc: bags per case (pouch line)
+   pan: pan-product name shared across SKUs baked/mixed from the same batch. Defaults to the SKU's own short name if absent.
    floorName: optional floor-facing name used by copied schedules
    flag: seeded assumption/placeholder — verify                        */
 const CATALOG=[
 // -- Coconut, sweetened (2 cycles/day, same-day pan release) --
-{s:"10001",n:"Coconut Sweetened Flake CNS 10 LB",r:"coconut",cl:10,cpp:36},
-{s:"10002",n:"Coconut Sweetened Medium CNS 10 LB",r:"coconut",cl:10,cpp:36},
-{s:"10006",n:"Coconut Sweetened Fancy CNS 10 LB",r:"coconut",cl:10,cpp:36},
-{s:"10007",n:"Coconut Sweetened Fancy CNS 25 LB",r:"coconut",cl:25,cpp:14.5},
-{s:"10020",n:"Coconut Sweetened Flake CNS 25 LB",r:"coconut",cl:25,cpp:14.5},
-{s:"67470",n:"Coconut Sweetened Fancy UNIPRO 10 LB",r:"coconut",cl:10,cpp:36},
-{s:"67473",n:"Coconut Sweetened Medium UNIPRO 10 LB",r:"coconut",cl:10,cpp:36},
-{s:"67476",n:"Coconut Sweetened Flake UNIPRO 10 LB",r:"coconut",cl:10,cpp:36},
-{s:"893",n:"CQ Coconut Sweetened Flake 10 LB",r:"coconut",cl:10,cpp:36},
+{s:"10001",n:"Coconut Sweetened Flake CNS 10 LB",r:"coconut",cl:10,cpp:36,pan:"Swt Flake"},
+{s:"10002",n:"Coconut Sweetened Medium CNS 10 LB",r:"coconut",cl:10,cpp:36,pan:"Swt Medium"},
+{s:"10006",n:"Coconut Sweetened Fancy CNS 10 LB",r:"coconut",cl:10,cpp:36,pan:"Swt Fancy"},
+{s:"10007",n:"Coconut Sweetened Fancy CNS 25 LB",r:"coconut",cl:25,cpp:14.5,pan:"Swt Fancy"},
+{s:"10020",n:"Coconut Sweetened Flake CNS 25 LB",r:"coconut",cl:25,cpp:14.5,pan:"Swt Flake"},
+{s:"67470",n:"Coconut Sweetened Fancy UNIPRO 10 LB",r:"coconut",cl:10,cpp:36,pan:"Swt Fancy"},
+{s:"67473",n:"Coconut Sweetened Medium UNIPRO 10 LB",r:"coconut",cl:10,cpp:36,pan:"Swt Medium"},
+{s:"67476",n:"Coconut Sweetened Flake UNIPRO 10 LB",r:"coconut",cl:10,cpp:36,pan:"Swt Flake"},
+{s:"893",n:"CQ Coconut Sweetened Flake 10 LB",r:"coconut",cl:10,cpp:36,pan:"Swt Flake"},
 // -- Coconut, toasted (1 cycle, pans locked until emptied next workday) --
 {s:"10010",n:"Coconut Toasted Swt Flake CNS 10 LB",r:"toasted",cl:10,cpp:30},
-{s:"10029",n:"Coconut Toasted Swt Flake CNS 25 LB",r:"toasted",cl:25,cpp:12},
+{s:"10029",n:"Coconut Toasted Swt Flake CNS 25 LB",r:"toasted",cl:25,cpp:12,pan:"Toasted Swt Flake"},
 // -- Repack (3-person crew) --
 {s:"10045",n:"Desiccated Macaroon Bakers 50 LB",r:"repack",cl:50},
 {s:"10046",n:"Desiccated Fancy Bakers 50 LB",r:"repack",cl:50},
@@ -265,33 +266,33 @@ const CATALOG=[
 {s:"10305",n:"Sprinkles Rainbow 25 LB",r:"packonly",cl:25},
 {s:"10306",n:"Sprinkles Chocolate 25 LB",r:"packonly",cl:25},
 // -- Bake+pack: bulk boxes --
-{s:"70050",n:"Granola Classic 25 LB",r:"bake",cl:25,pl:322.6,tier:"def",line:"box25"},
-{s:"70012",n:"Granola Wheat Free 25 LB",r:"bake",cl:25,pl:322.6,tier:"def",line:"box25"},
-{s:"10300",n:"Granola Crunchy CNS 10 LB",r:"bake",cl:10,pl:322.6,tier:"def",line:"box10"},
-{s:"1614",n:"CQ Granola 10 LB",r:"bake",cl:10,pl:322.6,tier:"def",line:"box10"},
-{s:"70053",n:"Granola Chocolate Chip 25 LB",r:"bake",cl:25,pl:347.6,tier:"def",line:"box25"},
-{s:"70048",n:"Granola Vanilla Almond 25 LB",r:"bake",cl:25,pl:380.12,tier:"def",line:"box25"},
-{s:"70052",n:"Granola Vanilla Crisp 25 LB",r:"bake",cl:25,pl:370.12,tier:"def",line:"box25"},
-{s:"70057",n:"Granola Cinnamon Almond 25 LB",r:"bake",cl:25,pl:329.7,tier:"def",line:"box25",flag:"batch 90019 assumed"},
-{s:"70061",n:"Granola Fruit Nut 25 LB",r:"bake",cl:25,pl:328.3,tier:"def",line:"box25"},
-{s:"70060",n:"Granola Honey Nut 25 LB",r:"bake",cl:25,pl:350,tier:"slow",line:"box25",flag:"bake 16 inherited from SS batch — flip to 18 if slowness is brand-driven"},
-{s:"70056",n:"Granola Setton Cocoa Crunch 25 LB",r:"bake",cl:25,pl:337.6,tier:"def",line:"box25"},
-{s:"70077",n:"Granola Setton Cinn Spice Almond 25 LB",r:"bake",cl:25,pl:329.7,tier:"def",line:"box25",flag:"batch 90019 assumed (same as 70057)"},
+{s:"70050",n:"Granola Classic 25 LB",r:"bake",cl:25,pl:322.6,tier:"def",line:"box25",pan:"#9 Classic"},
+{s:"70012",n:"Granola Wheat Free 25 LB",r:"bake",cl:25,pl:322.6,tier:"def",line:"box25",pan:"#9 Classic"},
+{s:"10300",n:"Granola Crunchy CNS 10 LB",r:"bake",cl:10,pl:322.6,tier:"def",line:"box10",pan:"#9 Classic"},
+{s:"1614",n:"CQ Granola 10 LB",r:"bake",cl:10,pl:322.6,tier:"def",line:"box10",pan:"#9 Classic"},
+{s:"70053",n:"Granola Chocolate Chip 25 LB",r:"bake",cl:25,pl:347.6,tier:"def",line:"box25",pan:"#9 Choc Chip"},
+{s:"70048",n:"Granola Vanilla Almond 25 LB",r:"bake",cl:25,pl:380.12,tier:"def",line:"box25",pan:"Vanilla Almond 380"},
+{s:"70052",n:"Granola Vanilla Crisp 25 LB",r:"bake",cl:25,pl:370.12,tier:"def",line:"box25",pan:"#16 Vanilla Crisp"},
+{s:"70057",n:"Granola Cinnamon Almond 25 LB",r:"bake",cl:25,pl:329.7,tier:"def",line:"box25",pan:"#14 Cinn Almond",flag:"batch 90019 assumed"},
+{s:"70061",n:"Granola Fruit Nut 25 LB",r:"bake",cl:25,pl:328.3,tier:"def",line:"box25",pan:"#9 Classic"},
+{s:"70060",n:"Granola Honey Nut 25 LB",r:"bake",cl:25,pl:350,tier:"slow",line:"box25",pan:"SS Original #1",flag:"bake 16 inherited from SS batch — flip to 18 if slowness is brand-driven"},
+{s:"70056",n:"Granola Setton Cocoa Crunch 25 LB",r:"bake",cl:25,pl:337.6,tier:"def",line:"box25",pan:"#13 Cocoa Crunch"},
+{s:"70077",n:"Granola Setton Cinn Spice Almond 25 LB",r:"bake",cl:25,pl:329.7,tier:"def",line:"box25",pan:"#14 Cinn Almond",flag:"batch 90019 assumed (same as 70057)"},
 {s:"70081",n:"Granola Setton Good Ol 25 LB",r:"bake",cl:25,pl:330,tier:"def",line:"box25",flag:"BATCH UNMAPPED — 330 lb/pan placeholder"},
-{s:"70082",n:"Granola Setton French Vanilla 25 LB",r:"bake",cl:25,pl:370.12,tier:"def",line:"box25",flag:"batch 90024 assumed"},
+{s:"70082",n:"Granola Setton French Vanilla 25 LB",r:"bake",cl:25,pl:370.12,tier:"def",line:"box25",pan:"#16 Vanilla Crisp",flag:"batch 90024 assumed"},
 {s:"70059",n:"Granola Cocoa Vibes 25 LB",r:"bake",cl:25,pl:340,tier:"def",line:"box25",flag:"BATCH PENDING — 340 lb/pan placeholder"},
 // -- Bake+pack: Sunshine pouch line (slow tier 16) --
-{s:"70002",n:"Granola SS Original 12x10oz",r:"bake",cl:7.5,pl:350,tier:"slow",line:"pouch",bpc:12},
-{s:"70003",n:"Granola SS Chocolate Chip 12x10oz",r:"bake",cl:7.5,pl:393,tier:"slow",line:"pouch",bpc:12},
-{s:"70010",n:"Granola SS Original Low Carb 12x10oz",r:"bake",cl:7.5,pl:350,tier:"slow",line:"pouch",bpc:12},
-{s:"70011",n:"Granola SS Cranberry 12x10oz",r:"bake",cl:7.5,pl:379,tier:"slow",line:"pouch",bpc:12},
-{s:"70070",n:"Granola SS Choc Chip Low Carb 12x10oz",r:"bake",cl:7.5,pl:349,tier:"slow",line:"pouch",bpc:12},
-{s:"70004",n:"Granola SS Original Bulk per-lb",r:"bake",cl:1,pl:350,tier:"slow",line:"bulk"},
+{s:"70002",n:"Granola SS Original 12x10oz",r:"bake",cl:7.5,pl:350,tier:"slow",line:"pouch",bpc:12,pan:"SS Original #1"},
+{s:"70003",n:"Granola SS Chocolate Chip 12x10oz",r:"bake",cl:7.5,pl:393,tier:"slow",line:"pouch",bpc:12,pan:"SS Choc Chip #2"},
+{s:"70010",n:"Granola SS Original Low Carb 12x10oz",r:"bake",cl:7.5,pl:350,tier:"slow",line:"pouch",bpc:12,pan:"SS Low Carb Original #7"},
+{s:"70011",n:"Granola SS Cranberry 12x10oz",r:"bake",cl:7.5,pl:379,tier:"slow",line:"pouch",bpc:12,pan:"SS Cranberry #3"},
+{s:"70070",n:"Granola SS Choc Chip Low Carb 12x10oz",r:"bake",cl:7.5,pl:349,tier:"slow",line:"pouch",bpc:12,pan:"SS Low Carb Choc Chip #8"},
+{s:"70004",n:"Granola SS Original Bulk per-lb",r:"bake",cl:1,pl:350,tier:"slow",line:"bulk",pan:"SS Original #1"},
 // -- Bake+pack: Blue Stripes pouch line (slow tier 16) --
-{s:"70073",n:"BS Granola PB Banana 6x7oz",r:"bake",cl:2.625,pl:341,fl:426,tier:"slow",line:"pouch",bpc:6,flag:"+85 lb premix post-bake; pan=341 base, finished 426"},
-{s:"70074",n:"BS Granola Dark Chocolate 6x7oz",r:"bake",cl:2.625,pl:341,tier:"slow",line:"pouch",bpc:6},
-{s:"70079",n:"BS Almond Butter Granola 6x7oz",r:"bake",cl:2.625,pl:349.4,tier:"slow",line:"pouch",bpc:6},
-{s:"70080",n:"BS Granola Hazelnut Butter 6x7oz",r:"bake",cl:2.625,pl:349.4,tier:"slow",line:"pouch",bpc:6},
+{s:"70073",n:"BS Granola PB Banana 6x7oz",r:"bake",cl:2.625,pl:341,fl:426,tier:"slow",line:"pouch",bpc:6,pan:"BS Dark Chocolate",flag:"+85 lb premix post-bake; pan=341 base, finished 426"},
+{s:"70074",n:"BS Granola Dark Chocolate 6x7oz",r:"bake",cl:2.625,pl:341,tier:"slow",line:"pouch",bpc:6,pan:"BS Dark Chocolate"},
+{s:"70079",n:"BS Almond Butter Granola 6x7oz",r:"bake",cl:2.625,pl:349.4,tier:"slow",line:"pouch",bpc:6,pan:"BS Almond Butter"},
+{s:"70080",n:"BS Granola Hazelnut Butter 6x7oz",r:"bake",cl:2.625,pl:349.4,tier:"slow",line:"pouch",bpc:6,pan:"BS Hazelnut"},
 ];
 
 /* ---------------- Default settings ---------------- */
@@ -322,7 +323,7 @@ let ST=null; // full state
 function freshState(){
   return {
     settings:{...DEF_SETTINGS, startDate:todayStr()},
-    prodOv:{},          // per-SKU overrides {sku:{pl,cl,cpp,tier,line,repackRateOv...}}
+    prodOv:{},          // per-SKU overrides {sku:{pl,cl,cpp,tier,line,pan,repackRateOv...}}
     orders:[],          // {id,orderId,customer,sku,name,qty,uom,due,notes,included}
     fg:{},              // finished goods on hand, cases (lbs for cl=1)
     wip:{},             // bulk-bin WIP, base lbs by sku (baked, not packed)
@@ -351,6 +352,7 @@ function buildProds(){
   }
 }
 function prod(sku){return PRODS[sku];}
+function panOf(p){ return p.pan || shortName(p); }
 
 /* ---------------- Date utils (UTC, ISO) ---------------- */
 function todayStr(){const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -522,6 +524,7 @@ function simDay(ctx, alloc, dayStr, factor, pins){
       for(const nd of needs) nd.lbs=Math.max(0, nd.lbs-(wip[nd.sku]||0));
       const list=needs.filter(n=>n.lbs>1e-6);
       let capFrac=(crew>0?factor:0), skus=0, pansTotal=0, detail=[];
+      const panProducts=new Set();
       const effCrew=crew>0?crew:3;
       if(qpin.bake!=null){
         // pinned pans: distribute across needy SKUs by urgency, overflow to most urgent
@@ -535,9 +538,10 @@ function simDay(ctx, alloc, dayStr, factor, pins){
           if(nd===targets[targets.length-1]) pans=pinLeft; // dump remainder
           pans=Math.min(pans,pinLeft);
           if(pans<=0)continue;
-          if(detail.length)capUsed+=chFrac(1);
+          if(panProducts.size&&!panProducts.has(panOf(nd.p)))capUsed+=chFrac(1);
           capUsed+=pans/bakeTierPans(nd.p,effCrew===4?4:3);
           bakedToday[nd.sku]=(bakedToday[nd.sku]||0)+pans*nd.p.pl;
+          panProducts.add(panOf(nd.p));
           detail.push({sku:nd.sku,qty:pans}); pansTotal+=pans; pinLeft-=pans; skus++;
         }
         out.diag.bakeCapFrac=crew>0?factor:0; out.diag.bakeUsedFrac=capUsed;
@@ -545,7 +549,7 @@ function simDay(ctx, alloc, dayStr, factor, pins){
       }else{
         for(const nd of list){
           if(capFrac<=1e-9)break;
-          const co=skus>0?chFrac(1):0;
+          const co=panProducts.size&&!panProducts.has(panOf(nd.p))?chFrac(1):0;
           if(capFrac-co<=1e-9)break;
           const tier=bakeTierPans(nd.p,crew);
           const maxPans=Math.floor((capFrac-co)/(1/tier)+1e-9);
@@ -553,6 +557,7 @@ function simDay(ctx, alloc, dayStr, factor, pins){
           if(pans<=0)continue;
           capFrac-=co+pans/tier;
           bakedToday[nd.sku]=(bakedToday[nd.sku]||0)+pans*nd.p.pl;
+          panProducts.add(panOf(nd.p));
           detail.push({sku:nd.sku,qty:pans}); pansTotal+=pans; skus++;
           // score: WIP creation valued at 0.55× urgency of that SKU's earliest due line
           out.score+=(pans*nd.p.fl/ (nd.p.cl||1))*0*0 + pans*nd.p.fl/(nd.p.cl===1?25:nd.p.cl)*urg(nd.due,dayStr)*0.55;
@@ -561,7 +566,7 @@ function simDay(ctx, alloc, dayStr, factor, pins){
         out.diag.bakeNeedLeft=list.reduce((a,n)=>a+Math.max(0,n.lbs-((bakedToday[n.sku]||0))),0);
       }
       if(pansTotal>0||qpin.bake!=null){
-        out.baked=bakedToday; out.chCount+=Math.max(0,skus-1);
+        out.baked=bakedToday; out.chCount+=Math.max(0,panProducts.size-1);
         out.cells.bake={qty:pansTotal,unit:"pans",detail,pin:qpin.bake!=null,infeas:!!out.diag.bakeInfeas};
       }
     }
@@ -1452,7 +1457,7 @@ function renderOrders(){
 }
 
 /* ---------------- Wire-up ---------------- */
-const APP_VER="v1.7";
+const APP_VER="v1.8-dev";
 function renderAll(){renderTop(); renderBoard(); renderOrders();}
 window.clearBaseline=clearBaseline;
 document.addEventListener("DOMContentLoaded",()=>{

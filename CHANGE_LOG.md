@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-20 14:10 — Phase 1 pan-product mapping
+- **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added the explicit pan-product catalog mapping and `panOf()` fallback/override model; bake changeovers now count and deduct capacity by distinct pan product rather than distinct SKU; bumped the board to `v1.8-dev`. Rendering and SKU-based pack/repack changeovers are unchanged.
+- **Why:** Model SKUs that share a baked or mixed batch as one pan product so the scheduler does not report false bake changeovers.
+
+---
+
 ## 2026-07-14 13:29 — Reorder SO detail sections
 - **File(s) changed:** `dashboard/dashboard.js`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Moved the unchanged TOTAL ORDERED / SHIPPED / REMAINING and PALLETS summary markup below the product line-items table and before NOTES in the sales order detail view.
