@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-20 11:37 — Fetch sales orders by selected server-side status
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Changed the Sales Orders list request to send the selected status to `GET /sales/orders` with the existing 200-row safety cap. The default request now uses `status=open`; changing the status dropdown refetches that status from the API, while All Orders omits the status parameter. Bumped the dashboard JavaScript cache-buster to v23.
+- **Why:** Prevent closed historical orders from consuming the 200-row response before later-dated open orders are returned, while keeping every status dropdown option backed by an appropriate server request.
+
+---
+
 ## 2026-07-14 13:29 — Reorder SO detail sections
 - **File(s) changed:** `dashboard/dashboard.js`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Moved the unchanged TOTAL ORDERED / SHIPPED / REMAINING and PALLETS summary markup below the product line-items table and before NOTES in the sales order detail view.
