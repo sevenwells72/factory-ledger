@@ -57,6 +57,16 @@ body{
 #rightpanel{border-left:1px solid var(--line); padding:10px 12px 40px;}
 #center{overflow:auto; padding:10px 12px 30px;}
 
+/* ---------- Day schedule panel ---------- */
+#schedule-panel{display:none; margin-top:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); overflow:hidden;}
+#schedule-panel.show{display:block;}
+.schedule-panel-head{display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f0eee6; border-bottom:1px solid var(--line);}
+.schedule-panel-head h2{font-size:13px; letter-spacing:.02em; margin-right:auto;}
+.schedule-panel-head button{border:1px solid #c9c5b9; border-radius:5px; background:#fff; color:var(--ink); padding:4px 8px; font-size:11px; cursor:pointer;}
+.schedule-panel-head button:hover{background:#e7e4da;}
+#schedule-close{font-size:14px; line-height:1; padding:3px 7px;}
+#schedule-body{padding:12px; white-space:pre-wrap; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; line-height:1.5; color:var(--ink);}
+
 /* ---------- Left panel controls ---------- */
 .panel-h{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--ink2); margin:14px 0 6px; display:flex; align-items:center; gap:5px;}
 .panel-h:first-child{margin-top:2px;}
@@ -174,6 +184,14 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
   td.cell .dtl-item.extra{display:block !important;}
   td.cell .dtl-breakdown{display:block !important;}
   .more-toggle{display:none !important;}
+  #schedule-panel{display:none !important;}
+  body.schedule-printing #topbar,body.schedule-printing #legendbar,body.schedule-printing #deltapanel,
+  body.schedule-printing #leftpanel,body.schedule-printing #rightpanel,body.schedule-printing #board{display:none !important;}
+  body.schedule-printing #main{display:block;}
+  body.schedule-printing #center{padding:0;}
+  body.schedule-printing #schedule-panel{display:block !important; border:0; margin:0;}
+  body.schedule-printing .schedule-panel-head{display:none !important;}
+  body.schedule-printing #schedule-body{padding:0; color:#000; font-size:12pt;}
 }
 </style>
 </head>
@@ -204,7 +222,18 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
   <div id="deltapanel"></div>
   <div id="main">
     <div id="leftpanel"></div>
-    <div id="center"><table id="board"></table></div>
+    <div id="center">
+      <table id="board"></table>
+      <section id="schedule-panel" aria-hidden="true">
+        <div class="schedule-panel-head">
+          <h2 id="schedule-title">Schedule</h2>
+          <button type="button" id="schedule-copy">Copy</button>
+          <button type="button" id="schedule-print">Print</button>
+          <button type="button" id="schedule-close" aria-label="Close schedule">✕</button>
+        </div>
+        <pre id="schedule-body"></pre>
+      </section>
+    </div>
     <div id="rightpanel"></div>
   </div>
 </div>
@@ -1053,6 +1082,22 @@ async function copyScheduleText(text,button){
   }catch(e){button.textContent="Copy failed";}
   setTimeout(()=>{button.textContent=original;},1400);
 }
+function showSchedulePanel(day,text){
+  $("#schedule-title").textContent="Schedule — "+fmtShort(day.date);
+  $("#schedule-body").textContent=text;
+  const panel=$("#schedule-panel");
+  panel.classList.add("show");
+  panel.setAttribute("aria-hidden","false");
+}
+function closeSchedulePanel(){
+  const panel=$("#schedule-panel");
+  panel.classList.remove("show");
+  panel.setAttribute("aria-hidden","true");
+}
+function printDisplayedSchedule(){
+  document.body.classList.add("schedule-printing");
+  window.print();
+}
 
 /* ---------------- Top bar ---------------- */
 function renderTop(){
@@ -1357,7 +1402,10 @@ function renderBoard(){
   T.innerHTML=h;
   T.querySelectorAll("td.cell").forEach(td=>td.onclick=()=>openPin(td.dataset.day,td.dataset.st));
   T.querySelectorAll(".copyday").forEach(btn=>btn.onclick=e=>{e.preventDefault();e.stopPropagation();
-    const day=R.days.find(d=>d.date===btn.dataset.copyDay); if(day)copyScheduleText(dailyScheduleText(day),btn);
+    const day=R.days.find(d=>d.date===btn.dataset.copyDay); if(!day)return;
+    const text=dailyScheduleText(day);
+    showSchedulePanel(day,text);
+    copyScheduleText(text,btn);
   });
   T.querySelectorAll(".more-toggle").forEach(btn=>btn.onclick=e=>{e.preventDefault(); e.stopPropagation();
     const td=btn.closest("td.cell"),expanded=td.classList.toggle("expanded");
@@ -1504,14 +1552,18 @@ function renderOrders(){
 }
 
 /* ---------------- Wire-up ---------------- */
-const APP_VER="v1.9-dev";
+const APP_VER="v2.0-dev";
 function renderAll(){renderTop(); renderBoard(); renderOrders();}
 window.clearBaseline=clearBaseline;
 document.addEventListener("DOMContentLoaded",()=>{
   loadState(); S=ST.settings; buildProds();
   $("#btn-baseline").onclick=()=>{ST.baseline=snapshot(); saveState(); renderDelta();};
-  $("#btn-print").onclick=()=>window.print();
+  $("#btn-print").onclick=()=>{document.body.classList.remove("schedule-printing"); window.print();};
   $("#btn-copyweek").onclick=e=>copyScheduleText(weekScheduleText(),e.currentTarget);
+  $("#schedule-copy").onclick=e=>copyScheduleText($("#schedule-body").textContent,e.currentTarget);
+  $("#schedule-print").onclick=printDisplayedSchedule;
+  $("#schedule-close").onclick=closeSchedulePanel;
+  window.addEventListener("afterprint",()=>document.body.classList.remove("schedule-printing"));
   $("#modalbg").onclick=e=>{if(e.target.id==="modalbg")closeModal();};
   // clickable info popovers (info buttons also keep native hover tooltips)
   document.addEventListener("click",e=>{

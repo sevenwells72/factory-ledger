@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-20 14:40 — Add Phase 3 on-screen day schedule panel
+- **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added a center-column schedule panel opened by day-header copy buttons, with byte-identical displayed/copied text, Copy/Print/Close controls, isolated schedule-only printing, and board version `v2.0-dev`.
+- **Why:** Let operators read and print a daily floor schedule without pasting clipboard contents elsewhere while preserving the existing whole-board print path.
+
+---
+
 ## 2026-07-20 14:39 — Keep toasted board cells unchanged
 - **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Limited pan-product cell rendering to Granola Bake and Coconut (sweet); Coconut (toasted) board cells continue using the prior SKU presentation, while toasted clipboard text still uses the requested coconut pan format.
