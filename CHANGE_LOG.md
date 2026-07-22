@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-22 11:22 — Deploy PACKED calendar timezone fix
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Fast-forwarded approved commit `25e0ad23` to `main` and pushed it. Railway deployment `a654797b-60b1-40a0-a267-6c3b2fe2ce2a` completed successfully; the live July production response places `Granola Wheat Free 25 LB` at 2,000 lb / 80 units on 2026-07-20 and not 2026-07-21. Marked regression-guard entries 48 and 47 deployed, including the stale Netlify marker for `edcbf84`.
+- **Why:** Publish the timezone bucketing correction and make the deployment status records match production.
+
+---
+
 ## 2026-07-22 11:08 — Correct PACKED calendar timezone bucketing
 - **File(s) changed:** `main.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Scoped the production-calendar endpoint's selected/grouped production date and both month/rolling date filters to convert the UTC wall value stored in `transactions.timestamp` into `America/New_York` before applying `DATE(...)`. No write path, schema, or other dashboard endpoint changed.
