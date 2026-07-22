@@ -2136,6 +2136,8 @@
 
     // Header
     html += '<div class="order-detail-header">';
+    html += '<div class="order-detail-summary">';
+    html += '<div class="order-detail-title-block">';
     html += '<div class="order-detail-top">';
     html += `<span class="order-number">${escHtml(data.order_number)}</span>`;
     if (editMode) {
@@ -2144,7 +2146,12 @@
       html += `<span class="so-badge status-${data.status}">${soStatusLabel(data.status)}</span>`;
     }
     html += '</div>';
-    html += `<div class="order-detail-top"><span class="order-customer">${escHtml(data.customer)}</span></div>`;
+    html += `<div class="order-customer">${escHtml(data.customer)}</div>`;
+    html += '</div>';
+    html += '<div class="order-detail-controls">';
+    html += renderOrderEditActions(data, editMode);
+    html += '</div>';
+    html += '</div>';
     html += '<div class="order-detail-dates">';
     html += `<span><strong>Order Date:</strong> ${formatDateShort(data.order_date)}</span>`;
     if (editMode) {
@@ -2155,7 +2162,6 @@
       html += `<span><strong>Ship By:</strong> ${formatDateShort(data.requested_ship_date)}</span>`;
     }
     html += '</div>';
-    html += renderOrderEditActions(data, editMode);
     html += `<div class="order-edit-message${successMessage ? ' success' : ''}">${escHtml(successMessage)}</div>`;
     html += '</div>';
 
@@ -2171,7 +2177,7 @@
     const orderedPallets = calculateOrderPallets(lines, 'unit_count');
     const remainingPallets = calculateOrderPallets(lines, 'remaining_units');
     const kpiFmt = (lb, units) => units ? fmtWt(lb) + ' lb<br><small>' + fmtInt(units) + ' units</small>' : fmtLbs(lb);
-    let summaryHtml = '<div class="order-kpi-row">';
+    let summaryHtml = '<div class="order-kpi-row order-kpi-footer">';
     summaryHtml += `<div class="order-kpi"><div class="kpi-label">Total Ordered</div><div class="kpi-value">${kpiFmt(totalOrdered, orderedUnits)}</div></div>`;
     summaryHtml += `<div class="order-kpi"><div class="kpi-label">Shipped</div><div class="kpi-value">${kpiFmt(totalShipped, shippedUnits)}</div></div>`;
     summaryHtml += `<div class="order-kpi"><div class="kpi-label">Remaining</div><div class="kpi-value">${kpiFmt(totalRemaining, remainingUnits)}</div></div>`;
@@ -2180,7 +2186,7 @@
 
     // Line items
     if (lines.length > 0) {
-      html += '<table class="orders-table"><thead><tr>';
+      html += '<div class="order-lines-wrap"><table class="orders-table order-detail-lines"><thead><tr>';
       html += '<th>Product</th><th class="num">Ordered</th>';
       if (editMode) html += '<th class="num">Price</th>';
       html += '<th class="num">Shipped</th><th class="num">Remaining</th><th>Status</th>';
@@ -2220,7 +2226,7 @@
         html += '</tr>';
         html += `<tr id="order-inventory-${l.line_id}" class="order-inventory-row hidden"><td colspan="${editMode ? 6 : 5}"></td></tr>`;
       }
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
     }
 
     html += summaryHtml;

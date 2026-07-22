@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-20 11:49 — Deploy server-filtered dashboard order fetch
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Recorded successful merge of PR #12 and Netlify production deploy `6a5e434459af400008beaa3a` for merge commit `34b1890`. Verified the live dashboard serves `dashboard.js?v=23` with the selected-status API query and status-change refetch behavior.
+- **Why:** Preserve the required post-deployment regression and verification receipt.
+
+---
+
 ## 2026-07-20 11:37 — Fetch sales orders by selected server-side status
 - **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Changed the Sales Orders list request to send the selected status to `GET /sales/orders` with the existing 200-row safety cap. The default request now uses `status=open`; changing the status dropdown refetches that status from the API, while All Orders omits the status parameter. Bumped the dashboard JavaScript cache-buster to v23.
@@ -11,6 +18,34 @@
 - **File(s) changed:** `dashboard/dashboard.js`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Moved the unchanged TOTAL ORDERED / SHIPPED / REMAINING and PALLETS summary markup below the product line-items table and before NOTES in the sales order detail view.
 - **Why:** Put product details directly beneath the order header while keeping NOTES last.
+
+---
+
+## 2026-07-14 13:27 — Place SO summary before notes
+- **File(s) changed:** `dashboard/dashboard.js`
+- **What changed:** Reordered the existing sales order detail markup so the product line-items table is followed by the TOTAL ORDERED / SHIPPED / REMAINING and PALLETS summary block, with NOTES remaining last. Data bindings, calculations, and section styling are unchanged.
+- **Why:** Match the requested sales order detail section order.
+
+---
+
+## 2026-07-13 15:23 — Match bottom pallet row layout
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/index.html`
+- **What changed:** Centered the bottom summary cells and constrained the Pallets block to the left third of the footer row, leaving the remaining columns as the shaded empty area shown in the reference. Bumped dashboard CSS/JS cache-busters.
+- **Why:** User wanted the bottom summary to match the provided pallet-row screenshot more closely.
+
+---
+
+## 2026-07-13 15:21 — Move order summary to bottom
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`
+- **What changed:** Moved the sales order detail KPI/pallet summary from the top of the card to the bottom, after line items and notes. Restored the summary to a three-column totals row with a separate pallet row beneath it, and bumped dashboard CSS/JS cache-busters.
+- **Why:** User wanted the summary block shown in the reference screenshot at the bottom of the page.
+
+---
+
+## 2026-07-13 15:18 — Reformat sales order detail page
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`
+- **What changed:** Restructured the sales order detail header into a compact summary/action layout, changed the KPI area to an even four-column grid including pallets, added a horizontal wrapper for the line-item table, and bumped dashboard CSS/JS cache-busters.
+- **Why:** Improve the order detail page formatting shown in the dashboard screenshot without changing backend order behavior.
 
 ---
 
