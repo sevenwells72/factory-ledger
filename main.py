@@ -7550,16 +7550,16 @@ def dashboard_api_production(
                     end_date = f"{y}-{m:02d}-{last_day}"
                 except (ValueError, IndexError):
                     raise HTTPException(400, "month must be YYYY-MM format")
-                date_filter = "DATE(t.timestamp) BETWEEN %s AND %s"
+                date_filter = "DATE((t.timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York') BETWEEN %s AND %s"
                 params = [start_date, end_date]
             else:
                 now_et = get_plant_now()
                 start = (now_et - timedelta(days=days - 1)).strftime("%Y-%m-%d")
-                date_filter = "DATE(t.timestamp) >= %s"
+                date_filter = "DATE((t.timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York') >= %s"
                 params = [start]
 
             cur.execute(f"""
-                SELECT DATE(t.timestamp) as prod_date,
+                SELECT DATE((t.timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York') as prod_date,
                        p.name as product_name, p.type as product_type,
                        p.default_batch_lb, p.case_size_lb,
                        SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as total_lbs,

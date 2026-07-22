@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-22 11:08 — Correct PACKED calendar timezone bucketing
+- **File(s) changed:** `main.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Scoped the production-calendar endpoint's selected/grouped production date and both month/rolling date filters to convert the UTC wall value stored in `transactions.timestamp` into `America/New_York` before applying `DATE(...)`. No write path, schema, or other dashboard endpoint changed.
+- **Why:** Pack transaction 1681 was entered at 2026-07-20 20:01 ET but its stored UTC wall value was grouped under 2026-07-21. Production verification now returns product 138, 2,000 lb, under 2026-07-20 for the 2026-07-20..2026-07-21 range.
+
+---
+
 ## 2026-07-20 14:51 — Polish production board hierarchy and Order Book
 - **File(s) changed:** `dashboard/scheduler/seven-wells-production-board.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Combined Phase 4+5 visual polish: widened and enlarged the production grid, compacted and muted both side rails, converted Order Book lines to ellipsized no-wrap rows with pinned exclude/delete actions and shared short product names, tightened card headers, prioritized late/tight active orders, and bumped the board to `v2.1`.
