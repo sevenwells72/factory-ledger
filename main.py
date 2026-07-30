@@ -5454,18 +5454,6 @@ _MATRIX_SKU_ORDER = {
 }
 
 
-def _matrix_lb_per_case(uom: str) -> Optional[float]:
-    """Parse the product's declared case UoM without guessing."""
-    normalized = re.sub(r"\s+", " ", (uom or "").strip().lower())
-    lb_match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*lb\s*case", normalized)
-    if lb_match:
-        return float(lb_match.group(1))
-    oz_match = re.fullmatch(r"(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*oz\s*case", normalized)
-    if oz_match:
-        return int(oz_match.group(1)) * float(oz_match.group(2)) / 16
-    return None
-
-
 def _matrix_family(product_name: str) -> str:
     name = (product_name or "").lower()
     if "granola" in name:
@@ -5736,7 +5724,7 @@ def export_orders_matrix(_: bool = Depends(verify_api_key)):
                    so.requested_ship_date AS due_date, p.odoo_code AS sku,
                    p.name AS product_name,
                    sol.quantity_lb / NULLIF(p.case_size_lb, 0) AS qty,
-                   COALESCE(p.uom, '') AS uom
+                   p.case_size_lb AS lb_per_case
             FROM sales_orders so
             JOIN customers c ON c.id = so.customer_id
             JOIN sales_order_lines sol ON sol.sales_order_id = so.id
@@ -5753,18 +5741,18 @@ def export_orders_matrix(_: bool = Depends(verify_api_key)):
     offending = []
     lines = []
     for line in raw_lines:
-        lb_per_case = _matrix_lb_per_case(line["uom"])
-        if lb_per_case is None or line["qty"] is None:
+        lb_per_case = line.get("lb_per_case")
+        if lb_per_case is None or lb_per_case <= 0 or line["qty"] is None:
             offending.append(str(line["sku"]))
             continue
-        line["lb_per_case"] = lb_per_case
+        line["lb_per_case"] = float(lb_per_case)
         lines.append(line)
     if offending:
         raise HTTPException(
             status_code=422,
             detail={
-                "error_code": "UNRECOGNIZED_ORDER_EXPORT_UOM",
-                "message": "Cannot export orders matrix: missing case size or unrecognized UoM",
+                "error_code": "INVALID_ORDER_EXPORT_CASE_SIZE",
+                "message": "Cannot export orders matrix: missing or invalid case size",
                 "offending_skus": sorted(set(offending)),
             },
         )

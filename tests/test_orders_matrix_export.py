@@ -29,25 +29,25 @@ def test_orders_matrix_export_workbook(monkeypatch):
             "customer": "Sunday Customer", "order_id": "SO-TEST-001",
             "due_date": date(2026, 7, 12), "sku": "70050",
             "product_name": "Granola Classic 25 LB", "qty": Decimal("2"),
-            "uom": "25 lb case",
+            "lb_per_case": Decimal("25"),
         },
         {
             "customer": "Monday Customer", "order_id": "SO-TEST-002",
             "due_date": date(2026, 7, 13), "sku": "10001",
             "product_name": "Coconut Sweetened Flake CNS 10 LB", "qty": Decimal("3"),
-            "uom": "10 lb case",
+            "lb_per_case": Decimal("10"),
         },
         {
             "customer": "Sunday Customer", "order_id": "SO-TEST-001",
             "due_date": date(2026, 7, 12), "sku": "70073",
             "product_name": "BS Granola – Peanut Butter Banana – 6x7 OZ Case",
-            "qty": Decimal("1.5"), "uom": "6x7 oz case",
+            "qty": Decimal("1.5"), "lb_per_case": Decimal("2.625"),
         },
         {
             "customer": "Monday Customer", "order_id": "SO-TEST-002",
             "due_date": date(2026, 7, 13), "sku": "31012",
             "product_name": "Graham Cracker Crumbs 10 LB Case",
-            "qty": Decimal("4"), "uom": "10 lb case",
+            "qty": Decimal("4"), "lb_per_case": Decimal("10"),
         },
     ]
 
@@ -127,12 +127,12 @@ def test_orders_matrix_export_workbook(monkeypatch):
     assert cases.cell(batches_row, granola_col).comment.text == "50 lb ÷ 322.6 lb/pan"
 
 
-def test_orders_matrix_rejects_unknown_uom(monkeypatch):
+def test_orders_matrix_uses_case_size_instead_of_uom_text(monkeypatch):
     rows = [{
-        "customer": "Bad UOM Customer", "order_id": "SO-BAD-UOM",
+        "customer": "Custom UOM Customer", "order_id": "SO-CUSTOM-UOM",
         "due_date": date(2026, 7, 13), "sku": "70999",
         "product_name": "Granola Unknown Pack", "qty": Decimal("1"),
-        "uom": "mystery case",
+        "lb_per_case": Decimal("12.5"),
     }]
 
     @contextmanager
@@ -149,5 +149,12 @@ def test_orders_matrix_rejects_unknown_uom(monkeypatch):
         )
     finally:
         client.close()
-    assert response.status_code == 422
-    assert response.json()["detail"]["offending_skus"] == ["70999"]
+    assert response.status_code == 200
+    workbook = load_workbook(BytesIO(response.content), data_only=False)
+    cases = workbook["Cases"]
+    product_col = next(
+        cell.column for cell in cases[1]
+        if cell.value == "Granola Unknown Pack"
+    )
+    assert cases.cell(2, product_col).value == 1
+    assert workbook["Pounds"].cell(2, product_col).value == 12.5
