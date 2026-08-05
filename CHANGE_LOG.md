@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-05 11:27 — Deploy and verify dedicated sales-order dispatch commit
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Recorded Railway deployment `cbfb0169-157c-460a-b69b-773eb5e8b907`, clean startup, 62 passing tests, Redocly/action-count validation, and the disposable production smoke test receipts. The test shipment transaction was voided and its partial order cancelled; SO-260723-001 stayed confirmed with 0 lb shipped.
+- **Why:** Preserve the deployment and rollback evidence required to safely operate the new Floor GPT commit action.
+
+---
+
 ## 2026-08-05 11:26 — Preserve explicit Floor GPT order routing
 - **File(s) changed:** `gpt-configs/schemas/openapi-floor.yaml`
 - **What changed:** Clarified exact-SO lookup routing and the preview-first dispatch protocol in the v4.1.0 action descriptions.
