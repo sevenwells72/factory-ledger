@@ -39,7 +39,11 @@ header to every output.
 
 ## Current GPT status
 
-- **Floor & Fulfillment** — live. Sources and schema in this folder.
+- **Floor & Fulfillment** — live on schema **v4.1.0** with **22 actions**.
+  Instructions rebuilt 2026-08-05 from `shared-rules.md` +
+  `floor-specific.md`; the deployable body is 7,605 characters. The sales-order
+  dispatch flow is `shipOrder` preview followed by mode-less
+  `commitShipOrder` only after explicit operator approval.
 - **Sales & Admin** — planned, not yet built.
 - **Trace & Recall** — planned, not yet built.
 

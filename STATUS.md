@@ -1,8 +1,8 @@
 # Factory Ledger — File Status
 
-Classification date: 2026-05-19
-Branch: `claude/serene-panini-dc449d`
-Ground truth: `~/Downloads/Factory_Ledger_GPT_Config.docx` (main GPT) and `~/Downloads/Factory_Ledger_Floor_GPT_Config.docx` (Floor GPT).
+Classification date: 2026-08-05
+Branch: `main`
+Ground truth: the live GPT editors, plus `~/Downloads/floor-gpt-instructions-v2.md` for the Floor GPT instructions. The older config DOCX files remain historical references.
 
 > **Moves executed 2026-05-19** in four commits (`947fdd5`, `cc0b380`, `d22977e`, `ba5baab`). The "Verdict" column below still reflects the classification; paths have been updated to the post-move destinations. `FOLLOWUPS.md` was deliberately NOT moved (the user's commit-granularity directive covered only the four archive/audit categories).
 
@@ -11,7 +11,7 @@ Ground truth: `~/Downloads/Factory_Ledger_GPT_Config.docx` (main GPT) and `~/Dow
 | GPT | API title | API version | OpenAPI | Operations | Instructions header |
 |---|---|---|---|---|---|
 | Factory Ledger (main) | Factory Ledger System | **3.4.0** | 3.1.0 | **30** | "Factory Ledger GPT — v3.6.0" |
-| Factory Ledger — Floor | Factory Ledger — Floor & Fulfillment | **4.0.0** | 3.1.0 | **21** | shared-rules.md + floor-specific.md, "Built: 2026-04-22 15:44 UTC" |
+| Factory Ledger — Floor | Factory Ledger — Floor & Fulfillment | **4.1.0** | 3.1.0 | **22** | shared-rules.md + floor-specific.md, rebuilt 2026-08-05 |
 
 Categories used below: **LIVE**, **HISTORICAL**, **SUPERSEDED**, **AUDIT**, **WORKING**.
 
@@ -22,7 +22,7 @@ Categories used below: **LIVE**, **HISTORICAL**, **SUPERSEDED**, **AUDIT**, **WO
 | File | Title / Version | Ops | Verdict | Reason |
 |---|---|---|---|---|
 | `openapi-gpt-v3.yaml` | Factory Ledger System / **3.4.0** | **30** | **LIVE** (main GPT) | Title, version, and full 30-operation list match the main GPT config doc exactly. |
-| `gpt-configs/schemas/openapi-floor.yaml` | Factory Ledger — Floor & Fulfillment / **4.0.0** | **21** | **LIVE** (Floor GPT) | Title, version, and full 21-operation list match the Floor GPT config doc exactly. |
+| `gpt-configs/schemas/openapi-floor.yaml` | Factory Ledger — Floor & Fulfillment / **4.1.0** | **22** | **LIVE** (Floor GPT) | Matches the schema deployed in the Floor GPT editor; includes preview-only `shipOrder` and dedicated `commitShipOrder`. |
 | `archive/superseded-schemas/openapi-v3.yaml` | Factory Ledger System / 3.3.0 | 33 | **SUPERSEDED** | Predecessor of 3.4.0 — operations include `checkFulfillment`, `getCurrentInventory`, `getInventoryItem`, `productionDaySummary`, `productsMissingCaseSize` that have been removed/renamed in live 3.4.0. |
 | `archive/superseded-schemas/openapi-schema-gpt.yaml` | Factory Ledger API / 2.7.0 | 32 | **SUPERSEDED** | File's own description says `DEPRECATED — uses split /preview and /commit endpoints that no longer exist`. |
 | `archive/superseded-schemas/openapi-schema.yaml` | Factory Ledger API / 2.7.0 | 35 | **SUPERSEDED** | Same 2.7.0 split-preview/commit design, removed before 3.x. |
@@ -37,7 +37,7 @@ Categories used below: **LIVE**, **HISTORICAL**, **SUPERSEDED**, **AUDIT**, **WO
 | `archive/superseded-instructions/GPT_INSTRUCTIONS.md` (7831 B) | **SUPERSEDED** | Also claims `v3.6.0`, but is an older variant: missing `PRE-FLIGHT — CUSTOMER` and the 4xx-`detail` ERRORS line, and has a stray `"wrap up"/.../"daily summary"` entry in the routing block (live has it only under `DAY SUMMARY`). |
 | `gpt-configs/sources/shared-rules.md` | **LIVE** | Source of the deployed Floor instructions (canonical, hand-edited). |
 | `gpt-configs/sources/floor-specific.md` | **LIVE** | Source of the deployed Floor instructions (canonical, hand-edited). |
-| `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md` | **LIVE** | Generated artifact (build time 2026-04-22 16:10 UTC) of shared+floor; matches deployed Floor config (deployed build is 2026-04-22 15:44 UTC — same content, deploy is one rebuild behind, not a different spec). |
+| `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md` | **LIVE** | Generated 2026-08-05 from shared+floor; its 7,605-character deployable body exactly matches `~/Downloads/floor-gpt-instructions-v2.md`, the instructions pasted into the live Floor GPT editor. |
 | `gpt-configs/README.md` | **LIVE** | Documents the `gpt-configs/` directory layout / build flow. |
 | `build_gpt_instructions.py` | **LIVE** | Generator script that produces `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`. |
 

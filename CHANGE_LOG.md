@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-08-05 12:11 — Record final live Floor GPT dispatch configuration
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression-guard row 50 for the exact live instruction rebuild/schema sync and recorded the completed SO-260723-001 dispatch receipts (shipment header 319, transactions 1847/1848), superseding the earlier pre-test state note.
+- **Why:** Preserve the final operational state and make the two-stage approval protocol a do-not-regress safety rule.
+
+---
+
+## 2026-08-05 12:10 — Refresh live GPT schema and instruction status
+- **File(s) changed:** `STATUS.md`, `gpt-configs/README.md`
+- **What changed:** Updated Floor GPT tracking from schema v4.0.0/21 actions to v4.1.0/22 actions and recorded the 2026-08-05 instruction rebuild, exact live-body match, character count, and two-action dispatch workflow.
+- **Why:** Make repository status/version documentation reflect the configuration now deployed in the GPT editor.
+
+---
+
+## 2026-08-05 12:08 — Document Floor GPT action-dispatch incident
+- **File(s) changed:** `docs/incidents/2026-08-05-gpt-actions-dispatch.md`
+- **What changed:** Recorded symptoms, the schema/client/instruction root causes, fixes and receipts, the consequential-flag safety trade-off, known ChatGPT/editor quirks, and operational follow-ups including shipment-ID naming.
+- **Why:** Preserve the complete cross-layer diagnosis and the two-stage safety protocol for future maintenance.
+
+---
+
+## 2026-08-05 12:06 — Regenerate live Floor GPT instructions
+- **File(s) changed:** `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`
+- **What changed:** Rebuilt the generated Floor instruction artifact from canonical sources; its 7,605-character deployable body matches `floor-gpt-instructions-v2.md` exactly, with a 7,735-character generated file including provenance headers.
+- **Why:** Keep the checked-in generated artifact byte-equivalent to the live GPT instructions apart from the intentional generated header/build timestamp.
+
+---
+
+## 2026-08-05 12:05 — Back-port live Floor GPT dispatch instructions
+- **File(s) changed:** `gpt-configs/sources/shared-rules.md`, `gpt-configs/sources/floor-specific.md`
+- **What changed:** Added the live 22-action availability rule, split transaction workflow, exact-SO dispatch routing, and two-stage `shipOrder` preview → `commitShipOrder` commit protocol to the canonical instruction sources.
+- **Why:** Make source regeneration reproduce the instructions deployed to the Floor GPT on 2026-08-05 and prevent false no-access refusals or use of a mode field on the dedicated commit action.
+
+---
+
 ## 2026-08-05 11:27 — Deploy and verify dedicated sales-order dispatch commit
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Recorded Railway deployment `cbfb0169-157c-460a-b69b-773eb5e8b907`, clean startup, 62 passing tests, Redocly/action-count validation, and the disposable production smoke test receipts. The test shipment transaction was voided and its partial order cancelled; SO-260723-001 stayed confirmed with 0 lb shipped.
