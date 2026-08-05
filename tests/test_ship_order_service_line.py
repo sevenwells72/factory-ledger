@@ -23,7 +23,14 @@ except ImportError:  # pragma: no cover — FastAPI should be installed in the t
 
 try:
     import main
-    from main import ship_order, ShipOrderRequest
+    from main import (
+        commit_ship_order,
+        ship_order,
+        ship_order_preview,
+        CommitShipOrderRequest,
+        ShipOrderLineRequest,
+        ShipOrderRequest,
+    )
 except Exception as e:  # pragma: no cover — PEP 604 syntax requires Python 3.10+
     pytest.skip(f"cannot import main ({e})", allow_module_level=True)
 
@@ -166,9 +173,9 @@ def test_full_stock_plus_service_ships_order(db_cursor, ship_order_db):
     service line line_status='fulfilled'."""
     seeded = _seed(db_cursor, stock_lb=100, physical_qty_lb=100)
 
-    resp = ship_order(
+    resp = commit_ship_order(
         order_id=seeded["order_id"],
-        req=ShipOrderRequest(mode="commit", ship_all=True),
+        req=CommitShipOrderRequest(ship_all=True),
         _=True,
     )
 
@@ -195,9 +202,9 @@ def test_partial_stock_plus_service_still_fulfills_service(db_cursor, ship_order
     (because physical is short), service line still auto-fulfills."""
     seeded = _seed(db_cursor, stock_lb=50, physical_qty_lb=100)
 
-    resp = ship_order(
+    resp = commit_ship_order(
         order_id=seeded["order_id"],
-        req=ShipOrderRequest(mode="commit", ship_all=True),
+        req=CommitShipOrderRequest(ship_all=True),
         _=True,
     )
 
@@ -236,3 +243,69 @@ def test_service_only_order_raises_zero_shipment(db_cursor, ship_order_db):
     assert svc_after["line_status"] == svc_before["line_status"]
     assert float(svc_after["quantity_shipped_lb"]) == float(svc_before["quantity_shipped_lb"])
     assert _order_status(db_cursor, seeded["order_id"]) == status_before
+
+
+@pytest.mark.db
+def test_ship_order_preview_makes_no_changes(db_cursor, ship_order_db):
+    seeded = _seed(db_cursor, stock_lb=100, physical_qty_lb=100)
+
+    resp = ship_order_preview(
+        order_id=seeded["order_id"],
+        req=ShipOrderRequest(mode="preview", ship_all=True),
+        _=True,
+    )
+
+    assert resp["mode"] == "preview"
+    assert resp["status"] == "confirmed"
+    assert _order_status(db_cursor, seeded["order_id"]) == "confirmed"
+    assert float(_line_state(db_cursor, seeded["physical_line_id"])["quantity_shipped_lb"]) == 0
+    db_cursor.execute("SELECT count(*) AS count FROM shipments WHERE sales_order_id = %s", (seeded["order_id"],))
+    assert db_cursor.fetchone()["count"] == 0
+
+
+@pytest.mark.db
+def test_commit_route_rejects_quantity_over_remaining(db_cursor, ship_order_db):
+    seeded = _seed(db_cursor, stock_lb=200, physical_qty_lb=100)
+
+    with pytest.raises(HTTPException) as exc_info:
+        commit_ship_order(
+            order_id=seeded["order_id"],
+            req=CommitShipOrderRequest(
+                lines=[ShipOrderLineRequest(line_id=seeded["physical_line_id"], quantity_lb=101)]
+            ),
+            _=True,
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail["error_code"] == "QTY_EXCEEDS_REMAINING"
+    assert _order_status(db_cursor, seeded["order_id"]) == "confirmed"
+
+
+@pytest.mark.db
+def test_commit_route_preserves_already_fulfilled_409s(db_cursor, ship_order_db):
+    seeded = _seed(db_cursor, stock_lb=100, physical_qty_lb=100)
+    commit_ship_order(
+        order_id=seeded["order_id"],
+        req=CommitShipOrderRequest(ship_all=True),
+        _=True,
+    )
+
+    with pytest.raises(HTTPException) as line_exc:
+        commit_ship_order(
+            order_id=seeded["order_id"],
+            req=CommitShipOrderRequest(
+                lines=[ShipOrderLineRequest(line_id=seeded["physical_line_id"], quantity_lb=1)]
+            ),
+            _=True,
+        )
+    assert line_exc.value.status_code == 409
+    assert line_exc.value.detail["error_code"] == "LINE_ALREADY_FULFILLED"
+
+    with pytest.raises(HTTPException) as order_exc:
+        commit_ship_order(
+            order_id=seeded["order_id"],
+            req=CommitShipOrderRequest(ship_all=True),
+            _=True,
+        )
+    assert order_exc.value.status_code == 409
+    assert order_exc.value.detail["error_code"] == "ORDER_ALREADY_FULFILLED"

@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-08-05 11:26 — Preserve explicit Floor GPT order routing
+- **File(s) changed:** `gpt-configs/schemas/openapi-floor.yaml`
+- **What changed:** Clarified exact-SO lookup routing and the preview-first dispatch protocol in the v4.1.0 action descriptions.
+- **Why:** Keep the v4.0.1 routing improvements while separating preview and commit actions.
+
+---
+
+## 2026-08-05 11:24 — Require a commit shipment request body
+- **File(s) changed:** `main.py`
+- **What changed:** Made the dedicated sales-order commit route require its mode-less request model instead of accepting an omitted body.
+- **Why:** A dispatch commit must explicitly select `ship_all` or line quantities and should fail validation when no JSON body is sent.
+
+---
+
+## 2026-08-05 11:19 — Add dedicated sales-order dispatch commit endpoint
+- **File(s) changed:** `main.py`, `tests/test_ship_order_service_line.py`, `gpt-configs/schemas/openapi-floor.yaml`
+- **What changed:** Promoted `POST /sales/orders/{order_id}/ship/commit` to a first-class mode-less commit endpoint that delegates to the existing shipment service, added preview/commit/status/error regression tests, and advanced the Floor GPT action schema to v4.1.0 with separate preview and commit operations.
+- **Why:** Custom GPT consequential-action confirmation fails client-side for the combined endpoint; the two-stage GPT protocol now has a dedicated callable commit operation while the legacy combined route stays backward compatible.
+
+---
+
 ## 2026-07-22 11:22 — Deploy PACKED calendar timezone fix
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Fast-forwarded approved commit `25e0ad23` to `main` and pushed it. Railway deployment `a654797b-60b1-40a0-a267-6c3b2fe2ce2a` completed successfully; the live July production response places `Granola Wheat Free 25 LB` at 2,000 lb / 80 units on 2026-07-20 and not 2026-07-21. Marked regression-guard entries 48 and 47 deployed, including the stale Netlify marker for `edcbf84`.

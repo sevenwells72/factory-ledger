@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger — Floor & Fulfillment
-  version: 4.0.0
+  version: 4.1.0
   description: Physical production, packing, shipping, and inbound receipts for CNS Confectionery Products. Scoped to floor operator workflow.
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -168,11 +168,13 @@ components:
           type: string
     ShipOrderRequest:
       type: object
+      required: [mode]
       properties:
         mode:
           type: string
-          enum: [preview, commit]
+          enum: [preview]
           default: preview
+          description: "This action is preview-only and makes no changes. Use commitShipOrder after explicit operator approval."
         ship_all:
           type: boolean
           default: false
@@ -180,6 +182,27 @@ components:
         lines:
           type: array
           description: "Per-line ship quantities. Omit to use ship_all."
+          items:
+            type: object
+            required: [line_id, quantity_lb]
+            properties:
+              line_id:
+                type: integer
+              quantity_lb:
+                type: number
+                exclusiveMinimum: 0
+    CommitShipOrderRequest:
+      type: object
+      additionalProperties: false
+      description: "Shipment selection for an approved commit. Do not include mode."
+      properties:
+        ship_all:
+          type: boolean
+          default: false
+          description: "Ship all remaining lines. Ignored if lines is provided."
+        lines:
+          type: array
+          description: "Per-line quantities to commit. Omit when ship_all is true."
           items:
             type: object
             required: [line_id, quantity_lb]
@@ -587,14 +610,15 @@ paths:
   /sales/orders/{order_id}:
     get:
       operationId: getOrder
-      summary: "Get sales order details."
+      summary: "Retrieve one sales order and its lines by numeric database ID or exact SO number."
+      description: "Use whenever the operator asks to look up, retrieve, inspect, or verify an order such as SO-260723-001. Do not use product search for an SO number. This action is read-only; use shipOrder to preview dispatch and commitShipOrder only after explicit approval."
       parameters:
         - name: order_id
           in: path
           required: true
           schema:
             type: string
-          description: "Order DB id (integer) or order number (e.g. 'SO-260323-001')."
+          description: "Accepts either the numeric database ID or an SO number such as \"SO-260723-001\"."
       responses:
         '200':
           description: "Order with lines (unit_count, shipped_units, remaining_units) and totals."
@@ -624,7 +648,9 @@ paths:
   /sales/orders/{order_id}/ship:
     post:
       operationId: shipOrder
-      summary: "Ship against a sales order (preview or commit). Preferred over standalone /ship when an open order exists."
+      summary: "PREVIEW a dispatch/shipment for a sales order. Makes no changes. Use commitShipOrder only after explicit operator approval."
+      description: "Use for the safe first stage of sales-order dispatch. Send mode: preview with ship_all: true or explicit lines. Show the resulting quantities, shortages, and warnings to the operator; call commitShipOrder only after the operator explicitly says to commit or dispatch."
+      x-openai-isConsequential: false
       parameters:
         - name: order_id
           in: path
@@ -633,6 +659,7 @@ paths:
             type: string
           description: "Order DB id (integer) or order number."
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -644,5 +671,33 @@ paths:
           description: "Order in non-shippable status (new/invoiced/cancelled)."
         '409':
           description: "LINE_ALREADY_FULFILLED or ORDER_ALREADY_FULFILLED or ZERO_SHIPMENT."
+        '422':
+          description: "QTY_EXCEEDS_REMAINING — reduce to remaining_lb in suggestion."
+  /sales/orders/{order_id}/ship/commit:
+    post:
+      operationId: commitShipOrder
+      summary: "COMMIT a dispatch/shipment for a sales order. Call ONLY after the operator has seen the shipOrder preview and explicitly said to commit/dispatch. Returns the shipment receipt."
+      description: "Always commits. The request contains ship_all or explicit lines and never contains mode. The operator-level confirmation is enforced by the GPT's two-stage preview/approval protocol."
+      x-openai-isConsequential: false
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Order DB id (integer) or order number."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitShipOrderRequest'
+      responses:
+        '200':
+          description: "Committed shipment receipt with shipment_id, transaction_id per physical line, and order_status (shipped or partial_ship)."
+        '400':
+          description: "Order in non-shippable status (new/invoiced/cancelled)."
+        '409':
+          description: "LINE_ALREADY_FULFILLED, ORDER_ALREADY_FULFILLED, or ZERO_SHIPMENT."
         '422':
           description: "QTY_EXCEEDS_REMAINING — reduce to remaining_lb in suggestion."

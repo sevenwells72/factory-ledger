@@ -1262,6 +1262,14 @@ class ShipOrderRequest(BaseModel):
     ship_all: Optional[bool] = False
     lines: Optional[List[ShipOrderLineRequest]] = None
 
+class CommitShipOrderRequest(BaseModel):
+    """Mode-less request for the dedicated sales-order shipment commit route."""
+    ship_all: Optional[bool] = False
+    lines: Optional[List[ShipOrderLineRequest]] = None
+
+    class Config:
+        extra = "forbid"
+
 
 # ═══════════════════════════════════════════════════════════════
 # SALES HELPER FUNCTIONS (v2.3.0)
@@ -6922,12 +6930,15 @@ def ship_order_preview(order_id: int = Depends(resolve_order_id), req: Optional[
     req.mode = "preview"
     return ship_order(order_id, req, _)
 
-@app.post("/sales/orders/{order_id}/ship/commit", include_in_schema=False)
-def ship_order_commit(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
-    if req is None:
-        req = ShipOrderRequest()
-    req.mode = "commit"
-    return ship_order(order_id, req, _)
+@app.post("/sales/orders/{order_id}/ship/commit", operation_id="commitShipOrder")
+def commit_ship_order(req: CommitShipOrderRequest, order_id: int = Depends(resolve_order_id), _: bool = Depends(verify_api_key)):
+    """Always commit a sales-order shipment through the shared ship_order service."""
+    commit_req = ShipOrderRequest(
+        mode="commit",
+        ship_all=req.ship_all,
+        lines=req.lines,
+    )
+    return ship_order(order_id, commit_req, _)
 
 
 # ═══════════════════════════════════════════════════════════════
