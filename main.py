@@ -20,6 +20,7 @@ import traceback
 import math
 import uuid
 import io
+import csv
 from decimal import Decimal, ROUND_HALF_UP
 from openpyxl import Workbook
 from openpyxl.comments import Comment
@@ -39,6 +40,10 @@ class DecimalSafeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
         return super().default(obj)
 
 class DecimalSafeJSONResponse(JSONResponse):
@@ -288,9 +293,10 @@ BALANCE_EPSILON = 0.0001
 # Every balance query must read transaction lines through POSTED_LINES (or the
 # lot_on_hand() helper) — never from the raw transaction_lines table.
 POSTED_LINES = (
-    "(SELECT tl.* FROM transaction_lines tl"
+    "(SELECT tl.* FROM ledger_current_transaction_lines tl"
     " JOIN transactions _pt ON _pt.id = tl.transaction_id"
-    " WHERE COALESCE(_pt.status, 'posted') = 'posted')"
+    " JOIN ledger_current_transactions _ct ON _ct.id = _pt.id"
+    " WHERE _ct.effective_status = 'posted')"
 )
 
 
@@ -527,13 +533,19 @@ async def startup():
         conn = db_pool.getconn()
         try:
             with conn.cursor() as cur:
-                cur.execute("""
-                    UPDATE transactions
-                    SET type = 'pack'
-                    WHERE type = 'ship'
-                      AND LOWER(COALESCE(customer_name, '')) = 'internal packaging'
-                """)
-                updated = cur.rowcount
+                cur.execute("SELECT to_regclass('public.ledger_corrections')")
+                append_only_installed = cur.fetchone()[0] is not None
+                if append_only_installed:
+                    updated = 0
+                    logger.info("Migration 009: skipped; append-only ledger is installed")
+                else:
+                    cur.execute("""
+                        UPDATE transactions
+                        SET type = 'pack'
+                        WHERE type = 'ship'
+                          AND LOWER(COALESCE(customer_name, '')) = 'internal packaging'
+                    """)
+                    updated = cur.rowcount
                 conn.commit()
                 if updated > 0:
                     logger.info(f"Migration 009: reclassified {updated} internal packaging transactions from 'ship' to 'pack'")
@@ -3875,17 +3887,148 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
 # ═══════════════════════════════════════════════════════════════
 
 class VoidRequest(BaseModel):
-    reason: Optional[str] = None
+    reason: str
+
+
+class LedgerCorrectionRequest(BaseModel):
+    event_type: Literal["amend", "void", "restore"] = "amend"
+    reason: str
+    replacement_values: Optional[Dict[str, Any]] = None
+
+
+def _operator_id(auth_context: Any) -> str:
+    """Phase-1 compatibility shim for the existing shared credential."""
+    if isinstance(auth_context, dict) and auth_context.get("operator_id"):
+        return str(auth_context["operator_id"])
+    if isinstance(auth_context, str) and auth_context.strip():
+        return auth_context.strip()
+    return "legacy-shared-key"
+
+
+_TRANSACTION_AMENDABLE_FIELDS = {
+    "occurred_at", "business_date", "notes", "bol_reference",
+    "shipper_name", "shipper_code", "cases_received", "case_size_lb",
+    "customer_name", "order_reference", "adjust_reason", "adjust_reason_es",
+}
+
+
+def _append_transaction_correction(
+    cur,
+    transaction_id: int,
+    event_type: str,
+    reason: str,
+    replacement_values: Optional[Dict[str, Any]],
+    operator_id: str,
+):
+    reason = (reason or "").strip()
+    if not reason:
+        raise HTTPException(422, "A non-empty correction reason is required")
+
+    cur.execute("SELECT id FROM transactions WHERE id = %s FOR UPDATE", (transaction_id,))
+    if not cur.fetchone():
+        raise HTTPException(404, f"Transaction #{transaction_id} not found")
+
+    cur.execute(
+        """SELECT effective_record, effective_status
+           FROM ledger_current_transactions WHERE id = %s""",
+        (transaction_id,),
+    )
+    current = cur.fetchone()
+    previous = dict(current["effective_record"] or {})
+    current_status = current["effective_status"]
+
+    if event_type == "void" and current_status == "voided":
+        raise HTTPException(400, f"Transaction #{transaction_id} is already voided")
+    if event_type == "restore" and current_status != "voided":
+        raise HTTPException(400, f"Transaction #{transaction_id} is not voided")
+
+    replacement = dict(previous)
+    if event_type == "amend":
+        changes = replacement_values or {}
+        forbidden = sorted(set(changes) - _TRANSACTION_AMENDABLE_FIELDS)
+        if forbidden:
+            raise HTTPException(
+                422,
+                f"Immutable or unsupported correction fields: {', '.join(forbidden)}",
+            )
+        if not changes:
+            raise HTTPException(422, "replacement_values must include at least one field")
+        replacement.update(changes)
+    elif event_type == "void":
+        replacement["status"] = "voided"
+    else:
+        replacement["status"] = "posted"
+
+    cur.execute(
+        """INSERT INTO ledger_corrections
+               (target_table, target_id, event_type, previous_values,
+                replacement_values, reason, operator_id)
+           VALUES ('transactions', %s, %s, %s::jsonb, %s::jsonb, %s, %s)
+           RETURNING id, created_at, operator_id""",
+        (
+            transaction_id,
+            event_type,
+            json.dumps(previous, default=str),
+            json.dumps(replacement, default=str),
+            reason,
+            operator_id,
+        ),
+    )
+    event = cur.fetchone()
+    return {
+        "correction_id": str(event["id"]),
+        "created_at": event["created_at"],
+        "operator_id": event["operator_id"],
+        "event_type": event_type,
+        "previous_values": previous,
+        "replacement_values": replacement,
+    }
+
+
+def _append_transaction_line_correction(
+    cur,
+    line_id: int,
+    replacement_values: Dict[str, Any],
+    reason: str,
+    operator_id: str,
+):
+    allowed = {"product_id", "lot_id", "quantity_lb"}
+    forbidden = set(replacement_values) - allowed
+    if forbidden:
+        raise HTTPException(422, f"Unsupported line correction fields: {sorted(forbidden)}")
+    cur.execute("SELECT id FROM transaction_lines WHERE id = %s FOR UPDATE", (line_id,))
+    if not cur.fetchone():
+        raise HTTPException(404, f"Transaction line #{line_id} not found")
+    cur.execute(
+        "SELECT effective_record FROM ledger_current_transaction_lines WHERE id = %s",
+        (line_id,),
+    )
+    previous = dict(cur.fetchone()["effective_record"])
+    replacement = dict(previous)
+    replacement.update(replacement_values)
+    cur.execute(
+        """INSERT INTO ledger_corrections
+               (target_table, target_id, event_type, previous_values,
+                replacement_values, reason, operator_id)
+           VALUES ('transaction_lines', %s, 'amend', %s::jsonb, %s::jsonb, %s, %s)
+           RETURNING id""",
+        (
+            line_id,
+            json.dumps(previous, default=str),
+            json.dumps(replacement, default=str),
+            reason,
+            operator_id,
+        ),
+    )
+    return str(cur.fetchone()["id"])
 
 
 @app.post("/void/{transaction_id}")
-def void_transaction(transaction_id: int, req: Optional[VoidRequest] = None, _: bool = Depends(verify_api_key)):
-    """Void a transaction by flipping its status to 'voided'.
+def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(verify_api_key)):
+    """Append a void correction while preserving the original transaction.
 
-    All balance math reads lines through POSTED_LINES (status='posted' only),
-    so the original's lines drop out of every on-hand figure the moment the
-    status flips. No reversal transaction is posted. The optional request
-    body {"reason": "..."} is appended to the transaction's notes.
+    All balance math reads lines through the effective append-only state, so
+    the original's lines drop out immediately without mutating or hiding it.
 
     Response keeps the historical shape: reversal_transaction_id and
     reversal_lines are retained for backward compatibility but are always
@@ -3894,37 +4037,62 @@ def void_transaction(transaction_id: int, req: Optional[VoidRequest] = None, _: 
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, type, COALESCE(status, 'posted') as status, notes FROM transactions WHERE id = %s FOR UPDATE", (transaction_id,))
-                txn = cur.fetchone()
-                if not txn:
-                    raise HTTPException(404, f"Transaction #{transaction_id} not found")
-                if txn['status'] == 'voided':
-                    raise HTTPException(400, f"Transaction #{transaction_id} is already voided")
-
-                now = get_plant_now()
-                reason = req.reason.strip() if req and req.reason and req.reason.strip() else None
-                void_note = f" | Voided at {now.strftime('%Y-%m-%d %H:%M')}"
-                if reason:
-                    void_note += f" — {reason}"
-
-                cur.execute(
-                    "UPDATE transactions SET status = 'voided', notes = COALESCE(notes, '') || %s WHERE id = %s",
-                    (void_note, transaction_id)
+                event = _append_transaction_correction(
+                    cur,
+                    transaction_id,
+                    "void",
+                    req.reason,
+                    None,
+                    _operator_id(_),
                 )
 
-                logger.info(f"Voided transaction #{transaction_id} (type={txn['type']}, reason={reason or 'n/a'})")
+                logger.info(
+                    f"Voided transaction #{transaction_id} through correction "
+                    f"{event['correction_id']}"
+                )
                 return {
                     "success": True,
                     "voided_transaction_id": transaction_id,
+                    "correction_id": event["correction_id"],
+                    "created_at": event["created_at"],
                     "reversal_transaction_id": None,
                     "reversal_lines": [],
-                    "message": f"Transaction #{transaction_id} voided; its lines are excluded from all balances"
+                    "message": (
+                        f"Transaction #{transaction_id} voided by append-only correction; "
+                        "the original is preserved and its lines are excluded from balances"
+                    ),
                 }
     except HTTPException:
         raise
     except Exception as e:
         if _is_readonly_error(e): raise
         logger.error(f"Void transaction failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/records/transactions/{transaction_id}/corrections")
+def correct_transaction(
+    transaction_id: int,
+    req: LedgerCorrectionRequest,
+    _: bool = Depends(verify_api_key),
+):
+    try:
+        with get_transaction() as cur:
+            event = _append_transaction_correction(
+                cur,
+                transaction_id,
+                req.event_type,
+                req.reason,
+                req.replacement_values,
+                _operator_id(_),
+            )
+            return {"transaction_id": transaction_id, **event}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if _is_readonly_error(e):
+            raise
+        logger.error(f"Transaction correction failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
@@ -4503,6 +4671,264 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
 # TRANSACTION HISTORY ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+class CertificationCreate(BaseModel):
+    business_date: date
+    certified_at: datetime
+    source_type: Literal["manual", "whatsapp_export"] = "manual"
+    source_message_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CertificationCorrection(BaseModel):
+    certified_at: datetime
+    reason: str
+    source_message_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+def _effective_certification(cur, business_date: date):
+    cur.execute(
+        "SELECT * FROM current_certifications WHERE business_date = %s",
+        (business_date,),
+    )
+    return cur.fetchone()
+
+
+@app.post("/records/certifications")
+def create_certification(req: CertificationCreate, _: bool = Depends(verify_api_key)):
+    try:
+        with get_transaction() as cur:
+            cur.execute(
+                """INSERT INTO certifications
+                       (business_date, certified_at, operator_id, source_type,
+                        source_message_id, notes)
+                   VALUES (%s, %s, %s, %s, %s, %s)
+                   RETURNING id, business_date, certified_at, operator_id,
+                             source_type, source_message_id, notes, created_at""",
+                (
+                    req.business_date,
+                    req.certified_at,
+                    _operator_id(_),
+                    req.source_type,
+                    req.source_message_id,
+                    req.notes,
+                ),
+            )
+            row = dict(cur.fetchone())
+            row["certification_id"] = str(row.pop("id"))
+            return row
+    except psycopg2.errors.UniqueViolation:
+        raise HTTPException(
+            409,
+            f"A certification already exists for {req.business_date}; use the correction endpoint",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        if _is_readonly_error(e):
+            raise
+        logger.error(f"Certification create failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/records/certifications/{certification_id}/corrections")
+def correct_certification(
+    certification_id: uuid.UUID,
+    req: CertificationCorrection,
+    _: bool = Depends(verify_api_key),
+):
+    reason = req.reason.strip()
+    if not reason:
+        raise HTTPException(422, "A non-empty correction reason is required")
+    try:
+        with get_transaction() as cur:
+            cur.execute(
+                "SELECT * FROM certifications WHERE id = %s FOR UPDATE",
+                (str(certification_id),),
+            )
+            original = cur.fetchone()
+            if not original:
+                raise HTTPException(404, "Certification not found")
+            current = _effective_certification(cur, original["business_date"])
+            if str(current["certification_id"]) != str(certification_id):
+                raise HTTPException(409, "Only the current certification can be corrected")
+            cur.execute(
+                """INSERT INTO certifications
+                       (business_date, certified_at, operator_id, source_type,
+                        source_message_id, notes, supersedes_certification_id,
+                        correction_reason)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                   RETURNING id, business_date, certified_at, operator_id,
+                             source_type, source_message_id, notes,
+                             supersedes_certification_id, correction_reason, created_at""",
+                (
+                    original["business_date"],
+                    req.certified_at,
+                    _operator_id(_),
+                    original["source_type"],
+                    req.source_message_id or original["source_message_id"],
+                    req.notes if req.notes is not None else original["notes"],
+                    str(certification_id),
+                    reason,
+                ),
+            )
+            row = dict(cur.fetchone())
+            row["certification_id"] = str(row.pop("id"))
+            row["supersedes_certification_id"] = str(row["supersedes_certification_id"])
+            return row
+    except HTTPException:
+        raise
+    except Exception as e:
+        if _is_readonly_error(e):
+            raise
+        logger.error(f"Certification correction failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/records/certifications/{business_date}")
+def get_certification(business_date: date, _: bool = Depends(verify_api_key)):
+    with get_transaction() as cur:
+        current = _effective_certification(cur, business_date)
+        if not current:
+            raise HTTPException(404, f"No certification for {business_date}")
+        cur.execute(
+            """SELECT id, business_date, certified_at, operator_id, source_type,
+                      source_message_id, notes, supersedes_certification_id,
+                      correction_reason, created_at
+               FROM certifications WHERE business_date = %s
+               ORDER BY created_at, id""",
+            (business_date,),
+        )
+        chain = [dict(row) for row in cur.fetchall()]
+        for row in chain:
+            row["id"] = str(row["id"])
+            if row["supersedes_certification_id"]:
+                row["supersedes_certification_id"] = str(row["supersedes_certification_id"])
+        result = dict(current)
+        result["certification_id"] = str(result["certification_id"])
+        result["chain"] = chain
+        return result
+
+
+def _late_records(cur, target_date: date):
+    certification = _effective_certification(cur, target_date)
+    if not certification:
+        raise HTTPException(409, f"Business day {target_date} has not been certified")
+    cutoff = certification["certified_at"]
+
+    cur.execute(
+        """SELECT ct.id AS transaction_id, ct.type, ct.business_date,
+                  ct.occurred_at, ct.created_at, ct.operator_id,
+                  ct.effective_status, ct.latest_correction_id,
+                  (ct.created_at > %s) AS late,
+                  GREATEST(EXTRACT(EPOCH FROM (ct.created_at - %s)) / 60.0, 0) AS minutes_after_cutoff
+           FROM ledger_current_transactions ct
+           WHERE ct.business_date = %s
+           ORDER BY ct.created_at, ct.id""",
+        (cutoff, cutoff, target_date),
+    )
+    entries = [dict(row) for row in cur.fetchall()]
+    for row in entries:
+        if row["latest_correction_id"]:
+            row["latest_correction_id"] = str(row["latest_correction_id"])
+        row["minutes_after_cutoff"] = float(row["minutes_after_cutoff"] or 0)
+
+    cur.execute(
+        """SELECT c.id AS correction_id,
+                  COALESCE(t.id, line_t.id) AS transaction_id,
+                  c.target_table, c.target_id,
+                  c.event_type, c.reason, c.operator_id, c.created_at,
+                  (c.created_at > %s) AS late,
+                  GREATEST(EXTRACT(EPOCH FROM (c.created_at - %s)) / 60.0, 0) AS minutes_after_cutoff
+           FROM ledger_corrections c
+           LEFT JOIN transactions t
+             ON c.target_table = 'transactions' AND t.id = c.target_id
+           LEFT JOIN transaction_lines tl
+             ON c.target_table = 'transaction_lines' AND tl.id = c.target_id
+           LEFT JOIN transactions line_t ON line_t.id = tl.transaction_id
+           WHERE COALESCE(t.business_date, line_t.business_date) = %s
+           ORDER BY c.created_at, c.id""",
+        (cutoff, cutoff, target_date),
+    )
+    corrections = [dict(row) for row in cur.fetchall()]
+    for row in corrections:
+        row["correction_id"] = str(row["correction_id"])
+        row["minutes_after_cutoff"] = float(row["minutes_after_cutoff"] or 0)
+
+    return {
+        "business_date": target_date,
+        "certification": {
+            "certification_id": str(certification["certification_id"]),
+            "certified_at": cutoff,
+            "operator_id": certification["operator_id"],
+        },
+        "entries": entries,
+        "late_entries": [row for row in entries if row["late"]],
+        "corrections": corrections,
+        "late_corrections": [row for row in corrections if row["late"]],
+    }
+
+
+@app.get("/records/late")
+def get_late_records(
+    business_date: date = Query(...),
+    _: bool = Depends(verify_api_key),
+):
+    with get_transaction() as cur:
+        return _late_records(cur, business_date)
+
+
+@app.get("/records/late.csv")
+def export_late_records_csv(
+    business_date: date = Query(...),
+    _: bool = Depends(verify_api_key),
+):
+    with get_transaction() as cur:
+        data = _late_records(cur, business_date)
+
+    output = io.StringIO()
+    columns = [
+        "record_kind", "record_id", "transaction_id", "transaction_type",
+        "business_date", "occurred_at", "created_at", "operator_id",
+        "effective_status", "correction_type", "reason", "late",
+        "minutes_after_cutoff", "certified_at",
+    ]
+    writer = csv.DictWriter(output, fieldnames=columns)
+    writer.writeheader()
+    cutoff = data["certification"]["certified_at"]
+    for row in data["entries"]:
+        writer.writerow({
+            "record_kind": "original",
+            "record_id": row["transaction_id"],
+            "transaction_id": row["transaction_id"],
+            "transaction_type": row["type"],
+            "business_date": row["business_date"],
+            "occurred_at": row["occurred_at"],
+            "created_at": row["created_at"],
+            "operator_id": row["operator_id"],
+            "effective_status": row["effective_status"],
+            "late": row["late"],
+            "minutes_after_cutoff": row["minutes_after_cutoff"],
+            "certified_at": cutoff,
+        })
+    for row in data["corrections"]:
+        writer.writerow({
+            "record_kind": "correction",
+            "record_id": row["correction_id"],
+            "transaction_id": row["transaction_id"],
+            "created_at": row["created_at"],
+            "operator_id": row["operator_id"],
+            "correction_type": row["event_type"],
+            "reason": row["reason"],
+            "late": row["late"],
+            "minutes_after_cutoff": row["minutes_after_cutoff"],
+            "certified_at": cutoff,
+        })
+    headers = {
+        "Content-Disposition": f'attachment; filename="late-entries-{business_date}.csv"'
+    }
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers=headers)
+
 @app.get("/transactions/history")
 def get_transaction_history(
     limit: int = Query(default=20, ge=1, le=1000),
@@ -4515,49 +4941,86 @@ def get_transaction_history(
     try:
         with get_transaction() as cur:
             query = """
-                SELECT t.id, t.type, t.timestamp, t.bol_reference, t.shipper_name,
-                       t.customer_name, t.order_reference, t.adjust_reason, t.notes,
-                       json_agg(json_build_object(
+                SELECT ct.id, ct.type, ct.timestamp, ct.occurred_at,
+                       ct.business_date, ct.created_at, ct.operator_id,
+                       ct.effective_status AS status,
+                       ct.latest_correction_id, ct.latest_correction_type,
+                       ct.latest_correction_created_at,
+                       ct.effective_record ->> 'bol_reference' AS bol_reference,
+                       ct.effective_record ->> 'shipper_name' AS shipper_name,
+                       ct.effective_record ->> 'customer_name' AS customer_name,
+                       ct.effective_record ->> 'order_reference' AS order_reference,
+                       ct.effective_record ->> 'adjust_reason' AS adjust_reason,
+                       ct.effective_record ->> 'notes' AS notes,
+                       lines.lines,
+                       corrections.correction_chain
+                FROM ledger_current_transactions ct
+                LEFT JOIN LATERAL (
+                    SELECT json_agg(json_build_object(
                            'product_name', p.name,
                            'lot_code', l.lot_code,
                            'quantity_lb', tl.quantity_lb,
                            'case_size_lb', p.case_size_lb,
                            'product_type', p.type
-                       )) as lines
-                FROM transactions t
-                LEFT JOIN transaction_lines tl ON tl.transaction_id = t.id
-                LEFT JOIN products p ON p.id = tl.product_id
-                LEFT JOIN lots l ON l.id = tl.lot_id
-                WHERE COALESCE(t.status, 'posted') = 'posted'
+                       ) ORDER BY tl.id) AS lines
+                    FROM ledger_current_transaction_lines tl
+                    LEFT JOIN products p ON p.id = tl.product_id
+                    LEFT JOIN lots l ON l.id = tl.lot_id
+                    WHERE tl.transaction_id = ct.id
+                ) lines ON true
+                LEFT JOIN LATERAL (
+                    SELECT json_agg(json_build_object(
+                        'correction_id', c.id,
+                        'event_type', c.event_type,
+                        'reason', c.reason,
+                        'operator_id', c.operator_id,
+                        'created_at', c.created_at,
+                        'previous_values', c.previous_values,
+                        'replacement_values', c.replacement_values
+                    ) ORDER BY c.created_at, c.id) AS correction_chain
+                    FROM ledger_corrections c
+                    WHERE (c.target_table = 'transactions' AND c.target_id = ct.id)
+                       OR (c.target_table = 'transaction_lines' AND EXISTS (
+                           SELECT 1 FROM transaction_lines target_line
+                           WHERE target_line.id = c.target_id
+                             AND target_line.transaction_id = ct.id
+                       ))
+                ) corrections ON true
+                WHERE true
             """
             params = []
 
             if transaction_type:
-                query += " AND t.type = %s"
+                query += " AND ct.type = %s"
                 params.append(transaction_type)
 
             if product_name:
-                query += " AND p.name ILIKE %s"
+                query += " AND EXISTS (SELECT 1 FROM ledger_current_transaction_lines ftl JOIN products fp ON fp.id = ftl.product_id WHERE ftl.transaction_id = ct.id AND fp.name ILIKE %s)"
                 params.append(f"%{product_name}%")
 
             if since:
-                query += " AND t.timestamp >= %s"
-                params.append(datetime.combine(since, datetime.min.time(), tzinfo=timezone.utc))
+                query += " AND ct.business_date >= %s"
+                params.append(since)
 
             if until:
-                query += " AND t.timestamp < %s"
-                params.append(datetime.combine(until + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc))
+                query += " AND ct.business_date <= %s"
+                params.append(until)
 
-            query += " GROUP BY t.id ORDER BY t.timestamp DESC LIMIT %s"
+            query += " ORDER BY ct.created_at DESC, ct.id DESC LIMIT %s"
             params.append(limit)
             
             cur.execute(query, params)
             transactions = cur.fetchall()
             
             for txn in transactions:
-                date_str, time_str = format_timestamp(txn['timestamp'])
+                date_str, time_str = format_timestamp(txn['occurred_at'])
                 txn['date'] = date_str
                 txn['time'] = time_str
+                created_date, created_time = format_timestamp(txn['created_at'])
+                txn['created_date'] = created_date
+                txn['created_time'] = created_time
+                if txn.get('latest_correction_id'):
+                    txn['latest_correction_id'] = str(txn['latest_correction_id'])
                 # Enrich lines with unit counts
                 if txn.get('lines'):
                     for ln in txn['lines']:
@@ -4749,11 +5212,22 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                 """, (lot_id,))
                 usage = cur.fetchone()
                 
+                cur.execute(
+                    "SELECT id FROM ledger_current_transaction_lines WHERE lot_id = %s ORDER BY id",
+                    (lot_id,),
+                )
+                affected_line_ids = [row["id"] for row in cur.fetchall()]
                 cur.execute("UPDATE lots SET product_id = %s WHERE id = %s", (req.to_product_id, lot_id))
-                
-                cur.execute("""
-                    UPDATE transaction_lines SET product_id = %s WHERE lot_id = %s
-                """, (req.to_product_id, lot_id))
+                line_correction_ids = [
+                    _append_transaction_line_correction(
+                        cur,
+                        line_id,
+                        {"product_id": req.to_product_id},
+                        req.reason_notes or req.reason_code,
+                        _operator_id(_),
+                    )
+                    for line_id in affected_line_ids
+                ]
                 
                 reassignment_id = None
                 try:
@@ -4777,6 +5251,7 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     "success": True,
                     "lot_id": lot_id,
                     "reassignment_id": reassignment_id,
+                    "line_correction_ids": line_correction_ids,
                     "lot_code": lot['lot_code'],
                     "from_product": lot['product_name'],
                     "to_product": to_product['name'],
@@ -8861,12 +9336,24 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
 
                 rows_moved = {}
 
-                # 5. Move transaction_lines
+                # 5. Move transaction lines through append-only effective-state
+                # corrections; raw historical line rows never change.
                 cur.execute(
-                    "UPDATE transaction_lines SET lot_id = %s WHERE lot_id = %s",
-                    (req.target_lot_id, req.source_lot_id)
+                    "SELECT id FROM ledger_current_transaction_lines WHERE lot_id = %s ORDER BY id",
+                    (req.source_lot_id,),
                 )
-                rows_moved["transaction_lines"] = cur.rowcount
+                line_ids = [row["id"] for row in cur.fetchall()]
+                line_correction_ids = [
+                    _append_transaction_line_correction(
+                        cur,
+                        line_id,
+                        {"lot_id": req.target_lot_id},
+                        req.reason,
+                        _operator_id(_),
+                    )
+                    for line_id in line_ids
+                ]
+                rows_moved["transaction_lines"] = len(line_correction_ids)
 
                 # Move ingredient_lot_consumption
                 cur.execute(
@@ -8905,6 +9392,7 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                     "target_lot_code": target['lot_code'],
                     "product_id": source['product_id'],
                     "rows_moved": rows_moved,
+                    "line_correction_ids": line_correction_ids,
                     "target_lot_new_balance": computed_balance,
                     "audit_note": req.reason
                 }

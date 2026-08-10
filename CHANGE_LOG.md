@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-10 — Prepare Trial v8.1 Phase 1 timestamp/cutoff deployment
+- **File(s) changed:** `main.py`, `migrations/039_trial_timestamp_integrity.sql`, `migrations/dry-runs/039_phase1_timestamp_integrity_dry_run.sql`, `tests/schema/schema.sql`, `tests/test_phase1_ledger_integrity.py`, `tests/test_void_semantics.py`, `docs/deployments/phase-1-ledger-trial.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added database-forced timestamp provenance, separate business/occurred time, append-only transaction and line corrections, append-only daily certification chains, late-entry JSON/CSV evidence, effective-state history/balance reads, and a Phase 1-only deployment/preflight package.
+- **Why:** Make the Aug 10–14 Trial v8.1 scoring week able to prove when original entries and corrections were created relative to the owner’s evening certification.
+
+---
+
 ## 2026-08-05 12:11 — Record final live Floor GPT dispatch configuration
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added regression-guard row 50 for the exact live instruction rebuild/schema sync and recorded the completed SO-260723-001 dispatch receipts (shipment header 319, transactions 1847/1848), superseding the earlier pre-test state note.

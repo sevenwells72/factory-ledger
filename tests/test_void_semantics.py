@@ -1,9 +1,9 @@
 """Tests for unified void semantics.
 
-Convention under test: status='posted' is the single source of truth for ALL
-balance math. Voiding a transaction flips its status to 'voided' (its lines
-drop out of every balance via POSTED_LINES) and does NOT post a reversal
-transaction.
+Convention under test: effective append-only status is the single source of
+truth for ALL balance math. Voiding a transaction inserts a correction event
+(its lines drop out through POSTED_LINES) and does not mutate the original or
+post a reversal transaction.
 
 Regression context: the old POST /void/{id} marked the original voided AND
 inserted a posted reversal transaction, while some balance queries counted
@@ -135,10 +135,20 @@ def test_void_restores_balance_with_no_new_transaction_row(db_cursor, void_db):
     assert _txn_count(cur) == before, "void must not insert any transaction row"
     assert lot_on_hand(cur, lot_id) == pytest.approx(100.0)
 
-    cur.execute("SELECT status, notes FROM transactions WHERE id = %s", (ship_id,))
+    cur.execute("SELECT status, notes, created_at FROM transactions WHERE id = %s", (ship_id,))
     row = cur.fetchone()
-    assert row["status"] == "voided"
-    assert "test void" in row["notes"]
+    assert row["status"] == "posted", "the original transaction must stay untouched"
+    assert row["notes"] is None
+    cur.execute(
+        "SELECT event_type, reason, previous_values, replacement_values "
+        "FROM ledger_corrections WHERE target_table = 'transactions' AND target_id = %s",
+        (ship_id,),
+    )
+    correction = cur.fetchone()
+    assert correction["event_type"] == "void"
+    assert correction["reason"] == "test void"
+    assert correction["previous_values"]["status"] == "posted"
+    assert correction["replacement_values"]["status"] == "voided"
 
 
 @pytest.mark.db
@@ -192,13 +202,13 @@ def test_regression_lot_582_pattern_never_recreated(db_cursor, void_db):
     )
     assert cur.fetchone()["n"] == 0
 
-    # Posted-only view and "all rows minus voided" view must agree exactly
+    # Posted-only view and independently resolved effective state agree.
     assert lot_on_hand(cur, lot_id) == pytest.approx(0.0)
     cur.execute(
         """SELECT COALESCE(SUM(tl.quantity_lb), 0) AS bal
            FROM transaction_lines tl
-           JOIN transactions t ON t.id = tl.transaction_id
-           WHERE tl.lot_id = %s AND COALESCE(t.status, 'posted') != 'voided'""",
+           JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+           WHERE tl.lot_id = %s AND t.effective_status = 'posted'""",
         (lot_id,),
     )
     assert float(cur.fetchone()["bal"]) == pytest.approx(0.0)
@@ -216,8 +226,8 @@ def test_double_void_fails_cleanly_and_changes_nothing(db_cursor, void_db):
     void_transaction(adj_id, VoidRequest(reason="first void"), True)
     assert lot_on_hand(cur, lot_id) == pytest.approx(50.0)
     before = _txn_count(cur)
-    cur.execute("SELECT notes FROM transactions WHERE id = %s", (adj_id,))
-    notes_before = cur.fetchone()["notes"]
+    cur.execute("SELECT status, notes, created_at FROM transactions WHERE id = %s", (adj_id,))
+    original_before = dict(cur.fetchone())
 
     with pytest.raises(HTTPException) as exc_info:
         void_transaction(adj_id, VoidRequest(reason="second void"), True)
@@ -226,7 +236,11 @@ def test_double_void_fails_cleanly_and_changes_nothing(db_cursor, void_db):
 
     assert _txn_count(cur) == before
     assert lot_on_hand(cur, lot_id) == pytest.approx(50.0)
-    cur.execute("SELECT status, notes FROM transactions WHERE id = %s", (adj_id,))
-    row = cur.fetchone()
-    assert row["status"] == "voided"
-    assert row["notes"] == notes_before, "failed re-void must not touch notes"
+    cur.execute("SELECT status, notes, created_at FROM transactions WHERE id = %s", (adj_id,))
+    assert dict(cur.fetchone()) == original_before, "void and failed re-void must not touch the original"
+    cur.execute(
+        "SELECT COUNT(*) AS n FROM ledger_corrections "
+        "WHERE target_table = 'transactions' AND target_id = %s",
+        (adj_id,),
+    )
+    assert cur.fetchone()["n"] == 1
