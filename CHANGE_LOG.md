@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-11 15:19 — Classify pack formats and redesign the Production Calendar
+- **File(s) changed:** `migrations/040_product_pack_format.sql`, `scripts/propose_pack_format_backfill.py`, `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/schema/schema.sql`, `tests/test_dashboard_production_calendar.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added constrained nullable `products.pack_format` values (`10lb`, `25lb`, `bagged`, or NULL), an explicit proposal/apply backfill tool, and the approved 58-SKU mapping with bulk per-lb SKU 70004 intentionally NULL. Migration 040 and the approved backfill were applied to production: 24 non-NULL products (2 `10lb`, 13 `25lb`, 9 `bagged`) and 34 NULL. Redesigned the dashboard Production Calendar as compact per-day made/packed totals plus a click-through detail panel grouped into Coconut, Granola, and Graham families with only populated subsections, full product names, SKU labels, and no placeholder columns. Extended the existing calendar endpoint with SKU and `pack_format`; made counts use finished-output weight, including coconut pans calculated as `total_lbs / (default_batch_lb * yield_multiplier)`. Full DB-backed suite passes 70/70 and browser QA passed. GPT schemas remain unchanged at 30 main operations and 22 Floor operations. Branch `feat/pack-format-calendar`; application changes are not pushed or deployed.
+- **Why:** Give production reporting a durable pack-format classification and make daily production/packing totals scannable while preserving full per-family batch, pan, label, SKU, and case detail.
+
+---
+
 ## 2026-08-11 13:29 — Deploy and verify Graham dashboard visibility
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Pushed `fix/dashboard-graham-visibility`, opened and merged PR #14 with the repository's regular merge strategy, and synchronized `main` at merge commit `1359df5`. Railway production deployment `cbfa943e-4d2e-4b7d-8ec2-995e7e79a1f7` reported success; Netlify production served dashboard CSS v14 and JS v24. Live verification passed: the 2026-08-10 production API returned Graham 10 LB at 4,200 lb / 420 units; the rendered Monday calendar showed GRAHAM, 4,200 lb, and Packed 10 LB / 420 units; the 10 LB Cases panel/API showed 4,200 lb / 420 cases with no missing SKU; Bulk Crumbs showed Graham 50 LB at 29,990 lb with no missing SKU.

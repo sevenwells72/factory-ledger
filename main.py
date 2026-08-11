@@ -8034,8 +8034,10 @@ def dashboard_api_production(
 
             cur.execute(f"""
                 SELECT DATE((t.timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York') as prod_date,
-                       p.name as product_name, p.type as product_type,
-                       p.default_batch_lb, p.case_size_lb,
+                       t.type as transaction_type,
+                       p.name as product_name, p.odoo_code as sku,
+                       p.type as product_type, p.pack_format,
+                       p.default_batch_lb, p.yield_multiplier, p.case_size_lb,
                        SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as total_lbs,
                        COUNT(DISTINCT t.id) as txn_count
                 FROM ledger_current_transactions t
@@ -8045,7 +8047,7 @@ def dashboard_api_production(
                   AND t.effective_status = 'posted'
                   AND tl.quantity_lb > 0
                   AND {date_filter}
-                GROUP BY prod_date, p.id
+                GROUP BY prod_date, p.id, t.type
                 ORDER BY prod_date DESC, p.name
             """, params)
             rows = cur.fetchall()
@@ -8061,13 +8063,23 @@ def dashboard_api_production(
             total_lbs = float(r['total_lbs'] or 0)
             entry = {
                 "product_name": r['product_name'],
+                "sku": r['sku'],
                 "total_lbs": total_lbs,
-                "product_type": r['product_type']
+                "product_type": r['product_type'],
+                "transaction_type": r['transaction_type'],
+                "pack_format": r['pack_format']
             }
-            if r['product_type'] == 'batch':
+            if r['transaction_type'] == 'make':
                 batch_size = float(r['default_batch_lb']) if r['default_batch_lb'] else None
+                yield_multiplier = float(r['yield_multiplier']) if r['yield_multiplier'] is not None else 1.0
+                # Make lines store finished-output weight. One physical pan/batch is the
+                # base formula weight after yield gain or loss; for hydrated coconut,
+                # that means default_batch_lb * yield_multiplier per finished pan.
+                made_unit_size = batch_size * yield_multiplier if batch_size and yield_multiplier > 0 else None
                 entry["standard_batch_size_lbs"] = batch_size
-                entry["batch_count"] = round(total_lbs / batch_size) if batch_size else None
+                entry["yield_multiplier"] = yield_multiplier
+                entry["made_unit_size_lbs"] = made_unit_size
+                entry["batch_count"] = round(total_lbs / made_unit_size) if made_unit_size else None
                 days_map[d]["batches"].append(entry)
             else:
                 cs = float(r['case_size_lb']) if r['case_size_lb'] else None

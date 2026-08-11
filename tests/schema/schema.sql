@@ -1270,6 +1270,8 @@ CREATE TABLE public.products (
     is_service boolean DEFAULT false NOT NULL,
     is_copack boolean DEFAULT false NOT NULL,
     no_production boolean DEFAULT false NOT NULL,
+    pack_format text,
+    CONSTRAINT products_pack_format_check CHECK (((pack_format IS NULL) OR (pack_format = ANY (ARRAY['10lb'::text, '25lb'::text, 'bagged'::text])))),
     CONSTRAINT products_type_check CHECK ((type = ANY (ARRAY['ingredient'::text, 'packaging'::text, 'batch'::text, 'finished'::text])))
 );
 
