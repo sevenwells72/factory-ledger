@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-11 — Deploy Trial v8.1 Phase 1 timestamp/cutoff integrity
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/phase-1-ledger-trial.md`
+- **What changed:** Recorded the successful production application of migration 039 and Railway deployment `8a005c7b-6205-4046-a5de-8b04d89d3f47` for commit `d17836f`. The guarded migration asserted the approved 12,526-row scope; the Floor `POST /adjust` smoke transaction `1891` was preserved with append-only void correction `549ba2f1-d50b-43f6-9f6f-aa5f6ae44ff0`; past-date certification `0d9af99b-975f-4962-b8f2-311b4f1fd558` was corrected by `ce5d1b11-e5c1-4baf-b4d9-4a0d815db853`. Health and tonight's certification slot passed. Phases 2–6 remain absent.
+- **Why:** Keep the repository's operational record aligned with the exact live migration, deployment, evidence rows, and Phase 1-only boundary.
+
+---
+
 ## 2026-08-10 — Prepare Trial v8.1 Phase 1 timestamp/cutoff deployment
 - **File(s) changed:** `main.py`, `migrations/039_trial_timestamp_integrity.sql`, `migrations/dry-runs/039_phase1_timestamp_integrity_dry_run.sql`, `tests/schema/schema.sql`, `tests/test_phase1_ledger_integrity.py`, `tests/test_void_semantics.py`, `docs/deployments/phase-1-ledger-trial.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added database-forced timestamp provenance, separate business/occurred time, append-only transaction and line corrections, append-only daily certification chains, late-entry JSON/CSV evidence, effective-state history/balance reads, and a Phase 1-only deployment/preflight package.

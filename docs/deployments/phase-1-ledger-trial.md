@@ -1,6 +1,6 @@
 # Phase 1 deployment note — timestamp integrity and certification cutoff
 
-Status: isolated database verified (67/67 tests); not applied to production.
+Status: deployed to production on 2026-08-11 (migration 039; commit `d17836f`; Railway deployment `8a005c7b-6205-4046-a5de-8b04d89d3f47`). Isolated verification passed 67/67 tests; production smoke passed. Phases 2–6 remain undeployed.
 
 Original transaction headers and line rows are now database append-only, not only timestamp-protected. Administrative lot reassignment/merge paths append effective line-correction events, so current balance reads move while raw historical lines remain unchanged.
 
