@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-11 15:30 — Deploy and verify the pack-format Production Calendar
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Pushed feature commit `66a6c5e`, merged `feat/pack-format-calendar` into `main` with merge commit `02d8119`, and pushed `main`. Automatic production deploys completed successfully: Railway deployment `8a9b0fdf-d30d-482b-b6ed-203be1e1db6b` and Netlify deployment `6a7b778d5c4c1a0008476b40`. The live read-only `GET /dashboard/api/production?month=2026-08` response for 2026-08-10 reports Batch Coconut Sweetened Flake at 12 pans, Batch Classic Granola #9 at 16 batches, CQ Coconut Sweetened Flake 10 LB at 440 packed cases, and Graham Cracker Crumbs – 10 LB at 420 packed cases. Updated regression-guard row 54 from application-not-deployed to deployed with the exact commit, deployment, and verification evidence.
+- **Why:** Close the approved release loop with positive evidence that both production services published the same merge and the live calendar calculations/classifications are correct.
+
+---
+
 ## 2026-08-11 15:19 — Classify pack formats and redesign the Production Calendar
 - **File(s) changed:** `migrations/040_product_pack_format.sql`, `scripts/propose_pack_format_backfill.py`, `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/schema/schema.sql`, `tests/test_dashboard_production_calendar.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added constrained nullable `products.pack_format` values (`10lb`, `25lb`, `bagged`, or NULL), an explicit proposal/apply backfill tool, and the approved 58-SKU mapping with bulk per-lb SKU 70004 intentionally NULL. Migration 040 and the approved backfill were applied to production: 24 non-NULL products (2 `10lb`, 13 `25lb`, 9 `bagged`) and 34 NULL. Redesigned the dashboard Production Calendar as compact per-day made/packed totals plus a click-through detail panel grouped into Coconut, Granola, and Graham families with only populated subsections, full product names, SKU labels, and no placeholder columns. Extended the existing calendar endpoint with SKU and `pack_format`; made counts use finished-output weight, including coconut pans calculated as `total_lbs / (default_batch_lb * yield_multiplier)`. Full DB-backed suite passes 70/70 and browser QA passed. GPT schemas remain unchanged at 30 main operations and 22 Floor operations. Branch `feat/pack-format-calendar`; application changes are not pushed or deployed.
