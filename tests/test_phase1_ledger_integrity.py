@@ -260,6 +260,104 @@ def test_dashboard_daily_views_show_created_at_and_respect_effective_voids(
 
 
 @pytest.mark.db
+def test_production_summaries_use_corrected_lines_and_effective_status(
+    _db_connection, phase1_client
+):
+    product_name = "PHASE1-GRAHAM-PRODUCTION"
+    target_date = main.get_plant_now().date()
+    with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(
+            """INSERT INTO products (name, type, active, default_batch_lb)
+               VALUES (%s, 'batch', true, 10)
+               RETURNING id""",
+            (product_name,),
+        )
+        product_id = cur.fetchone()["id"]
+        cur.execute(
+            """INSERT INTO lots (product_id, lot_code)
+               VALUES (%s, 'PHASE1-GRAHAM-PRODUCTION-LOT')
+               RETURNING id""",
+            (product_id,),
+        )
+        lot_id = cur.fetchone()["id"]
+        cur.execute(
+            """INSERT INTO transactions (type, timestamp, status)
+               VALUES ('make', NOW(), 'posted')
+               RETURNING id""",
+        )
+        transaction_id = cur.fetchone()["id"]
+        cur.execute(
+            """INSERT INTO transaction_lines
+                   (transaction_id, product_id, lot_id, quantity_lb)
+               VALUES (%s, %s, %s, 10)
+               RETURNING id""",
+            (transaction_id, product_id, lot_id),
+        )
+        line_id = cur.fetchone()["id"]
+        main._append_transaction_line_correction(
+            cur,
+            line_id,
+            {"quantity_lb": 25},
+            "correct production quantity",
+            "phase1-test",
+        )
+
+    calendar = phase1_client.get("/dashboard/api/production", params={"days": 1})
+    assert calendar.status_code == 200, calendar.text
+    calendar_rows = [
+        row
+        for day in calendar.json()["days"]
+        for row in day["batches"]
+        if row["product_name"] == product_name
+    ]
+    assert len(calendar_rows) == 1
+    assert calendar_rows[0]["total_lbs"] == 25
+
+    with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
+        daily = main.get_daily_production_summary(cur, target_date)
+    daily_row = next(
+        row for row in daily["production"] if row["product_name"] == product_name
+    )
+    assert daily_row["total_lb"] == 25
+
+    day_summary = phase1_client.get(
+        "/production/day-summary", params={"date": target_date.isoformat()}
+    )
+    assert day_summary.status_code == 200, day_summary.text
+    batch_row = next(
+        row
+        for row in day_summary.json()["batch_products"]
+        if row["product_name"] == product_name
+    )
+    assert batch_row["total_produced_lb"] == 25
+
+    voided = phase1_client.post(
+        f"/records/transactions/{transaction_id}/corrections",
+        json={"event_type": "void", "reason": "production summary effective-state test"},
+    )
+    assert voided.status_code == 200, voided.text
+
+    calendar_after = phase1_client.get(
+        "/dashboard/api/production", params={"days": 1}
+    ).json()
+    assert all(
+        row["product_name"] != product_name
+        for day in calendar_after["days"]
+        for row in day["batches"]
+    )
+    with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
+        daily_after = main.get_daily_production_summary(cur, target_date)
+    assert all(row["product_name"] != product_name for row in daily_after["production"])
+    day_summary_after = phase1_client.get(
+        "/production/day-summary", params={"date": target_date.isoformat()}
+    ).json()
+    assert all(
+        row["product_name"] != product_name
+        for row in day_summary_after["batch_products"]
+    )
+
+
+@pytest.mark.db
 def test_late_cutoff_boundary_and_csv_include_corrections(_db_connection, phase1_client):
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
         first, _ = _seed_transaction(cur, "PHASE1-BOUNDARY-A")

@@ -381,7 +381,7 @@ body {
 
 .production-category-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
 }
 
@@ -415,8 +415,39 @@ body {
 
 .category-coconut .category-dot { background: var(--badge-text); }
 .category-granola .category-dot { background: var(--badge-amber-text); }
+.category-graham .category-dot { background: var(--badge-green-text); }
+.category-other .category-dot { background: var(--text-muted); }
 .category-coconut .production-category-header { color: var(--badge-text); }
 .category-granola .production-category-header { color: var(--badge-amber-text); }
+.category-graham .production-category-header { color: var(--badge-green-text); }
+.category-other .production-category-header { color: var(--text-muted); }
+
+.production-category-column.category-other {
+  grid-column: 1 / -1;
+  border-left: 0;
+  border-top: 1px solid var(--border);
+  padding-left: 0;
+  padding-top: 8px;
+  margin-left: 0;
+  margin-top: 8px;
+}
+
+.calendar-grid.month-view .production-category-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.calendar-grid.month-view .production-category-column + .production-category-column {
+  border-left: 0;
+  border-top: 1px solid var(--border);
+  padding-left: 0;
+  padding-top: 8px;
+  margin-left: 0;
+}
+
+.calendar-grid.month-view .production-category-column.category-other {
+  margin-top: 0;
+}
 
 .category-total {
   color: var(--text-muted);
@@ -477,6 +508,10 @@ body {
     padding-left: 0;
     padding-top: 8px;
     margin-left: 0;
+  }
+
+  .production-category-column.category-other {
+    margin-top: 0;
   }
 }
 

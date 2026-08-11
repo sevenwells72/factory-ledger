@@ -903,11 +903,11 @@ def get_daily_production_summary(cur, target_date=None):
                t.type as transaction_type,
                SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as output_lb,
                COUNT(DISTINCT t.id) as transaction_count
-        FROM transactions t
-        JOIN transaction_lines tl ON tl.transaction_id = t.id
+        FROM ledger_current_transactions t
+        JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
         JOIN products p ON p.id = tl.product_id
         WHERE t.type IN ('make', 'pack')
-          AND COALESCE(t.status, 'posted') = 'posted'
+          AND t.effective_status = 'posted'
           AND t.timestamp >= %s AND t.timestamp < %s
         GROUP BY p.id, p.name, p.type, t.type
         ORDER BY t.type, p.name
@@ -930,12 +930,12 @@ def get_daily_production_summary(cur, target_date=None):
         SELECT p.name as product_name, l.lot_code,
                tl.quantity_lb as adjustment_lb,
                t.adjust_reason as reason
-        FROM transactions t
-        JOIN transaction_lines tl ON tl.transaction_id = t.id
+        FROM ledger_current_transactions t
+        JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
         JOIN products p ON p.id = tl.product_id
         JOIN lots l ON l.id = tl.lot_id
         WHERE t.type = 'adjust'
-          AND COALESCE(t.status, 'posted') = 'posted'
+          AND t.effective_status = 'posted'
           AND t.timestamp >= %s AND t.timestamp < %s
         ORDER BY t.timestamp
     """, (day_start, day_end))
@@ -8038,11 +8038,11 @@ def dashboard_api_production(
                        p.default_batch_lb, p.case_size_lb,
                        SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as total_lbs,
                        COUNT(DISTINCT t.id) as txn_count
-                FROM transactions t
-                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                FROM ledger_current_transactions t
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 JOIN products p ON p.id = tl.product_id
                 WHERE t.type IN ('make', 'pack')
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                   AND tl.quantity_lb > 0
                   AND {date_filter}
                 GROUP BY prod_date, p.id
@@ -9640,12 +9640,12 @@ def production_day_summary(
                 SELECT p.id as product_id, p.name as product_name,
                        l.id as lot_id, l.lot_code,
                        tl.quantity_lb, t.id as transaction_id
-                FROM transactions t
-                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                FROM ledger_current_transactions t
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 JOIN products p ON p.id = tl.product_id
                 JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'make'
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                   AND t.timestamp >= %s AND t.timestamp < %s
                   AND tl.quantity_lb > 0
                 ORDER BY t.timestamp
@@ -9657,11 +9657,11 @@ def production_day_summary(
                 SELECT l.id as lot_id, l.lot_code,
                        ABS(tl.quantity_lb) as packed_lb,
                        t.id as transaction_id
-                FROM transactions t
-                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                FROM ledger_current_transactions t
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'pack'
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                   AND t.timestamp >= %s AND t.timestamp < %s
                   AND tl.quantity_lb < 0
                 ORDER BY t.timestamp
@@ -9673,12 +9673,12 @@ def production_day_summary(
                 SELECT p.id as product_id, p.name as product_name,
                        l.lot_code, tl.quantity_lb,
                        t.notes
-                FROM transactions t
-                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                FROM ledger_current_transactions t
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 JOIN products p ON p.id = tl.product_id
                 JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'pack'
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                   AND t.timestamp >= %s AND t.timestamp < %s
                   AND tl.quantity_lb > 0
                 ORDER BY t.timestamp
@@ -9690,12 +9690,12 @@ def production_day_summary(
                 SELECT p.name as product_name, l.id as lot_id, l.lot_code,
                        tl.quantity_lb as adjustment_lb,
                        t.adjust_reason as reason
-                FROM transactions t
-                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                FROM ledger_current_transactions t
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 JOIN products p ON p.id = tl.product_id
                 JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'adjust'
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                   AND t.timestamp >= %s AND t.timestamp < %s
                 ORDER BY t.timestamp
             """, (day_start, day_end))
