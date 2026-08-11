@@ -127,12 +127,14 @@
     const explicitCategory = String(product?.category || product?.family || '').trim().toLowerCase();
     if (explicitCategory.includes('coconut')) return 'coconut';
     if (explicitCategory.includes('granola')) return 'granola';
+    if (explicitCategory.includes('graham')) return 'graham';
 
     const productName = String(product?.product_name || product?.name || '').trim();
     const normalizedName = productName.replace(/^Batch\s+/i, '');
     if (/coconut/i.test(normalizedName)) return 'coconut';
     if (/granola/i.test(normalizedName) || /^(CQ|SS)\b/i.test(normalizedName)) return 'granola';
-    console.warn('Unrendered production calendar product category:', product);
+    if (/graham/i.test(normalizedName)) return 'graham';
+    console.warn('Production calendar product categorized as OTHER:', product);
     return 'other';
   }
 
@@ -153,6 +155,10 @@
     } else if (category === 'granola') {
       itemName = itemName
         .replace(/\bGranola\b/gi, '');
+    } else if (category === 'graham') {
+      itemName = itemName
+        .replace(/\bGraham Cracker Crumbs\b/gi, '')
+        .replace(/^[\s\u2013-]+/, '');
     }
 
     return itemName.replace(/\s+/g, ' ').trim();
@@ -184,12 +190,13 @@
   function buildProductionCategorySummary(day) {
     const summary = {
       coconut: { totalLbs: 0, batches: [], packed: [] },
-      granola: { totalLbs: 0, batches: [], packed: [] }
+      granola: { totalLbs: 0, batches: [], packed: [] },
+      graham: { totalLbs: 0, batches: [], packed: [] },
+      other: { totalLbs: 0, batches: [], packed: [] }
     };
 
     for (const batch of (day.batches || [])) {
       const category = getProductCategory(batch);
-      if (!summary[category]) continue;
       summary[category].totalLbs += Number(batch.total_lbs) || 0;
       summary[category].batches.push({
         name: formatItemName(batch.product_name, category),
@@ -199,7 +206,6 @@
 
     for (const finishedGood of (day.finished_goods || [])) {
       const category = getProductCategory(finishedGood);
-      if (!summary[category]) continue;
       summary[category].totalLbs += Number(finishedGood.total_lbs) || 0;
       summary[category].packed.push({
         name: formatItemName(finishedGood.product_name, category),
@@ -457,8 +463,12 @@
         const categorySummary = buildProductionCategorySummary(day);
         const categoryColumns = [
           { key: 'coconut', label: 'COCONUT' },
-          { key: 'granola', label: 'GRANOLA' }
+          { key: 'granola', label: 'GRANOLA' },
+          { key: 'graham', label: 'GRAHAM' }
         ];
+        if (categorySummary.other.batches.length > 0 || categorySummary.other.packed.length > 0) {
+          categoryColumns.push({ key: 'other', label: 'OTHER' });
+        }
         html += '<div class="production-category-grid">';
         for (const column of categoryColumns) {
           const category = categorySummary[column.key];

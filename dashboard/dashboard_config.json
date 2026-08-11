@@ -26,7 +26,8 @@
       "case_weight_lb": 10,
       "skus": [
         "Granola Crunchy CNS 10 LB Case",
-        "CQ Granola 10 LB"
+        "CQ Granola 10 LB",
+        "Graham Cracker Crumbs \u2013 10 LB"
       ]
     },
     {
@@ -187,6 +188,14 @@
         "Cinnamon Ground",
         "Coffee \u2013 Instant",
         "Salt"
+      ]
+    },
+    {
+      "id": "bulk_crumbs",
+      "title": "Bulk Crumbs",
+      "unit": "lb",
+      "items": [
+        "Graham Cracker Crumbs \u2013 50 LB"
       ]
     }
   ]

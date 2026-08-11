@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-11 13:22 — Fix Graham crumb dashboard visibility
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/dashboard_config.json`, `dashboard/index.html`, `main.py`, `tests/test_phase1_ledger_integrity.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added case-insensitive Graham product classification and a dedicated green GRAHAM production-calendar column, with compact 10 LB labels, readable stacked category sections in seven-column month view, and an optional rendered OTHER section plus console warning for uncategorized production. Added the exact active DB names `Graham Cracker Crumbs – 10 LB` to the 10 LB finished-goods panel and `Graham Cracker Crumbs – 50 LB` to a new Bulk Crumbs ingredient panel; bumped dashboard CSS/JS cache versions. Switched `get_daily_production_summary`, `GET /dashboard/api/production`, and every production query in `GET /production/day-summary` to `ledger_current_transactions` / `ledger_current_transaction_lines` with `effective_status='posted'`. Added a regression test proving corrected line quantities appear and append-only voids disappear across all three reads; full suite passes 69/69. Branch `fix/dashboard-graham-visibility`; not pushed or deployed.
+- **Why:** Graham crumb production and inventory were omitted from dashboard views, while the affected production summaries still bypassed Phase 1 corrected ledger state.
+
+---
+
 ## 2026-08-11 — Show database entry time in daily dashboard transaction views
 - **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `tests/test_phase1_ledger_integrity.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added `created_at`, plant-local created date/time, and timestamp provenance to the Shipping, Receiving, and lot-timeline dashboard APIs. Their visible time column now shows operational occurrence time plus a compact `Entered:` line; migration backfills and legacy timestamps are visibly identified. These reads now resolve Phase 1 effective transaction and line state so append-only voids do not remain in the dashboard. Added regression coverage; full suite passes 68/68.
