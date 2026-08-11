@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-11 15:44 — Deploy Production Calendar category colors
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Merged `feat/calendar-category-colors` into `main` with merge commit `89a0219` and pushed `main`. Automatic production deploys completed successfully: Railway deployment `c8163fd1-896d-45f6-b10c-b3414fb33437` and Netlify deployment `6a7b7b9dd6c8d60008a6930f`, both for the merge commit. The live dashboard serves `dashboard.css?v=16` and `dashboard.js?v=26`. Updated regression-guard row 55 from not deployed to deployed with exact commit, deployment, and live asset-version evidence.
+- **Why:** Close the approved release loop and preserve positive evidence that the product-family color release is live on both production services.
+
+---
+
 ## 2026-08-11 15:42 — Color-code Production Calendar product families
 - **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`, `dashboard/index.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added reusable coconut, granola, and graham category color variables. Dark mode uses blue `#60a5fa`, amber `#fbbf24`, and green `#4ade80`; light mode uses darker accessible companions. Layer 1 Made/Packed product-line labels now carry their family color while numeric totals retain the existing near-white text color. Layer 2 Coconut, Granola, and Graham family card headers use the same colors. Bumped dashboard CSS v15→v16 and JS v25→v26. JavaScript syntax and diff checks passed; browser QA verified all eight visible labels and three family headers, unchanged numeric colors, and dark-surface contrast ratios of 5.75:1, 8.76:1, and 8.40:1 respectively. Branch `feat/calendar-category-colors`; not pushed or deployed.
