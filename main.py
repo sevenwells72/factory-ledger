@@ -8359,7 +8359,8 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT t.id, t.timestamp, t.customer_name, t.order_reference, t.notes,
+                SELECT t.id, t.timestamp, t.created_at, t.created_at_source,
+                       t.customer_name, t.order_reference, t.notes,
                        json_agg(json_build_object(
                            'product_name', p.name,
                            'product_id', p.id,
@@ -8370,11 +8371,12 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                            'is_service', COALESCE(p.is_service, false)
                        ) ORDER BY p.name) as lines
                 FROM transactions t
-                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                JOIN ledger_current_transactions ct ON ct.id = t.id
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 JOIN products p ON p.id = tl.product_id
                 LEFT JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'ship'
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND ct.effective_status = 'posted'
                   AND LOWER(COALESCE(t.customer_name, '')) != 'internal packaging'
                 GROUP BY t.id
                 ORDER BY t.timestamp DESC
@@ -8385,6 +8387,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
         result = []
         for s in shipments:
             d, tm = format_timestamp(s['timestamp'])
+            created_date, created_time = format_timestamp(s['created_at'])
             total_lbs = 0
             total_units = 0
             enriched_lines = []
@@ -8401,6 +8404,10 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 "transaction_id": s['id'],
                 "date": d,
                 "time": tm,
+                "created_at": s['created_at'],
+                "created_date": created_date,
+                "created_time": created_time,
+                "created_at_source": s['created_at_source'],
                 "customer_name": s['customer_name'],
                 "order_reference": s['order_reference'],
                 "total_lbs": total_lbs,
@@ -8420,7 +8427,8 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT t.id, t.timestamp, t.shipper_name, t.bol_reference, t.notes,
+                SELECT t.id, t.timestamp, t.created_at, t.created_at_source,
+                       t.shipper_name, t.bol_reference, t.notes,
                        t.cases_received, t.case_size_lb,
                        json_agg(json_build_object(
                            'product_name', p.name,
@@ -8430,11 +8438,12 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                            'case_size_lb', p.case_size_lb
                        ) ORDER BY p.name) as lines
                 FROM transactions t
-                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                JOIN ledger_current_transactions ct ON ct.id = t.id
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 JOIN products p ON p.id = tl.product_id
                 LEFT JOIN lots l ON l.id = tl.lot_id
                 WHERE t.type = 'receive'
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND ct.effective_status = 'posted'
                 GROUP BY t.id
                 ORDER BY t.timestamp DESC
                 LIMIT %s
@@ -8444,6 +8453,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
         result = []
         for r in receipts:
             d, tm = format_timestamp(r['timestamp'])
+            created_date, created_time = format_timestamp(r['created_at'])
             total_lbs = 0
             enriched_lines = []
             for ln in (r['lines'] or []):
@@ -8456,6 +8466,10 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                 "transaction_id": r['id'],
                 "date": d,
                 "time": tm,
+                "created_at": r['created_at'],
+                "created_date": created_date,
+                "created_time": created_time,
+                "created_at_source": r['created_at_source'],
                 "shipper_name": r['shipper_name'],
                 "bol_reference": r['bol_reference'],
                 "total_lbs": total_lbs,
@@ -8506,10 +8520,10 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
             # First transaction to get original quantity
             cur.execute("""
                 SELECT tl.quantity_lb
-                FROM transaction_lines tl
-                JOIN transactions t ON t.id = tl.transaction_id
+                FROM ledger_current_transaction_lines tl
+                JOIN ledger_current_transactions t ON t.id = tl.transaction_id
                 WHERE tl.lot_id = %s
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                 ORDER BY t.timestamp ASC
                 LIMIT 1
             """, (lot['id'],))
@@ -8519,14 +8533,15 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
             # Full timeline
             cur.execute("""
                 SELECT t.id as transaction_id, t.type, t.timestamp,
+                       t.created_at, t.created_at_source,
                        tl.quantity_lb,
                        t.customer_name, t.shipper_name, t.order_reference,
                        t.bol_reference, t.adjust_reason, t.notes,
                        t.cases_received, t.case_size_lb
-                FROM transaction_lines tl
-                JOIN transactions t ON t.id = tl.transaction_id
+                FROM ledger_current_transaction_lines tl
+                JOIN ledger_current_transactions t ON t.id = tl.transaction_id
                 WHERE tl.lot_id = %s
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                 ORDER BY t.timestamp ASC
             """, (lot['id'],))
             timeline_rows = cur.fetchall()
@@ -8536,6 +8551,7 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
         timeline = []
         for tr in timeline_rows:
             d, tm = format_timestamp(tr['timestamp'])
+            created_date, created_time = format_timestamp(tr['created_at'])
             qty_lb = float(tr['quantity_lb'])
             # For receives, use actual cases_received; otherwise derive from product case_size_lb
             if tr['cases_received'] is not None:
@@ -8549,6 +8565,10 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
                 "type": tr['type'],
                 "date": d,
                 "time": tm,
+                "created_at": tr['created_at'],
+                "created_date": created_date,
+                "created_time": created_time,
+                "created_at_source": tr['created_at_source'],
                 "quantity_lb": qty_lb,
                 "cases": cases,
                 "customer_name": tr['customer_name'],

@@ -275,6 +275,16 @@
     return escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function createdAtMeta(record) {
+    if (!record || !record.created_date || !record.created_time) return '';
+    const source = record.created_at_source || 'unknown';
+    let provenance = '';
+    if (source === 'migration_backfill_039') provenance = ' · backfilled';
+    if (source === 'legacy_unverified') provenance = ' · legacy';
+    const title = `Database created_at (${source})`;
+    return `<div class="created-at-meta" title="${escAttr(title)}">Entered: ${escHtml(record.created_date)} ${escHtml(record.created_time)}${escHtml(provenance)}</div>`;
+  }
+
   function saveExpandedPanels() {
     sessionStorage.setItem('expandedPanels', JSON.stringify([...state.expandedPanels]));
   }
@@ -698,13 +708,13 @@
       container.innerHTML = '<div class="loading-indicator">No shipments found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Date/Time</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
+    let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
     for (const s of shipments) {
       const rowId = 'ship-' + s.transaction_id;
       const products = (s.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
       html += `<tr class="expandable" data-expand="${rowId}">`;
-      html += `<td>${escHtml(s.date)} ${escHtml(s.time)}</td>`;
+      html += `<td><div>${escHtml(s.date)} ${escHtml(s.time)}</div>${createdAtMeta(s)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       html += `<td class="num">${s.total_units ? fmt(s.total_lbs) + ' lb &middot; ' + fmtInt(s.total_units) + ' units' : fmt(s.total_lbs) + ' lb'}</td>`;
       html += `<td>${escHtml(s.customer_name || '\u2014')}</td>`;
@@ -750,13 +760,13 @@
       container.innerHTML = '<div class="loading-indicator">No receipts found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Date/Time</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
+    let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
     for (const r of receipts) {
       const rowId = 'recv-' + r.transaction_id;
       const products = (r.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
       html += `<tr class="expandable" data-expand="${rowId}">`;
-      html += `<td>${escHtml(r.date)} ${escHtml(r.time)}</td>`;
+      html += `<td><div>${escHtml(r.date)} ${escHtml(r.time)}</div>${createdAtMeta(r)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       const recvUnits = r.cases_received || null;
       html += `<td class="num">${recvUnits ? fmt(r.total_lbs) + ' lb &middot; ' + fmtInt(recvUnits) + ' units' : fmt(r.total_lbs) + ' lb'}</td>`;
@@ -854,7 +864,8 @@
       html += '<ul class="timeline">';
       for (const t of data.timeline) {
         html += `<li class="txn-${t.type}">`;
-        html += `<div class="tl-date">${escHtml(t.date)} ${escHtml(t.time)}</div>`;
+        html += `<div class="tl-date">Occurred: ${escHtml(t.date)} ${escHtml(t.time)}</div>`;
+        html += createdAtMeta(t);
         html += `<div><span class="tl-type">${escHtml(t.type)}</span> <span class="tl-qty">${fmtQtyCases(t.quantity_lb, t.cases)}</span></div>`;
         let ctx = '';
         if (t.customer_name) ctx += 'Customer: ' + t.customer_name;

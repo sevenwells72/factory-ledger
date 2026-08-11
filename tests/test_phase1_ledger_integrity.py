@@ -200,6 +200,66 @@ def test_floor_adjust_route_then_append_only_void(_db_connection, phase1_client)
 
 
 @pytest.mark.db
+def test_dashboard_daily_views_show_created_at_and_respect_effective_voids(
+    _db_connection, phase1_client
+):
+    with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
+        received, line = _seed_transaction(cur, "PHASE1-DASHBOARD-TIMESTAMP")
+        cur.execute(
+            """INSERT INTO transactions
+                   (type, timestamp, status, customer_name, order_reference)
+               VALUES ('ship', NOW(), 'posted', 'PHASE1 TEST CUSTOMER', 'PHASE1-DASHBOARD')
+               RETURNING id"""
+        )
+        shipment_id = cur.fetchone()["id"]
+        cur.execute(
+            """INSERT INTO transaction_lines
+                   (transaction_id, product_id, lot_id, quantity_lb)
+               SELECT %s, product_id, lot_id, -1
+               FROM transaction_lines WHERE id = %s""",
+            (shipment_id, line["id"]),
+        )
+        cur.execute(
+            "SELECT lot_code FROM lots WHERE id = "
+            "(SELECT lot_id FROM transaction_lines WHERE id = %s)",
+            (line["id"],),
+        )
+        lot_code = cur.fetchone()["lot_code"]
+
+    receipts = phase1_client.get("/dashboard/api/activity/receipts").json()["receipts"]
+    receipt = next(row for row in receipts if row["transaction_id"] == received["id"])
+    assert receipt["created_at"]
+    assert receipt["created_date"]
+    assert receipt["created_time"].endswith(" ET")
+    assert receipt["created_at_source"] == "database"
+
+    shipments = phase1_client.get("/dashboard/api/activity/shipments").json()["shipments"]
+    shipment = next(row for row in shipments if row["transaction_id"] == shipment_id)
+    assert shipment["created_at"]
+    assert shipment["created_date"]
+    assert shipment["created_time"].endswith(" ET")
+    assert shipment["created_at_source"] == "database"
+
+    lot_detail = phase1_client.get(f"/dashboard/api/lot/{lot_code}").json()
+    timeline_row = next(
+        row for row in lot_detail["timeline"] if row["transaction_id"] == shipment_id
+    )
+    assert timeline_row["created_at"]
+    assert timeline_row["created_date"]
+    assert timeline_row["created_time"].endswith(" ET")
+
+    voided = phase1_client.post(
+        f"/records/transactions/{shipment_id}/corrections",
+        json={"event_type": "void", "reason": "dashboard effective-state test"},
+    )
+    assert voided.status_code == 200, voided.text
+    shipments_after = phase1_client.get("/dashboard/api/activity/shipments").json()["shipments"]
+    assert all(row["transaction_id"] != shipment_id for row in shipments_after)
+    lot_after = phase1_client.get(f"/dashboard/api/lot/{lot_code}").json()["timeline"]
+    assert all(row["transaction_id"] != shipment_id for row in lot_after)
+
+
+@pytest.mark.db
 def test_late_cutoff_boundary_and_csv_include_corrections(_db_connection, phase1_client):
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
         first, _ = _seed_transaction(cur, "PHASE1-BOUNDARY-A")
