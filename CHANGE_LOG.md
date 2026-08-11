@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-11 15:42 — Color-code Production Calendar product families
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`, `dashboard/index.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added reusable coconut, granola, and graham category color variables. Dark mode uses blue `#60a5fa`, amber `#fbbf24`, and green `#4ade80`; light mode uses darker accessible companions. Layer 1 Made/Packed product-line labels now carry their family color while numeric totals retain the existing near-white text color. Layer 2 Coconut, Granola, and Graham family card headers use the same colors. Bumped dashboard CSS v15→v16 and JS v25→v26. JavaScript syntax and diff checks passed; browser QA verified all eight visible labels and three family headers, unchanged numeric colors, and dark-surface contrast ratios of 5.75:1, 8.76:1, and 8.40:1 respectively. Branch `feat/calendar-category-colors`; not pushed or deployed.
+- **Why:** Restore the pre-redesign product-family visual cues so operators can distinguish coconut, granola, and graham lines quickly without changing the calendar’s data or layout.
+
+---
+
 ## 2026-08-11 15:30 — Deploy and verify the pack-format Production Calendar
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Pushed feature commit `66a6c5e`, merged `feat/pack-format-calendar` into `main` with merge commit `02d8119`, and pushed `main`. Automatic production deploys completed successfully: Railway deployment `8a9b0fdf-d30d-482b-b6ed-203be1e1db6b` and Netlify deployment `6a7b778d5c4c1a0008476b40`. The live read-only `GET /dashboard/api/production?month=2026-08` response for 2026-08-10 reports Batch Coconut Sweetened Flake at 12 pans, Batch Classic Granola #9 at 16 batches, CQ Coconut Sweetened Flake 10 LB at 440 packed cases, and Graham Cracker Crumbs – 10 LB at 420 packed cases. Updated regression-guard row 54 from application-not-deployed to deployed with the exact commit, deployment, and verification evidence.

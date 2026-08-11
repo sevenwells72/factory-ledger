@@ -154,17 +154,17 @@
   }
 
   const MADE_CATEGORY_DEFS = [
-    { key: 'coconut', label: 'Coconut pans', singular: 'pan', plural: 'pans' },
-    { key: 'granola', label: 'Granola batches', singular: 'batch', plural: 'batches' },
-    { key: 'graham', label: 'Graham batches', singular: 'batch', plural: 'batches' }
+    { key: 'coconut', family: 'coconut', label: 'Coconut pans', singular: 'pan', plural: 'pans' },
+    { key: 'granola', family: 'granola', label: 'Granola batches', singular: 'batch', plural: 'batches' },
+    { key: 'graham', family: 'graham', label: 'Graham batches', singular: 'batch', plural: 'batches' }
   ];
 
   const PACKED_CATEGORY_DEFS = [
-    { key: 'granola-10lb', label: 'Granola 10 lb' },
-    { key: 'granola-25lb', label: 'Granola 25 lb' },
-    { key: 'granola-bagged', label: 'Granola bagged' },
-    { key: 'coconut', label: 'Coconut' },
-    { key: 'graham', label: 'Graham' }
+    { key: 'granola-10lb', family: 'granola', label: 'Granola 10 lb' },
+    { key: 'granola-25lb', family: 'granola', label: 'Granola 25 lb' },
+    { key: 'granola-bagged', family: 'granola', label: 'Granola bagged' },
+    { key: 'coconut', family: 'coconut', label: 'Coconut' },
+    { key: 'graham', family: 'graham', label: 'Graham' }
   ];
 
   const PRODUCTION_FAMILY_DEFS = [
@@ -533,14 +533,14 @@
         if (summary.made.length > 0) {
           html += '<span class="calendar-summary-section"><span class="day-section-label">Made</span>';
           for (const group of summary.made) {
-            html += `<span class="calendar-summary-row"><span>${escHtml(group.label)}</span><strong>${escHtml(formatProductionCount(group.count))}</strong></span>`;
+            html += `<span class="calendar-summary-row"><span class="production-category-label category-${escAttr(group.family)}">${escHtml(group.label)}</span><strong>${escHtml(formatProductionCount(group.count))}</strong></span>`;
           }
           html += '</span>';
         }
         if (summary.packed.length > 0) {
           html += '<span class="calendar-summary-section packed"><span class="day-section-label">Packed &middot; cases</span>';
           for (const group of summary.packed) {
-            html += `<span class="calendar-summary-row"><span>${escHtml(group.label)}</span><strong>${escHtml(formatProductionCount(group.count))}</strong></span>`;
+            html += `<span class="calendar-summary-row"><span class="production-category-label category-${escAttr(group.family)}">${escHtml(group.label)}</span><strong>${escHtml(formatProductionCount(group.count))}</strong></span>`;
           }
           html += '</span>';
         }
