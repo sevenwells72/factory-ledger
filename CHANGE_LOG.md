@@ -1,16 +1,79 @@
 # Change Log
 
 ## 2026-08-12 11:58 — Surface verification_notes production warnings (Kosher Ignition follow-up)
-- **File(s) changed:** `main.py`, `tests/test_production_warning.py` (new), `openapi-gpt-v3.yaml`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `FACTORY_LEDGER_CHANGELOG.md` (row 52)
+- **File(s) changed:** `main.py`, `tests/test_production_warning.py` (new), `openapi-gpt-v3.yaml`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `FACTORY_LEDGER_CHANGELOG.md` (row 57; renumbered from 52 on merge — origin/main had taken 51–55)
 - **What changed:** `/make` (preview + commit) and `GET /bom/batches/{id}/formula` now return a `production_warning` block (verification_notes EN + ES, relay message) when the product's `verification_notes` is non-empty; `resolve_product_full` selects the two notes columns. Both GPT schemas updated on existing operations only (op counts unchanged: 30 v3 / 22 floor). Floor instructions gained a relay-verbatim-before-commit MAKE rule (dist rebuilt, 7,833/8,000 chars; dropped one redundant dispatch line covered elsewhere). 6 new tests; suite 68/68 on the local test DB.
-- **Why:** Row 51 gap — the Kosher Ignition requirement on batches 90025/90026 was recorded in the DB but invisible to floor operators. Branch `feat/kosher-ignition-visibility`, not yet deployed.
+- **Why:** Row 56 gap (renumbered from 51 on merge) — the Kosher Ignition requirement on batches 90025/90026 was recorded in the DB but invisible to floor operators. Branch `feat/kosher-ignition-visibility`, not yet deployed.
 
 ---
 
 ## 2026-08-12 11:26 — Created SS Classic #9 kosher product family in prod DB
-- **File(s) changed:** none (production Supabase data change) + `FACTORY_LEDGER_CHANGELOG.md` (row 51)
+- **File(s) changed:** none (production Supabase data change) + `FACTORY_LEDGER_CHANGELOG.md` (row 56; renumbered from 51 on merge — origin/main had taken 51–55)
 - **What changed:** Inserted 2 batch products — odoo 90025 "Batch SS Classic Granola #9 (Kosher Ignition)" (323 lb) and 90026 "Batch SS Classic Chocolate Chip Granola #9 (Kosher Ignition)" (348 lb) — with batch_formulas copied verbatim from 90002 (7 rows) and 90001 (8 rows); verified identical ingredient-for-ingredient. Inserted 6 finished goods (odoo 70013–70018: Bulk per/lb, 25 LB, 10 LB for each flavor) parented to the new batches with pack_format NULL/'25lb'/'10lb'. All 8 products carry the Kosher Ignition requirement (oven turned on by owner Blubber or designated messenger) in `verification_notes`.
 - **Why:** Kosher-supervised Sunshine versions of the Classic #9 granolas need distinct SKUs with the ignition requirement recorded on the product. Note: `verification_notes` is not surfaced by any Floor GPT endpoint or the dashboard — follow-up needed if operators must see it in-system.
+
+---
+
+## 2026-08-11 15:44 — Deploy Production Calendar category colors
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Merged `feat/calendar-category-colors` into `main` with merge commit `89a0219` and pushed `main`. Automatic production deploys completed successfully: Railway deployment `c8163fd1-896d-45f6-b10c-b3414fb33437` and Netlify deployment `6a7b7b9dd6c8d60008a6930f`, both for the merge commit. The live dashboard serves `dashboard.css?v=16` and `dashboard.js?v=26`. Updated regression-guard row 55 from not deployed to deployed with exact commit, deployment, and live asset-version evidence.
+- **Why:** Close the approved release loop and preserve positive evidence that the product-family color release is live on both production services.
+
+---
+
+## 2026-08-11 15:42 — Color-code Production Calendar product families
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`, `dashboard/index.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added reusable coconut, granola, and graham category color variables. Dark mode uses blue `#60a5fa`, amber `#fbbf24`, and green `#4ade80`; light mode uses darker accessible companions. Layer 1 Made/Packed product-line labels now carry their family color while numeric totals retain the existing near-white text color. Layer 2 Coconut, Granola, and Graham family card headers use the same colors. Bumped dashboard CSS v15→v16 and JS v25→v26. JavaScript syntax and diff checks passed; browser QA verified all eight visible labels and three family headers, unchanged numeric colors, and dark-surface contrast ratios of 5.75:1, 8.76:1, and 8.40:1 respectively. Branch `feat/calendar-category-colors`; not pushed or deployed.
+- **Why:** Restore the pre-redesign product-family visual cues so operators can distinguish coconut, granola, and graham lines quickly without changing the calendar’s data or layout.
+
+---
+
+## 2026-08-11 15:30 — Deploy and verify the pack-format Production Calendar
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Pushed feature commit `66a6c5e`, merged `feat/pack-format-calendar` into `main` with merge commit `02d8119`, and pushed `main`. Automatic production deploys completed successfully: Railway deployment `8a9b0fdf-d30d-482b-b6ed-203be1e1db6b` and Netlify deployment `6a7b778d5c4c1a0008476b40`. The live read-only `GET /dashboard/api/production?month=2026-08` response for 2026-08-10 reports Batch Coconut Sweetened Flake at 12 pans, Batch Classic Granola #9 at 16 batches, CQ Coconut Sweetened Flake 10 LB at 440 packed cases, and Graham Cracker Crumbs – 10 LB at 420 packed cases. Updated regression-guard row 54 from application-not-deployed to deployed with the exact commit, deployment, and verification evidence.
+- **Why:** Close the approved release loop with positive evidence that both production services published the same merge and the live calendar calculations/classifications are correct.
+
+---
+
+## 2026-08-11 15:19 — Classify pack formats and redesign the Production Calendar
+- **File(s) changed:** `migrations/040_product_pack_format.sql`, `scripts/propose_pack_format_backfill.py`, `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/schema/schema.sql`, `tests/test_dashboard_production_calendar.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added constrained nullable `products.pack_format` values (`10lb`, `25lb`, `bagged`, or NULL), an explicit proposal/apply backfill tool, and the approved 58-SKU mapping with bulk per-lb SKU 70004 intentionally NULL. Migration 040 and the approved backfill were applied to production: 24 non-NULL products (2 `10lb`, 13 `25lb`, 9 `bagged`) and 34 NULL. Redesigned the dashboard Production Calendar as compact per-day made/packed totals plus a click-through detail panel grouped into Coconut, Granola, and Graham families with only populated subsections, full product names, SKU labels, and no placeholder columns. Extended the existing calendar endpoint with SKU and `pack_format`; made counts use finished-output weight, including coconut pans calculated as `total_lbs / (default_batch_lb * yield_multiplier)`. Full DB-backed suite passes 70/70 and browser QA passed. GPT schemas remain unchanged at 30 main operations and 22 Floor operations. Branch `feat/pack-format-calendar`; application changes are not pushed or deployed.
+- **Why:** Give production reporting a durable pack-format classification and make daily production/packing totals scannable while preserving full per-family batch, pan, label, SKU, and case detail.
+
+---
+
+## 2026-08-11 13:29 — Deploy and verify Graham dashboard visibility
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Pushed `fix/dashboard-graham-visibility`, opened and merged PR #14 with the repository's regular merge strategy, and synchronized `main` at merge commit `1359df5`. Railway production deployment `cbfa943e-4d2e-4b7d-8ec2-995e7e79a1f7` reported success; Netlify production served dashboard CSS v14 and JS v24. Live verification passed: the 2026-08-10 production API returned Graham 10 LB at 4,200 lb / 420 units; the rendered Monday calendar showed GRAHAM, 4,200 lb, and Packed 10 LB / 420 units; the 10 LB Cases panel/API showed 4,200 lb / 420 cases with no missing SKU; Bulk Crumbs showed Graham 50 LB at 29,990 lb with no missing SKU.
+- **Why:** Close the deployment loop with positive production evidence that the Graham calendar and both inventory panels are live and numerically correct.
+
+---
+
+## 2026-08-11 13:22 — Fix Graham crumb dashboard visibility
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/dashboard_config.json`, `dashboard/index.html`, `main.py`, `tests/test_phase1_ledger_integrity.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added case-insensitive Graham product classification and a dedicated green GRAHAM production-calendar column, with compact 10 LB labels, readable stacked category sections in seven-column month view, and an optional rendered OTHER section plus console warning for uncategorized production. Added the exact active DB names `Graham Cracker Crumbs – 10 LB` to the 10 LB finished-goods panel and `Graham Cracker Crumbs – 50 LB` to a new Bulk Crumbs ingredient panel; bumped dashboard CSS/JS cache versions. Switched `get_daily_production_summary`, `GET /dashboard/api/production`, and every production query in `GET /production/day-summary` to `ledger_current_transactions` / `ledger_current_transaction_lines` with `effective_status='posted'`. Added a regression test proving corrected line quantities appear and append-only voids disappear across all three reads; full suite passes 69/69. Branch `fix/dashboard-graham-visibility`; not pushed or deployed.
+- **Why:** Graham crumb production and inventory were omitted from dashboard views, while the affected production summaries still bypassed Phase 1 corrected ledger state.
+
+---
+
+## 2026-08-11 — Show database entry time in daily dashboard transaction views
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `tests/test_phase1_ledger_integrity.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added `created_at`, plant-local created date/time, and timestamp provenance to the Shipping, Receiving, and lot-timeline dashboard APIs. Their visible time column now shows operational occurrence time plus a compact `Entered:` line; migration backfills and legacy timestamps are visibly identified. These reads now resolve Phase 1 effective transaction and line state so append-only voids do not remain in the dashboard. Added regression coverage; full suite passes 68/68.
+- **Why:** Let operators inspect database entry time day-to-day without downloading evidence, while preserving the distinction between when activity occurred and when it was entered.
+
+---
+
+## 2026-08-11 — Deploy Trial v8.1 Phase 1 timestamp/cutoff integrity
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/phase-1-ledger-trial.md`
+- **What changed:** Recorded the successful production application of migration 039 and Railway deployment `8a005c7b-6205-4046-a5de-8b04d89d3f47` for commit `d17836f`. The guarded migration asserted the approved 12,526-row scope; the Floor `POST /adjust` smoke transaction `1891` was preserved with append-only void correction `549ba2f1-d50b-43f6-9f6f-aa5f6ae44ff0`; past-date certification `0d9af99b-975f-4962-b8f2-311b4f1fd558` was corrected by `ce5d1b11-e5c1-4baf-b4d9-4a0d815db853`. Health and tonight's certification slot passed. Phases 2–6 remain absent.
+- **Why:** Keep the repository's operational record aligned with the exact live migration, deployment, evidence rows, and Phase 1-only boundary.
+
+---
+
+## 2026-08-10 — Prepare Trial v8.1 Phase 1 timestamp/cutoff deployment
+- **File(s) changed:** `main.py`, `migrations/039_trial_timestamp_integrity.sql`, `migrations/dry-runs/039_phase1_timestamp_integrity_dry_run.sql`, `tests/schema/schema.sql`, `tests/test_phase1_ledger_integrity.py`, `tests/test_void_semantics.py`, `docs/deployments/phase-1-ledger-trial.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added database-forced timestamp provenance, separate business/occurred time, append-only transaction and line corrections, append-only daily certification chains, late-entry JSON/CSV evidence, effective-state history/balance reads, and a Phase 1-only deployment/preflight package.
+- **Why:** Make the Aug 10–14 Trial v8.1 scoring week able to prove when original entries and corrections were created relative to the owner’s evening certification.
 
 ---
 

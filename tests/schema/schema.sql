@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
-\restrict 6fmBgPHv2EQChrKr60f5cP5EQtgT9aAnnpLlYHpzp41mxpIZHaQsnnhlRdMwP1z
+\restrict uMIRMnAGhjmZZxQeafcCcWXrx4e2nlmHgoATrGjwo4rvXswMpSBuazyBqhG64f9
 
--- Dumped from database version 17.6
+-- Dumped from database version 17.10 (Homebrew)
 -- Dumped by pg_dump version 17.10 (Homebrew)
 
 SET statement_timeout = 0;
@@ -24,6 +24,8 @@ SET row_security = off;
 --
 
 CREATE SCHEMA IF NOT EXISTS public;
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
 
 --
@@ -85,6 +87,82 @@ BEGIN
     WHERE order_number LIKE today_prefix || '-%';
 
     NEW.order_number := today_prefix || '-' || LPAD(seq::TEXT, 3, '0');
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: ledger_block_append_only_change(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ledger_block_append_only_change() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    RAISE EXCEPTION '% is append-only; create a correction event instead', TG_TABLE_NAME
+        USING ERRCODE = '23000';
+END;
+$$;
+
+
+--
+-- Name: ledger_enforce_created_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ledger_enforce_created_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        NEW.created_at := clock_timestamp();
+        NEW.created_at_source := 'database';
+        RETURN NEW;
+    END IF;
+
+    IF NEW.created_at IS DISTINCT FROM OLD.created_at
+       OR NEW.created_at_source IS DISTINCT FROM OLD.created_at_source THEN
+        RAISE EXCEPTION 'created_at and created_at_source are immutable on %', TG_TABLE_NAME
+            USING ERRCODE = '23000';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: ledger_fill_transaction_business_time(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ledger_fill_transaction_business_time() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.occurred_at IS NULL THEN
+        NEW.occurred_at := COALESCE(NEW."timestamp" AT TIME ZONE 'UTC', clock_timestamp());
+    END IF;
+    IF NEW.business_date IS NULL THEN
+        NEW.business_date := timezone('America/New_York', NEW.occurred_at)::date;
+    END IF;
+    IF NEW.operator_id IS NULL OR btrim(NEW.operator_id) = '' THEN
+        NEW.operator_id := COALESCE(NULLIF(current_setting('app.operator_id', true), ''), 'legacy-shared-key');
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: ledger_force_new_created_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ledger_force_new_created_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.created_at := clock_timestamp();
+    NEW.created_at_source := 'database';
+    NEW.operator_id := COALESCE(NULLIF(current_setting('app.operator_id', true), ''), NEW.operator_id, 'legacy-shared-key');
     RETURN NEW;
 END;
 $$;
@@ -501,6 +579,46 @@ ALTER SEQUENCE public.boms_id_seq OWNED BY public.boms.id;
 
 
 --
+-- Name: certifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.certifications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    business_date date NOT NULL,
+    certified_at timestamp with time zone NOT NULL,
+    operator_id text DEFAULT 'legacy-shared-key'::text NOT NULL,
+    source_type text DEFAULT 'manual'::text NOT NULL,
+    source_message_id text,
+    notes text,
+    supersedes_certification_id uuid,
+    correction_reason text,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL,
+    CONSTRAINT certification_correction_reason CHECK ((((supersedes_certification_id IS NULL) AND (correction_reason IS NULL)) OR ((supersedes_certification_id IS NOT NULL) AND (btrim(correction_reason) <> ''::text)))),
+    CONSTRAINT certifications_source_type_check CHECK ((source_type = ANY (ARRAY['manual'::text, 'whatsapp_export'::text])))
+);
+
+
+--
+-- Name: current_certifications; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.current_certifications AS
+ SELECT DISTINCT ON (business_date) id AS certification_id,
+    business_date,
+    certified_at,
+    operator_id,
+    source_type,
+    source_message_id,
+    notes,
+    supersedes_certification_id,
+    correction_reason,
+    created_at
+   FROM public.certifications
+  ORDER BY business_date, created_at DESC, id DESC;
+
+
+--
 -- Name: customer_aliases; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -581,7 +699,8 @@ CREATE TABLE public.ingredient_lot_consumption (
     ingredient_product_id integer,
     ingredient_lot_id integer,
     quantity_lb numeric(14,4) NOT NULL,
-    created_at timestamp without time zone DEFAULT now()
+    created_at timestamp without time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL
 );
 
 
@@ -628,7 +747,9 @@ CREATE TABLE public.inventory_adjustments (
     adjusted_by character varying(100),
     adjusted_at timestamp with time zone DEFAULT now(),
     inventory_count_id integer,
-    reason_notes_es text
+    reason_notes_es text,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL
 );
 
 
@@ -662,6 +783,163 @@ SELECT
     NULL::text AS name,
     NULL::text AS type,
     NULL::numeric AS on_hand;
+
+
+--
+-- Name: ledger_corrections; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ledger_corrections (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    target_table text NOT NULL,
+    target_id bigint NOT NULL,
+    event_type text NOT NULL,
+    previous_values jsonb NOT NULL,
+    replacement_values jsonb NOT NULL,
+    reason text NOT NULL,
+    operator_id text DEFAULT 'legacy-shared-key'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL,
+    CONSTRAINT ledger_corrections_event_type_check CHECK ((event_type = ANY (ARRAY['amend'::text, 'void'::text, 'restore'::text]))),
+    CONSTRAINT ledger_corrections_previous_values_check CHECK ((jsonb_typeof(previous_values) = 'object'::text)),
+    CONSTRAINT ledger_corrections_reason_check CHECK ((btrim(reason) <> ''::text)),
+    CONSTRAINT ledger_corrections_replacement_values_check CHECK ((jsonb_typeof(replacement_values) = 'object'::text)),
+    CONSTRAINT ledger_corrections_supported_target CHECK ((target_table = ANY (ARRAY['transactions'::text, 'transaction_lines'::text])))
+);
+
+
+--
+-- Name: transaction_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.transaction_lines (
+    id integer NOT NULL,
+    transaction_id integer NOT NULL,
+    product_id integer NOT NULL,
+    lot_id integer NOT NULL,
+    quantity_lb numeric(14,4) NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL
+);
+
+
+--
+-- Name: ledger_current_transaction_lines; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.ledger_current_transaction_lines AS
+ SELECT tl.id,
+    tl.transaction_id,
+    COALESCE(((correction.replacement_values ->> 'product_id'::text))::integer, tl.product_id) AS product_id,
+    COALESCE(((correction.replacement_values ->> 'lot_id'::text))::integer, tl.lot_id) AS lot_id,
+    COALESCE(((correction.replacement_values ->> 'quantity_lb'::text))::numeric, tl.quantity_lb) AS quantity_lb,
+    tl.created_at,
+    tl.created_at_source,
+    correction.id AS latest_correction_id,
+    correction.created_at AS latest_correction_created_at,
+    correction.operator_id AS latest_correction_operator_id,
+    (to_jsonb(tl.*) || COALESCE(correction.replacement_values, '{}'::jsonb)) AS effective_record
+   FROM (public.transaction_lines tl
+     LEFT JOIN LATERAL ( SELECT c.id,
+            c.target_table,
+            c.target_id,
+            c.event_type,
+            c.previous_values,
+            c.replacement_values,
+            c.reason,
+            c.operator_id,
+            c.created_at,
+            c.created_at_source
+           FROM public.ledger_corrections c
+          WHERE ((c.target_table = 'transaction_lines'::text) AND (c.target_id = tl.id))
+          ORDER BY c.created_at DESC, c.id DESC
+         LIMIT 1) correction ON (true));
+
+
+--
+-- Name: transactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.transactions (
+    id integer NOT NULL,
+    type text NOT NULL,
+    "timestamp" timestamp without time zone DEFAULT now(),
+    notes text,
+    bol_reference text,
+    shipper_name text,
+    shipper_code text,
+    cases_received integer,
+    case_size_lb numeric(10,2),
+    customer_name text,
+    order_reference text,
+    adjust_reason text,
+    adjust_reason_es text,
+    status text DEFAULT 'posted'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL,
+    occurred_at timestamp with time zone NOT NULL,
+    business_date date NOT NULL,
+    operator_id text DEFAULT 'legacy-shared-key'::text NOT NULL
+);
+
+
+--
+-- Name: ledger_current_transactions; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.ledger_current_transactions AS
+ SELECT t.id,
+    t.type,
+    t."timestamp",
+    t.notes,
+    t.bol_reference,
+    t.shipper_name,
+    t.shipper_code,
+    t.cases_received,
+    t.case_size_lb,
+    t.customer_name,
+    t.order_reference,
+    t.adjust_reason,
+    t.adjust_reason_es,
+    t.status,
+    t.created_at,
+    t.created_at_source,
+    t.occurred_at,
+    t.business_date,
+    t.operator_id,
+        CASE
+            WHEN (correction.event_type = 'void'::text) THEN 'voided'::text
+            WHEN (correction.event_type = 'restore'::text) THEN 'posted'::text
+            WHEN (correction.event_type = 'amend'::text) THEN COALESCE((correction.replacement_values ->> 'status'::text), t.status, 'posted'::text)
+            ELSE COALESCE(t.status, 'posted'::text)
+        END AS effective_status,
+    correction.id AS latest_correction_id,
+    correction.event_type AS latest_correction_type,
+    correction.created_at AS latest_correction_created_at,
+    correction.operator_id AS latest_correction_operator_id,
+    correction.replacement_values AS latest_replacement_values,
+    ((to_jsonb(t.*) || COALESCE(correction.replacement_values, '{}'::jsonb)) || jsonb_build_object('status',
+        CASE
+            WHEN (correction.event_type = 'void'::text) THEN 'voided'::text
+            WHEN (correction.event_type = 'restore'::text) THEN 'posted'::text
+            WHEN (correction.event_type = 'amend'::text) THEN COALESCE((correction.replacement_values ->> 'status'::text), t.status, 'posted'::text)
+            ELSE COALESCE(t.status, 'posted'::text)
+        END)) AS effective_record
+   FROM (public.transactions t
+     LEFT JOIN LATERAL ( SELECT c.id,
+            c.target_table,
+            c.target_id,
+            c.event_type,
+            c.previous_values,
+            c.replacement_values,
+            c.reason,
+            c.operator_id,
+            c.created_at,
+            c.created_at_source
+           FROM public.ledger_corrections c
+          WHERE ((c.target_table = 'transactions'::text) AND (c.target_id = t.id))
+          ORDER BY c.created_at DESC, c.id DESC
+         LIMIT 1) correction ON (true));
 
 
 --
@@ -735,7 +1013,9 @@ CREATE TABLE public.lot_reassignments (
     reassigned_by character varying(100),
     reassigned_at timestamp with time zone DEFAULT now(),
     original_receive_id integer,
-    reason_notes_es text
+    reason_notes_es text,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL
 );
 
 
@@ -770,7 +1050,8 @@ CREATE TABLE public.lot_supplier_codes (
     supplier_name text,
     quantity_lb numeric,
     notes text,
-    created_at timestamp with time zone DEFAULT now()
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL
 );
 
 
@@ -802,7 +1083,7 @@ CREATE TABLE public.lots (
     id integer NOT NULL,
     product_id integer NOT NULL,
     lot_code text NOT NULL,
-    created_at timestamp without time zone DEFAULT now(),
+    created_at timestamp without time zone DEFAULT clock_timestamp() NOT NULL,
     entry_source character varying(30) DEFAULT 'received'::character varying,
     entry_source_notes text,
     estimated_age character varying(50),
@@ -814,7 +1095,8 @@ CREATE TABLE public.lots (
     merge_reason text,
     supplier_lot_code text,
     lot_type text,
-    received_at timestamp with time zone
+    received_at timestamp with time zone,
+    created_at_source text DEFAULT 'database'::text NOT NULL
 );
 
 
@@ -988,6 +1270,8 @@ CREATE TABLE public.products (
     is_service boolean DEFAULT false NOT NULL,
     is_copack boolean DEFAULT false NOT NULL,
     no_production boolean DEFAULT false NOT NULL,
+    pack_format text,
+    CONSTRAINT products_pack_format_check CHECK (((pack_format IS NULL) OR (pack_format = ANY (ARRAY['10lb'::text, '25lb'::text, 'bagged'::text])))),
     CONSTRAINT products_type_check CHECK ((type = ANY (ARRAY['ingredient'::text, 'packaging'::text, 'batch'::text, 'finished'::text])))
 );
 
@@ -1005,25 +1289,12 @@ CREATE TABLE public.sales_order_lines (
     unit_price numeric(10,4),
     line_status text DEFAULT 'pending'::text NOT NULL,
     notes text,
-    created_at timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     notes_es text,
+    created_at_source text DEFAULT 'database'::text NOT NULL,
     CONSTRAINT sales_order_lines_line_status_check CHECK ((line_status = ANY (ARRAY['pending'::text, 'partial'::text, 'fulfilled'::text, 'cancelled'::text]))),
     CONSTRAINT sales_order_lines_quantity_lb_check CHECK ((quantity_lb >= (0)::numeric)),
     CONSTRAINT sales_order_lines_quantity_shipped_lb_check CHECK ((quantity_shipped_lb >= (0)::numeric))
-);
-
-
---
--- Name: sales_order_flags; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.sales_order_flags (
-    so_number text NOT NULL,
-    ready boolean DEFAULT false NOT NULL,
-    ready_at timestamp with time zone,
-    ready_by text DEFAULT 'floor'::text,
-    note text,
-    updated_at timestamp with time zone DEFAULT now()
 );
 
 
@@ -1039,9 +1310,10 @@ CREATE TABLE public.sales_orders (
     requested_ship_date date,
     status text DEFAULT 'new'::text NOT NULL,
     notes text,
-    created_at timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     updated_at timestamp with time zone DEFAULT now(),
     notes_es text,
+    created_at_source text DEFAULT 'database'::text NOT NULL,
     CONSTRAINT sales_orders_status_check CHECK ((status = ANY (ARRAY['new'::text, 'confirmed'::text, 'in_production'::text, 'ready'::text, 'shipped'::text, 'partial_ship'::text, 'invoiced'::text, 'cancelled'::text])))
 );
 
@@ -1270,8 +1542,9 @@ CREATE TABLE public.production_schedule (
     overproduction_lb numeric DEFAULT 0,
     overproduction_reason text,
     notes text,
-    created_at timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     confirmed_at timestamp with time zone,
+    created_at_source text DEFAULT 'database'::text NOT NULL,
     CONSTRAINT production_schedule_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'confirmed'::text, 'in_progress'::text, 'completed'::text, 'cancelled'::text])))
 );
 
@@ -1328,6 +1601,20 @@ CREATE TABLE public.reassignment_reason_codes (
 
 
 --
+-- Name: sales_order_flags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_order_flags (
+    so_number text NOT NULL,
+    ready boolean DEFAULT false NOT NULL,
+    ready_at timestamp with time zone,
+    ready_by text DEFAULT 'floor'::text,
+    note text,
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+--
 -- Name: sales_order_lines_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -1357,6 +1644,8 @@ CREATE TABLE public.sales_order_shipments (
     transaction_id integer NOT NULL,
     quantity_lb numeric(12,2) NOT NULL,
     shipped_at timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL,
     CONSTRAINT sales_order_shipments_quantity_lb_check CHECK ((quantity_lb > (0)::numeric))
 );
 
@@ -1422,7 +1711,9 @@ CREATE TABLE public.shipment_lines (
     transaction_id integer NOT NULL,
     sales_order_line_id integer,
     product_id integer NOT NULL,
-    quantity_lb numeric NOT NULL
+    quantity_lb numeric NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL
 );
 
 
@@ -1455,7 +1746,9 @@ CREATE TABLE public.shipments (
     sales_order_id integer,
     customer_id integer,
     shipped_at timestamp with time zone NOT NULL,
-    transaction_id integer
+    transaction_id integer,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_at_source text DEFAULT 'database'::text NOT NULL
 );
 
 
@@ -1477,41 +1770,6 @@ CREATE SEQUENCE public.shipments_id_seq
 --
 
 ALTER SEQUENCE public.shipments_id_seq OWNED BY public.shipments.id;
-
-
---
--- Name: transaction_lines; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.transaction_lines (
-    id integer NOT NULL,
-    transaction_id integer NOT NULL,
-    product_id integer NOT NULL,
-    lot_id integer NOT NULL,
-    quantity_lb numeric(14,4) NOT NULL
-);
-
-
---
--- Name: transactions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.transactions (
-    id integer NOT NULL,
-    type text NOT NULL,
-    "timestamp" timestamp without time zone DEFAULT now(),
-    notes text,
-    bol_reference text,
-    shipper_name text,
-    shipper_code text,
-    cases_received integer,
-    case_size_lb numeric(10,2),
-    customer_name text,
-    order_reference text,
-    adjust_reason text,
-    adjust_reason_es text,
-    status text DEFAULT 'posted'::text NOT NULL
-);
 
 
 --
@@ -2052,6 +2310,14 @@ ALTER TABLE ONLY public.boms
 
 
 --
+-- Name: certifications certifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.certifications
+    ADD CONSTRAINT certifications_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: customer_aliases customer_aliases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2089,6 +2355,14 @@ ALTER TABLE ONLY public.ingredient_lot_consumption
 
 ALTER TABLE ONLY public.inventory_adjustments
     ADD CONSTRAINT inventory_adjustments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ledger_corrections ledger_corrections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ledger_corrections
+    ADD CONSTRAINT ledger_corrections_pkey PRIMARY KEY (id);
 
 
 --
@@ -2364,6 +2638,13 @@ ALTER TABLE ONLY public.batch_formulas
 
 
 --
+-- Name: idx_certifications_business_date_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_certifications_business_date_created ON public.certifications USING btree (business_date, created_at, id);
+
+
+--
 -- Name: idx_customer_aliases_lower_alias; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2410,6 +2691,20 @@ CREATE INDEX idx_inventory_adjustments_product ON public.inventory_adjustments U
 --
 
 CREATE INDEX idx_inventory_adjustments_type ON public.inventory_adjustments USING btree (adjustment_type);
+
+
+--
+-- Name: idx_ledger_corrections_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ledger_corrections_created_at ON public.ledger_corrections USING btree (created_at);
+
+
+--
+-- Name: idx_ledger_corrections_target; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_ledger_corrections_target ON public.ledger_corrections USING btree (target_table, target_id, created_at, id);
 
 
 --
@@ -2707,6 +3002,13 @@ CREATE UNIQUE INDEX products_odoo_code_unique ON public.products USING btree (od
 
 
 --
+-- Name: uq_certifications_original_business_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_certifications_original_business_date ON public.certifications USING btree (business_date) WHERE (supersedes_certification_id IS NULL);
+
+
+--
 -- Name: inventory_summary _RETURN; Type: RULE; Schema: public; Owner: -
 --
 
@@ -2810,10 +3112,73 @@ CREATE OR REPLACE VIEW public.production_history AS
 
 
 --
+-- Name: certifications trg_certifications_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_certifications_append_only BEFORE DELETE OR UPDATE ON public.certifications FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: certifications trg_certifications_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_certifications_created_at BEFORE INSERT ON public.certifications FOR EACH ROW EXECUTE FUNCTION public.ledger_force_new_created_at();
+
+
+--
 -- Name: customers trg_customer_updated; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_customer_updated BEFORE UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION public.update_sales_order_timestamp();
+
+
+--
+-- Name: ingredient_lot_consumption trg_ingredient_lot_consumption_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_ingredient_lot_consumption_created_at BEFORE INSERT OR UPDATE ON public.ingredient_lot_consumption FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: inventory_adjustments trg_inventory_adjustments_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_inventory_adjustments_created_at BEFORE INSERT OR UPDATE ON public.inventory_adjustments FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: ledger_corrections trg_ledger_corrections_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_ledger_corrections_append_only BEFORE DELETE OR UPDATE ON public.ledger_corrections FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: ledger_corrections trg_ledger_corrections_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_ledger_corrections_created_at BEFORE INSERT ON public.ledger_corrections FOR EACH ROW EXECUTE FUNCTION public.ledger_force_new_created_at();
+
+
+--
+-- Name: lot_reassignments trg_lot_reassignments_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_lot_reassignments_created_at BEFORE INSERT OR UPDATE ON public.lot_reassignments FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: lot_supplier_codes trg_lot_supplier_codes_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_lot_supplier_codes_created_at BEFORE INSERT OR UPDATE ON public.lot_supplier_codes FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: lots trg_lots_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_lots_created_at BEFORE INSERT OR UPDATE ON public.lots FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
 
 
 --
@@ -2824,10 +3189,87 @@ CREATE TRIGGER trg_order_number BEFORE INSERT ON public.sales_orders FOR EACH RO
 
 
 --
+-- Name: production_schedule trg_production_schedule_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_production_schedule_created_at BEFORE INSERT OR UPDATE ON public.production_schedule FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: sales_order_lines trg_sales_order_lines_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sales_order_lines_created_at BEFORE INSERT OR UPDATE ON public.sales_order_lines FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: sales_order_shipments trg_sales_order_shipments_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sales_order_shipments_created_at BEFORE INSERT OR UPDATE ON public.sales_order_shipments FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
 -- Name: sales_orders trg_sales_order_updated; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_sales_order_updated BEFORE UPDATE ON public.sales_orders FOR EACH ROW EXECUTE FUNCTION public.update_sales_order_timestamp();
+
+
+--
+-- Name: sales_orders trg_sales_orders_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_sales_orders_created_at BEFORE INSERT OR UPDATE ON public.sales_orders FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: shipment_lines trg_shipment_lines_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_shipment_lines_created_at BEFORE INSERT OR UPDATE ON public.shipment_lines FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: shipments trg_shipments_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_shipments_created_at BEFORE INSERT OR UPDATE ON public.shipments FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: transaction_lines trg_transaction_lines_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_transaction_lines_created_at BEFORE INSERT OR UPDATE ON public.transaction_lines FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: transaction_lines trg_transaction_lines_original_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_transaction_lines_original_append_only BEFORE DELETE OR UPDATE ON public.transaction_lines FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: transactions trg_transactions_business_time; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_transactions_business_time BEFORE INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.ledger_fill_transaction_business_time();
+
+
+--
+-- Name: transactions trg_transactions_created_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_transactions_created_at BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.ledger_enforce_created_at();
+
+
+--
+-- Name: transactions trg_transactions_original_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_transactions_original_append_only BEFORE DELETE OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
 
 
 --
@@ -2852,6 +3294,14 @@ ALTER TABLE ONLY public.batch_formulas
 
 ALTER TABLE ONLY public.bom_lines
     ADD CONSTRAINT bom_lines_bom_id_fkey FOREIGN KEY (bom_id) REFERENCES public.boms(id);
+
+
+--
+-- Name: certifications certifications_supersedes_certification_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.certifications
+    ADD CONSTRAINT certifications_supersedes_certification_id_fkey FOREIGN KEY (supersedes_certification_id) REFERENCES public.certifications(id);
 
 
 --
@@ -3114,4 +3564,4 @@ ALTER TABLE ONLY public.transaction_lines
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 6fmBgPHv2EQChrKr60f5cP5EQtgT9aAnnpLlYHpzp41mxpIZHaQsnnhlRdMwP1z
+\unrestrict uMIRMnAGhjmZZxQeafcCcWXrx4e2nlmHgoATrGjwo4rvXswMpSBuazyBqhG64f9

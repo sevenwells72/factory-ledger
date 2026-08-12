@@ -12,6 +12,8 @@
     expandedPanels: new Set(JSON.parse(sessionStorage.getItem('expandedPanels') || '[]')),
     calendarMode: 'rolling', // 'rolling' | 'month'
     calendarOffset: 0,       // 0 = current period, -1 = previous, etc.
+    productionCalendarDays: [],
+    selectedProductionDate: null,
     searchTimeout: null,
     salesOrderInventory: {
       data: null,
@@ -127,39 +129,20 @@
     const explicitCategory = String(product?.category || product?.family || '').trim().toLowerCase();
     if (explicitCategory.includes('coconut')) return 'coconut';
     if (explicitCategory.includes('granola')) return 'granola';
+    if (explicitCategory.includes('graham')) return 'graham';
 
     const productName = String(product?.product_name || product?.name || '').trim();
     const normalizedName = productName.replace(/^Batch\s+/i, '');
     if (/coconut/i.test(normalizedName)) return 'coconut';
     if (/granola/i.test(normalizedName) || /^(CQ|SS)\b/i.test(normalizedName)) return 'granola';
-    console.warn('Unrendered production calendar product category:', product);
+    if (/graham/i.test(normalizedName)) return 'graham';
+    console.warn('Production calendar product categorized as OTHER:', product);
     return 'other';
-  }
-
-  function formatItemName(name, category) {
-    let itemName = String(name || '').trim();
-    itemName = itemName
-      .replace(/^Batch\s+/i, '')
-      .replace(/^SS\s+/i, '')
-      .replace(/\bSweetened\b/gi, '')
-      .replace(/\bChocolate Chip\b/gi, 'Choc Chip')
-      .replace(/\bCase\b/gi, '')
-      .replace(/\bCNS\b/gi, '');
-
-    if (category === 'coconut') {
-      itemName = itemName
-        .replace(/\bCoconut\b/gi, '')
-        .replace(/\b\d+\s*LB\b/gi, '');
-    } else if (category === 'granola') {
-      itemName = itemName
-        .replace(/\bGranola\b/gi, '');
-    }
-
-    return itemName.replace(/\s+/g, ' ').trim();
   }
 
   function productionBatchCount(batch) {
     if (batch.batch_count != null) return Number(batch.batch_count);
+    if (batch.made_unit_size_lbs) return Number(batch.total_lbs) / Number(batch.made_unit_size_lbs);
     if (batch.standard_batch_size_lbs) return Number(batch.total_lbs) / Number(batch.standard_batch_size_lbs);
     return null;
   }
@@ -170,44 +153,121 @@
     return null;
   }
 
-  function formatBatchCount(count) {
-    if (count == null || !Number.isFinite(count)) return '\u2014';
-    const display = Number.isInteger(count) ? fmtInt(count) : count.toFixed(1);
-    return `${display} ${Number(count) === 1 ? 'batch' : 'batches'}`;
+  const MADE_CATEGORY_DEFS = [
+    { key: 'coconut', family: 'coconut', label: 'Coconut pans', singular: 'pan', plural: 'pans' },
+    { key: 'granola', family: 'granola', label: 'Granola batches', singular: 'batch', plural: 'batches' },
+    { key: 'graham', family: 'graham', label: 'Graham batches', singular: 'batch', plural: 'batches' }
+  ];
+
+  const PACKED_CATEGORY_DEFS = [
+    { key: 'granola-10lb', family: 'granola', label: 'Granola 10 lb' },
+    { key: 'granola-25lb', family: 'granola', label: 'Granola 25 lb' },
+    { key: 'granola-bagged', family: 'granola', label: 'Granola bagged' },
+    { key: 'coconut', family: 'coconut', label: 'Coconut' },
+    { key: 'graham', family: 'graham', label: 'Graham' }
+  ];
+
+  const PRODUCTION_FAMILY_DEFS = [
+    {
+      key: 'coconut', label: 'Coconut', madeKey: 'coconut', madeLabel: 'Made · pans',
+      packed: [{ key: 'coconut', detailLabel: 'Packed · labels' }]
+    },
+    {
+      key: 'granola', label: 'Granola', madeKey: 'granola', madeLabel: 'Made · batches',
+      packed: [
+        { key: 'granola-10lb', detailLabel: 'Packed · 10 lb' },
+        { key: 'granola-25lb', detailLabel: 'Packed · 25 lb' },
+        { key: 'granola-bagged', detailLabel: 'Packed · bagged' }
+      ]
+    },
+    {
+      key: 'graham', label: 'Graham', madeKey: 'graham', madeLabel: 'Made · batches',
+      packed: [{ key: 'graham', detailLabel: 'Packed · labels' }]
+    }
+  ];
+
+  function formatProductionCount(count) {
+    if (count == null || !Number.isFinite(Number(count))) return '';
+    const numeric = Number(count);
+    return Number.isInteger(numeric) ? fmtInt(numeric) : numeric.toFixed(1);
   }
 
-  function formatUnitCount(count) {
-    if (count == null || !Number.isFinite(count)) return '\u2014';
-    return `${fmtInt(count)} units`;
+  function formatProductionUnit(count, singular, plural) {
+    const formatted = formatProductionCount(count);
+    if (!formatted) return '';
+    return `${formatted} ${Number(count) === 1 ? singular : plural}`;
   }
 
-  function buildProductionCategorySummary(day) {
-    const summary = {
-      coconut: { totalLbs: 0, batches: [], packed: [] },
-      granola: { totalLbs: 0, batches: [], packed: [] }
-    };
+  function buildProductionDaySummary(day) {
+    const madeByKey = Object.fromEntries(MADE_CATEGORY_DEFS.map(def => [
+      def.key,
+      { ...def, count: 0, items: [] }
+    ]));
+    const packedByKey = Object.fromEntries(PACKED_CATEGORY_DEFS.map(def => [
+      def.key,
+      { ...def, count: 0, items: [] }
+    ]));
 
     for (const batch of (day.batches || [])) {
       const category = getProductCategory(batch);
-      if (!summary[category]) continue;
-      summary[category].totalLbs += Number(batch.total_lbs) || 0;
-      summary[category].batches.push({
-        name: formatItemName(batch.product_name, category),
-        count: formatBatchCount(productionBatchCount(batch))
+      const group = madeByKey[category];
+      const count = productionBatchCount(batch);
+      if (!group || count == null || !Number.isFinite(count) || count <= 0) {
+        console.warn('Production calendar made row omitted from classified counts:', batch);
+        continue;
+      }
+      group.count += count;
+      group.items.push({
+        name: String(batch.product_name || '').trim(),
+        count
       });
     }
 
     for (const finishedGood of (day.finished_goods || [])) {
       const category = getProductCategory(finishedGood);
-      if (!summary[category]) continue;
-      summary[category].totalLbs += Number(finishedGood.total_lbs) || 0;
-      summary[category].packed.push({
-        name: formatItemName(finishedGood.product_name, category),
-        count: formatUnitCount(productionUnitCount(finishedGood))
+      let packedKey = null;
+      if (category === 'granola' && ['10lb', '25lb', 'bagged'].includes(finishedGood.pack_format)) {
+        packedKey = `granola-${finishedGood.pack_format}`;
+      } else if (category === 'coconut' || category === 'graham') {
+        packedKey = category;
+      }
+
+      const group = packedByKey[packedKey];
+      const cases = productionUnitCount(finishedGood);
+      if (!group || cases == null || !Number.isFinite(cases) || cases <= 0) {
+        console.warn('Production calendar packed row omitted from classified case counts:', finishedGood);
+        continue;
+      }
+      group.count += cases;
+      group.items.push({
+        sku: String(finishedGood.sku || '').trim(),
+        name: String(finishedGood.product_name || '').trim(),
+        cases
       });
     }
 
-    return summary;
+    const made = MADE_CATEGORY_DEFS.map(def => madeByKey[def.key]).filter(group => group.count > 0);
+    const packed = PACKED_CATEGORY_DEFS.map(def => packedByKey[def.key]).filter(group => group.count > 0);
+    const families = PRODUCTION_FAMILY_DEFS.map(def => {
+      const madeGroup = madeByKey[def.madeKey];
+      return {
+        key: def.key,
+        label: def.label,
+        made: madeGroup.count > 0 ? { ...madeGroup, detailLabel: def.madeLabel } : null,
+        packed: def.packed.map(packedDef => {
+          const packedGroup = packedByKey[packedDef.key];
+          return packedGroup.count > 0
+            ? { ...packedGroup, detailLabel: packedDef.detailLabel }
+            : null;
+        }).filter(Boolean)
+      };
+    }).filter(family => family.made || family.packed.length > 0);
+    return {
+      made,
+      packed,
+      families,
+      hasProduction: families.length > 0
+    };
   }
 
   function getSalesOrderLineCaseSizeLb(line) {
@@ -273,6 +333,16 @@
 
   function escAttr(s) {
     return escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function createdAtMeta(record) {
+    if (!record || !record.created_date || !record.created_time) return '';
+    const source = record.created_at_source || 'unknown';
+    let provenance = '';
+    if (source === 'migration_backfill_039') provenance = ' · backfilled';
+    if (source === 'legacy_unverified') provenance = ' · legacy';
+    const title = `Database created_at (${source})`;
+    return `<div class="created-at-meta" title="${escAttr(title)}">Entered: ${escHtml(record.created_date)} ${escHtml(record.created_time)}${escHtml(provenance)}</div>`;
   }
 
   function saveExpandedPanels() {
@@ -379,7 +449,10 @@
   async function refreshProductionCalendar() {
     hideError('production-error');
     const container = document.getElementById('production-calendar');
+    const detail = document.getElementById('production-calendar-detail');
     container.innerHTML = '<div class="loading-indicator">Loading production data...</div>';
+    detail.innerHTML = '';
+    detail.classList.add('hidden');
     updateCalendarLabel();
     try {
       const params = getCalendarParams();
@@ -430,58 +503,150 @@
       }
     }
 
+    const dayModels = displayDays.map(day => ({ day, summary: buildProductionDaySummary(day) }));
+    state.productionCalendarDays = dayModels;
+    if (!dayModels.some(model => (
+      model.day.date === state.selectedProductionDate && model.summary.hasProduction
+    ))) {
+      state.selectedProductionDate = null;
+    }
+
     let html = '';
-    for (const day of displayDays) {
+    for (const model of dayModels) {
+      const { day, summary } = model;
       const isToday = day.date === todayStr;
-      const dayBatches = day.batches || [];
-      const dayFinishedGoods = day.finished_goods || [];
-      const hasProduction = dayBatches.length > 0 || dayFinishedGoods.length > 0;
+      const isSelected = day.date === state.selectedProductionDate;
       const classes = ['day-card'];
       if (isToday) classes.push('today');
-      if (hasProduction) classes.push('has-production');
-      if (!hasProduction && state.calendarMode === 'month') classes.push('empty');
-      html += `<div class="${classes.join(' ')}">`;
-      html += `<div class="day-card-date"><span class="day-name">${escHtml(day.day_name)}</span> &mdash; ${escHtml(day.date)}</div>`;
+      if (summary.hasProduction) classes.push('has-production', 'day-card-trigger');
+      if (isSelected) classes.push('selected');
+      if (!summary.hasProduction && state.calendarMode === 'month') classes.push('empty');
 
-      if (hasProduction) {
-        const categorySummary = buildProductionCategorySummary(day);
-        const categoryColumns = [
-          { key: 'coconut', label: 'COCONUT' },
-          { key: 'granola', label: 'GRANOLA' }
-        ];
-        html += '<div class="production-category-grid">';
-        for (const column of categoryColumns) {
-          const category = categorySummary[column.key];
-          html += `<div class="production-category-column category-${column.key}">`;
-          html += `<div class="production-category-header"><span class="category-dot"></span><span>${column.label}</span><span class="category-total">&middot; ${fmt(category.totalLbs)} lb</span></div>`;
+      if (summary.hasProduction) {
+        html += `<button type="button" class="${classes.join(' ')}" data-production-date="${escAttr(day.date)}" aria-expanded="${isSelected}" aria-controls="production-calendar-detail">`;
+      } else {
+        html += `<div class="${classes.join(' ')}">`;
+      }
+      html += `<span class="day-card-date"><span class="day-name">${escHtml(day.day_name)}</span> &mdash; ${escHtml(day.date)}</span>`;
 
-          html += '<div class="day-section-label">Batches</div>';
-          if (category.batches.length > 0) {
-            for (const item of category.batches) {
-              html += `<div class="day-item production-row"><div class="day-item-name">${escHtml(item.name)}</div><div class="day-item-stats">${escHtml(item.count)}</div></div>`;
-            }
-          } else {
-            html += '<div class="production-empty">\u2014</div>';
+      if (summary.hasProduction) {
+        if (summary.made.length > 0) {
+          html += '<span class="calendar-summary-section"><span class="day-section-label">Made</span>';
+          for (const group of summary.made) {
+            html += `<span class="calendar-summary-row"><span class="production-category-label category-${escAttr(group.family)}">${escHtml(group.label)}</span><strong>${escHtml(formatProductionCount(group.count))}</strong></span>`;
           }
-
-          html += '<div class="day-section-label">Packed</div>';
-          if (category.packed.length > 0) {
-            for (const item of category.packed) {
-              html += `<div class="day-item production-row"><div class="day-item-name">${escHtml(item.name)}</div><div class="day-item-stats">${escHtml(item.count)}</div></div>`;
-            }
-          } else {
-            html += '<div class="production-empty">\u2014</div>';
-          }
-          html += '</div>';
+          html += '</span>';
         }
-        html += '</div>';
+        if (summary.packed.length > 0) {
+          html += '<span class="calendar-summary-section packed"><span class="day-section-label">Packed &middot; cases</span>';
+          for (const group of summary.packed) {
+            html += `<span class="calendar-summary-row"><span class="production-category-label category-${escAttr(group.family)}">${escHtml(group.label)}</span><strong>${escHtml(formatProductionCount(group.count))}</strong></span>`;
+          }
+          html += '</span>';
+        }
+        html += '<span class="day-card-detail-hint">View details</span>';
       } else {
         html += '<div class="no-production">No production</div>';
       }
 
-      html += '</div>';
+      html += summary.hasProduction ? '</button>' : '</div>';
     }
     container.innerHTML = html;
+
+    container.querySelectorAll('.day-card-trigger').forEach(card => {
+      card.addEventListener('click', () => {
+        const selectedDate = card.dataset.productionDate;
+        state.selectedProductionDate = state.selectedProductionDate === selectedDate ? null : selectedDate;
+        updateProductionDaySelection(container, true);
+      });
+    });
+    updateProductionDaySelection(container, false);
+  }
+
+  function productionDetailDate(day) {
+    const parsed = new Date(`${day.date}T12:00:00`);
+    if (Number.isNaN(parsed.getTime())) return day.date;
+    return parsed.toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+    });
+  }
+
+  function renderMadeDetailRows(group) {
+    let html = '';
+    for (const item of group.items) {
+      html += '<div class="production-detail-row">';
+      html += `<div class="production-detail-name">${escHtml(item.name)}</div>`;
+      html += `<div class="production-detail-count">${escHtml(formatProductionUnit(item.count, group.singular, group.plural))}</div>`;
+      html += '</div>';
+    }
+    return html;
+  }
+
+  function renderPackedDetailRows(group) {
+    let html = '';
+    for (const item of group.items) {
+      html += '<div class="production-detail-row">';
+      html += '<div class="production-detail-product">';
+      html += `<div class="production-detail-name">${escHtml(item.name)}</div>`;
+      if (item.sku) html += `<div class="production-detail-sku">SKU ${escHtml(item.sku)}</div>`;
+      html += '</div>';
+      html += `<div class="production-detail-count">${escHtml(formatProductionUnit(item.cases, 'case', 'cases'))}</div>`;
+      html += '</div>';
+    }
+    return html;
+  }
+
+  function renderProductionDetailFamily(family) {
+    let html = `<section class="production-detail-family family-${escAttr(family.key)}">`;
+    html += `<h4>${escHtml(family.label)}</h4>`;
+    if (family.made) {
+      html += `<section class="production-detail-subsection"><h5>${escHtml(family.made.detailLabel)}</h5>`;
+      html += renderMadeDetailRows(family.made);
+      html += '</section>';
+    }
+    for (const group of family.packed) {
+      html += `<section class="production-detail-subsection"><h5>${escHtml(group.detailLabel)}</h5>`;
+      html += renderPackedDetailRows(group);
+      html += '</section>';
+    }
+    html += '</section>';
+    return html;
+  }
+
+  function updateProductionDaySelection(container, shouldScroll) {
+    container.querySelectorAll('.day-card-trigger').forEach(card => {
+      const isSelected = card.dataset.productionDate === state.selectedProductionDate;
+      card.classList.toggle('selected', isSelected);
+      card.setAttribute('aria-expanded', String(isSelected));
+    });
+
+    const detail = document.getElementById('production-calendar-detail');
+    const model = state.productionCalendarDays.find(item => (
+      item.day.date === state.selectedProductionDate
+    ));
+    if (!model) {
+      detail.innerHTML = '';
+      detail.classList.add('hidden');
+      return;
+    }
+
+    let html = '<div class="production-detail-header">';
+    html += '<div><div class="production-detail-eyebrow">Production detail</div>';
+    html += `<h3>${escHtml(productionDetailDate(model.day))}</h3></div>`;
+    html += '<button type="button" class="btn-sm production-detail-close" aria-label="Close production detail">Close</button>';
+    html += '</div>';
+
+    html += '<div class="production-detail-grid">';
+    for (const family of model.summary.families) html += renderProductionDetailFamily(family);
+    html += '</div>';
+
+    detail.innerHTML = html;
+    detail.classList.remove('hidden');
+    detail.querySelector('.production-detail-close').addEventListener('click', () => {
+      state.selectedProductionDate = null;
+      updateProductionDaySelection(container, false);
+    });
+    if (shouldScroll) detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   // ── Finished Goods Inventory ──
@@ -698,13 +863,13 @@
       container.innerHTML = '<div class="loading-indicator">No shipments found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Date/Time</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
+    let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
     for (const s of shipments) {
       const rowId = 'ship-' + s.transaction_id;
       const products = (s.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
       html += `<tr class="expandable" data-expand="${rowId}">`;
-      html += `<td>${escHtml(s.date)} ${escHtml(s.time)}</td>`;
+      html += `<td><div>${escHtml(s.date)} ${escHtml(s.time)}</div>${createdAtMeta(s)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       html += `<td class="num">${s.total_units ? fmt(s.total_lbs) + ' lb &middot; ' + fmtInt(s.total_units) + ' units' : fmt(s.total_lbs) + ' lb'}</td>`;
       html += `<td>${escHtml(s.customer_name || '\u2014')}</td>`;
@@ -750,13 +915,13 @@
       container.innerHTML = '<div class="loading-indicator">No receipts found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Date/Time</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
+    let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
     for (const r of receipts) {
       const rowId = 'recv-' + r.transaction_id;
       const products = (r.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
       html += `<tr class="expandable" data-expand="${rowId}">`;
-      html += `<td>${escHtml(r.date)} ${escHtml(r.time)}</td>`;
+      html += `<td><div>${escHtml(r.date)} ${escHtml(r.time)}</div>${createdAtMeta(r)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       const recvUnits = r.cases_received || null;
       html += `<td class="num">${recvUnits ? fmt(r.total_lbs) + ' lb &middot; ' + fmtInt(recvUnits) + ' units' : fmt(r.total_lbs) + ' lb'}</td>`;
@@ -854,7 +1019,8 @@
       html += '<ul class="timeline">';
       for (const t of data.timeline) {
         html += `<li class="txn-${t.type}">`;
-        html += `<div class="tl-date">${escHtml(t.date)} ${escHtml(t.time)}</div>`;
+        html += `<div class="tl-date">Occurred: ${escHtml(t.date)} ${escHtml(t.time)}</div>`;
+        html += createdAtMeta(t);
         html += `<div><span class="tl-type">${escHtml(t.type)}</span> <span class="tl-qty">${fmtQtyCases(t.quantity_lb, t.cases)}</span></div>`;
         let ctx = '';
         if (t.customer_name) ctx += 'Customer: ' + t.customer_name;
