@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-12 14:47 — Reorder Activity tab and truncate Shipping/Receiving lists
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `FACTORY_LEDGER_CHANGELOG.md` (row 60)
+- **What changed:** Frontend-only, branch `feat/activity-tab-layout` (NOT YET DEPLOYED). Activity tab sections reordered: Daily Entries now first, then Shipping, then Receiving (index.html section order only; ids/handlers unchanged). Shipping and Receiving tables now show only the first 4 transactions by default; the rest of the already-fetched rows (API calls unchanged, still `limit=100`) are hidden with an `overflow-hidden` class and revealed by a "Show all (N more)" / "Show less" text button in a table footer (`showMoreFooter`/`bindShowMore` + `ACTIVITY_PREVIEW_ROWS = 4` in dashboard.js; `.show-more-row`/`.show-more-btn`/`tr.overflow-hidden` styles in dashboard.css, matching the lot-link/primary-color link style). Detail rows collapse with their parents. Daily Entries behavior untouched. Cache-bust dashboard.js v27→28, dashboard.css v17→18.
+- **Why:** Michael wants Daily Entries most prominent and the long Shipping/Receiving logs collapsed to a 4-row preview by default.
+
+---
+
 ## 2026-08-12 14:38 — Deploy Daily Entries view to production
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 59 status updated to DEPLOYED)
 - **What changed:** Merged `feat/daily-entries-view` to main (feature 0886394, merge 42b5802) and pushed at 14:35 ET. Railway deploy live at 14:36 ET (health 200 throughout; new endpoint 404→200 on attempt 4 of poll). Netlify picked up dashboard.js v27 / dashboard.css v17 with the Daily Entries section. Live endpoint verified against real 2026-08-11 data: 9 posted transactions (IDs 1892–1900), matching the pre-merge dry query — includes CQ Granola +440 lb (#1895) and the coconut packs (#1899/#1900); all same-day entries, none flagged late.
