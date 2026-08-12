@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-12 12:47 — Deploy Kosher Ignition production warnings
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 57 status), `CHANGE_LOG.md`
+- **What changed:** Merged `feat/kosher-ignition-visibility` into `main` (merge `147bf6d`), integrated origin/main's Phase 1 + calendar work (merge `dc2ed6a`, changelog rows renumbered 51→56, 52→57), pushed; Railway auto-deploy verified live. Smoke checks passed: `/health` healthy; `GET /bom/batches/283/formula` returns verification_notes + production_warning; `POST /make` preview for 90025 returns the full Kosher Ignition warning; batch 107 formula has no warning. Post-merge suite 76/76 against the updated Phase-1 test schema.
+- **Why:** Ship the row-57 API changes so the Kosher Ignition requirement reaches floor operators. GPT editor updates (Floor instructions 7,833-char paste + both schema refreshes) remain manual and pending.
+
+---
+
 ## 2026-08-12 11:58 — Surface verification_notes production warnings (Kosher Ignition follow-up)
 - **File(s) changed:** `main.py`, `tests/test_production_warning.py` (new), `openapi-gpt-v3.yaml`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `FACTORY_LEDGER_CHANGELOG.md` (row 57; renumbered from 52 on merge — origin/main had taken 51–55)
 - **What changed:** `/make` (preview + commit) and `GET /bom/batches/{id}/formula` now return a `production_warning` block (verification_notes EN + ES, relay message) when the product's `verification_notes` is non-empty; `resolve_product_full` selects the two notes columns. Both GPT schemas updated on existing operations only (op counts unchanged: 30 v3 / 22 floor). Floor instructions gained a relay-verbatim-before-commit MAKE rule (dist rebuilt, 7,833/8,000 chars; dropped one redundant dispatch line covered elsewhere). 6 new tests; suite 68/68 on the local test DB.
