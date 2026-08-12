@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-12 14:38 — Deploy Daily Entries view to production
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 59 status updated to DEPLOYED)
+- **What changed:** Merged `feat/daily-entries-view` to main (feature 0886394, merge 42b5802) and pushed at 14:35 ET. Railway deploy live at 14:36 ET (health 200 throughout; new endpoint 404→200 on attempt 4 of poll). Netlify picked up dashboard.js v27 / dashboard.css v17 with the Daily Entries section. Live endpoint verified against real 2026-08-11 data: 9 posted transactions (IDs 1892–1900), matching the pre-merge dry query — includes CQ Granola +440 lb (#1895) and the coconut packs (#1899/#1900); all same-day entries, none flagged late.
+- **Why:** Michael approved the Daily Entries feature (row 59) for production after reviewing the dry-run output and diff.
+
+---
+
 ## 2026-08-12 14:27 — Add Daily Entries view for timely-data-entry scoring
 - **File(s) changed:** `main.py`, `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `tests/test_daily_entries.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 59)
 - **What changed:** New dashboard read endpoint `GET /dashboard/api/activity/daily-entries?date=YYYY-MM-DD&date_mode=event|entered` — every posted transaction for one day (via ledger_current_transactions + ledger_current_transaction_lines, effective_status='posted'; voided excluded) with per-line product/SKU (odoo_code)/signed quantity_lb plus occurred_at and created_at. `late_entry` = created_at on a later America/New_York calendar day than business_date; flagged only when created_at_source='database' (backfilled/legacy rows report entry_time_reliable=false instead, since migration_backfill_039 stamped them with the migration run time). Event-date filter uses business_date (already the naive-UTC→NY plant-day convention from migration 039); `entered` mode filters on the NY calendar day of created_at. NOT added to either GPT Action schema (dashboard-only; main schema at 30-op cap). Frontend: new "Daily Entries" section on the Activity tab (date picker + event/entered mode select) rendering one row per line with entry timestamp, type, product, SKU, signed qty; late rows highlighted amber with lag text ("entered next day 9:10 AM" / "entered N days later …"); cache-bust dashboard.js v26→27, dashboard.css v16→17. Tests: 3 new (same-day entry with created_at, late entry flagged + entered-mode filter, voided excluded); suite 79/79 on local test DB.
