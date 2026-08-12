@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-08-12 11:58 — Surface verification_notes production warnings (Kosher Ignition follow-up)
+- **File(s) changed:** `main.py`, `tests/test_production_warning.py` (new), `openapi-gpt-v3.yaml`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `FACTORY_LEDGER_CHANGELOG.md` (row 52)
+- **What changed:** `/make` (preview + commit) and `GET /bom/batches/{id}/formula` now return a `production_warning` block (verification_notes EN + ES, relay message) when the product's `verification_notes` is non-empty; `resolve_product_full` selects the two notes columns. Both GPT schemas updated on existing operations only (op counts unchanged: 30 v3 / 22 floor). Floor instructions gained a relay-verbatim-before-commit MAKE rule (dist rebuilt, 7,833/8,000 chars; dropped one redundant dispatch line covered elsewhere). 6 new tests; suite 68/68 on the local test DB.
+- **Why:** Row 51 gap — the Kosher Ignition requirement on batches 90025/90026 was recorded in the DB but invisible to floor operators. Branch `feat/kosher-ignition-visibility`, not yet deployed.
+
+---
+
+## 2026-08-12 11:26 — Created SS Classic #9 kosher product family in prod DB
+- **File(s) changed:** none (production Supabase data change) + `FACTORY_LEDGER_CHANGELOG.md` (row 51)
+- **What changed:** Inserted 2 batch products — odoo 90025 "Batch SS Classic Granola #9 (Kosher Ignition)" (323 lb) and 90026 "Batch SS Classic Chocolate Chip Granola #9 (Kosher Ignition)" (348 lb) — with batch_formulas copied verbatim from 90002 (7 rows) and 90001 (8 rows); verified identical ingredient-for-ingredient. Inserted 6 finished goods (odoo 70013–70018: Bulk per/lb, 25 LB, 10 LB for each flavor) parented to the new batches with pack_format NULL/'25lb'/'10lb'. All 8 products carry the Kosher Ignition requirement (oven turned on by owner Blubber or designated messenger) in `verification_notes`.
+- **Why:** Kosher-supervised Sunshine versions of the Classic #9 granolas need distinct SKUs with the ignition requirement recorded on the product. Note: `verification_notes` is not surfaced by any Floor GPT endpoint or the dashboard — follow-up needed if operators must see it in-system.
+
+---
+
+## 2026-08-05 15:37 — Constrain sales-order line units in the main GPT schema
+- **File(s) changed:** `openapi-gpt-v3.yaml`
+- **What changed:** Added the accepted `lb`, `cases`, `bags`, and `boxes` enum values to `OrderLineInput.unit`; operation count remains 30.
+- **Why:** Keep the main GPT action contract aligned with the API's accepted sales-order units.
+
+---
+
 ## 2026-08-05 12:11 — Record final live Floor GPT dispatch configuration
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added regression-guard row 50 for the exact live instruction rebuild/schema sync and recorded the completed SO-260723-001 dispatch receipts (shipment header 319, transactions 1847/1848), superseding the earlier pre-test state note.

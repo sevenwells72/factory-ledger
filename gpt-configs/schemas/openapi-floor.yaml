@@ -302,7 +302,7 @@ paths:
             type: integer
       responses:
         '200':
-          description: "Batch formula with ingredient product IDs."
+          description: "Batch formula with ingredient product IDs. May include verification_notes / verification_notes_es and a production_warning block (e.g. Kosher Ignition requirement) — relay the note verbatim to the operator."
   /inventory/lookup:
     get:
       operationId: inventoryLookup
@@ -450,7 +450,7 @@ paths:
     post:
       operationId: make
       summary: "Record batch production (preview or commit)."
-      description: "Preview checks ingredient availability; if sibling SKUs share the formula, response includes sku_confirmation_required and sibling_skus. Commit requires confirmed_sku=true when siblings exist."
+      description: "Preview checks ingredient availability; if sibling SKUs share the formula, response includes sku_confirmation_required and sibling_skus. Commit requires confirmed_sku=true when siblings exist. If the response contains production_warning (product verification_notes, e.g. Kosher Ignition), relay the note verbatim — English plus verification_notes_es if present — and get operator acknowledgment before commit."
       requestBody:
         required: true
         content:
@@ -459,7 +459,7 @@ paths:
               $ref: '#/components/schemas/MakeRequest'
       responses:
         '200':
-          description: "Preview ingredient check or committed production. Commit returns transaction_id, lot_id, lot_code, daily_production_summary."
+          description: "Preview ingredient check or committed production. Commit returns transaction_id, lot_id, lot_code, daily_production_summary. May include production_warning with verification_notes / verification_notes_es — relay verbatim to the operator."
   /pack:
     post:
       operationId: pack

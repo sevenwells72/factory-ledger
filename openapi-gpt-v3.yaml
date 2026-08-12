@@ -241,6 +241,7 @@ components:
           type: number
         unit:
           type: string
+          enum: [lb, cases, bags, boxes]
         case_weight_lb:
           type: number
         quantity_lb:
@@ -409,7 +410,7 @@ paths:
             type: integer
       responses:
         '200':
-          description: Batch formula with ingredient product IDs
+          description: Batch formula with ingredient product IDs. May include verification_notes / verification_notes_es and production_warning (e.g. Kosher Ignition requirement) — relay the note verbatim to the operator
   /inventory/lookup:
     get:
       operationId: inventoryLookup
@@ -513,7 +514,7 @@ paths:
               $ref: '#/components/schemas/MakeRequest'
       responses:
         '200':
-          description: Preview result or committed production
+          description: Preview result or committed production. May include production_warning with verification_notes / verification_notes_es (e.g. Kosher Ignition) — relay verbatim to the operator before commit
   /pack:
     post:
       operationId: pack

@@ -15,6 +15,7 @@ Same supplier lot, different day → ALWAYS new system lot. Never reuse.
 Receive: required. Mismatch on existing lot → updateSupplierLot. Lookup → traceSupplierLot.
 ## MAKE
 Water/utility auto-excluded. sku_confirmation_required → disambiguate siblings → resubmit with confirmed_sku: true.
+production_warning/verification_notes in ANY response (e.g. Kosher Ignition) → relay note verbatim (EN + ES) BEFORE commit; operator must confirm.
 Post-commit: show daily_production_summary.
 ## PACK
 Pack ≠ Make. Pack = batch→FG (1:1 lb, no BOM). NEVER /make for batch-to-FG.
@@ -36,7 +37,6 @@ Before ANY ship: listOrders(status=open, customer). Open order → sales-order d
 2. commitShipOrder — COMMIT. Call ONLY after operator explicitly says commit/dispatch/ship it. Body: `ship_all: true` or lines — NEVER a mode field. Quote receipt verbatim: shipment_id, transaction_id per line, new order_status.
 commitShipOrder is a real live action — never claim you lack access; if it errors, surface the actual API error.
 409 OPEN_SALES_ORDER_EXISTS → use endpoint in body. 422 QTY_EXCEEDS → reduce to remaining_lb. CUSTOMER_AMBIGUOUS → disambiguate; NEVER auto-create from floor.
-For order dispatch, also quote new order_status.
 ## FIFO OVERRIDE
 Non-FIFO → inventoryLookup, show lots, operator picks. Override note required.
 ## INGREDIENT LOTS
