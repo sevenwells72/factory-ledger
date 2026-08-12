@@ -948,6 +948,71 @@
     bindLotLinks(container);
   }
 
+  // ── Activity: Daily Entries ──
+  function dailyEntriesDate() {
+    const input = document.getElementById('daily-entries-date');
+    if (!input.value) {
+      // Default to today, plant time
+      input.value = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    }
+    return input.value;
+  }
+
+  async function refreshDailyEntries() {
+    hideError('daily-entries-error');
+    const container = document.getElementById('daily-entries-table');
+    container.innerHTML = '<div class="loading-indicator">Loading entries...</div>';
+    const day = dailyEntriesDate();
+    const mode = document.getElementById('daily-entries-mode').value;
+    try {
+      const data = await fetchAPI('/activity/daily-entries?date=' + encodeURIComponent(day) + '&date_mode=' + encodeURIComponent(mode));
+      renderDailyEntries(data, container);
+    } catch (e) {
+      container.innerHTML = '';
+      showError('daily-entries-error', 'Failed to load daily entries: ' + e.message);
+    }
+  }
+
+  function lateLagText(entry) {
+    if (!entry.late_entry) return '';
+    const when = entry.days_late === 1 ? 'next day' : entry.days_late + ' days later';
+    return 'entered ' + when + ' ' + (entry.created_time || '');
+  }
+
+  function renderDailyEntries(data, container) {
+    const entries = data.entries || [];
+    if (entries.length === 0) {
+      container.innerHTML = '<div class="loading-indicator">No entries for ' + escHtml(data.date) + '.</div>';
+      return;
+    }
+    let html = '<table class="activity-table"><thead><tr><th>Entered</th><th>Type</th><th>Product</th><th>SKU</th><th class="num">Qty (lb)</th></tr></thead><tbody>';
+    for (const t of entries) {
+      const rowClass = t.late_entry ? ' class="late-entry"' : '';
+      const lines = (t.lines && t.lines.length > 0) ? t.lines : [{}];
+      let provenance = '';
+      if (t.created_at_source === 'migration_backfill_039') provenance = ' · backfilled';
+      if (t.created_at_source === 'legacy_unverified') provenance = ' · legacy';
+      lines.forEach((l, i) => {
+        html += `<tr${rowClass}>`;
+        if (i === 0) {
+          html += `<td rowspan="${lines.length}"><div>${escHtml((t.created_date || '—') + ' ' + (t.created_time || ''))}${escHtml(provenance)}</div>`;
+          if (t.late_entry) {
+            html += `<div class="late-lag" title="Event date ${escAttr(t.event_date)}">${escHtml(lateLagText(t))}</div>`;
+          }
+          html += `</td>`;
+          html += `<td rowspan="${lines.length}">${escHtml(t.type)}</td>`;
+        }
+        html += `<td>${escHtml(l.product_name || '—')}</td>`;
+        html += `<td>${escHtml(l.sku || '—')}</td>`;
+        const qty = (l.quantity_lb === null || l.quantity_lb === undefined) ? null : Number(l.quantity_lb);
+        html += `<td class="num">${qty === null ? '—' : (qty > 0 ? '+' : '') + fmt(qty)}</td>`;
+        html += `</tr>`;
+      });
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
   // ── Lot Detail Panel ──
   async function openLotPanel(lotCode, productId) {
     const overlay = document.getElementById('lot-panel-overlay');
@@ -2496,6 +2561,7 @@
     // Always load activity data too (even if tab not visible) so it's ready
     ops.push(refreshShipments());
     ops.push(refreshReceipts());
+    ops.push(refreshDailyEntries());
     ops.push(refreshNotes());
     ops.push(refreshOrders());
     ops.push(refreshHealthBadge());
@@ -2555,6 +2621,10 @@
         document.getElementById('search-results').classList.add('hidden');
       }
     });
+
+    // Daily Entries controls
+    document.getElementById('daily-entries-date').addEventListener('change', refreshDailyEntries);
+    document.getElementById('daily-entries-mode').addEventListener('change', refreshDailyEntries);
 
     // Lot panel close
     document.getElementById('lot-panel-close').addEventListener('click', closeLotPanel);

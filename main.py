@@ -8528,6 +8528,90 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/dashboard/api/activity/daily-entries")
+def dashboard_api_daily_entries(
+    target_date: date = Query(..., alias="date", description="Day to list (YYYY-MM-DD)"),
+    date_mode: str = Query(default="event", description="'event' filters by business_date; 'entered' filters by the plant-local calendar day of created_at"),
+):
+    """Every posted ledger entry for one day, with the database entry timestamp.
+
+    For scoring timely data entry: an entry is 'late' when created_at falls on a
+    later America/New_York calendar day than the event date (business_date).
+    business_date already encodes the plant-day convention (naive UTC timestamp
+    -> America/New_York, migration 039), so event-date filtering uses it directly.
+    Late flags are only computed when created_at_source='database' — backfilled
+    legacy rows (migration_backfill_039 / legacy_unverified) carry the migration
+    run time, not the real entry time, and are reported as unreliable instead.
+    """
+    if date_mode not in ("event", "entered"):
+        raise HTTPException(422, "date_mode must be 'event' or 'entered'")
+    try:
+        with get_transaction() as cur:
+            if date_mode == "entered":
+                date_filter = "(ct.created_at AT TIME ZONE 'America/New_York')::date = %s"
+            else:
+                date_filter = "ct.business_date = %s"
+            cur.execute(f"""
+                SELECT ct.id, ct.type, ct.business_date, ct.occurred_at,
+                       ct.created_at, ct.created_at_source, ct.operator_id,
+                       json_agg(json_build_object(
+                           'product_name', p.name,
+                           'product_id', p.id,
+                           'sku', p.odoo_code,
+                           'lot_code', l.lot_code,
+                           'quantity_lb', tl.quantity_lb
+                       ) ORDER BY tl.id) AS lines
+                FROM ledger_current_transactions ct
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = ct.id
+                LEFT JOIN products p ON p.id = tl.product_id
+                LEFT JOIN lots l ON l.id = tl.lot_id
+                WHERE ct.effective_status = 'posted'
+                  AND {date_filter}
+                GROUP BY ct.id, ct.type, ct.business_date, ct.occurred_at,
+                         ct.created_at, ct.created_at_source, ct.operator_id
+                ORDER BY ct.created_at, ct.id
+            """, (target_date,))
+            rows = cur.fetchall()
+
+        entries = []
+        for t in rows:
+            d, tm = format_timestamp(t['occurred_at'])
+            created_date, created_time = format_timestamp(t['created_at'])
+            entry_time_reliable = t['created_at_source'] == 'database'
+            created_at = t['created_at']
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            days_late = (created_at.astimezone(PLANT_TIMEZONE).date() - t['business_date']).days
+            late_entry = entry_time_reliable and days_late > 0
+            entries.append({
+                "transaction_id": t['id'],
+                "type": t['type'],
+                "event_date": t['business_date'].isoformat(),
+                "date": d,
+                "time": tm,
+                "created_at": t['created_at'],
+                "created_date": created_date,
+                "created_time": created_time,
+                "created_at_source": t['created_at_source'],
+                "entry_time_reliable": entry_time_reliable,
+                "late_entry": late_entry,
+                "days_late": days_late if entry_time_reliable else None,
+                "operator_id": t['operator_id'],
+                "lines": t['lines'] or [],
+            })
+        return {
+            "date": target_date.isoformat(),
+            "date_mode": date_mode,
+            "count": len(entries),
+            "entries": entries,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dashboard daily entries API failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/dashboard/api/lot/{lot_code}")
 def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(default=None)):
     """Lot detail with full transaction timeline."""
