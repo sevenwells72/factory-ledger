@@ -1410,7 +1410,8 @@ def resolve_product_full(cur, product_name: str) -> dict:
     # Fetch full product row
     cur.execute(
         """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
-                  COALESCE(yield_multiplier, 1.0) as yield_multiplier
+                  COALESCE(yield_multiplier, 1.0) as yield_multiplier,
+                  verification_notes, verification_notes_es
            FROM products WHERE id = %s""",
         (product_id,)
     )
@@ -3059,6 +3060,23 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
 # MAKE (PRODUCTION) ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+def build_production_warning(product: dict) -> dict | None:
+    """Non-empty verification_notes on the product being made (e.g. Kosher
+    Ignition on 90025/90026) → warning block the GPT must relay to the
+    operator verbatim before committing."""
+    note = (product.get('verification_notes') or '').strip()
+    if not note:
+        return None
+    warning = {
+        "verification_notes": note,
+        "message": f"PRODUCTION WARNING — relay to operator verbatim before proceeding: {note}"
+    }
+    note_es = (product.get('verification_notes_es') or '').strip()
+    if note_es:
+        warning["verification_notes_es"] = note_es
+    return warning
+
+
 @app.post("/make")
 def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
     """Record batch production. mode=preview returns ingredient check; mode=commit executes."""
@@ -3186,6 +3204,10 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     "all_ingredients_available": all_sufficient,
                     "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({total_output} lb){yield_note}"
                 }
+                production_warning = build_production_warning(product)
+                if production_warning:
+                    response["production_warning"] = production_warning
+                    response["preview_message"] += f" ⚠ {production_warning['verification_notes']}"
                 if siblings:
                     sibling_names = [s['name'] for s in siblings]
                     response["sibling_skus"] = siblings
@@ -3372,6 +3394,9 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         "ingredients_consumed_grouped": list(consumed_by_ingredient.values()),
                         "message": f"Produced {total_output} lb as lot {lot_code}"
                     }
+                    production_warning = build_production_warning(product)
+                    if production_warning:
+                        response["production_warning"] = production_warning
                     if siblings:
                         response["confirmed_sku"] = True
                         response["sibling_skus"] = [s['name'] for s in siblings]
@@ -5093,12 +5118,12 @@ def list_bom_products(
 def get_batch_formula(batch_id: int, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("SELECT id, name, default_batch_lb FROM products WHERE id = %s", (batch_id,))
+            cur.execute("SELECT id, name, default_batch_lb, verification_notes, verification_notes_es FROM products WHERE id = %s", (batch_id,))
             batch = cur.fetchone()
-            
+
             if not batch:
                 raise HTTPException(status_code=404, detail=f"Batch product ID {batch_id} not found")
-            
+
             cur.execute("""
                 SELECT bf.ingredient_product_id, p.name as ingredient_name, p.odoo_code, bf.quantity_lb,
                        COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
@@ -5108,13 +5133,20 @@ def get_batch_formula(batch_id: int, _: bool = Depends(verify_api_key)):
                 ORDER BY bf.quantity_lb DESC
             """, (batch_id,))
             ingredients = cur.fetchall()
-            
-            return {
+
+            response = {
                 "batch_id": batch['id'],
                 "batch_name": batch['name'],
                 "batch_weight_lb": float(batch['default_batch_lb']) if batch['default_batch_lb'] else None,
                 "ingredients": ingredients
             }
+            production_warning = build_production_warning(batch)
+            if production_warning:
+                response["production_warning"] = production_warning
+                response["verification_notes"] = production_warning["verification_notes"]
+                if "verification_notes_es" in production_warning:
+                    response["verification_notes_es"] = production_warning["verification_notes_es"]
+            return response
     except HTTPException:
         raise
     except Exception as e:
