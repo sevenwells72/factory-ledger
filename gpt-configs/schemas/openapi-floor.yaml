@@ -215,7 +215,7 @@ components:
     OrderStatus:
       type: string
       enum: [new, confirmed, in_production, ready, partial_ship, shipped, invoiced, cancelled]
-      description: "All possible sales order statuses. Auto-set (not manually settable): shipped, partial_ship. Manual transitions only: confirmed, in_production, ready, invoiced, cancelled. Initial status on order creation: confirmed. Legacy status no longer used for new orders: new. Terminal statuses (no further changes): invoiced, cancelled."
+      description: "All sales order statuses. Auto-set only: shipped, partial_ship. Manual transitions: confirmed, in_production, ready, invoiced, cancelled. Initial status on creation: confirmed. Legacy (not used for new orders): new. Terminal (no further changes): invoiced, cancelled."
     OrderStatusUpdate:
       type: object
       required: [status]
@@ -450,7 +450,7 @@ paths:
     post:
       operationId: make
       summary: "Record batch production (preview or commit)."
-      description: "Preview checks ingredient availability; if sibling SKUs share the formula, response includes sku_confirmation_required and sibling_skus. Commit requires confirmed_sku=true when siblings exist. If the response contains production_warning (product verification_notes, e.g. Kosher Ignition), relay the note verbatim — English plus verification_notes_es if present — and get operator acknowledgment before commit."
+      description: "Preview checks ingredient availability. Sibling SKUs sharing the formula → sku_confirmation_required + sibling_skus; commit needs confirmed_sku=true. production_warning (e.g. Kosher Ignition) → relay verification_notes (EN + ES) verbatim; get operator acknowledgment before commit."
       requestBody:
         required: true
         content:

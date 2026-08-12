@@ -527,7 +527,7 @@ paths:
               $ref: '#/components/schemas/PackRequest'
       responses:
         '200':
-          description: "Preview: includes allocation plan. When packing base batch into FG with intermediate BOM, includes add_in_ingredients, all_add_ins_sufficient, add_in_note. Commit: includes add_in_ingredients_consumed when add-ins were deducted. May include warning/warning_es if mismatch cannot be resolved via add-ins."
+          description: "Preview: includes allocation plan; packing base batch into FG with intermediate BOM adds add_in_ingredients, all_add_ins_sufficient, add_in_note. Commit: add_in_ingredients_consumed when add-ins deducted. May include warning/warning_es if mismatch cannot be resolved via add-ins."
   /adjust:
     post:
       operationId: adjust
