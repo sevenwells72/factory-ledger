@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=17">
+  <link rel="stylesheet" href="dashboard.css?v=18">
   <link rel="stylesheet" href="mini-calendar.css?v=2">
 </head>
 <body>
@@ -96,31 +96,7 @@
   <!-- Tab B: Activity -->
   <main id="tab-activity" class="tab-content">
 
-    <!-- B1: Shipping Log -->
-    <section class="section" id="section-shipments">
-      <div class="collapsible-header expanded" data-panel="shipments-list">
-        <h2>Shipping</h2>
-        <span class="chevron"></span>
-      </div>
-      <div id="shipments-list" class="collapsible-body expanded">
-        <div id="shipments-table"></div>
-      </div>
-      <div id="shipments-error" class="error-msg hidden"></div>
-    </section>
-
-    <!-- B2: Receiving Log -->
-    <section class="section" id="section-receipts">
-      <div class="collapsible-header expanded" data-panel="receipts-list">
-        <h2>Receiving</h2>
-        <span class="chevron"></span>
-      </div>
-      <div id="receipts-list" class="collapsible-body expanded">
-        <div id="receipts-table"></div>
-      </div>
-      <div id="receipts-error" class="error-msg hidden"></div>
-    </section>
-
-    <!-- B3: Daily Entries -->
+    <!-- B1: Daily Entries -->
     <section class="section" id="section-daily-entries">
       <div class="collapsible-header expanded" data-panel="daily-entries-list">
         <h2>Daily Entries</h2>
@@ -138,6 +114,30 @@
         <div id="daily-entries-table"></div>
       </div>
       <div id="daily-entries-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- B2: Shipping Log -->
+    <section class="section" id="section-shipments">
+      <div class="collapsible-header expanded" data-panel="shipments-list">
+        <h2>Shipping</h2>
+        <span class="chevron"></span>
+      </div>
+      <div id="shipments-list" class="collapsible-body expanded">
+        <div id="shipments-table"></div>
+      </div>
+      <div id="shipments-error" class="error-msg hidden"></div>
+    </section>
+
+    <!-- B3: Receiving Log -->
+    <section class="section" id="section-receipts">
+      <div class="collapsible-header expanded" data-panel="receipts-list">
+        <h2>Receiving</h2>
+        <span class="chevron"></span>
+      </div>
+      <div id="receipts-list" class="collapsible-body expanded">
+        <div id="receipts-table"></div>
+      </div>
+      <div id="receipts-error" class="error-msg hidden"></div>
     </section>
 
   </main>
@@ -293,7 +293,7 @@
 
   <script src="mini-calendar.js?v=2"></script>
   <script src="pallet-calculations.js?v=1"></script>
-  <script src="dashboard.js?v=27"></script>
+  <script src="dashboard.js?v=28"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

@@ -843,6 +843,32 @@
     bindLotLinks(container);
   }
 
+  // ── Activity: show-more truncation (display-only; full data already fetched) ──
+  const ACTIVITY_PREVIEW_ROWS = 4;
+
+  function overflowClass(idx) {
+    return idx >= ACTIVITY_PREVIEW_ROWS ? ' overflow-row overflow-hidden' : '';
+  }
+
+  function showMoreFooter(total, colspan) {
+    const hidden = total - ACTIVITY_PREVIEW_ROWS;
+    if (hidden <= 0) return '';
+    const label = `Show all (${hidden} more)`;
+    return `<tfoot><tr class="show-more-row"><td colspan="${colspan}"><button type="button" class="show-more-btn" data-more-label="${escAttr(label)}">${escHtml(label)}</button></td></tr></tfoot>`;
+  }
+
+  function bindShowMore(container) {
+    container.querySelectorAll('.show-more-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const table = btn.closest('table');
+        const expand = !btn.classList.contains('expanded');
+        table.querySelectorAll('tr.overflow-row').forEach(tr => tr.classList.toggle('overflow-hidden', !expand));
+        btn.classList.toggle('expanded', expand);
+        btn.textContent = expand ? 'Show less' : btn.dataset.moreLabel;
+      });
+    });
+  }
+
   // ── Activity: Shipments ──
   async function refreshShipments() {
     hideError('shipments-error');
@@ -864,11 +890,11 @@
       return;
     }
     let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
-    for (const s of shipments) {
+    for (const [idx, s] of shipments.entries()) {
       const rowId = 'ship-' + s.transaction_id;
       const products = (s.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
-      html += `<tr class="expandable" data-expand="${rowId}">`;
+      html += `<tr class="expandable${overflowClass(idx)}" data-expand="${rowId}">`;
       html += `<td><div>${escHtml(s.date)} ${escHtml(s.time)}</div>${createdAtMeta(s)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       html += `<td class="num">${s.total_units ? fmt(s.total_lbs) + ' lb &middot; ' + fmtInt(s.total_units) + ' units' : fmt(s.total_lbs) + ' lb'}</td>`;
@@ -876,7 +902,7 @@
       html += `<td>${escHtml(s.order_reference || '\u2014')}</td>`;
       html += `</tr>`;
       // Detail row
-      html += `<tr class="activity-detail" id="${rowId}"><td colspan="5">`;
+      html += `<tr class="activity-detail${overflowClass(idx)}" id="${rowId}"><td colspan="5">`;
       if (s.lines && s.lines.length > 0) {
         html += '<strong>Lots:</strong><br>';
         for (const l of s.lines) {
@@ -889,10 +915,11 @@
       if (s.notes) html += `<br><strong>Notes:</strong> ${escHtml(s.notes)}`;
       html += `</td></tr>`;
     }
-    html += '</tbody></table>';
+    html += '</tbody>' + showMoreFooter(shipments.length, 5) + '</table>';
     container.innerHTML = html;
     bindExpandableRows(container);
     bindLotLinks(container);
+    bindShowMore(container);
   }
 
   // ── Activity: Receipts ──
@@ -916,11 +943,11 @@
       return;
     }
     let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
-    for (const r of receipts) {
+    for (const [idx, r] of receipts.entries()) {
       const rowId = 'recv-' + r.transaction_id;
       const products = (r.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
-      html += `<tr class="expandable" data-expand="${rowId}">`;
+      html += `<tr class="expandable${overflowClass(idx)}" data-expand="${rowId}">`;
       html += `<td><div>${escHtml(r.date)} ${escHtml(r.time)}</div>${createdAtMeta(r)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       const recvUnits = r.cases_received || null;
@@ -929,7 +956,7 @@
       html += `<td>${escHtml(r.bol_reference || '\u2014')}</td>`;
       html += `</tr>`;
       // Detail row
-      html += `<tr class="activity-detail" id="${rowId}"><td colspan="5">`;
+      html += `<tr class="activity-detail${overflowClass(idx)}" id="${rowId}"><td colspan="5">`;
       if (r.lines && r.lines.length > 0) {
         html += '<strong>Lots:</strong><br>';
         for (const l of r.lines) {
@@ -942,10 +969,11 @@
       if (r.notes) html += `<br><strong>Notes:</strong> ${escHtml(r.notes)}`;
       html += `</td></tr>`;
     }
-    html += '</tbody></table>';
+    html += '</tbody>' + showMoreFooter(receipts.length, 5) + '</table>';
     container.innerHTML = html;
     bindExpandableRows(container);
     bindLotLinks(container);
+    bindShowMore(container);
   }
 
   // ── Activity: Daily Entries ──
