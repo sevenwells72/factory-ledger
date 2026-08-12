@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-12 14:49 — Deploy Activity tab reorder + 4-row preview
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 60 status updated to DEPLOYED)
+- **What changed:** Merged `feat/activity-tab-layout` to main (feature 559dc6f, merge 413441c) and pushed at 14:48 ET. Netlify picked up the new build within ~30s; verified live: index.html references dashboard.js?v=28 / dashboard.css?v=18, section order on the Activity tab is daily-entries → shipments → receipts, and the served JS/CSS contain the new show-more code.
+- **Why:** Michael approved the Activity tab layout change (row 60) after reviewing the summary.
+
+---
+
 ## 2026-08-12 14:47 — Reorder Activity tab and truncate Shipping/Receiving lists
 - **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `FACTORY_LEDGER_CHANGELOG.md` (row 60)
 - **What changed:** Frontend-only, branch `feat/activity-tab-layout` (NOT YET DEPLOYED). Activity tab sections reordered: Daily Entries now first, then Shipping, then Receiving (index.html section order only; ids/handlers unchanged). Shipping and Receiving tables now show only the first 4 transactions by default; the rest of the already-fetched rows (API calls unchanged, still `limit=100`) are hidden with an `overflow-hidden` class and revealed by a "Show all (N more)" / "Show less" text button in a table footer (`showMoreFooter`/`bindShowMore` + `ACTIVITY_PREVIEW_ROWS = 4` in dashboard.js; `.show-more-row`/`.show-more-btn`/`tr.overflow-hidden` styles in dashboard.css, matching the lot-link/primary-color link style). Detail rows collapse with their parents. Daily Entries behavior untouched. Cache-bust dashboard.js v27→28, dashboard.css v17→18.
