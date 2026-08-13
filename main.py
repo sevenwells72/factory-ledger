@@ -6251,6 +6251,7 @@ def export_orders_matrix(_: bool = Depends(verify_api_key)):
             JOIN sales_order_lines sol ON sol.sales_order_id = so.id
             JOIN products p ON p.id = sol.product_id
             WHERE so.status NOT IN ('shipped', 'invoiced', 'cancelled')
+              AND p.type = 'finished'
               AND NOT COALESCE(p.is_service, false)
               AND NOT COALESCE(p.no_production, false)
               AND NULLIF(TRIM(p.odoo_code), '') IS NOT NULL

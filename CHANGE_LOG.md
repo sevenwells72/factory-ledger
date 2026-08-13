@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-13 15:00 — Fix Sales Order Matrix export for raw-material sales
+- **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Restricted the production-oriented XLSX matrix query to `products.type = 'finished'` while preserving the existing service, no-production, SKU, status, case-size, workbook-format, and calculation rules. Added a route regression test that requires the finished-goods query boundary and verifies a valid workbook response.
+- **Why:** A live open order for ingredient SKU `11033` (Oats – Gluten Free, sold by pound with no `case_size_lb`) entered the case matrix query and made the endpoint return HTTP 422, so the dashboard could not download any workbook.
+
+---
+
 ## 2026-08-13 13:49 — Remediate admin SQL, effective-ledger reads, and Floor void contract
 - **File(s) changed:** `main.py`, `gpt-configs/schemas/openapi-floor.yaml`, `tests/test_batch1_correctness_security.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`
 - **What changed:** Removed the arbitrary `/admin/sql` execution route; moved current trace, shipment-display, packing-slip, and integrity reads to Phase 1 effective transaction/line views; added the required `reason` request body to the Floor `voidTransaction` action; added security, effective-void, packing-slip/integrity SQL, sales-shipment, and schema-contract regressions; amended the authoritative system knowledge document to distinguish these working-tree changes from deployed/live facts.

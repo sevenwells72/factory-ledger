@@ -158,3 +158,37 @@ def test_orders_matrix_uses_case_size_instead_of_uom_text(monkeypatch):
     )
     assert cases.cell(2, product_col).value == 1
     assert workbook["Pounds"].cell(2, product_col).value == 12.5
+
+
+def test_orders_matrix_query_excludes_non_finished_products(monkeypatch):
+    """Raw ingredients sold by weight must not enter the production matrix."""
+    rows = [{
+        "customer": "Finished Customer", "order_id": "SO-FINISHED",
+        "due_date": date(2026, 8, 17), "sku": "70050",
+        "product_name": "Granola Classic 25 LB", "qty": Decimal("2"),
+        "lb_per_case": Decimal("25"),
+    }]
+
+    class _FinishedGoodsCursor(_SeededCursor):
+        def execute(self, query, params=None):
+            super().execute(query, params)
+            assert "p.type = 'finished'" in query
+
+    @contextmanager
+    def seeded_transaction():
+        yield _FinishedGoodsCursor(rows)
+
+    monkeypatch.setattr(main, "get_transaction", seeded_transaction)
+    monkeypatch.setattr(main, "API_KEY", "matrix-test-key")
+    client = TestClient(main.app)
+    try:
+        response = client.get(
+            "/export/orders-matrix.xlsx",
+            headers={"X-API-Key": "matrix-test-key"},
+        )
+    finally:
+        client.close()
+
+    assert response.status_code == 200, response.text
+    workbook = load_workbook(BytesIO(response.content), data_only=False)
+    assert "Granola Classic 25#" in [cell.value for cell in workbook["Cases"][1]]
