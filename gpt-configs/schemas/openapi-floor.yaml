@@ -166,6 +166,15 @@ components:
           type: string
         reason_es:
           type: string
+    VoidRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          description: "Required explanation for the append-only void correction."
     ShipOrderRequest:
       type: object
       required: [mode]
@@ -494,13 +503,19 @@ paths:
     post:
       operationId: voidTransaction
       summary: "Void a transaction — its lines are excluded from all balances; no reversal is posted."
-      description: "transaction_id MUST come from a prior API response this conversation or from an explicit lookup via getTransactionHistory. Never void from memory or from operator description alone. Confirm the id with the operator before voiding if they name the transaction by description."
+      description: "Requires a non-empty reason. transaction_id MUST come from this conversation's API response or getTransactionHistory. Never void from memory. Confirm the transaction id and reason with the operator before calling."
       parameters:
         - name: transaction_id
           in: path
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoidRequest'
       responses:
         '200':
           description: "Void result with voided_transaction_id. reversal_transaction_id is always null and reversal_lines[] always empty (kept for backward compatibility — voids no longer post reversals)."

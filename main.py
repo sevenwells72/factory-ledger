@@ -4167,11 +4167,14 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
             cur.execute("""
                 SELECT t.id as transaction_id, t.timestamp, l.lot_code, p.name as product_name,
                        tl.quantity_lb as output_lb
-                FROM transactions t
-                JOIN transaction_lines tl ON tl.transaction_id = t.id
+                FROM ledger_current_transactions t
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 JOIN lots l ON l.id = tl.lot_id
                 JOIN products p ON p.id = tl.product_id
-                WHERE t.type IN ('make', 'pack') AND COALESCE(t.status, 'posted') = 'posted' AND l.id = %s AND tl.quantity_lb > 0
+                WHERE t.type IN ('make', 'pack')
+                  AND t.effective_status = 'posted'
+                  AND l.id = %s
+                  AND tl.quantity_lb > 0
             """, (lot_row['id'],))
             batch = cur.fetchone()
 
@@ -4199,8 +4202,8 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                        so.id as sales_order_id,
                        so.order_number,
                        s.id as shipment_id
-                FROM transaction_lines tl
-                JOIN transactions t ON t.id = tl.transaction_id
+                FROM ledger_current_transaction_lines tl
+                JOIN ledger_current_transactions t ON t.id = tl.transaction_id
                 LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
                 LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
                 LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
@@ -4209,7 +4212,7 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 WHERE tl.lot_id = %s
                   AND t.type = 'ship'
                   AND tl.quantity_lb < 0
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                 ORDER BY t.timestamp
             """, (lot_row['id'],))
             shipment_rows = cur.fetchall()
@@ -4286,10 +4289,10 @@ def _trace_ingredient_backward(cur, lot_row):
     cur.execute("""
         SELECT t.id as transaction_id, t.timestamp, t.shipper_name, t.bol_reference,
                tl.quantity_lb
-        FROM transactions t
-        JOIN transaction_lines tl ON tl.transaction_id = t.id
+        FROM ledger_current_transactions t
+        JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
         JOIN lots l ON l.id = tl.lot_id
-        WHERE t.type = 'receive' AND COALESCE(t.status, 'posted') = 'posted'
+        WHERE t.type = 'receive' AND t.effective_status = 'posted'
           AND l.id = %s
         ORDER BY t.timestamp DESC LIMIT 1
     """, (lot_row['id'],))
@@ -4310,11 +4313,12 @@ def _trace_ingredient_backward(cur, lot_row):
         SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product,
                ilc.quantity_lb as quantity_consumed, t.timestamp
         FROM ingredient_lot_consumption ilc
-        JOIN transactions t ON t.id = ilc.transaction_id
-        JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+        JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
+        JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
         JOIN lots bl ON bl.id = tl.lot_id
         JOIN products bp ON bp.id = bl.product_id
         WHERE ilc.ingredient_lot_id = %s
+          AND t.effective_status = 'posted'
         ORDER BY t.timestamp
     """, (lot_row['id'],))
     downstream = cur.fetchall()
@@ -4338,8 +4342,8 @@ def _trace_ingredient_backward(cur, lot_row):
                so.id as sales_order_id,
                so.order_number,
                s.id as shipment_id
-        FROM transaction_lines tl
-        JOIN transactions t ON t.id = tl.transaction_id
+        FROM ledger_current_transaction_lines tl
+        JOIN ledger_current_transactions t ON t.id = tl.transaction_id
         LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
         LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
         LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
@@ -4348,7 +4352,7 @@ def _trace_ingredient_backward(cur, lot_row):
         WHERE tl.lot_id = %s
           AND t.type = 'ship'
           AND tl.quantity_lb < 0
-          AND COALESCE(t.status, 'posted') = 'posted'
+          AND t.effective_status = 'posted'
         ORDER BY t.timestamp
     """, (lot_row['id'],))
     shipments = cur.fetchall()
@@ -4425,10 +4429,10 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 # then pull ingredient_lot_consumption rows for that transaction
                 cur.execute("""
                     SELECT t.id as transaction_id
-                    FROM transactions t
-                    JOIN transaction_lines tl ON tl.transaction_id = t.id
+                    FROM ledger_current_transactions t
+                    JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                     WHERE t.type IN ('make', 'pack')
-                      AND COALESCE(t.status, 'posted') = 'posted'
+                      AND t.effective_status = 'posted'
                       AND tl.lot_id = %s
                       AND tl.quantity_lb > 0
                 """, (lot['id'],))
@@ -4461,11 +4465,12 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 cur.execute("""
                     SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
                     FROM ingredient_lot_consumption ilc
-                    JOIN transactions t ON t.id = ilc.transaction_id
-                    JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+                    JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
+                    JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
                     JOIN lots bl ON bl.id = tl.lot_id
                     JOIN products bp ON bp.id = bl.product_id
                     WHERE ilc.ingredient_lot_id = %s
+                      AND t.effective_status = 'posted'
                 """, (lot['id'],))
                 batches = cur.fetchall()
 
@@ -4477,8 +4482,8 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                        so.id as sales_order_id,
                        so.order_number,
                        s.id as shipment_id
-                FROM transaction_lines tl
-                JOIN transactions t ON t.id = tl.transaction_id
+                FROM ledger_current_transaction_lines tl
+                JOIN ledger_current_transactions t ON t.id = tl.transaction_id
                 LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
                 LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
                 LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
@@ -4487,7 +4492,7 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 WHERE tl.lot_id = %s
                   AND t.type = 'ship'
                   AND tl.quantity_lb < 0
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                 ORDER BY t.timestamp
             """, (lot['id'],))
             shipments = cur.fetchall()
@@ -4600,11 +4605,11 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                 # Total received (positive qty from receive transactions)
                 cur.execute("""
                     SELECT COALESCE(SUM(tl.quantity_lb), 0) as total_received
-                    FROM transaction_lines tl
-                    JOIN transactions t ON t.id = tl.transaction_id
+                    FROM ledger_current_transaction_lines tl
+                    JOIN ledger_current_transactions t ON t.id = tl.transaction_id
                     WHERE tl.lot_id = %s AND t.type = 'receive'
                       AND tl.quantity_lb > 0
-                      AND COALESCE(t.status, 'posted') = 'posted'
+                      AND t.effective_status = 'posted'
                 """, (lot_id,))
                 received = float(cur.fetchone()['total_received'])
 
@@ -4613,11 +4618,12 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                     SELECT bl.lot_code as batch_lot_code, bp.name as batch_product,
                            ilc.quantity_lb as quantity_used_lb
                     FROM ingredient_lot_consumption ilc
-                    JOIN transactions t ON t.id = ilc.transaction_id
-                    JOIN transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+                    JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
+                    JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
                     JOIN lots bl ON bl.id = tl.lot_id
                     JOIN products bp ON bp.id = bl.product_id
                     WHERE ilc.ingredient_lot_id = %s
+                      AND t.effective_status = 'posted'
                     ORDER BY t.timestamp
                 """, (lot_id,))
                 production = cur.fetchall()
@@ -4634,15 +4640,15 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                            ABS(tl.quantity_lb) as quantity_lb,
                            t.customer_name, t.order_reference,
                            so.order_number
-                    FROM transaction_lines tl
-                    JOIN transactions t ON t.id = tl.transaction_id
+                    FROM ledger_current_transaction_lines tl
+                    JOIN ledger_current_transactions t ON t.id = tl.transaction_id
                     LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
                     LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
                     LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
                     WHERE tl.lot_id = %s
                       AND t.type = 'ship'
                       AND tl.quantity_lb < 0
-                      AND COALESCE(t.status, 'posted') = 'posted'
+                      AND t.effective_status = 'posted'
                     ORDER BY t.timestamp
                 """, (lot_id,))
                 shipments = cur.fetchall()
@@ -6736,8 +6742,9 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                    FROM sales_order_shipments sos
                    JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
                    JOIN products p ON p.id = sol.product_id
-                   JOIN transactions t ON t.id = sos.transaction_id
+                   JOIN ledger_current_transactions t ON t.id = sos.transaction_id
                    WHERE sol.sales_order_id = %s
+                     AND t.effective_status = 'posted'
                    ORDER BY sos.shipped_at DESC""",
                 (order_id,)
             )
@@ -7496,8 +7503,13 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
 
             # Check if this order has committed shipment records
             cur.execute("""
-                SELECT s.id FROM shipments s
-                WHERE s.sales_order_id = %s LIMIT 1
+                SELECT s.id
+                FROM shipments s
+                JOIN shipment_lines sl ON sl.shipment_id = s.id
+                JOIN ledger_current_transactions t ON t.id = sl.transaction_id
+                WHERE s.sales_order_id = %s
+                  AND t.effective_status = 'posted'
+                LIMIT 1
             """, (order_id,))
             has_shipments = cur.fetchone() is not None
 
@@ -7508,10 +7520,11 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                            l.lot_code, l.supplier_lot_code,
                            ABS(tl.quantity_lb) AS quantity_lb
                     FROM shipment_lines sl
-                    JOIN transaction_lines tl ON tl.transaction_id = sl.transaction_id
-                        AND tl.product_id = sl.product_id
+                    JOIN ledger_current_transactions t ON t.id = sl.transaction_id
+                        AND t.effective_status = 'posted'
+                    JOIN ledger_current_transaction_lines tl ON tl.transaction_id = sl.transaction_id
                     JOIN lots l ON l.id = tl.lot_id
-                    JOIN products p ON p.id = sl.product_id
+                    JOIN products p ON p.id = tl.product_id
                     WHERE sl.shipment_id IN (
                         SELECT s.id FROM shipments s WHERE s.sales_order_id = %s
                     )
@@ -7991,7 +8004,9 @@ def sales_dashboard(_: bool = Depends(verify_api_key)):
                    JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
                    JOIN sales_orders so ON so.id = sol.sales_order_id
                    JOIN customers c ON c.id = so.customer_id
+                   JOIN ledger_current_transactions t ON t.id = sos.transaction_id
                    WHERE sos.shipped_at > now() - INTERVAL '7 days'
+                     AND t.effective_status = 'posted'
                    GROUP BY so.id, c.name
                    ORDER BY last_shipped DESC"""
             )
@@ -9361,28 +9376,6 @@ def admin_delete_product_bom(mapping_id: int, _: bool = Depends(verify_api_key))
     except Exception as e:
         if _is_readonly_error(e): raise
         logger.error(f"Admin product-bom delete failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-# ═══════════════════════════════════════════════════════════════
-# ADMIN: READ-ONLY SQL QUERY (diagnostics)
-# ═══════════════════════════════════════════════════════════════
-
-class AdminSQLQuery(BaseModel):
-    sql: str
-
-@app.post("/admin/sql")
-def admin_sql_query(req: AdminSQLQuery, _: bool = Depends(verify_api_key)):
-    """Read-only SQL for admin diagnostics. Only SELECT allowed."""
-    sql = req.sql.strip()
-    if not sql.upper().startswith("SELECT"):
-        raise HTTPException(400, "Only SELECT queries allowed")
-    try:
-        with get_transaction() as cur:
-            cur.execute(sql)
-            rows = cur.fetchall()
-        return {"count": len(rows), "rows": [dict(r) for r in rows]}
-    except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
@@ -10819,12 +10812,12 @@ def audit_integrity():
             cur.execute("""
                 SELECT t.id as transaction_id, t.notes,
                        COALESCE(SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0), 0) as output_lb
-                FROM transactions t
-                LEFT JOIN transaction_lines tl ON tl.transaction_id = t.id
+                FROM ledger_current_transactions t
+                LEFT JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
                 LEFT JOIN ingredient_lot_consumption ilc ON ilc.transaction_id = t.id
                 WHERE t.type = 'make'
-                  AND COALESCE(t.status, 'posted') = 'posted'
-                GROUP BY t.id
+                  AND t.effective_status = 'posted'
+                GROUP BY t.id, t.notes
                 HAVING COUNT(ilc.id) = 0
                    AND COALESCE(SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0), 0) > 0
             """)
@@ -10840,13 +10833,13 @@ def audit_integrity():
             # 3. Ship transactions missing shipment_lines after Feb 27 [MAJOR]
             cur.execute("""
                 SELECT t.id as transaction_id, t.timestamp, t.customer_name
-                FROM transactions t
+                FROM ledger_current_transactions t
                 LEFT JOIN shipment_lines sl ON sl.transaction_id = t.id
                 WHERE t.type = 'ship'
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                   AND t.timestamp >= '2026-02-27'
                   AND sl.id IS NULL
-                GROUP BY t.id
+                GROUP BY t.id, t.timestamp, t.customer_name
             """)
             missing_sl = cur.fetchall()
             checks.append({
@@ -10888,10 +10881,10 @@ def audit_integrity():
             cur.execute("""
                 SELECT DISTINCT p.id as product_id, p.name
                 FROM products p
-                JOIN transaction_lines tl ON tl.product_id = p.id
-                JOIN transactions t ON t.id = tl.transaction_id
+                JOIN ledger_current_transaction_lines tl ON tl.product_id = p.id
+                JOIN ledger_current_transactions t ON t.id = tl.transaction_id
                 WHERE t.type = 'pack' AND tl.quantity_lb > 0
-                  AND COALESCE(t.status, 'posted') = 'posted'
+                  AND t.effective_status = 'posted'
                   AND p.case_size_lb IS NULL
             """)
             missing_cs = cur.fetchall()
@@ -10922,7 +10915,7 @@ def audit_integrity():
             })
 
             # 8. Voided transaction count [INFO]
-            cur.execute("SELECT COUNT(*) as cnt FROM transactions WHERE status = 'voided'")
+            cur.execute("SELECT COUNT(*) as cnt FROM ledger_current_transactions WHERE effective_status = 'voided'")
             voided_count = cur.fetchone()['cnt']
             checks.append({
                 "name": "voided_transaction_count",

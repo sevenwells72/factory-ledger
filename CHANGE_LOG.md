@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-08-13 13:49 — Remediate admin SQL, effective-ledger reads, and Floor void contract
+- **File(s) changed:** `main.py`, `gpt-configs/schemas/openapi-floor.yaml`, `tests/test_batch1_correctness_security.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`
+- **What changed:** Removed the arbitrary `/admin/sql` execution route; moved current trace, shipment-display, packing-slip, and integrity reads to Phase 1 effective transaction/line views; added the required `reason` request body to the Floor `voidTransaction` action; added security, effective-void, packing-slip/integrity SQL, sales-shipment, and schema-contract regressions; amended the authoritative system knowledge document to distinguish these working-tree changes from deployed/live facts.
+- **Why:** Prevent shared-key arbitrary SQL execution, keep correction-voided activity out of current operational reads, and make the Floor GPT void action match the backend contract.
+- **Verification:** All five Batch 1 tests, all 63 explicitly DB-marked tests, and the complete 84-test Python suite passed against a disposable schema-only local PostgreSQL 17 database; the four-case JavaScript pallet suite also passed. No production credentials or data were used.
+
+---
+
 ## 2026-08-12 14:49 — Deploy Activity tab reorder + 4-row preview
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 60 status updated to DEPLOYED)
 - **What changed:** Merged `feat/activity-tab-layout` to main (feature 559dc6f, merge 413441c) and pushed at 14:48 ET. Netlify picked up the new build within ~30s; verified live: index.html references dashboard.js?v=28 / dashboard.css?v=18, section order on the Activity tab is daily-entries → shipments → receipts, and the served JS/CSS contain the new show-more code.

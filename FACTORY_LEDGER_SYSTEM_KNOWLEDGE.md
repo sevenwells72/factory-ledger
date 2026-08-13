@@ -1,8 +1,8 @@
 # Factory Ledger System Knowledge
 
-> **Purpose.** This is the authoritative reasoning guide for an AI or developer discussing the current Factory Ledger and its dashboards. It describes what the checked-in implementation actually does, distinguishes actual production from planning, and calls out places where the software, live data, and apparent business intent diverge.
+> **Purpose.** This is the authoritative reasoning guide for an AI or developer discussing the current Factory Ledger and its dashboards. It describes what the inspected implementation actually does, distinguishes actual production from planning, and calls out places where the software, live data, and apparent business intent diverge.
 >
-> **Audit basis.** Repository `sevenwells72/factory-ledger`, `main` at commit `195fe68e7e59a955cceb24bbfccf1c9f9f8bcaa6` (matching `origin/main` when inspected on 2026-08-12, after merge `dc2ed6a` and the description-limit follow-up); production database inspected read-only at 2026-08-12 16:33 UTC; live health and integrity endpoints rechecked at approximately 2026-08-12 12:34 America/New_York. **Post-audit amendment (2026-08-13):** this document was amended after `195fe68` for the deployed Daily Entries endpoint, Activity-tab reorder and four-row expanders, migration-039 entry-time caveat, 79-test suite, and dashboard cache-version advances. Other point-in-time facts remain based on the stated audit unless explicitly amended. Point-in-time counts below will change. Code paths and table names are cited so future readers can revalidate them.
+> **Audit basis.** Repository `sevenwells72/factory-ledger`, originally audited at `main` commit `195fe68e7e59a955cceb24bbfccf1c9f9f8bcaa6` on 2026-08-12; the current checked-out base is `e60bac608ab32d076cad2ca47ac6e9e5a5b1fa1f` (`origin/main` when rechecked 2026-08-13). Production database inspection remains the read-only 2026-08-12 16:33 UTC snapshot, with live health/integrity last rechecked at approximately 2026-08-12 12:34 America/New_York. **Post-audit amendments (2026-08-13):** deployed Daily Entries, Activity-tab, migration-039 caveat, test-suite, and dashboard-cache changes are incorporated. The Batch 1 `/admin/sql`, effective-ledger read, and Floor void-schema remediation is documented from the current uncommitted working tree based on `e60bac6`; it has not been deployed or verified live. Other point-in-time facts remain based on the stated audit unless explicitly amended. Point-in-time counts below will change. Code paths and table names are cited so future readers can revalidate them.
 >
 > **Evidence labels used here**
 >
@@ -169,6 +169,8 @@ Protected routes depend on `verify_api_key`; `/sales/orders/{order_id}/packing-s
 
 **Important security fact:** the static browser code and generated GPT instructions contain the shared credential. This document intentionally does not reproduce it. Because the key is shared and the dependency returns a boolean rather than an operator identity, `_operator_id()` records `legacy-shared-key` rather than a person. CORS permits any origin. The system therefore has authorization-by-shared-secret, not user authentication, roles, or trustworthy per-operator attribution.
 
+**CONFIRMED FROM CODE (Batch 1 working tree):** the former protected `POST /admin/sql` route and its client-supplied `cursor.execute(sql)` path are removed. No SQL sanitizer or replacement arbitrary-query surface was added. This closes that route-level vulnerability but does not remediate the broader shared-credential/CORS exposure above.
+
 ## API families
 
 | Family | Examples | Auth | Role |
@@ -180,7 +182,7 @@ Protected routes depend on `verify_api_key`; `/sales/orders/{order_id}/packing-s
 | Customers/orders | `/customers*`, `/sales/orders*`, `/sales/dashboard` | Yes | Sales and fulfillment |
 | Main dashboard reads | `/dashboard/api/*` GET, including `/dashboard/api/activity/daily-entries` | No | Static dashboard data and effective daily-entry visibility |
 | Notes writes | `/dashboard/api/notes*` non-GET | Yes | Dashboard annotations |
-| Admin | `/admin/products`, `/admin/bom*`, `/admin/product-bom*`, `/admin/sql`, lot merge | Yes | Direct catalog/data maintenance |
+| Admin | `/admin/products`, `/admin/bom*`, `/admin/product-bom*`, lot merge | Yes | Direct catalog/data maintenance; no arbitrary client-supplied SQL route |
 | Scheduling | `/production/requirements`, `/schedule` | Yes | Planning, not actuals |
 
 **CONFIRMED FROM CODE:** `GET /dashboard/api/activity/daily-entries` is a public dashboard read with required `date=YYYY-MM-DD` and optional `date_mode=event|entered` (default `event`). It reads `ledger_current_transactions` joined to `ledger_current_transaction_lines`, restricted to `effective_status='posted'`. It is deliberately absent from both GPT Action schemas; their operation counts remain 30 main and 22 Floor.
@@ -197,6 +199,8 @@ Two independent ChatGPT editor limits are now part of the deployment contract:
 - every OpenAPI `description`/`summary` must be at most 300 characters. The editor rejected the initial warning schema because the Floor `/make` description was 409 characters. Commit `195fe68` reduced the three offenders to 281 characters (Floor `/make` operation), 267 (Floor `OrderStatus`), and 279 (main `/pack` 200 response), with no path, operation ID, or structural changes.
 
 The Floor schema separates sales-order dispatch into preview `shipOrder` and commit `commitShipOrder`, and its generated instructions require explicit approval plus a receipt before success. Both operations are nevertheless marked `x-openai-isConsequential: false`; safety therefore depends on prompt adherence and backend mode separation rather than the platform's consequential-action confirmation behavior. The main GPT uses a combined order-shipment operation rather than that dedicated two-operation contract.
+
+**CONFIRMED FROM CODE (Batch 1 working tree):** the Floor `voidTransaction` operation now has a required JSON request body referencing `VoidRequest`, whose required non-empty `reason` string matches the backend `VoidRequest`. The schema description tells the Floor GPT to confirm both transaction ID and reason. The operation count remains 22; backend void semantics are unchanged.
 
 ## Configuration and environment
 
@@ -663,6 +667,8 @@ There is no cleaning, sanitation, maintenance, downtime, shift, or labor-event e
 
 `void_transaction` requires a reason and appends a `ledger_corrections` event. It does not insert reversal lines. `correct_transaction` appends an amendment for supported header values. `_append_transaction_line_correction` is an internal line-level primitive used by lot operations. Original transaction and line rows remain unchanged.
 
+**CONFIRMED FROM CODE (Batch 1 working tree):** the Floor GPT Action schema can now supply the backend-required non-empty `reason` body to `POST /void/{transaction_id}`. Before this amendment, the schema exposed no request body and a schema-faithful call received HTTP 422. The backend requirement was not weakened.
+
 **Major limitation:** normal reads do not consistently consume header values from `effective_record`. An amendment to `occurred_at` or `business_date` can be recorded without changing the date used by history, calendar, or activity queries. A new Phase 1 void affects current inventory because `effective_status` is honored by canonical balance paths.
 
 ### Lot reassignment
@@ -794,16 +800,17 @@ The endpoint is deliberately dashboard-only and absent from both GPT Action sche
 
 `list_sales_orders`, `get_sales_order`, `sales_dashboard`, and dashboard JavaScript feed filters, line detail, readiness flags, dates, quantities, and shipment data. `fulfillment_check` compares each open line independently to the same global product on-hand. It does not reserve stock across competing orders or duplicate same-SKU lines. It also fails to exclude service items in this particular check, so service shortages can be misleading.
 
+**CONFIRMED FROM CODE (Batch 1 working tree):** `get_sales_order` shipment history and `sales_dashboard` recent-shipment totals join `ledger_current_transactions` and require effective posted status. Packing-slip committed-shipment detection and actual lot allocations likewise require effective posted transactions and use effective transaction lines. Correction-voided shipments therefore disappear from these readouts, but the mutable order/support aggregates are not unwound; `quantity_shipped_lb`, line/order status, and shipment support rows can still describe the pre-void state.
+
 The order-matrix export filters services and `no_production` products, groups configured families, and converts pounds to cases. It currently uses full ordered `quantity_lb`, not remaining quantity after shipments, and does not consistently exclude cancelled lines. It can therefore overstate production demand.
 
 ## Trace reads
 
-`trace_batch`, `_trace_ingredient_backward`, `trace_ingredient`, and `trace_supplier_lot` reconstruct relationships using lots, raw transaction lines, raw transactions, ILC, customers, and shipment support tables. They can show formula origin, production usage, direct shipments, and supplier-origin information.
+`trace_batch`, `_trace_ingredient_backward`, `trace_ingredient`, and `trace_supplier_lot` reconstruct relationships using lots, effective current transactions/lines, ILC, customers, and shipment support tables. They can show formula origin, production usage, direct shipments, and supplier-origin information.
 
 Important boundaries:
 
-- the relationship queries largely use raw transaction tables/status and are not correction-aware;
-- their final balances may use effective views, so a response can contain corrected on-hand beside uncorrected relationship history;
+- **CONFIRMED FROM CODE (Batch 1 working tree):** production/receipt origins, downstream production, direct/customer shipments, and supplier-lot received totals now join `ledger_current_transactions` and `ledger_current_transaction_lines` with `effective_status='posted'`, excluding correction-voided transactions from active trace relationships;
 - ILC itself has no correction projection;
 - `fetchone` in creation/origin logic can omit additional events when product+lot is reused;
 - `trace_batch` does not recursively follow a packed child finished lot and then its customer shipments;
@@ -1444,7 +1451,7 @@ At 2026-08-12 12:34 America/New_York, `/audit/integrity` still returned **85/100
 | Floating-point dust | Pass | 0 |
 | Raw voided transaction count | Info | 33 |
 
-The effective ledger had 34 voided transactions, demonstrating that the raw void count misses the one correction-based void. Passing checks are only as good as their queries.
+The effective ledger had 34 voided transactions, demonstrating that the then-live raw void count missed one correction-based void. **CONFIRMED FROM CODE (Batch 1 working tree):** `audit_integrity` now uses current effective transactions/lines for the make-without-ILC, ship-without-shipment-lines, packed-FG-without-case-size, and void-count checks. This corrects the identified void-state mismatch but does not restamp the historical live score above. Passing checks are only as good as their queries.
 
 ## How inaccuracies can enter
 
@@ -1472,11 +1479,11 @@ Case size, batch size, yield, formula, product BOM, and pack format are mutable 
 
 ### Void/order divergence
 
-A ship void restores effective inventory but not order shipped quantities/status or shipment support rows. Trace/history/order views can disagree.
+A ship void restores effective inventory but not order shipped quantities/status or shipment support rows. The remediated trace, packing-slip, and shipment-history reads exclude the voided ledger event, while mutable fulfillment aggregates can still describe it as shipped.
 
 ### Raw/effective query mixing
 
-Legacy views, trace relationships, and portions of integrity checks query raw status/lines, while inventory uses effective lines. A correction can cause two valid-looking screens to differ.
+Legacy views and selected history/header projections still use raw values. **CONFIRMED FROM CODE (Batch 1 working tree):** the business-critical trace relationships, packing-slip ledger allocations, sales-order shipment history/recent-shipment totals, and affected integrity checks now use effective transaction state. Raw originals remain intentional in correction locking and immutable-history disclosure. Header amendments and ILC still lack complete typed effective projections, so correction-related disagreement remains possible outside the remediated void paths.
 
 ### UI exclusions
 
@@ -1494,7 +1501,7 @@ Standalone planner and API schedule assumptions can be mistaken for actual activ
 - formula/output mass tolerance and required-formula/type validation on `/make`;
 - enforced source-target/BOM/packaging rules and scrap accounting on `/pack`;
 - canonical effective header projection in every read;
-- correction-aware ILC/trace and recursive forward/back recall graph;
+- correction-aware ILC/support edges and a recursive forward/back recall graph;
 - atomic shipment-void reconciliation across ledger, order, and shipment tables;
 - supplier lot and received time completeness gates appropriate to lot source/type;
 - stable production taxonomy and an explicit unclassified alert;
@@ -1506,11 +1513,15 @@ Standalone planner and API schedule assumptions can be mistaken for actual activ
 
 ## Test coverage boundary
 
-Current pytest collection is 79 cases (72 explicit Python test functions plus parametrization), and the separate JavaScript pallet suite has four cases. `tests/test_production_warning.py` adds six database-backed tests: warning/no-warning formula responses, warning on make preview and commit, no warning for ordinary products, and whitespace-only suppression. `tests/test_daily_entries.py` adds three database-backed tests covering same-day entry metadata and signed line quantities, late-entry plus entered-date filtering, and effective-void exclusion. The shipped post-merge run passed 79/79 against the refreshed test database. Coverage is strongest around Phase 1 append-only/corrections, void balances, response envelopes, notes auth, service lines, order matrix, customer resolution, calendar calculations, production-warning response behavior, Daily Entries timeliness behavior, and read-only retry.
+The deployed base has 79 pytest cases, and the separate JavaScript pallet suite has four cases. `tests/test_production_warning.py` adds six database-backed tests: warning/no-warning formula responses, warning on make preview and commit, no warning for ordinary products, and whitespace-only suppression. `tests/test_daily_entries.py` adds three database-backed tests covering same-day entry metadata and signed line quantities, late-entry plus entered-date filtering, and effective-void exclusion. The shipped post-merge run passed 79/79 against the refreshed test database.
+
+**CONFIRMED FROM CODE/LOCAL TEST RUN (Batch 1 working tree, 2026-08-13):** `tests/test_batch1_correctness_security.py` adds five cases, bringing collection to 84. Three non-database cases verify removal of `/admin/sql`, the required Floor void body/22-operation count, and effective-view filters in every remediated trace, order, packing-slip, sales-dashboard, and integrity function. Two guarded database cases seed posted and correction-voided make/ship activity and cover batch/ingredient/supplier trace directions, effective inventory, immutable originals/corrections, integrity exclusion, sales-order shipment history, and recent shipment totals. All five Batch 1 cases passed against a disposable local PostgreSQL 17 schema-only database; all 63 explicitly DB-marked cases passed; and the complete Python suite passed 84/84. The JavaScript pallet suite passed four of four. No production credentials or production database were used.
+
+Coverage is strongest around Phase 1 append-only/corrections, void balances, response envelopes, notes auth, service lines, order matrix, customer resolution, calendar calculations, production-warning response behavior, Daily Entries timeliness behavior, and read-only retry.
 
 `tests/schema/schema.sql` now contains the Phase 1 append-only triggers/current views/certifications and the migration 040 pack-format structure. A local test database rebuilt from this snapshot therefore exercises those structures; it still contains no production catalog data unless a test seeds it.
 
-There is little/no direct regression coverage for full normal receive/make/pack/standalone-ship behavior, recursive trace completeness, backend scheduler semantics, integrity-query correctness, or end-to-end browser pages. Passing tests must not be generalized to those domains.
+There is little/no direct regression coverage for full normal receive/make/pack/standalone-ship behavior, recursive trace completeness, backend scheduler semantics, or end-to-end browser pages. Batch 1 adds focused integrity-query assertions and void-aware trace integration cases. Passing tests must not be generalized beyond covered behavior.
 
 ---
 
@@ -1528,7 +1539,7 @@ Each issue below distinguishes the current problem from a possible direction. Di
 
 ## 3. Raw and effective ledger paths coexist
 
-**Problem:** canonical inventory uses current views, but legacy views, trace joins, and integrity checks still read raw rows/status. **Why it matters:** the same transaction can be voided in one screen and posted in another. **Where:** legacy schema views and `/dashboard/*`; trace functions; `audit_integrity`. **Likely consequence:** conflicting totals and recall paths. **Possible direction:** one reusable effective ledger SQL/view layer with deprecation/removal of raw aggregation endpoints.
+**Problem:** canonical inventory and the remediated trace/packing-slip/order/integrity paths use current views, but legacy views and selected header/history projections still read raw columns. **Why it matters:** line/void state is now consistent on those critical paths, while amended header values can still differ between screens. **Where:** legacy schema views, selected `/dashboard/*` header reads, and history/date filtering. **Likely consequence:** conflicting dates/metadata and future reuse of stale abstractions. **Possible direction:** one reusable typed effective ledger layer plus deprecation/removal of raw aggregation endpoints.
 
 ## 4. ILC is outside the correction model
 
@@ -1540,7 +1551,7 @@ Each issue below distinguishes the current problem from a possible direction. Di
 
 ## 6. Traceability is not a recursive correction-aware recall graph
 
-**Problem:** trace endpoints follow selected immediate edges, often raw; batch trace does not traverse pack children to customers; frontend indexes only recent history. **Why it matters:** “complete” can omit downstream exposure. **Where:** `trace_batch`, `trace_ingredient`, `trace_supplier_lot`, `traceability.html`. **Likely consequence:** false assurance and manual recall work. **Possible direction:** canonical graph edges from effective lines/ILC/support tables, recursive bounded traversal in both directions, deduplication, explicit incompleteness reasons, and recall tests.
+**Problem:** trace endpoints now filter their transaction/line edges through effective posted state, but still follow only selected immediate edges; ILC is not correction-projected, batch trace does not traverse pack children to customers, and the frontend indexes only recent history. **Why it matters:** “complete” can omit downstream exposure even though correction-voided transactions no longer appear active. **Where:** `trace_batch`, `trace_ingredient`, `trace_supplier_lot`, `traceability.html`. **Likely consequence:** false assurance and manual recall work. **Possible direction:** correction-aware ILC/support edges, recursive bounded traversal in both directions, deduplication, explicit incompleteness reasons, and recall tests.
 
 ## 7. Product family is inferred from mutable names
 
@@ -1598,9 +1609,9 @@ Each issue below distinguishes the current problem from a possible direction. Di
 
 **Problem:** matrix uses full ordered pounds rather than remaining, and cancellation filters are incomplete. **Why it matters:** planners can schedule already-shipped/cancelled volume. **Where:** `export_orders_matrix`, workbook helpers. **Likely consequence:** overproduction. **Possible direction:** derive from a single canonical remaining-demand view and show source/status/as-of metadata.
 
-## 21. Integrity score is coarse and partially raw
+## 21. Integrity score is coarse
 
-**Problem:** score subtracts per failed category, not affected records; several checks use raw status/lines and narrow conditions. **Why it matters:** 85/100 can hide hundreds of defects; the void count already undercounted effective voids. **Where:** `audit_integrity`. **Likely consequence:** false confidence. **Possible direction:** correction-aware checks, counts/rates/aging, severity by impact, coverage statement, authenticated sensitive detail.
+**Problem:** score subtracts per failed category rather than affected records, and checks cover narrow conditions. The Batch 1 working tree converts the identified ledger-dependent checks and void count to effective views, but the score design remains coarse. **Why it matters:** 85/100 can hide hundreds of defects and says little about untested domains. **Where:** `audit_integrity`. **Likely consequence:** false confidence. **Possible direction:** counts/rates/aging, severity by impact, an explicit coverage statement, broader checks, and authenticated sensitive detail.
 
 ## 22. Legacy views/tables/endpoints remain callable
 
@@ -1748,6 +1759,7 @@ Paths are repository-relative.
 | `tests/test_phase1_ledger_integrity.py` | Append-only/correction/certification/current-view/calendar regression tests. | Phase 1 |
 | `tests/test_production_warning.py` | Six tests for formula/make warning presence, absence, optional Spanish, commit behavior, and whitespace suppression. | Production requirements/Kosher Ignition |
 | `tests/test_daily_entries.py` | Three tests for same-day entry metadata and signed lines, late-entry/entered-date behavior, and exclusion of effectively voided transactions. | Daily Entries/timeliness |
+| `tests/test_batch1_correctness_security.py` | Five working-tree regressions for `/admin/sql` removal, effective trace/packing-slip/order/integrity reads, immutable originals, inventory consistency, and the Floor void schema. | Batch 1 security/current-ledger correctness |
 | `tests/test_void_semantics.py` | Effective void and balance behavior. | void/current ledger |
 | `tests/test_dashboard_production_calendar.py` | Current calendar API count/category inputs and corrections. | Production Calendar |
 | `tests/test_orders_matrix_export.py` | XLSX export, notes, Graham repack behavior. | Planning export |
@@ -1953,14 +1965,14 @@ NO API/DB WRITE AND NO FACTORY LEDGER ACTUAL
 | Product hierarchy | Flat products plus names, parent link, BOMs, config. | Stable family/variant/SKU/label/format/routing hierarchy. | No normalized hierarchy. Intended depth is **STRONGLY INFERRED** from UI/business request. |
 | Recipes | Mutable `batch_formulas` drive make. | Reproducible formula/yield per production event. | No version or mass reconciliation. **CONFIRMED FROM CODE.** |
 | Packaging BOM | Packaging rows can exist in `product_bom`. | Pack consumes exact bag/box/label materials/lots. | Execution ignores these rows. Intended consumption **NEEDS OWNER CONFIRMATION**. |
-| Trace | Immediate backward/forward queries and graph UI. | Reliable one-step-back/one-step-forward recall. | Not recursive/correction-consistent; completeness badge overstates assurance. **CONFIRMED FROM CODE.** |
+| Trace | Effective-posted immediate backward/forward queries and graph UI. | Reliable one-step-back/one-step-forward recall. | Transaction/line void filtering is corrected in the Batch 1 working tree, but traversal is not recursive, ILC is not correction-projected, and the completeness badge overstates assurance. **CONFIRMED FROM CODE.** |
 | Orders | Mutable workflow plus ledger shipment and support tables. | Fulfillment state agrees with physical shipments. | Void cannot unwind order state; readiness is nonexclusive. **CONFIRMED FROM CODE.** |
 | Scheduling | API DB plan and separate local browser plan. | One capacity-aware plan tied to demand and actuals. | Two models, divergent capacities, no reconciliation. **CONFIRMED FROM CODE.** |
 | Resale products | `no_production` flags selected products. | Do not schedule internal production for pass-through goods. | Scheduler/calendar/write paths do not uniformly enforce it. **STRONGLY INFERRED** from migration comments. |
 | Production lines | Four capacity rows and product assignments. | Schedule and measure actual output by line/work center. | Actual transactions have no line. **STRONGLY INFERRED.** |
 | Operator controls | Shared key + GPT preview/receipt rules. | Safe conversational operations with attributable approvals. | Prompt discipline is not identity/security/idempotency. **CONFIRMED FROM CODE.** |
 | Odoo | SKU codes/names reflect Odoo; no integration. | Possibly catalog/order synchronization. | No current evidence of desired sync direction. **UNCERTAIN / NEEDS OWNER CONFIRMATION.** |
-| Integrity | Eight-check public score and focused tests. | Continuous trustworthy data-health monitoring. | Coarse/raw checks and missing domains. **CONFIRMED FROM CODE.** |
+| Integrity | Eight-check public score and focused tests; ledger-dependent checks use effective state in the Batch 1 working tree. | Continuous trustworthy data-health monitoring. | Coarse scoring and missing domains remain. **CONFIRMED FROM CODE.** |
 | Dashboard process/Sankey | Reconstruct conceptual flows; sample fallback. | Management understanding of material/process flow. | Incomplete/event-capped and sometimes hypothetical. **CONFIRMED FROM CODE.** |
 
 ## How to use these labels in change discussions
@@ -2024,7 +2036,7 @@ These questions cannot be answered confidently from the repository and materiall
 
 ## Security and governance
 
-28. Which roles should be allowed to view inventory/customer data, post floor events, acknowledge production restrictions/ignition, edit catalog/BOM, correct/void history, run admin SQL, and certify days?
+28. Which roles should be allowed to view inventory/customer data, post floor events, acknowledge production restrictions/ignition, edit catalog/BOM, correct/void history, and certify days? The arbitrary `/admin/sql` surface has been removed in the Batch 1 working tree rather than assigned a role.
 29. Is exposing operational dashboard reads outside authentication intentional?
 30. What retention/deprecation policy should apply to backup tables, legacy views, superseded GPT artifacts, and sample data?
 
@@ -2206,7 +2218,7 @@ The goal is not merely to make a number appear. It is to ensure that the number 
 - Live point-in-time evidence separated from enduring code facts: **yes**.
 - SS Classic #9 product IDs/SKUs, formula lineage, finished-product relationships, warnings, and current planning/dashboard omissions reverified against live data and code: **yes**.
 - Production-warning response surfaces, non-surfaces, GPT relay contract, editor limits, and missing backend enforcement documented: **yes**.
-- Current test count and schema snapshot coverage for migrations 039/040 reverified: **yes**.
+- Current test count and schema snapshot coverage for migrations 039/040 reverified: **yes** (79 on the deployed base; 84/84 passed in the Batch 1 working tree against a disposable local PostgreSQL 17 database).
 - Known gaps include consequence and possible direction: **yes**.
 - Graham ten-question mini-audit and full-model requirements completed: **yes**.
 - Owner questions limited to material unresolved business/governance decisions: **yes**.
