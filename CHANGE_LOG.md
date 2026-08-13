@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-13 15:11 — Deploy and verify Sales Order Matrix export fix
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Pushed commit `1cdd9cb` to `main`; Railway deployment `68da81ca-0279-4cf8-b8a8-78dec6e817cf` succeeded. Production returned HTTP 200 with the XLSX media type, attachment filename, and CORS header; the 16,024-byte workbook loaded successfully with populated Cases/Pounds sheets and excluded raw ingredient SKU `11033`. Health remained connected.
+- **Why:** Record the production rollout and acceptance evidence for the Sales Order Matrix download repair.
+
+---
+
 ## 2026-08-13 15:00 — Fix Sales Order Matrix export for raw-material sales
 - **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Restricted the production-oriented XLSX matrix query to `products.type = 'finished'` while preserving the existing service, no-production, SKU, status, case-size, workbook-format, and calculation rules. Added a route regression test that requires the finished-goods query boundary and verifies a valid workbook response.
