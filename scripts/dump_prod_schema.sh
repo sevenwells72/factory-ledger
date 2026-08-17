@@ -21,7 +21,7 @@ fi
 [ -n "$URL" ] || { echo "DATABASE_URL not set and not found in .env" >&2; exit 1; }
 
 # Transaction-mode pooler (6543) does not support pg_dump — use session mode.
-URL="${URL/:6543\//:5432\/}"
+URL="${URL/:6543\//:5432/}"
 
 "$PG_BIN/pg_dump" --schema-only -n public --no-owner --no-privileges \
     --no-comments "$URL" \

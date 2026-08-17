@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-08-17 15:27 — Fixed broken URL port substitution in dump_prod_schema.sh
+- **File(s) changed:** `scripts/dump_prod_schema.sh`
+- **What changed:** Removed a stray backslash in the bash substitution that rewrites the pooler port (`${URL/:6543\//:5432\/}` → `${URL/:6543\//:5432/}`); the old form produced `:5432\/` — an invalid URL pg_dump rejects.
+- **Why:** Latent bug found while building `scripts/psql_ro.sh`; the script only worked when DATABASE_URL was already a port-5432 URL.
+
+---
+
+## 2026-08-17 15:23 — Replaced session-level read-only guard with transaction-scoped pattern
+- **File(s) changed:** `CONTEXT.md`, `scripts/psql_ro.sh` (new)
+- **What changed:** Added "Read-only investigation access" section to CONTEXT.md documenting the canonical pattern (`BEGIN TRANSACTION READ ONLY` per transaction, session-mode pooler port 5432, psycopg2 `SET TRANSACTION READ ONLY`) and banning session-level read-only GUCs (`PGOPTIONS`/`options='-c default_transaction_read_only=on'`/`SET SESSION CHARACTERISTICS`) against pooler URLs. Added `scripts/psql_ro.sh` helper that rewrites the DATABASE_URL to the session pooler and opens psql with a reminder banner (smoke-tested).
+- **Why:** The session-level guard leaks `default_transaction_read_only=on` onto shared transaction-mode pooler (port 6543) connections, which the app then receives — the likely cause of the 2026-08-17 19:03–19:08Z READONLY_TRIPWIRE burst on SO-260811-002 (6 failed writes, no shipment written). The session-mode pooler also silently drops PGOPTIONS, so the old guard was unreliable everywhere.
+
+---
+
 ## 2026-08-13 15:11 — Deploy and verify Sales Order Matrix export fix
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Pushed commit `1cdd9cb` to `main`; Railway deployment `68da81ca-0279-4cf8-b8a8-78dec6e817cf` succeeded. Production returned HTTP 200 with the XLSX media type, attachment filename, and CORS header; the 16,024-byte workbook loaded successfully with populated Cases/Pounds sheets and excluded raw ingredient SKU `11033`. Health remained connected.

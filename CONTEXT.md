@@ -610,6 +610,34 @@ Dashboard fetches from `/dashboard/api/*` endpoints (no auth) for local data. Sa
 - Migrations run automatically on startup via the `startup()` function
 - `schema_migrations` table tracks applied migration versions
 
+### Read-only investigation access
+
+For ad-hoc production investigation, make read-only enforcement
+**transaction-scoped, never session-scoped**:
+
+```sql
+-- psql: use the session-mode pooler (DATABASE_URL with :6543/ swapped to :5432/)
+-- or scripts/psql_ro.sh, which does this for you
+BEGIN TRANSACTION READ ONLY;
+-- ... SELECTs ...
+COMMIT;
+```
+
+psycopg2: open each transaction with `cur.execute("SET TRANSACTION READ ONLY")`
+(transaction-scoped) instead of passing session options.
+
+**Never** use session-level read-only guards against pooler URLs — neither
+`PGOPTIONS="-c default_transaction_read_only=on"` nor psycopg2
+`options='-c default_transaction_read_only=on'` nor `SET SESSION CHARACTERISTICS`:
+
+- Through the transaction-mode pooler (port 6543 — the pool the app draws from),
+  the session GUC survives client disconnect on the shared server connection and
+  leaks to other clients; the app then intermittently fails writes with
+  "cannot execute INSERT in a read-only transaction" (2026-08-17
+  SO-260811-002 READONLY_TRIPWIRE burst).
+- Through the session-mode pooler (port 5432), startup options are silently
+  dropped, so the guard does not apply at all.
+
 ---
 
 ## Conventions & Patterns
