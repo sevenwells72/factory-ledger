@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-18 14:56 — Migration 042 APPLIED to prod (8 sentinel suppliers deactivated) and verified live
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 71), `CHANGE_LOG.md`
+- **What changed:** With Michael's approval, ran `migrations/042_deactivate_sentinel_suppliers.sql` against prod via the 5432 session pooler (single transaction, ON_ERROR_STOP): `UPDATE 8`, COMMIT. Read-only verification: `suppliers` = 51 rows → 43 active / 8 inactive, the inactive set being exactly FOUND, FOUND INVENTORY, INITIAL INVENTORY, Inventory Correction, INVENTORY FOUND, Inventory Intake, PHYSICAL COUNT, UNKNOWN. Live API checks against Railway (deployment 61efe81a): `POST /expected-receipts` with supplier_name "PHYSICAL COUNT" → **422** `SUPPLIER_INACTIVE` with 5 candidates (Phildesco, Phildesco c/o Moran Logistics, Barry Callebaut, CBS Food, Quali Pack), `success:false`, nothing created (`expected_receipts` still 0 rows); control call with active "dutch valley" and qty 0 → 422 INVALID_QUANTITY (i.e. supplier resolution passed); `GET /suppliers` → 43 rows, no sentinel names. Rows are deactivated, not deleted, so a 041 re-run cannot resurrect them.
+- **Why:** Keep ledger pseudo-suppliers out of expected-receipt resolution, candidates, the dashboard dropdown, and receiving auto-match.
+
+---
+
 ## 2026-08-18 14:50 — Row 71 → DEPLOYED (ade1487 pushed to main with per-action approval; Railway 61efe81a)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** After Michael's explicit approval, fast-forward pushed `1b94553..ade1487` to origin/main. Railway auto-deployed: deployment `61efe81a` (commit ade1487) BUILDING 14:47:36Z → SUCCESS 14:48 ET; previous 907cad2b REMOVED. Health probe: one 502 at the exact cutover, then `/health` 200 within 10 s; `GET /expected-receipts` with the dashboard key → 200. Netlify untouched (no dashboard/ change). Migration 042 still NOT applied; GPT paste still pending — both await separate approvals.
