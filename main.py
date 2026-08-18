@@ -231,8 +231,8 @@ DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
 # Second, SCOPED key for the browser dashboard. Accepted only on the routes in
 # DASHBOARD_KEY_ALLOWLIST (see verify_api_key); everything else -> 403.
-# TODO: drop the literal fallback once DASHBOARD_API_KEY is set on Railway.
-DASHBOARD_API_KEY = (os.getenv("DASHBOARD_API_KEY") or "dashboard-key-2026").strip()
+# Env-only (no literal fallback) — startup() raises if it is missing.
+DASHBOARD_API_KEY = (os.getenv("DASHBOARD_API_KEY") or "").strip()
 
 # Timezone configuration
 PLANT_TIMEZONE = ZoneInfo("America/New_York")
@@ -351,6 +351,8 @@ async def startup():
         raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")
     if not API_KEY:
         raise RuntimeError("API_KEY env var required — app cannot start without authentication")
+    if not DASHBOARD_API_KEY:
+        raise RuntimeError("DASHBOARD_API_KEY env var required — the dashboard's scoped key has no fallback")
     if DASHBOARD_API_KEY == API_KEY:
         logger.warning("DASHBOARD_API_KEY equals API_KEY — dashboard key scoping is ineffective")
     try:

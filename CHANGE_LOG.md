@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-18 13:28 — DASHBOARD_API_KEY is env-only: removed literal fallback, fail-loud at startup
+- **File(s) changed:** `main.py`, `tests/conftest.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 67)
+- **What changed:** `DASHBOARD_API_KEY = (os.getenv("DASHBOARD_API_KEY") or "").strip()` — the `"dashboard-key-2026"` literal fallback and its TODO are gone; `startup()` now raises `RuntimeError` when `DASHBOARD_API_KEY` is unset (mirrors the existing `API_KEY` check — master key was confirmed to have no literal fallback and was not touched). `tests/conftest.py` adds `os.environ.setdefault("DASHBOARD_API_KEY", "test-dashboard-key")` beside the `API_KEY` default so TestClient startup passes. Verified: suite 95/95 on the local test DB; `startup()` without the var raises as intended; `railway variables` shows `DASHBOARD_API_KEY` already set in prod before pushing.
+- **Why:** Env var is set and verified live on Railway; keeping a well-known literal fallback would let a future env misconfiguration silently accept `dashboard-key-2026` instead of failing loud.
+
+---
+
 ## 2026-08-18 13:23 — Renumbered WIP changelog rows 61/62/64 → 64/65/66 after fast-forwarding main
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CONTEXT.md`, `scripts/psql_ro.sh`
 - **What changed:** Stashed WIP (`WIP rows 61-64 pre-renumber`) was re-applied on top of origin/main 4df35a5. Upstream already held rows 61 (matrix export, DEPLOYED 1cdd9cb), 62/63 (scoped dashboard key, DEPLOYED), so the stashed duplicates of those (WIP 63/65/66) were dropped and the three genuinely new rows renumbered: office GPT Actions paste 61 → **64**, Floor GPT paste 62 → **65**, inventory recon 64 → **66** (row 65's cross-refs to "row 61" updated to "row 64"). The earlier CHANGE_LOG entries below that cite "row 61"/"row 62" for the GPT pastes now refer to rows 64/65. CONTEXT.md "Read-only investigation access" conflict resolved by keeping the fuller WIP rewrite (adds psycopg2 `set_session` case + Python snippet; still notes 5432 drops startup options). `scripts/psql_ro.sh` header comment updated with the `set_session(readonly=True)` warning (upstream PR #15 version lacked it). Also committed in this batch: CLAUDE.md pooler hard rule, `scripts/propose_pack_format_backfill.py` transaction-scoped read-only fix, `docs/audits/` (recon plan/history/count/execution), `scripts/inv_recon_post_2026_08_17.py`, `week1-scoring-extract-2026-08-13.md`. Removed the clean `~/Documents/factory-ledger-deploy` worktree (deploy/dashboard-key == origin/main).

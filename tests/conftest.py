@@ -83,6 +83,7 @@ if _TEST_URL:
     # DATABASE_URL (main.py reads it at import time).
     os.environ["DATABASE_URL"] = _TEST_URL
     os.environ.setdefault("API_KEY", "test-api-key")
+    os.environ.setdefault("DASHBOARD_API_KEY", "test-dashboard-key")
 else:
     # No test DB configured: scrub DATABASE_URL so nothing in the test
     # process can ever connect to production by accident.
