@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-18 12:55 — Scoped DASHBOARD_API_KEY with route allowlist (branch feat/dashboard-scoped-api-key, fa69b7b)
+- **File(s) changed:** `main.py`, `tests/test_dashboard_api_key.py`
+- **What changed:** Added a second API key `DASHBOARD_API_KEY` (env var, fallback literal `dashboard-key-2026` until set on Railway). `verify_api_key` and `verify_api_key_flexible` now share `_authorize_api_key()`: the master `API_KEY` keeps full access unchanged; the dashboard key is accepted only when `(METHOD, request.scope["route"].path)` is in the new `DASHBOARD_KEY_ALLOWLIST` (44 routes: dashboard/read-only GETs, the sales-order edits the dashboard performs, notes CRUD, `POST /sales/orders/{id}/ship/preview|commit`, `POST /receive/preview|commit`); every other route — all `/admin/*` incl. `/admin/sql`, make/pack/adjust/void, raw `/ship`/`/receive`, deletes — returns 403 `API key not authorized for this endpoint`. Missing key → 401 and unknown key → 403 (401 for packing-slip `?key=`) unchanged. Startup warns if the two keys are equal. New test file (11 tests) checks allowlist entries resolve to real routes, no admin/dangerous routes are listed, and the 200/403/401 matrix. Suite 90/90 on the local test DB. NOT YET DEPLOYED / not merged to main.
+- **Why:** The browser dashboard hardcodes the single master key; a scoped key lets the front-end authenticate without exposing full (SQL/admin/write) access.
+
+---
+
 ## 2026-08-12 14:49 — Deploy Activity tab reorder + 4-row preview
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 60 status updated to DEPLOYED)
 - **What changed:** Merged `feat/activity-tab-layout` to main (feature 559dc6f, merge 413441c) and pushed at 14:48 ET. Netlify picked up the new build within ~30s; verified live: index.html references dashboard.js?v=28 / dashboard.css?v=18, section order on the Activity tab is daily-entries → shipments → receipts, and the served JS/CSS contain the new show-more code.
