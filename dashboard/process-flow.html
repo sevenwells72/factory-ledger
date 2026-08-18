@@ -57,7 +57,7 @@
   /* Summary strip */
   .summary-strip {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     padding: 20px 24px;
   }
@@ -66,10 +66,6 @@
     border: 1px solid var(--card-border);
     border-radius: 8px;
     padding: 16px;
-  }
-  .summary-card.placeholder {
-    border-style: dashed;
-    opacity: 0.7;
   }
   .summary-card .label { font-size:12px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
   .summary-card .value { font-size:24px; font-weight:600; }
@@ -199,12 +195,6 @@
   <div class="summary-card"><div class="label">Lines Active</div><div class="value" id="sum-lines">--</div></div>
   <div class="summary-card"><div class="label">Produced Today</div><div class="value" id="sum-produced">--</div><div class="sub" id="sum-produced-sub"></div></div>
   <div class="summary-card"><div class="label">Avg Yield</div><div class="value" id="sum-yield">--</div></div>
-  <div class="summary-card placeholder">
-    <div class="label">Workers on Floor</div>
-    <div class="value">8 / 10</div>
-    <!-- PLACEHOLDER: not tracked in database. Future: manual input or headcount API. -->
-    <div class="sub">Manual entry</div>
-  </div>
 </div>
 
 <div class="lines-grid" id="lines-grid"></div>
@@ -420,7 +410,7 @@
 
     let casesValue = null;
     if (caseWeight && caseWeight > 0) {
-      casesValue = Math.round(totalOutputLb / caseWeight);
+      casesValue = Math.floor(totalOutputLb / caseWeight);
     }
 
     const stages = {};
@@ -491,7 +481,7 @@
       const isCoconut = lineName === 'Coconut Sweetened';
 
       if (isActive && caseWeight && caseWeight > 0) {
-        totalCases += Math.round(lineOutputLb / caseWeight);
+        totalCases += Math.floor(lineOutputLb / caseWeight);
         hasCaseData = true;
       }
 
