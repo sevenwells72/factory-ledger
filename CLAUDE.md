@@ -69,6 +69,7 @@ Rules:
 * If you are working outside of a project directory (e.g. directly in `~`), still log to `~/change-log.md` and skip the project-level log.
 * Use the current date and time for each entry.
 * HARD RULE: openapi-gpt-v3.yaml has a 30-operation limit. Count operations before and after any schema change. Never exceed 30.
+* HARD RULE: never use `set_session(readonly=True)` or any other session-level readonly setting (`SET SESSION CHARACTERISTICS`, `default_transaction_read_only`, `PGOPTIONS`) against the port-6543 pooler URL. It poisons shared pooled connections and breaks production writes. For read-only safety, connect via port 5432 (session pooler) or wrap every query in an explicit transaction: `BEGIN TRANSACTION READ ONLY; ... COMMIT;` With psycopg2, run `SET TRANSACTION READ ONLY` immediately after each `BEGIN` instead.
 
 ## Regression Guard
 

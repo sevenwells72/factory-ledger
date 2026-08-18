@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-18 13:23 — Renumbered WIP changelog rows 61/62/64 → 64/65/66 after fast-forwarding main
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CONTEXT.md`, `scripts/psql_ro.sh`
+- **What changed:** Stashed WIP (`WIP rows 61-64 pre-renumber`) was re-applied on top of origin/main 4df35a5. Upstream already held rows 61 (matrix export, DEPLOYED 1cdd9cb), 62/63 (scoped dashboard key, DEPLOYED), so the stashed duplicates of those (WIP 63/65/66) were dropped and the three genuinely new rows renumbered: office GPT Actions paste 61 → **64**, Floor GPT paste 62 → **65**, inventory recon 64 → **66** (row 65's cross-refs to "row 61" updated to "row 64"). The earlier CHANGE_LOG entries below that cite "row 61"/"row 62" for the GPT pastes now refer to rows 64/65. CONTEXT.md "Read-only investigation access" conflict resolved by keeping the fuller WIP rewrite (adds psycopg2 `set_session` case + Python snippet; still notes 5432 drops startup options). `scripts/psql_ro.sh` header comment updated with the `set_session(readonly=True)` warning (upstream PR #15 version lacked it). Also committed in this batch: CLAUDE.md pooler hard rule, `scripts/propose_pack_format_backfill.py` transaction-scoped read-only fix, `docs/audits/` (recon plan/history/count/execution), `scripts/inv_recon_post_2026_08_17.py`, `week1-scoring-extract-2026-08-13.md`. Removed the clean `~/Documents/factory-ledger-deploy` worktree (deploy/dashboard-key == origin/main).
+- **Why:** Repo cleanup — local main was 14 commits behind origin and the uncommitted work from the Aug 13/17 sessions collided with row numbers assigned upstream (row-28 renumber precedent).
+
+---
+
 ## 2026-08-18 13:14 — DEPLOYED scoped dashboard key: backend then front-end (Step-2 gated)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (rows 62/63 → DEPLOYED), `CHANGE_LOG.md`, `tests/test_dashboard_api_key.py` (merge fixup 237c3aa)
 - **What changed:** Merged the branch into `main` in two pushes from a clean worktree (`~/Documents/factory-ledger-deploy`, branch `deploy/dashboard-key`) so the other session's uncommitted WIP in the main checkout was untouched. Push 1 (`6073046..237c3aa`, merge 258baae + test fixup 237c3aa — dropped `/admin/sql` probes because upstream 2eca8ab removed the route; suite 95/95): Railway deployment `ed8adc82-89b4-442a-b48b-1613ba626758` SUCCESS ~13:10 ET, Netlify build self-cancelled (no `dashboard/` change). Gate curls against prod: dashboard key `GET /reason-codes` → 200; dashboard key `GET /admin/lots/duplicates` → 403 `API key not authorized for this endpoint`; master key `GET /admin/lots/duplicates` → 200 (and `POST /make` → 422, i.e. auth passes). Push 2 (`237c3aa..063e6eb`, merge 063e6eb): Netlify deploy `6a84923d70e2240008b12e51` ready at 13:11:44 ET serving v29/v3; live dashboard verified in Chrome — all Railway calls 200. Changelog rows renumbered on merge: 65→62, 66→63 (upstream had taken 61; row-28 precedent).
@@ -51,6 +58,111 @@
 - **What changed:** Removed the arbitrary `/admin/sql` execution route; moved current trace, shipment-display, packing-slip, and integrity reads to Phase 1 effective transaction/line views; added the required `reason` request body to the Floor `voidTransaction` action; added security, effective-void, packing-slip/integrity SQL, sales-shipment, and schema-contract regressions; amended the authoritative system knowledge document to distinguish these working-tree changes from deployed/live facts.
 - **Why:** Prevent shared-key arbitrary SQL execution, keep correction-voided activity out of current operational reads, and make the Floor GPT void action match the backend contract.
 - **Verification:** All five Batch 1 tests, all 63 explicitly DB-marked tests, and the complete 84-test Python suite passed against a disposable schema-only local PostgreSQL 17 database; the four-case JavaScript pallet suite also passed. No production credentials or data were used.
+
+---
+
+## 2026-08-17 15:56 — Ban session-level readonly on the 6543 pooler
+- **File(s) changed:** `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `FACTORY_LEDGER_CHANGELOG.md`, `scripts/propose_pack_format_backfill.py`, `scripts/psql_ro.sh`
+- **What changed:** Encoded a hard rule: never use `set_session(readonly=True)` or other session-level readonly GUCs against the transaction-mode pooler (port 6543). Read-only work must use port 5432 or `BEGIN` + `SET TRANSACTION READ ONLY`. Replaced the backfill script’s `set_session(readonly=...)` with a transaction-scoped SET. Documented the poison path in CONTEXT.md and Known Root Causes.
+- **Why:** Session-level readonly on 6543 survives disconnect and breaks production writes for the next client on that pooled connection.
+
+---
+
+## 2026-08-17 15:48 — Posted inventory-variance reconciliation
+- **File(s) changed:** `docs/audits/inventory-variance-execution-2026-08-17.md`, `scripts/inv_recon_post_2026_08_17.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Executed the confirmed recon checklist against production (txns 1950–2026, shipments 333–340, product `15999`). In-transaction verify matched the Aug 14 count floors. Wrote the execution log. Did not void `SUNSHINE-RECON-2026` or ship the open Sunshine / Blue Stripes SOs.
+- **Why:** User replied `go` after the 70080 pound-exact, 67470/67473 current-on-hand, and Feesers lot confirmations.
+
+---
+
+## 2026-08-17 15:38 — Removed psql-ro-guard worktree after PR #15 merge
+- **File(s) changed:** `.claude/worktrees/psql-ro-guard/` (removed)
+- **What changed:** Deleted the temporary worktree and local branch `fix/psql-ro-guard` (2f30a70) used to build PR #15; branch content is merged to main as 6073046.
+- **Why:** Housekeeping after the read-only-guard fix merged.
+
+---
+
+## 2026-08-17 15:27 — Aug 14 physical count file + revised recon plan
+- **File(s) changed:** `docs/audits/physical-count-2026-08-14.md`, `docs/audits/inventory-variance-recon-plan.md`
+- **What changed:** Added Arturo’s 2026-08-14 case/batch count as a standalone audit file. Rewrote the recon plan against corrected QB totals (70003 billed 8,016 cs → extra ships 3,377 and residual +39 cs), added Low Carb 964 / Cranberry 283 ships with pack under-records, designated Classic #9 and #1 bulk as 70013/70004 pack+ships, held Mini 100 units because 70006 has no weight, and un-held coconut/remaining FG/batch residuals from the new count. Checklist rebuilt. No ledger or application writes.
+- **Why:** Item-level invoice scan and the floor count were not in the first plan draft.
+
+---
+
+## 2026-08-17 15:27 — Fixed broken URL port substitution in dump_prod_schema.sh
+- **File(s) changed:** `scripts/dump_prod_schema.sh`
+- **What changed:** Removed a stray backslash in the bash substitution that rewrites the pooler port (`${URL/:6543\//:5432\/}` → `${URL/:6543\//:5432/}`); the old form produced `:5432\/` — an invalid URL pg_dump rejects.
+- **Why:** Latent bug found while building `scripts/psql_ro.sh`; the script only worked when DATABASE_URL was already a port-5432 URL.
+
+---
+
+## 2026-08-17 15:23 — Replaced session-level read-only guard with transaction-scoped pattern
+- **File(s) changed:** `CONTEXT.md`, `scripts/psql_ro.sh` (new)
+- **What changed:** Added "Read-only investigation access" section to CONTEXT.md documenting the canonical pattern (`BEGIN TRANSACTION READ ONLY` per transaction, session-mode pooler port 5432, psycopg2 `SET TRANSACTION READ ONLY`) and banning session-level read-only GUCs (`PGOPTIONS`/`options='-c default_transaction_read_only=on'`/`SET SESSION CHARACTERISTICS`) against pooler URLs. Added `scripts/psql_ro.sh` helper that rewrites the DATABASE_URL to the session pooler and opens psql with a reminder banner (smoke-tested).
+- **Why:** The session-level guard leaks `default_transaction_read_only=on` onto shared transaction-mode pooler (port 6543) connections, which the app then receives — the likely cause of the 2026-08-17 19:03–19:08Z READONLY_TRIPWIRE burst on SO-260811-002 (6 failed writes, no shipment written). The session-mode pooler also silently drops PGOPTIONS, so the old guard was unreliable everywhere.
+
+---
+
+## 2026-08-17 15:14 — Inventory variance reconciliation plan (no writes)
+- **File(s) changed:** `docs/audits/inventory-variance-recon-plan.md`, `docs/audits/inventory-variance-txn-history.md`
+- **What changed:** Added a plan-only reconciliation packet (backdated QB ships netted against the 6/11 Sunshine recon, BS invoice ships with GRPB/GRDC/GRHB mapped to 70073/70074/70080, batch true-ups to the Aug 14 Classic #9 / CC #9 counts, residuals to stated floors, GRPB under-pack quantification, process fixes, and a line-by-line execution checklist). Added a products-table naming verification to the prior extract; no historical rows were relabeled (70073 is PBB, 70080 is Hazelnut). No ledger or application writes.
+- **Why:** Close the inventory-variance investigation with a reviewable post list before any production correction.
+
+---
+
+## 2026-08-17 15:02 — 90-day in/out + SO-ship ledger path check
+- **File(s) changed:** `docs/audits/inventory-variance-txn-history.md`
+- **What changed:** Appended a read-only 90-day (2026-05-19–2026-08-17) inbound/outbound tally for all 105 active products, the four inbound-only flags, a live check that SO shipment rows match posted negative ledger lines, and a root-cause hypothesis.
+- **Why:** Test whether inventory variance is a dead ship-to-ledger path or unconsumed production/pack.
+
+---
+
+## 2026-08-17 15:01 — Classic #9 batch produced-vs-packed extract
+- **File(s) changed:** `docs/audits/inventory-variance-txn-history.md`
+- **What changed:** Appended read-only Classic Granola #9 and Classic Chocolate Chip Granola #9 make/adjust adds, pack/adjust consumes, produced-vs-consumed totals, and a diagnosis of the 106-vs-31 / 51-vs-0 physical gaps.
+- **Why:** Continue inventory-variance investigation from production ledger without changing data or application code.
+
+---
+
+## 2026-08-17 14:56 — Sunshine recon + Blue Stripes SO/ship follow-up
+- **File(s) changed:** `docs/audits/inventory-variance-txn-history.md`
+- **What changed:** Appended read-only follow-up: all YTD Sunshine ships on SS-line SKUs (18 recon rows, none replaced); 70003 counterfactual on-hand if Sunshine take-rate had continued; posted outbounds for BS 6x7 SKUs 70073/70074/70080 and Blue Stripes SOs, flagging two SOs with no matching ship.
+- **Why:** Continue inventory-variance investigation from production ledger without changing data or application code.
+
+---
+
+## 2026-08-17 14:48 — Inventory variance transaction-history extract
+- **File(s) changed:** `docs/audits/inventory-variance-txn-history.md`
+- **What changed:** Added a read-only production extract of posted ledger lines for four finished SKUs (70003, 1614, 893, 70074): full chronological list for Granola SS Chocolate Chip 12x10 OZ Case; last outbound plus 2026 YTD inbound/outbound totals for all four.
+- **Why:** Support inventory-variance review without changing ledger data or application code.
+
+---
+
+## 2026-08-13 15:00 — Fix Sales Order Matrix export for raw-material sales
+- **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Restricted the production-oriented XLSX matrix query to `products.type = 'finished'` while preserving the existing service, no-production, SKU, status, case-size, workbook-format, and calculation rules. Added a route regression test that requires the finished-goods query boundary and verifies a valid workbook response.
+- **Why:** A live open order for ingredient SKU `11033` (Oats – Gluten Free, sold by pound with no `case_size_lb`) entered the case matrix query and made the endpoint return HTTP 422, so the dashboard could not download any workbook.
+
+---
+
+## 2026-08-13 14:40 — Week 1 scoring extract report (read-only DB pull)
+- **File(s) changed:** `week1-scoring-extract-2026-08-13.md` (new)
+- **What changed:** Generated the CNS Floor Manager Trial v8.1 Week 1 scoring extract from PRODUCTION (read-only): all 35 window transactions (1882–1916) Mon 8/10–Thu 8/13 14:35 ET with production/packing/shipment/ILC detail, entry-timing tables, late-entry query results (0 rows), corrections (1 smoke-test void), certifications (only 1900-01-01 test rows), and gaps/anomalies (no receives all week, shared-key operator_id only, no dispatch-proof fields in schema, 8/12 wrong-output-product adjust sequence, lot-ID gaps). Monday 8/10 entries flagged as legacy-unverifiable (pre-migration-039 backfilled created_at).
+- **Why:** Weekly scoring input for Michael; facts only, scoring judgments made separately.
+
+---
+
+## 2026-08-13 11:10 — Logged Floor GPT paste completion (changelog row 62)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 62: Floor GPT (Factory Ledger - Floor 2.0) received GPT_FLOOR_INSTRUCTIONS.md (7,833 chars) and openapi-floor.yaml (22 ops, v4.1.0) on 2026-08-13. Both pending manual pastes from the 2026-08-12 deploy checklist (rows 57/58) are now complete.
+- **Why:** Closes out the Aug 12 deploy's manual steps on record; both GPT editors now match repo sources.
+
+---
+
+## 2026-08-13 11:00 — Logged office GPT Actions restore (changelog row 61)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 61 recording completion of the pending manual paste from the 2026-08-12 deploy: office GPT (Factory-Ledger 2.0) Actions restored to openapi-gpt-v3.yaml (30 ops, v3.4.0) after the floor schema had been pasted there by mistake, killing customer/order-entry ops; instructions updated createSalesOrder→createOrder. Verified via Dingman's Dairy PO 26791 → SO-260813-001 (searchCustomers → resolveProducts → createOrder with batched disambiguation). Floor GPT paste still pending if not yet done. GPT-editor-side fix — no repo schema files changed.
+- **Why:** Regression-guard protocol: the wrong-schema paste and its fix must be on record so future schema pastes target the right file per GPT.
 
 ---
 

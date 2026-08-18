@@ -612,31 +612,41 @@ Dashboard fetches from `/dashboard/api/*` endpoints (no auth) for local data. Sa
 
 ### Read-only investigation access
 
-For ad-hoc production investigation, make read-only enforcement
-**transaction-scoped, never session-scoped**:
+**Never** use session-level read-only against the transaction-mode pooler
+(port **6543**, the URL in `.env` / Railway). That includes:
+
+- `conn.set_session(readonly=True)` (psycopg2)
+- `SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY`
+- `PGOPTIONS="-c default_transaction_read_only=on"`
+- `options='-c default_transaction_read_only=on'`
+
+Those GUCs survive client disconnect on a shared 6543 server connection and
+poison the next borrower — including the app — which then fails writes with
+`cannot execute INSERT in a read-only transaction` (2026-08-17 SO-260811-002
+READONLY_TRIPWIRE burst).
+
+For read-only safety, pick **one**:
+
+1. Connect via the **session** pooler (rewrite `:6543/` → `:5432/`, or use
+   `scripts/psql_ro.sh`). Still do not set session-level readonly there;
+   startup options are silently dropped on 5432 anyway.
+2. Stay on 6543 but wrap **every** query in an explicit transaction:
 
 ```sql
--- psql: use the session-mode pooler (DATABASE_URL with :6543/ swapped to :5432/)
--- or scripts/psql_ro.sh, which does this for you
 BEGIN TRANSACTION READ ONLY;
 -- ... SELECTs ...
 COMMIT;
 ```
 
-psycopg2: open each transaction with `cur.execute("SET TRANSACTION READ ONLY")`
-(transaction-scoped) instead of passing session options.
+psycopg2 on 6543 (immediately after each `BEGIN`, not on the session):
 
-**Never** use session-level read-only guards against pooler URLs — neither
-`PGOPTIONS="-c default_transaction_read_only=on"` nor psycopg2
-`options='-c default_transaction_read_only=on'` nor `SET SESSION CHARACTERISTICS`:
-
-- Through the transaction-mode pooler (port 6543 — the pool the app draws from),
-  the session GUC survives client disconnect on the shared server connection and
-  leaks to other clients; the app then intermittently fails writes with
-  "cannot execute INSERT in a read-only transaction" (2026-08-17
-  SO-260811-002 READONLY_TRIPWIRE burst).
-- Through the session-mode pooler (port 5432), startup options are silently
-  dropped, so the guard does not apply at all.
+```python
+conn.autocommit = False
+with conn.cursor() as cur:
+    cur.execute("SET TRANSACTION READ ONLY")
+    cur.execute("SELECT ...")
+conn.rollback()  # or COMMIT — the txn is read-only either way
+```
 
 ---
 

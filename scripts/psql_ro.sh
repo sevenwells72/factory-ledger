@@ -9,11 +9,11 @@
 #     -- ... SELECTs ...
 #     COMMIT;
 #
-# Do NOT "fix" this script by adding PGOPTIONS or SET SESSION CHARACTERISTICS:
-# session-level read-only GUCs leak onto shared transaction-pool connections
-# (2026-08-17 SO-260811-002 READONLY_TRIPWIRE burst) and the session pooler
-# silently drops startup options anyway. See CONTEXT.md "Read-only
-# investigation access".
+# Do NOT "fix" this script with PGOPTIONS, SET SESSION CHARACTERISTICS, or
+# psycopg2 set_session(readonly=True): session-level read-only GUCs leak onto
+# shared 6543 pool connections (2026-08-17 SO-260811-002 READONLY_TRIPWIRE)
+# and the session pooler silently drops startup options anyway. See CONTEXT.md
+# "Read-only investigation access".
 #
 # Usage: scripts/psql_ro.sh [psql args...]
 #        (reads DATABASE_URL from env or the repo .env)

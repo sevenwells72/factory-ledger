@@ -221,13 +221,19 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     with psycopg2.connect(database_url(), cursor_factory=RealDictCursor) as conn:
-        conn.set_session(readonly=not args.apply)
+        # Never set_session(readonly=...) — that GUC poisons the 6543 pooler.
+        conn.autocommit = False
+        if not args.apply:
+            with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
         rows = load_rows(conn)
         rows_by_sku, unclassified = validate_scope(rows)
         if args.apply:
             assert_migration_applied(conn)
             apply_mapping(conn, rows_by_sku)
             conn.commit()
+        else:
+            conn.rollback()
 
     print("| SKU id | Name | Proposed pack_format | Review flag |")
     print("|---:|---|---|---|")
