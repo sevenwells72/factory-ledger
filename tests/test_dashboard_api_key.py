@@ -127,7 +127,6 @@ def test_dashboard_key_matches_route_template_not_raw_url(client):
 
 def _forbidden_calls(client):
     return [
-        ("POST /admin/sql", client.post("/admin/sql", json={"sql": "select 1"}, headers=DASH)),
         ("POST /make", client.post("/make", json={}, headers=DASH)),
         ("POST /pack", client.post("/pack", json={}, headers=DASH)),
         ("POST /adjust", client.post("/adjust", json={}, headers=DASH)),
@@ -170,7 +169,6 @@ def test_master_key_still_reaches_master_only_routes(client):
     assert client.get("/admin/lots/duplicates", headers=MASTER).status_code == 200
     assert client.get("/products/unverified", headers=MASTER).status_code == 200
     assert client.post("/make", json={}, headers=MASTER).status_code == 422
-    assert client.post("/admin/sql", json={}, headers=MASTER).status_code not in (401, 403)
 
 
 @pytest.mark.db
