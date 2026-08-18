@@ -5,7 +5,7 @@
   const DOW_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const SHIP_DATES_EVENT = 'factory-ledger:ship-dates';
   const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-  const SALES_API_KEY = 'ledger-secret-2026-factory';
+  const SALES_API_KEY = 'dashboard-key-2026';
   const OPEN_ORDER_STATUSES = new Set(['new', 'confirmed', 'in_production', 'ready', 'partial_ship']);
 
   let shipDateCounts = {};

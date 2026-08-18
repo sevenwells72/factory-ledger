@@ -1580,7 +1580,7 @@
   // ── Sales Orders ──
 
   const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-  const SALES_API_KEY = 'ledger-secret-2026-factory';
+  const SALES_API_KEY = 'dashboard-key-2026';
   const SALES_ORDER_OPEN_STATUSES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship'];
   const SALES_ORDER_STATUS_VALUES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship', 'shipped', 'invoiced', 'cancelled'];
   const SALES_ORDER_HEADER_EDIT_STATUSES = ['new', 'confirmed'];
