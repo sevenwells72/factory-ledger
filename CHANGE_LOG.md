@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-18 15:30 — Fixed Supplies inventory category-filter contract before release
+- **File(s) changed:** `main.py`, `tests/test_supplies.py`, `CHANGE_LOG.md`
+- **What changed:** Limited `GET /supplies/inventory?category=` to `ingredient`, `packaging`, or `consumable` while preserving the unfiltered all-products view; expanded the regression test to accept all three supported filters and reject `batch`, `finished`, and `widgets` with HTTP 422.
+- **Why:** Pre-push verification found that the filter incorrectly accepted the non-Supplies `batch` and `finished` product types.
+
+---
+
 ## 2026-08-18 15:18 — Migration 043 APPLIED to prod (Supplies); tests/schema/schema.sql re-dumped from prod
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md` (row 72), `CHANGE_LOG.md`
 - **What changed:** With Michael's approval ("apply"), ran `migrations/043_supplies.sql` against prod via the 5432 session pooler (single transaction, ON_ERROR_STOP): ALTER ×5, COMMENT, CREATE TABLE, CREATE INDEX ×2, COMMIT. Read-only verification: `products_type_check` now admits `consumable`; `products.low_stock_threshold numeric` NULL with `products_low_stock_threshold_check` (≥ 0); `supply_requests` exists (0 rows) with all 7 constraints (pkey, product_id fkey, status, target XOR, item_text non-blank, qty > 0, done_at ⇔ done) and both indexes; product type counts unchanged (batch 25 / finished 75 / ingredient 78 / packaging 32). `tests/schema/schema.sql` regenerated via `scripts/dump_prod_schema.sh` (3,788 lines, zero data rows; diff = exactly the 043 objects + pg_dump's `\restrict` token) and the pending `\ir 043` block is gone; local test DB rebuilt `--fresh` from it; suite 128/128. Backend NOT yet committed/pushed — awaiting the next per-action approval.

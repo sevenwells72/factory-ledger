@@ -192,6 +192,7 @@ def test_inventory_category_filter_and_alphabetical_order(client, cur):
     a = _seed_product(cur, "SUP zz Consumable Gloves", ptype="consumable", uom="unit")
     b = _seed_product(cur, "SUP aa Consumable Sanitizer", ptype="consumable", uom="unit")
     c = _seed_product(cur, "SUP Packaging Liner", ptype="packaging", uom="unit")
+    d = _seed_product(cur, "SUP Ingredient Salt", ptype="ingredient")
 
     r = client.get("/supplies/inventory", params={"category": "consumable"})
     assert r.status_code == 200, r.text
@@ -205,12 +206,19 @@ def test_inventory_category_filter_and_alphabetical_order(client, cur):
     assert names.index("SUP aa Consumable Sanitizer") < names.index("SUP zz Consumable Gloves")
 
     r = client.get("/supplies/inventory", params={"category": "packaging"})
+    assert r.status_code == 200, r.text
     ids = [i["product_id"] for i in r.json()["items"]]
     assert c in ids and a not in ids
 
-    r = client.get("/supplies/inventory", params={"category": "widgets"})
-    assert r.status_code == 422
-    assert r.json()["detail"]["error_code"] == "INVALID_CATEGORY"
+    r = client.get("/supplies/inventory", params={"category": "ingredient"})
+    assert r.status_code == 200, r.text
+    ids = [i["product_id"] for i in r.json()["items"]]
+    assert d in ids and a not in ids and c not in ids
+
+    for invalid_category in ("batch", "finished", "widgets"):
+        r = client.get("/supplies/inventory", params={"category": invalid_category})
+        assert r.status_code == 422, (invalid_category, r.text)
+        assert r.json()["detail"]["error_code"] == "INVALID_CATEGORY"
 
 
 @pytest.mark.db

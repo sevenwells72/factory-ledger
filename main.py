@@ -3437,8 +3437,9 @@ def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate
 # Not in openapi-gpt-v3.yaml on purpose (30-op cap; GPTs don't need these).
 # ═══════════════════════════════════════════════════════════════
 
-# The product "category" is products.type (text + CHECK constraint).
-PRODUCT_CATEGORIES = ("ingredient", "packaging", "consumable", "batch", "finished")
+# The Supplies filter intentionally exposes only supply-relevant categories;
+# the unfiltered endpoint still returns every products.type value.
+PRODUCT_CATEGORIES = ("ingredient", "packaging", "consumable")
 
 # Every product (active or not, zero inventory or not) with its posted-only
 # ledger SUM. LEFT JOINs so a product with no lots / no lines still appears
@@ -3473,7 +3474,7 @@ def _serialize_supplies_item(row: dict) -> dict:
 
 @app.get("/supplies/inventory")
 def supplies_inventory(
-    category: Optional[str] = Query(None, description="ingredient | packaging | consumable (any products.type value accepted)"),
+    category: Optional[str] = Query(None, description="ingredient | packaging | consumable"),
     active_only: bool = Query(False, description="Drop inactive products (default: every product)"),
     low_only: bool = Query(False, description="Only rows with is_low = true"),
     _: bool = Depends(verify_api_key),
