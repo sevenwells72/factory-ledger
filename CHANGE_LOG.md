@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-18 13:29 — Row 67 → DEPLOYED (DASHBOARD_API_KEY env-only live on Railway)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 67 status DEPLOYING → DEPLOYED 13:29 ET: commit 3d8d3b8, Railway deployment 133c4bf4 SUCCESS (app booted, so the env var was present). Live smoke with the Railway-configured dashboard key: /health 200; GET /sales/orders 200; POST /make/preview 403 (not allowlisted); bogus key 403; missing key 401.
+- **Why:** Record deploy outcome per the regression-guard protocol.
+
+---
+
 ## 2026-08-18 13:28 — DASHBOARD_API_KEY is env-only: removed literal fallback, fail-loud at startup
 - **File(s) changed:** `main.py`, `tests/conftest.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 67)
 - **What changed:** `DASHBOARD_API_KEY = (os.getenv("DASHBOARD_API_KEY") or "").strip()` — the `"dashboard-key-2026"` literal fallback and its TODO are gone; `startup()` now raises `RuntimeError` when `DASHBOARD_API_KEY` is unset (mirrors the existing `API_KEY` check — master key was confirmed to have no literal fallback and was not touched). `tests/conftest.py` adds `os.environ.setdefault("DASHBOARD_API_KEY", "test-dashboard-key")` beside the `API_KEY` default so TestClient startup passes. Verified: suite 95/95 on the local test DB; `startup()` without the var raises as intended; `railway variables` shows `DASHBOARD_API_KEY` already set in prod before pushing.
