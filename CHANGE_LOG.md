@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-18 13:14 — DEPLOYED scoped dashboard key: backend then front-end (Step-2 gated)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (rows 62/63 → DEPLOYED), `CHANGE_LOG.md`, `tests/test_dashboard_api_key.py` (merge fixup 237c3aa)
+- **What changed:** Merged the branch into `main` in two pushes from a clean worktree (`~/Documents/factory-ledger-deploy`, branch `deploy/dashboard-key`) so the other session's uncommitted WIP in the main checkout was untouched. Push 1 (`6073046..237c3aa`, merge 258baae + test fixup 237c3aa — dropped `/admin/sql` probes because upstream 2eca8ab removed the route; suite 95/95): Railway deployment `ed8adc82-89b4-442a-b48b-1613ba626758` SUCCESS ~13:10 ET, Netlify build self-cancelled (no `dashboard/` change). Gate curls against prod: dashboard key `GET /reason-codes` → 200; dashboard key `GET /admin/lots/duplicates` → 403 `API key not authorized for this endpoint`; master key `GET /admin/lots/duplicates` → 200 (and `POST /make` → 422, i.e. auth passes). Push 2 (`237c3aa..063e6eb`, merge 063e6eb): Netlify deploy `6a84923d70e2240008b12e51` ready at 13:11:44 ET serving v29/v3; live dashboard verified in Chrome — all Railway calls 200. Changelog rows renumbered on merge: 65→62, 66→63 (upstream had taken 61; row-28 precedent).
+- **Why:** Deploy ordering hazard (backend must accept the dashboard key before the front-end stops sending the master key) — sequenced and gated per Michael's instruction.
+
+---
+
 ## 2026-08-18 13:05 — Dashboard front-end switched to scoped dashboard-key-2026 (0082d7e)
 - **File(s) changed:** `dashboard/dashboard.js`, `dashboard/mini-calendar.js`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/index.html`
 - **What changed:** Replaced the hardcoded master key `ledger-secret-2026-factory` with `dashboard-key-2026` in all five front-end consumers (no packing-slip URLs exist in the front-end); cache-bust dashboard.js v28→29 and mini-calendar.js v2→3 in index.html and the three sub-pages. `grep -r ledger-secret-2026-factory dashboard/` now returns nothing. Verified against a local run of the new backend with only the dashboard key: curl matrix of every endpoint each page calls + Chrome network log for index (Operations/Sales Orders tabs), sankey, process-flow, traceability — all 200; the only 403s were the intended negative controls (`/admin/sql`, `/make`, `/ship`, `/void`, `/admin/lots/duplicates`). Local test DB is schema-only, so pages rendered empty-state, not real data.
