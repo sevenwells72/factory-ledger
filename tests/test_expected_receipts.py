@@ -553,3 +553,42 @@ def test_created_by_is_caller_source_tag_never_a_fake_user_id(client, cur):
     # blank tag → NULL
     er = _create_er(client, pid, "CreatedBy Supply", 10, created_by="   ")
     assert er["created_by"] is None
+
+
+@pytest.mark.db
+def test_inactive_supplier_is_excluded_from_resolution_and_auto_match(client, cur):
+    """Deactivated suppliers: rejected by createExpectedReceipt (422 SUPPLIER_INACTIVE),
+    absent from candidates and GET /suppliers, and never auto-matched by receiving —
+    even for an open record created while the supplier was still active."""
+    pname = "FR2 Inactive Match Prod"
+    pid = _seed_product(cur, pname)
+    sid = _seed_supplier(cur, "Soon Inactive Co")
+    er = _create_er(client, pid, "Soon Inactive Co", 100)          # created while active
+
+    cur.execute("UPDATE suppliers SET active = false WHERE id = %s", (sid,))
+
+    # 1) resolution: create → 422 SUPPLIER_INACTIVE, and it is not offered as a candidate
+    r = client.post("/expected-receipts", json={"product_id": pid, "supplier_name": "soon inactive co", "expected_qty": 5})
+    assert r.status_code == 422 and r.json()["detail"]["error_code"] == "SUPPLIER_INACTIVE"
+    assert "Soon Inactive Co" not in [c["name"] for c in r.json()["detail"]["candidates"]]
+    r = client.post("/expected-receipts", json={"product_id": pid, "supplier_name": "Soon Inactve Co", "expected_qty": 5})
+    assert r.status_code == 422 and r.json()["detail"]["error_code"] == "SUPPLIER_NOT_FOUND"
+    assert "Soon Inactive Co" not in r.json()["detail"]["suggestions"]
+    assert "Soon Inactive Co" not in [s["name"] for s in client.get("/suppliers").json()["suppliers"]]
+    assert "Soon Inactive Co" in [s["name"] for s in client.get("/suppliers", params={"include_inactive": "true"}).json()["suppliers"]]
+
+    # 2) receiving: preview shows no match, commit posts unlinked, the open record is untouched
+    prev = client.post("/receive", json={"mode": "preview", "product_name": pname, "cases": 1, "case_size_lb": 25,
+                                         "shipper_name": "Soon Inactive Co", "bol_reference": "B"}).json()
+    assert prev["expected_receipt_match"] is None
+    resp = _receive(client, pname, "Soon Inactive Co", cases=4, case_size_lb=25)
+    assert resp["expected_receipt"] is None
+    cur.execute("SELECT expected_receipt_id FROM transactions WHERE id = %s", (resp["transaction_id"],))
+    assert cur.fetchone()["expected_receipt_id"] is None
+    detail = _get_er(client, er["id"])
+    assert detail["status"] == "open" and detail["received_qty"] == 0 and detail["remaining"] == 100
+
+    # 3) reactivating restores auto-match
+    cur.execute("UPDATE suppliers SET active = true WHERE id = %s", (sid,))
+    resp = _receive(client, pname, "Soon Inactive Co", cases=4, case_size_lb=25)
+    assert resp["expected_receipt"]["id"] == er["id"]

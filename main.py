@@ -2804,11 +2804,11 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
 
                     # FR-2 auto-match: open expected receipt for (product, supplier),
                     # FIFO by expected_date. Supplier resolved by normalised name;
-                    # unknown supplier or no open record → post normally, unlinked.
-                    # The link is set at INSERT (transactions is append-only).
+                    # unknown OR INACTIVE supplier, or no open record → post normally,
+                    # unlinked. The link is set at INSERT (transactions is append-only).
                     expected_receipt_id = None
                     er_supplier = resolve_supplier(cur, req.shipper_name)
-                    if er_supplier:
+                    if er_supplier and er_supplier["active"]:
                         er_match = find_open_expected_receipt(cur, product['id'], er_supplier['id'], lock=True)
                         if er_match:
                             expected_receipt_id = er_match['id']
@@ -3072,7 +3072,7 @@ def preview_expected_receipt_match(cur, product_id: int, shipper_name: str) -> O
     """Non-locking lookahead used by receive preview. Returns the FIFO match
     (with computed remaining) or None. Never raises."""
     supplier = resolve_supplier(cur, shipper_name)
-    if not supplier:
+    if not supplier or not supplier["active"]:
         return None
     match = find_open_expected_receipt(cur, product_id, supplier["id"])
     if not match:

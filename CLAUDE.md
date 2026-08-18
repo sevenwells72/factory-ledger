@@ -71,6 +71,11 @@ Rules:
 * HARD RULE: openapi-gpt-v3.yaml has a 30-operation limit. Count operations before and after any schema change. Never exceed 30.
 * HARD RULE: never use `set_session(readonly=True)` or any other session-level readonly setting (`SET SESSION CHARACTERISTICS`, `default_transaction_read_only`, `PGOPTIONS`) against the port-6543 pooler URL. It poisons shared pooled connections and breaks production writes. For read-only safety, connect via port 5432 (session pooler) or wrap every query in an explicit transaction: `BEGIN TRANSACTION READ ONLY; ... COMMIT;` With psycopg2, run `SET TRANSACTION READ ONLY` immediately after each `BEGIN` instead.
 
+## Hard rules
+
+* NEVER push to origin/main or merge into main without an explicit, per-action approval in the current session. Deploy sequences are confirmed one discrete step at a time.
+* This checkout is shared by concurrent sessions: stage hunks (`git add -p`) or HEAD-based staged blobs, never whole files or `git add -A`, and re-read `git status`/`git log -3` immediately before every commit and push.
+
 ## Regression Guard
 
 Before making ANY changes to `main.py`, GPT instructions, migrations, or the dashboard:
