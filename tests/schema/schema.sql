@@ -3565,3 +3565,10 @@ ALTER TABLE ONLY public.transaction_lines
 --
 
 \unrestrict uMIRMnAGhjmZZxQeafcCcWXrx4e2nlmHgoATrGjwo4rvXswMpSBuazyBqhG64f9
+
+--
+-- PENDING MIGRATION 041 (feat/fr2-expected-receipts) — appended so a fresh
+-- local test DB matches the branch. Remove this block after 041 is applied to
+-- prod and tests/schema/schema.sql is regenerated via scripts/dump_prod_schema.sh.
+--
+\ir ../../migrations/041_expected_receipts.sql

@@ -78,7 +78,7 @@
       return fmtWt(v) + ' lb';
     }
     const cs = Number(caseSizeLb);
-    const units = Math.round(v / cs);
+    const units = Math.floor(v / cs);
     const lbStr = fmtWt(v);
     if (productType === 'batch') {
       return lbStr + ' lb \u00b7 ' + units.toLocaleString('en-US') + ' batches';
@@ -149,7 +149,7 @@
 
   function productionUnitCount(finishedGood) {
     if (finishedGood.unit_count != null) return Number(finishedGood.unit_count);
-    if (finishedGood.case_size_lb) return Math.round(Number(finishedGood.total_lbs) / Number(finishedGood.case_size_lb));
+    if (finishedGood.case_size_lb) return Math.floor(Number(finishedGood.total_lbs) / Number(finishedGood.case_size_lb));
     return null;
   }
 
@@ -733,42 +733,95 @@
     }
   }
 
+  const BATCH_FAMILY_ORDER = ['coconut', 'granola', 'graham', 'chips', 'sprinkles', 'other'];
+  const BATCH_FAMILY_LABELS = {
+    coconut: 'Coconut',
+    granola: 'Granola',
+    graham: 'Graham',
+    chips: 'Chips',
+    sprinkles: 'Sprinkles',
+    other: 'Other'
+  };
+
+  function estimatedBatchesOnHand(batch) {
+    if (batch == null) return null;
+    if (batch.batch_count != null && batch.batch_count !== '') {
+      const provided = Number(batch.batch_count);
+      if (Number.isFinite(provided)) return provided;
+    }
+    const onHand = Number(batch.on_hand_lbs);
+    if (!Number.isFinite(onHand)) return null;
+    const made = Number(batch.made_unit_size_lbs);
+    if (Number.isFinite(made) && made > 0) return onHand / made;
+    const base = Number(batch.standard_batch_size_lbs);
+    if (!Number.isFinite(base) || base <= 0) return null;
+    const yieldMul = Number(batch.yield_multiplier);
+    const multiplier = Number.isFinite(yieldMul) && yieldMul > 0 ? yieldMul : 1;
+    return onHand / (base * multiplier);
+  }
+
+  function renderBatchFamilyTable(batches) {
+    let html = '<table class="inv-table"><thead><tr><th>Batch</th><th class="num">On Hand (lb)</th><th>Est. Batches</th></tr></thead><tbody>';
+    for (const b of batches) {
+      const rowId = 'batch-' + b.product_name.replace(/\W/g, '_');
+      const estRaw = estimatedBatchesOnHand(b);
+      const estBatches = estRaw == null ? null : Number(estRaw).toFixed(1);
+      html += `<tr class="expandable" data-expand="${rowId}">`;
+      html += `<td>${escHtml(b.product_name)}</td>`;
+      html += `<td class="num">${fmt(b.on_hand_lbs)}</td>`;
+      html += `<td>`;
+      if (estBatches !== null) {
+        const n = Number(estBatches);
+        const batchClass = n >= 5 ? 'stock-healthy' : n >= 2 ? 'stock-low' : 'stock-critical';
+        html += `<span class="badge ${batchClass}">${estBatches} batches</span>`;
+      } else {
+        html += `<span class="badge unknown">batches: unknown</span>`;
+      }
+      html += `</td></tr>`;
+      html += `<tbody class="lot-breakdown" id="${rowId}">`;
+      if (b.lots && b.lots.length > 0) {
+        for (const lot of b.lots) {
+          const bc = lot.batch_count != null
+            ? lot.batch_count
+            : estimatedBatchesOnHand({
+                on_hand_lbs: lot.on_hand_lbs,
+                made_unit_size_lbs: b.made_unit_size_lbs,
+                standard_batch_size_lbs: lot.default_batch_lb || b.standard_batch_size_lbs,
+                yield_multiplier: b.yield_multiplier
+              });
+          const lotQty = bc != null
+            ? fmt(lot.on_hand_lbs) + ' lb &middot; ' + Number(bc).toFixed(1) + ' batches'
+            : fmt(lot.on_hand_lbs) + ' lb';
+          html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
+          html += `<td class="num">${lotQty}</td><td></td></tr>`;
+        }
+      } else {
+        html += `<tr class="lot-row"><td colspan="3" style="color:var(--text-muted)">No lots on hand</td></tr>`;
+      }
+      html += `</tbody>`;
+    }
+    html += '</tbody></table>';
+    return html;
+  }
+
   function renderBatchInventory(data, container) {
     const batches = data.batches || [];
     let html = '';
     if (batches.length > 0) {
-      html += '<table class="inv-table"><thead><tr><th>Batch</th><th class="num">On Hand (lb)</th><th>Est. Batches</th></tr></thead><tbody>';
+      const grouped = {};
       for (const b of batches) {
-        const rowId = 'batch-' + b.product_name.replace(/\W/g, '_');
-        const estBatches = b.standard_batch_size_lbs
-          ? (b.on_hand_lbs / b.standard_batch_size_lbs).toFixed(1)
-          : null;
-        html += `<tr class="expandable" data-expand="${rowId}">`;
-        html += `<td>${escHtml(b.product_name)}</td>`;
-        html += `<td class="num">${fmt(b.on_hand_lbs)}</td>`;
-        html += `<td>`;
-        if (estBatches !== null) {
-          const batchClass = estBatches >= 5 ? 'stock-healthy' : estBatches >= 2 ? 'stock-low' : 'stock-critical';
-          html += `<span class="badge ${batchClass}">${estBatches} batches</span>`;
-        } else {
-          html += `<span class="badge unknown">batches: unknown</span>`;
-        }
-        html += `</td></tr>`;
-        // Lot breakdown
-        html += `<tbody class="lot-breakdown" id="${rowId}">`;
-        if (b.lots && b.lots.length > 0) {
-          for (const lot of b.lots) {
-            const bc = lot.batch_count;
-            const lotQty = bc != null ? fmt(lot.on_hand_lbs) + ' lb &middot; ' + bc + ' batches' : fmt(lot.on_hand_lbs) + ' lb';
-            html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
-            html += `<td class="num">${lotQty}</td><td></td></tr>`;
-          }
-        } else {
-          html += `<tr class="lot-row"><td colspan="3" style="color:var(--text-muted)">No lots on hand</td></tr>`;
-        }
-        html += `</tbody>`;
+        const family = BATCH_FAMILY_ORDER.includes(b.production_family) ? b.production_family : 'other';
+        if (!grouped[family]) grouped[family] = [];
+        grouped[family].push(b);
       }
-      html += '</tbody></table>';
+      const familiesPresent = BATCH_FAMILY_ORDER.filter(key => grouped[key] && grouped[key].length);
+      const showFamilyHeadings = familiesPresent.length > 1;
+      for (const family of familiesPresent) {
+        if (showFamilyHeadings) {
+          html += `<h3 class="batch-family-heading family-${family}">${escHtml(BATCH_FAMILY_LABELS[family] || family)}</h3>`;
+        }
+        html += renderBatchFamilyTable(grouped[family]);
+      }
     } else {
       html += '<div class="loading-indicator">No batch inventory on hand.</div>';
     }
@@ -808,18 +861,26 @@
       html += `<div id="${panelId}" class="collapsible-body${expanded ? ' expanded' : ''}">`;
 
       if (cat.items.length > 0) {
-        html += `<table class="inv-table"><thead><tr><th>Ingredient</th><th class="num">On Hand (${escHtml(cat.unit)})</th></tr></thead><tbody>`;
+        const itemUnits = cat.items.map(item => String(item.uom || cat.unit || 'lb').trim() || 'lb');
+        const uniqueUnits = [...new Set(itemUnits)];
+        const headerUnit = uniqueUnits.length === 1 ? uniqueUnits[0] : null;
+        const qtyHeader = headerUnit ? `On Hand (${escHtml(headerUnit)})` : 'On Hand';
+        html += `<table class="inv-table"><thead><tr><th>Ingredient</th><th class="num">${qtyHeader}</th></tr></thead><tbody>`;
         for (const item of cat.items) {
           const rowId = panelId + '-' + item.name.replace(/\W/g, '_');
+          const uom = String(item.uom || cat.unit || 'lb').trim() || 'lb';
+          const qtyLabel = headerUnit ? fmt(item.on_hand) : `${fmt(item.on_hand)} ${escHtml(uom)}`;
           html += `<tr class="expandable" data-expand="${rowId}">`;
-          html += `<td>${escHtml(item.name)}</td><td class="num">${fmt(item.on_hand)}</td>`;
+          html += `<td>${escHtml(item.name)}</td><td class="num">${qtyLabel}</td>`;
           html += `</tr>`;
           // Lot breakdown
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
           if (item.lots && item.lots.length > 0) {
             for (const lot of item.lots) {
+              const lotUom = String(lot.uom || uom).trim() || uom;
+              const lotQty = headerUnit ? fmt(lot.on_hand_lbs) : `${fmt(lot.on_hand_lbs)} ${escHtml(lotUom)}`;
               html += `<tr class="lot-row"><td><span class="lot-link" data-lot="${escHtml(lot.lot_code)}" data-product-id="${lot.product_id || ''}">${escHtml(lot.lot_code)}</span></td>`;
-              html += `<td class="num">${fmt(lot.on_hand_lbs)}</td></tr>`;
+              html += `<td class="num">${lotQty}</td></tr>`;
             }
           } else {
             html += `<tr class="lot-row"><td colspan="2" style="color:var(--text-muted)">No lots on hand</td></tr>`;
@@ -2546,6 +2607,300 @@
     document.getElementById('order-back-btn').addEventListener('click', closeOrderDetail);
   }
 
+  // ── Expected Receipts (FR-2) ──
+  // Minimal view over GET /expected-receipts. `remaining` and `is_overdue`
+  // come from the API (ledger SUM, floored at 0) — nothing is computed here.
+
+  state.erData = [];
+  state.erLoaded = false;
+  state.erEditing = null;        // record being edited, or null for create
+  state.erSuppliers = [];
+  state.erProductTimer = null;
+
+  async function refreshExpectedReceipts() {
+    hideError('er-error');
+    const container = document.getElementById('er-table-container');
+    if (!state.erLoaded) container.innerHTML = '<div class="loading-indicator">Loading expected receipts...</div>';
+    try {
+      const status = document.getElementById('er-status-filter').value;
+      const params = new URLSearchParams({ status, limit: '500' });
+      const data = await fetchSalesAPI('/expected-receipts?' + params.toString());
+      state.erData = data.expected_receipts || [];
+      state.erLoaded = true;
+      renderExpectedReceipts();
+    } catch (e) {
+      container.innerHTML = '';
+      showError('er-error', 'Failed to load expected receipts: ' + e.message);
+    }
+  }
+
+  function getFilteredExpectedReceipts() {
+    const q = document.getElementById('er-text-filter').value.trim().toLowerCase();
+    const overdueOnly = document.getElementById('er-overdue-only').checked;
+    return state.erData.filter(r => {
+      if (overdueOnly && !r.is_overdue) return false;
+      if (!q) return true;
+      const hay = [r.product_name, r.odoo_code, r.supplier_name, r.reference_number, r.notes]
+        .filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function erStatusBadge(r) {
+    if (r.status === 'open') {
+      return r.is_overdue
+        ? `<span class="so-badge er-badge er-badge-overdue" title="${escAttr(r.days_overdue + ' day(s) past expected date')}">Overdue ${r.days_overdue}d</span>`
+        : '<span class="so-badge er-badge er-badge-open">Open</span>';
+    }
+    if (r.status === 'closed') return '<span class="so-badge er-badge er-badge-closed">Closed</span>';
+    return '<span class="so-badge er-badge er-badge-cancelled">Cancelled</span>';
+  }
+
+  function renderExpectedReceipts() {
+    const container = document.getElementById('er-table-container');
+    const rows = getFilteredExpectedReceipts();
+    const openCount = state.erData.filter(r => r.status === 'open').length;
+    const overdueCount = state.erData.filter(r => r.is_overdue).length;
+    document.getElementById('er-summary').textContent =
+      state.erLoaded ? `${rows.length} shown · ${openCount} open · ${overdueCount} overdue` : '';
+
+    if (rows.length === 0) {
+      container.innerHTML = `<div class="orders-empty">
+        <div class="orders-empty-icon">&#128666;</div>
+        No expected receipts match your filters.
+      </div>`;
+      return;
+    }
+
+    let html = '<table class="orders-table er-table"><thead><tr>';
+    html += '<th>Product</th><th>Supplier</th><th class="num">Expected (lb)</th><th class="num">Received (lb)</th><th class="num">Remaining (lb)</th><th>Expected Date</th><th>Reference</th><th>Status</th><th class="er-actions-col"></th>';
+    html += '</tr></thead><tbody>';
+    for (const r of rows) {
+      const cls = ['er-row', r.is_overdue ? 'er-overdue' : '', r.status !== 'open' ? 'er-inactive' : ''].join(' ');
+      html += `<tr class="${cls}" data-er-id="${r.id}">`;
+      html += `<td><div class="er-product">${escHtml(r.product_name)}</div>${r.odoo_code ? `<div class="er-sku">SKU ${escHtml(r.odoo_code)}</div>` : ''}${r.notes ? `<div class="er-notes" title="${escAttr(r.notes)}">${escHtml(r.notes)}</div>` : ''}</td>`;
+      html += `<td>${escHtml(r.supplier_name)}</td>`;
+      html += `<td class="num">${fmtWt(r.expected_qty)}</td>`;
+      html += `<td class="num">${fmtWt(r.received_qty)}${r.over_receipt_qty > 0 ? ` <span class="er-over" title="Over-receipt">(+${fmtWt(r.over_receipt_qty)})</span>` : ''}</td>`;
+      html += `<td class="num er-remaining">${fmtWt(r.remaining)}</td>`;
+      html += `<td class="${r.is_overdue ? 'date-overdue' : ''}">${formatShipByDate(r.expected_date)}</td>`;
+      html += `<td>${escHtml(r.reference_number || '—')}</td>`;
+      html += `<td>${erStatusBadge(r)}</td>`;
+      if (r.status === 'open') {
+        html += `<td class="er-actions">
+          <button type="button" class="btn-sm er-edit-btn" data-er-id="${r.id}" title="Edit qty / date / reference / notes">Edit</button>
+          <button type="button" class="btn-sm er-close-btn" data-er-id="${r.id}" title="Mark as closed (nothing more expected)">Close</button>
+          <button type="button" class="btn-sm er-cancel-btn" data-er-id="${r.id}" title="Cancel this expected receipt">Cancel</button>
+        </td>`;
+      } else {
+        html += '<td class="er-actions"></td>';
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('.er-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rec = state.erData.find(r => r.id === Number(btn.dataset.erId));
+        if (rec) openErModal(rec);
+      });
+    });
+    container.querySelectorAll('.er-close-btn').forEach(btn => {
+      btn.addEventListener('click', () => erSetStatus(Number(btn.dataset.erId), 'closed', btn));
+    });
+    container.querySelectorAll('.er-cancel-btn').forEach(btn => {
+      btn.addEventListener('click', () => erSetStatus(Number(btn.dataset.erId), 'cancelled', btn));
+    });
+  }
+
+  async function erSetStatus(id, status, btn) {
+    const rec = state.erData.find(r => r.id === id);
+    const label = rec ? `${fmtWt(rec.expected_qty)} lb ${rec.product_name} from ${rec.supplier_name}` : `#${id}`;
+    const verb = status === 'closed' ? 'Close' : 'Cancel';
+    // Inline two-step confirm (no window.confirm — keeps the page automation-safe).
+    if (btn && btn.dataset.armed !== '1') {
+      btn.dataset.armed = '1';
+      btn.dataset.originalText = btn.textContent;
+      btn.textContent = `${verb}? Confirm`;
+      btn.classList.add('er-armed');
+      setTimeout(() => {
+        if (btn.isConnected) {
+          btn.dataset.armed = '';
+          btn.textContent = btn.dataset.originalText;
+          btn.classList.remove('er-armed');
+        }
+      }, 4000);
+      return;
+    }
+    hideError('er-error');
+    try {
+      await fetchSalesAPI(`/expected-receipts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      await refreshExpectedReceipts();
+    } catch (e) {
+      showError('er-error', `Failed to ${verb.toLowerCase()} ${label}: ${e.message}`);
+    }
+  }
+
+  async function loadErSuppliers() {
+    try {
+      const data = await fetchSalesAPI('/suppliers');
+      state.erSuppliers = data.suppliers || [];
+    } catch (e) {
+      state.erSuppliers = [];
+    }
+    const sel = document.getElementById('er-supplier');
+    sel.innerHTML = '<option value="">— select supplier —</option>' +
+      state.erSuppliers.map(s => `<option value="${escAttr(s.name)}">${escHtml(s.name)}</option>`).join('');
+  }
+
+  function setErProduct(id, name, sku) {
+    document.getElementById('er-product-id').value = id || '';
+    const chosen = document.getElementById('er-product-chosen');
+    chosen.innerHTML = id ? `Selected: <strong>${escHtml(name)}</strong>${sku ? ` <span class="er-sku">SKU ${escHtml(sku)}</span>` : ''}` : '';
+    document.getElementById('er-product-results').classList.add('hidden');
+  }
+
+  async function searchErProducts(q) {
+    const box = document.getElementById('er-product-results');
+    if (!q) { box.classList.add('hidden'); return; }
+    try {
+      const data = await fetchSalesAPI('/products/search?q=' + encodeURIComponent(q));
+      const products = (data.products || []).slice(0, 12);
+      if (!products.length) {
+        box.innerHTML = '<div class="er-product-option er-product-none">No products found</div>';
+      } else {
+        box.innerHTML = products.map(p =>
+          `<div class="er-product-option" data-id="${p.id}" data-name="${escAttr(p.name)}" data-sku="${escAttr(p.odoo_code || '')}">${escHtml(p.name)}${p.odoo_code ? ` <span class="er-sku">${escHtml(p.odoo_code)}</span>` : ''}</div>`
+        ).join('');
+        box.querySelectorAll('.er-product-option[data-id]').forEach(opt => {
+          opt.addEventListener('click', () => {
+            setErProduct(opt.dataset.id, opt.dataset.name, opt.dataset.sku);
+            document.getElementById('er-product-search').value = opt.dataset.name;
+          });
+        });
+      }
+      box.classList.remove('hidden');
+    } catch (e) {
+      box.innerHTML = `<div class="er-product-option er-product-none">Search failed: ${escHtml(e.message)}</div>`;
+      box.classList.remove('hidden');
+    }
+  }
+
+  async function openErModal(record) {
+    state.erEditing = record || null;
+    hideError('er-modal-error');
+    document.getElementById('er-modal-title').textContent = record ? `Edit Expected Receipt #${record.id}` : 'New Expected Receipt';
+    await loadErSuppliers();
+    const productGroup = document.getElementById('er-product-group');
+    const supplierSel = document.getElementById('er-supplier');
+    if (record) {
+      // Product & supplier are fixed once created (auto-match key); edit the rest.
+      productGroup.classList.add('hidden');
+      supplierSel.value = record.supplier_name;
+      supplierSel.disabled = true;
+      document.getElementById('er-qty').value = record.expected_qty;
+      document.getElementById('er-date').value = record.expected_date || '';
+      document.getElementById('er-reference').value = record.reference_number || '';
+      document.getElementById('er-notes').value = record.notes || '';
+    } else {
+      productGroup.classList.remove('hidden');
+      document.getElementById('er-product-search').value = '';
+      setErProduct(null);
+      supplierSel.disabled = false;
+      supplierSel.value = '';
+      document.getElementById('er-qty').value = '';
+      document.getElementById('er-date').value = '';
+      document.getElementById('er-reference').value = '';
+      document.getElementById('er-notes').value = '';
+    }
+    document.getElementById('er-modal-overlay').classList.remove('hidden');
+    (record ? document.getElementById('er-qty') : document.getElementById('er-product-search')).focus();
+  }
+
+  function closeErModal() {
+    document.getElementById('er-modal-overlay').classList.add('hidden');
+    state.erEditing = null;
+  }
+
+  async function saveEr() {
+    hideError('er-modal-error');
+    const qty = parseFloat(document.getElementById('er-qty').value);
+    if (!(qty > 0)) { showError('er-modal-error', 'Expected qty must be a positive number of pounds.'); return; }
+    const expectedDate = document.getElementById('er-date').value || null;
+    const reference = document.getElementById('er-reference').value.trim() || null;
+    const notes = document.getElementById('er-notes').value.trim() || null;
+    const btn = document.getElementById('er-save-btn');
+    btn.disabled = true;
+    try {
+      if (state.erEditing) {
+        await fetchSalesAPI(`/expected-receipts/${state.erEditing.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expected_qty: qty, expected_date: expectedDate, reference_number: reference, notes }),
+        });
+      } else {
+        const productId = document.getElementById('er-product-id').value;
+        const supplierName = document.getElementById('er-supplier').value;
+        if (!productId) { showError('er-modal-error', 'Pick a product from the search results.'); return; }
+        if (!supplierName) { showError('er-modal-error', 'Pick a supplier.'); return; }
+        await fetchSalesAPI('/expected-receipts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_id: Number(productId), supplier_name: supplierName, expected_qty: qty,
+            expected_date: expectedDate, reference_number: reference, notes, created_by: 'dashboard',
+          }),
+        });
+      }
+      closeErModal();
+      await refreshExpectedReceipts();
+    } catch (e) {
+      // Surface the API's structured message (e.g. supplier candidates) when present.
+      let msg = e.message;
+      const m = /HTTP \d+: (.*)$/s.exec(e.message);
+      if (m) {
+        try {
+          const body = JSON.parse(m[1]);
+          const d = body.detail || {};
+          msg = (d.message || (body.error_detail && body.error_detail.message) || e.message);
+          if (Array.isArray(d.suggestions) && d.suggestions.length) msg += ' Candidates: ' + d.suggestions.join(', ');
+        } catch (_) { /* leave raw */ }
+      }
+      showError('er-modal-error', msg);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function initExpectedReceipts() {
+    document.getElementById('er-status-filter').addEventListener('change', refreshExpectedReceipts);
+    document.getElementById('er-refresh-btn').addEventListener('click', refreshExpectedReceipts);
+    document.getElementById('er-overdue-only').addEventListener('change', () => { if (state.erLoaded) renderExpectedReceipts(); });
+    let t;
+    document.getElementById('er-text-filter').addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(() => { if (state.erLoaded) renderExpectedReceipts(); }, 200);
+    });
+    document.getElementById('er-new-btn').addEventListener('click', () => openErModal(null));
+    document.getElementById('er-modal-close').addEventListener('click', closeErModal);
+    document.getElementById('er-cancel-btn').addEventListener('click', closeErModal);
+    document.getElementById('er-modal-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeErModal();
+    });
+    document.getElementById('er-save-btn').addEventListener('click', saveEr);
+    document.getElementById('er-product-search').addEventListener('input', (e) => {
+      setErProduct(null);
+      clearTimeout(state.erProductTimer);
+      const q = e.target.value.trim();
+      state.erProductTimer = setTimeout(() => searchErProducts(q), 250);
+    });
+  }
+
   // ── System Health Badge ──
   async function refreshHealthBadge() {
     const badge = document.getElementById('health-badge');
@@ -2592,6 +2947,7 @@
     ops.push(refreshDailyEntries());
     ops.push(refreshNotes());
     ops.push(refreshOrders());
+    ops.push(refreshExpectedReceipts());
     ops.push(refreshHealthBadge());
 
     await Promise.allSettled(ops);
@@ -2613,6 +2969,7 @@
     initTabs();
     initNotes();
     initOrders();
+    initExpectedReceipts();
 
     // Theme toggle
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);

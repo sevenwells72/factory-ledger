@@ -580,6 +580,17 @@ body {
 .collapsible-body.expanded { display: block; }
 
 /* === Inventory Tables === */
+.batch-family-heading {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.batch-family-heading:first-child { margin-top: 0; }
+.batch-family-heading.family-coconut { color: var(--category-coconut); }
+.batch-family-heading.family-granola { color: var(--category-granola); }
+.batch-family-heading.family-graham { color: var(--category-graham); }
+
 .inv-table {
   width: 100%;
   border-collapse: collapse;
@@ -1164,7 +1175,7 @@ body {
 }
 .orders-select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
-#orders-customer-search {
+#orders-customer-search, #er-text-filter {
   padding: 7px 10px;
   background: var(--search-bg);
   border: 1px solid var(--search-border);
@@ -1175,8 +1186,8 @@ body {
   width: 200px;
   transition: border-color 0.15s ease;
 }
-#orders-customer-search::placeholder { color: var(--text-muted); }
-#orders-customer-search:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+#orders-customer-search::placeholder, #er-text-filter::placeholder { color: var(--text-muted); }
+#orders-customer-search:focus, #er-text-filter:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
 .orders-overdue-toggle {
   display: flex;
@@ -1768,7 +1779,39 @@ body {
   .note-actions { opacity: 1; }
   .orders-toolbar { flex-direction: column; align-items: stretch; }
   .orders-filters { flex-direction: column; }
-  #orders-customer-search { width: 100%; }
+  #orders-customer-search, #er-text-filter { width: 100%; }
   .order-kpi-row { grid-template-columns: 1fr; }
   .order-detail-dates { flex-direction: column; gap: 4px; }
 }
+
+/* === Expected Receipts (FR-2) === */
+.er-summary { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.section-hint { font-size: 12px; color: var(--text-muted); }
+.er-table td.num, .er-table th.num { text-align: right; }
+.er-table .er-product { font-weight: 500; }
+.er-sku { font-size: 11px; color: var(--text-muted); }
+.er-notes { font-size: 11px; color: var(--text-muted); max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.er-over { font-size: 11px; color: var(--text-muted); }
+.er-remaining { font-weight: 600; }
+.er-table tr.er-inactive td { opacity: 0.6; }
+/* Overdue rows flagged amber */
+.er-table tr.er-overdue td { background: color-mix(in srgb, var(--warning) 14%, transparent) !important; }
+.er-table tr.er-overdue td:first-child { border-left: 3px solid var(--warning); }
+.er-badge-open { background: var(--badge-bg); color: var(--badge-text); }
+.er-badge-overdue { background: var(--badge-amber-bg); color: var(--badge-amber-text); }
+.er-badge-closed { background: var(--badge-green-bg); color: var(--badge-green-text); }
+.er-badge-cancelled { background: var(--row-header); color: var(--text-muted); text-decoration: line-through; }
+.er-actions { white-space: nowrap; text-align: right; }
+.er-actions .btn-sm { margin-left: 4px; }
+.er-actions .btn-sm.er-armed { border-color: var(--warning); color: var(--warning); font-weight: 600; }
+.er-modal { max-width: 560px; }
+.er-product-results {
+  margin-top: 4px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); max-height: 220px; overflow-y: auto;
+}
+.er-product-results.hidden { display: none; }
+.er-product-option { padding: 6px 10px; font-size: 13px; cursor: pointer; }
+.er-product-option:hover { background: var(--surface-hover); }
+.er-product-option.er-product-none { color: var(--text-muted); cursor: default; }
+.er-product-chosen { margin-top: 6px; font-size: 12px; color: var(--text-muted); }
+#er-product-group.hidden { display: none; }

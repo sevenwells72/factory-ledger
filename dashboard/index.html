@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=18">
+  <link rel="stylesheet" href="dashboard.css?v=20">
   <link rel="stylesheet" href="mini-calendar.css?v=2">
 </head>
 <body>
@@ -30,7 +30,7 @@
     </div>
     <div class="header-center">
       <div class="search-wrapper">
-        <input type="text" id="global-search" placeholder="Search SKU, lot, SO, customer, supplier..." autocomplete="off">
+        <input type="text" id="global-search" placeholder="Search SKU, lot, SO, customer..." autocomplete="off">
         <div id="search-results" class="search-dropdown hidden"></div>
       </div>
     </div>
@@ -49,6 +49,7 @@
     <button class="tab" data-tab="activity">Activity</button>
     <button class="tab" data-tab="notes">Notes</button>
     <button class="tab" data-tab="orders">Sales Orders</button>
+    <button class="tab" data-tab="expected">Expected Receipts</button>
   </nav>
 
   <!-- Tab A: Operations -->
@@ -218,6 +219,85 @@
 
   </main>
 
+  <!-- Tab E: Expected Receipts (FR-2) -->
+  <main id="tab-expected" class="tab-content">
+    <div class="orders-toolbar">
+      <div class="orders-filters">
+        <select id="er-status-filter" class="orders-select">
+          <option value="open" selected>Open</option>
+          <option value="closed">Closed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="all">All</option>
+        </select>
+        <input type="text" id="er-text-filter" placeholder="Filter by product / supplier / reference..." autocomplete="off">
+        <label class="orders-overdue-toggle">
+          <input type="checkbox" id="er-overdue-only"> Overdue only
+        </label>
+        <span id="er-summary" class="er-summary"></span>
+      </div>
+      <div class="orders-toolbar-actions">
+        <button id="er-new-btn" class="btn-refresh" title="Record an expected delivery">+ New Expected Receipt</button>
+        <button id="er-refresh-btn" class="btn-refresh" title="Refresh expected receipts">Refresh</button>
+      </div>
+    </div>
+    <section class="section" id="section-expected">
+      <div class="section-header">
+        <h2>Expected Receipts</h2>
+        <span class="section-hint">Incoming deliveries. Remaining = expected &minus; posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.</span>
+      </div>
+      <div id="er-table-container"></div>
+      <div id="er-error" class="error-msg hidden"></div>
+    </section>
+  </main>
+
+  <!-- Expected Receipt Create / Edit Modal -->
+  <div id="er-modal-overlay" class="panel-overlay hidden" role="dialog" aria-label="Expected receipt editor">
+    <div class="note-modal er-modal">
+      <div class="panel-header">
+        <h3 id="er-modal-title">New Expected Receipt</h3>
+        <button id="er-modal-close" class="btn-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="note-modal-body">
+        <div class="form-group" id="er-product-group">
+          <label for="er-product-search">Product</label>
+          <input type="text" id="er-product-search" placeholder="Type to search products..." autocomplete="off">
+          <input type="hidden" id="er-product-id">
+          <div id="er-product-results" class="er-product-results hidden"></div>
+          <div id="er-product-chosen" class="er-product-chosen"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="er-supplier">Supplier</label>
+            <select id="er-supplier"></select>
+          </div>
+          <div class="form-group">
+            <label for="er-qty">Expected qty (lb)</label>
+            <input type="text" id="er-qty" inputmode="decimal" placeholder="e.g. 2000" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="er-date">Expected date <span class="label-hint">(optional)</span></label>
+            <input type="date" id="er-date">
+          </div>
+          <div class="form-group">
+            <label for="er-reference">Reference # <span class="label-hint">(optional)</span></label>
+            <input type="text" id="er-reference" placeholder="Supplier order / confirmation #" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="er-notes">Notes <span class="label-hint">(optional)</span></label>
+          <textarea id="er-notes" rows="2" placeholder="Anything the receiver should know..."></textarea>
+        </div>
+        <div id="er-modal-error" class="error-msg hidden"></div>
+        <div class="form-actions">
+          <button id="er-save-btn" class="btn-refresh">Save</button>
+          <button id="er-cancel-btn" class="btn-sm">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Note Create / Edit Modal -->
   <div id="note-modal-overlay" class="panel-overlay hidden" role="dialog" aria-label="Note editor">
     <div class="note-modal">
@@ -293,7 +373,7 @@
 
   <script src="mini-calendar.js?v=3"></script>
   <script src="pallet-calculations.js?v=1"></script>
-  <script src="dashboard.js?v=29"></script>
+  <script src="dashboard.js?v=31"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

@@ -896,6 +896,13 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("POST", "/sales/orders/{order_id}/ship/commit"),
     ("POST", "/receive/preview"),
     ("POST", "/receive/commit"),
+    # FR-2 expected receipts + supplier list (dashboard Expected Receipts tab)
+    ("GET", "/suppliers"),
+    ("POST", "/suppliers"),
+    ("GET", "/expected-receipts"),
+    ("POST", "/expected-receipts"),
+    ("GET", "/expected-receipts/{expected_receipt_id}"),
+    ("PATCH", "/expected-receipts/{expected_receipt_id}"),
 })
 
 
@@ -1088,6 +1095,35 @@ class ReceiveRequest(BaseModel):
     supplier_lot_code: Optional[str] = None
     lot_type: Optional[str] = None  # "single_supplier" or "commingled"
     supplier_lot_entries: Optional[List[Dict]] = None  # For commingled receipts
+
+class SupplierCreate(BaseModel):
+    name: str
+    active: bool = True
+
+
+class ExpectedReceiptCreate(BaseModel):
+    """FR-2: one expected delivery. supplier_name is resolved server-side against
+    the suppliers table (case/whitespace-insensitive); it is NEVER auto-created."""
+    product_id: Optional[int] = None
+    product_name: Optional[str] = None
+    supplier_name: str
+    expected_qty: float  # lb
+    expected_date: Optional[date] = None
+    reference_number: Optional[str] = None
+    notes: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+class ExpectedReceiptUpdate(BaseModel):
+    """PATCH body. Omitted fields are untouched; fields sent as null are cleared
+    (expected_date / reference_number / notes). status may only move to
+    'closed' or 'cancelled', and only while the record is open."""
+    expected_qty: Optional[float] = None
+    expected_date: Optional[date] = None
+    reference_number: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[Literal["closed", "cancelled"]] = None
+
 
 class ShipRequest(BaseModel):
     mode: Literal["preview", "commit"] = "preview"
@@ -2721,6 +2757,15 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                 if req.supplier_lot_entries:
                     response["commingled"] = True
                     response["supplier_lot_entries"] = req.supplier_lot_entries
+                # FR-2 lookahead: which open expected receipt (if any) this
+                # commit would link to. Informational only.
+                er_match = preview_expected_receipt_match(cur, product['id'], req.shipper_name)
+                response["expected_receipt_match"] = (
+                    {"id": er_match["id"], "expected_qty": er_match["expected_qty"],
+                     "remaining": er_match["remaining"], "expected_date": er_match["expected_date"],
+                     "reference_number": er_match["reference_number"]}
+                    if er_match else None
+                )
                 return response
         except HTTPException:
             raise
@@ -2756,17 +2801,33 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                         WHERE id = %s
                     """, (now, req.supplier_lot_code, lot_type, lot_id))
 
+                    # FR-2 auto-match: open expected receipt for (product, supplier),
+                    # FIFO by expected_date. Supplier resolved by normalised name;
+                    # unknown supplier or no open record → post normally, unlinked.
+                    # The link is set at INSERT (transactions is append-only).
+                    expected_receipt_id = None
+                    er_supplier = resolve_supplier(cur, req.shipper_name)
+                    if er_supplier:
+                        er_match = find_open_expected_receipt(cur, product['id'], er_supplier['id'], lock=True)
+                        if er_match:
+                            expected_receipt_id = er_match['id']
+
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, bol_reference, shipper_name, shipper_code, cases_received, case_size_lb)
-                        VALUES ('receive', %s, %s, %s, %s, %s, %s)
+                        INSERT INTO transactions (type, timestamp, bol_reference, shipper_name, shipper_code, cases_received, case_size_lb, expected_receipt_id)
+                        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
-                    """, (now, req.bol_reference, req.shipper_name, shipper_code, req.cases, req.case_size_lb))
+                    """, (now, req.bol_reference, req.shipper_name, shipper_code, req.cases, req.case_size_lb, expected_receipt_id))
                     txn_id = cur.fetchone()['id']
 
                     cur.execute("""
                         INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                         VALUES (%s, %s, %s, %s)
                     """, (txn_id, product['id'], lot_id, total_lb))
+
+                    # Recompute received (ledger SUM) and auto-close on full/over receipt.
+                    expected_receipt_summary = (
+                        settle_expected_receipt(cur, expected_receipt_id) if expected_receipt_id else None
+                    )
 
                     # Insert commingled supplier lot entries if provided
                     supplier_entries_saved = []
@@ -2801,6 +2862,13 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                     }
                     if supplier_entries_saved:
                         response["supplier_lot_entries_created"] = len(supplier_entries_saved)
+                    response["expected_receipt"] = expected_receipt_summary
+                    if expected_receipt_summary:
+                        response["message"] += (
+                            f"; linked to expected receipt #{expected_receipt_summary['id']}"
+                            + (" (now closed)" if expected_receipt_summary["auto_closed"] else
+                               f" ({expected_receipt_summary['remaining']:g} lb still expected)")
+                        )
                     return response
         except HTTPException:
             raise
@@ -2808,6 +2876,482 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
             if _is_readonly_error(e): raise
             logger.error(f"Receive commit failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# FR-2: SUPPLIERS + EXPECTED RECEIPTS
+# Lightweight expected-receipt tracking — explicitly NOT a PO system.
+#
+# Invariant: there is no stored "remaining" or "received" balance.
+#   remaining = expected_qty - SUM(posted transaction_lines of receipts
+#                                  whose transactions.expected_receipt_id
+#                                  points at the record), floored at 0.
+# Linking happens ONLY at receive-commit INSERT time (transactions is
+# append-only). expected_receipts is never read by any inventory
+# balance / availability query.
+# ═══════════════════════════════════════════════════════════════
+
+# Python mirror of SQL supplier_name_norm() (migration 041). Both sides must
+# agree; the SQL function is what the unique index and all lookups use.
+def normalize_supplier_name(name: Optional[str]) -> str:
+    if not name:
+        return ""
+    s = name.strip().replace("’", "'").replace("`", "'")
+    return re.sub(r"\s+", " ", s).lower()
+
+
+def resolve_supplier(cur, supplier_name: Optional[str]) -> Optional[dict]:
+    """Case/whitespace-insensitive exact match against suppliers. Returns the
+    row (id, name, active) or None. Never creates anything."""
+    if not supplier_name or not supplier_name.strip():
+        return None
+    cur.execute(
+        """SELECT id, name, active FROM suppliers
+           WHERE supplier_name_norm(name) = supplier_name_norm(%s)
+           LIMIT 1""",
+        (supplier_name,),
+    )
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+
+def supplier_candidates(cur, supplier_name: str, limit: int = 5) -> list:
+    """Up to `limit` closest ACTIVE supplier names (trigram similarity on the
+    normalised form, substring hits first). Used for the 422 payload."""
+    cur.execute(
+        """SELECT id, name,
+                  similarity(supplier_name_norm(name), supplier_name_norm(%s)) AS sim,
+                  (supplier_name_norm(name) LIKE '%%' || supplier_name_norm(%s) || '%%'
+                   OR supplier_name_norm(%s) LIKE '%%' || supplier_name_norm(name) || '%%') AS substr_hit
+           FROM suppliers
+           WHERE active
+           ORDER BY substr_hit DESC, sim DESC, name
+           LIMIT %s""",
+        (supplier_name, supplier_name, supplier_name, limit * 4),
+    )
+    rows = cur.fetchall()
+    out = []
+    for r in rows:
+        if r["substr_hit"] or float(r["sim"] or 0) > 0:
+            out.append({"supplier_id": r["id"], "name": r["name"], "similarity": round(float(r["sim"] or 0), 3)})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def require_supplier(cur, supplier_name: str) -> dict:
+    """Resolve or raise 422 SUPPLIER_NOT_FOUND with up to 5 candidates."""
+    supplier = resolve_supplier(cur, supplier_name)
+    if supplier and supplier["active"]:
+        return supplier
+    candidates = supplier_candidates(cur, supplier_name, limit=5)
+    if supplier and not supplier["active"]:
+        code, msg = "SUPPLIER_INACTIVE", f"Supplier '{supplier['name']}' is inactive."
+    else:
+        code, msg = "SUPPLIER_NOT_FOUND", f"No supplier matches '{supplier_name}'."
+    raise HTTPException(
+        status_code=422,
+        detail={
+            "error_code": code,
+            "message": msg + " Pick one of the candidates or create the supplier explicitly (POST /suppliers).",
+            "input": supplier_name,
+            "candidates": candidates,
+            "suggestions": [c["name"] for c in candidates],
+        },
+    )
+
+
+# Received quantity for one expected receipt: SUM of posted-only lines on the
+# receive transactions linked to it. This is the ONLY place received/remaining
+# comes from — it is never stored.
+EXPECTED_RECEIPT_RECEIVED_SQL = """
+    SELECT COALESCE(SUM(tl.quantity_lb), 0) AS received_qty,
+           COUNT(DISTINCT t.id)               AS receipt_count,
+           MAX(t.timestamp)                   AS last_received_at
+    FROM transactions t
+    JOIN ledger_current_transactions ct
+      ON ct.id = t.id AND ct.effective_status = 'posted'
+    JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
+    WHERE t.expected_receipt_id = %s
+"""
+
+EXPECTED_RECEIPT_SELECT_SQL = """
+    SELECT er.id, er.product_id, er.supplier_id, er.expected_qty, er.expected_date,
+           er.reference_number, er.notes, er.status, er.created_at, er.created_by,
+           er.updated_at,
+           p.name AS product_name, p.odoo_code,
+           s.name AS supplier_name,
+           COALESCE(rcv.received_qty, 0) AS received_qty,
+           COALESCE(rcv.receipt_count, 0) AS receipt_count,
+           rcv.last_received_at
+    FROM expected_receipts er
+    JOIN products p ON p.id = er.product_id
+    JOIN suppliers s ON s.id = er.supplier_id
+    LEFT JOIN LATERAL (
+        SELECT SUM(tl.quantity_lb) AS received_qty,
+               COUNT(DISTINCT t.id) AS receipt_count,
+               MAX(t.timestamp)     AS last_received_at
+        FROM transactions t
+        JOIN ledger_current_transactions ct
+          ON ct.id = t.id AND ct.effective_status = 'posted'
+        JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
+        WHERE t.expected_receipt_id = er.id
+    ) rcv ON true
+"""
+
+
+def _serialize_expected_receipt(row: dict, today: Optional[date] = None) -> dict:
+    today = today or get_plant_now().date()
+    expected = float(row["expected_qty"] or 0)
+    received = float(row["received_qty"] or 0)
+    raw_remaining = expected - received
+    exp_date = row["expected_date"]
+    is_overdue = bool(row["status"] == "open" and exp_date is not None and exp_date < today)
+    return {
+        "id": row["id"],
+        "product_id": row["product_id"],
+        "product_name": row["product_name"],
+        "odoo_code": row.get("odoo_code"),
+        "supplier_id": row["supplier_id"],
+        "supplier_name": row["supplier_name"],
+        "expected_qty": expected,
+        "received_qty": received,
+        "remaining": max(raw_remaining, 0.0),
+        "over_receipt_qty": max(-raw_remaining, 0.0),
+        "receipt_count": int(row["receipt_count"] or 0),
+        "last_received_at": row["last_received_at"].isoformat() if row.get("last_received_at") else None,
+        "expected_date": exp_date.isoformat() if exp_date else None,
+        "is_overdue": is_overdue,
+        "days_overdue": (today - exp_date).days if is_overdue else 0,
+        "reference_number": row["reference_number"],
+        "notes": row["notes"],
+        "status": row["status"],
+        "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+        "created_by": row["created_by"],
+        "updated_at": row["updated_at"].isoformat() if row.get("updated_at") else None,
+    }
+
+
+def fetch_expected_receipt(cur, expected_receipt_id: int) -> Optional[dict]:
+    cur.execute(EXPECTED_RECEIPT_SELECT_SQL + " WHERE er.id = %s", (expected_receipt_id,))
+    row = cur.fetchone()
+    return _serialize_expected_receipt(dict(row)) if row else None
+
+
+def find_open_expected_receipt(cur, product_id: int, supplier_id: int, lock: bool = False) -> Optional[dict]:
+    """FIFO auto-match: the open expected receipt for (product, supplier) with
+    the oldest expected_date (NULL dates last, then lowest id)."""
+    cur.execute(
+        f"""SELECT id, expected_qty, expected_date, reference_number
+            FROM expected_receipts
+            WHERE status = 'open' AND product_id = %s AND supplier_id = %s
+            ORDER BY expected_date ASC NULLS LAST, id ASC
+            LIMIT 1{' FOR UPDATE' if lock else ''}""",
+        (product_id, supplier_id),
+    )
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+
+def preview_expected_receipt_match(cur, product_id: int, shipper_name: str) -> Optional[dict]:
+    """Non-locking lookahead used by receive preview. Returns the FIFO match
+    (with computed remaining) or None. Never raises."""
+    supplier = resolve_supplier(cur, shipper_name)
+    if not supplier:
+        return None
+    match = find_open_expected_receipt(cur, product_id, supplier["id"])
+    if not match:
+        return None
+    return fetch_expected_receipt(cur, match["id"])
+
+
+def settle_expected_receipt(cur, expected_receipt_id: int) -> dict:
+    """After a receipt is linked: recompute received (ledger SUM) and auto-close
+    when received >= expected. Over-receipt closes too. Returns the summary."""
+    cur.execute(
+        "SELECT id, expected_qty, status FROM expected_receipts WHERE id = %s FOR UPDATE",
+        (expected_receipt_id,),
+    )
+    er = cur.fetchone()
+    cur.execute(EXPECTED_RECEIPT_RECEIVED_SQL, (expected_receipt_id,))
+    rcv = cur.fetchone()
+    expected = float(er["expected_qty"])
+    received = float(rcv["received_qty"] or 0)
+    auto_closed = False
+    status = er["status"]
+    if status == "open" and received + BALANCE_EPSILON >= expected:
+        cur.execute(
+            "UPDATE expected_receipts SET status = 'closed', updated_at = clock_timestamp() WHERE id = %s",
+            (expected_receipt_id,),
+        )
+        status = "closed"
+        auto_closed = True
+    return {
+        "id": expected_receipt_id,
+        "expected_qty": expected,
+        "received_qty": received,
+        "remaining": max(expected - received, 0.0),
+        "over_receipt_qty": max(received - expected, 0.0),
+        "status": status,
+        "auto_closed": auto_closed,
+    }
+
+
+# ── Suppliers ──────────────────────────────────────────────────
+
+@app.get("/suppliers")
+def list_suppliers(
+    q: Optional[str] = Query(None, description="Substring / fuzzy filter"),
+    include_inactive: bool = Query(False),
+    _: bool = Depends(verify_api_key),
+):
+    """Curated supplier list (backfilled from ledger shipper names by migration 041)."""
+    with get_transaction() as cur:
+        if q and q.strip():
+            cur.execute(
+                """SELECT id, name, active, created_at,
+                          similarity(supplier_name_norm(name), supplier_name_norm(%s)) AS sim
+                   FROM suppliers
+                   WHERE (%s OR active)
+                     AND (supplier_name_norm(name) LIKE '%%' || supplier_name_norm(%s) || '%%'
+                          OR similarity(supplier_name_norm(name), supplier_name_norm(%s)) > 0.2)
+                   ORDER BY sim DESC, name
+                   LIMIT 50""",
+                (q, include_inactive, q, q),
+            )
+        else:
+            cur.execute(
+                """SELECT id, name, active, created_at, NULL::real AS sim
+                   FROM suppliers WHERE (%s OR active) ORDER BY name""",
+                (include_inactive,),
+            )
+        rows = cur.fetchall()
+    return {
+        "suppliers": [
+            {"id": r["id"], "name": r["name"], "active": r["active"],
+             "created_at": r["created_at"].isoformat() if r["created_at"] else None}
+            for r in rows
+        ],
+        "count": len(rows),
+    }
+
+
+@app.post("/suppliers", status_code=201)
+def create_supplier(req: SupplierCreate, _: bool = Depends(verify_api_key)):
+    """Explicitly create a supplier. 409 if a normalised-equal name exists."""
+    name = re.sub(r"\s+", " ", (req.name or "").strip())
+    if not name:
+        raise HTTPException(status_code=422, detail={"error_code": "SUPPLIER_NAME_REQUIRED", "message": "name is required"})
+    with get_transaction() as cur:
+        existing = resolve_supplier(cur, name)
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error_code": "SUPPLIER_EXISTS",
+                    "message": f"Supplier already exists as '{existing['name']}' (id {existing['id']}).",
+                    "supplier_id": existing["id"],
+                    "name": existing["name"],
+                    "active": existing["active"],
+                },
+            )
+        cur.execute(
+            "INSERT INTO suppliers (name, active) VALUES (%s, %s) RETURNING id, name, active, created_at",
+            (name, req.active),
+        )
+        row = cur.fetchone()
+    return {
+        "supplier_id": row["id"], "id": row["id"], "name": row["name"], "active": row["active"],
+        "created_at": row["created_at"].isoformat(),
+        "message": f"Supplier '{row['name']}' created",
+    }
+
+
+# ── Expected receipts ──────────────────────────────────────────
+
+@app.post("/expected-receipts", status_code=201)
+def create_expected_receipt(req: ExpectedReceiptCreate, _: bool = Depends(verify_api_key)):
+    """Record an expected/incoming delivery (lb). supplier_name must resolve to an
+    existing supplier — otherwise 422 with up to 5 candidate names. Never
+    auto-creates suppliers. No inventory effect."""
+    if req.expected_qty is None or req.expected_qty <= 0:
+        raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be > 0 (lb)"})
+    if not req.product_id and not (req.product_name and req.product_name.strip()):
+        raise HTTPException(status_code=422, detail={"error_code": "PRODUCT_REQUIRED", "message": "product_id or product_name is required"})
+
+    with get_transaction() as cur:
+        if req.product_id:
+            cur.execute("SELECT id, name FROM products WHERE id = %s", (req.product_id,))
+            prod = cur.fetchone()
+            if not prod:
+                raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {req.product_id} not found"})
+            product_id = prod["id"]
+        else:
+            product_id, _name = resolve_product_id(cur, req.product_name.strip())
+
+        supplier = require_supplier(cur, req.supplier_name)
+
+        cur.execute(
+            """INSERT INTO expected_receipts
+                   (product_id, supplier_id, expected_qty, expected_date, reference_number, notes, created_by)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)
+               RETURNING id""",
+            (
+                product_id, supplier["id"], req.expected_qty, req.expected_date,
+                (req.reference_number or "").strip() or None,
+                (req.notes or "").strip() or None,
+                (req.created_by or "").strip() or "legacy-shared-key",
+            ),
+        )
+        new_id = cur.fetchone()["id"]
+        record = fetch_expected_receipt(cur, new_id)
+
+    logger.info(f"Expected receipt {new_id} created: {record['expected_qty']} lb {record['product_name']} from {record['supplier_name']}")
+    return {
+        "expected_receipt_id": new_id,
+        "expected_receipt": record,
+        "message": (
+            f"Expecting {record['expected_qty']:g} lb of {record['product_name']} from {record['supplier_name']}"
+            + (f" on {record['expected_date']}" if record["expected_date"] else "")
+        ),
+    }
+
+
+@app.get("/expected-receipts")
+def list_expected_receipts(
+    status: Optional[str] = Query(None, description="open | closed | cancelled | all (default all)"),
+    product_id: Optional[int] = Query(None),
+    supplier_id: Optional[int] = Query(None),
+    overdue_only: bool = Query(False),
+    limit: int = Query(500, ge=1, le=2000),
+    _: bool = Depends(verify_api_key),
+):
+    """List expected receipts with computed remaining (ledger SUM, floored at 0)
+    and is_overdue (open AND expected_date < today, plant timezone)."""
+    where, params = [], []
+    if status and status != "all":
+        if status not in ("open", "closed", "cancelled"):
+            raise HTTPException(status_code=422, detail={"error_code": "INVALID_STATUS", "message": "status must be open, closed, cancelled or all"})
+        where.append("er.status = %s")
+        params.append(status)
+    if product_id is not None:
+        where.append("er.product_id = %s")
+        params.append(product_id)
+    if supplier_id is not None:
+        where.append("er.supplier_id = %s")
+        params.append(supplier_id)
+    today = get_plant_now().date()
+    if overdue_only:
+        where.append("er.status = 'open' AND er.expected_date < %s")
+        params.append(today)
+    sql = EXPECTED_RECEIPT_SELECT_SQL
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += """ ORDER BY (er.status = 'open') DESC, er.expected_date ASC NULLS LAST, er.id ASC
+               LIMIT %s"""
+    params.append(limit)
+    with get_transaction() as cur:
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+    items = [_serialize_expected_receipt(dict(r), today) for r in rows]
+    return {
+        "expected_receipts": items,
+        "count": len(items),
+        "open_count": sum(1 for i in items if i["status"] == "open"),
+        "overdue_count": sum(1 for i in items if i["is_overdue"]),
+        "as_of": today.isoformat(),
+    }
+
+
+@app.get("/expected-receipts/{expected_receipt_id}")
+def get_expected_receipt(expected_receipt_id: int, _: bool = Depends(verify_api_key)):
+    with get_transaction() as cur:
+        record = fetch_expected_receipt(cur, expected_receipt_id)
+        if not record:
+            raise HTTPException(status_code=404, detail={"error_code": "EXPECTED_RECEIPT_NOT_FOUND", "message": f"Expected receipt {expected_receipt_id} not found"})
+        cur.execute(
+            """SELECT t.id AS transaction_id, t.timestamp, t.bol_reference, t.shipper_name,
+                      ct.effective_status,
+                      COALESCE(SUM(tl.quantity_lb), 0) AS quantity_lb,
+                      MIN(l.lot_code) AS lot_code
+               FROM transactions t
+               JOIN ledger_current_transactions ct ON ct.id = t.id
+               LEFT JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
+               LEFT JOIN lots l ON l.id = tl.lot_id
+               WHERE t.expected_receipt_id = %s
+               GROUP BY t.id, t.timestamp, t.bol_reference, t.shipper_name, ct.effective_status
+               ORDER BY t.timestamp, t.id""",
+            (expected_receipt_id,),
+        )
+        receipts = [
+            {
+                "transaction_id": r["transaction_id"],
+                "timestamp": r["timestamp"].isoformat() if r["timestamp"] else None,
+                "bol_reference": r["bol_reference"],
+                "shipper_name": r["shipper_name"],
+                "lot_code": r["lot_code"],
+                "quantity_lb": float(r["quantity_lb"] or 0),
+                "status": r["effective_status"],
+                "counted": r["effective_status"] == "posted",
+            }
+            for r in cur.fetchall()
+        ]
+    record["linked_receipts"] = receipts
+    return record
+
+
+@app.patch("/expected-receipts/{expected_receipt_id}")
+def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate, _: bool = Depends(verify_api_key)):
+    """Edit qty/date/reference/notes while open; or move status to closed /
+    cancelled (only from open). Omitted fields untouched; null clears."""
+    data = req.dict(exclude_unset=True)
+    if not data:
+        raise HTTPException(status_code=422, detail={"error_code": "NO_FIELDS", "message": "No fields to update"})
+    field_edits = {k: v for k, v in data.items() if k != "status"}
+    new_status = data.get("status")
+
+    with get_transaction() as cur:
+        cur.execute("SELECT id, status FROM expected_receipts WHERE id = %s FOR UPDATE", (expected_receipt_id,))
+        er = cur.fetchone()
+        if not er:
+            raise HTTPException(status_code=404, detail={"error_code": "EXPECTED_RECEIPT_NOT_FOUND", "message": f"Expected receipt {expected_receipt_id} not found"})
+        if er["status"] != "open":
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error_code": "EXPECTED_RECEIPT_NOT_OPEN",
+                    "message": f"Expected receipt {expected_receipt_id} is {er['status']}; only open records can be edited or closed/cancelled.",
+                    "status": er["status"],
+                },
+            )
+        sets, params = [], []
+        if "expected_qty" in field_edits:
+            q = field_edits["expected_qty"]
+            if q is None or q <= 0:
+                raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be > 0 (lb)"})
+            sets.append("expected_qty = %s"); params.append(q)
+        if "expected_date" in field_edits:
+            sets.append("expected_date = %s"); params.append(field_edits["expected_date"])
+        if "reference_number" in field_edits:
+            v = (field_edits["reference_number"] or "").strip() or None
+            sets.append("reference_number = %s"); params.append(v)
+        if "notes" in field_edits:
+            v = (field_edits["notes"] or "").strip() or None
+            sets.append("notes = %s"); params.append(v)
+        if new_status:
+            sets.append("status = %s"); params.append(new_status)
+        sets.append("updated_at = clock_timestamp()")
+        params.append(expected_receipt_id)
+        cur.execute(f"UPDATE expected_receipts SET {', '.join(sets)} WHERE id = %s", params)
+        record = fetch_expected_receipt(cur, expected_receipt_id)
+
+    changed = sorted(field_edits.keys()) + (["status"] if new_status else [])
+    return {
+        "expected_receipt_id": expected_receipt_id,
+        "expected_receipt": record,
+        "changed_fields": changed,
+        "message": f"Expected receipt {expected_receipt_id} " + (f"{new_status}" if new_status else "updated"),
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -8143,6 +8687,46 @@ def _load_dashboard_config():
         return None
 
 
+_BATCH_PANEL_FAMILIES = ("coconut", "granola", "graham", "chips", "sprinkles")
+
+
+def _production_family_from_name(name: str) -> str:
+    """Classify a batch product into a production family from its name.
+
+    products.product_category is unused (null on every live batch row), so name
+    matching is the durable signal. Chocolate-chip granola is granola, not chips.
+    """
+    n = (name or "").lower()
+    if "coconut" in n:
+        return "coconut"
+    if "graham" in n:
+        return "graham"
+    if "sprinkle" in n:
+        return "sprinkles"
+    if "granola" in n:
+        return "granola"
+    if "chip" in n:
+        return "chips"
+    return "other"
+
+
+def _floor_unit_count(qty, size):
+    """Whole cases/units from a weight. Floor so available cases are never overstated."""
+    if qty is None or not size or float(size) <= 0:
+        return None
+    return int(math.floor(float(qty) / float(size) + 1e-9))
+
+
+def _made_unit_size_lbs(base_batch_lb, yield_multiplier):
+    """Finished output weight of one physical batch/pan, including yield gain/loss."""
+    if not base_batch_lb or float(base_batch_lb) <= 0:
+        return None
+    y = float(yield_multiplier) if yield_multiplier is not None else 1.0
+    if y <= 0:
+        y = 1.0
+    return float(base_batch_lb) * y
+
+
 @app.get("/dashboard/api/production")
 def dashboard_api_production(
     days: int = Query(default=5, ge=1, le=31),
@@ -8224,7 +8808,7 @@ def dashboard_api_production(
             else:
                 cs = float(r['case_size_lb']) if r['case_size_lb'] else None
                 entry["case_size_lb"] = cs
-                entry["unit_count"] = round(total_lbs / cs) if cs else None
+                entry["unit_count"] = _floor_unit_count(total_lbs, cs)
                 days_map[d]["finished_goods"].append(entry)
 
         return {"days": list(days_map.values())}
@@ -8299,7 +8883,7 @@ def dashboard_api_finished_goods():
             cs = float(prow['case_size_lb']) if prow and prow.get('case_size_lb') else None
             for lot in lots:
                 lot['case_size_lb'] = cs
-                lot['unit_count'] = round(lot['on_hand_lbs'] / cs) if cs and cs > 0 else None
+                lot['unit_count'] = _floor_unit_count(lot['on_hand_lbs'], cs)
 
         result_panels = []
         for panel in panels:
@@ -8339,29 +8923,38 @@ def dashboard_api_finished_goods():
 
 @app.get("/dashboard/api/inventory/batches")
 def dashboard_api_batches():
-    """Batch inventory on-hand with estimated batch counts and lot breakdown."""
+    """Batch inventory on-hand for all active production families.
+
+    Includes coconut, granola, graham, chips, and sprinkles (classified from
+    product name). Estimated batch/pan counts use default_batch_lb *
+    yield_multiplier so hydrated coconut is not overstated. On-hand remains a
+    posted ledger SUM.
+    """
     config = _load_dashboard_config()
     if not config:
         return JSONResponse(status_code=500, content={"error": "Dashboard config not found"})
     try:
         batch_skus = config.get("batch_skus", [])
         sku_names = [b["name"] for b in batch_skus]
-        # Build a lookup for standard batch sizes from config
+        # Optional size override only when the product has no default_batch_lb.
         config_batch_sizes = {b["name"].lower(): b.get("standard_batch_size_lbs") for b in batch_skus}
 
         with get_transaction() as cur:
             cur.execute(f"""
-                SELECT p.id, p.name, p.default_batch_lb,
+                SELECT p.id, p.name, p.default_batch_lb, p.yield_multiplier,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
                 LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
                 WHERE COALESCE(p.active, true) = true
-                  AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
+                  AND p.type = 'batch'
                 GROUP BY p.id
                 ORDER BY COALESCE(SUM(tl.quantity_lb), 0) DESC
-            """, (sku_names,))
-            product_rows = cur.fetchall()
+            """)
+            product_rows = [
+                r for r in cur.fetchall()
+                if _production_family_from_name(r["name"]) in _BATCH_PANEL_FAMILIES
+            ]
 
             matched_ids = [r['id'] for r in product_rows]
             lot_map = {}
@@ -8386,36 +8979,41 @@ def dashboard_api_batches():
                         "product_id": pid
                     })
 
-        # Enrich batch lot rows with batch counts
-        batch_size_by_pid = {}
-        for r in product_rows:
-            bs = config_batch_sizes.get(r['name'].lower())
-            if bs is None and r['default_batch_lb']:
-                bs = float(r['default_batch_lb'])
-            batch_size_by_pid[r['id']] = bs
-        for pid, lots in lot_map.items():
-            bs = batch_size_by_pid.get(pid)
-            for lot in lots:
-                lot['default_batch_lb'] = bs
-                lot['batch_count'] = round(lot['on_hand_lbs'] / bs, 1) if bs and bs > 0 else None
-
+        family_rank = {name: i for i, name in enumerate(_BATCH_PANEL_FAMILIES)}
         found_names = {r['name'].lower() for r in product_rows}
         missing_skus = [n for n in sku_names if n.lower() not in found_names]
 
         batches = []
+        made_unit_by_pid = {}
         for r in product_rows:
             on_hand = float(r['on_hand_lbs'])
-            # Prefer config batch size, fall back to DB default_batch_lb
-            batch_size = config_batch_sizes.get(r['name'].lower())
-            if batch_size is None and r['default_batch_lb']:
-                batch_size = float(r['default_batch_lb'])
+            batch_size = float(r['default_batch_lb']) if r['default_batch_lb'] else None
+            if batch_size is None:
+                cfg = config_batch_sizes.get(r['name'].lower())
+                if cfg:
+                    batch_size = float(cfg)
+            yield_multiplier = float(r['yield_multiplier']) if r['yield_multiplier'] is not None else 1.0
+            made_unit = _made_unit_size_lbs(batch_size, yield_multiplier)
+            family = _production_family_from_name(r['name'])
+            made_unit_by_pid[r['id']] = (batch_size, made_unit)
             batches.append({
                 "product_name": r['name'],
                 "on_hand_lbs": on_hand,
                 "standard_batch_size_lbs": batch_size,
+                "yield_multiplier": yield_multiplier,
+                "made_unit_size_lbs": made_unit,
+                "production_family": family,
+                "batch_count": round(on_hand / made_unit, 1) if made_unit else None,
                 "lots": lot_map.get(r['id'], [])
             })
 
+        for pid, lots in lot_map.items():
+            batch_size, made_unit = made_unit_by_pid.get(pid, (None, None))
+            for lot in lots:
+                lot['default_batch_lb'] = batch_size
+                lot['batch_count'] = round(lot['on_hand_lbs'] / made_unit, 1) if made_unit else None
+
+        batches.sort(key=lambda b: (family_rank.get(b["production_family"], 99), -b["on_hand_lbs"], b["product_name"]))
         return {"batches": batches, "missing_skus": missing_skus}
     except Exception as e:
         logger.error(f"Dashboard batches API failed: {e}")
@@ -8439,7 +9037,7 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
 
         with get_transaction() as cur:
             cur.execute(f"""
-                SELECT p.id, p.name,
+                SELECT p.id, p.name, p.uom,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
@@ -8449,7 +9047,15 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
                 GROUP BY p.id
             """, (all_names,))
             rows = cur.fetchall()
-            product_map = {r['name'].lower(): {"id": r['id'], "name": r['name'], "on_hand": float(r['on_hand'])} for r in rows}
+            product_map = {
+                r['name'].lower(): {
+                    "id": r['id'],
+                    "name": r['name'],
+                    "on_hand": float(r['on_hand']),
+                    "uom": (r['uom'] or None),
+                }
+                for r in rows
+            }
 
             # Fetch lot-level breakdown for all matched products
             matched_ids = [r['id'] for r in rows]
@@ -8482,10 +9088,15 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
             for item_name in cat.get("items", []):
                 pdata = product_map.get(item_name.lower())
                 if pdata:
+                    uom = pdata["uom"] or cat.get("unit") or "lb"
+                    lots = lot_map.get(pdata["id"], [])
+                    for lot in lots:
+                        lot["uom"] = uom
                     items.append({
                         "name": pdata["name"],
                         "on_hand": pdata["on_hand"],
-                        "lots": lot_map.get(pdata["id"], [])
+                        "uom": uom,
+                        "lots": lots
                     })
                 else:
                     missing.append(item_name)
@@ -8547,7 +9158,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 qty = abs(float(ln['quantity_lb'] or 0))
                 total_lbs += qty
                 cs = float(ln['case_size_lb']) if ln.get('case_size_lb') else None
-                uc = round(qty / cs) if cs and cs > 0 else None
+                uc = _floor_unit_count(qty, cs)
                 if uc is not None:
                     total_units += uc
                 ln['unit_count'] = uc
@@ -8612,7 +9223,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                 qty = float(ln['quantity_lb'] or 0)
                 total_lbs += qty
                 cs = float(ln['case_size_lb']) if ln.get('case_size_lb') else None
-                ln['unit_count'] = round(qty / cs) if cs and cs > 0 else None
+                ln['unit_count'] = _floor_unit_count(qty, cs)
                 enriched_lines.append(ln)
             result.append({
                 "transaction_id": r['id'],
@@ -8870,7 +9481,7 @@ def dashboard_api_product_lots(product_id: int):
                              "on_hand_lbs": oh}
                 if cs:
                     lot_entry["case_size_lb"] = cs
-                    lot_entry["unit_count"] = round(oh / cs) if cs > 0 else None
+                    lot_entry["unit_count"] = _floor_unit_count(oh, cs)
                 elif db:
                     lot_entry["default_batch_lb"] = db
                     lot_entry["batch_count"] = round(oh / db, 1) if db > 0 else None
@@ -8893,7 +9504,7 @@ def dashboard_api_product_lots(product_id: int):
 
 @app.get("/dashboard/api/search")
 def dashboard_api_search(q: str = Query(min_length=1)):
-    """Global search across products, lots, orders, customers, suppliers."""
+    """Global search across products, lots, orders, and customers."""
     try:
         term = f"%{q}%"
         results = {}
