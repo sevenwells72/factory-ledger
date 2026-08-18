@@ -2853,7 +2853,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             product_id: Number(productId), supplier_name: supplierName, expected_qty: qty,
-            expected_date: expectedDate, reference_number: reference, notes, created_by: 'dashboard',
+            expected_date: expectedDate, reference_number: reference, notes,
           }),
         });
       }

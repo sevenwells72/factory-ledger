@@ -491,3 +491,65 @@ def test_expected_receipts_never_affect_inventory_balances(client, cur):
 
     # Static guard: the canonical balance subquery never references the FR-2 tables.
     assert "expected_receipt" not in main.POSTED_LINES
+
+
+# ─────────────────────────────────────────────────────────────────
+# scoped dashboard key + created_by (interim FR-15 attribution)
+# ─────────────────────────────────────────────────────────────────
+
+DASH = {"X-API-Key": "test-dashboard-key"}
+
+
+@pytest.mark.db
+def test_dashboard_key_can_use_expected_receipts_and_suppliers(client, cur, monkeypatch):
+    monkeypatch.setattr(main, "DASHBOARD_API_KEY", "test-dashboard-key")
+    pid = _seed_product(cur, "FR2 DashKey Prod")
+    _seed_supplier(cur, "DashKey Supply")
+
+    for method, path in [("GET", "/expected-receipts"), ("POST", "/expected-receipts"),
+                         ("PATCH", "/expected-receipts/{expected_receipt_id}"),
+                         ("GET", "/expected-receipts/{expected_receipt_id}"),
+                         ("GET", "/suppliers"), ("POST", "/suppliers")]:
+        assert (method, path) in main.DASHBOARD_KEY_ALLOWLIST, (method, path)
+
+    r = client.get("/expected-receipts", params={"status": "open"}, headers=DASH)
+    assert r.status_code == 200, r.text
+    assert "expected_receipts" in r.json()
+
+    r = client.get("/suppliers", headers=DASH)
+    assert r.status_code == 200, r.text
+
+    r = client.post("/expected-receipts", headers=DASH, json={
+        "product_id": pid, "supplier_name": "DashKey Supply", "expected_qty": 25,
+        "created_by": "spoofed-user-42",   # body tag must be ignored for the dashboard key
+    })
+    assert r.status_code == 201, r.text
+    er = r.json()["expected_receipt"]
+    assert er["created_by"] == "dashboard"
+
+    r = client.patch(f"/expected-receipts/{er['id']}", headers=DASH, json={"notes": "via dashboard key"})
+    assert r.status_code == 200, r.text
+    r = client.get(f"/expected-receipts/{er['id']}", headers=DASH)
+    assert r.status_code == 200 and r.json()["notes"] == "via dashboard key"
+
+    # Dashboard key still cannot reach a non-allowlisted route.
+    r = client.post("/make", headers=DASH, json={})
+    assert r.status_code == 403
+
+
+@pytest.mark.db
+def test_created_by_is_caller_source_tag_never_a_fake_user_id(client, cur):
+    pid = _seed_product(cur, "FR2 CreatedBy Prod")
+    _seed_supplier(cur, "CreatedBy Supply")
+
+    # master key, no tag → NULL (not 'legacy-shared-key' or any placeholder)
+    er = _create_er(client, pid, "CreatedBy Supply", 10)
+    assert er["created_by"] is None
+
+    # master key + caller tag (what the office GPT schema defaults to)
+    er = _create_er(client, pid, "CreatedBy Supply", 10, created_by="gpt-sales-admin")
+    assert er["created_by"] == "gpt-sales-admin"
+
+    # blank tag → NULL
+    er = _create_er(client, pid, "CreatedBy Supply", 10, created_by="   ")
+    assert er["created_by"] is None

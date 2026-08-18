@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger System
-  version: 3.4.0
+  version: 3.5.0
   description: Inventory management, production tracking, and sales order fulfillment for food manufacturing.
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -86,6 +86,35 @@ components:
                 type: number
               notes:
                 type: string
+    ExpectedReceiptCreate:
+      type: object
+      required: [supplier_name, expected_qty]
+      description: "One expected/incoming delivery (lb). Lightweight tracking, NOT a purchase order. Give product_name (resolved server-side) or product_id."
+      properties:
+        product_name:
+          type: string
+          description: "Product name or SKU; resolved like other endpoints (404/409 with suggestions)."
+        product_id:
+          type: integer
+        supplier_name:
+          type: string
+          description: "Must match an existing supplier (case/space-insensitive). No match -> 422 SUPPLIER_NOT_FOUND with detail.candidates (up to 5). Never auto-created."
+        expected_qty:
+          type: number
+          description: "Expected pounds, > 0"
+        expected_date:
+          type: string
+          format: date
+          description: "YYYY-MM-DD, optional"
+        reference_number:
+          type: string
+          description: "Supplier order / confirmation number, optional"
+        notes:
+          type: string
+        created_by:
+          type: string
+          default: gpt-sales-admin
+          description: "Caller source tag. Always send 'gpt-sales-admin' from this GPT."
     ShipRequest:
       type: object
       required: [product_name, quantity_lb, customer_name, order_reference]
@@ -372,32 +401,6 @@ paths:
           description: |
             success: true, plus each item: input, match {id, name, odoo_code} or null, match_tier (exact/keyword/trigram/null), confidence (high/medium/low/none).
             Multiple matches -> top in 'match', rest in 'alternatives'. Summary has total/resolved/unresolved.
-  /bom/products:
-    get:
-      operationId: listProducts
-      summary: "List all active products, optionally filtered by type (ingredient, batch, finished_good) and name search."
-      parameters:
-        - name: product_type
-          in: query
-          description: "Filter by product type"
-          schema:
-            type: string
-            enum: [ingredient, batch, finished_good]
-        - name: q
-          in: query
-          description: "Partial name or odoo_code match"
-          schema:
-            type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 200
-            minimum: 1
-            maximum: 500
-      responses:
-        '200':
-          description: "Array of {id, name, odoo_code, product_type, uom, default_batch_lb, case_size_lb}"
   /bom/batches/{batch_id}/formula:
     get:
       operationId: getBatchFormula
@@ -489,6 +492,22 @@ paths:
       responses:
         '200':
           description: Preview result or committed receipt
+  /expected-receipts:
+    post:
+      operationId: createExpectedReceipt
+      summary: "Record an expected/incoming delivery (lb) from a supplier. Not a PO; no inventory effect."
+      description: "Creates an open expected receipt. Receiving auto-links posted receipts by product+supplier (oldest expected_date first) and auto-closes when received >= expected. 422 SUPPLIER_NOT_FOUND -> show detail.candidates; never create a supplier."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpectedReceiptCreate'
+      responses:
+        '201':
+          description: "expected_receipt_id + expected_receipt {product_name, supplier_name, expected_qty, remaining, expected_date, reference_number, status}"
+        '422':
+          description: "SUPPLIER_NOT_FOUND / SUPPLIER_INACTIVE with detail.candidates [{supplier_id, name}], or invalid quantity"
   /ship:
     post:
       operationId: ship

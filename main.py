@@ -1103,7 +1103,8 @@ class SupplierCreate(BaseModel):
 
 class ExpectedReceiptCreate(BaseModel):
     """FR-2: one expected delivery. supplier_name is resolved server-side against
-    the suppliers table (case/whitespace-insensitive); it is NEVER auto-created."""
+    the suppliers table (case/whitespace-insensitive); it is NEVER auto-created.
+    created_by is an interim (pre-FR-15) caller source tag — see caller_source_tag()."""
     product_id: Optional[int] = None
     product_name: Optional[str] = None
     supplier_name: str
@@ -2939,6 +2940,20 @@ def supplier_candidates(cur, supplier_name: str, limit: int = 5) -> list:
     return out
 
 
+def caller_source_tag(request: Request, body_tag: Optional[str] = None) -> Optional[str]:
+    """Interim attribution until FR-15 (user attribution) exists: a plain-text
+    SOURCE tag, never a fake user id.
+      * scoped dashboard key authenticated the call → 'dashboard' (body ignored)
+      * master key → the caller-supplied tag if any (the office GPT schema
+        defaults created_by to 'gpt-sales-admin'), else NULL
+    Deliberately NOT the 'legacy-shared-key' operator_id placeholder."""
+    key = request.headers.get("X-API-Key") or ""
+    if DASHBOARD_API_KEY and key and secrets.compare_digest(key, DASHBOARD_API_KEY):
+        return "dashboard"
+    tag = re.sub(r"\s+", " ", (body_tag or "").strip())
+    return tag[:60] or None
+
+
 def require_supplier(cur, supplier_name: str) -> dict:
     """Resolve or raise 422 SUPPLIER_NOT_FOUND with up to 5 candidates."""
     supplier = resolve_supplier(cur, supplier_name)
@@ -3170,7 +3185,7 @@ def create_supplier(req: SupplierCreate, _: bool = Depends(verify_api_key)):
 # ── Expected receipts ──────────────────────────────────────────
 
 @app.post("/expected-receipts", status_code=201)
-def create_expected_receipt(req: ExpectedReceiptCreate, _: bool = Depends(verify_api_key)):
+def create_expected_receipt(req: ExpectedReceiptCreate, request: Request, _: bool = Depends(verify_api_key)):
     """Record an expected/incoming delivery (lb). supplier_name must resolve to an
     existing supplier — otherwise 422 with up to 5 candidate names. Never
     auto-creates suppliers. No inventory effect."""
@@ -3200,7 +3215,7 @@ def create_expected_receipt(req: ExpectedReceiptCreate, _: bool = Depends(verify
                 product_id, supplier["id"], req.expected_qty, req.expected_date,
                 (req.reference_number or "").strip() or None,
                 (req.notes or "").strip() or None,
-                (req.created_by or "").strip() or "legacy-shared-key",
+                caller_source_tag(request, req.created_by),
             ),
         )
         new_id = cur.fetchone()["id"]
