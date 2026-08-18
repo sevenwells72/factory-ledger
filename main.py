@@ -229,6 +229,10 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
 API_KEY = (os.getenv("API_KEY") or "").strip()
+# Second, SCOPED key for the browser dashboard. Accepted only on the routes in
+# DASHBOARD_KEY_ALLOWLIST (see verify_api_key); everything else -> 403.
+# TODO: drop the literal fallback once DASHBOARD_API_KEY is set on Railway.
+DASHBOARD_API_KEY = (os.getenv("DASHBOARD_API_KEY") or "dashboard-key-2026").strip()
 
 # Timezone configuration
 PLANT_TIMEZONE = ZoneInfo("America/New_York")
@@ -347,6 +351,8 @@ async def startup():
         raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")
     if not API_KEY:
         raise RuntimeError("API_KEY env var required — app cannot start without authentication")
+    if DASHBOARD_API_KEY == API_KEY:
+        logger.warning("DASHBOARD_API_KEY equals API_KEY — dashboard key scoping is ineffective")
     try:
         db_pool = pool.ThreadedConnectionPool(minconn=2, maxconn=20, dsn=DATABASE_URL)
         logger.info("Database connection pool created")
@@ -820,25 +826,109 @@ def _capture_readonly_diagnostics() -> dict:
                 pass
 
 
-def verify_api_key(x_api_key: str = Header(None, alias="X-API-Key")):
-    if not x_api_key:
+# ─────────────────────────────────────────────────────────────────
+# API-key authorization
+#
+# Two keys:
+#   * API_KEY (master)          — full access to every authenticated route.
+#   * DASHBOARD_API_KEY (scoped) — accepted ONLY on (METHOD, route-template)
+#     pairs in DASHBOARD_KEY_ALLOWLIST; any other route returns 403.
+#
+# The allowlist is keyed on the *route template* (request.scope["route"].path,
+# e.g. "/sales/orders/{order_id}"), not the raw URL, so path params can't be
+# used to smuggle a request onto an unlisted route.
+# ─────────────────────────────────────────────────────────────────
+
+# Read-only GET routes the browser dashboard uses, plus the specific
+# ship/receive endpoints. Anything not listed here (admin/*, /make, /pack,
+# /adjust, /void, deletes, migrations, etc.) is master-key only.
+DASHBOARD_KEY_ALLOWLIST = frozenset({
+    # Legacy dashboard summaries
+    ("GET", "/dashboard/inventory"),
+    ("GET", "/dashboard/low-stock"),
+    ("GET", "/dashboard/today"),
+    ("GET", "/dashboard/lots"),
+    ("GET", "/dashboard/production"),
+    ("GET", "/sales/dashboard"),
+    # Products / inventory / lots (read-only)
+    ("GET", "/products/search"),
+    ("GET", "/products/{product_id}"),
+    ("GET", "/inventory/current"),
+    ("GET", "/inventory/lookup"),
+    ("GET", "/inventory/{item_name}"),
+    ("GET", "/lots/by-code/{lot_code}"),
+    ("GET", "/lots/by-supplier-lot/{supplier_lot_code}"),
+    ("GET", "/lots/{lot_id}"),
+    ("GET", "/bom/products"),
+    ("GET", "/bom/batches/{batch_id}/formula"),
+    ("GET", "/reason-codes"),
+    # History / traceability (read-only; traceability.html, process-flow.html)
+    ("GET", "/transactions/history"),
+    ("GET", "/trace/batch/{lot_code}"),
+    ("GET", "/trace/ingredient/{lot_code}"),
+    ("GET", "/trace/supplier-lot/{supplier_lot_code}"),
+    ("GET", "/records/late"),
+    ("GET", "/records/late.csv"),
+    ("GET", "/records/certifications/{business_date}"),
+    # Customers / sales orders (read-only + the order edits the dashboard does)
+    ("GET", "/customers"),
+    ("GET", "/customers/search"),
+    ("GET", "/sales/orders"),
+    ("GET", "/sales/orders/fulfillment-check"),
+    ("GET", "/sales/orders/{order_id}"),
+    ("GET", "/export/orders-matrix.xlsx"),
+    ("PATCH", "/sales/orders/{order_id}"),
+    ("PATCH", "/sales/orders/{order_id}/status"),
+    ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/update"),
+    ("POST", "/sales-orders/{so_number}/ready"),
+    # Production planning (read-only)
+    ("GET", "/production/requirements"),
+    ("GET", "/production/day-summary"),
+    # Dashboard notes (the dashboard's own CRUD; GET is public)
+    ("POST", "/dashboard/api/notes"),
+    ("PUT", "/dashboard/api/notes/{note_id}"),
+    ("PUT", "/dashboard/api/notes/{note_id}/toggle"),
+    ("DELETE", "/dashboard/api/notes/{note_id}"),
+    # Ship / receive — the specific endpoints the dashboard is allowed to hit
+    ("POST", "/sales/orders/{order_id}/ship/preview"),
+    ("POST", "/sales/orders/{order_id}/ship/commit"),
+    ("POST", "/receive/preview"),
+    ("POST", "/receive/commit"),
+})
+
+
+def _route_key(request: Request):
+    """(METHOD, route template) for the matched route, e.g. ("GET", "/lots/{lot_id}")."""
+    route = request.scope.get("route")
+    path = getattr(route, "path", None) or request.url.path
+    return (request.method.upper(), path)
+
+
+def _authorize_api_key(provided_key: str, request: Request, invalid_status: int = 403) -> bool:
+    """Shared check for both dependencies. Master key -> always OK. Dashboard
+    key -> OK only if the matched route is on DASHBOARD_KEY_ALLOWLIST."""
+    if not provided_key:
         raise HTTPException(status_code=401, detail="API key required")
-    if not secrets.compare_digest(x_api_key, API_KEY):
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    return True
+    if secrets.compare_digest(provided_key, API_KEY):
+        return True
+    if DASHBOARD_API_KEY and secrets.compare_digest(provided_key, DASHBOARD_API_KEY):
+        if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
+            return True
+        raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
+    raise HTTPException(status_code=invalid_status, detail="Invalid API key")
+
+
+def verify_api_key(request: Request, x_api_key: str = Header(None, alias="X-API-Key")):
+    return _authorize_api_key(x_api_key, request, invalid_status=403)
 
 
 def verify_api_key_flexible(
+    request: Request,
     x_api_key: str = Header(None, alias="X-API-Key"),
     key: str = Query(None)
 ):
     """Accept API key from either header or query parameter (packing slip browser access)."""
-    provided_key = x_api_key or key
-    if not provided_key:
-        raise HTTPException(status_code=401, detail="API key required")
-    if not secrets.compare_digest(provided_key, API_KEY):
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return True
+    return _authorize_api_key(x_api_key or key, request, invalid_status=401)
 
 
 def resolve_order_id(order_id: str = Path(...)) -> int:
