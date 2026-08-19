@@ -438,6 +438,141 @@ def test_void_coalesce_shape_holds_under_unique_index(db_cursor):
     assert live[0]["quantity_lb"] == 100
 
 
+@pytest.mark.db
+def test_full_void_then_restore_cycle_holds_under_unique_index(db_cursor):
+    """Design Q2 worked example end-to-end (required test):
+      allocate 100 lot-level → one live 100
+      ship 40 (split)        → leftover 60 active + 40 shipped + original superseded
+      void                   → ONE live 100 (coalesced), shipped row void_coalesced
+      restore                → leftover 60 active + 40 shipped
+    Every step must succeed without a soa_active_lot_uniq violation, and
+    every intermediate state must have exactly one live row for (line, lot).
+    This exercises the index/CHECK contract the PR-3 handler will rely on."""
+    cur = db_cursor
+    order_id, (line_a,), (pid_a,) = _seed_order(cur, n_lines=1)
+    lot = _seed_lot(cur, pid_a, "T044-CYCLE")
+    txn = _seed_txn(cur)
+
+    def live_rows():
+        cur.execute(
+            "SELECT id, quantity_lb, last_ship_transaction_id FROM sales_order_allocations "
+            "WHERE sales_order_line_id=%s AND lot_id=%s AND status='active' ORDER BY id",
+            (line_a, lot),
+        )
+        return cur.fetchall()
+
+    def row(rid):
+        cur.execute(
+            "SELECT status, quantity_lb, ship_transaction_id, last_ship_transaction_id, "
+            "release_reason, split_from_id FROM sales_order_allocations WHERE id=%s",
+            (rid,),
+        )
+        return cur.fetchone()
+
+    # 1. allocate 100 lot-level → one live 100
+    original = _insert(cur, order_id, line_a, pid_a, lot_id=lot, qty=100, source="staged_lot")
+    assert [r["quantity_lb"] for r in live_rows()] == [100]
+
+    # 2. ship 40 (split): original superseded; leftover 60 active; 40 shipped
+    cur.execute(
+        "UPDATE sales_order_allocations SET status='superseded', release_reason='split_on_ship' WHERE id=%s",
+        (original,),
+    )
+    leftover = _insert(cur, order_id, line_a, pid_a, lot_id=lot, qty=60, source="staged_lot",
+                       split_from_id=original)
+    shipped = _insert(cur, order_id, line_a, pid_a, lot_id=lot, qty=40, source="staged_lot",
+                      status="shipped", ship_transaction_id=txn, last_ship_transaction_id=txn,
+                      split_from_id=original)
+    live = live_rows()
+    assert [r["id"] for r in live] == [leftover] and live[0]["quantity_lb"] == 60
+    assert row(shipped)["status"] == "shipped" and row(shipped)["quantity_lb"] == 40
+    assert row(original)["status"] == "superseded"
+
+    # 3. void: re-activating the shipped row would collide with the leftover
+    _expect_error(
+        cur, pg_errors.UniqueViolation, cur.execute,
+        "UPDATE sales_order_allocations SET status='active', ship_transaction_id=NULL WHERE id=%s",
+        (shipped,),
+    )
+    #    ... so coalesce: leftover 60 → 100 (+ remember the txn), shipped → superseded/void_coalesced
+    cur.execute(
+        "UPDATE sales_order_allocations SET quantity_lb = quantity_lb + %s, last_ship_transaction_id=%s "
+        "WHERE id=%s",
+        (40, txn, leftover),
+    )
+    cur.execute(
+        "UPDATE sales_order_allocations SET status='superseded', release_reason='void_coalesced', "
+        "ship_transaction_id=NULL WHERE id=%s",
+        (shipped,),
+    )
+    live = live_rows()
+    assert len(live) == 1 and live[0]["id"] == leftover and live[0]["quantity_lb"] == 100
+    assert live[0]["last_ship_transaction_id"] == txn
+    s = row(shipped)
+    assert s["status"] == "superseded" and s["release_reason"] == "void_coalesced"
+    assert s["ship_transaction_id"] is None and s["last_ship_transaction_id"] == txn
+    # source is never overwritten by void/restore
+    cur.execute("SELECT DISTINCT source FROM sales_order_allocations WHERE sales_order_line_id=%s", (line_a,))
+    assert [r["source"] for r in cur.fetchall()] == ["staged_lot"]
+
+    # 4. restore: find the void_coalesced row S for this txn, shrink the live
+    #    leftover L by S.quantity_lb (100 → 60), flip S back to shipped.
+    cur.execute(
+        "SELECT id, quantity_lb FROM sales_order_allocations "
+        "WHERE last_ship_transaction_id=%s AND release_reason='void_coalesced' AND status='superseded'",
+        (txn,),
+    )
+    coalesced = cur.fetchall()
+    assert [c["id"] for c in coalesced] == [shipped]
+    take = coalesced[0]["quantity_lb"]
+    assert live_rows()[0]["quantity_lb"] >= take, "RESTORE_SPLIT_MISSING guard would fire"
+    cur.execute(
+        "UPDATE sales_order_allocations SET quantity_lb = quantity_lb - %s WHERE id=%s",
+        (take, leftover),
+    )
+    cur.execute(
+        "UPDATE sales_order_allocations SET status='shipped', ship_transaction_id=%s, release_reason=NULL "
+        "WHERE id=%s",
+        (txn, shipped),
+    )
+
+    # end state: one active 60 + one shipped 40 (+ the superseded original), no violations
+    live = live_rows()
+    assert len(live) == 1 and live[0]["id"] == leftover and live[0]["quantity_lb"] == 60
+    s = row(shipped)
+    assert s["status"] == "shipped" and s["quantity_lb"] == 40
+    assert s["ship_transaction_id"] == txn and s["last_ship_transaction_id"] == txn
+    assert s["split_from_id"] == original
+    cur.execute(
+        "SELECT status, count(*) AS n, sum(quantity_lb) AS lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s GROUP BY status ORDER BY status",
+        (line_a,),
+    )
+    by_status = {r["status"]: (r["n"], r["lb"]) for r in cur.fetchall()}
+    assert by_status == {"active": (1, 60), "shipped": (1, 40), "superseded": (1, 100)}
+
+    # 5. a SECOND void/restore round still raises no unique violation (same shape)
+    cur.execute(
+        "UPDATE sales_order_allocations SET quantity_lb = quantity_lb + 40 WHERE id=%s", (leftover,)
+    )
+    cur.execute(
+        "UPDATE sales_order_allocations SET status='superseded', release_reason='void_coalesced', "
+        "ship_transaction_id=NULL WHERE id=%s",
+        (shipped,),
+    )
+    assert [r["quantity_lb"] for r in live_rows()] == [100]
+    cur.execute(
+        "UPDATE sales_order_allocations SET quantity_lb = quantity_lb - 40 WHERE id=%s", (leftover,)
+    )
+    cur.execute(
+        "UPDATE sales_order_allocations SET status='shipped', ship_transaction_id=%s, release_reason=NULL "
+        "WHERE id=%s",
+        (txn, shipped),
+    )
+    assert [r["quantity_lb"] for r in live_rows()] == [60]
+    assert row(shipped)["status"] == "shipped"
+
+
 # ─────────────────────────────────────────────────────────────────
 # Migration file hygiene
 # ─────────────────────────────────────────────────────────────────
