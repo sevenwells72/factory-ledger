@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-08-18 15:56 — Supplies dashboard verified locally and ready for review (not deployed)
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Completed local verification of the Supplies screen against deployed backend commit `f563100`: live inventory and requests GETs succeeded; desktop and 390 px browser checks covered category/search filtering, sticky controls, zero-on-hand rows, em-dash Incoming values, blank non-low status cells, keyboard row expansion, multiple simultaneous expansions, FIFO ordering, cached re-expansion, empty/error lot states, product/free-text request modes, unit display, requester options, and client-side validation. `node --check dashboard/dashboard.js`, duplicate-ID validation (139/139 unique), the exact-one-Supplies-TODO assertion, and `git diff --check` passed. The existing Python suite passed `128 passed, 121 warnings in 2.21s`; the repository defines no frontend test, lint, or build command, so no new test infrastructure was added.
+- **Why:** Establish review-ready evidence for the complete frontend-only Supplies workflow while keeping production request data untouched during UI verification. Local server only; nothing committed, pushed, merged, or deployed.
+
+---
+
+## 2026-08-18 15:48 — Added local Supplies dashboard screen (ready for verification, not deployed)
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`
+- **What changed:** Added a responsive Supplies tab with Ingredients / Packaging / All inventory filters, low-stock badges and row highlighting, sticky product search, zero-inventory rows, lazily fetched and session-cached FIFO lot detail, a validated Request Supply modal, and an open/completed supply-request queue with Done actions. Incoming is intentionally an em dash pending a future purchase-order source; asset cache versions advance to dashboard JS v32 / CSS v21.
+- **Why:** Give factory staff one dashboard view for supply on-hand levels and lot detail, plus a safe floor-to-office supply request workflow against the deployed Supplies API. Local verification is still in progress; nothing is committed, pushed, merged, or deployed.
+
+---
+
 ## 2026-08-18 15:30 — Fixed Supplies inventory category-filter contract before release
 - **File(s) changed:** `main.py`, `tests/test_supplies.py`, `CHANGE_LOG.md`
 - **What changed:** Limited `GET /supplies/inventory?category=` to `ingredient`, `packaging`, or `consumable` while preserving the unfiltered all-products view; expanded the regression test to accept all three supported filters and reject `batch`, `finished`, and `widgets` with HTTP 422.

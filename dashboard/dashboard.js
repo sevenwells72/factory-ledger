@@ -21,6 +21,17 @@
       error: null
     },
     orderLinesCache: {}, // order_id -> full order detail (cached for inline expand)
+    supplies: {
+      inventory: [],
+      inventoryLoaded: false,
+      inventoryTab: 'ingredients',
+      expandedProductIds: new Set(),
+      lotCache: {},
+      requests: [],
+      requestsLoaded: false,
+      feedbackTimer: null,
+      lastFocusedElement: null,
+    },
   };
 
   // ── Theme ──
@@ -2901,6 +2912,422 @@
     });
   }
 
+  // ── Supplies ──
+
+  const SUPPLY_CATEGORIES = new Set(['ingredient', 'packaging', 'consumable']);
+
+  function supplyItemsForTab(tab = state.supplies.inventoryTab) {
+    const seen = new Set();
+    return state.supplies.inventory.filter(item => {
+      if (!SUPPLY_CATEGORIES.has(item.category) || seen.has(item.product_id)) return false;
+      seen.add(item.product_id);
+      if (tab === 'ingredients') return item.category === 'ingredient';
+      if (tab === 'packaging') return item.category === 'packaging' || item.category === 'consumable';
+      return true;
+    });
+  }
+
+  function updateSupplyLowStockBadges() {
+    const definitions = [
+      ['ingredients', 'supplies-low-ingredients', 'low-stock ingredients'],
+      ['packaging', 'supplies-low-packaging', 'low-stock packaging items'],
+      ['all', 'supplies-low-all', 'low-stock supply items'],
+    ];
+    definitions.forEach(([tab, id, label]) => {
+      const count = supplyItemsForTab(tab).filter(item => item.is_low).length;
+      const badge = document.getElementById(id);
+      badge.textContent = String(count);
+      badge.setAttribute('aria-label', `${count} ${label}`);
+    });
+  }
+
+  function populateSupplyProductSelector() {
+    const select = document.getElementById('supply-request-product');
+    const selected = select.value;
+    const options = state.supplies.inventory
+      .filter(item => SUPPLY_CATEGORIES.has(item.category))
+      .map(item => `<option value="${item.product_id}">${escHtml(item.name)}${item.active === false ? ' (inactive)' : ''}</option>`)
+      .join('');
+    select.innerHTML = '<option value="">Select a product...</option>' + options +
+      '<option value="__other__">Product not listed</option>';
+    if ([...select.options].some(option => option.value === selected)) select.value = selected;
+  }
+
+  async function refreshSuppliesInventory() {
+    hideError('supplies-inventory-error');
+    const container = document.getElementById('supplies-inventory-table');
+    if (!state.supplies.inventoryLoaded) {
+      container.innerHTML = '<div class="loading-indicator">Loading supplies...</div>';
+    }
+    try {
+      const data = await fetchSalesAPI('/supplies/inventory');
+      state.supplies.inventory = (data.items || [])
+        .filter(item => SUPPLY_CATEGORIES.has(item.category))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || a.product_id - b.product_id);
+      state.supplies.inventoryLoaded = true;
+      populateSupplyProductSelector();
+      updateSupplyLowStockBadges();
+      renderSuppliesInventory();
+    } catch (e) {
+      container.innerHTML = '';
+      showError('supplies-inventory-error', 'Failed to load supplies: ' + supplyApiErrorMessage(e));
+    }
+  }
+
+  function supplyLotSortValue(lot) {
+    const parsed = Date.parse(lot.lot_date || '');
+    return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+  }
+
+  function sortSupplyLots(lots) {
+    return [...lots].sort((a, b) =>
+      supplyLotSortValue(a) - supplyLotSortValue(b) || Number(a.lot_id || 0) - Number(b.lot_id || 0)
+    );
+  }
+
+  function renderSupplyFieldList(fields) {
+    return '<dl class="supply-detail-fields">' + fields.map(([label, value, cls = '']) =>
+      `<div class="supply-detail-field${cls ? ' ' + cls : ''}"><dt>${escHtml(label)}</dt><dd>${value}</dd></div>`
+    ).join('') + '</dl>';
+  }
+
+  function formatSupplyLotDate(value) {
+    if (!value) return '\u2014';
+    const datePart = String(value).slice(0, 10);
+    return formatDateShort(datePart);
+  }
+
+  function renderSupplyLotDetail(product) {
+    const cached = state.supplies.lotCache[product.product_id];
+    if (!cached || cached.status === 'loading') {
+      return '<div class="loading-indicator supply-lot-state">Loading FIFO lots...</div>';
+    }
+    if (cached.status === 'error') {
+      return `<div class="supply-lot-state supply-lot-error" role="alert">Could not load lots: ${escHtml(cached.message)}</div>`;
+    }
+    if (cached.lots.length === 0) {
+      return '<div class="supply-lot-state">No lots on hand</div>';
+    }
+    return '<div class="supply-lot-list">' + cached.lots.map(lot =>
+      `<article class="supply-lot-card" aria-label="Lot ${escAttr(lot.lot_code || '')}">` +
+        renderSupplyFieldList([
+          ['Lot code', `<span class="supply-lot-code">${escHtml(lot.lot_code || '\u2014')}</span>`],
+          ['Lot date', escHtml(formatSupplyLotDate(lot.lot_date))],
+          ['Remaining quantity', `<span class="supply-lot-remaining">${fmtWt(lot.remaining)} ${escHtml(lot.unit || product.unit || '')}</span>`, 'supply-detail-field-quantity'],
+        ]) +
+      '</article>'
+    ).join('') + '</div>';
+  }
+
+  async function loadSupplyLots(productId) {
+    if (state.supplies.lotCache[productId]) return;
+    state.supplies.lotCache[productId] = { status: 'loading', lots: [] };
+    renderSuppliesInventory();
+    try {
+      const data = await fetchSalesAPI(`/supplies/inventory/${productId}/lots`);
+      state.supplies.lotCache[productId] = {
+        status: 'loaded',
+        lots: sortSupplyLots(data.lots || []),
+      };
+    } catch (e) {
+      state.supplies.lotCache[productId] = {
+        status: 'error',
+        message: supplyApiErrorMessage(e),
+        lots: [],
+      };
+    }
+    renderSuppliesInventory();
+  }
+
+  function toggleSupplyProduct(productId) {
+    if (state.supplies.expandedProductIds.has(productId)) {
+      state.supplies.expandedProductIds.delete(productId);
+      renderSuppliesInventory();
+      return;
+    }
+    state.supplies.expandedProductIds.add(productId);
+    if (!state.supplies.lotCache[productId]) loadSupplyLots(productId);
+    else renderSuppliesInventory();
+  }
+
+  function renderSuppliesInventory() {
+    const container = document.getElementById('supplies-inventory-table');
+    if (!state.supplies.inventoryLoaded) return;
+    const query = document.getElementById('supplies-search').value.trim().toLowerCase();
+    const rows = supplyItemsForTab().filter(item => item.name.toLowerCase().includes(query));
+    if (rows.length === 0) {
+      container.innerHTML = `<div class="orders-empty"><div class="orders-empty-icon">&#128230;</div>${query ? 'No products match this search.' : 'No products in this category.'}</div>`;
+      return;
+    }
+
+    const incomingDisplay = '\u2014'; // TODO(Supplies): Replace with purchase-order incoming quantities when that data source exists.
+    let html = '<div class="supplies-table-scroll"><table class="orders-table supplies-table"><thead><tr>' +
+      '<th>Name</th><th class="num">On Hand</th><th>Unit</th><th class="num">Incoming</th><th>Status</th>' +
+      '</tr></thead><tbody>';
+    rows.forEach(item => {
+      const expanded = state.supplies.expandedProductIds.has(item.product_id);
+      const detailId = `supply-lots-${item.product_id}`;
+      html += `<tr class="supply-item-row${item.is_low ? ' supply-item-low' : ''}" data-product-id="${item.product_id}" tabindex="0" role="button" aria-expanded="${expanded}" aria-controls="${detailId}">`;
+      html += `<td><span class="supply-row-caret" aria-hidden="true">&#9656;</span><span class="supply-product-name">${escHtml(item.name)}</span>${item.active === false ? '<span class="supply-inactive-label">Inactive</span>' : ''}</td>`;
+      html += `<td class="num">${fmtWt(item.on_hand)}</td><td>${escHtml(item.unit || '')}</td><td class="num">${incomingDisplay}</td>`;
+      html += `<td>${item.is_low ? '<span class="so-badge supply-low-badge">Low Stock</span>' : ''}</td></tr>`;
+      if (expanded) {
+        html += `<tr id="${detailId}" class="supply-lot-detail-row"><td colspan="5"><div class="supply-lot-detail">${renderSupplyLotDetail(item)}</div></td></tr>`;
+      }
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('.supply-item-row').forEach(row => {
+      const toggle = () => toggleSupplyProduct(Number(row.dataset.productId));
+      row.addEventListener('click', toggle);
+      row.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggle();
+        }
+      });
+    });
+  }
+
+  function formatSupplyRequestTime(value) {
+    if (!value) return '\u2014';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+    }) + ' ET';
+  }
+
+  function supplyApiErrorMessage(error) {
+    const match = /HTTP \d+: (.*)$/s.exec(error.message || '');
+    if (!match) return error.message || 'Request failed.';
+    try {
+      const body = JSON.parse(match[1]);
+      return body.detail?.message || body.error_detail?.message || error.message;
+    } catch (_) {
+      return error.message;
+    }
+  }
+
+  function showSupplyFeedback(message, kind = 'success') {
+    const el = document.getElementById('supply-requests-feedback');
+    clearTimeout(state.supplies.feedbackTimer);
+    el.textContent = message;
+    el.className = `supply-feedback ${kind}`;
+    state.supplies.feedbackTimer = setTimeout(() => el.classList.add('hidden'), 6000);
+  }
+
+  async function refreshSupplyRequests() {
+    hideError('supply-requests-error');
+    const container = document.getElementById('supply-requests-list');
+    if (!state.supplies.requestsLoaded) {
+      container.innerHTML = '<div class="loading-indicator">Loading supply requests...</div>';
+    }
+    try {
+      const data = await fetchSalesAPI('/supply-requests?status=all&limit=500');
+      state.supplies.requests = (data.supply_requests || []).sort((a, b) =>
+        Date.parse(b.created_at || '') - Date.parse(a.created_at || '') || Number(b.id) - Number(a.id)
+      );
+      state.supplies.requestsLoaded = true;
+      renderSupplyRequests();
+    } catch (e) {
+      container.innerHTML = '';
+      showError('supply-requests-error', 'Failed to load supply requests: ' + supplyApiErrorMessage(e));
+    }
+  }
+
+  function renderSupplyRequests() {
+    const container = document.getElementById('supply-requests-list');
+    if (!state.supplies.requestsLoaded) return;
+    const openCount = state.supplies.requests.filter(request => request.status === 'open').length;
+    const countBadge = document.getElementById('supply-requests-open-count');
+    countBadge.textContent = String(openCount);
+    countBadge.setAttribute('aria-label', `${openCount} open supply requests`);
+    const showDone = document.getElementById('supply-requests-show-done').checked;
+    const requests = state.supplies.requests.filter(request => showDone || request.status === 'open');
+    if (requests.length === 0) {
+      container.innerHTML = `<div class="orders-empty"><div class="orders-empty-icon">&#10003;</div>${showDone ? 'No supply requests yet.' : 'No open supply requests.'}</div>`;
+      return;
+    }
+    let html = '<div class="supplies-table-scroll"><table class="orders-table supply-requests-table"><thead><tr>' +
+      '<th>Item</th><th class="num">Quantity</th><th>Note</th><th>Requested By</th><th>Requested</th><th>Status</th><th></th>' +
+      '</tr></thead><tbody>';
+    requests.forEach(request => {
+      const qty = request.qty == null ? '\u2014' : `${fmtWt(request.qty)}${request.unit ? ' ' + escHtml(request.unit) : ''}`;
+      html += `<tr class="${request.status === 'done' ? 'supply-request-done' : ''}">`;
+      html += `<td><div class="supply-request-name">${escHtml(request.display_name || request.item_text || 'Unnamed item')}</div>${request.sku ? `<div class="er-sku">SKU ${escHtml(request.sku)}</div>` : ''}</td>`;
+      html += `<td class="num">${qty}</td><td class="supply-request-note">${escHtml(request.note || '\u2014')}</td>`;
+      html += `<td>${escHtml(request.requested_by)}</td><td>${escHtml(formatSupplyRequestTime(request.created_at))}</td>`;
+      html += `<td><span class="so-badge ${request.status === 'open' ? 'er-badge-open' : 'er-badge-closed'}">${request.status === 'open' ? 'Open' : 'Done'}</span></td>`;
+      html += request.status === 'open'
+        ? `<td class="supply-request-actions"><button type="button" class="btn-sm supply-request-done-btn" data-request-id="${request.id}">Done</button></td>`
+        : '<td></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+    container.querySelectorAll('.supply-request-done-btn').forEach(button => {
+      button.addEventListener('click', () => markSupplyRequestDone(Number(button.dataset.requestId), button));
+    });
+  }
+
+  async function markSupplyRequestDone(requestId, button) {
+    hideError('supply-requests-error');
+    button.disabled = true;
+    button.textContent = 'Saving...';
+    try {
+      const data = await fetchSalesAPI(`/supply-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'done' }),
+      });
+      showSupplyFeedback(data.message || `Supply request #${requestId} marked done.`);
+      await refreshSupplyRequests();
+    } catch (e) {
+      button.disabled = false;
+      button.textContent = 'Done';
+      showError('supply-requests-error', 'Failed to mark request done: ' + supplyApiErrorMessage(e));
+    }
+  }
+
+  function updateSupplyRequestTargetFields() {
+    const value = document.getElementById('supply-request-product').value;
+    const unlisted = value === '__other__';
+    document.getElementById('supply-request-unlisted-fields').classList.toggle('hidden', !unlisted);
+    const unitEl = document.getElementById('supply-request-qty-unit');
+    if (unlisted) {
+      const unit = document.getElementById('supply-request-unit').value.trim();
+      unitEl.textContent = unit;
+    } else {
+      const product = state.supplies.inventory.find(item => String(item.product_id) === value);
+      unitEl.textContent = product?.unit || '';
+    }
+  }
+
+  function updateSupplyRequestedByFields() {
+    const other = document.getElementById('supply-request-requested-by').value === 'Other';
+    document.getElementById('supply-request-other-name-group').classList.toggle('hidden', !other);
+  }
+
+  function openSupplyRequestModal() {
+    state.supplies.lastFocusedElement = document.activeElement;
+    const form = document.getElementById('supply-request-form');
+    form.reset();
+    hideError('supply-request-modal-error');
+    populateSupplyProductSelector();
+    updateSupplyRequestTargetFields();
+    updateSupplyRequestedByFields();
+    document.getElementById('supply-request-modal-overlay').classList.remove('hidden');
+    document.getElementById('supply-request-product').focus();
+  }
+
+  function closeSupplyRequestModal() {
+    document.getElementById('supply-request-modal-overlay').classList.add('hidden');
+    if (state.supplies.lastFocusedElement?.focus) state.supplies.lastFocusedElement.focus();
+  }
+
+  async function submitSupplyRequest(event) {
+    event.preventDefault();
+    hideError('supply-request-modal-error');
+    const target = document.getElementById('supply-request-product').value;
+    if (!target) {
+      showError('supply-request-modal-error', 'Select a product or choose Product not listed.');
+      return;
+    }
+    const qtyValue = document.getElementById('supply-request-qty').value.trim();
+    const qty = qtyValue === '' ? null : Number(qtyValue);
+    if (qty !== null && (!Number.isFinite(qty) || qty <= 0)) {
+      showError('supply-request-modal-error', 'Quantity must be greater than zero when provided.');
+      return;
+    }
+    let requestedBy = document.getElementById('supply-request-requested-by').value;
+    if (!requestedBy) {
+      showError('supply-request-modal-error', 'Select who is requesting this supply.');
+      return;
+    }
+    if (requestedBy === 'Other') {
+      requestedBy = document.getElementById('supply-request-other-name').value.trim();
+      if (!requestedBy) {
+        showError('supply-request-modal-error', 'Enter the requester name.');
+        return;
+      }
+    }
+
+    const body = {
+      qty,
+      note: document.getElementById('supply-request-note').value.trim() || null,
+      requested_by: requestedBy,
+    };
+    if (target === '__other__') {
+      const item = document.getElementById('supply-request-item').value.trim();
+      const unit = document.getElementById('supply-request-unit').value.trim();
+      if (!item) {
+        showError('supply-request-modal-error', 'Enter the item name.');
+        return;
+      }
+      if (!unit) {
+        showError('supply-request-modal-error', 'Enter a unit for the unlisted item.');
+        return;
+      }
+      body.item_text = `${item} (unit: ${unit})`;
+    } else {
+      body.product_id = Number(target);
+    }
+
+    const button = document.getElementById('supply-request-submit-btn');
+    button.disabled = true;
+    button.textContent = 'Submitting...';
+    try {
+      const data = await fetchSalesAPI('/supply-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      closeSupplyRequestModal();
+      showSupplyFeedback(data.message || 'Supply request created.');
+      await refreshSupplyRequests();
+    } catch (e) {
+      showError('supply-request-modal-error', supplyApiErrorMessage(e));
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Submit Request';
+    }
+  }
+
+  function initSupplies() {
+    document.querySelectorAll('.supplies-subtab').forEach(button => {
+      button.addEventListener('click', () => {
+        state.supplies.inventoryTab = button.dataset.supplyTab;
+        document.querySelectorAll('.supplies-subtab').forEach(tab => {
+          const active = tab === button;
+          tab.classList.toggle('active', active);
+          tab.setAttribute('aria-selected', String(active));
+        });
+        renderSuppliesInventory();
+      });
+    });
+    document.getElementById('supplies-search').addEventListener('input', renderSuppliesInventory);
+    document.getElementById('supply-request-btn').addEventListener('click', openSupplyRequestModal);
+    document.getElementById('supply-requests-refresh-btn').addEventListener('click', refreshSupplyRequests);
+    document.getElementById('supply-requests-show-done').addEventListener('change', renderSupplyRequests);
+    document.getElementById('supply-request-product').addEventListener('change', updateSupplyRequestTargetFields);
+    document.getElementById('supply-request-unit').addEventListener('input', updateSupplyRequestTargetFields);
+    document.getElementById('supply-request-requested-by').addEventListener('change', updateSupplyRequestedByFields);
+    document.getElementById('supply-request-form').addEventListener('submit', submitSupplyRequest);
+    document.getElementById('supply-request-modal-close').addEventListener('click', closeSupplyRequestModal);
+    document.getElementById('supply-request-cancel-btn').addEventListener('click', closeSupplyRequestModal);
+    document.getElementById('supply-request-modal-overlay').addEventListener('click', event => {
+      if (event.target === event.currentTarget) closeSupplyRequestModal();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !document.getElementById('supply-request-modal-overlay').classList.contains('hidden')) {
+        closeSupplyRequestModal();
+      }
+    });
+  }
+
   // ── System Health Badge ──
   async function refreshHealthBadge() {
     const badge = document.getElementById('health-badge');
@@ -2948,6 +3375,8 @@
     ops.push(refreshNotes());
     ops.push(refreshOrders());
     ops.push(refreshExpectedReceipts());
+    ops.push(refreshSuppliesInventory());
+    ops.push(refreshSupplyRequests());
     ops.push(refreshHealthBadge());
 
     await Promise.allSettled(ops);
@@ -2970,6 +3399,7 @@
     initNotes();
     initOrders();
     initExpectedReceipts();
+    initSupplies();
 
     // Theme toggle
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=20">
+  <link rel="stylesheet" href="dashboard.css?v=21">
   <link rel="stylesheet" href="mini-calendar.css?v=2">
 </head>
 <body>
@@ -50,6 +50,7 @@
     <button class="tab" data-tab="notes">Notes</button>
     <button class="tab" data-tab="orders">Sales Orders</button>
     <button class="tab" data-tab="expected">Expected Receipts</button>
+    <button class="tab" data-tab="supplies">Supplies</button>
   </nav>
 
   <!-- Tab A: Operations -->
@@ -250,6 +251,115 @@
     </section>
   </main>
 
+  <!-- Tab F: Supplies -->
+  <main id="tab-supplies" class="tab-content">
+    <div class="supplies-page-header">
+      <div>
+        <h2>Supplies</h2>
+        <p class="section-hint">Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.</p>
+      </div>
+      <button id="supply-request-btn" class="btn-refresh" type="button">Request Supply</button>
+    </div>
+
+    <section class="section" id="section-supplies-inventory">
+      <div class="supplies-inventory-toolbar">
+        <div class="supplies-subtabs" role="tablist" aria-label="Supply inventory categories">
+          <button class="supplies-subtab active" type="button" role="tab" data-supply-tab="ingredients" aria-selected="true">
+            Ingredients <span class="supplies-count-badge" id="supplies-low-ingredients" aria-label="0 low-stock ingredients">0</span>
+          </button>
+          <button class="supplies-subtab" type="button" role="tab" data-supply-tab="packaging" aria-selected="false">
+            Packaging <span class="supplies-count-badge" id="supplies-low-packaging" aria-label="0 low-stock packaging items">0</span>
+          </button>
+          <button class="supplies-subtab" type="button" role="tab" data-supply-tab="all" aria-selected="false">
+            All <span class="supplies-count-badge" id="supplies-low-all" aria-label="0 low-stock supply items">0</span>
+          </button>
+        </div>
+        <label class="supplies-search-label" for="supplies-search">
+          <span class="sr-only">Search supplies by product name</span>
+          <input type="search" id="supplies-search" placeholder="Search products..." autocomplete="off">
+        </label>
+      </div>
+      <div id="supplies-inventory-table" aria-live="polite"></div>
+      <div id="supplies-inventory-error" class="error-msg hidden"></div>
+    </section>
+
+    <section class="section" id="section-supply-requests">
+      <div class="section-header supplies-requests-header">
+        <h2>Supply Requests <span class="supplies-count-badge" id="supply-requests-open-count" aria-label="0 open supply requests">0</span></h2>
+        <div class="supplies-request-controls">
+          <label class="orders-overdue-toggle">
+            <input type="checkbox" id="supply-requests-show-done"> Show completed
+          </label>
+          <button id="supply-requests-refresh-btn" class="btn-sm" type="button">Refresh</button>
+        </div>
+      </div>
+      <div id="supply-requests-feedback" class="supply-feedback hidden" role="status"></div>
+      <div id="supply-requests-list" aria-live="polite"></div>
+      <div id="supply-requests-error" class="error-msg hidden"></div>
+    </section>
+  </main>
+
+  <!-- Supply Request Modal -->
+  <div id="supply-request-modal-overlay" class="panel-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="supply-request-modal-title">
+    <div class="note-modal supply-request-modal">
+      <div class="panel-header">
+        <h3 id="supply-request-modal-title">Request Supply</h3>
+        <button id="supply-request-modal-close" class="btn-close" type="button" aria-label="Close supply request form">&times;</button>
+      </div>
+      <form id="supply-request-form" class="note-modal-body" novalidate>
+        <div class="form-group">
+          <label for="supply-request-product">Product</label>
+          <select id="supply-request-product" required>
+            <option value="">Select a product...</option>
+            <option value="__other__">Product not listed</option>
+          </select>
+        </div>
+        <div id="supply-request-unlisted-fields" class="form-row hidden">
+          <div class="form-group">
+            <label for="supply-request-item">Item name</label>
+            <input type="text" id="supply-request-item" autocomplete="off" placeholder="e.g. Nitrile gloves">
+          </div>
+          <div class="form-group">
+            <label for="supply-request-unit">Unit</label>
+            <input type="text" id="supply-request-unit" autocomplete="off" placeholder="e.g. box, roll, each">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="supply-request-qty">Quantity <span class="label-hint">(optional)</span></label>
+          <div class="supply-quantity-row">
+            <input type="number" id="supply-request-qty" min="0" step="any" inputmode="decimal" autocomplete="off">
+            <span id="supply-request-qty-unit" class="supply-quantity-unit" aria-live="polite"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="supply-request-note">Note <span class="label-hint">(optional)</span></label>
+          <textarea id="supply-request-note" rows="3" placeholder="Anything the office should know..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="supply-request-requested-by">Requested by</label>
+            <select id="supply-request-requested-by" required>
+              <option value="">Select a person...</option>
+              <option value="Arturo">Arturo</option>
+              <option value="Luz">Luz</option>
+              <option value="MG">MG</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div id="supply-request-other-name-group" class="form-group hidden">
+            <label for="supply-request-other-name">Name</label>
+            <input type="text" id="supply-request-other-name" autocomplete="off">
+          </div>
+        </div>
+        <div id="supply-request-modal-error" class="error-msg hidden" role="alert"></div>
+        <div class="form-actions">
+          <button id="supply-request-submit-btn" class="btn-refresh" type="submit">Submit Request</button>
+          <button id="supply-request-cancel-btn" class="btn-sm" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Expected Receipt Create / Edit Modal -->
   <div id="er-modal-overlay" class="panel-overlay hidden" role="dialog" aria-label="Expected receipt editor">
     <div class="note-modal er-modal">
@@ -373,7 +483,7 @@
 
   <script src="mini-calendar.js?v=3"></script>
   <script src="pallet-calculations.js?v=1"></script>
-  <script src="dashboard.js?v=31"></script>
+  <script src="dashboard.js?v=32"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>
