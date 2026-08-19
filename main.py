@@ -905,6 +905,8 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("GET", "/reason-codes"),
     # History / traceability (read-only; traceability.html, process-flow.html)
     ("GET", "/transactions/history"),
+    # FR-12 Recent Entries: authenticated global audit feed for the dashboard.
+    ("GET", "/ledger/recent"),
     ("GET", "/trace/batch/{lot_code}"),
     ("GET", "/trace/ingredient/{lot_code}"),
     ("GET", "/trace/supplier-lot/{supplier_lot_code}"),
@@ -6051,6 +6053,157 @@ def get_transaction_history(
             return {"count": len(transactions), "transactions": transactions}
     except Exception as e:
         logger.error(f"Get transaction history failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/ledger/recent")
+def get_recent_ledger_events(
+    limit: int = Query(default=20, ge=1, le=50),
+    _: bool = Depends(verify_api_key),
+):
+    """Return the global, append-only recent-ledger feed for the dashboard.
+
+    Feed rows are either original transactions or append-only correction events.
+    They are ordered by each row's own database-entered timestamp, rather than
+    by business date or by the original transaction timestamp.  The effective
+    status and effective lines always come from the ledger-current views, so a
+    voided original remains visible while its balance impact is correctly
+    excluded by POSTED_LINES elsewhere.
+
+    Direction is intentionally derived here, never from a browser quantity sign:
+    receive -> received; make -> produced; pack -> packed; ship -> shipped;
+    adjust -> adjusted_in when its effective line total is non-negative,
+    otherwise adjusted_out.  Pack is a transformation and therefore has its
+    own explicit direction even when its lines contain both signs.
+    """
+    try:
+        with get_transaction() as cur:
+            # One read-only SELECT: line_data supplies effective product/lot/
+            # quantity/unit data for originals and the target metadata needed
+            # to render correction events.  No client-side ledger inference is
+            # required or permitted.
+            cur.execute("""
+                WITH line_data AS (
+                    SELECT ctl.transaction_id,
+                           COALESCE(SUM(ctl.quantity_lb), 0) AS net_quantity,
+                           json_agg(json_build_object(
+                               'product_name', p.name,
+                               'quantity', ctl.quantity_lb,
+                               'unit', COALESCE(p.uom, 'lb'),
+                               'lot_code', l.lot_code
+                           ) ORDER BY ctl.id) AS lines
+                    FROM ledger_current_transaction_lines ctl
+                    LEFT JOIN products p ON p.id = ctl.product_id
+                    LEFT JOIN lots l ON l.id = ctl.lot_id
+                    GROUP BY ctl.transaction_id
+                ),
+                feed AS (
+                    SELECT
+                        'transaction'::text AS event_kind,
+                        'TX-' || ct.id::text AS event_id,
+                        ct.id AS transaction_id,
+                        ct.type AS transaction_type,
+                        ct.type AS event_type,
+                        ct.business_date,
+                        ct.created_at AS entered_at,
+                        ct.effective_status,
+                        ct.status AS raw_status,
+                        NULL::uuid AS correction_id,
+                        NULL::text AS correction_event_type,
+                        NULL::text AS correction_reason,
+                        NULL::text AS correction_target_table,
+                        NULL::bigint AS correction_target_id,
+                        CASE ct.type
+                            WHEN 'receive' THEN 'received'
+                            WHEN 'make' THEN 'produced'
+                            WHEN 'pack' THEN 'packed'
+                            WHEN 'ship' THEN 'shipped'
+                            WHEN 'adjust' THEN CASE
+                                WHEN COALESCE(ld.net_quantity, 0) >= 0 THEN 'adjusted_in'
+                                ELSE 'adjusted_out'
+                            END
+                            ELSE ct.type
+                        END AS direction,
+                        COALESCE(ld.lines, '[]'::json) AS lines
+                    FROM ledger_current_transactions ct
+                    LEFT JOIN line_data ld ON ld.transaction_id = ct.id
+
+                    UNION ALL
+
+                    SELECT
+                        'correction'::text AS event_kind,
+                        'COR-' || c.id::text AS event_id,
+                        target.id AS transaction_id,
+                        target.type AS transaction_type,
+                        c.event_type AS event_type,
+                        target.business_date,
+                        c.created_at AS entered_at,
+                        target.effective_status,
+                        target.status AS raw_status,
+                        c.id AS correction_id,
+                        c.event_type AS correction_event_type,
+                        c.reason AS correction_reason,
+                        c.target_table AS correction_target_table,
+                        c.target_id AS correction_target_id,
+                        CASE target.type
+                            WHEN 'receive' THEN 'received'
+                            WHEN 'make' THEN 'produced'
+                            WHEN 'pack' THEN 'packed'
+                            WHEN 'ship' THEN 'shipped'
+                            WHEN 'adjust' THEN CASE
+                                WHEN COALESCE(ld.net_quantity, 0) >= 0 THEN 'adjusted_in'
+                                ELSE 'adjusted_out'
+                            END
+                            ELSE target.type
+                        END AS direction,
+                        '[]'::json AS lines
+                    FROM ledger_corrections c
+                    JOIN ledger_current_transactions target
+                      ON target.id = CASE
+                          WHEN c.target_table = 'transactions' THEN c.target_id
+                          WHEN c.target_table = 'transaction_lines' THEN (
+                              SELECT tl.transaction_id
+                              FROM transaction_lines tl
+                              WHERE tl.id = c.target_id
+                          )
+                      END
+                    LEFT JOIN line_data ld ON ld.transaction_id = target.id
+                )
+                SELECT *
+                FROM feed
+                ORDER BY entered_at DESC, event_id DESC
+                LIMIT %s
+            """, (limit,))
+            rows = cur.fetchall()
+
+        events = []
+        for row in rows:
+            event = {
+                "event_id": row["event_id"],
+                "event_kind": row["event_kind"],
+                "transaction_id": row["transaction_id"],
+                "transaction_type": row["transaction_type"],
+                "event_type": row["event_type"],
+                "business_date": row["business_date"].isoformat() if row["business_date"] else None,
+                "entered_at": row["entered_at"],
+                "effective_status": row["effective_status"],
+                "raw_status": row["raw_status"],
+                "direction": row["direction"],
+                "lines": row["lines"] or [],
+                "correction": None,
+            }
+            if row["event_kind"] == "correction":
+                event["correction"] = {
+                    "id": str(row["correction_id"]),
+                    "event_type": row["correction_event_type"],
+                    "reason": row["correction_reason"],
+                    "target_table": row["correction_target_table"],
+                    "target_id": row["correction_target_id"],
+                }
+            events.append(event)
+        return {"count": len(events), "events": events}
+    except Exception as e:
+        logger.error(f"Get recent ledger events failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 

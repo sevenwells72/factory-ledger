@@ -282,6 +282,45 @@ body {
 .tab-content { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
 .tab-content.active { display: block; }
 
+/* === Recent Entries (FR-12) === */
+.recent-entries-page { max-width: 760px; margin: 0 auto; }
+.recent-entries-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.recent-entries-header h2 { font-size: 22px; line-height: 1.2; }
+.recent-entries-header p { color: var(--text-muted); margin-top: 4px; }
+.recent-entries-refresh { min-width: 44px; min-height: 44px; padding: 10px 16px; flex: 0 0 auto; }
+.recent-entries-status { min-height: 22px; color: var(--text-muted); margin-bottom: 12px; }
+.recent-entries-feed { display: grid; gap: 12px; }
+.recent-entry-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; overflow-wrap: anywhere; }
+.recent-entry-topline { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.recent-entry-topline h3 { font-size: 16px; text-transform: capitalize; }
+.recent-entry-direction { color: var(--text-secondary); font-weight: 600; margin-top: 2px; text-transform: capitalize; }
+.recent-status-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: var(--badge-bg); color: var(--badge-text); }
+.recent-status-badge.posted { background: var(--badge-green-bg); color: var(--badge-green-text); }
+.recent-status-badge.void, .recent-status-badge.voided { background: var(--badge-red-bg); color: var(--badge-red-text); }
+.recent-status-badge.corrected { background: var(--badge-amber-bg); color: var(--badge-amber-text); }
+.recent-entry-correction { margin-top: 10px; color: var(--text-secondary); font-size: 13px; }
+.recent-entry-lines { list-style: none; display: grid; gap: 7px; margin: 14px 0; }
+.recent-entry-lines li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 8px 0; border-top: 1px solid var(--border); }
+.recent-line-product { min-width: 0; font-weight: 600; }
+.recent-line-quantity { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.recent-line-lot { grid-column: 1 / -1; color: var(--text-muted); font-family: var(--mono); font-size: 12px; }
+.recent-entry-no-lines { color: var(--text-muted); font-size: 13px; margin: 12px 0; }
+.recent-entry-dates { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 11px; }
+.recent-entry-dates strong { color: var(--text-secondary); }
+.recent-entries-loading, .recent-entries-empty, .recent-entries-error { display: grid; gap: 6px; padding: 22px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); }
+.recent-entries-error { border-color: var(--danger); color: var(--text); }
+.recent-entries-retry { width: fit-content; min-height: 44px; margin-top: 6px; }
+
+@media (max-width: 480px) {
+  .recent-entries-page { width: 100%; }
+  .recent-entries-header { align-items: flex-start; }
+  .recent-entries-header h2 { font-size: 20px; }
+  .recent-entry-card { padding: 14px; }
+  .recent-entry-topline { gap: 8px; }
+  .recent-status-badge { white-space: normal; text-align: center; }
+  .recent-entry-dates { display: grid; gap: 5px; }
+}
+
 /* === Sections === */
 .section {
   margin-bottom: 24px;
@@ -1770,6 +1809,7 @@ body {
 /* === Responsive === */
 @media (max-width: 768px) {
   .app-header { flex-wrap: wrap; gap: 8px; }
+  .header-right { width: 100%; flex-wrap: wrap; }
   .header-center { order: 3; flex-basis: 100%; max-width: none; margin: 4px 0 0; }
   .calendar-grid { grid-template-columns: repeat(2, 1fr); }
   .calendar-grid.month-view { grid-template-columns: repeat(3, 1fr); }

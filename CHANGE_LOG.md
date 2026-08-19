@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-08-19 — FR-12 local verification completed (not deployed)
+- **File(s) changed:** `dashboard/dashboard.css`, `tests/test_recent_ledger.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Corrected the shared mobile header wrapping so the Recent Entries screen has no document-level horizontal overflow at 390px, and adjusted the auth test to reuse the shared test client without closing its connection pool. Local endpoint tests pass 4/4; full suite passes 132/132. JS syntax, Python compilation, and diff checks pass. The local dashboard preview confirmed desktop and 390px error states, 44px refresh control, and 390px `scrollWidth === clientWidth`.
+- **Why:** Complete the required mobile and regression verification before review without changing production state.
+
+---
+
+## 2026-08-19 — FR-12 Recent Entries audit feed and dashboard view (local review; not deployed)
+- **File(s) changed:** `main.py`, `tests/test_recent_ledger.py`, `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Added dashboard-key-authorized `GET /ledger/recent?limit=20` (max 50): one read-only global feed unioning original transactions and append-only corrections, ordered by each event’s entered-at timestamp and stable ID. Original entries expose effective ledger status and effective product/quantity/unit/lot lines; correction entries retain target transaction context and explicit correction metadata. Added the mobile-first Recent Entries dashboard tab with distinct loading/error/empty states, retry/refresh controls, ET timestamp formatting, calendar-safe business dates, status badges, and visible-tab 60-second polling that pauses while hidden. Cache versions: JS v33→v34; CSS v22→v23. Added endpoint/auth/order/limit/void/restore/direction contract tests. No migration, commit, push, or deployment.
+- **Why:** Floor leads need a reliable phone-friendly audit feed confirming that ledger events—including voids and corrections—were actually recorded.
+
+---
+
 ## 2026-08-19 — FR-1 Supplies Incoming column wired to expected receipts (local review; not deployed)
 - **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** The Supplies inventory refresh now also makes the existing dashboard-key-allowlisted `GET /expected-receipts?status=open&limit=500` read. Each product’s Incoming cell shows the sum of its open receipts’ computed `remaining` quantity in lb, or an em dash only when no incoming receipt remains. Expanded product rows now list each open expected receipt’s supplier, remaining quantity, expected date, and reference before the existing FIFO lot detail. No backend requests mutate data; no backend files changed. Cache versions are dashboard JS v33 / CSS v22.

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=22">
+  <link rel="stylesheet" href="dashboard.css?v=23">
   <link rel="stylesheet" href="mini-calendar.css?v=2">
 </head>
 <body>
@@ -46,6 +46,7 @@
   <!-- Tabs -->
   <nav class="tab-bar">
     <button class="tab active" data-tab="operations">Operations</button>
+    <button class="tab" data-tab="recent">Recent Entries</button>
     <button class="tab" data-tab="activity">Activity</button>
     <button class="tab" data-tab="notes">Notes</button>
     <button class="tab" data-tab="orders">Sales Orders</button>
@@ -93,6 +94,21 @@
       <div id="ingredients-error" class="error-msg hidden"></div>
     </section>
 
+  </main>
+
+  <!-- Recent Entries: global ledger audit feed -->
+  <main id="tab-recent" class="tab-content" aria-labelledby="recent-entries-title">
+    <section class="recent-entries-page">
+      <div class="recent-entries-header">
+        <div>
+          <h2 id="recent-entries-title">Recent Entries</h2>
+          <p>Latest ledger transactions and corrections, newest entered first.</p>
+        </div>
+        <button id="recent-entries-refresh" class="btn-refresh recent-entries-refresh" type="button" aria-label="Refresh recent entries">Refresh</button>
+      </div>
+      <div id="recent-entries-status" class="recent-entries-status" role="status" aria-live="polite"></div>
+      <div id="recent-entries-feed" class="recent-entries-feed" aria-live="polite"></div>
+    </section>
   </main>
 
   <!-- Tab B: Activity -->
@@ -483,7 +499,7 @@
 
   <script src="mini-calendar.js?v=3"></script>
   <script src="pallet-calculations.js?v=1"></script>
-  <script src="dashboard.js?v=33"></script>
+  <script src="dashboard.js?v=34"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

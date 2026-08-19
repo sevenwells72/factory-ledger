@@ -35,6 +35,10 @@
       feedbackTimer: null,
       lastFocusedElement: null,
     },
+    recentEntries: {
+      loaded: false,
+      pollTimer: null,
+    },
   };
 
   // ── Theme ──
@@ -412,8 +416,120 @@
         state.currentTab = target;
         document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === target));
         document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + target));
+        if (target === 'recent') {
+          openRecentEntries();
+        } else {
+          stopRecentEntriesPolling();
+        }
       });
     });
+  }
+
+  // ── Recent Entries (FR-12) ──
+  function formatBusinessDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return '—';
+    // Business dates are calendar dates, never instants to be converted to ET.
+    const date = new Date(`${value}T12:00:00Z`);
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric'
+    }).format(date);
+  }
+
+  function formatEnteredAt(value) {
+    const raw = String(value || '');
+    // The endpoint returns TIMESTAMPTZ. If a malformed timezone-naive value
+    // ever reaches the browser, keep it visible without inventing an offset.
+    if (!/(Z|[+-]\d{2}:\d{2})$/i.test(raw)) return raw || '—';
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return raw;
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short'
+    }).format(date);
+  }
+
+  function recentStatus(event) {
+    if (event.event_kind === 'correction') {
+      const type = String(event.event_type || '').toLowerCase();
+      if (type === 'amend') return { label: 'Corrected', className: 'corrected' };
+      if (type === 'void') return { label: 'Void', className: 'void' };
+      if (type === 'restore') return { label: 'Restore', className: 'posted' };
+    }
+    const status = String(event.effective_status || 'unknown');
+    return { label: status.charAt(0).toUpperCase() + status.slice(1), className: status.toLowerCase() };
+  }
+
+  function renderRecentEntries(events) {
+    const feed = document.getElementById('recent-entries-feed');
+    if (!events.length) {
+      feed.innerHTML = '<div class="recent-entries-empty"><strong>No ledger entries yet.</strong><span>New entries will appear here automatically.</span></div>';
+      return;
+    }
+    feed.innerHTML = events.map(event => {
+      const status = recentStatus(event);
+      const correction = event.correction;
+      const isCorrection = event.event_kind === 'correction';
+      const title = isCorrection
+        ? `${status.label} of TX-${event.transaction_id}`
+        : String(event.transaction_type || 'Ledger entry');
+      const lines = Array.isArray(event.lines) ? event.lines : [];
+      const correctionDetail = correction
+        ? `<div class="recent-entry-correction">${escHtml(status.label)} of TX-${escHtml(String(event.transaction_id))}${correction.reason ? ': ' + escHtml(correction.reason) : ''}</div>`
+        : '';
+      const linesHtml = lines.length
+        ? `<ul class="recent-entry-lines">${lines.map(line => `<li><span class="recent-line-product">${escHtml(line.product_name || 'Unknown product')}</span><span class="recent-line-quantity">${escHtml(fmt(line.quantity))} ${escHtml(line.unit || '—')}</span>${line.lot_code ? `<span class="recent-line-lot">Lot: ${escHtml(line.lot_code)}</span>` : ''}</li>`).join('')}</ul>`
+        : (isCorrection ? '<p class="recent-entry-no-lines">This correction references the original transaction; no separate ledger lines were created.</p>' : '');
+      return `<article class="recent-entry-card" data-event-id="${escAttr(event.event_id || '')}">
+        <div class="recent-entry-topline">
+          <div><h3>${escHtml(title)}</h3><p class="recent-entry-direction">${escHtml(event.direction || '—')}</p></div>
+          <span class="recent-status-badge ${escAttr(status.className)}">${escHtml(status.label)}</span>
+        </div>
+        ${correctionDetail}
+        ${linesHtml}
+        <div class="recent-entry-dates"><span><strong>For:</strong> ${escHtml(formatBusinessDate(event.business_date))}</span><span><strong>Entered:</strong> ${escHtml(formatEnteredAt(event.entered_at))}</span></div>
+      </article>`;
+    }).join('');
+  }
+
+  async function refreshRecentEntries() {
+    const feed = document.getElementById('recent-entries-feed');
+    const status = document.getElementById('recent-entries-status');
+    const button = document.getElementById('recent-entries-refresh');
+    status.textContent = 'Loading recent entries…';
+    feed.innerHTML = '<div class="recent-entries-loading">Loading the latest ledger events…</div>';
+    button.classList.add('loading');
+    button.disabled = true;
+    try {
+      const data = await fetchSalesAPI('/ledger/recent?limit=20');
+      const events = Array.isArray(data.events) ? data.events : [];
+      state.recentEntries.loaded = true;
+      status.textContent = events.length ? `Showing ${events.length} most recently entered ledger events.` : 'No ledger entries have been recorded.';
+      renderRecentEntries(events);
+    } catch (e) {
+      status.textContent = 'Recent entries could not be loaded.';
+      feed.innerHTML = `<div class="recent-entries-error"><strong>Unable to load recent entries.</strong><span>${escHtml(e.message)}</span><button class="btn-refresh recent-entries-retry" type="button">Try again</button></div>`;
+      feed.querySelector('.recent-entries-retry').addEventListener('click', refreshRecentEntries);
+    } finally {
+      button.classList.remove('loading');
+      button.disabled = false;
+    }
+  }
+
+  function startRecentEntriesPolling() {
+    if (state.recentEntries.pollTimer || document.hidden || state.currentTab !== 'recent') return;
+    state.recentEntries.pollTimer = window.setInterval(() => {
+      if (!document.hidden && state.currentTab === 'recent') refreshRecentEntries();
+    }, 60000);
+  }
+
+  function stopRecentEntriesPolling() {
+    if (state.recentEntries.pollTimer) window.clearInterval(state.recentEntries.pollTimer);
+    state.recentEntries.pollTimer = null;
+  }
+
+  function openRecentEntries() {
+    if (!state.recentEntries.loaded) refreshRecentEntries();
+    startRecentEntriesPolling();
   }
 
   // ── Production Calendar ──
@@ -3422,6 +3538,7 @@
     ops.push(refreshExpectedReceipts());
     ops.push(refreshSuppliesInventory());
     ops.push(refreshSupplyRequests());
+    if (state.currentTab === 'recent') ops.push(refreshRecentEntries());
     ops.push(refreshHealthBadge());
 
     await Promise.allSettled(ops);
@@ -3445,6 +3562,16 @@
     initOrders();
     initExpectedReceipts();
     initSupplies();
+
+    document.getElementById('recent-entries-refresh').addEventListener('click', refreshRecentEntries);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopRecentEntriesPolling();
+      } else if (state.currentTab === 'recent') {
+        refreshRecentEntries();
+        startRecentEntriesPolling();
+      }
+    });
 
     // Theme toggle
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
