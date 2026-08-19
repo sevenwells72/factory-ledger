@@ -216,6 +216,88 @@
     return `${formatted} ${Number(count) === 1 ? singular : plural}`;
   }
 
+  // ── Today So Far (FR-10) ──
+  function todayTileCount(value) {
+    const count = Number(value);
+    if (!Number.isFinite(count)) return '—';
+    return Number.isInteger(count) ? fmtInt(count) : count.toFixed(1);
+  }
+
+  function todayTileOtherLabel(items) {
+    const names = (items || []).map(item => item.product_name).filter(Boolean);
+    return names.length ? `Other · ${names.join(', ')}` : 'Other';
+  }
+
+  function todayTileUnavailableDetail(items) {
+    return (items || []).filter(item => item.count_available === false).map(item => {
+      const pounds = Number(item.output_lb);
+      return Number.isFinite(pounds) ? `${item.product_name} (${todayTileCount(pounds)} lb)` : item.product_name;
+    }).filter(Boolean).join(', ');
+  }
+
+  function renderTodayTile(data) {
+    const container = document.getElementById('today-tile');
+    const dateLabel = document.getElementById('today-tile-date');
+    const made = data.made || {};
+    const packed = data.packed || {};
+    dateLabel.textContent = data.date ? `Plant date: ${data.date} (America/New_York)` : 'Plant date unavailable';
+
+    const madeRows = [
+      { label: 'Granola', count: made.granola_batches, unit: 'batches', family: 'granola' },
+      { label: 'Coconut', count: made.coconut_pans, unit: 'pans', family: 'coconut' },
+    ];
+    if (Number(made.graham_batches) > 0) {
+      madeRows.push({ label: 'Graham', count: made.graham_batches, unit: 'batches', family: 'graham' });
+    }
+    if (Number(made.other_batches) > 0 || (made.other_products || []).length) {
+      madeRows.push({
+        label: todayTileOtherLabel(made.other_products), count: made.other_batches,
+        unit: 'batches', family: 'other',
+        countUnavailable: (made.other_products || []).some(item => item.count_available === false),
+        unavailableDetail: todayTileUnavailableDetail(made.other_products),
+      });
+    }
+
+    const packedRows = [
+      { label: 'Granola bulk 10 lb', count: packed.granola_bulk_10lb_cases, unit: 'cases', family: 'granola' },
+      { label: 'Granola bulk 25 lb', count: packed.granola_bulk_25lb_cases, unit: 'cases', family: 'granola' },
+      { label: 'Granola retail', count: packed.granola_retail_cases, unit: 'cases', family: 'granola', fallback: true },
+      { label: 'Coconut', count: packed.coconut_cases, unit: 'cases', family: 'coconut' },
+      { label: 'Graham', count: packed.graham_cases, unit: 'cases', family: 'graham' },
+    ].filter(row => Number(row.count) > 0);
+    if (Number(packed.other_cases) > 0 || (packed.other_products || []).length) {
+      packedRows.push({
+        label: todayTileOtherLabel(packed.other_products), count: packed.other_cases,
+        unit: 'cases', family: 'other',
+        countUnavailable: (packed.other_products || []).some(item => item.count_available === false),
+        unavailableDetail: todayTileUnavailableDetail(packed.other_products),
+      });
+    }
+
+    const rowHtml = row => `<div class="today-tile-row family-${escAttr(row.family)}">
+      <span>${escHtml(row.label)}${row.fallback ? '<span class="today-tile-limitation" title="The ledger does not yet provide a retail bag/unit count."> · bag count unavailable</span>' : ''}</span>
+      <strong>${row.countUnavailable ? `${Number(row.count) > 0 ? `${escHtml(todayTileCount(row.count))} ${escHtml(row.unit)} · ` : ''}count unavailable` : `${escHtml(todayTileCount(row.count))} ${escHtml(row.unit)}`}</strong>
+      ${row.countUnavailable && row.unavailableDetail ? `<span class="today-tile-unavailable-detail">${escHtml(row.unavailableDetail)}</span>` : ''}
+    </div>`;
+    container.innerHTML = `<div class="today-tile-card"><h3>Made</h3>${madeRows.map(rowHtml).join('')}</div>
+      <div class="today-tile-card"><h3>Packed</h3>${packedRows.length ? packedRows.map(rowHtml).join('') : '<p class="today-tile-zero">No packing posted yet today.</p>'}</div>`;
+  }
+
+  async function refreshTodayTile() {
+    const container = document.getElementById('today-tile');
+    const dateLabel = document.getElementById('today-tile-date');
+    container.innerHTML = '<div class="today-tile-state loading-indicator">Loading today’s production…</div>';
+    dateLabel.textContent = 'Loading plant date…';
+    try {
+      const data = await fetchSalesAPI('/production/today-tile');
+      renderTodayTile(data);
+    } catch (e) {
+      dateLabel.textContent = 'Plant date unavailable';
+      container.innerHTML = `<div class="today-tile-state today-tile-error"><strong>Today’s production could not be loaded.</strong><span>${escHtml(e.message)}</span><button type="button" class="btn-sm today-tile-retry">Retry</button></div>`;
+      container.querySelector('.today-tile-retry').addEventListener('click', refreshTodayTile);
+    }
+  }
+
   function buildProductionDaySummary(day) {
     const madeByKey = Object.fromEntries(MADE_CATEGORY_DEFS.map(def => [
       def.key,
@@ -3523,6 +3605,7 @@
     btn.textContent = 'Refreshing...';
 
     const ops = [
+      refreshTodayTile(),
       refreshProductionCalendar(),
       refreshFinishedGoods(),
       refreshBatchInventory(),

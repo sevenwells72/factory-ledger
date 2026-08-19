@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-08-19 12:32 — FR-10 verification repair (local review; not deployed)
+- **File(s) changed:** `main.py`, `tests/test_production_today_tile.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Rebuilt the local `factory_ledger_test` database from `tests/schema/schema.sql`, isolated the original full-suite stall to the first Production Warning test after the Today Tile auth test, and retained HTTP-level auth coverage (401 missing, 403 wrong, 200 scoped key) with the established post-TestClient `_db_connection.rollback()` cleanup. Split Today Tile coverage into seven independent tests. Missing batch/case unit definitions now surface under Other with their output pounds and a count-unavailable indicator; Other packing rows render whenever products exist. Full suite passes 139/139 (132 baseline + 7 new tests).
+- **Why:** An unrolled-back session transaction retained an `AccessShareLock` across the next TestClient setup. Explicit cleanup preserves real HTTP coverage without the sequential-suite stall, while unavailable unit definitions remain visible rather than looking like zero production.
+
+---
+
+## 2026-08-19 12:19 — FR-10 Today So Far production tile (local review; not deployed)
+- **File(s) changed:** `main.py`, `tests/test_production_today_tile.py`, `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Added dashboard-key-authorized, allowlisted `GET /production/today-tile?date=YYYY-MM-DD`, using ET day bounds and posted current-ledger rows. It returns full-precision per-family make and pack counts, including yield-adjusted coconut pans, explicit Other products, 10/25 lb granola case splits, and the honestly named `granola_retail_cases` fallback because the ledger does not provide retail bag units. Added a compact Operations tile with isolated loading/error/zero states and Refresh integration; cache versions JS v34→v35 and CSS v23→v24. Added endpoint tests for auth, date validation/scoping, yield math, voided exclusion, splits, and Other classification.
+- **Why:** Give floor leads one unambiguous, per-area current-day production view without silently dropping products or presenting retail case counts as bags.
+
+---
+
 ## 2026-08-19 — FR-12 local verification completed (not deployed)
 - **File(s) changed:** `dashboard/dashboard.css`, `tests/test_recent_ledger.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
 - **What changed:** Corrected the shared mobile header wrapping so the Recent Entries screen has no document-level horizontal overflow at 390px, and adjusted the auth test to reuse the shared test client without closing its connection pool. Local endpoint tests pass 4/4; full suite passes 132/132. JS syntax, Python compilation, and diff checks pass. The local dashboard preview confirmed desktop and 390px error states, 44px refresh control, and 390px `scrollWidth === clientWidth`.

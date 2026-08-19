@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=23">
+  <link rel="stylesheet" href="dashboard.css?v=24">
   <link rel="stylesheet" href="mini-calendar.css?v=2">
 </head>
 <body>
@@ -57,7 +57,18 @@
   <!-- Tab A: Operations -->
   <main id="tab-operations" class="tab-content active">
 
-    <!-- A1: Production Calendar -->
+    <!-- A1: Today So Far -->
+    <section class="section today-tile-section" aria-labelledby="today-tile-title">
+      <div class="section-header">
+        <div>
+          <h2 id="today-tile-title">Today So Far</h2>
+          <p id="today-tile-date" class="today-tile-date">Loading plant date…</p>
+        </div>
+      </div>
+      <div id="today-tile" class="today-tile" aria-live="polite"></div>
+    </section>
+
+    <!-- A2: Production Calendar -->
     <section class="section" id="section-production">
       <div class="section-header">
         <h2>Production Calendar</h2>
@@ -499,7 +510,7 @@
 
   <script src="mini-calendar.js?v=3"></script>
   <script src="pallet-calculations.js?v=1"></script>
-  <script src="dashboard.js?v=34"></script>
+  <script src="dashboard.js?v=35"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

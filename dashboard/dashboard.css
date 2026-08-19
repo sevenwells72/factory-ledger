@@ -346,6 +346,40 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+/* === Today So Far (FR-10) === */
+.today-tile-section { overflow: visible; }
+.today-tile-date { margin-top: 2px; color: var(--text-muted); font-size: 12px; }
+.today-tile { padding: 14px 16px 16px; }
+.today-tile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.today-tile-card,
+.today-tile-state {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+}
+.today-tile-card { overflow: hidden; }
+.today-tile-card h3 { padding: 9px 12px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+.today-tile-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 9px 12px; border-top: 1px solid var(--border); font-size: 13px; }
+.today-tile-card h3 + .today-tile-row { border-top: 0; }
+.today-tile-row > span { min-width: 0; overflow-wrap: anywhere; }
+.today-tile-row strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.today-tile-unavailable-detail { grid-column: 1 / -1; color: var(--text-muted); font-size: 11px; }
+.today-tile-row.family-coconut > span { color: var(--category-coconut); }
+.today-tile-row.family-granola > span { color: var(--category-granola); }
+.today-tile-row.family-graham > span { color: var(--category-graham); }
+.today-tile-limitation { color: var(--text-muted); font-size: 11px; }
+.today-tile-zero { padding: 14px 12px; color: var(--text-muted); font-size: 13px; }
+.today-tile-state { grid-column: 1 / -1; display: grid; gap: 7px; padding: 18px; color: var(--text-muted); }
+.today-tile-error { border-color: var(--danger); color: var(--text); }
+.today-tile-error span { overflow-wrap: anywhere; color: var(--text-muted); font-size: 12px; }
+.today-tile-retry { width: fit-content; min-height: 36px; margin-top: 2px; }
+
+@media (max-width: 480px) {
+  .today-tile { grid-template-columns: 1fr; padding: 12px; }
+  .today-tile-row { gap: 8px; }
+}
+
 /* === Calendar === */
 .calendar-controls {
   display: flex;

@@ -927,6 +927,7 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     # Production planning (read-only)
     ("GET", "/production/requirements"),
     ("GET", "/production/day-summary"),
+    ("GET", "/production/today-tile"),
     # Dashboard notes (the dashboard's own CRUD; GET is public)
     ("POST", "/dashboard/api/notes"),
     ("PUT", "/dashboard/api/notes/{note_id}"),
@@ -10939,6 +10940,131 @@ def production_requirements(
         raise
     except Exception as e:
         logger.error(f"Production requirements failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# TODAY SO FAR — DASHBOARD PRODUCTION TILE
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/production/today-tile")
+def production_today_tile(
+    date: Optional[str] = Query(None, description="Plant date in YYYY-MM-DD format; defaults to today"),
+    _: bool = Depends(verify_api_key)
+):
+    """Canonical, posted-ledger production metrics for the dashboard Today So Far tile.
+
+    Counts intentionally retain full precision.  Retail pack transactions do
+    not currently carry a sellable bag/unit count, so the response exposes the
+    honest ``granola_retail_cases`` fallback rather than inventing a bag count.
+    """
+    if date:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(400, "date must be YYYY-MM-DD format")
+    else:
+        target_date = get_plant_now().date()
+
+    day_start = datetime(target_date.year, target_date.month, target_date.day,
+                         tzinfo=PLANT_TIMEZONE)
+    day_end = day_start + timedelta(days=1)
+    made = {
+        "granola_batches": 0.0, "coconut_pans": 0.0, "graham_batches": 0.0,
+        "other_batches": 0.0, "other_products": [],
+    }
+    packed = {
+        "granola_bulk_10lb_cases": 0.0, "granola_bulk_25lb_cases": 0.0,
+        "granola_retail_cases": 0.0, "granola_retail_bag_count_available": False,
+        "coconut_cases": 0.0, "graham_cases": 0.0,
+        "other_cases": 0.0, "other_products": [],
+    }
+
+    try:
+        with get_transaction() as cur:
+            cur.execute("""
+                SELECT t.type AS transaction_type, p.name AS product_name,
+                       p.default_batch_lb, p.yield_multiplier,
+                       p.case_size_lb, p.pack_format,
+                       SUM(tl.quantity_lb) AS total_lb
+                FROM ledger_current_transactions t
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
+                JOIN products p ON p.id = tl.product_id
+                WHERE t.type IN ('make', 'pack')
+                  AND t.effective_status = 'posted'
+                  AND tl.quantity_lb > 0
+                  AND t.timestamp >= %s AND t.timestamp < %s
+                GROUP BY t.type, p.id, p.name, p.default_batch_lb,
+                         p.yield_multiplier, p.case_size_lb, p.pack_format
+                ORDER BY t.type, p.name
+            """, (day_start, day_end))
+            rows = cur.fetchall()
+
+        for row in rows:
+            product_name = row["product_name"]
+            family = _production_family_from_name(product_name)
+            total_lb = float(row["total_lb"] or 0)
+            if row["transaction_type"] == "make":
+                unit_size = _made_unit_size_lbs(row["default_batch_lb"], row["yield_multiplier"])
+                # A missing unit definition must remain visible under Other,
+                # regardless of its classified family; its count is unavailable.
+                if unit_size is None:
+                    made["other_products"].append({
+                        "product_name": product_name, "batches": 0.0,
+                        "output_lb": total_lb, "count_available": False,
+                    })
+                    continue
+                count = total_lb / unit_size
+                if family == "granola":
+                    made["granola_batches"] += count
+                elif family == "coconut":
+                    made["coconut_pans"] += count
+                elif family == "graham":
+                    made["graham_batches"] += count
+                else:
+                    made["other_batches"] += count
+                    made["other_products"].append({
+                        "product_name": product_name, "batches": count,
+                        "output_lb": total_lb,
+                        "count_available": unit_size is not None,
+                    })
+                continue
+
+            case_size = float(row["case_size_lb"] or 0)
+            # As with made activity, do not hide a classified product whose
+            # ledger record lacks the unit definition needed for a count.
+            if case_size <= 0:
+                packed["other_products"].append({
+                    "product_name": product_name, "cases": 0.0,
+                    "output_lb": total_lb, "case_size_lb": None,
+                    "count_available": False,
+                })
+                continue
+            cases = total_lb / case_size
+            pack_format = row["pack_format"]
+            if family == "granola" and pack_format == "10lb":
+                packed["granola_bulk_10lb_cases"] += cases
+            elif family == "granola" and pack_format == "25lb":
+                packed["granola_bulk_25lb_cases"] += cases
+            elif family == "granola" and pack_format == "bagged":
+                packed["granola_retail_cases"] += cases
+            elif family == "coconut":
+                packed["coconut_cases"] += cases
+            elif family == "graham":
+                packed["graham_cases"] += cases
+            else:
+                packed["other_cases"] += cases
+                packed["other_products"].append({
+                    "product_name": product_name, "cases": cases,
+                    "output_lb": total_lb, "case_size_lb": case_size or None,
+                    "count_available": case_size > 0,
+                })
+
+        return {"date": str(target_date), "made": made, "packed": packed}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Production today-tile failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
