@@ -3786,3 +3786,11 @@ ALTER TABLE ONLY public.transactions
 
 \unrestrict AcMTPYbbSh6pQAlgke4uvIXNhbQ0YGErK0D3sNIO8ZFZLCsnSevriXe1QF3e0sY
 
+
+--
+-- PENDING MIGRATION 044 (feat/044-so-allocations) — appended so a fresh local
+-- test DB matches the branch. Remove this block after 044 is applied to prod
+-- and tests/schema/schema.sql is regenerated via scripts/dump_prod_schema.sh
+-- (precedent: 041 / changelog row 72).
+--
+\ir ../../migrations/044_sales_order_allocations.sql
