@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-19 — FR-1 Supplies Incoming column wired to expected receipts (local review; not deployed)
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** The Supplies inventory refresh now also makes the existing dashboard-key-allowlisted `GET /expected-receipts?status=open&limit=500` read. Each product’s Incoming cell shows the sum of its open receipts’ computed `remaining` quantity in lb, or an em dash only when no incoming receipt remains. Expanded product rows now list each open expected receipt’s supplier, remaining quantity, expected date, and reference before the existing FIFO lot detail. No backend requests mutate data; no backend files changed. Cache versions are dashboard JS v33 / CSS v22.
+- **Why:** Expected receipts are already the live source of truth for incoming supplies, including FIFO receive matching and auto-close, so the Supplies view can surface incoming quantity without introducing purchase-order state.
+
+---
+
 ## 2026-08-18 15:56 — Supplies dashboard verified locally and ready for review (not deployed)
 - **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Completed local verification of the Supplies screen against deployed backend commit `f563100`: live inventory and requests GETs succeeded; desktop and 390 px browser checks covered category/search filtering, sticky controls, zero-on-hand rows, em-dash Incoming values, blank non-low status cells, keyboard row expansion, multiple simultaneous expansions, FIFO ordering, cached re-expansion, empty/error lot states, product/free-text request modes, unit display, requester options, and client-side validation. `node --check dashboard/dashboard.js`, duplicate-ID validation (139/139 unique), the exact-one-Supplies-TODO assertion, and `git diff --check` passed. The existing Python suite passed `128 passed, 121 warnings in 2.21s`; the repository defines no frontend test, lint, or build command, so no new test infrastructure was added.

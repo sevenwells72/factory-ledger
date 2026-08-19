@@ -1940,6 +1940,9 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .supply-lot-detail { padding: 12px 16px 14px 32px; }
+.supply-incoming-detail { margin-bottom: 14px; }
+.supply-incoming-detail h3 { margin: 0 0 8px; color: var(--text-secondary); font-size: 13px; }
+.supply-incoming-card { border-left: 3px solid var(--primary); }
 .supply-lot-state { padding: 8px 0; color: var(--text-muted); font-size: 13px; text-align: left; }
 .supply-lot-error { color: var(--badge-red-text); }
 .supply-lot-list { display: grid; gap: 8px; }

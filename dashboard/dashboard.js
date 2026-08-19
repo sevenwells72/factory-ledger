@@ -27,6 +27,9 @@
       inventoryTab: 'ingredients',
       expandedProductIds: new Set(),
       lotCache: {},
+      expectedReceipts: [],
+      expectedReceiptsLoaded: false,
+      expectedReceiptsError: null,
       requests: [],
       requestsLoaded: false,
       feedbackTimer: null,
@@ -2960,10 +2963,25 @@
       container.innerHTML = '<div class="loading-indicator">Loading supplies...</div>';
     }
     try {
-      const data = await fetchSalesAPI('/supplies/inventory');
+      const [inventoryResult, expectedReceiptsResult] = await Promise.allSettled([
+        fetchSalesAPI('/supplies/inventory'),
+        fetchSalesAPI('/expected-receipts?status=open&limit=500'),
+      ]);
+      if (inventoryResult.status === 'rejected') throw inventoryResult.reason;
+      const data = inventoryResult.value;
       state.supplies.inventory = (data.items || [])
         .filter(item => SUPPLY_CATEGORIES.has(item.category))
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || a.product_id - b.product_id);
+      if (expectedReceiptsResult.status === 'fulfilled') {
+        state.supplies.expectedReceipts = (expectedReceiptsResult.value.expected_receipts || [])
+          .filter(receipt => receipt.status === 'open' && Number(receipt.remaining) > 0);
+        state.supplies.expectedReceiptsLoaded = true;
+        state.supplies.expectedReceiptsError = null;
+      } else {
+        state.supplies.expectedReceipts = [];
+        state.supplies.expectedReceiptsLoaded = false;
+        state.supplies.expectedReceiptsError = supplyApiErrorMessage(expectedReceiptsResult.reason);
+      }
       state.supplies.inventoryLoaded = true;
       populateSupplyProductSelector();
       updateSupplyLowStockBadges();
@@ -2995,6 +3013,28 @@
     if (!value) return '\u2014';
     const datePart = String(value).slice(0, 10);
     return formatDateShort(datePart);
+  }
+
+  function openExpectedReceiptsForProduct(productId) {
+    return state.supplies.expectedReceipts.filter(receipt => receipt.product_id === productId);
+  }
+
+  function renderSupplyExpectedReceiptDetail(product) {
+    if (state.supplies.expectedReceiptsError) {
+      return `<section class="supply-incoming-detail" aria-label="Incoming expected receipts"><h3>Incoming expected receipts</h3><div class="supply-lot-state supply-lot-error" role="alert">Could not load incoming expected receipts: ${escHtml(state.supplies.expectedReceiptsError)}</div></section>`;
+    }
+    const receipts = openExpectedReceiptsForProduct(product.product_id);
+    if (receipts.length === 0) return '';
+    return '<section class="supply-incoming-detail" aria-label="Incoming expected receipts"><h3>Incoming expected receipts</h3><div class="supply-lot-list">' + receipts.map(receipt =>
+      `<article class="supply-lot-card supply-incoming-card" aria-label="Expected receipt ${escAttr(receipt.reference_number || String(receipt.id))}">` +
+        renderSupplyFieldList([
+          ['Supplier', escHtml(receipt.supplier_name || '\u2014')],
+          ['Quantity remaining', `<span class="supply-lot-remaining">${fmtWt(receipt.remaining)} lb</span>`, 'supply-detail-field-quantity'],
+          ['Expected date', escHtml(formatSupplyLotDate(receipt.expected_date))],
+          ['Reference', escHtml(receipt.reference_number || '\u2014')],
+        ]) +
+      '</article>'
+    ).join('') + '</div></section>';
   }
 
   function renderSupplyLotDetail(product) {
@@ -3060,19 +3100,24 @@
       return;
     }
 
-    const incomingDisplay = '\u2014'; // TODO(Supplies): Replace with purchase-order incoming quantities when that data source exists.
     let html = '<div class="supplies-table-scroll"><table class="orders-table supplies-table"><thead><tr>' +
       '<th>Name</th><th class="num">On Hand</th><th>Unit</th><th class="num">Incoming</th><th>Status</th>' +
       '</tr></thead><tbody>';
     rows.forEach(item => {
       const expanded = state.supplies.expandedProductIds.has(item.product_id);
       const detailId = `supply-lots-${item.product_id}`;
+      const incoming = openExpectedReceiptsForProduct(item.product_id);
+      const incomingTotal = incoming.reduce((total, receipt) => total + Number(receipt.remaining || 0), 0);
+      const unitIsPounds = /^(lb|lbs)$/i.test((item.unit || '').trim());
+      const incomingDisplay = state.supplies.expectedReceiptsLoaded
+        ? (incomingTotal > 0 ? (unitIsPounds ? fmtWt(incomingTotal) : `${fmtWt(incomingTotal)} lb`) : '\u2014')
+        : (state.supplies.expectedReceiptsError ? 'Unavailable' : 'Loading...');
       html += `<tr class="supply-item-row${item.is_low ? ' supply-item-low' : ''}" data-product-id="${item.product_id}" tabindex="0" role="button" aria-expanded="${expanded}" aria-controls="${detailId}">`;
       html += `<td><span class="supply-row-caret" aria-hidden="true">&#9656;</span><span class="supply-product-name">${escHtml(item.name)}</span>${item.active === false ? '<span class="supply-inactive-label">Inactive</span>' : ''}</td>`;
       html += `<td class="num">${fmtWt(item.on_hand)}</td><td>${escHtml(item.unit || '')}</td><td class="num">${incomingDisplay}</td>`;
       html += `<td>${item.is_low ? '<span class="so-badge supply-low-badge">Low Stock</span>' : ''}</td></tr>`;
       if (expanded) {
-        html += `<tr id="${detailId}" class="supply-lot-detail-row"><td colspan="5"><div class="supply-lot-detail">${renderSupplyLotDetail(item)}</div></td></tr>`;
+        html += `<tr id="${detailId}" class="supply-lot-detail-row"><td colspan="5"><div class="supply-lot-detail">${renderSupplyExpectedReceiptDetail(item)}${renderSupplyLotDetail(item)}</div></td></tr>`;
       }
     });
     html += '</tbody></table></div>';
