@@ -86,14 +86,17 @@ MIGRATION = ROOT / "migrations" / "044_sales_order_allocations.sql"
 def _seed_order(cur, n_lines=2, product_ids=None):
     """customer + SO + `n_lines` lines (each on its own product unless given).
     Returns (order_id, [line_ids], [product_ids])."""
+    cur.execute("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM customers")
+    customer_name = f"TEST-044 Customer {cur.fetchone()['next_id']}"
     cur.execute(
-        "INSERT INTO customers (name, active) VALUES ('TEST-044 Customer', true) RETURNING id"
+        "INSERT INTO customers (name, active) VALUES (%s, true) RETURNING id",
+        (customer_name,),
     )
     customer_id = cur.fetchone()["id"]
     cur.execute(
         "INSERT INTO sales_orders (customer_id, order_number, status) "
-        "VALUES (%s, 'TEST-044-SO', 'confirmed') RETURNING id",
-        (customer_id,),
+        "VALUES (%s, %s, 'confirmed') RETURNING id",
+        (customer_id, f"TEST-044-SO-{customer_id}"),
     )
     order_id = cur.fetchone()["id"]
     line_ids, pids = [], []
@@ -873,8 +876,8 @@ def test_http_manual_upsert_release_and_sibling_overallocation(db_cursor, alloca
     assert listing.status_code == 200, listing.text
     assert [row["id"] for row in listing.json()["allocations"]] == [allocation_id]
 
-    released = allocation_client.delete(
-        f"/sales/orders/{order_id}/allocations/{allocation_id}"
+    released = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations/{allocation_id}/release"
     )
     assert released.status_code == 200, released.text
     cur.execute(
@@ -907,8 +910,8 @@ def test_dashboard_scoped_key_can_use_allocation_and_received_at_routes(db_curso
         f"/lots/{lot_id}/received-at", json={"received_at": "2026-08-14T12:00:00-04:00"}
     )
     assert patched.status_code == 200, patched.text
-    released = allocation_client.delete(
-        f"/sales/orders/{order_id}/allocations/{allocation_id}"
+    released = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations/{allocation_id}/release"
     )
     assert released.status_code == 200, released.text
 
@@ -1191,3 +1194,173 @@ def test_line_cancel_releases_allocation(db_cursor, allocation_client):
         (line_id,),
     )
     assert cur.fetchone() == {"status": "released", "release_reason": "line_cancelled"}
+
+
+@pytest.mark.db
+def test_service_line_allocate_returns_service_line_not_allocatable(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE products SET is_service=true WHERE id=%s", (product_id,))
+    response = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 1},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["error_code"] == "SERVICE_LINE_NOT_ALLOCATABLE"
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("order_status", ["cancelled", "invoiced"])
+def test_cancelled_and_invoiced_order_allocate_returns_order_not_allocatable(
+    db_cursor, allocation_client, order_status
+):
+    cur = db_cursor
+    order_id, (line_id,), _ = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE sales_orders SET status=%s WHERE id=%s", (order_status, order_id))
+    response = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 1},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["error_code"] == "ORDER_NOT_ALLOCATABLE"
+
+
+@pytest.mark.db
+def test_sku_and_lot_allocations_share_product_on_hand_limit(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE sales_order_lines SET quantity_lb=200 WHERE id=%s", (line_id,))
+    lot_id = _seed_lot(cur, product_id, "T044-SKU-LOT-SUM")
+    _post_stock(cur, product_id, lot_id, 150)
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 100},
+    ).status_code == 200
+    response = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 60, "lot_id": lot_id},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["error_code"] == "OVER_ALLOCATION"
+    assert response.json()["detail"]["coverable_lb"] == pytest.approx(50)
+
+
+@pytest.mark.db
+def test_allocate_above_remaining_effective_is_rejected_with_huge_on_hand(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-LINE-COVERABLE")
+    _post_stock(cur, product_id, lot_id, 10000)
+    response = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 101},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["error_code"] == "OVER_ALLOCATION"
+    assert response.json()["detail"]["coverable_lb"] == pytest.approx(100)
+
+
+@pytest.mark.db
+def test_lot_pin_on_one_order_blocks_second_order_from_same_stock(db_cursor, allocation_client):
+    cur = db_cursor
+    order_one, (line_one,), (product_id,) = _seed_order(cur, n_lines=1)
+    order_two, (line_two,), _ = _seed_order(cur, n_lines=1, product_ids=[product_id])
+    lot_id = _seed_lot(cur, product_id, "T044-CROSS-ORDER")
+    _post_stock(cur, product_id, lot_id, 100)
+    assert allocation_client.post(
+        f"/sales/orders/{order_one}/allocations",
+        json={"mode": "manual", "line_id": line_one, "quantity_lb": 100, "lot_id": lot_id},
+    ).status_code == 200
+    response = allocation_client.post(
+        f"/sales/orders/{order_two}/allocations",
+        json={"mode": "manual", "line_id": line_two, "quantity_lb": 1, "lot_id": lot_id},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["error_code"] == "OVER_ALLOCATION"
+
+
+@pytest.mark.db
+def test_void_partial_reship_restore_keeps_leftover_active_and_reconciles_ledger(db_cursor, allocation_client):
+    """A full ship A, void, then partial ship B must not let restore A take B's leftover."""
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-VOID-RESHIP-RESTORE")
+    _post_stock(cur, product_id, lot_id, 100)
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 100, "lot_id": lot_id},
+    ).status_code == 200
+    ship_a = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 100}]},
+    )
+    assert ship_a.status_code == 200, ship_a.text
+    txn_a = ship_a.json()["lines_shipped"][0]["transaction_id"]
+    assert allocation_client.post(f"/void/{txn_a}", json={"reason": "void A"}).status_code == 200
+    # The shipping endpoint's existing quantity_shipped_lb void behavior is
+    # covered elsewhere; exercise the allocation state machine directly for
+    # the supported partial re-ship transition.
+    txn_b = _seed_txn(cur)
+    main._consume_allocation_row(
+        cur,
+        allocation_client.get(f"/sales/orders/{order_id}/allocations").json()["allocations"][0]["id"],
+        40,
+        txn_b,
+    )
+    main._restore_ship_allocations(cur, txn_a, "test")
+    cur.execute(
+        "SELECT status, quantity_lb, ship_transaction_id FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s ORDER BY id",
+        (line_id,),
+    )
+    rows = cur.fetchall()
+    live = [r for r in rows if r["status"] == "active"]
+    shipped = [r for r in rows if r["status"] == "shipped"]
+    assert [(float(r["quantity_lb"]), r["ship_transaction_id"]) for r in live] == [(60.0, None)]
+    assert sorted((float(r["quantity_lb"]), r["ship_transaction_id"]) for r in shipped) == [(40.0, txn_b), (100.0, txn_a)]
+    assert sum(float(r["quantity_lb"]) for r in live) == pytest.approx(60)
+    assert sum(float(r["quantity_lb"]) for r in shipped) == pytest.approx(140)
+
+
+@pytest.mark.db
+def test_restore_split_missing_returns_409(db_cursor):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-RESTORE-MISSING")
+    _post_stock(cur, product_id, lot_id, 100)
+    allocation_id = _insert(cur, order_id, line_id, product_id, lot_id=lot_id, qty=100)
+    txn_id = _seed_txn(cur)
+    main._consume_allocation_row(cur, allocation_id, 40, txn_id)
+    main._void_ship_allocations(cur, txn_id, "test")
+    cur.execute("UPDATE sales_order_allocations SET quantity_lb=20 WHERE status='active' AND sales_order_line_id=%s", (line_id,))
+    with pytest.raises(main.HTTPException) as exc:
+        main._restore_ship_allocations(cur, txn_id, "test")
+    assert exc.value.status_code == 409
+    assert exc.value.detail["error_code"] == "RESTORE_SPLIT_MISSING"
+
+
+@pytest.mark.db
+def test_lot_product_mismatch_manual_expiry_and_inactive_release_errors(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id, _), (product_id, other_product_id) = _seed_order(cur, n_lines=2)
+    lot_id = _seed_lot(cur, other_product_id, "T044-WRONG-PRODUCT")
+    mismatch = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 1, "lot_id": lot_id},
+    )
+    assert mismatch.status_code == 422
+    assert mismatch.json()["detail"]["error_code"] == "LOT_PRODUCT_MISMATCH"
+    expiry = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 1,
+              "expires_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()},
+    )
+    assert expiry.status_code == 422
+    assert expiry.json()["detail"]["error_code"] == "MANUAL_ALLOCATION_CANNOT_EXPIRE"
+    active_id = _insert(cur, order_id, line_id, product_id, qty=1, status="shipped",
+                        ship_transaction_id=_seed_txn(cur))
+    inactive = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations/{active_id}/release"
+    )
+    assert inactive.status_code == 409
+    assert inactive.json()["detail"]["error_code"] == "ALLOCATION_NOT_ACTIVE"

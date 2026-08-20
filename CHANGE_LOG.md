@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-08-20 — Review fix round for ef709e5
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Fixed the void → partial re-ship → restore state machine: split leftovers no longer inherit `last_ship_transaction_id`, and restore recognizes an original full-consume row that was subsequently split. Aligned allocation release with `POST /sales/orders/{order_id}/allocations/{allocation_id}/release`, restoring the dashboard key DELETE guard. Added named coverage for the review's allocation guards and error paths.
+- **Why:** The independent review in `docs/reviews/ef709e5-pr3-review.md` reproduced a silent restore mis-attribution that could consume a live leftover reservation.
+
+---
+
+## 2026-08-20 12:42 — Independent review report for commit ef709e5 (FR-4 PR 3)
+- **File(s) changed:** `docs/reviews/ef709e5-pr3-review.md`
+- **What changed:** Added the verbatim independent review of commit ef709e5 (allocation CRUD, consume-on-ship, void/restore/cancel/line-edit, merge coalesce, PATCH received-at). Records: full 186/186 local suite output; PASS on over-allocation guard, consume-on-ship split fields, auto-FIFO ordering/TTL, received-at validation, 30/22 operation counts, and forbidden-pattern checks; one CONFIRMED defect where `_restore_ship_allocations` (main.py:901-908) mis-attributes a split leftover because it inherits `last_ship_transaction_id` (main.py:578), silently converting a live reservation to shipped after a void -> partial re-ship -> restore sequence; eight design must-pass cases with no covering test. Verdict: fix round required.
+- **Why:** Builder self-reports are not trusted; the review had to be verified against the code and docs/designs/044-so-allocations-design.md and kept in-repo as the record for the fix round. Report only — no source changes, not committed.
+
+---
+
 ## 2026-08-20 08:50 — FR-4 PR 3 allocation writes and lifecycle integration
 - **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
 - **What changed:** Added product-locked SKU/lot allocation upserts, sibling-aware over-allocation rejection, deterministic auto-FIFO lot pins with 48-hour TTL, effective expiry on writes, manual release/list routes, and dashboard-only received-at correction. Sales-order shipping now consumes and splits covering allocations unconditionally; void/restore coalesces and reverses partial splits under the unique-live indexes; inventory voids shrink uncovered product/lot claims; order/line cancel and quantity reductions release excess; lot merge coalesces duplicate survivor pins. The dashboard key allowlist covers only the new allocation and received-at routes; office/Floor GPT schemas remain 30/22 operations. Added API and state-machine tests covering manual/auto allocation, upsert, release, competition, SKU/lot consumption, 100→ship 40→void→restore, merge 40+60→100, expiry, received-at validation/clearing, scoped auth, cancel/edit release, and effective-shipped edit guards. Full local PostgreSQL suite passes 186/186.

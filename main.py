@@ -575,7 +575,10 @@ def _consume_allocation_row(cur, allocation_id: int, quantity_lb: float, transac
         available - take,
         "active",
         split_from_id=allocation_id,
-        last_ship_transaction_id=row.get("last_ship_transaction_id"),
+        # A new leftover has never shipped.  In particular, it must not retain
+        # an earlier voided transaction marker: restore uses that marker to
+        # identify full-consume rows to re-ship.
+        last_ship_transaction_id=None,
     )
     shipped_id = _copy_allocation_row(
         cur,
@@ -828,9 +831,12 @@ def _void_ship_allocations(cur, transaction_id: int, operator_id: Optional[str])
 def _restore_ship_allocations(cur, transaction_id: int, operator_id: Optional[str]) -> list:
     cur.execute(
         """SELECT DISTINCT product_id
-              FROM sales_order_allocations
+             FROM sales_order_allocations
              WHERE last_ship_transaction_id = %s
-               AND status IN ('active', 'superseded')
+               AND (
+                    status = 'active'
+                    OR (status = 'superseded' AND release_reason = 'split_on_ship')
+               )
              ORDER BY product_id""",
         (transaction_id,),
     )
@@ -902,7 +908,10 @@ def _restore_ship_allocations(cur, transaction_id: int, operator_id: Optional[st
             f"""SELECT id, quantity_lb FROM sales_order_allocations
                   WHERE product_id = %s
                     AND last_ship_transaction_id = %s
-                    AND status = 'active'{excluded}
+                    AND (
+                         status = 'active'
+                         OR (status = 'superseded' AND release_reason = 'split_on_ship')
+                    ){excluded}
                   ORDER BY id FOR UPDATE""",
             params,
         )
@@ -1791,7 +1800,7 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("PATCH", "/sales/orders/{order_id}/status"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/update"),
     ("POST", "/sales/orders/{order_id}/allocations"),
-    ("DELETE", "/sales/orders/{order_id}/allocations/{allocation_id}"),
+    ("POST", "/sales/orders/{order_id}/allocations/{allocation_id}/release"),
     ("PATCH", "/lots/{lot_id}/received-at"),
     ("POST", "/sales-orders/{so_number}/ready"),
     # Production planning (read-only)
@@ -9427,7 +9436,7 @@ def get_sales_order_allocations(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.delete("/sales/orders/{order_id}/allocations/{allocation_id}")
+@app.post("/sales/orders/{order_id}/allocations/{allocation_id}/release")
 def release_sales_order_allocation(
     allocation_id: int,
     request: Request,
