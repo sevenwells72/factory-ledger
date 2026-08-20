@@ -19,9 +19,55 @@ Covers:
 """
 
 import re
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
+
+import main
+
+
+class _AllocationConnProxy:
+    def __init__(self, conn, savepoint):
+        self._conn = conn
+        self._savepoint = savepoint
+        with conn.cursor() as cur:
+            cur.execute(f"SAVEPOINT {savepoint}")
+
+    def cursor(self, *args, **kwargs):
+        return self._conn.cursor(*args, **kwargs)
+
+    def commit(self):
+        with self._conn.cursor() as cur:
+            cur.execute(f"RELEASE SAVEPOINT {self._savepoint}")
+            cur.execute(f"SAVEPOINT {self._savepoint}")
+
+    def rollback(self):
+        with self._conn.cursor() as cur:
+            cur.execute(f"ROLLBACK TO SAVEPOINT {self._savepoint}")
+            cur.execute(f"SAVEPOINT {self._savepoint}")
+
+
+@pytest.fixture
+def allocation_client(db_cursor, monkeypatch):
+    conn = db_cursor.connection
+
+    @contextmanager
+    def _fake_get_conn():
+        proxy = _AllocationConnProxy(conn, "allocation_api")
+        try:
+            yield proxy
+            proxy.commit()
+        except Exception:
+            proxy.rollback()
+            raise
+
+    monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
+    with TestClient(main.app) as client:
+        client.headers["X-API-Key"] = main.API_KEY
+        yield client
 
 try:
     import psycopg2
@@ -621,3 +667,527 @@ def test_gpt_schema_operation_counts_unchanged(path, expected):
     text = (ROOT / path).read_text()
     ops = re.findall(r"^\s*operationId:\s*\S+", text, flags=re.M)
     assert len(ops) == expected, f"{path}: {len(ops)} operationIds (expected {expected})"
+
+
+# ─────────────────────────────────────────────────────────────────
+# PR 3 helper/state-machine behavior (HTTP wiring is tested below)
+# ─────────────────────────────────────────────────────────────────
+
+def _post_stock(cur, product_id, lot_id, qty):
+    cur.execute(
+        "INSERT INTO transactions (type, timestamp) VALUES ('receive', NOW()) RETURNING id"
+    )
+    transaction_id = cur.fetchone()["id"]
+    cur.execute(
+        "INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) "
+        "VALUES (%s, %s, %s, %s)",
+        (transaction_id, product_id, lot_id, qty),
+    )
+    return transaction_id
+
+
+@pytest.mark.db
+def test_available_lots_subtracts_lot_pins_then_shadows_foreign_sku_fifo(db_cursor):
+    cur = db_cursor
+    order_id, (line_a, line_b), (product_id, _) = _seed_order(cur, n_lines=2)
+    cur.execute("UPDATE sales_order_lines SET product_id=%s WHERE id=%s", (product_id, line_b))
+    lot_a = _seed_lot(cur, product_id, "T044-TAKEABLE-A")
+    lot_b = _seed_lot(cur, product_id, "T044-TAKEABLE-B")
+    _post_stock(cur, product_id, lot_a, 100)
+    _post_stock(cur, product_id, lot_b, 100)
+    _insert(cur, order_id, line_a, product_id, lot_id=lot_a, qty=30)
+    _insert(cur, order_id, line_a, product_id, qty=40)
+
+    lots = main.available_lots_for_product(cur, product_id, line_b)
+    by_id = {row["lot_id"]: row for row in lots}
+    assert by_id[lot_a]["reserved_others_lot"] == pytest.approx(30)
+    assert by_id[lot_a]["takeable_unpinned"] == pytest.approx(70)
+    assert by_id[lot_a]["foreign_sku_shadow_lb"] == pytest.approx(40)
+    assert by_id[lot_a]["takeable"] == pytest.approx(30)
+    assert by_id[lot_b]["takeable"] == pytest.approx(100)
+
+
+@pytest.mark.db
+def test_helper_full_void_then_restore_cycle(db_cursor):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-HELPER-CYCLE")
+    _post_stock(cur, product_id, lot_id, 100)
+    allocation_id = _insert(
+        cur,
+        order_id,
+        line_id,
+        product_id,
+        lot_id=lot_id,
+        qty=100,
+        source="staged_lot",
+    )
+
+    plan = main._sales_order_ship_plan(cur, product_id, line_id, 40)
+    assert plan["actual_ship_lb"] == pytest.approx(40)
+    assert plan["lots"] == [{"lot_id": lot_id, "lot_code": "T044-HELPER-CYCLE", "quantity_lb": 40.0}]
+    transaction_id = _seed_txn(cur)
+    consumed = main._consume_sales_order_allocations(cur, plan, transaction_id)
+    assert consumed[0]["allocation_id"] == allocation_id
+
+    cur.execute(
+        "SELECT status, quantity_lb, release_reason, ship_transaction_id "
+        "FROM sales_order_allocations WHERE sales_order_line_id=%s ORDER BY id",
+        (line_id,),
+    )
+    shipped_state = cur.fetchall()
+    assert [(r["status"], float(r["quantity_lb"])) for r in shipped_state] == [
+        ("superseded", 100.0), ("active", 60.0), ("shipped", 40.0)
+    ]
+
+    restored = main._void_ship_allocations(cur, transaction_id, "test")
+    assert restored == [{
+        "allocation_id": consumed[0]["shipped_id"],
+        "live_allocation_id": consumed[0]["leftover_id"],
+        "quantity_lb": 40.0,
+        "coalesced": True,
+    }]
+    cur.execute(
+        "SELECT id, quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND lot_id=%s AND status='active'",
+        (line_id, lot_id),
+    )
+    live = cur.fetchall()
+    assert len(live) == 1 and float(live[0]["quantity_lb"]) == pytest.approx(100)
+
+    reshipped = main._restore_ship_allocations(cur, transaction_id, "test")
+    assert reshipped == [{
+        "allocation_id": consumed[0]["shipped_id"],
+        "quantity_lb": 40.0,
+        "coalesced": True,
+    }]
+    cur.execute(
+        "SELECT status, quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status IN ('active', 'shipped') ORDER BY status",
+        (line_id,),
+    )
+    assert [(r["status"], float(r["quantity_lb"])) for r in cur.fetchall()] == [
+        ("active", 60.0), ("shipped", 40.0)
+    ]
+
+
+@pytest.mark.db
+def test_next_product_write_persists_expired_auto_fifo_release(db_cursor):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-EXPIRED-WRITE")
+    _post_stock(cur, product_id, lot_id, 100)
+    allocation_id = _insert(
+        cur,
+        order_id,
+        line_id,
+        product_id,
+        lot_id=lot_id,
+        qty=25,
+        source="auto_fifo",
+        expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+    )
+
+    plan = main._sales_order_ship_plan(cur, product_id, line_id, 10, released_by="test")
+    assert plan["actual_ship_lb"] == pytest.approx(10)
+    assert plan["allocation_takes"] == []
+    cur.execute(
+        "SELECT status, release_reason, released_at FROM sales_order_allocations WHERE id=%s",
+        (allocation_id,),
+    )
+    row = cur.fetchone()
+    assert row["status"] == "released"
+    assert row["release_reason"] == "expired"
+    assert row["released_at"] is not None
+
+
+@pytest.mark.db
+def test_void_inventory_releases_uncovered_lot_pin_even_if_product_total_is_covered(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE sales_order_lines SET quantity_lb=50 WHERE id=%s", (line_id,))
+    lot_a = _seed_lot(cur, product_id, "T044-VOID-STOCK-A")
+    lot_b = _seed_lot(cur, product_id, "T044-VOID-STOCK-B")
+    receive_a = _post_stock(cur, product_id, lot_a, 50)
+    _post_stock(cur, product_id, lot_b, 50)
+    allocation_id = _insert(
+        cur, order_id, line_id, product_id, lot_id=lot_a, qty=50, source="staged_lot"
+    )
+
+    voided = allocation_client.post(
+        f"/void/{receive_a}", json={"reason": "remove pinned lot stock"}
+    )
+    assert voided.status_code == 200, voided.text
+    assert sum(
+        float(row["quantity_lb"]) for row in voided.json()["allocations_released"]
+    ) == pytest.approx(50)
+    cur.execute(
+        "SELECT status, release_reason FROM sales_order_allocations WHERE id=%s",
+        (allocation_id,),
+    )
+    assert cur.fetchone() == {"status": "released", "release_reason": "inventory_voided"}
+
+
+@pytest.mark.db
+def test_http_manual_upsert_release_and_sibling_overallocation(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_a, line_b), (product_id, _) = _seed_order(cur, n_lines=2)
+    cur.execute(
+        "UPDATE sales_order_lines SET product_id=%s, quantity_lb=80 WHERE id = ANY(%s)",
+        (product_id, [line_a, line_b]),
+    )
+    lot_id = _seed_lot(cur, product_id, "T044-HTTP-MANUAL")
+    _post_stock(cur, product_id, lot_id, 100)
+
+    first = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_a, "quantity_lb": 30},
+    )
+    assert first.status_code == 200, first.text
+    allocation_id = first.json()["allocations"][0]["id"]
+    second = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_a, "quantity_lb": 50},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["allocations"][0]["id"] == allocation_id
+    assert second.json()["line_readiness"]["allocated_lb"] == pytest.approx(80)
+    assert second.json()["line_readiness"]["inventory_ready"] is True
+    cur.execute(
+        "SELECT count(*) AS n, quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status='active' GROUP BY quantity_lb",
+        (line_a,),
+    )
+    live = cur.fetchone()
+    assert live["n"] == 1 and float(live["quantity_lb"]) == pytest.approx(80)
+
+    rejected = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_b, "quantity_lb": 30},
+    )
+    assert rejected.status_code == 409
+    assert rejected.json()["detail"]["error_code"] == "OVER_ALLOCATION"
+    assert rejected.json()["detail"]["coverable_lb"] == pytest.approx(20)
+
+    listing = allocation_client.get(f"/sales/orders/{order_id}/allocations")
+    assert listing.status_code == 200, listing.text
+    assert [row["id"] for row in listing.json()["allocations"]] == [allocation_id]
+
+    released = allocation_client.delete(
+        f"/sales/orders/{order_id}/allocations/{allocation_id}"
+    )
+    assert released.status_code == 200, released.text
+    cur.execute(
+        "SELECT status, release_reason FROM sales_order_allocations WHERE id=%s",
+        (allocation_id,),
+    )
+    assert cur.fetchone() == {"status": "released", "release_reason": "manual_release"}
+
+
+@pytest.mark.db
+def test_dashboard_scoped_key_can_use_allocation_and_received_at_routes(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE sales_order_lines SET quantity_lb=25 WHERE id=%s", (line_id,))
+    lot_id = _seed_lot(cur, product_id, "STAGED-T044-DASHBOARD-KEY")
+    cur.execute("UPDATE lots SET entry_source='found_inventory' WHERE id=%s", (lot_id,))
+    _post_stock(cur, product_id, lot_id, 25)
+    allocation_client.headers["X-API-Key"] = main.DASHBOARD_API_KEY
+
+    created = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 25, "lot_id": lot_id},
+    )
+    assert created.status_code == 200, created.text
+    allocation_id = created.json()["allocations"][0]["id"]
+    assert created.json()["allocations"][0]["created_by"] == "dashboard"
+    assert created.json()["allocations"][0]["source"] == "staged_lot"
+    assert allocation_client.get(f"/sales/orders/{order_id}/allocations").status_code == 200
+    patched = allocation_client.patch(
+        f"/lots/{lot_id}/received-at", json={"received_at": "2026-08-14T12:00:00-04:00"}
+    )
+    assert patched.status_code == 200, patched.text
+    released = allocation_client.delete(
+        f"/sales/orders/{order_id}/allocations/{allocation_id}"
+    )
+    assert released.status_code == 200, released.text
+
+
+@pytest.mark.db
+def test_http_auto_fifo_splits_lots_and_sets_48_hour_ttl(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE sales_order_lines SET quantity_lb=150 WHERE id=%s", (line_id,))
+    lot_a = _seed_lot(cur, product_id, "T044-AUTO-A")
+    lot_b = _seed_lot(cur, product_id, "T044-AUTO-B")
+    _post_stock(cur, product_id, lot_a, 60)
+    _post_stock(cur, product_id, lot_b, 90)
+
+    before = datetime.now(timezone.utc)
+    response = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "auto_fifo", "line_id": line_id},
+    )
+    assert response.status_code == 200, response.text
+    rows = response.json()["allocations"]
+    assert [(row["lot_id"], float(row["quantity_lb"])) for row in rows] == [
+        (lot_a, 60.0), (lot_b, 90.0)
+    ]
+    cur.execute(
+        "SELECT source, expires_at FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s ORDER BY lot_id",
+        (line_id,),
+    )
+    persisted = cur.fetchall()
+    assert {row["source"] for row in persisted} == {"auto_fifo"}
+    for row in persisted:
+        assert before + timedelta(hours=47, minutes=59) < row["expires_at"]
+        assert row["expires_at"] < before + timedelta(hours=48, minutes=1)
+
+
+@pytest.mark.db
+def test_http_allocate_ship_40_void_restore_cycle(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-E2E-CYCLE")
+    _post_stock(cur, product_id, lot_id, 100)
+    allocated = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={
+            "mode": "manual",
+            "line_id": line_id,
+            "quantity_lb": 100,
+            "lot_id": lot_id,
+            "source": "staged_lot",
+        },
+    )
+    assert allocated.status_code == 200, allocated.text
+
+    shipped = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 40}]},
+    )
+    assert shipped.status_code == 200, shipped.text
+    ship_line = shipped.json()["lines_shipped"][0]
+    transaction_id = ship_line["transaction_id"]
+    assert ship_line["lots_used"] == [{"lot_code": "T044-E2E-CYCLE", "quantity_lb": 40.0}]
+
+    voided = allocation_client.post(
+        f"/void/{transaction_id}", json={"reason": "allocation cycle test"}
+    )
+    assert voided.status_code == 200, voided.text
+    assert voided.json()["allocations_restored"][0]["coalesced"] is True
+    cur.execute(
+        "SELECT quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND lot_id=%s AND status='active'",
+        (line_id, lot_id),
+    )
+    live = cur.fetchall()
+    assert len(live) == 1 and float(live[0]["quantity_lb"]) == pytest.approx(100)
+
+    restored = allocation_client.post(
+        f"/records/transactions/{transaction_id}/corrections",
+        json={"event_type": "restore", "reason": "allocation cycle restore"},
+    )
+    assert restored.status_code == 200, restored.text
+    assert restored.json()["allocations_reshipped"][0]["coalesced"] is True
+    cur.execute(
+        "SELECT status, quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status IN ('active', 'shipped') ORDER BY status",
+        (line_id,),
+    )
+    assert [(row["status"], float(row["quantity_lb"])) for row in cur.fetchall()] == [
+        ("active", 60.0), ("shipped", 40.0)
+    ]
+
+
+@pytest.mark.db
+def test_sku_level_allocation_is_consumed_and_split_on_ship(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-SKU-CONSUME")
+    _post_stock(cur, product_id, lot_id, 100)
+    allocated = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 100},
+    )
+    assert allocated.status_code == 200, allocated.text
+    shipped = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 40}]},
+    )
+    assert shipped.status_code == 200, shipped.text
+    cur.execute(
+        "SELECT status, lot_id, quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status IN ('active', 'shipped') ORDER BY status",
+        (line_id,),
+    )
+    rows = cur.fetchall()
+    assert [(row["status"], row["lot_id"], float(row["quantity_lb"])) for row in rows] == [
+        ("active", None, 60.0), ("shipped", None, 40.0)
+    ]
+
+
+@pytest.mark.db
+def test_merge_coalesces_two_live_pins_onto_surviving_lot(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_a = _seed_lot(cur, product_id, "T044-MERGE-A")
+    lot_b = _seed_lot(cur, product_id, "T044-MERGE-B")
+    _post_stock(cur, product_id, lot_a, 40)
+    _post_stock(cur, product_id, lot_b, 60)
+    _insert(cur, order_id, line_id, product_id, lot_id=lot_a, qty=40, source="staged_lot")
+    _insert(cur, order_id, line_id, product_id, lot_id=lot_b, qty=60, source="staged_lot")
+
+    merged = allocation_client.post(
+        "/admin/lots/merge",
+        json={"source_lot_id": lot_a, "target_lot_id": lot_b, "reason": "allocation merge test"},
+    )
+    assert merged.status_code == 200, merged.text
+    cur.execute(
+        "SELECT id, lot_id, quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status='active'",
+        (line_id,),
+    )
+    live = cur.fetchall()
+    assert len(live) == 1
+    assert live[0]["lot_id"] == lot_b
+    assert float(live[0]["quantity_lb"]) == pytest.approx(100)
+    cur.execute(
+        "SELECT release_reason FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status='superseded'",
+        (line_id,),
+    )
+    assert cur.fetchone()["release_reason"] == "lot_merged"
+
+
+@pytest.mark.db
+def test_received_at_patch_clears_missing_date_and_validates(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "STAGED-T044-PATCH")
+    cur.execute("UPDATE lots SET entry_source='found_inventory', received_at=NULL WHERE id=%s", (lot_id,))
+    _post_stock(cur, product_id, lot_id, 100)
+    allocated = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={
+            "mode": "manual", "line_id": line_id, "quantity_lb": 100,
+            "lot_id": lot_id, "source": "staged_lot",
+        },
+    )
+    assert allocated.status_code == 200, allocated.text
+    assert "missing_lot_dates" in {
+        blocker["code"] for blocker in allocated.json()["line_readiness"]["blockers"]
+    }
+
+    naive = allocation_client.patch(
+        f"/lots/{lot_id}/received-at", json={"received_at": "2026-08-14T12:00:00"}
+    )
+    assert naive.status_code == 422
+    assert naive.json()["detail"]["error_code"] == "INVALID_RECEIVED_AT"
+    null_value = allocation_client.patch(
+        f"/lots/{lot_id}/received-at", json={"received_at": None}
+    )
+    assert null_value.status_code == 422
+    assert null_value.json()["detail"]["error_code"] == "RECEIVED_AT_REQUIRED"
+    future = allocation_client.patch(
+        f"/lots/{lot_id}/received-at",
+        json={"received_at": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()},
+    )
+    assert future.status_code == 422
+    assert future.json()["detail"]["error_code"] == "RECEIVED_AT_IN_FUTURE"
+    missing = allocation_client.patch(
+        "/lots/2000000000/received-at", json={"received_at": "2026-08-14T12:00:00-04:00"}
+    )
+    assert missing.status_code == 404
+    assert missing.json()["detail"]["error_code"] == "LOT_NOT_FOUND"
+
+    patched = allocation_client.patch(
+        f"/lots/{lot_id}/received-at", json={"received_at": "2026-08-14T12:00:00-04:00"}
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["lot_code"] == "STAGED-T044-PATCH"
+    assert patched.json()["lot_is_incomplete"] is False
+    detail = allocation_client.get(f"/sales/orders/{order_id}")
+    codes = {blocker["code"] for blocker in detail.json()["lines"][0]["readiness"]["blockers"]}
+    assert "missing_lot_dates" not in codes
+    assert "unstaged" not in codes
+
+
+@pytest.mark.db
+def test_line_edit_shrinks_then_order_cancel_releases_allocations(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-EDIT-CANCEL")
+    _post_stock(cur, product_id, lot_id, 100)
+    response = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 100},
+    )
+    assert response.status_code == 200, response.text
+
+    edited = allocation_client.patch(
+        f"/sales/orders/{order_id}/lines/{line_id}/update?quantity_lb=60"
+    )
+    assert edited.status_code == 200, edited.text
+    assert sum(float(row["quantity_lb"]) for row in edited.json()["allocations_released"]) == pytest.approx(40)
+    cur.execute(
+        "SELECT quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status='active'",
+        (line_id,),
+    )
+    assert float(cur.fetchone()["quantity_lb"]) == pytest.approx(60)
+
+    cancelled = allocation_client.patch(
+        f"/sales/orders/{order_id}/status", json={"status": "cancelled"}
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    assert sum(float(row["quantity_lb"]) for row in cancelled.json()["allocations_released"]) == pytest.approx(60)
+    cur.execute(
+        "SELECT count(*) AS n FROM sales_order_allocations "
+        "WHERE sales_order_id=%s AND status='active'",
+        (order_id,),
+    )
+    assert cur.fetchone()["n"] == 0
+
+
+@pytest.mark.db
+def test_line_edit_rejects_quantity_below_effective_shipped(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-EDIT-SHIPPED-GUARD")
+    _post_stock(cur, product_id, lot_id, 100)
+    shipped = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 40}]},
+    )
+    assert shipped.status_code == 200, shipped.text
+    rejected = allocation_client.patch(
+        f"/sales/orders/{order_id}/lines/{line_id}/update?quantity_lb=39"
+    )
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"]["error_code"] == "QTY_BELOW_SHIPPED_EFFECTIVE"
+
+
+@pytest.mark.db
+def test_line_cancel_releases_allocation(db_cursor, allocation_client):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-LINE-CANCEL")
+    _post_stock(cur, product_id, lot_id, 50)
+    cur.execute("UPDATE sales_order_lines SET quantity_lb=50 WHERE id=%s", (line_id,))
+    response = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 50},
+    )
+    assert response.status_code == 200, response.text
+    cancelled = allocation_client.patch(
+        f"/sales/orders/{order_id}/lines/{line_id}/cancel"
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["allocations_released"][0]["quantity_lb"] == 50.0
+    cur.execute(
+        "SELECT status, release_reason FROM sales_order_allocations WHERE sales_order_line_id=%s",
+        (line_id,),
+    )
+    assert cur.fetchone() == {"status": "released", "release_reason": "line_cancelled"}

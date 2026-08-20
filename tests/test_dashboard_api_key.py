@@ -94,7 +94,10 @@ def test_allowlist_never_grants_admin_or_dangerous_routes():
         assert not path.startswith("/pack"), (method, path)
         assert not path.startswith("/adjust"), (method, path)
         if method == "DELETE":
-            assert path.startswith("/dashboard/api/notes"), (method, path)
+            assert (
+                path.startswith("/dashboard/api/notes")
+                or path == "/sales/orders/{order_id}/allocations/{allocation_id}"
+            ), (method, path)
 
 
 def test_admin_sql_is_master_only():

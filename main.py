@@ -352,6 +352,872 @@ def fifo_lot_balances(cur, product_id: int, include_empty: bool = False) -> list
     return [dict(r) for r in cur.fetchall()]
 
 
+# ── Sales-order allocation write helpers (migration 044 / PR 3) ─────────────
+
+def _allocation_error(code: str, message: str, status_code: int = 409, **fields):
+    detail = {"error_code": code, "message": message, **fields}
+    raise HTTPException(status_code=status_code, detail=detail)
+
+
+def _lock_allocation_product(cur, product_id: int):
+    """Serialize every allocation-affecting write for one product.
+
+    Lock order is normative: all product lots by id, then all active allocation
+    rows by id. Locking the lots also serializes the first allocation, when no
+    allocation row exists yet.
+    """
+    cur.execute(
+        "SELECT id FROM lots WHERE product_id = %s ORDER BY id FOR UPDATE",
+        (product_id,),
+    )
+    cur.fetchall()
+    cur.execute(
+        "SELECT id FROM sales_order_allocations "
+        "WHERE product_id = %s AND status = 'active' ORDER BY id FOR UPDATE",
+        (product_id,),
+    )
+    cur.fetchall()
+
+
+def _expire_auto_fifo_allocations(cur, product_id: int, released_by: Optional[str] = None) -> list:
+    """Persist elapsed auto-FIFO TTLs on a product-locking write only."""
+    cur.execute(
+        """UPDATE sales_order_allocations
+              SET status = 'released', released_at = clock_timestamp(),
+                  released_by = %s, release_reason = 'expired'
+            WHERE product_id = %s
+              AND status = 'active'
+              AND source = 'auto_fifo'
+              AND expires_at IS NOT NULL
+              AND expires_at <= clock_timestamp()
+        RETURNING id, sales_order_line_id, lot_id, quantity_lb""",
+        (released_by, product_id),
+    )
+    return [dict(row) for row in cur.fetchall()]
+
+
+def _product_on_hand(cur, product_id: int) -> float:
+    cur.execute(
+        f"""SELECT COALESCE(SUM(tl.quantity_lb), 0) AS on_hand
+              FROM lots l
+              LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
+             WHERE l.product_id = %s""",
+        (product_id,),
+    )
+    return float(cur.fetchone()["on_hand"] or 0)
+
+
+def _line_shipped_effective(cur, line_id: int, product_id: int) -> float:
+    cur.execute(
+        """SELECT COALESCE(SUM(ABS(tl.quantity_lb)), 0) AS shipped_lb
+              FROM sales_order_shipments sos
+              JOIN ledger_current_transactions ct
+                ON ct.id = sos.transaction_id
+               AND ct.effective_status = 'posted'
+               AND ct.type = 'ship'
+              JOIN ledger_current_transaction_lines tl
+                ON tl.transaction_id = sos.transaction_id
+               AND tl.product_id = %s
+             WHERE sos.sales_order_line_id = %s""",
+        (product_id, line_id),
+    )
+    return float(cur.fetchone()["shipped_lb"] or 0)
+
+
+def _active_allocation_rows(cur, product_id: int) -> list:
+    cur.execute(
+        """SELECT *
+              FROM sales_order_allocations
+             WHERE product_id = %s
+               AND status = 'active'
+               AND (expires_at IS NULL OR expires_at > clock_timestamp())
+             ORDER BY created_at ASC, id ASC""",
+        (product_id,),
+    )
+    return [dict(row) for row in cur.fetchall()]
+
+
+def available_lots_for_product(
+    cur,
+    product_id: int,
+    so_line_id: Optional[int] = None,
+    *,
+    lock: bool = False,
+    persist_expired: bool = False,
+    released_by: Optional[str] = None,
+) -> list:
+    """Return deterministic FIFO lots after exclusive-reservation subtraction.
+
+    Lot pins are removed from each lot's unpinned pool. Foreign SKU-level
+    reservations then shadow-consume that pool in FIFO order. A caller's own
+    lot pins are reported separately and are consumed before ``takeable`` by
+    the sales-order ship plan.
+    """
+    if lock:
+        _lock_allocation_product(cur, product_id)
+    if persist_expired:
+        if not lock:
+            raise ValueError("persist_expired requires the product write lock")
+        _expire_auto_fifo_allocations(cur, product_id, released_by)
+
+    allocations = _active_allocation_rows(cur, product_id)
+    lot_reserved = {}
+    lot_reserved_others = {}
+    lot_reserved_this_line = {}
+    foreign_sku = 0.0
+    for row in allocations:
+        qty = float(row["quantity_lb"] or 0)
+        line_id = int(row["sales_order_line_id"])
+        if row["lot_id"] is None:
+            if so_line_id is None or line_id != int(so_line_id):
+                foreign_sku += qty
+            continue
+        lot_id = int(row["lot_id"])
+        lot_reserved[lot_id] = lot_reserved.get(lot_id, 0.0) + qty
+        if so_line_id is not None and line_id == int(so_line_id):
+            lot_reserved_this_line[lot_id] = lot_reserved_this_line.get(lot_id, 0.0) + qty
+        else:
+            lot_reserved_others[lot_id] = lot_reserved_others.get(lot_id, 0.0) + qty
+
+    result = []
+    for lot in fifo_lot_balances(cur, product_id):
+        item = dict(lot)
+        lot_id = int(item["id"])
+        on_hand = float(item["available"] or 0)
+        reserved_all = lot_reserved.get(lot_id, 0.0)
+        unpinned = max(0.0, on_hand - reserved_all)
+        shadowed = min(foreign_sku, unpinned)
+        foreign_sku -= shadowed
+        item.update({
+            "lot_id": lot_id,
+            "on_hand": on_hand,
+            "reserved_lot_lb": reserved_all,
+            "reserved_others_lot": lot_reserved_others.get(lot_id, 0.0),
+            "reserved_this_line_lot": lot_reserved_this_line.get(lot_id, 0.0),
+            "takeable_unpinned": unpinned,
+            "foreign_sku_shadow_lb": shadowed,
+            "takeable": max(0.0, unpinned - shadowed),
+        })
+        result.append(item)
+    return result
+
+
+def _copy_allocation_row(
+    cur,
+    row: dict,
+    quantity_lb: float,
+    status: str,
+    *,
+    split_from_id: Optional[int],
+    ship_transaction_id: Optional[int] = None,
+    last_ship_transaction_id: Optional[int] = None,
+    released_by: Optional[str] = None,
+    release_reason: Optional[str] = None,
+) -> int:
+    released_at_sql = "clock_timestamp()" if status == "released" else "NULL"
+    cur.execute(
+        f"""INSERT INTO sales_order_allocations
+               (sales_order_id, sales_order_line_id, product_id, lot_id,
+                quantity_lb, status, source, ship_transaction_id,
+                last_ship_transaction_id, split_from_id, created_by,
+                released_at, released_by, release_reason, expires_at, note)
+             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                     {released_at_sql}, %s, %s, %s, %s)
+          RETURNING id""",
+        (
+            row["sales_order_id"], row["sales_order_line_id"], row["product_id"],
+            row["lot_id"], quantity_lb, status, row["source"],
+            ship_transaction_id, last_ship_transaction_id, split_from_id,
+            row.get("created_by"), released_by, release_reason,
+            row.get("expires_at"), row.get("note"),
+        ),
+    )
+    return int(cur.fetchone()["id"])
+
+
+def _consume_allocation_row(cur, allocation_id: int, quantity_lb: float, transaction_id: int) -> dict:
+    """Convert a live reservation slice to shipped, splitting when partial."""
+    cur.execute(
+        "SELECT * FROM sales_order_allocations WHERE id = %s AND status = 'active' FOR UPDATE",
+        (allocation_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        _allocation_error(
+            "ALLOCATION_NOT_ACTIVE",
+            f"Allocation #{allocation_id} is no longer active",
+        )
+    row = dict(row)
+    available = float(row["quantity_lb"])
+    take = float(quantity_lb)
+    if take <= BALANCE_EPSILON or take > available + BALANCE_EPSILON:
+        raise ValueError(f"invalid allocation consume {take} from {available}")
+
+    if take + BALANCE_EPSILON >= available:
+        cur.execute(
+            """UPDATE sales_order_allocations
+                  SET status = 'shipped', ship_transaction_id = %s,
+                      last_ship_transaction_id = %s, release_reason = NULL
+                WHERE id = %s""",
+            (transaction_id, transaction_id, allocation_id),
+        )
+        return {"allocation_id": allocation_id, "shipped_id": allocation_id, "leftover_id": None, "quantity_lb": available}
+
+    cur.execute(
+        """UPDATE sales_order_allocations
+              SET status = 'superseded', release_reason = 'split_on_ship'
+            WHERE id = %s""",
+        (allocation_id,),
+    )
+    leftover_id = _copy_allocation_row(
+        cur,
+        row,
+        available - take,
+        "active",
+        split_from_id=allocation_id,
+        last_ship_transaction_id=row.get("last_ship_transaction_id"),
+    )
+    shipped_id = _copy_allocation_row(
+        cur,
+        row,
+        take,
+        "shipped",
+        split_from_id=allocation_id,
+        ship_transaction_id=transaction_id,
+        last_ship_transaction_id=transaction_id,
+    )
+    return {"allocation_id": allocation_id, "shipped_id": shipped_id, "leftover_id": leftover_id, "quantity_lb": take}
+
+
+def _sales_order_ship_plan(
+    cur,
+    product_id: int,
+    line_id: int,
+    requested_lb: float,
+    *,
+    released_by: Optional[str] = None,
+    lock: bool = True,
+    persist_expired: bool = True,
+) -> dict:
+    """Lock and plan one SO line: own lot pins first, then takeable FIFO."""
+    lots = available_lots_for_product(
+        cur,
+        product_id,
+        line_id,
+        lock=lock,
+        persist_expired=persist_expired,
+        released_by=released_by,
+    )
+    by_lot = {int(lot["lot_id"]): lot for lot in lots}
+    allocations = _active_allocation_rows(cur, product_id)
+    own_lot_rows = [
+        row for row in allocations
+        if int(row["sales_order_line_id"]) == int(line_id) and row["lot_id"] is not None
+    ]
+    own_sku_rows = [
+        row for row in allocations
+        if int(row["sales_order_line_id"]) == int(line_id) and row["lot_id"] is None
+    ]
+
+    remaining = float(requested_lb)
+    lot_takes = []
+    allocation_takes = []
+
+    def add_lot_take(lot: dict, qty: float):
+        if qty <= BALANCE_EPSILON:
+            return
+        existing = next((item for item in lot_takes if item["lot_id"] == int(lot["lot_id"])), None)
+        if existing:
+            existing["quantity_lb"] += qty
+        else:
+            lot_takes.append({
+                "lot_id": int(lot["lot_id"]),
+                "lot_code": lot["lot_code"],
+                "quantity_lb": qty,
+            })
+
+    for row in own_lot_rows:
+        if remaining <= BALANCE_EPSILON:
+            break
+        lot = by_lot.get(int(row["lot_id"]))
+        if not lot:
+            continue
+        protected_for_others = float(lot["reserved_others_lot"] or 0)
+        own_physical_cover = max(0.0, float(lot["on_hand"]) - protected_for_others)
+        take = min(remaining, float(row["quantity_lb"]), own_physical_cover)
+        if take <= BALANCE_EPSILON:
+            continue
+        add_lot_take(lot, take)
+        allocation_takes.append({"allocation_id": int(row["id"]), "quantity_lb": take})
+        remaining -= take
+
+    for lot in lots:
+        if remaining <= BALANCE_EPSILON:
+            break
+        take = min(remaining, float(lot["takeable"] or 0))
+        if take <= BALANCE_EPSILON:
+            continue
+        add_lot_take(lot, take)
+        remaining -= take
+
+    actual_ship = max(0.0, float(requested_lb) - remaining)
+    lot_allocated_take = sum(item["quantity_lb"] for item in allocation_takes)
+    sku_cover_needed = max(0.0, actual_ship - lot_allocated_take)
+    for row in own_sku_rows:
+        if sku_cover_needed <= BALANCE_EPSILON:
+            break
+        take = min(sku_cover_needed, float(row["quantity_lb"]))
+        allocation_takes.append({"allocation_id": int(row["id"]), "quantity_lb": take})
+        sku_cover_needed -= take
+
+    return {
+        "requested_lb": float(requested_lb),
+        "actual_ship_lb": actual_ship,
+        "lots": lot_takes,
+        "allocation_takes": allocation_takes,
+    }
+
+
+def _consume_sales_order_allocations(cur, plan: dict, transaction_id: int) -> list:
+    return [
+        _consume_allocation_row(cur, item["allocation_id"], item["quantity_lb"], transaction_id)
+        for item in plan["allocation_takes"]
+        if item["quantity_lb"] > BALANCE_EPSILON
+    ]
+
+
+def _release_active_allocations(
+    cur,
+    *,
+    reason: str,
+    released_by: Optional[str] = None,
+    order_id: Optional[int] = None,
+    line_id: Optional[int] = None,
+    allocation_id: Optional[int] = None,
+) -> list:
+    clauses = ["status = 'active'"]
+    params = [released_by]
+    if order_id is not None:
+        clauses.append("sales_order_id = %s")
+        params.append(order_id)
+    if line_id is not None:
+        clauses.append("sales_order_line_id = %s")
+        params.append(line_id)
+    if allocation_id is not None:
+        clauses.append("id = %s")
+        params.append(allocation_id)
+    params.append(reason)
+    cur.execute(
+        f"""UPDATE sales_order_allocations
+               SET status = 'released', released_at = clock_timestamp(),
+                   released_by = %s, release_reason = %s
+             WHERE {' AND '.join(clauses)}
+         RETURNING id, product_id, sales_order_line_id, lot_id, quantity_lb""",
+        [params[0], params[-1], *params[1:-1]],
+    )
+    return [dict(row) for row in cur.fetchall()]
+
+
+def _shrink_active_allocations(cur, rows: list, excess_lb: float, reason: str, released_by: Optional[str]) -> list:
+    """Release newest/least-urgent slices until ``excess_lb`` is removed."""
+    remaining = float(excess_lb)
+    changed = []
+    for raw in rows:
+        if remaining <= BALANCE_EPSILON:
+            break
+        row = dict(raw)
+        qty = float(row["quantity_lb"])
+        take = min(qty, remaining)
+        if take + BALANCE_EPSILON >= qty:
+            cur.execute(
+                """UPDATE sales_order_allocations
+                      SET status = 'released', released_at = clock_timestamp(),
+                          released_by = %s, release_reason = %s
+                    WHERE id = %s""",
+                (released_by, reason, row["id"]),
+            )
+            released_id = int(row["id"])
+        else:
+            cur.execute(
+                "UPDATE sales_order_allocations SET quantity_lb = quantity_lb - %s WHERE id = %s",
+                (take, row["id"]),
+            )
+            released_id = _copy_allocation_row(
+                cur,
+                row,
+                take,
+                "released",
+                split_from_id=int(row["id"]),
+                released_by=released_by,
+                release_reason=reason,
+            )
+        changed.append({"allocation_id": released_id, "quantity_lb": take, "reason": reason})
+        remaining -= take
+    return changed
+
+
+def _void_ship_allocations(cur, transaction_id: int, operator_id: Optional[str]) -> list:
+    cur.execute(
+        """SELECT DISTINCT product_id
+              FROM sales_order_allocations
+             WHERE ship_transaction_id = %s AND status = 'shipped'
+             ORDER BY product_id""",
+        (transaction_id,),
+    )
+    product_ids = [int(row["product_id"]) for row in cur.fetchall()]
+    restored = []
+    for product_id in product_ids:
+        _lock_allocation_product(cur, product_id)
+        _expire_auto_fifo_allocations(cur, product_id, operator_id)
+        cur.execute(
+            """SELECT * FROM sales_order_allocations
+                 WHERE product_id = %s AND ship_transaction_id = %s
+                   AND status = 'shipped'
+                 ORDER BY id FOR UPDATE""",
+            (product_id, transaction_id),
+        )
+        for shipped_raw in cur.fetchall():
+            shipped = dict(shipped_raw)
+            cur.execute(
+                """SELECT * FROM sales_order_allocations
+                     WHERE sales_order_line_id = %s
+                       AND lot_id IS NOT DISTINCT FROM %s
+                       AND status = 'active'
+                     ORDER BY id LIMIT 1 FOR UPDATE""",
+                (shipped["sales_order_line_id"], shipped["lot_id"]),
+            )
+            leftover = cur.fetchone()
+            if leftover:
+                cur.execute(
+                    """UPDATE sales_order_allocations
+                          SET quantity_lb = quantity_lb + %s,
+                              last_ship_transaction_id = %s
+                        WHERE id = %s""",
+                    (shipped["quantity_lb"], transaction_id, leftover["id"]),
+                )
+                cur.execute(
+                    """UPDATE sales_order_allocations
+                          SET status = 'superseded', ship_transaction_id = NULL,
+                              last_ship_transaction_id = %s,
+                              release_reason = 'void_coalesced'
+                        WHERE id = %s""",
+                    (transaction_id, shipped["id"]),
+                )
+                live_id = int(leftover["id"])
+                coalesced = True
+            else:
+                cur.execute(
+                    """UPDATE sales_order_allocations
+                          SET status = 'active', ship_transaction_id = NULL,
+                              last_ship_transaction_id = %s,
+                              release_reason = NULL
+                        WHERE id = %s""",
+                    (transaction_id, shipped["id"]),
+                )
+                live_id = int(shipped["id"])
+                coalesced = False
+            restored.append({
+                "allocation_id": int(shipped["id"]),
+                "live_allocation_id": live_id,
+                "quantity_lb": float(shipped["quantity_lb"]),
+                "coalesced": coalesced,
+            })
+    return restored
+
+
+def _restore_ship_allocations(cur, transaction_id: int, operator_id: Optional[str]) -> list:
+    cur.execute(
+        """SELECT DISTINCT product_id
+              FROM sales_order_allocations
+             WHERE last_ship_transaction_id = %s
+               AND status IN ('active', 'superseded')
+             ORDER BY product_id""",
+        (transaction_id,),
+    )
+    product_ids = [int(row["product_id"]) for row in cur.fetchall()]
+    reshipped = []
+    for product_id in product_ids:
+        _lock_allocation_product(cur, product_id)
+        _expire_auto_fifo_allocations(cur, product_id, operator_id)
+        cur.execute(
+            """SELECT * FROM sales_order_allocations
+                 WHERE product_id = %s
+                   AND last_ship_transaction_id = %s
+                   AND release_reason = 'void_coalesced'
+                   AND status = 'superseded'
+                 ORDER BY id FOR UPDATE""",
+            (product_id, transaction_id),
+        )
+        coalesced_rows = [dict(row) for row in cur.fetchall()]
+        partial_leftover_ids = []
+        for shipped in coalesced_rows:
+            cur.execute(
+                """SELECT * FROM sales_order_allocations
+                     WHERE sales_order_line_id = %s
+                       AND lot_id IS NOT DISTINCT FROM %s
+                       AND status = 'active'
+                     ORDER BY id LIMIT 1 FOR UPDATE""",
+                (shipped["sales_order_line_id"], shipped["lot_id"]),
+            )
+            leftover = cur.fetchone()
+            needed = float(shipped["quantity_lb"])
+            if not leftover or float(leftover["quantity_lb"]) + BALANCE_EPSILON < needed:
+                _allocation_error(
+                    "RESTORE_SPLIT_MISSING",
+                    f"Cannot restore ship transaction #{transaction_id}: its allocation leftover is missing or too small",
+                    transaction_id=transaction_id,
+                    allocation_id=int(shipped["id"]),
+                    required_lb=needed,
+                    available_lb=float(leftover["quantity_lb"]) if leftover else 0.0,
+                )
+            partial_leftover_ids.append(int(leftover["id"]))
+            leftover_qty = float(leftover["quantity_lb"])
+            if leftover_qty - needed <= BALANCE_EPSILON:
+                cur.execute(
+                    """UPDATE sales_order_allocations
+                          SET status = 'superseded', release_reason = 'restore_split_consumed'
+                        WHERE id = %s""",
+                    (leftover["id"],),
+                )
+            else:
+                cur.execute(
+                    "UPDATE sales_order_allocations SET quantity_lb = quantity_lb - %s WHERE id = %s",
+                    (needed, leftover["id"]),
+                )
+            cur.execute(
+                """UPDATE sales_order_allocations
+                      SET status = 'shipped', ship_transaction_id = %s,
+                          release_reason = NULL
+                    WHERE id = %s""",
+                (transaction_id, shipped["id"]),
+            )
+            reshipped.append({"allocation_id": int(shipped["id"]), "quantity_lb": needed, "coalesced": True})
+
+        params = [product_id, transaction_id]
+        excluded = ""
+        if partial_leftover_ids:
+            excluded = " AND id <> ALL(%s)"
+            params.append(partial_leftover_ids)
+        cur.execute(
+            f"""SELECT id, quantity_lb FROM sales_order_allocations
+                  WHERE product_id = %s
+                    AND last_ship_transaction_id = %s
+                    AND status = 'active'{excluded}
+                  ORDER BY id FOR UPDATE""",
+            params,
+        )
+        for row in cur.fetchall():
+            cur.execute(
+                """UPDATE sales_order_allocations
+                      SET status = 'shipped', ship_transaction_id = %s,
+                          release_reason = NULL
+                    WHERE id = %s""",
+                (transaction_id, row["id"]),
+            )
+            reshipped.append({"allocation_id": int(row["id"]), "quantity_lb": float(row["quantity_lb"]), "coalesced": False})
+    return reshipped
+
+
+def _shrink_overallocated_products(cur, product_ids: list, operator_id: Optional[str]) -> list:
+    changed = []
+    for product_id in sorted(set(int(pid) for pid in product_ids)):
+        _lock_allocation_product(cur, product_id)
+        _expire_auto_fifo_allocations(cur, product_id, operator_id)
+
+        # A named-lot pin must remain covered by that lot even when other lots
+        # keep the product-level total positive. Repair lot deficits first.
+        cur.execute(
+            """SELECT DISTINCT lot_id
+                  FROM sales_order_allocations
+                 WHERE product_id = %s AND lot_id IS NOT NULL
+                   AND status = 'active'
+                   AND (expires_at IS NULL OR expires_at > clock_timestamp())
+                 ORDER BY lot_id""",
+            (product_id,),
+        )
+        lot_ids = [int(row["lot_id"]) for row in cur.fetchall()]
+        for lot_id in lot_ids:
+            cur.execute(
+                """SELECT soa.*
+                      FROM sales_order_allocations soa
+                      JOIN sales_orders so ON so.id = soa.sales_order_id
+                     WHERE soa.product_id = %s AND soa.lot_id = %s
+                       AND soa.status = 'active'
+                       AND (soa.expires_at IS NULL OR soa.expires_at > clock_timestamp())
+                     ORDER BY so.requested_ship_date DESC NULLS LAST,
+                              soa.sales_order_id DESC, soa.created_at DESC, soa.id DESC
+                     FOR UPDATE OF soa""",
+                (product_id, lot_id),
+            )
+            lot_rows = cur.fetchall()
+            lot_allocated = sum(float(row["quantity_lb"]) for row in lot_rows)
+            lot_excess = max(0.0, lot_allocated - lot_on_hand(cur, lot_id))
+            if lot_excess > BALANCE_EPSILON:
+                changed.extend(_shrink_active_allocations(
+                    cur, lot_rows, lot_excess, "inventory_voided", operator_id
+                ))
+
+        on_hand = _product_on_hand(cur, product_id)
+        cur.execute(
+            """SELECT soa.*
+                  FROM sales_order_allocations soa
+                  JOIN sales_orders so ON so.id = soa.sales_order_id
+                 WHERE soa.product_id = %s
+                   AND soa.status = 'active'
+                   AND (soa.expires_at IS NULL OR soa.expires_at > clock_timestamp())
+                 ORDER BY so.requested_ship_date DESC NULLS LAST,
+                          soa.sales_order_id DESC, soa.created_at DESC, soa.id DESC
+                 FOR UPDATE OF soa""",
+            (product_id,),
+        )
+        rows = cur.fetchall()
+        allocated = sum(float(row["quantity_lb"]) for row in rows)
+        excess = max(0.0, allocated - on_hand)
+        if excess > BALANCE_EPSILON:
+            changed.extend(_shrink_active_allocations(cur, rows, excess, "inventory_voided", operator_id))
+    return changed
+
+
+def _coalesce_lot_allocations(cur, product_id: int, source_lot_id: int, target_lot_id: int) -> list:
+    """Move live pins to a surviving lot without violating the live unique key."""
+    _lock_allocation_product(cur, product_id)
+    cur.execute(
+        """SELECT * FROM sales_order_allocations
+             WHERE product_id = %s AND lot_id = %s AND status = 'active'
+             ORDER BY id FOR UPDATE""",
+        (product_id, source_lot_id),
+    )
+    moved = []
+    for source_raw in cur.fetchall():
+        source = dict(source_raw)
+        cur.execute(
+            """SELECT id FROM sales_order_allocations
+                 WHERE sales_order_line_id = %s AND lot_id = %s
+                   AND status = 'active'
+                 ORDER BY id LIMIT 1 FOR UPDATE""",
+            (source["sales_order_line_id"], target_lot_id),
+        )
+        target = cur.fetchone()
+        if target:
+            cur.execute(
+                "UPDATE sales_order_allocations SET quantity_lb = quantity_lb + %s WHERE id = %s",
+                (source["quantity_lb"], target["id"]),
+            )
+            cur.execute(
+                """UPDATE sales_order_allocations
+                      SET status = 'superseded', release_reason = 'lot_merged'
+                    WHERE id = %s""",
+                (source["id"],),
+            )
+            moved.append({"allocation_id": int(source["id"]), "target_allocation_id": int(target["id"]), "coalesced": True})
+        else:
+            cur.execute(
+                "UPDATE sales_order_allocations SET lot_id = %s WHERE id = %s",
+                (target_lot_id, source["id"]),
+            )
+            moved.append({"allocation_id": int(source["id"]), "target_allocation_id": int(source["id"]), "coalesced": False})
+
+    cur.execute(
+        """UPDATE sales_order_allocations
+              SET lot_id = %s
+            WHERE product_id = %s AND lot_id = %s
+              AND status IN ('shipped', 'superseded')""",
+        (target_lot_id, product_id, source_lot_id),
+    )
+    return moved
+
+
+def _load_allocatable_line(cur, order_id: int, line_id: int) -> dict:
+    cur.execute(
+        """SELECT so.id AS sales_order_id, so.order_number, so.status AS order_status,
+                  sol.id AS line_id, sol.product_id, sol.quantity_lb,
+                  sol.line_status, p.name AS product_name, p.odoo_code AS sku,
+                  COALESCE(p.is_service, false) AS is_service
+             FROM sales_orders so
+             JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+             JOIN products p ON p.id = sol.product_id
+            WHERE so.id = %s AND sol.id = %s
+            FOR UPDATE OF so, sol""",
+        (order_id, line_id),
+    )
+    row = cur.fetchone()
+    if not row:
+        _allocation_error(
+            "LINE_NOT_FOUND",
+            f"Line #{line_id} was not found on order #{order_id}",
+            status_code=404,
+            order_id=order_id,
+            line_id=line_id,
+        )
+    line = dict(row)
+    if line["is_service"]:
+        _allocation_error(
+            "SERVICE_LINE_NOT_ALLOCATABLE",
+            f"Service line #{line_id} does not represent inventory",
+            status_code=422,
+            order_id=order_id,
+            line_id=line_id,
+        )
+    if line["order_status"] in {"cancelled", "invoiced"} or line["line_status"] in {"cancelled", "fulfilled"}:
+        _allocation_error(
+            "ORDER_NOT_ALLOCATABLE",
+            f"Order {line['order_number']} / line #{line_id} is not open for allocation",
+            order_id=order_id,
+            line_id=line_id,
+            order_status=line["order_status"],
+            line_status=line["line_status"],
+        )
+    return line
+
+
+def _allocation_totals(cur, product_id: int, line_id: int) -> tuple[float, float]:
+    cur.execute(
+        """SELECT COALESCE(SUM(quantity_lb), 0) AS product_allocated,
+                  COALESCE(SUM(quantity_lb) FILTER (WHERE sales_order_line_id = %s), 0) AS line_allocated
+             FROM sales_order_allocations
+            WHERE product_id = %s AND status = 'active'
+              AND (expires_at IS NULL OR expires_at > clock_timestamp())""",
+        (line_id, product_id),
+    )
+    row = cur.fetchone()
+    return float(row["product_allocated"] or 0), float(row["line_allocated"] or 0)
+
+
+def _upsert_live_allocation(
+    cur,
+    *,
+    line: dict,
+    lot_id: Optional[int],
+    quantity_lb: float,
+    source: str,
+    expires_at: Optional[datetime],
+    note: Optional[str],
+    created_by: Optional[str],
+) -> dict:
+    cur.execute(
+        """SELECT * FROM sales_order_allocations
+             WHERE sales_order_line_id = %s
+               AND lot_id IS NOT DISTINCT FROM %s
+               AND status = 'active'
+             ORDER BY id LIMIT 1 FOR UPDATE""",
+        (line["line_id"], lot_id),
+    )
+    existing = cur.fetchone()
+    if existing:
+        existing = dict(existing)
+        # A deliberate/manual pin is stronger than an expiring auto claim.
+        # Promote auto -> manual/staged when the caller makes that commitment;
+        # never make an existing manual/staged slice expire because auto-FIFO
+        # adds to the same unique live key.
+        precedence = {"auto_fifo": 0, "manual": 1, "staged_lot": 2}
+        merged_source = max((existing["source"], source), key=lambda value: precedence[value])
+        merged_expiry = expires_at if merged_source == "auto_fifo" else None
+        cur.execute(
+            """UPDATE sales_order_allocations
+                  SET quantity_lb = quantity_lb + %s,
+                      source = %s, expires_at = %s,
+                      note = COALESCE(%s, note)
+                WHERE id = %s
+            RETURNING *""",
+            (quantity_lb, merged_source, merged_expiry, note, existing["id"]),
+        )
+    else:
+        cur.execute(
+            """INSERT INTO sales_order_allocations
+                   (sales_order_id, sales_order_line_id, product_id, lot_id,
+                    quantity_lb, source, expires_at, note, created_by)
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+              RETURNING *""",
+            (
+                line["sales_order_id"], line["line_id"], line["product_id"], lot_id,
+                quantity_lb, source, expires_at, note, created_by,
+            ),
+        )
+    return dict(cur.fetchone())
+
+
+def _validate_allocation_addition(
+    cur,
+    line: dict,
+    quantity_lb: float,
+    *,
+    lot_id: Optional[int] = None,
+) -> dict:
+    if quantity_lb <= BALANCE_EPSILON:
+        _allocation_error(
+            "INVALID_ALLOCATION_QUANTITY",
+            "quantity_lb must be greater than zero",
+            status_code=422,
+            requested_lb=quantity_lb,
+        )
+    product_id = int(line["product_id"])
+    product_allocated, line_allocated = _allocation_totals(cur, product_id, int(line["line_id"]))
+    shipped_effective = _line_shipped_effective(cur, int(line["line_id"]), product_id)
+    remaining = max(0.0, float(line["quantity_lb"]) - shipped_effective)
+    line_coverable = max(0.0, remaining - line_allocated)
+    on_hand = _product_on_hand(cur, product_id)
+    product_coverable = max(0.0, on_hand - product_allocated)
+    coverable = min(line_coverable, product_coverable)
+
+    lot_coverable = None
+    lot_code = None
+    if lot_id is not None:
+        cur.execute(
+            "SELECT id, lot_code, product_id FROM lots WHERE id = %s",
+            (lot_id,),
+        )
+        lot = cur.fetchone()
+        if not lot:
+            _allocation_error(
+                "LOT_NOT_FOUND",
+                f"Lot #{lot_id} not found",
+                status_code=404,
+                lot_id=lot_id,
+            )
+        if int(lot["product_id"]) != product_id:
+            _allocation_error(
+                "LOT_PRODUCT_MISMATCH",
+                f"Lot #{lot_id} does not belong to line #{line['line_id']}'s product",
+                status_code=422,
+                lot_id=lot_id,
+                product_id=product_id,
+            )
+        lot_code = lot["lot_code"]
+        cur.execute(
+            """SELECT COALESCE(SUM(quantity_lb), 0) AS allocated
+                 FROM sales_order_allocations
+                WHERE lot_id = %s AND status = 'active'
+                  AND (expires_at IS NULL OR expires_at > clock_timestamp())""",
+            (lot_id,),
+        )
+        lot_allocated = float(cur.fetchone()["allocated"] or 0)
+        lot_coverable = max(0.0, lot_on_hand(cur, lot_id) - lot_allocated)
+        coverable = min(coverable, lot_coverable)
+
+    if quantity_lb > coverable + BALANCE_EPSILON:
+        sku = line.get("sku") or line["product_name"]
+        _allocation_error(
+            "OVER_ALLOCATION",
+            f"{sku}: requested {quantity_lb:g} lb, coverable {coverable:g} lb",
+            on_hand_lb=on_hand,
+            allocated_others_lb=product_allocated,
+            coverable_lb=coverable,
+            requested_lb=quantity_lb,
+            remaining_effective_lb=remaining,
+            line_allocated_lb=line_allocated,
+            lot_id=lot_id,
+            lot_code=lot_code,
+            lot_coverable_lb=lot_coverable,
+        )
+    return {
+        "on_hand_lb": on_hand,
+        "product_allocated_lb": product_allocated,
+        "line_allocated_lb": line_allocated,
+        "remaining_effective_lb": remaining,
+        "coverable_lb": coverable,
+    }
+
+
 def validate_lot_deduction(cur, lot_id: int, lot_code: str, requested_lb: float):
     """Validate that deducting requested_lb from a lot won't push it negative.
 
@@ -919,10 +1785,14 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("GET", "/sales/orders"),
     ("GET", "/sales/orders/fulfillment-check"),
     ("GET", "/sales/orders/{order_id}"),
+    ("GET", "/sales/orders/{order_id}/allocations"),
     ("GET", "/export/orders-matrix.xlsx"),
     ("PATCH", "/sales/orders/{order_id}"),
     ("PATCH", "/sales/orders/{order_id}/status"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/update"),
+    ("POST", "/sales/orders/{order_id}/allocations"),
+    ("DELETE", "/sales/orders/{order_id}/allocations/{allocation_id}"),
+    ("PATCH", "/lots/{lot_id}/received-at"),
     ("POST", "/sales-orders/{so_number}/ready"),
     # Production planning (read-only)
     ("GET", "/production/requirements"),
@@ -1467,6 +2337,18 @@ class ShipOrderRequest(BaseModel):
     mode: Literal["preview", "commit"] = "preview"
     ship_all: Optional[bool] = False
     lines: Optional[List[ShipOrderLineRequest]] = None
+
+
+class SalesOrderAllocationCreate(BaseModel):
+    """Dashboard allocation write. ``auto_fifo`` chooses/pins lots; manual
+    accepts an optional lot_id (NULL means SKU-level)."""
+    mode: Literal["manual", "auto_fifo"] = "manual"
+    line_id: int
+    quantity_lb: Optional[float] = None
+    lot_id: Optional[int] = None
+    source: Optional[Literal["manual", "staged_lot"]] = None
+    expires_at: Optional[datetime] = None
+    note: Optional[str] = None
 
 class CommitShipOrderRequest(BaseModel):
     """Mode-less request for the dedicated sales-order shipment commit route."""
@@ -4941,8 +5823,9 @@ def _append_transaction_correction(
     if not reason:
         raise HTTPException(422, "A non-empty correction reason is required")
 
-    cur.execute("SELECT id FROM transactions WHERE id = %s FOR UPDATE", (transaction_id,))
-    if not cur.fetchone():
+    cur.execute("SELECT id, type FROM transactions WHERE id = %s FOR UPDATE", (transaction_id,))
+    transaction = cur.fetchone()
+    if not transaction:
         raise HTTPException(404, f"Transaction #{transaction_id} not found")
 
     cur.execute(
@@ -4992,7 +5875,7 @@ def _append_transaction_correction(
         ),
     )
     event = cur.fetchone()
-    return {
+    result = {
         "correction_id": str(event["id"]),
         "created_at": event["created_at"],
         "operator_id": event["operator_id"],
@@ -5000,6 +5883,27 @@ def _append_transaction_correction(
         "previous_values": previous,
         "replacement_values": replacement,
     }
+    if event_type == "void":
+        if transaction["type"] == "ship":
+            result["allocations_restored"] = _void_ship_allocations(
+                cur, transaction_id, operator_id
+            )
+        else:
+            cur.execute(
+                "SELECT DISTINCT product_id FROM ledger_current_transaction_lines "
+                "WHERE transaction_id = %s ORDER BY product_id",
+                (transaction_id,),
+            )
+            result["allocations_released"] = _shrink_overallocated_products(
+                cur,
+                [int(row["product_id"]) for row in cur.fetchall()],
+                operator_id,
+            )
+    elif event_type == "restore" and transaction["type"] == "ship":
+        result["allocations_reshipped"] = _restore_ship_allocations(
+            cur, transaction_id, operator_id
+        )
+    return result
 
 
 def _append_transaction_line_correction(
@@ -5074,6 +5978,8 @@ def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(ve
                     "created_at": event["created_at"],
                     "reversal_transaction_id": None,
                     "reversal_lines": [],
+                    "allocations_restored": event.get("allocations_restored", []),
+                    "allocations_released": event.get("allocations_released", []),
                     "message": (
                         f"Transaction #{transaction_id} voided by append-only correction; "
                         "the original is preserved and its lines are excluded from balances"
@@ -8321,6 +9227,353 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+def _order_readiness_after_write(cur, order_id: int) -> tuple[dict, dict]:
+    cur.execute(
+        """SELECT so.id, so.order_number, so.requested_ship_date,
+                  COALESCE(sof.ready, false) AS ready
+             FROM sales_orders so
+             LEFT JOIN sales_order_flags sof ON sof.so_number = so.order_number
+            WHERE so.id = %s""",
+        (order_id,),
+    )
+    order = cur.fetchone()
+    if not order:
+        _allocation_error(
+            "ORDER_NOT_FOUND",
+            f"Order #{order_id} not found",
+            status_code=404,
+            order_id=order_id,
+        )
+    order_readiness, line_readiness = _load_sales_order_readiness(cur, [order])
+    return order_readiness[order_id], line_readiness
+
+
+@app.post("/sales/orders/{order_id}/allocations")
+def create_sales_order_allocation(
+    req: SalesOrderAllocationCreate,
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    _: bool = Depends(verify_api_key),
+):
+    try:
+        with get_transaction() as cur:
+            line = _load_allocatable_line(cur, order_id, req.line_id)
+            product_id = int(line["product_id"])
+            created_by = caller_source_tag(request)
+            _lock_allocation_product(cur, product_id)
+            expired = _expire_auto_fifo_allocations(cur, product_id, created_by)
+
+            created = []
+            if req.mode == "manual":
+                if req.quantity_lb is None:
+                    _allocation_error(
+                        "ALLOCATION_QUANTITY_REQUIRED",
+                        "quantity_lb is required for manual allocation",
+                        status_code=422,
+                    )
+                if req.expires_at is not None:
+                    _allocation_error(
+                        "MANUAL_ALLOCATION_CANNOT_EXPIRE",
+                        "expires_at is only valid for auto_fifo allocations",
+                        status_code=422,
+                    )
+                quantity = float(req.quantity_lb)
+                source = req.source or "manual"
+                _validate_allocation_addition(
+                    cur, line, quantity, lot_id=req.lot_id
+                )
+                if req.lot_id is not None:
+                    cur.execute(
+                        "SELECT lot_code, entry_source FROM lots WHERE id = %s",
+                        (req.lot_id,),
+                    )
+                    pinned_lot = cur.fetchone()
+                    if (
+                        str(pinned_lot["lot_code"] or "").upper().startswith("STAGED-")
+                        or pinned_lot["entry_source"] == "found_inventory"
+                    ):
+                        source = "staged_lot"
+                created.append(_upsert_live_allocation(
+                    cur,
+                    line=line,
+                    lot_id=req.lot_id,
+                    quantity_lb=quantity,
+                    source=source,
+                    expires_at=None,
+                    note=req.note,
+                    created_by=created_by,
+                ))
+            else:
+                if req.lot_id is not None or req.source is not None:
+                    _allocation_error(
+                        "INVALID_AUTO_FIFO_REQUEST",
+                        "auto_fifo chooses its own lots; omit lot_id and source",
+                        status_code=422,
+                    )
+                expires_at = req.expires_at or (datetime.now(timezone.utc) + timedelta(hours=48))
+                if expires_at.tzinfo is None or expires_at.utcoffset() is None:
+                    _allocation_error(
+                        "INVALID_ALLOCATION_EXPIRY",
+                        "expires_at must include a timezone offset or Z",
+                        status_code=422,
+                    )
+                if expires_at <= datetime.now(timezone.utc):
+                    _allocation_error(
+                        "INVALID_ALLOCATION_EXPIRY",
+                        "expires_at must be in the future",
+                        status_code=422,
+                    )
+                _, line_allocated = _allocation_totals(cur, product_id, req.line_id)
+                remaining_effective = max(
+                    0.0,
+                    float(line["quantity_lb"])
+                    - _line_shipped_effective(cur, req.line_id, product_id),
+                )
+                unallocated_need = max(0.0, remaining_effective - line_allocated)
+                quantity = unallocated_need if req.quantity_lb is None else float(req.quantity_lb)
+                _validate_allocation_addition(cur, line, quantity)
+                to_allocate = quantity
+                for lot in available_lots_for_product(cur, product_id, req.line_id):
+                    if to_allocate <= BALANCE_EPSILON:
+                        break
+                    take = min(to_allocate, float(lot["takeable"] or 0))
+                    if take <= BALANCE_EPSILON:
+                        continue
+                    created.append(_upsert_live_allocation(
+                        cur,
+                        line=line,
+                        lot_id=int(lot["lot_id"]),
+                        quantity_lb=take,
+                        source="auto_fifo",
+                        expires_at=expires_at,
+                        note=req.note,
+                        created_by=created_by,
+                    ))
+                    to_allocate -= take
+                if to_allocate > BALANCE_EPSILON:
+                    _allocation_error(
+                        "OVER_ALLOCATION",
+                        f"Only {quantity - to_allocate:g} of {quantity:g} lb could be allocated FIFO",
+                        requested_lb=quantity,
+                        allocated_lb=quantity - to_allocate,
+                        coverable_lb=quantity - to_allocate,
+                    )
+
+            order_readiness, lines = _order_readiness_after_write(cur, order_id)
+            logger.info(
+                "Allocation create/upsert: order=%s line=%s product=%s mode=%s qty=%s rows=%s",
+                line["order_number"], req.line_id, product_id, req.mode,
+                sum(float(row["quantity_lb"]) for row in created),
+                [int(row["id"]) for row in created],
+            )
+            return {
+                "order_id": order_id,
+                "order_number": line["order_number"],
+                "line_id": req.line_id,
+                "mode": req.mode,
+                "allocations": created,
+                "expired_allocations_released": expired,
+                "line_readiness": lines[req.line_id]["readiness"],
+                "order_readiness": order_readiness,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        if _is_readonly_error(e):
+            raise
+        logger.error(f"Create allocation failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/sales/orders/{order_id}/allocations")
+def get_sales_order_allocations(
+    order_id: int = Depends(resolve_order_id),
+    _: bool = Depends(verify_api_key),
+):
+    try:
+        with get_transaction() as cur:
+            order_readiness, lines = _order_readiness_after_write(cur, order_id)
+            cur.execute(
+                """SELECT soa.*, p.name AS product_name, p.odoo_code AS sku,
+                          l.lot_code,
+                          CASE
+                            WHEN soa.status = 'active'
+                             AND soa.expires_at IS NOT NULL
+                             AND soa.expires_at <= clock_timestamp()
+                            THEN 'released'
+                            ELSE soa.status
+                          END AS effective_status
+                     FROM sales_order_allocations soa
+                     JOIN products p ON p.id = soa.product_id
+                     LEFT JOIN lots l ON l.id = soa.lot_id
+                    WHERE soa.sales_order_id = %s
+                    ORDER BY soa.created_at, soa.id""",
+                (order_id,),
+            )
+            allocations = [dict(row) for row in cur.fetchall()]
+            return {
+                "order_id": order_id,
+                "allocations": allocations,
+                "lines": [
+                    {"line_id": line_id, **payload}
+                    for line_id, payload in sorted(lines.items())
+                ],
+                "order_readiness": order_readiness,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get allocations failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.delete("/sales/orders/{order_id}/allocations/{allocation_id}")
+def release_sales_order_allocation(
+    allocation_id: int,
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    _: bool = Depends(verify_api_key),
+):
+    try:
+        with get_transaction() as cur:
+            cur.execute(
+                """SELECT soa.*, so.order_number
+                     FROM sales_order_allocations soa
+                     JOIN sales_orders so ON so.id = soa.sales_order_id
+                    WHERE soa.id = %s AND soa.sales_order_id = %s""",
+                (allocation_id, order_id),
+            )
+            allocation = cur.fetchone()
+            if not allocation:
+                _allocation_error(
+                    "ALLOCATION_NOT_FOUND",
+                    f"Allocation #{allocation_id} not found on order #{order_id}",
+                    status_code=404,
+                    allocation_id=allocation_id,
+                    order_id=order_id,
+                )
+            released_by = caller_source_tag(request)
+            _lock_allocation_product(cur, int(allocation["product_id"]))
+            expired = _expire_auto_fifo_allocations(
+                cur, int(allocation["product_id"]), released_by
+            )
+            released = _release_active_allocations(
+                cur,
+                allocation_id=allocation_id,
+                order_id=order_id,
+                reason="manual_release",
+                released_by=released_by,
+            )
+            if not released:
+                cur.execute(
+                    "SELECT status, release_reason, released_at FROM sales_order_allocations WHERE id=%s",
+                    (allocation_id,),
+                )
+                state = cur.fetchone()
+                if state and state["status"] == "released":
+                    released = [{"id": allocation_id, **dict(state)}]
+                else:
+                    _allocation_error(
+                        "ALLOCATION_NOT_ACTIVE",
+                        f"Allocation #{allocation_id} is not active",
+                        allocation_id=allocation_id,
+                        status=state["status"] if state else None,
+                    )
+            order_readiness, lines = _order_readiness_after_write(cur, order_id)
+            logger.info(
+                "Allocation release: order=%s allocation=%s reason=manual_release",
+                allocation["order_number"], allocation_id,
+            )
+            return {
+                "order_id": order_id,
+                "allocation_id": allocation_id,
+                "released": released,
+                "expired_allocations_released": expired,
+                "line_readiness": lines[int(allocation["sales_order_line_id"])]["readiness"],
+                "order_readiness": order_readiness,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        if _is_readonly_error(e):
+            raise
+        logger.error(f"Release allocation failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.patch("/lots/{lot_id}/received-at")
+def update_lot_received_at(
+    lot_id: int,
+    payload: Dict[str, Any],
+    _: bool = Depends(verify_api_key),
+):
+    if "received_at" not in payload or payload.get("received_at") in (None, ""):
+        _allocation_error(
+            "RECEIVED_AT_REQUIRED",
+            "received_at is required and cannot be null or empty",
+            status_code=422,
+            lot_id=lot_id,
+        )
+    value = payload.get("received_at")
+    if not isinstance(value, str):
+        _allocation_error(
+            "INVALID_RECEIVED_AT",
+            "received_at must be an ISO-8601 timestamp with a timezone offset or Z",
+            status_code=422,
+            lot_id=lot_id,
+        )
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        _allocation_error(
+            "INVALID_RECEIVED_AT",
+            "received_at must be an ISO-8601 timestamp with a timezone offset or Z",
+            status_code=422,
+            lot_id=lot_id,
+        )
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        _allocation_error(
+            "INVALID_RECEIVED_AT",
+            "received_at must include a timezone offset or Z",
+            status_code=422,
+            lot_id=lot_id,
+        )
+    if parsed > datetime.now(timezone.utc):
+        _allocation_error(
+            "RECEIVED_AT_IN_FUTURE",
+            "received_at cannot be in the future",
+            status_code=422,
+            lot_id=lot_id,
+        )
+    try:
+        with get_transaction() as cur:
+            cur.execute(
+                """UPDATE lots SET received_at = %s
+                     WHERE id = %s
+                 RETURNING id, lot_code, product_id, received_at, entry_source""",
+                (parsed, lot_id),
+            )
+            lot = cur.fetchone()
+            if not lot:
+                _allocation_error(
+                    "LOT_NOT_FOUND",
+                    f"Lot #{lot_id} not found",
+                    status_code=404,
+                    lot_id=lot_id,
+                )
+            result = dict(lot)
+            result["lot_id"] = result.pop("id")
+            result["lot_is_incomplete"] = _lot_is_incomplete(result)
+            return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        if _is_readonly_error(e):
+            raise
+        logger.error(f"Update lot received_at failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.patch("/sales/orders/{order_id}/status")
 def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderStatusUpdate = ..., _: bool = Depends(verify_api_key)):
     all_statuses = list(VALID_TRANSITIONS.keys())
@@ -8365,12 +9618,32 @@ def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderSta
                     (req.status, order_id)
                 )
                 updated = cur.fetchone()
+                released_allocations = []
+                if req.status == 'cancelled':
+                    cur.execute(
+                        """SELECT DISTINCT product_id
+                             FROM sales_order_allocations
+                            WHERE sales_order_id = %s AND status = 'active'
+                            ORDER BY product_id""",
+                        (order_id,),
+                    )
+                    product_ids = [int(item['product_id']) for item in cur.fetchall()]
+                    for product_id in product_ids:
+                        _lock_allocation_product(cur, product_id)
+                        _expire_auto_fifo_allocations(cur, product_id, _operator_id(_))
+                    released_allocations = _release_active_allocations(
+                        cur,
+                        order_id=order_id,
+                        reason='order_cancelled',
+                        released_by=_operator_id(_),
+                    )
                 logger.info(f"Order {updated['order_number']} status: {current} → {req.status}")
                 return {
                     "order_id": order_id,
                     "order_number": updated['order_number'],
                     "previous_status": current,
                     "status": updated['status'],
+                    "allocations_released": released_allocations,
                     "message": f"Order {updated['order_number']}: {current} → {req.status}"
                 }
     except HTTPException:
@@ -8600,13 +9873,22 @@ def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = 
                 cur.execute(
                     """UPDATE sales_order_lines SET line_status = 'cancelled'
                        WHERE id = %s AND sales_order_id = %s AND line_status != 'fulfilled'
-                       RETURNING id""",
+                       RETURNING id, product_id""",
                     (line_id, order_id)
                 )
                 row = cur.fetchone()
                 if not row:
                     raise HTTPException(404, "Line not found or already fulfilled")
-                return {"order_id": order_id, "line_id": line_id, "line_status": "cancelled", "message": "Line cancelled"}
+                _lock_allocation_product(cur, int(row['product_id']))
+                _expire_auto_fifo_allocations(cur, int(row['product_id']), _operator_id(_))
+                released = _release_active_allocations(
+                    cur,
+                    line_id=line_id,
+                    reason='line_cancelled',
+                    released_by=_operator_id(_),
+                )
+                return {"order_id": order_id, "line_id": line_id, "line_status": "cancelled",
+                        "allocations_released": released, "message": "Line cancelled"}
     except HTTPException:
         raise
     except Exception as e:
@@ -8626,9 +9908,49 @@ def update_order_line(
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """SELECT id, product_id, quantity_lb, unit_price, line_status
+                         FROM sales_order_lines
+                        WHERE id = %s AND sales_order_id = %s
+                          AND line_status NOT IN ('fulfilled', 'cancelled')
+                        FOR UPDATE""",
+                    (line_id, order_id),
+                )
+                existing = cur.fetchone()
+                if not existing:
+                    raise HTTPException(
+                        status_code=404,
+                        detail={
+                            "error_code": "LINE_NOT_FOUND",
+                            "message": "Line not found or already fulfilled/cancelled",
+                            "input": str(line_id),
+                            "suggestions": [],
+                        }
+                    )
                 fields = []
                 values = []
+                allocations_released = []
                 if quantity_lb is not None:
+                    if quantity_lb <= 0:
+                        _allocation_error(
+                            "INVALID_LINE_QUANTITY",
+                            "quantity_lb must be greater than zero",
+                            status_code=422,
+                            line_id=line_id,
+                            quantity_lb=quantity_lb,
+                        )
+                    shipped_effective = _line_shipped_effective(
+                        cur, line_id, int(existing['product_id'])
+                    )
+                    if quantity_lb + BALANCE_EPSILON < shipped_effective:
+                        _allocation_error(
+                            "QTY_BELOW_SHIPPED_EFFECTIVE",
+                            f"Line #{line_id} cannot be reduced below {shipped_effective:.4f} lb already shipped",
+                            status_code=422,
+                            line_id=line_id,
+                            requested_lb=quantity_lb,
+                            shipped_effective_lb=shipped_effective,
+                        )
                     fields.append("quantity_lb = %s")
                     values.append(quantity_lb)
                 if unit_price is not None:
@@ -8652,23 +9974,40 @@ def update_order_line(
                     values
                 )
                 row = cur.fetchone()
-                if not row:
-                    raise HTTPException(
-                        status_code=404,
-                        detail={
-                            "error_code": "LINE_NOT_FOUND",
-                            "message": "Line not found or already fulfilled/cancelled",
-                            "input": str(line_id),
-                            "suggestions": [],
-                        }
+                if quantity_lb is not None:
+                    product_id = int(row['product_id'])
+                    _lock_allocation_product(cur, product_id)
+                    _expire_auto_fifo_allocations(cur, product_id, _operator_id(_))
+                    remaining_effective = max(
+                        0.0,
+                        float(quantity_lb) - _line_shipped_effective(cur, line_id, product_id),
                     )
+                    cur.execute(
+                        """SELECT * FROM sales_order_allocations
+                             WHERE sales_order_line_id = %s AND status = 'active'
+                               AND (expires_at IS NULL OR expires_at > clock_timestamp())
+                             ORDER BY created_at DESC, id DESC FOR UPDATE""",
+                        (line_id,),
+                    )
+                    active_rows = cur.fetchall()
+                    allocated = sum(float(item['quantity_lb']) for item in active_rows)
+                    excess = max(0.0, allocated - remaining_effective)
+                    if excess > BALANCE_EPSILON:
+                        allocations_released = _shrink_active_allocations(
+                            cur,
+                            active_rows,
+                            excess,
+                            'line_quantity_reduced',
+                            _operator_id(_),
+                        )
                 # Fetch case_size_lb for unit count
                 cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (row['product_id'],))
                 prow = cur.fetchone()
                 cs = float(prow['case_size_lb']) if prow and prow['case_size_lb'] else None
                 qty = float(row['quantity_lb'])
                 return {"line_id": row['id'], "quantity_lb": qty, "unit_price": float(row['unit_price']) if row['unit_price'] else None,
-                        "case_size_lb": cs, "unit_count": round(qty / cs) if cs else None}
+                        "case_size_lb": cs, "unit_count": round(qty / cs) if cs else None,
+                        "allocations_released": allocations_released}
     except HTTPException:
         raise
     except Exception as e:
@@ -8723,15 +10062,22 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                                         "requested_ship_lb": ship_qty, "can_ship_lb": ship_qty, "on_hand_lb": None,
                                         "short": 0, "is_service": True})
                         continue
-                    cur.execute(f"SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand FROM lots l JOIN {POSTED_LINES} tl ON tl.lot_id = l.id WHERE l.product_id = %s", (line['product_id'],))
-                    on_hand = float(cur.fetchone()['on_hand'])
-                    can_ship = min(ship_qty, on_hand)
+                    plan = _sales_order_ship_plan(
+                        cur,
+                        int(line['product_id']),
+                        int(line['id']),
+                        ship_qty,
+                        lock=False,
+                        persist_expired=False,
+                    )
+                    on_hand = _product_on_hand(cur, int(line['product_id']))
+                    can_ship = float(plan['actual_ship_lb'])
                     if can_ship < ship_qty:
-                        warnings.append(f"{line['name']}: only {on_hand:.1f} lb on hand, need {ship_qty:.1f} lb")
+                        warnings.append(f"{line['name']}: only {can_ship:.1f} lb currently takeable, need {ship_qty:.1f} lb")
                     preview.append({"line_id": line['id'], "product": line['name'], "ordered_lb": float(line['quantity_lb']),
                                     "already_shipped_lb": float(line['quantity_shipped_lb']), "remaining_lb": remaining,
                                     "requested_ship_lb": ship_qty, "can_ship_lb": can_ship, "on_hand_lb": on_hand,
-                                    "short": max(0, ship_qty - on_hand)})
+                                    "short": max(0, ship_qty - can_ship)})
                 return {"mode": "preview", "order_number": order_row['order_number'], "customer": order_row['name'],
                         "status": order_row['status'], "lines": preview, "warnings": warnings,
                         "message": "Preview only — set mode=commit to execute"}
@@ -8819,23 +10165,14 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                             })
                             continue
 
-                        cur.execute(f"""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
-                                       FROM lots l JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                                       WHERE l.product_id = %s GROUP BY l.id
-                                       HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC""", (item["product_id"],))
-                        candidates = cur.fetchall()
-                        lot_ids = [c['id'] for c in candidates]
-                        if lot_ids:
-                            cur.execute("SELECT id FROM lots WHERE id = ANY(%s) FOR UPDATE", (lot_ids,))
-                            cur.execute(f"""SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) AS balance
-                                           FROM lots l JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                                           WHERE l.id = ANY(%s) GROUP BY l.id
-                                           HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC""", (lot_ids,))
-                            lots = cur.fetchall()
-                        else:
-                            lots = []
-                        available = sum(float(lt['balance']) for lt in lots)
-                        actual_ship = min(qty_to_ship, available)
+                        plan = _sales_order_ship_plan(
+                            cur,
+                            int(item["product_id"]),
+                            int(item["line_id"]),
+                            qty_to_ship,
+                            released_by=_operator_id(_),
+                        )
+                        actual_ship = float(plan["actual_ship_lb"])
                         if actual_ship <= BALANCE_EPSILON:
                             results.append({"line_id": item["line_id"], "product": item["product_name"], "requested_lb": qty_to_ship, "shipped_lb": 0, "status": "no_stock"})
                             all_fully_shipped = False
@@ -8844,16 +10181,15 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                         cur.execute("INSERT INTO transactions (type, timestamp, customer_name, notes) VALUES ('ship', %s, %s, %s) RETURNING id",
                                     (now, order_row['name'], f"Sales order {order_row['order_number']} — {item['product_name']}"))
                         txn_id = cur.fetchone()['id']
-                        remaining_to_ship = actual_ship
                         lots_used = []
-                        for lot in lots:
-                            if remaining_to_ship <= BALANCE_EPSILON: break
-                            balance = float(lot['balance'])
-                            if balance < BALANCE_EPSILON: continue
-                            take = min(remaining_to_ship, balance)
-                            cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, item["product_id"], lot['id'], -take))
-                            remaining_to_ship -= take
+                        for lot in plan["lots"]:
+                            take = float(lot["quantity_lb"])
+                            cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, item["product_id"], lot['lot_id'], -take))
                             lots_used.append({"lot_code": lot['lot_code'], "quantity_lb": take})
+
+                        allocation_changes = _consume_sales_order_allocations(
+                            cur, plan, txn_id
+                        )
 
                         cur.execute("UPDATE sales_order_lines SET quantity_shipped_lb = quantity_shipped_lb + %s WHERE id = %s RETURNING quantity_lb, quantity_shipped_lb", (actual_ship, item["line_id"]))
                         updated = cur.fetchone()
@@ -8886,6 +10222,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                                         "requested_lb": qty_to_ship, "shipped_lb": actual_ship,
                                         "shipped_units": round(actual_ship / cs_lb) if cs_lb else None,
                                         "short_lb": max(0, qty_to_ship - actual_ship), "lots_used": lots_used,
+                                        "allocation_changes": allocation_changes,
                                         "transaction_id": txn_id, "confirmation_code": generate_confirmation_code(txn_id),
                                         "line_status": new_line_status})
                         if actual_ship < qty_to_ship:
@@ -11077,10 +12414,14 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                         f"target lot {target['lot_code']} is product_id={target['product_id']}."
                     )
 
-                # 4. Lock both lots within transaction
-                cur.execute(
-                    "SELECT id FROM lots WHERE id IN (%s, %s) ORDER BY id FOR UPDATE",
-                    (req.source_lot_id, req.target_lot_id)
+                # 4. Lock every lot and active allocation for the product in
+                # the allocation protocol's deterministic order, then coalesce
+                # source pins onto the survivor before ledger references move.
+                allocation_moves = _coalesce_lot_allocations(
+                    cur,
+                    int(source['product_id']),
+                    req.source_lot_id,
+                    req.target_lot_id,
                 )
 
                 rows_moved = {}
@@ -11142,6 +12483,7 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                     "product_id": source['product_id'],
                     "rows_moved": rows_moved,
                     "line_correction_ids": line_correction_ids,
+                    "allocation_moves": allocation_moves,
                     "target_lot_new_balance": computed_balance,
                     "audit_note": req.reason
                 }

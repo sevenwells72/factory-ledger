@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-20 08:50 — FR-4 PR 3 allocation writes and lifecycle integration
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Added product-locked SKU/lot allocation upserts, sibling-aware over-allocation rejection, deterministic auto-FIFO lot pins with 48-hour TTL, effective expiry on writes, manual release/list routes, and dashboard-only received-at correction. Sales-order shipping now consumes and splits covering allocations unconditionally; void/restore coalesces and reverses partial splits under the unique-live indexes; inventory voids shrink uncovered product/lot claims; order/line cancel and quantity reductions release excess; lot merge coalesces duplicate survivor pins. The dashboard key allowlist covers only the new allocation and received-at routes; office/Floor GPT schemas remain 30/22 operations. Added API and state-machine tests covering manual/auto allocation, upsert, release, competition, SKU/lot consumption, 100→ship 40→void→restore, merge 40+60→100, expiry, received-at validation/clearing, scoped auth, cancel/edit release, and effective-shipped edit guards. Full local PostgreSQL suite passes 186/186.
+- **Why:** PRs 1–2 provided allocation storage and read-only readiness, but no safe way to create, consume, release, restore, or maintain exclusive reservations through order and lot lifecycle writes.
+
+---
+
 ## 2026-08-19 23:22 — FR-7 readiness follow-up: existing incomplete-lot pins clear unstaged
 - **File(s) changed:** `main.py`, `tests/test_sales_order_readiness.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
 - **What changed:** Corrected incomplete-lot FIFO readiness so a live lot-level allocation on that same lot clears `unstaged` for the line, while a partial pin still reports `partial_allocation` and `missing_lot_dates`. Added eight DB regression tests for that predicate, ordinary received lots with null `received_at`, physical `no_production` SKUs, cross-order allocation competition, non-diverged `partial_ship` fulfillment-check inclusion, cancelled-line exclusion, void→restore effective shipping, and closed/cancelled expected-receipt exclusion. Full suite passes 172/172 against `factory_ledger_test`.
