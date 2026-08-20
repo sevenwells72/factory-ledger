@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-20 15:20 — Migration 045 applied to production; schema re-dumped; pending include dropped
+- **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Applied migration 045 (`sales_order_allocation_reactivations`) to prod via the session-mode pooler on 5432 (clean COMMIT); verified live PK/CHECK/3 FKs and proved idempotence with a re-run (`NOTICE ... already exists, skipping`, clean COMMIT). Re-dumped the prod schema with `scripts/dump_prod_schema.sh` (3,986 lines, zero data rows) — 045 objects now in the dump body, pending `\ir 045` block removed per the row-79 rule. Fresh test-DB rebuild confirms the table comes from the dump body; full suite 205 passed / 169 warnings on Python 3.12.14 with the pinned package set (repo `.venv-test` is now 3.14.5 and also passes 205). Added changelog row 88.
+- **Why:** PR 3's void/restore code needs the table in prod before deploy; the pending-include convention (rows 72/79) requires removal after prod apply + re-dump.
+
+---
+
 ## 2026-08-20 — Review of 1bb6c72 accepted; cosmetic variances fixed
 - **File(s) changed:** `tests/schema/schema.sql`, `docs/designs/044-so-allocations-restore-addendum.md`, `CHANGE_LOG.md`
 - **What changed:** Independent review of 1bb6c72 (fix round 3) accepted with cosmetic variances, now fixed: appended the pending `\ir 045` block to `tests/schema/schema.sql` (041/044 precedent — remove after prod apply + re-dump) so a fresh `setup_test_db.sh` build contains `sales_order_allocation_reactivations`; corrected the addendum §3 S1 restore row to 409 `RESTORE_STOCK_MISSING` (stock preflight first per §2.1, owner ruling 2026-08-20) and added the S1b note (200 lb seeded → stock passes → 409 `RESTORE_SPLIT_MISSING` required=100 available=60). Fresh-DB rebuild + full pinned 3.12 suite: 205 passed.

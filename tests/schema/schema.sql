@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict 0UDfjBFEZmtOV8by2h6iD4FtzJBboUzXhhxjCvTyUZtTIgRb43UnN8YiI1zIA4L
+\restrict lLAWZcgkJFF1oXCgBXDD1uTvn4qEZYTsQa6SYb9objg1ubWzjefTNcURoaQtZPw
 
 -- Dumped from database version 17.6
--- Dumped by pg_dump version 17.11 (Homebrew)
+-- Dumped by pg_dump version 17.10 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -1653,6 +1653,20 @@ CREATE TABLE public.reassignment_reason_codes (
 
 
 --
+-- Name: sales_order_allocation_reactivations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_order_allocation_reactivations (
+    transaction_id integer NOT NULL,
+    sales_order_line_id integer NOT NULL,
+    quantity_lb numeric(14,4) NOT NULL,
+    correction_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT soar_quantity_lb_check CHECK ((quantity_lb >= (0)::numeric))
+);
+
+
+--
 -- Name: sales_order_allocations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2718,6 +2732,14 @@ ALTER TABLE ONLY public.reassignment_reason_codes
 
 
 --
+-- Name: sales_order_allocation_reactivations sales_order_allocation_reactivations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_allocation_reactivations
+    ADD CONSTRAINT sales_order_allocation_reactivations_pkey PRIMARY KEY (transaction_id, sales_order_line_id);
+
+
+--
 -- Name: sales_order_allocations sales_order_allocations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3741,6 +3763,30 @@ ALTER TABLE ONLY public.products
 
 
 --
+-- Name: sales_order_allocation_reactivations sales_order_allocation_reactivations_correction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_allocation_reactivations
+    ADD CONSTRAINT sales_order_allocation_reactivations_correction_id_fkey FOREIGN KEY (correction_id) REFERENCES public.ledger_corrections(id);
+
+
+--
+-- Name: sales_order_allocation_reactivations sales_order_allocation_reactivations_sales_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_allocation_reactivations
+    ADD CONSTRAINT sales_order_allocation_reactivations_sales_order_line_id_fkey FOREIGN KEY (sales_order_line_id) REFERENCES public.sales_order_lines(id);
+
+
+--
+-- Name: sales_order_allocation_reactivations sales_order_allocation_reactivations_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_allocation_reactivations
+    ADD CONSTRAINT sales_order_allocation_reactivations_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+
+
+--
 -- Name: sales_order_allocations sales_order_allocations_last_ship_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3936,13 +3982,5 @@ ALTER TABLE ONLY public.transactions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 0UDfjBFEZmtOV8by2h6iD4FtzJBboUzXhhxjCvTyUZtTIgRb43UnN8YiI1zIA4L
+\unrestrict lLAWZcgkJFF1oXCgBXDD1uTvn4qEZYTsQa6SYb9objg1ubWzjefTNcURoaQtZPw
 
-
---
--- PENDING MIGRATION 045 (feat/044-so-allocations) — appended so a fresh local
--- test DB matches the branch. Remove this block after 045 is applied to prod
--- and tests/schema/schema.sql is regenerated via scripts/dump_prod_schema.sh
--- (precedent: 041 / changelog row 72; 044 / changelog row 79).
---
-\ir ../../migrations/045_sales_order_allocation_reactivations.sql
