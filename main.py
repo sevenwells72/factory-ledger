@@ -7435,6 +7435,366 @@ def export_orders_matrix(_: bool = Depends(verify_api_key)):
     )
 
 
+_READINESS_BLOCKER_ORDER = {
+    code: index for index, code in enumerate((
+        "shortage",
+        "unallocated",
+        "partial_allocation",
+        "unstaged",
+        "missing_lot_dates",
+        "not_floor_ready",
+        "fulfillment_diverged",
+        "no_ship_date",
+        "inbound_cover",
+        "service_only",
+    ))
+}
+
+
+# Shared by all three readiness GETs. requested_orders is the complete page/set,
+# so shipped/on-hand/allocation inputs are aggregated once rather than queried
+# per order or line. Expired auto allocations are ignored by formula only: this
+# SELECT deliberately contains no UPDATE.
+SALES_ORDER_READINESS_SQL = """
+    WITH requested_orders AS (
+        SELECT unnest(%s::integer[]) AS sales_order_id
+    ),
+    line_base AS (
+        SELECT sol.id AS line_id, sol.sales_order_id, sol.product_id,
+               sol.quantity_lb AS ordered_lb,
+               sol.quantity_shipped_lb AS shipped_recorded_lb,
+               sol.line_status, p.name AS product, p.odoo_code AS sku,
+               COALESCE(p.is_service, false) AS is_service
+        FROM requested_orders ro
+        JOIN sales_order_lines sol ON sol.sales_order_id = ro.sales_order_id
+        JOIN products p ON p.id = sol.product_id
+        WHERE sol.line_status <> 'cancelled'
+    ),
+    relevant_products AS (
+        SELECT DISTINCT product_id
+        FROM line_base
+        WHERE NOT is_service
+    ),
+    posted AS (
+        SELECT tl.transaction_id, tl.lot_id, tl.product_id, tl.quantity_lb,
+               ct.type AS transaction_type
+        FROM ledger_current_transaction_lines tl
+        JOIN ledger_current_transactions ct ON ct.id = tl.transaction_id
+        JOIN relevant_products rp ON rp.product_id = tl.product_id
+        WHERE ct.effective_status = 'posted'
+    ),
+    lot_balances AS (
+        SELECT l.id AS lot_id, l.product_id, l.lot_code, l.entry_source,
+               l.received_at, l.created_at,
+               COALESCE(SUM(posted.quantity_lb), 0) AS on_hand_lb
+        FROM relevant_products rp
+        JOIN lots l ON l.product_id = rp.product_id
+        LEFT JOIN posted ON posted.lot_id = l.id
+        GROUP BY l.id, l.product_id, l.lot_code, l.entry_source,
+                 l.received_at, l.created_at
+    ),
+    on_hand_sku AS (
+        SELECT product_id, COALESCE(SUM(on_hand_lb), 0) AS on_hand_lb
+        FROM lot_balances
+        GROUP BY product_id
+    ),
+    shipped_eff AS (
+        SELECT sos.sales_order_line_id AS line_id,
+               SUM(ABS(posted.quantity_lb)) AS shipped_effective_lb
+        FROM line_base lb
+        JOIN sales_order_shipments sos ON sos.sales_order_line_id = lb.line_id
+        JOIN posted ON posted.transaction_id = sos.transaction_id
+                   AND posted.product_id = lb.product_id
+                   AND posted.transaction_type = 'ship'
+        WHERE NOT lb.is_service
+        GROUP BY sos.sales_order_line_id
+    ),
+    live_alloc AS (
+        SELECT soa.sales_order_line_id AS line_id, soa.product_id, soa.lot_id,
+               soa.quantity_lb
+        FROM sales_order_allocations soa
+        JOIN relevant_products rp ON rp.product_id = soa.product_id
+        WHERE soa.status = 'active'
+          AND (soa.expires_at IS NULL OR soa.expires_at > now())
+    ),
+    alloc_by_line AS (
+        SELECT line_id, product_id,
+               SUM(quantity_lb) AS allocated_lb,
+               SUM(quantity_lb) FILTER (WHERE lot_id IS NULL) AS allocated_sku_lb,
+               SUM(quantity_lb) FILTER (WHERE lot_id IS NOT NULL) AS allocated_lot_lb
+        FROM live_alloc
+        GROUP BY line_id, product_id
+    ),
+    alloc_by_product AS (
+        SELECT product_id,
+               SUM(quantity_lb) AS allocated_product_lb,
+               SUM(quantity_lb) FILTER (WHERE lot_id IS NULL) AS allocated_product_sku_lb
+        FROM live_alloc
+        GROUP BY product_id
+    ),
+    alloc_by_lot AS (
+        SELECT product_id, lot_id, SUM(quantity_lb) AS allocated_lot_lb
+        FROM live_alloc
+        WHERE lot_id IS NOT NULL
+        GROUP BY product_id, lot_id
+    ),
+    line_lot_payload AS (
+        SELECT line_id,
+               jsonb_agg(jsonb_build_object(
+                   'lot_id', lot_id,
+                   'quantity_lb', quantity_lb
+               ) ORDER BY lot_id) AS line_lot_allocations
+        FROM live_alloc
+        WHERE lot_id IS NOT NULL
+        GROUP BY line_id
+    ),
+    inbound AS (
+        SELECT er.product_id, SUM(er.expected_qty) AS inbound_open_lb
+        FROM expected_receipts er
+        JOIN relevant_products rp ON rp.product_id = er.product_id
+        WHERE er.status = 'open'
+        GROUP BY er.product_id
+    ),
+    lot_payload AS (
+        SELECT lb.product_id,
+               jsonb_agg(jsonb_build_object(
+                   'lot_id', lb.lot_id,
+                   'lot_code', lb.lot_code,
+                   'entry_source', lb.entry_source,
+                   'received_at', lb.received_at,
+                   'on_hand_lb', lb.on_hand_lb,
+                   'allocated_lot_lb', COALESCE(abl.allocated_lot_lb, 0)
+               ) ORDER BY COALESCE(lb.received_at, lb.created_at) ASC, lb.lot_id ASC) AS lots
+        FROM lot_balances lb
+        LEFT JOIN alloc_by_lot abl
+               ON abl.product_id = lb.product_id AND abl.lot_id = lb.lot_id
+        GROUP BY lb.product_id
+    )
+    SELECT lb.*,
+           COALESCE(se.shipped_effective_lb, 0) AS shipped_effective_lb,
+           COALESCE(oh.on_hand_lb, 0) AS on_hand_lb,
+           COALESCE(abl.allocated_lb, 0) AS allocated_lb,
+           COALESCE(abl.allocated_sku_lb, 0) AS allocated_sku_lb,
+           COALESCE(abl.allocated_lot_lb, 0) AS allocated_lot_lb,
+           COALESCE(abp.allocated_product_lb, 0) AS allocated_product_lb,
+           COALESCE(abp.allocated_product_sku_lb, 0) AS allocated_product_sku_lb,
+           COALESCE(i.inbound_open_lb, 0) AS inbound_open_lb,
+           COALESCE(lp.lots, '[]'::jsonb) AS lots,
+           COALESCE(llp.line_lot_allocations, '[]'::jsonb) AS line_lot_allocations
+    FROM line_base lb
+    LEFT JOIN shipped_eff se ON se.line_id = lb.line_id
+    LEFT JOIN on_hand_sku oh ON oh.product_id = lb.product_id
+    LEFT JOIN alloc_by_line abl
+           ON abl.line_id = lb.line_id AND abl.product_id = lb.product_id
+    LEFT JOIN alloc_by_product abp ON abp.product_id = lb.product_id
+    LEFT JOIN inbound i ON i.product_id = lb.product_id
+    LEFT JOIN lot_payload lp ON lp.product_id = lb.product_id
+    LEFT JOIN line_lot_payload llp ON llp.line_id = lb.line_id
+    ORDER BY lb.sales_order_id, lb.line_id
+"""
+
+
+def _factory_ready_required() -> bool:
+    return (os.getenv("FACTORY_READY_REQUIRED", "true").strip().lower()
+            not in {"0", "false", "no", "off"})
+
+
+def _blocker(code: str, severity: str, detail: Optional[str] = None) -> dict:
+    item = {"code": code, "severity": severity}
+    if detail:
+        item["detail"] = detail
+    return item
+
+
+def _lot_is_incomplete(lot: dict) -> bool:
+    lot_code = str(lot.get("lot_code") or "")
+    return (
+        (lot_code.upper().startswith("STAGED-") or lot.get("entry_source") == "found_inventory")
+        and lot.get("received_at") is None
+    )
+
+
+def _line_readiness(row: dict) -> dict:
+    """Apply the PR-2 readiness formula to one physical line input row."""
+    ordered = float(row["ordered_lb"] or 0)
+    shipped_recorded = float(row["shipped_recorded_lb"] or 0)
+    shipped_effective = float(row["shipped_effective_lb"] or 0)
+    remaining = max(0.0, ordered - shipped_effective)
+    on_hand = float(row["on_hand_lb"] or 0)
+    allocated = float(row["allocated_lb"] or 0)
+    allocated_sku = float(row["allocated_sku_lb"] or 0)
+    allocated_lot = float(row["allocated_lot_lb"] or 0)
+    allocated_product = float(row["allocated_product_lb"] or 0)
+    allocated_others = max(0.0, allocated_product - allocated)
+    available = on_hand - allocated_product
+    coverable = max(0.0, on_hand - allocated_others)
+    shortage = max(0.0, remaining - coverable)
+    unallocated_need = max(0.0, remaining - allocated)
+    inbound_open = float(row["inbound_open_lb"] or 0)
+    diverged = abs(shipped_recorded - shipped_effective) > BALANCE_EPSILON
+
+    line_lot_allocations = {
+        int(item["lot_id"]): float(item["quantity_lb"] or 0)
+        for item in (row.get("line_lot_allocations") or [])
+    }
+    incomplete_pins = [
+        lot for lot in (row.get("lots") or [])
+        if line_lot_allocations.get(int(lot["lot_id"]), 0) > BALANCE_EPSILON
+        and _lot_is_incomplete(lot)
+    ]
+
+    # Determine whether FIFO coverage of the portion not already pinned to a
+    # lot would need an incomplete unpinned lot. Foreign SKU allocations claim
+    # the same unpinned pool first, in deterministic FIFO order.
+    need_from_unpinned = max(0.0, remaining - allocated_lot)
+    foreign_sku = max(
+        0.0,
+        float(row["allocated_product_sku_lb"] or 0) - allocated_sku,
+    )
+    unstaged_lots = []
+    for lot in (row.get("lots") or []):
+        free = max(
+            0.0,
+            float(lot.get("on_hand_lb") or 0) - float(lot.get("allocated_lot_lb") or 0),
+        )
+        if foreign_sku > BALANCE_EPSILON:
+            shadowed = min(foreign_sku, free)
+            foreign_sku -= shadowed
+            free -= shadowed
+        if free <= BALANCE_EPSILON or need_from_unpinned <= BALANCE_EPSILON:
+            continue
+        take = min(need_from_unpinned, free)
+        if take > BALANCE_EPSILON and _lot_is_incomplete(lot):
+            unstaged_lots.append(str(lot.get("lot_code") or lot["lot_id"]))
+        need_from_unpinned -= take
+
+    blockers = []
+    if shortage > BALANCE_EPSILON:
+        blockers.append(_blocker("shortage", "block", f"Short {shortage:.4f} lb of posted cover"))
+    if remaining > BALANCE_EPSILON and allocated <= BALANCE_EPSILON:
+        blockers.append(_blocker("unallocated", "block", f"{remaining:.4f} lb remains with no allocation"))
+    elif (allocated > BALANCE_EPSILON
+          and allocated < remaining - BALANCE_EPSILON):
+        blockers.append(_blocker("partial_allocation", "block", f"{unallocated_need:.4f} lb remains unallocated"))
+    if unstaged_lots:
+        blockers.append(_blocker("unstaged", "block", "Incomplete FIFO stock must be lot-pinned: " + ", ".join(unstaged_lots)))
+    if incomplete_pins:
+        blockers.append(_blocker("missing_lot_dates", "block", "Allocated lots need received_at: " + ", ".join(str(lot.get("lot_code") or lot["lot_id"]) for lot in incomplete_pins)))
+    if diverged:
+        blockers.append(_blocker("fulfillment_diverged", "block", "Recorded and effective shipped pounds differ"))
+    if remaining > BALANCE_EPSILON and inbound_open > BALANCE_EPSILON:
+        blockers.append(_blocker("inbound_cover", "warn", f"{inbound_open:.4f} lb is expected inbound and is not on-hand"))
+
+    inventory_ready = (
+        remaining <= BALANCE_EPSILON
+        or (allocated + BALANCE_EPSILON >= remaining and shortage <= BALANCE_EPSILON)
+    )
+    return {
+        "ordered_lb": ordered,
+        "shipped_recorded_lb": shipped_recorded,
+        "shipped_effective_lb": shipped_effective,
+        "remaining_lb": remaining,
+        "on_hand_lb": on_hand,
+        "allocated_lb": allocated,
+        "allocated_sku_lb": allocated_sku,
+        "allocated_lot_lb": allocated_lot,
+        "available_lb": available,
+        "coverable_lb": coverable,
+        "shortage_lb": shortage,
+        "unallocated_need_lb": unallocated_need,
+        "inbound_open_lb": inbound_open,
+        "inventory_ready": inventory_ready,
+        "fulfillment_diverged": diverged,
+        "blockers": blockers,
+    }
+
+
+def _load_sales_order_readiness(cur, order_rows: list) -> tuple[dict, dict]:
+    """Return ({order_id: readiness}, {line_id: readiness}) without writes."""
+    if not order_rows:
+        return {}, {}
+    order_ids = [int(row["id"]) for row in order_rows]
+    cur.execute(SALES_ORDER_READINESS_SQL, (order_ids,))
+    inputs = cur.fetchall()
+
+    order_meta = {int(row["id"]): row for row in order_rows}
+    line_results = {}
+    grouped = {order_id: [] for order_id in order_ids}
+    for row in inputs:
+        if row["is_service"]:
+            readiness = {
+                "inventory_ready": True,
+                "fulfillment_diverged": False,
+                "blockers": [],
+            }
+        else:
+            readiness = _line_readiness(row)
+            grouped[int(row["sales_order_id"])].append(readiness)
+        line_results[int(row["line_id"])] = {
+            "sales_order_id": int(row["sales_order_id"]),
+            "product": row["product"],
+            "sku": row["sku"],
+            "is_service": bool(row["is_service"]),
+            "ordered_lb": float(row["ordered_lb"] or 0),
+            "shipped_recorded_lb": float(row["shipped_recorded_lb"] or 0),
+            "readiness": readiness,
+        }
+
+    order_results = {}
+    for order_id in order_ids:
+        physical = grouped[order_id]
+        ordered = sum(line["ordered_lb"] for line in physical)
+        shipped_recorded = sum(line["shipped_recorded_lb"] for line in physical)
+        shipped_effective = sum(line["shipped_effective_lb"] for line in physical)
+        remaining = sum(line["remaining_lb"] for line in physical)
+        allocated = sum(line["allocated_lb"] for line in physical)
+        shortage = sum(line["shortage_lb"] for line in physical)
+        inventory_ready = all(line["inventory_ready"] for line in physical)
+
+        blockers_by_code = {}
+        for line in physical:
+            for blocker in line["blockers"]:
+                blockers_by_code.setdefault(
+                    blocker["code"],
+                    {"code": blocker["code"], "severity": blocker["severity"]},
+                )
+
+        meta = order_meta[order_id]
+        floor_ready = bool(meta.get("ready") or meta.get("floor_ready"))
+        if not floor_ready:
+            blockers_by_code["not_floor_ready"] = {
+                "code": "not_floor_ready",
+                "severity": "block" if _factory_ready_required() else "warn",
+            }
+        if meta.get("requested_ship_date") is None:
+            blockers_by_code["no_ship_date"] = {"code": "no_ship_date", "severity": "warn"}
+        if not any(line["remaining_lb"] > BALANCE_EPSILON for line in physical):
+            blockers_by_code["service_only"] = {"code": "service_only", "severity": "info"}
+
+        blockers = sorted(
+            blockers_by_code.values(),
+            key=lambda item: _READINESS_BLOCKER_ORDER[item["code"]],
+        )
+        fulfillment_diverged = any(line["fulfillment_diverged"] for line in physical)
+        dispatch_ready = inventory_ready and not any(
+            blocker["severity"] == "block" for blocker in blockers
+        )
+        order_results[order_id] = {
+            "ordered_lb": ordered,
+            "shipped_recorded_lb": shipped_recorded,
+            "shipped_effective_lb": shipped_effective,
+            "remaining_effective_lb": remaining,
+            "allocated_lb": allocated,
+            "shortage_lb": shortage,
+            "inventory_ready": inventory_ready,
+            "dispatch_ready": dispatch_ready,
+            "floor_ready": floor_ready,
+            "fulfillment_diverged": fulfillment_diverged,
+            "blockers": blockers,
+        }
+    return order_results, line_results
+
+
 @app.get("/sales/orders")
 def list_sales_orders(
     status: Optional[str] = None,
@@ -7497,6 +7857,7 @@ def list_sales_orders(
             params.append(limit)
             cur.execute(query, params)
             rows = cur.fetchall()
+            readiness_by_order, _ = _load_sales_order_readiness(cur, rows)
 
             orders = []
             for r in rows:
@@ -7538,6 +7899,16 @@ def list_sales_orders(
                     "note": r['ready_note'],
                     "overdue": ship_date is not None and ship_date < date.today() and is_open
                 }
+                readiness = readiness_by_order[r['id']]
+                order.update({
+                    "inventory_ready": readiness["inventory_ready"],
+                    "dispatch_ready": readiness["dispatch_ready"],
+                    "fulfillment_diverged": readiness["fulfillment_diverged"],
+                    "shortage_lb": readiness["shortage_lb"],
+                    "allocated_lb": readiness["allocated_lb"],
+                    "remaining_effective_lb": readiness["remaining_effective_lb"],
+                    "blockers": readiness["blockers"],
+                })
                 if order_warnings:
                     order["warnings"] = order_warnings
                 orders.append(order)
@@ -7609,11 +7980,8 @@ def fulfillment_check(
     order_id: Optional[int] = Query(default=None),
     _: bool = Depends(verify_api_key)
 ):
-    """
-    Read-only fulfillment feasibility check across open orders.
-    Returns which orders can be fully fulfilled from current inventory.
-    """
-    OPEN_STATUSES = ('confirmed', 'in_production', 'ready')
+    """Read-only dispatch queue for open and fulfillment-diverged orders."""
+    OPEN_STATUSES = ('confirmed', 'in_production', 'ready', 'partial_ship')
 
     if status and status not in OPEN_STATUSES:
         raise HTTPException(400,
@@ -7622,23 +7990,30 @@ def fulfillment_check(
 
     try:
         with get_transaction() as cur:
-            # Build dynamic query for orders
             query = """
-                SELECT DISTINCT so.id, so.order_number, so.status, so.requested_ship_date,
-                       c.name AS customer
-                FROM sales_orders so
-                JOIN customers c ON c.id = so.customer_id
-                LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
-                WHERE so.status IN %s
+                WITH matching_orders AS (
+                    SELECT so.id, so.order_number, so.status, so.requested_ship_date,
+                           c.name AS customer, COALESCE(sof.ready, false) AS ready
+                    FROM sales_orders so
+                    JOIN customers c ON c.id = so.customer_id
+                    LEFT JOIN sales_order_flags sof ON sof.so_number = so.order_number
+                    WHERE 1=1
             """
-            params: list = [OPEN_STATUSES]
+            params: list = []
 
             if order_id is not None:
                 query += " AND so.id = %s"
                 params.append(order_id)
 
             if customer_name:
-                query += " AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))"
+                query += """ AND (
+                    LOWER(c.name) LIKE LOWER(%s)
+                    OR EXISTS (
+                        SELECT 1 FROM customer_aliases ca
+                        WHERE ca.customer_id = c.id
+                          AND LOWER(ca.alias) LIKE LOWER(%s)
+                    )
+                )"""
                 params.append(f"%{customer_name}%")
                 params.append(f"%{customer_name}%")
 
@@ -7646,102 +8021,113 @@ def fulfillment_check(
                 query += " AND so.status = %s"
                 params.append(status)
 
-            query += " ORDER BY so.requested_ship_date ASC NULLS LAST, so.id ASC"
+            query += """
+                ),
+                physical_lines AS (
+                    SELECT sol.id AS line_id, sol.sales_order_id, sol.product_id,
+                           sol.quantity_shipped_lb AS shipped_recorded_lb
+                    FROM matching_orders mo
+                    JOIN sales_order_lines sol ON sol.sales_order_id = mo.id
+                    JOIN products p ON p.id = sol.product_id
+                    WHERE sol.line_status <> 'cancelled'
+                      AND NOT COALESCE(p.is_service, false)
+                ),
+                shipped_eff AS (
+                    SELECT pl.line_id,
+                           SUM(ABS(tl.quantity_lb)) AS shipped_effective_lb
+                    FROM physical_lines pl
+                    JOIN sales_order_shipments sos ON sos.sales_order_line_id = pl.line_id
+                    JOIN ledger_current_transactions ct ON ct.id = sos.transaction_id
+                    JOIN ledger_current_transaction_lines tl
+                      ON tl.transaction_id = sos.transaction_id
+                     AND tl.product_id = pl.product_id
+                    WHERE ct.effective_status = 'posted'
+                      AND ct.type = 'ship'
+                    GROUP BY pl.line_id
+                ),
+                divergent_orders AS (
+                    SELECT pl.sales_order_id
+                    FROM physical_lines pl
+                    LEFT JOIN shipped_eff se ON se.line_id = pl.line_id
+                    GROUP BY pl.sales_order_id
+                    HAVING BOOL_OR(
+                        ABS(pl.shipped_recorded_lb - COALESCE(se.shipped_effective_lb, 0)) > %s
+                    )
+                )
+                SELECT mo.*
+                FROM matching_orders mo
+                LEFT JOIN divergent_orders d ON d.sales_order_id = mo.id
+                WHERE mo.status = ANY(%s) OR d.sales_order_id IS NOT NULL
+                ORDER BY mo.requested_ship_date ASC NULLS LAST, mo.id ASC
+            """
+            params.extend([BALANCE_EPSILON, list(OPEN_STATUSES)])
             cur.execute(query, tuple(params))
             orders = cur.fetchall()
+            readiness_by_order, readiness_by_line = _load_sales_order_readiness(cur, orders)
 
             results = []
             summary = {"total_orders_checked": 0, "fulfillable": 0, "partially_fulfillable": 0, "blocked": 0}
+            lines_by_order = {int(order["id"]): [] for order in orders}
+            for line_id, payload in readiness_by_line.items():
+                lines_by_order[payload["sales_order_id"]].append((line_id, payload))
 
             for order in orders:
-                # Get active lines with remaining quantity
-                cur.execute(
-                    """SELECT sol.id, p.id AS product_id, p.name,
-                              sol.quantity_lb, sol.quantity_shipped_lb
-                       FROM sales_order_lines sol
-                       JOIN products p ON p.id = sol.product_id
-                       WHERE sol.sales_order_id = %s
-                         AND sol.line_status NOT IN ('fulfilled', 'cancelled')
-                       ORDER BY sol.id""",
-                    (order['id'],)
-                )
-                lines = cur.fetchall()
-
                 order_lines = []
-                total_remaining = 0
-                total_on_hand = 0
-                total_shortfall = 0
-                lines_fulfillable = 0
-                lines_checked = 0
-
-                for line in lines:
-                    remaining = float(line['quantity_lb']) - float(line['quantity_shipped_lb'])
-                    if remaining <= 0:
-                        continue
-
-                    # Same inventory query as shipOrderPreview
-                    cur.execute(
-                        f"""SELECT COALESCE(SUM(tl.quantity_lb), 0) as on_hand
-                           FROM lots l
-                           JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                           WHERE l.product_id = %s""",
-                        (line['product_id'],)
+                line_payloads = lines_by_order[order['id']]
+                for line_id, payload in line_payloads:
+                    ready = payload["readiness"]
+                    remaining = ready.get(
+                        "remaining_lb",
+                        max(0.0, payload["ordered_lb"] - payload["shipped_recorded_lb"]),
                     )
-                    on_hand = float(cur.fetchone()['on_hand'])
-                    shortfall = max(0, remaining - on_hand)
-                    can_fulfill = on_hand >= remaining
-
-                    lines_checked += 1
-                    if can_fulfill:
-                        lines_fulfillable += 1
-
-                    total_remaining += remaining
-                    total_on_hand += on_hand
-                    total_shortfall += shortfall
-
                     order_lines.append({
-                        "line_id": line['id'],
-                        "product": line['name'],
-                        "ordered_lb": float(line['quantity_lb']),
-                        "shipped_lb": float(line['quantity_shipped_lb']),
+                        "line_id": line_id,
+                        "product": payload["product"],
+                        "sku": payload["sku"],
+                        "ordered_lb": payload["ordered_lb"],
+                        "shipped_lb": payload["shipped_recorded_lb"],
                         "remaining_lb": remaining,
-                        "on_hand_lb": on_hand,
-                        "can_fulfill": can_fulfill,
-                        "shortfall_lb": shortfall
+                        "on_hand_lb": ready.get("on_hand_lb", 0.0),
+                        "can_fulfill": ready["inventory_ready"],
+                        "shortfall_lb": ready.get("shortage_lb", 0.0),
+                        "readiness": ready,
                     })
 
-                # Skip orders with nothing remaining
-                if lines_checked == 0:
-                    continue
-
-                order_fulfillable = (lines_fulfillable == lines_checked)
+                readiness = readiness_by_order[order['id']]
+                physical_states = [
+                    payload["readiness"] for _, payload in line_payloads
+                    if not payload["is_service"]
+                ]
+                ready_lines = sum(line["inventory_ready"] for line in physical_states)
 
                 # Classify for summary
                 summary["total_orders_checked"] += 1
-                if lines_fulfillable == lines_checked:
+                if readiness["inventory_ready"]:
                     summary["fulfillable"] += 1
-                elif lines_fulfillable > 0:
+                elif ready_lines > 0:
                     summary["partially_fulfillable"] += 1
                 else:
                     summary["blocked"] += 1
 
-                results.append({
+                result = {
                     "order_id": order['id'],
                     "order_number": order['order_number'],
                     "customer": order['customer'],
                     "status": order['status'],
                     "requested_ship_date": str(order['requested_ship_date']) if order['requested_ship_date'] else None,
-                    "fulfillable": order_fulfillable,
+                    "fulfillable": readiness["inventory_ready"],
                     "lines": order_lines,
-                    "total_remaining_lb": total_remaining,
-                    "total_on_hand_lb": total_on_hand,
-                    "total_shortfall_lb": total_shortfall
-                })
+                    "total_remaining_lb": readiness["remaining_effective_lb"],
+                    "total_on_hand_lb": sum(line.get("on_hand_lb", 0.0) for line in physical_states),
+                    "total_shortfall_lb": readiness["shortage_lb"],
+                }
+                result.update(readiness)
+                results.append(result)
 
             # Sort: fulfillable first within each date group
             results.sort(key=lambda o: (
                 o['requested_ship_date'] or '9999-12-31',
-                0 if o['fulfillable'] else 1
+                0 if o['dispatch_ready'] else 1
             ))
 
             return {
@@ -7761,9 +8147,11 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
         with get_transaction() as cur:
             cur.execute(
                 """SELECT so.id, so.order_number, c.name AS customer, so.order_date,
-                          so.requested_ship_date, so.status, so.notes, so.notes_es, so.created_at
+                          so.requested_ship_date, so.status, so.notes, so.notes_es, so.created_at,
+                          COALESCE(sof.ready, false) AS ready
                    FROM sales_orders so
                    JOIN customers c ON c.id = so.customer_id
+                   LEFT JOIN sales_order_flags sof ON sof.so_number = so.order_number
                    WHERE so.id = %s""",
                 (order_id,)
             )
@@ -7779,6 +8167,7 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                     }
                 )
 
+            readiness_by_order, readiness_by_line = _load_sales_order_readiness(cur, [row])
             date_str, time_str = format_timestamp(row['created_at'])
             order = {
                 "order_id": row['id'],
@@ -7878,6 +8267,9 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                     line_data["unit_quantity"] = int(qty) if qty == int(qty) else qty
                 if r.get('notes_es'):
                     line_data["notes_es"] = r['notes_es']
+                line_readiness = readiness_by_line.get(r['id'])
+                if line_readiness is not None:
+                    line_data["readiness"] = line_readiness["readiness"]
                 lines.append(line_data)
 
             cur.execute(
@@ -7916,6 +8308,7 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 "total_remaining_units": total_ordered_units - total_shipped_units,
                 "total_value": round(total_value, 2) if total_value > 0 else None
             }
+            order.update(readiness_by_order[order_id])
             return order
     except HTTPException:
         raise

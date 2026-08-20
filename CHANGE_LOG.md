@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-19 21:20 — FR-7 PR 2 read-only sales-order readiness and dispatch blockers
+- **File(s) changed:** `main.py`, `openapi-gpt-v3.yaml`, `tests/test_sales_order_readiness.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Added one shared batched readiness CTE for the list page, order detail, and fulfillment-check. Effective shipped pounds come only from effective-posted physical ledger lines (`SUM(ABS(transaction_lines.quantity_lb))` linked by shipment transaction), while the mutable SO shipped counter is diagnostic only and the two-decimal shipment-link quantity is never summed. Added ε=0.0001 remaining/available/coverable/shortage/unallocated/inventory-ready formulas, sibling SKU competition, live allocation TTL filtering without writes, all block/warn/info codes, configurable Factory Ready severity (default block), additive list summaries and nested line readiness. Fulfillment-check now includes `partial_ship` and fulfillment-diverged closed statuses. OpenAPI descriptions changed with operation counts fixed at office 30 / Floor 22. Nine new DB tests cover the design's read-applicable cases; full suite passes 164/164. A rolled-back synthetic 50-order `EXPLAIN (ANALYZE, BUFFERS)` returned 50 rows with one allocation scan and one shipped aggregate (planning 6.209 ms, execution 1.118 ms).
+- **Why:** Readiness previously double-counted stock across orders, included services, trusted a void-blind counter, omitted allocation/lot/floor blockers, and could report a zero-allocation order as feasible without an explicit reason.
+
+---
+
 ## 2026-08-19 20:56 — Migration 044 production schema refresh and branch cleanup
 - **File(s) changed:** `tests/schema/schema.sql`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
 - **What changed:** Ran `scripts/dump_prod_schema.sh` against production with PostgreSQL 17.11 and regenerated the schema-only test fixture (3,940 lines, verified zero data rows). The production dump now contains `sales_order_allocations`, its identity sequence, primary key, six supporting/partial indexes (including `soa_active_sku_uniq` and `soa_active_lot_uniq`), and seven foreign keys directly; the temporary `\ir ../../migrations/044_sales_order_allocations.sql` block is removed. This was a schema read/fixture refresh only: it did not execute migration 044 or deploy application code. Full local suite: 155/155 passed against `factory_ledger_test`.

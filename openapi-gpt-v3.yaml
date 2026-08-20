@@ -753,7 +753,7 @@ paths:
             maximum: 200
       responses:
         '200':
-          description: "Sales orders. Includes total_units, shipped_units, remaining_units for packaged products."
+          description: "Sales orders with packaged-unit totals plus additive inventory_ready, dispatch_ready, fulfillment_diverged, shortage_lb, allocated_lb, remaining_effective_lb, and blockers readiness fields."
     post:
       operationId: createOrder
       summary: Create a new sales order
@@ -797,7 +797,7 @@ paths:
           description: "Order DB id (integer) or order number (e.g. 'SO-260323-001')"
       responses:
         '200':
-          description: "Order details with lines. Lines include unit_count, shipped_units, remaining_units. Totals include total_ordered_units, total_shipped_units, total_remaining_units."
+          description: "Order details with additive order readiness and per-line readiness objects derived from posted ledger shipments, live allocations, and dispatch blockers; service lines are excluded from physical readiness totals."
         '404':
           description: "ORDER_NOT_FOUND"
           content:
