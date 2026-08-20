@@ -315,6 +315,10 @@ Both were named in `docs/reviews/ef709e5-pr3-review.md` §4 and are still open i
 
 **PR 5:** steal-409 (`STOCK_ALLOCATED`) on restore-of-unallocated-pounds that are now reserved by others is **not** specified here. Flag-off behavior is: allow the restore (if stock preflight passes), then shrink. PR 5 may add a 409 in front of that; it must not remove the shrink.
 
+### 4.a.1 Standalone-ship steals also shrink (`inventory_shipped`) — owner ruling 2026-08-20
+
+A standalone `/ship` commit that takes reserved pounds in observe mode (flag off) triggers `_shrink_overallocated_products` on the shipped product immediately after posting, with `release_reason='inventory_shipped'` — the same repair philosophy as §4.a: an on-hand-reducing write must not leave `SUM(active) > on_hand`. This extends the parent design's Q4 event table (which listed only void/restore events) and its reason vocabulary (`inventory_voided` / `inventory_restored`); `inventory_shipped` distinguishes standalone-ship steals in logs. **Pack retains its documented observe-mode hole** (parent Q4 / design L1147: no SOA convert, no shrink on pack) until PR 5 enforcement. Owner ruling 2026-08-20, accepting the PR 4 review's flagged variance.
+
 ### 4.b Corrections handler posts restores with no stock guard
 
 **Fact.** `validate_lot_deduction` (400, string detail) guards new ship/pack deductions after the lot is locked. Restore of a voided ship re-posts the original negative lines via `ledger_corrections` and never calls it. If the pounds were consumed after the void, restore drives posted on-hand negative. That is reachable today through `POST /records/transactions/{id}/corrections`.

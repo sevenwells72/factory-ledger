@@ -1575,6 +1575,263 @@ def test_pack_source_observe_mode_warns_and_target_allocation_does_not_block(
     assert source_allocation == {"quantity_lb": 60, "status": "active"}
 
 
+# ─────────────────────────────────────────────────────────────────
+# PR 4 fix round (review gaps a–e + owner rulings 2026-08-20)
+# ─────────────────────────────────────────────────────────────────
+
+@pytest.mark.db
+def test_standalone_ship_commit_shrinks_sku_level_pin(db_cursor, allocation_client):
+    """Gap (a): observe-mode standalone steal shrinks a SKU-level (lot_id NULL)
+    pin with release_reason='inventory_shipped', same as the lot-level case."""
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-FIX-SKU-SHRINK")
+    _post_stock(cur, product_id, lot_id, 100)
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 60},
+    ).status_code == 200
+    cur.execute("SELECT name FROM products WHERE id=%s", (product_id,))
+    product_name = cur.fetchone()["name"]
+
+    shipped = allocation_client.post(
+        "/ship/commit",
+        json={
+            "product_name": product_name,
+            "quantity_lb": 80,
+            "customer_name": f"T044 FIX SKU {order_id}",
+            "order_reference": f"T044-FIX-SKU-{order_id}",
+            "force_standalone": True,
+            "force_create_customer": True,
+        },
+    )
+    assert shipped.status_code == 200, shipped.text
+    payload = shipped.json()
+    assert payload["can_ship_lb"] == pytest.approx(40)
+    assert payload["allocation_warning"]["reserved_taken_lb"] == pytest.approx(40)
+    assert sum(row["quantity_lb"] for row in payload["allocations_released"]) == pytest.approx(40)
+    assert {row["reason"] for row in payload["allocations_released"]} == {"inventory_shipped"}
+    assert main._product_on_hand(cur, product_id) == pytest.approx(20)
+    cur.execute(
+        "SELECT quantity_lb, lot_id FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status='active'",
+        (line_id,),
+    )
+    row = cur.fetchone()
+    assert float(row["quantity_lb"]) == pytest.approx(20)
+    assert row["lot_id"] is None
+
+
+@pytest.mark.db
+def test_order_ship_preview_counts_sibling_line_same_order(db_cursor, allocation_client):
+    """Gap (b): a sibling line of the SAME order competes; only the previewed
+    line's own allocations are excluded."""
+    cur = db_cursor
+    order_id, (line_a,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute(
+        "INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb) "
+        "VALUES (%s, %s, 100) RETURNING id",
+        (order_id, product_id),
+    )
+    line_b = cur.fetchone()["id"]
+    lot_id = _seed_lot(cur, product_id, "T044-FIX-SIBLING")
+    _post_stock(cur, product_id, lot_id, 100)
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_a, "quantity_lb": 30, "lot_id": lot_id},
+    ).status_code == 200
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_b, "quantity_lb": 20},
+    ).status_code == 200
+    cur.execute("SELECT order_number FROM sales_orders WHERE id=%s", (order_id,))
+    order_number = cur.fetchone()["order_number"]
+
+    preview = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/preview",
+        json={"ship_all": False, "lines": [{"line_id": line_a, "quantity_lb": 100}]},
+    )
+    assert preview.status_code == 200, preview.text
+    line = preview.json()["lines"][0]
+    assert line["reserved_others_lb"] == pytest.approx(20)
+    assert line["reserved_by_orders"] == [
+        {"order_number": order_number, "quantity_lb": 20.0}
+    ]
+    assert line["can_ship_lb"] == pytest.approx(80)
+
+
+@pytest.mark.db
+def test_standalone_ship_commit_persists_expired_auto_fifo_release(
+    db_cursor, allocation_client
+):
+    """Gap (c): the locked ship-commit write path persists elapsed auto-FIFO
+    TTLs as released/expired (previews never do — covered elsewhere)."""
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-FIX-EXPIRE-COMMIT")
+    _post_stock(cur, product_id, lot_id, 100)
+    expired_id = _insert(
+        cur,
+        order_id,
+        line_id,
+        product_id,
+        lot_id=lot_id,
+        qty=60,
+        source="auto_fifo",
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=49),
+    )
+    cur.execute("SELECT name FROM products WHERE id=%s", (product_id,))
+    product_name = cur.fetchone()["name"]
+
+    shipped = allocation_client.post(
+        "/ship/commit",
+        json={
+            "product_name": product_name,
+            "quantity_lb": 50,
+            "customer_name": f"T044 FIX EXP {order_id}",
+            "order_reference": f"T044-FIX-EXP-{order_id}",
+            "force_standalone": True,
+            "force_create_customer": True,
+        },
+    )
+    assert shipped.status_code == 200, shipped.text
+    payload = shipped.json()
+    # Expired pin is not live: no reserved competition, no warning, no shrink.
+    assert payload["reserved_others_lb"] == pytest.approx(0)
+    assert "allocation_warning" not in payload
+    assert payload["allocations_released"] == []
+    cur.execute(
+        "SELECT status, release_reason FROM sales_order_allocations WHERE id=%s",
+        (expired_id,),
+    )
+    assert cur.fetchone() == {"status": "released", "release_reason": "expired"}
+
+
+@pytest.mark.db
+def test_pack_lot_allocations_reserved_arithmetic_preview_and_commit(
+    db_cursor, allocation_client
+):
+    """Gap (d): explicit lot_allocations branch — can_pack/reserved_taken
+    arithmetic matches between preview and commit (physical clamp symmetry)."""
+    cur = db_cursor
+    order_id, (source_line, target_line), (source_id, target_id) = _seed_order(
+        cur, n_lines=2
+    )
+    lot_a = _seed_lot(cur, source_id, "T044-FIX-PACKALLOC-A")
+    lot_b = _seed_lot(cur, source_id, "T044-FIX-PACKALLOC-B")
+    _post_stock(cur, source_id, lot_a, 100)
+    _post_stock(cur, source_id, lot_b, 50)
+    cur.execute("UPDATE products SET case_size_lb=10 WHERE id=%s", (target_id,))
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": source_line, "quantity_lb": 60, "lot_id": lot_a},
+    ).status_code == 200
+    cur.execute("SELECT id, name FROM products WHERE id IN (%s, %s)", (source_id, target_id))
+    names = {row["id"]: row["name"] for row in cur.fetchall()}
+    request = {
+        "source_product": names[source_id],
+        "target_product": names[target_id],
+        "cases": 8,
+        "case_weight_lb": 10,
+        "target_lot_code": "T044-FIX-PACKALLOC-OUT",
+        "lot_allocations": [
+            {"lot_code": "T044-FIX-PACKALLOC-A", "quantity_lb": 70},
+            {"lot_code": "T044-FIX-PACKALLOC-B", "quantity_lb": 10},
+        ],
+    }
+    # lot A: takeable 40 of 100 -> can_pack 40, reserved_taken 30 (70 - 40)
+    # lot B: takeable 50        -> can_pack 10, reserved_taken 0
+    preview = allocation_client.post("/pack/preview", json=request)
+    assert preview.status_code == 200, preview.text
+    preview_payload = preview.json()
+    assert preview_payload["can_pack_lb"] == pytest.approx(50)
+    assert preview_payload["allocation_warning"]["reserved_taken_lb"] == pytest.approx(30)
+    assert preview_payload["reserved_others_lb"] == pytest.approx(60)
+
+    packed = allocation_client.post("/pack/commit", json=request)
+    assert packed.status_code == 200, packed.text
+    payload = packed.json()
+    assert payload["can_pack_lb"] == pytest.approx(50)
+    assert payload["allocation_warning"]["reserved_taken_lb"] == pytest.approx(30)
+    assert payload["reserved_others_lb"] == pytest.approx(60)
+    # Pack hole preserved: pin untouched even though lot A dropped to 30 on hand.
+    cur.execute(
+        "SELECT status, quantity_lb FROM sales_order_allocations WHERE sales_order_line_id=%s",
+        (source_line,),
+    )
+    row = cur.fetchone()
+    assert row["status"] == "active" and float(row["quantity_lb"]) == pytest.approx(60)
+    assert main.lot_on_hand(cur, lot_a) == pytest.approx(30)
+    assert main.lot_on_hand(cur, lot_b) == pytest.approx(40)
+
+
+@pytest.mark.db
+def test_standalone_ship_pinned_lot_never_spills(db_cursor, allocation_client):
+    """Gap (e) / owner ruling 2 (2026-08-20): a pinned lot_code ships ALL
+    pounds from that lot — reserved pounds are stolen-with-warning (then
+    shrunk, ruling 1) rather than sourced from other lots. Physical
+    insufficiency on the pinned lot stays a 400."""
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_a = _seed_lot(cur, product_id, "T044-FIX-PIN-A")
+    lot_b = _seed_lot(cur, product_id, "T044-FIX-PIN-B")
+    _post_stock(cur, product_id, lot_a, 100)
+    _post_stock(cur, product_id, lot_b, 50)
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 80, "lot_id": lot_a},
+    ).status_code == 200
+    cur.execute("SELECT name FROM products WHERE id=%s", (product_id,))
+    product_name = cur.fetchone()["name"]
+    base = {
+        "product_name": product_name,
+        "customer_name": f"T044 FIX PIN {order_id}",
+        "order_reference": f"T044-FIX-PIN-{order_id}",
+        "force_standalone": True,
+        "force_create_customer": True,
+    }
+
+    preview = allocation_client.post(
+        "/ship/preview", json={**base, "quantity_lb": 50, "lot_code": "T044-FIX-PIN-A"}
+    )
+    assert preview.status_code == 200, preview.text
+    p = preview.json()
+    assert [(a["lot_code"], a["allocated_lb"]) for a in p["allocations"]] == [
+        ("T044-FIX-PIN-A", 50.0)
+    ]
+    assert p["ship_mode"] == "single_lot"
+    assert p["can_ship_lb"] == pytest.approx(20)
+    assert p["allocation_warning"]["reserved_taken_lb"] == pytest.approx(30)
+    # Product-wide fields keep product scope even when pinned.
+    assert p["total_available_lb"] == pytest.approx(150)
+    assert p["total_takeable_lb"] == pytest.approx(70)
+
+    # Pinned-lot physical insufficiency is a 400 even though the product has
+    # 150 lb: pinned pounds never spill to other lots.
+    short = allocation_client.post(
+        "/ship/commit", json={**base, "quantity_lb": 120, "lot_code": "T044-FIX-PIN-A"}
+    )
+    assert short.status_code == 400, short.text
+
+    shipped = allocation_client.post(
+        "/ship/commit", json={**base, "quantity_lb": 50, "lot_code": "T044-FIX-PIN-A"}
+    )
+    assert shipped.status_code == 200, shipped.text
+    payload = shipped.json()
+    assert payload["lots_used"] == [{"lot_code": "T044-FIX-PIN-A", "shipped_lb": 50.0}]
+    assert payload["allocation_warning"]["reserved_taken_lb"] == pytest.approx(30)
+    assert sum(row["quantity_lb"] for row in payload["allocations_released"]) == pytest.approx(30)
+    assert {row["reason"] for row in payload["allocations_released"]} == {"inventory_shipped"}
+    assert main.lot_on_hand(cur, lot_a) == pytest.approx(50)
+    assert main.lot_on_hand(cur, lot_b) == pytest.approx(50)
+    cur.execute(
+        "SELECT quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status='active'",
+        (line_id,),
+    )
+    assert float(cur.fetchone()["quantity_lb"]) == pytest.approx(50)
+
+
 @pytest.mark.db
 def test_service_line_allocate_returns_service_line_not_allocatable(db_cursor, allocation_client):
     cur = db_cursor

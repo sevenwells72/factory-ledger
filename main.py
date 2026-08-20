@@ -540,36 +540,27 @@ def _allocation_reservation_summary(
 def _takeable_deduction_plan(
     lots: list,
     requested_lb: float,
-    *,
-    preferred_lot_code: Optional[str] = None,
 ) -> dict:
     """Plan a standalone deduction without stealing until takeable is spent.
 
     PR 4 remains observe-only: after all unreserved capacity is planned, a
     physical-balance fallback may use reserved pounds.  PR 5 can reject that
     fallback without changing the deterministic lot plan.
+
+    Pin fidelity (owner ruling 2026-08-20): when the request names a lot, the
+    CALLER restricts ``lots`` to the pinned lot(s) before planning. The plan
+    never reorders or widens the list it is given, so pinned pounds can never
+    spill to a different physical lot to avoid reserved stock — observe mode
+    takes the pinned lot's reserved pounds instead (with the warning + shrink).
     """
     ordered = list(lots)
-    if preferred_lot_code is not None:
-        preferred = next(
-            (
-                lot
-                for lot in ordered
-                if str(lot["lot_code"]).lower() == preferred_lot_code.lower()
-            ),
-            None,
-        )
-        if preferred is not None:
-            ordered = [preferred] + [
-                lot for lot in ordered if int(lot["lot_id"]) != int(preferred["lot_id"])
-            ]
 
     requested = max(0.0, float(requested_lb))
     remaining = requested
     planned_by_lot = {}
 
-    # First consume only unreserved capacity, retaining FIFO (or the explicit
-    # preferred lot) within that pool.
+    # First consume only unreserved capacity, retaining FIFO order within
+    # the caller-provided pool.
     for lot in ordered:
         if remaining <= BALANCE_EPSILON:
             break
@@ -4926,14 +4917,22 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         detail=f"Insufficient total inventory for {product['name']}. "
                                f"Have {total_available} lb across {len(lots)} lot(s), need {req.quantity_lb} lb")
 
+                # Pin fidelity (owner ruling 2026-08-20): a pinned lot_code
+                # restricts the plan to that lot only — never spill to other
+                # lots to avoid its reserved pounds.
+                plan_lots = lots
                 if req.lot_code:
                     selected = next((l for l in lots if l['lot_code'].lower() == req.lot_code.lower()), None)
                     if not selected:
                         raise HTTPException(status_code=404, detail=f"Lot '{req.lot_code}' not found or empty")
+                    plan_lots = [selected]
 
-                plan = _takeable_deduction_plan(
-                    lots, req.quantity_lb, preferred_lot_code=req.lot_code
-                )
+                plan = _takeable_deduction_plan(plan_lots, req.quantity_lb)
+                if plan["short_lb"] > BALANCE_EPSILON:
+                    raise HTTPException(status_code=400,
+                        detail=f"Insufficient total inventory for {product['name']}. "
+                               f"Have {plan['total_on_hand_lb']:.4f} lb across "
+                               f"{len(plan_lots)} lot(s), need {req.quantity_lb} lb")
                 allocations = [
                     {
                         "lot_code": item["lot"]["lot_code"],
@@ -4972,7 +4971,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     "ship_mode": ship_mode,
                     "allocations": allocations,
                     "total_available_lb": total_available,
-                    "total_takeable_lb": plan["total_takeable_lb"],
+                    "total_takeable_lb": sum(float(l['takeable'] or 0) for l in lots),
                     "can_ship_lb": plan["can_take_lb"],
                     "reserved_others_lb": reservation_summary["reserved_others_lb"],
                     "reserved_by_orders": reservation_summary["reserved_by_orders"],
@@ -5025,26 +5024,30 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     if not all_lots:
                         raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
 
-                    if req.lot_code and not any(
-                        lot['lot_code'].lower() == req.lot_code.lower()
-                        for lot in all_lots
-                    ):
-                        raise HTTPException(
-                            status_code=400,
-                            detail=f"Lot '{req.lot_code}' has no available inventory",
-                        )
+                    # Pin fidelity (owner ruling 2026-08-20): a pinned lot_code
+                    # restricts the plan to that lot only — never spill to
+                    # other lots to avoid its reserved pounds. Observe mode
+                    # takes the pinned lot's reserved stock instead (warning +
+                    # inventory_shipped shrink below).
+                    plan_lots = all_lots
+                    if req.lot_code:
+                        plan_lots = [
+                            lot for lot in all_lots
+                            if lot['lot_code'].lower() == req.lot_code.lower()
+                        ]
+                        if not plan_lots:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Lot '{req.lot_code}' has no available inventory",
+                            )
 
-                    plan = _takeable_deduction_plan(
-                        all_lots,
-                        req.quantity_lb,
-                        preferred_lot_code=req.lot_code,
-                    )
+                    plan = _takeable_deduction_plan(plan_lots, req.quantity_lb)
                     if plan["short_lb"] > BALANCE_EPSILON:
                         raise HTTPException(
                             status_code=400,
                             detail=f"Insufficient total inventory for {product['name']}. "
                                    f"Have {plan['total_on_hand_lb']:.4f} lb across "
-                                   f"{len(all_lots)} lot(s), need {req.quantity_lb} lb",
+                                   f"{len(plan_lots)} lot(s), need {req.quantity_lb} lb",
                         )
                     allocation_warning = _allocation_observe_warning(
                         "Standalone ship",
@@ -5793,8 +5796,18 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                                 raise HTTPException(400, f"Lot '{alloc.lot_code}' not found or empty for {source['name']}")
                             validate_lot_deduction(cur, lot['lot_id'], lot['lot_code'], alloc.quantity_lb)
                             takeable = float(lot['takeable'])
+                            physical = float(lot['on_hand'])
+                            # Clamp by physical for symmetry with the preview
+                            # arithmetic. validate_lot_deduction already
+                            # guarantees quantity <= physical here, but the
+                            # clamp keeps commit == preview by construction
+                            # rather than by reliance on that guard.
                             can_pack += min(float(alloc.quantity_lb), takeable)
-                            reserved_taken += max(0.0, float(alloc.quantity_lb) - takeable)
+                            reserved_taken += max(
+                                0.0,
+                                min(float(alloc.quantity_lb), physical)
+                                - min(float(alloc.quantity_lb), takeable),
+                            )
                             alloc_plan.append((lot, alloc.quantity_lb))
                         alloc_total = sum(qty for _, qty in alloc_plan)
                         if abs(alloc_total - total_lb) > 0.01:
