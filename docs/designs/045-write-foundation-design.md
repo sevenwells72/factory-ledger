@@ -1,5 +1,7 @@
 # P-3 / P-4 — Dashboard Write Foundation (Attribution, Audit Fields, Idempotency)
 
+> **Migration numbering note (2026-08-20):** Migration `045` is assigned to the allocation restore reactivation table in `docs/designs/044-so-allocations-restore-addendum.md`. This document keeps its filename, but all write-foundation migrations start at `046+`.
+
 | Field | Value |
 |---|---|
 | **Title** | Factory Ledger Write Foundation (P-3 / P-4) |

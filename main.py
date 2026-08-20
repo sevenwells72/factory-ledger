@@ -576,8 +576,8 @@ def _consume_allocation_row(cur, allocation_id: int, quantity_lb: float, transac
         "active",
         split_from_id=allocation_id,
         # A new leftover has never shipped.  In particular, it must not retain
-        # an earlier voided transaction marker: restore uses that marker to
-        # identify full-consume rows to re-ship.
+        # an earlier voided transaction marker; that would be false audit
+        # attribution. Restore demand comes only from the void-time record.
         last_ship_transaction_id=None,
     )
     shipped_id = _copy_allocation_row(
@@ -822,48 +822,107 @@ def _void_ship_allocations(cur, transaction_id: int, operator_id: Optional[str])
             restored.append({
                 "allocation_id": int(shipped["id"]),
                 "live_allocation_id": live_id,
+                "sales_order_line_id": int(shipped["sales_order_line_id"]),
                 "quantity_lb": float(shipped["quantity_lb"]),
                 "coalesced": coalesced,
             })
     return restored
 
 
-def _restore_ship_allocations(cur, transaction_id: int, operator_id: Optional[str]) -> list:
-    """Consume live reservations for the ship quantity restored in the ledger.
+def _record_void_allocation_reactivations(
+    cur,
+    transaction_id: int,
+    correction_id,
+    restored: list,
+):
+    """Persist one explicit void-time reactivation quantity per shipped SO line."""
+    totals = {}
+    for row in restored:
+        line_id = int(row["sales_order_line_id"])
+        totals[line_id] = totals.get(line_id, Decimal("0")) + Decimal(
+            str(row["quantity_lb"])
+        )
 
-    ``last_ship_transaction_id`` is deliberately not an attribution source:
-    after void/coalesce and a later partial ship, a superseded row can carry an
-    older transaction marker without representing pounds available to restore.
-    The effective ledger is authoritative for the quantity, and only current
-    live rows may satisfy it.
-    """
     cur.execute(
-        """WITH target_lines AS (
-                 SELECT DISTINCT sos.sales_order_line_id,
-                        sol.sales_order_id, sol.product_id
-                   FROM sales_order_shipments sos
-                   JOIN sales_order_lines sol
-                     ON sol.id = sos.sales_order_line_id
-                  WHERE sos.transaction_id = %s
-             )
-             SELECT target_lines.sales_order_line_id,
-                    target_lines.sales_order_id,
-                    target_lines.product_id,
-                    COALESCE(SUM(ABS(tl.quantity_lb)), 0) AS quantity_lb
-               FROM target_lines
-               JOIN ledger_current_transactions ct
-                 ON ct.id = %s
-                AND ct.type = 'ship'
-                AND ct.effective_status = 'posted'
-               JOIN ledger_current_transaction_lines tl
-                 ON tl.transaction_id = ct.id
-                AND tl.product_id = target_lines.product_id
-              GROUP BY target_lines.sales_order_line_id,
-                       target_lines.sales_order_id,
-                       target_lines.product_id
-              ORDER BY target_lines.product_id,
-                       target_lines.sales_order_line_id""",
-        (transaction_id, transaction_id),
+        """SELECT DISTINCT sales_order_line_id
+              FROM sales_order_shipments
+             WHERE transaction_id = %s
+             ORDER BY sales_order_line_id""",
+        (transaction_id,),
+    )
+    line_ids = [int(row["sales_order_line_id"]) for row in cur.fetchall()]
+    for line_id in line_ids:
+        cur.execute(
+            """INSERT INTO sales_order_allocation_reactivations
+                       (transaction_id, sales_order_line_id, quantity_lb,
+                        correction_id)
+                 VALUES (%s, %s, %s, %s)
+            ON CONFLICT (transaction_id, sales_order_line_id) DO UPDATE
+                    SET quantity_lb = EXCLUDED.quantity_lb,
+                        correction_id = EXCLUDED.correction_id,
+                        created_at = clock_timestamp()""",
+            (
+                transaction_id,
+                line_id,
+                totals.get(line_id, Decimal("0")),
+                correction_id,
+            ),
+        )
+
+
+def _preflight_restore_ship_stock(cur, transaction_id: int) -> list:
+    """Lock original ship lots and reject a restore that would go negative."""
+    cur.execute(
+        """SELECT tl.product_id, tl.lot_id, l.lot_code,
+                  SUM(ABS(tl.quantity_lb)) AS quantity_lb
+             FROM ledger_current_transaction_lines tl
+             JOIN lots l ON l.id = tl.lot_id
+            WHERE tl.transaction_id = %s
+            GROUP BY tl.product_id, tl.lot_id, l.lot_code
+            ORDER BY tl.product_id, tl.lot_id""",
+        (transaction_id,),
+    )
+    ship_lots = [dict(row) for row in cur.fetchall()]
+    product_ids = sorted({int(row["product_id"]) for row in ship_lots})
+    for product_id in product_ids:
+        _lock_allocation_product(cur, product_id)
+
+    for row in ship_lots:
+        required = float(row["quantity_lb"] or 0)
+        available = lot_on_hand(cur, int(row["lot_id"]))
+        if available + BALANCE_EPSILON < required:
+            _allocation_error(
+                "RESTORE_STOCK_MISSING",
+                f"Cannot restore ship transaction #{transaction_id}: posted on-hand cannot cover the restored deduction",
+                transaction_id=transaction_id,
+                lot_id=int(row["lot_id"]),
+                lot_code=row["lot_code"],
+                required_lb=required,
+                available_lb=available,
+            )
+    return product_ids
+
+
+def _prepare_restore_ship_allocations(
+    cur,
+    transaction_id: int,
+    operator_id: Optional[str],
+) -> dict:
+    """Load recorded demand, lock live coverage, and prepare atomic consumes."""
+    cur.execute(
+        """SELECT DISTINCT sos.sales_order_line_id,
+                  sol.sales_order_id, sol.product_id,
+                  COALESCE(reactivation.quantity_lb, 0) AS quantity_lb,
+                  (reactivation.transaction_id IS NULL) AS reactivation_unknown
+             FROM sales_order_shipments sos
+             JOIN sales_order_lines sol
+               ON sol.id = sos.sales_order_line_id
+        LEFT JOIN sales_order_allocation_reactivations reactivation
+               ON reactivation.transaction_id = sos.transaction_id
+              AND reactivation.sales_order_line_id = sos.sales_order_line_id
+            WHERE sos.transaction_id = %s
+            ORDER BY sol.product_id, sos.sales_order_line_id""",
+        (transaction_id,),
     )
     targets = [dict(row) for row in cur.fetchall()]
     product_ids = sorted({int(row["product_id"]) for row in targets})
@@ -884,7 +943,7 @@ def _restore_ship_allocations(cur, transaction_id: int, operator_id: Optional[st
                    AND product_id = %s
                    AND status = 'active'
                    AND (expires_at IS NULL OR expires_at > clock_timestamp())
-                 ORDER BY created_at ASC, id ASC
+                 ORDER BY (lot_id IS NULL) ASC, created_at ASC, id ASC
                  FOR UPDATE""",
             (target["sales_order_line_id"], target["product_id"]),
         )
@@ -909,8 +968,29 @@ def _restore_ship_allocations(cur, transaction_id: int, operator_id: Optional[st
             remaining -= take
         plans.append((target, takes))
 
+    return {
+        "plans": plans,
+        "product_ids": product_ids,
+        "unknown_line_ids": sorted(
+            int(row["sales_order_line_id"])
+            for row in targets
+            if row["reactivation_unknown"]
+        ),
+    }
+
+
+def _restore_ship_allocations(
+    cur,
+    transaction_id: int,
+    operator_id: Optional[str],
+    prepared: Optional[dict] = None,
+) -> list:
+    """Consume recorded void-time quantities from this line's live rows only."""
+    prepared = prepared or _prepare_restore_ship_allocations(
+        cur, transaction_id, operator_id
+    )
     reshipped = []
-    for target, takes in plans:
+    for target, takes in prepared["plans"]:
         for allocation_id, take in takes:
             change = _consume_allocation_row(
                 cur, allocation_id, take, transaction_id
@@ -920,7 +1000,12 @@ def _restore_ship_allocations(cur, transaction_id: int, operator_id: Optional[st
     return reshipped
 
 
-def _shrink_overallocated_products(cur, product_ids: list, operator_id: Optional[str]) -> list:
+def _shrink_overallocated_products(
+    cur,
+    product_ids: list,
+    operator_id: Optional[str],
+    release_reason: str = "inventory_voided",
+) -> list:
     changed = []
     for product_id in sorted(set(int(pid) for pid in product_ids)):
         _lock_allocation_product(cur, product_id)
@@ -956,7 +1041,7 @@ def _shrink_overallocated_products(cur, product_ids: list, operator_id: Optional
             lot_excess = max(0.0, lot_allocated - lot_on_hand(cur, lot_id))
             if lot_excess > BALANCE_EPSILON:
                 changed.extend(_shrink_active_allocations(
-                    cur, lot_rows, lot_excess, "inventory_voided", operator_id
+                    cur, lot_rows, lot_excess, release_reason, operator_id
                 ))
 
         on_hand = _product_on_hand(cur, product_id)
@@ -976,7 +1061,7 @@ def _shrink_overallocated_products(cur, product_ids: list, operator_id: Optional
         allocated = sum(float(row["quantity_lb"]) for row in rows)
         excess = max(0.0, allocated - on_hand)
         if excess > BALANCE_EPSILON:
-            changed.extend(_shrink_active_allocations(cur, rows, excess, "inventory_voided", operator_id))
+            changed.extend(_shrink_active_allocations(cur, rows, excess, release_reason, operator_id))
     return changed
 
 
@@ -5844,6 +5929,14 @@ def _append_transaction_correction(
     if event_type == "restore" and current_status != "voided":
         raise HTTPException(400, f"Transaction #{transaction_id} is not voided")
 
+    restore_product_ids = []
+    prepared_restore = None
+    if event_type == "restore" and transaction["type"] == "ship":
+        restore_product_ids = _preflight_restore_ship_stock(cur, transaction_id)
+        prepared_restore = _prepare_restore_ship_allocations(
+            cur, transaction_id, operator_id
+        )
+
     replacement = dict(previous)
     if event_type == "amend":
         changes = replacement_values or {}
@@ -5877,8 +5970,9 @@ def _append_transaction_correction(
         ),
     )
     event = cur.fetchone()
+    correction_id = event["id"]
     result = {
-        "correction_id": str(event["id"]),
+        "correction_id": str(correction_id),
         "created_at": event["created_at"],
         "operator_id": event["operator_id"],
         "event_type": event_type,
@@ -5887,9 +5981,13 @@ def _append_transaction_correction(
     }
     if event_type == "void":
         if transaction["type"] == "ship":
-            result["allocations_restored"] = _void_ship_allocations(
+            allocations_restored = _void_ship_allocations(
                 cur, transaction_id, operator_id
             )
+            _record_void_allocation_reactivations(
+                cur, transaction_id, correction_id, allocations_restored
+            )
+            result["allocations_restored"] = allocations_restored
         else:
             cur.execute(
                 "SELECT DISTINCT product_id FROM ledger_current_transaction_lines "
@@ -5903,8 +6001,18 @@ def _append_transaction_correction(
             )
     elif event_type == "restore" and transaction["type"] == "ship":
         result["allocations_reshipped"] = _restore_ship_allocations(
-            cur, transaction_id, operator_id
+            cur, transaction_id, operator_id, prepared_restore
         )
+        _shrink_overallocated_products(
+            cur,
+            restore_product_ids,
+            operator_id,
+            release_reason="inventory_restored",
+        )
+        unknown_line_ids = prepared_restore["unknown_line_ids"]
+        if unknown_line_ids:
+            result["allocation_reactivation_unknown"] = True
+            result["allocation_reactivation_unknown_line_ids"] = unknown_line_ids
     return result
 
 
