@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-19 23:22 — FR-7 readiness follow-up: existing incomplete-lot pins clear unstaged
+- **File(s) changed:** `main.py`, `tests/test_sales_order_readiness.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Corrected incomplete-lot FIFO readiness so a live lot-level allocation on that same lot clears `unstaged` for the line, while a partial pin still reports `partial_allocation` and `missing_lot_dates`. Added eight DB regression tests for that predicate, ordinary received lots with null `received_at`, physical `no_production` SKUs, cross-order allocation competition, non-diverged `partial_ship` fulfillment-check inclusion, cancelled-line exclusion, void→restore effective shipping, and closed/cancelled expected-receipt exclusion. Full suite passes 172/172 against `factory_ledger_test`.
+- **Why:** PR 2 treated the unpinned balance of an already-pinned incomplete lot as unstaged, contrary to the design's line-and-lot pin exception, and the additional read semantics lacked direct regression coverage.
+
+---
+
 ## 2026-08-19 21:20 — FR-7 PR 2 read-only sales-order readiness and dispatch blockers
 - **File(s) changed:** `main.py`, `openapi-gpt-v3.yaml`, `tests/test_sales_order_readiness.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
 - **What changed:** Added one shared batched readiness CTE for the list page, order detail, and fulfillment-check. Effective shipped pounds come only from effective-posted physical ledger lines (`SUM(ABS(transaction_lines.quantity_lb))` linked by shipment transaction), while the mutable SO shipped counter is diagnostic only and the two-decimal shipment-link quantity is never summed. Added ε=0.0001 remaining/available/coverable/shortage/unallocated/inventory-ready formulas, sibling SKU competition, live allocation TTL filtering without writes, all block/warn/info codes, configurable Factory Ready severity (default block), additive list summaries and nested line readiness. Fulfillment-check now includes `partial_ship` and fulfillment-diverged closed statuses. OpenAPI descriptions changed with operation counts fixed at office 30 / Floor 22. Nine new DB tests cover the design's read-applicable cases; full suite passes 164/164. A rolled-back synthetic 50-order `EXPLAIN (ANALYZE, BUFFERS)` returned 50 rows with one allocation scan and one shipped aggregate (planning 6.209 ms, execution 1.118 ms).

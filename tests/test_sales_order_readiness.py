@@ -55,17 +55,29 @@ def _seed_customer(cur):
     return cur.fetchone()["id"], name, token
 
 
-def _seed_product(cur, token, *, service=False, with_lot=False, incomplete=False, stock=0):
+def _seed_product(
+    cur,
+    token,
+    *,
+    service=False,
+    with_lot=False,
+    incomplete=False,
+    received_at_null=False,
+    no_production=False,
+    stock=0,
+):
     suffix = uuid4().hex[:6]
     cur.execute(
-        "INSERT INTO products (name, type, odoo_code, uom, is_service, active) "
-        "VALUES (%s, %s, %s, %s, %s, true) RETURNING id",
+        "INSERT INTO products "
+        "(name, type, odoo_code, uom, is_service, no_production, active) "
+        "VALUES (%s, %s, %s, %s, %s, %s, true) RETURNING id",
         (
             f"READINESS {'Service' if service else 'FG'} {token} {suffix}",
             "packaging" if service else "finished",
             f"RDY-{token}-{suffix}",
             "each" if service else "lb",
             service,
+            no_production,
         ),
     )
     product_id = cur.fetchone()["id"]
@@ -78,7 +90,7 @@ def _seed_product(cur, token, *, service=False, with_lot=False, incomplete=False
                 product_id,
                 f"STAGED-{token}-{suffix}" if incomplete else f"RDY-LOT-{token}-{suffix}",
                 "found_inventory" if incomplete else "received",
-                incomplete,
+                incomplete or received_at_null,
             ),
         )
         lot_id = cur.fetchone()["id"]
@@ -138,7 +150,7 @@ def _allocate(cur, order_id, line_id, product_id, qty, *, lot_id=None, expires_a
     return cur.fetchone()["id"]
 
 
-def _expected(cur, product_id, qty):
+def _expected(cur, product_id, qty, *, status="open"):
     cur.execute(
         "INSERT INTO suppliers (name, active) VALUES (%s, true) RETURNING id",
         (f"READINESS Supplier {uuid4().hex[:8]}",),
@@ -146,8 +158,8 @@ def _expected(cur, product_id, qty):
     supplier_id = cur.fetchone()["id"]
     cur.execute(
         "INSERT INTO expected_receipts (product_id, supplier_id, expected_qty, status) "
-        "VALUES (%s, %s, %s, 'open')",
-        (product_id, supplier_id, qty),
+        "VALUES (%s, %s, %s, %s)",
+        (product_id, supplier_id, qty, status),
     )
 
 
@@ -367,6 +379,160 @@ def test_staging_date_floor_ready_and_no_ship_date_blockers(db_cursor, client, m
     body = client.get(f"/sales/orders/{order_id}").json()
     assert body["dispatch_ready"] is True
     assert _codes(body)["not_floor_ready"] == "warn"
+
+
+@pytest.mark.db
+def test_partial_pin_on_incomplete_lot_clears_unstaged(db_cursor, client):
+    customer_id, _, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(
+        db_cursor, token, with_lot=True, incomplete=True, stock=100
+    )
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _allocate(db_cursor, order_id, line_id, product_id, 40, lot_id=lot_id)
+
+    readiness = client.get(f"/sales/orders/{order_id}").json()["lines"][0]["readiness"]
+    assert [item["code"] for item in readiness["blockers"]] == [
+        "partial_allocation",
+        "missing_lot_dates",
+    ]
+
+
+@pytest.mark.db
+def test_normal_lot_without_received_at_has_no_staging_or_date_blockers(db_cursor, client):
+    customer_id, _, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(
+        db_cursor, token, with_lot=True, received_at_null=True, stock=100
+    )
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
+
+    body = client.get(f"/sales/orders/{order_id}").json()
+    assert body["dispatch_ready"] is True
+    assert _codes(body["lines"][0]["readiness"]) == {}
+
+
+@pytest.mark.db
+def test_no_production_physical_sku_uses_normal_readiness(db_cursor, client):
+    customer_id, _, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(
+        db_cursor, token, with_lot=True, no_production=True, stock=100
+    )
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _allocate(db_cursor, order_id, line_id, product_id, 100)
+
+    body = client.get(f"/sales/orders/{order_id}").json()
+    readiness = body["lines"][0]["readiness"]
+    assert readiness["inventory_ready"] is True
+    assert readiness["remaining_lb"] == pytest.approx(100)
+    assert _codes(readiness) == {}
+    assert body["dispatch_ready"] is True
+
+
+@pytest.mark.db
+def test_cross_order_allocation_leaves_competing_order_short(db_cursor, client):
+    customer_id, customer_name, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=100)
+    order_a, _ = _seed_order(db_cursor, customer_id, token)
+    line_a = _add_line(db_cursor, order_a, product_id, 100)
+    _allocate(db_cursor, order_a, line_a, product_id, 100)
+    order_b, _ = _seed_order(db_cursor, customer_id, token)
+    _add_line(db_cursor, order_b, product_id, 100)
+
+    response = client.get(
+        "/sales/orders/fulfillment-check", params={"customer_name": customer_name}
+    )
+    assert response.status_code == 200, response.text
+    orders = {row["order_id"]: row for row in response.json()["orders"]}
+    assert orders[order_a]["inventory_ready"] is True
+    assert orders[order_b]["shortage_lb"] == pytest.approx(100)
+    assert _codes(orders[order_b]) == {
+        "shortage": "block",
+        "unallocated": "block",
+    }
+
+
+@pytest.mark.db
+def test_non_diverged_partial_ship_order_is_in_fulfillment_check(db_cursor, client):
+    customer_id, _, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=100)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="partial_ship")
+    line_id = _add_line(db_cursor, order_id, product_id, 100, shipped=40, status="partial")
+    _post_ship(db_cursor, line_id, product_id, lot_id, 40)
+    _allocate(db_cursor, order_id, line_id, product_id, 60)
+
+    response = client.get("/sales/orders/fulfillment-check", params={"order_id": order_id})
+    assert response.status_code == 200, response.text
+    order = next(row for row in response.json()["orders"] if row["order_id"] == order_id)
+    assert order["status"] == "partial_ship"
+    assert order["fulfillment_diverged"] is False
+    assert order["shipped_effective_lb"] == pytest.approx(40)
+
+
+@pytest.mark.db
+def test_cancelled_lines_are_excluded_from_readiness(db_cursor, client):
+    customer_id, _, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=100)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    active_line = _add_line(db_cursor, order_id, product_id, 100)
+    cancelled_line = _add_line(
+        db_cursor, order_id, product_id, 100, status="cancelled"
+    )
+    _allocate(db_cursor, order_id, active_line, product_id, 100)
+
+    body = client.get(f"/sales/orders/{order_id}").json()
+    lines = {line["line_id"]: line for line in body["lines"]}
+    assert lines[active_line]["readiness"]["inventory_ready"] is True
+    assert lines[cancelled_line]["line_status"] == "cancelled"
+    assert "readiness" not in lines[cancelled_line]
+    assert body["ordered_lb"] == pytest.approx(100)
+    assert body["dispatch_ready"] is True
+
+
+@pytest.mark.db
+def test_restore_of_voided_ship_counts_in_shipped_effective(db_cursor, client):
+    customer_id, _, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=100)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="shipped")
+    line_id = _add_line(
+        db_cursor, order_id, product_id, 100, shipped=100, status="fulfilled"
+    )
+    ship_id = _post_ship(db_cursor, line_id, product_id, lot_id, 100)
+
+    voided = client.post(
+        f"/records/transactions/{ship_id}/corrections",
+        json={"event_type": "void", "reason": "readiness restore test"},
+    )
+    assert voided.status_code == 200, voided.text
+    assert client.get(f"/sales/orders/{order_id}").json()["shipped_effective_lb"] == pytest.approx(0)
+
+    restored = client.post(
+        f"/records/transactions/{ship_id}/corrections",
+        json={"event_type": "restore", "reason": "readiness restore test"},
+    )
+    assert restored.status_code == 200, restored.text
+    body = client.get(f"/sales/orders/{order_id}").json()
+    assert body["shipped_effective_lb"] == pytest.approx(100)
+    assert body["fulfillment_diverged"] is False
+
+
+@pytest.mark.db
+def test_closed_and_cancelled_expected_receipts_do_not_warn_inbound_cover(db_cursor, client):
+    customer_id, _, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=100)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _allocate(db_cursor, order_id, line_id, product_id, 100)
+    _expected(db_cursor, product_id, 50, status="closed")
+    _expected(db_cursor, product_id, 70, status="cancelled")
+
+    body = client.get(f"/sales/orders/{order_id}").json()
+    readiness = body["lines"][0]["readiness"]
+    assert readiness["inbound_open_lb"] == pytest.approx(0)
+    assert "inbound_cover" not in _codes(readiness)
+    assert body["dispatch_ready"] is True
 
 
 @pytest.mark.db

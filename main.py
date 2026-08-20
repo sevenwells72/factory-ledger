@@ -7639,7 +7639,7 @@ def _line_readiness(row: dict) -> dict:
     }
     incomplete_pins = [
         lot for lot in (row.get("lots") or [])
-        if line_lot_allocations.get(int(lot["lot_id"]), 0) > BALANCE_EPSILON
+        if int(lot["lot_id"]) in line_lot_allocations
         and _lot_is_incomplete(lot)
     ]
 
@@ -7664,7 +7664,11 @@ def _line_readiness(row: dict) -> dict:
         if free <= BALANCE_EPSILON or need_from_unpinned <= BALANCE_EPSILON:
             continue
         take = min(need_from_unpinned, free)
-        if take > BALANCE_EPSILON and _lot_is_incomplete(lot):
+        if (
+            take > BALANCE_EPSILON
+            and _lot_is_incomplete(lot)
+            and int(lot["lot_id"]) not in line_lot_allocations
+        ):
             unstaged_lots.append(str(lot.get("lot_code") or lot["lot_id"]))
         need_from_unpinned -= take
 
