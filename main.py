@@ -502,6 +502,140 @@ def available_lots_for_product(
     return result
 
 
+def _allocation_reservation_summary(
+    cur, product_id: int, so_line_id: Optional[int] = None
+) -> dict:
+    """Summarize live, unexpired reservations owned by other SO lines.
+
+    A sibling line is deliberately "other" even when it belongs to the same
+    order.  Standalone inventory deductions pass ``so_line_id=None``, so every
+    live reservation is foreign to them.
+    """
+    cur.execute(
+        """SELECT so.id AS sales_order_id, so.order_number,
+                  SUM(soa.quantity_lb) AS quantity_lb
+             FROM sales_order_allocations soa
+             JOIN sales_orders so ON so.id = soa.sales_order_id
+            WHERE soa.product_id = %s
+              AND soa.status = 'active'
+              AND (soa.expires_at IS NULL OR soa.expires_at > clock_timestamp())
+              AND (%s::bigint IS NULL OR soa.sales_order_line_id <> %s)
+            GROUP BY so.id, so.order_number
+            ORDER BY so.id""",
+        (product_id, so_line_id, so_line_id),
+    )
+    rows = [dict(row) for row in cur.fetchall()]
+    return {
+        "reserved_others_lb": sum(float(row["quantity_lb"] or 0) for row in rows),
+        "reserved_by_orders": [
+            {
+                "order_number": row["order_number"],
+                "quantity_lb": float(row["quantity_lb"] or 0),
+            }
+            for row in rows
+        ],
+    }
+
+
+def _takeable_deduction_plan(
+    lots: list,
+    requested_lb: float,
+    *,
+    preferred_lot_code: Optional[str] = None,
+) -> dict:
+    """Plan a standalone deduction without stealing until takeable is spent.
+
+    PR 4 remains observe-only: after all unreserved capacity is planned, a
+    physical-balance fallback may use reserved pounds.  PR 5 can reject that
+    fallback without changing the deterministic lot plan.
+    """
+    ordered = list(lots)
+    if preferred_lot_code is not None:
+        preferred = next(
+            (
+                lot
+                for lot in ordered
+                if str(lot["lot_code"]).lower() == preferred_lot_code.lower()
+            ),
+            None,
+        )
+        if preferred is not None:
+            ordered = [preferred] + [
+                lot for lot in ordered if int(lot["lot_id"]) != int(preferred["lot_id"])
+            ]
+
+    requested = max(0.0, float(requested_lb))
+    remaining = requested
+    planned_by_lot = {}
+
+    # First consume only unreserved capacity, retaining FIFO (or the explicit
+    # preferred lot) within that pool.
+    for lot in ordered:
+        if remaining <= BALANCE_EPSILON:
+            break
+        take = min(remaining, float(lot["takeable"] or 0))
+        if take <= BALANCE_EPSILON:
+            continue
+        planned_by_lot[int(lot["lot_id"])] = take
+        remaining -= take
+
+    takeable_planned = requested - remaining
+
+    # Observe-mode fallback: physical stock may still move even though another
+    # order reserved it.  The caller must surface the warning; standalone ship
+    # also repairs the resulting over-allocation after posting.
+    for lot in ordered:
+        if remaining <= BALANCE_EPSILON:
+            break
+        lot_id = int(lot["lot_id"])
+        already = planned_by_lot.get(lot_id, 0.0)
+        physical_left = max(0.0, float(lot["on_hand"] or 0) - already)
+        take = min(remaining, physical_left)
+        if take <= BALANCE_EPSILON:
+            continue
+        planned_by_lot[lot_id] = already + take
+        remaining -= take
+
+    plan = [
+        {"lot": lot, "quantity_lb": planned_by_lot[int(lot["lot_id"])]}
+        for lot in ordered
+        if planned_by_lot.get(int(lot["lot_id"]), 0.0) > BALANCE_EPSILON
+    ]
+    planned_lb = requested - remaining
+    return {
+        "lots": plan,
+        "planned_lb": planned_lb,
+        "short_lb": max(0.0, remaining),
+        "can_take_lb": min(requested, takeable_planned),
+        "reserved_taken_lb": max(0.0, planned_lb - takeable_planned),
+        "total_on_hand_lb": sum(float(lot["on_hand"] or 0) for lot in lots),
+        "total_takeable_lb": sum(float(lot["takeable"] or 0) for lot in lots),
+    }
+
+
+def _allocation_observe_warning(
+    action: str,
+    requested_lb: float,
+    can_take_lb: float,
+    reserved_taken_lb: float,
+    summary: dict,
+) -> Optional[dict]:
+    if reserved_taken_lb <= BALANCE_EPSILON:
+        return None
+    return {
+        "warning_code": "RESERVED_STOCK_OBSERVE_ONLY",
+        "message": (
+            f"{action} uses {reserved_taken_lb:.4f} lb reserved for other sales "
+            "orders. Allocation enforcement is off, so the write proceeds."
+        ),
+        "requested_lb": float(requested_lb),
+        "can_take_lb": float(can_take_lb),
+        "reserved_taken_lb": float(reserved_taken_lb),
+        "reserved_others_lb": float(summary["reserved_others_lb"]),
+        "reserved_by_orders": summary["reserved_by_orders"],
+    }
+
+
 def _copy_allocation_row(
     cur,
     row: dict,
@@ -4770,16 +4904,10 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     if oo_payload:
                         open_orders_warning = oo_payload
 
-                cur.execute(f"""
-                    SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                    FROM lots l
-                    LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                    WHERE l.product_id = %s
-                    GROUP BY l.id
-                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                    ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                """, (product['id'],))
-                lots = cur.fetchall()
+                lots = available_lots_for_product(cur, int(product['id']))
+                reservation_summary = _allocation_reservation_summary(
+                    cur, int(product['id'])
+                )
 
                 if not lots:
                     if open_orders_warning:
@@ -4792,7 +4920,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         })
                     raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
 
-                total_available = sum(float(l['available']) for l in lots)
+                total_available = sum(float(l['on_hand']) for l in lots)
                 if total_available < req.quantity_lb:
                     raise HTTPException(status_code=400,
                         detail=f"Insufficient total inventory for {product['name']}. "
@@ -4802,35 +4930,38 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     selected = next((l for l in lots if l['lot_code'].lower() == req.lot_code.lower()), None)
                     if not selected:
                         raise HTTPException(status_code=404, detail=f"Lot '{req.lot_code}' not found or empty")
-                else:
-                    selected = lots[0]
 
-                single_lot_sufficient = float(selected['available']) >= req.quantity_lb
-
-                if single_lot_sufficient:
-                    ship_mode = "single_lot"
-                    allocations = [{"lot_code": selected['lot_code'], "lot_id": selected['id'],
-                                    "available_lb": float(selected['available']), "allocated_lb": req.quantity_lb}]
-                    preview_msg = f"Ready to ship {req.quantity_lb} lb of {product['name']} from lot {selected['lot_code']}"
+                plan = _takeable_deduction_plan(
+                    lots, req.quantity_lb, preferred_lot_code=req.lot_code
+                )
+                allocations = [
+                    {
+                        "lot_code": item["lot"]["lot_code"],
+                        "lot_id": item["lot"]["lot_id"],
+                        "available_lb": float(item["lot"]["on_hand"]),
+                        "takeable_lb": float(item["lot"]["takeable"]),
+                        "allocated_lb": float(item["quantity_lb"]),
+                    }
+                    for item in plan["lots"]
+                ]
+                ship_mode = "single_lot" if len(allocations) == 1 else "multi_lot_fifo"
+                if ship_mode == "single_lot":
+                    preview_msg = (
+                        f"Ready to ship {req.quantity_lb} lb of {product['name']} "
+                        f"from lot {allocations[0]['lot_code']}"
+                    )
                 else:
-                    ship_mode = "multi_lot_fifo"
-                    allocations = []
-                    remaining_need = req.quantity_lb
-                    for lot in lots:
-                        if remaining_need <= 0:
-                            break
-                        take = min(float(lot['available']), remaining_need)
-                        allocations.append({
-                            "lot_code": lot['lot_code'],
-                            "lot_id": lot['id'],
-                            "available_lb": float(lot['available']),
-                            "allocated_lb": take
-                        })
-                        remaining_need -= take
                     preview_msg = (f"Will ship {req.quantity_lb} lb of {product['name']} "
-                                   f"from {len(allocations)} lot(s) (auto multi-lot FIFO)")
+                                   f"from {len(allocations)} lot(s) (reservation-aware FIFO)")
+                allocation_warning = _allocation_observe_warning(
+                    "Standalone ship",
+                    req.quantity_lb,
+                    plan["can_take_lb"],
+                    plan["reserved_taken_lb"],
+                    reservation_summary,
+                )
 
-                return {
+                response = {
                     "mode": "preview",
                     "product_id": product['id'],
                     "product_name": product['name'],
@@ -4841,9 +4972,17 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     "ship_mode": ship_mode,
                     "allocations": allocations,
                     "total_available_lb": total_available,
+                    "total_takeable_lb": plan["total_takeable_lb"],
+                    "can_ship_lb": plan["can_take_lb"],
+                    "reserved_others_lb": reservation_summary["reserved_others_lb"],
+                    "reserved_by_orders": reservation_summary["reserved_by_orders"],
                     "open_orders_warning": open_orders_warning,
                     "preview_message": preview_msg
                 }
+                if allocation_warning:
+                    response["allocation_warning"] = allocation_warning
+                    response["warning"] = allocation_warning["message"]
+                return response
         except HTTPException:
             raise
         except Exception as e:
@@ -4872,119 +5011,83 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         n_open = len(oo_payload.get("open_orders", []))
                         standalone_warning = f"This shipment was not linked to any sales order. Customer has {n_open} open orders."
 
-                    if req.lot_code:
-                        cur.execute("""
-                            SELECT l.id, l.lot_code FROM lots l
-                            WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s)
-                        """, (product['id'], req.lot_code))
-                        lot_row = cur.fetchone()
-                        if not lot_row:
-                            raise HTTPException(status_code=404, detail=f"Lot '{req.lot_code}' not found")
-                        pinned_lot_id = lot_row['id']
-                    else:
-                        pinned_lot_id = None
-
-                    cur.execute(f"""
-                        SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                        FROM lots l
-                        LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                        WHERE l.product_id = %s
-                        GROUP BY l.id
-                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                        ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                    """, (product['id'],))
-                    all_lots = cur.fetchall()
+                    all_lots = available_lots_for_product(
+                        cur,
+                        int(product['id']),
+                        lock=True,
+                        persist_expired=True,
+                        released_by=_operator_id(_),
+                    )
+                    reservation_summary = _allocation_reservation_summary(
+                        cur, int(product['id'])
+                    )
 
                     if not all_lots:
                         raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
 
-                    if pinned_lot_id:
-                        primary = next((l for l in all_lots if l['id'] == pinned_lot_id), None)
-                        if not primary:
-                            raise HTTPException(status_code=400,
-                                detail=f"Lot '{req.lot_code}' has no available inventory")
-                    else:
-                        primary = all_lots[0]
+                    if req.lot_code and not any(
+                        lot['lot_code'].lower() == req.lot_code.lower()
+                        for lot in all_lots
+                    ):
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Lot '{req.lot_code}' has no available inventory",
+                        )
 
-                    single_lot_sufficient = float(primary['available']) + BALANCE_EPSILON >= req.quantity_lb
-
-                    if single_lot_sufficient:
-                        cur.execute("SELECT id FROM lots WHERE id = %s FOR UPDATE", (primary['id'],))
-                        locked_avail = validate_lot_deduction(cur, primary['id'], primary['lot_code'], req.quantity_lb)
-
-                        if locked_avail + BALANCE_EPSILON < req.quantity_lb:
-                            single_lot_sufficient = False
+                    plan = _takeable_deduction_plan(
+                        all_lots,
+                        req.quantity_lb,
+                        preferred_lot_code=req.lot_code,
+                    )
+                    if plan["short_lb"] > BALANCE_EPSILON:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Insufficient total inventory for {product['name']}. "
+                                   f"Have {plan['total_on_hand_lb']:.4f} lb across "
+                                   f"{len(all_lots)} lot(s), need {req.quantity_lb} lb",
+                        )
+                    allocation_warning = _allocation_observe_warning(
+                        "Standalone ship",
+                        req.quantity_lb,
+                        plan["can_take_lb"],
+                        plan["reserved_taken_lb"],
+                        reservation_summary,
+                    )
 
                     txn_notes = None
                     if standalone_warning:
                         txn_notes = f"standalone_override=true | {standalone_warning}"
+                    now = get_plant_now()
+                    cur.execute("""
+                        INSERT INTO transactions (type, timestamp, customer_name, order_reference, notes)
+                        VALUES ('ship', %s, %s, %s, %s) RETURNING id
+                    """, (now, canonical_customer, req.order_reference, txn_notes))
+                    txn_id = cur.fetchone()['id']
 
-                    if single_lot_sufficient:
-                        now = get_plant_now()
-                        cur.execute("""
-                            INSERT INTO transactions (type, timestamp, customer_name, order_reference, notes)
-                            VALUES ('ship', %s, %s, %s, %s) RETURNING id
-                        """, (now, canonical_customer, req.order_reference, txn_notes))
-                        txn_id = cur.fetchone()['id']
-
+                    shipped_lots = []
+                    for item in plan["lots"]:
+                        lot = item["lot"]
+                        take = float(item["quantity_lb"])
                         cur.execute("""
                             INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                             VALUES (%s, %s, %s, %s)
-                        """, (txn_id, product['id'], primary['id'], -req.quantity_lb))
+                        """, (txn_id, product['id'], lot['lot_id'], -take))
+                        shipped_lots.append({"lot_code": lot['lot_code'], "shipped_lb": take})
 
-                        remaining = locked_avail - req.quantity_lb
-                        shipped_lots = [{"lot_code": primary['lot_code'], "shipped_lb": req.quantity_lb}]
-                        ship_mode = "single_lot"
-                        log_msg = f"Shipped {req.quantity_lb} lb from lot {primary['lot_code']}. {remaining} lb remaining in lot."
-
-                    else:
-                        lot_ids = [lot['id'] for lot in all_lots]
-                        cur.execute(
-                            "SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE",
-                            (lot_ids,)
+                    ship_mode = "single_lot" if len(shipped_lots) == 1 else "multi_lot_fifo"
+                    if ship_mode == "single_lot":
+                        only_lot = plan["lots"][0]["lot"]
+                        remaining = float(only_lot["on_hand"]) - req.quantity_lb
+                        log_msg = (
+                            f"Shipped {req.quantity_lb} lb from lot {only_lot['lot_code']}. "
+                            f"{remaining} lb remaining in lot."
                         )
-                        cur.execute(f"""
-                            SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                            FROM lots l
-                            LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                            WHERE l.id = ANY(%s)
-                            GROUP BY l.id
-                            HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                            ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                        """, (lot_ids,))
-                        locked_lots = cur.fetchall()
-
-                        total_available = sum(float(l['available']) for l in locked_lots)
-                        if total_available + BALANCE_EPSILON < req.quantity_lb:
-                            raise HTTPException(status_code=400,
-                                detail=f"Insufficient total inventory for {product['name']}. "
-                                       f"Have {total_available:.4f} lb across {len(locked_lots)} lot(s), need {req.quantity_lb} lb")
-
-                        now = get_plant_now()
-                        cur.execute("""
-                            INSERT INTO transactions (type, timestamp, customer_name, order_reference, notes)
-                            VALUES ('ship', %s, %s, %s, %s) RETURNING id
-                        """, (now, canonical_customer, req.order_reference, txn_notes))
-                        txn_id = cur.fetchone()['id']
-
-                        shipped_lots = []
-                        remaining_need = req.quantity_lb
-                        for lot in locked_lots:
-                            if remaining_need <= BALANCE_EPSILON:
-                                break
-                            avail = float(lot['available'])
-                            if avail < BALANCE_EPSILON: continue
-                            take = min(avail, remaining_need)
-                            cur.execute("""
-                                INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
-                                VALUES (%s, %s, %s, %s)
-                            """, (txn_id, product['id'], lot['id'], -take))
-                            shipped_lots.append({"lot_code": lot['lot_code'], "shipped_lb": take})
-                            remaining_need -= take
-
+                    else:
                         remaining = None
-                        ship_mode = "multi_lot_fifo"
-                        log_msg = f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s) (auto multi-lot FIFO)."
+                        log_msg = (
+                            f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s) "
+                            "(reservation-aware FIFO)."
+                        )
 
                     # ── Create shipment + shipment_lines (unified shipping model) ──
                     cur.execute("""
@@ -4998,6 +5101,15 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                             INSERT INTO shipment_lines (shipment_id, transaction_id, product_id, quantity_lb)
                             VALUES (%s, %s, %s, %s)
                         """, (shipment_id, txn_id, product['id'], sl['shipped_lb']))
+
+                    allocations_released = []
+                    if plan["reserved_taken_lb"] > BALANCE_EPSILON:
+                        allocations_released = _shrink_overallocated_products(
+                            cur,
+                            [int(product['id'])],
+                            _operator_id(_),
+                            release_reason="inventory_shipped",
+                        )
 
                     if standalone_warning:
                         logger.warning(f"force_standalone ship for {canonical_customer} who has {len(oo_payload.get('open_orders', []))} open orders: txn {txn_id}")
@@ -5014,12 +5126,20 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         "ship_mode": ship_mode,
                         "lots_used": shipped_lots,
                         "remaining_in_lot": remaining,
+                        "can_ship_lb": plan["can_take_lb"],
+                        "reserved_others_lb": reservation_summary["reserved_others_lb"],
+                        "reserved_by_orders": reservation_summary["reserved_by_orders"],
+                        "allocations_released": allocations_released,
                         "customer_name": canonical_customer,
                         "message": log_msg
                     }
                     if standalone_warning:
                         response["standalone_override"] = True
                         response["warning"] = standalone_warning
+                    if allocation_warning:
+                        response["allocation_warning"] = allocation_warning
+                        if "warning" not in response:
+                            response["warning"] = allocation_warning["message"]
                     return response
         except HTTPException:
             raise
@@ -5546,34 +5666,48 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no case_size_lb set. Provide case_weight_lb parameter to override.")
                 total_lb = req.cases * case_weight
 
-                cur.execute(f"""
-                    SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                    FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                    WHERE l.product_id = %s GROUP BY l.id
-                    HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                """, (source['id'],))
-                available_lots = cur.fetchall()
-                total_available = sum(float(lot['available']) for lot in available_lots)
+                available_lots = available_lots_for_product(cur, int(source['id']))
+                reservation_summary = _allocation_reservation_summary(
+                    cur, int(source['id'])
+                )
+                total_available = sum(float(lot['on_hand']) for lot in available_lots)
 
                 if req.lot_allocations:
                     allocations = []
+                    can_pack = 0.0
+                    reserved_taken = 0.0
                     for alloc in req.lot_allocations:
                         matched = next((l for l in available_lots if l['lot_code'].lower() == alloc.lot_code.lower()), None)
                         if not matched:
                             allocations.append({"lot_code": alloc.lot_code, "available_lb": 0, "allocated_lb": alloc.quantity_lb, "sufficient": False, "error": f"Lot '{alloc.lot_code}' not found or has no inventory for {source['name']}"})
                             continue
-                        allocations.append({"lot_id": matched['id'], "lot_code": matched['lot_code'], "available_lb": float(matched['available']), "allocated_lb": alloc.quantity_lb, "sufficient": float(matched['available']) >= alloc.quantity_lb})
+                        physical = float(matched['on_hand'])
+                        takeable = float(matched['takeable'])
+                        can_pack += min(float(alloc.quantity_lb), takeable)
+                        reserved_taken += max(
+                            0.0,
+                            min(float(alloc.quantity_lb), physical)
+                            - min(float(alloc.quantity_lb), takeable),
+                        )
+                        allocations.append({"lot_id": matched['lot_id'], "lot_code": matched['lot_code'], "available_lb": physical, "takeable_lb": takeable, "allocated_lb": alloc.quantity_lb, "sufficient": physical >= alloc.quantity_lb})
                     alloc_total = sum(a['allocated_lb'] for a in allocations)
                     if abs(alloc_total - total_lb) > 0.01:
                         return JSONResponse(status_code=400, content={"error": f"Lot allocations sum to {alloc_total} lb but {total_lb} lb needed ({req.cases} cases x {case_weight} lb)"})
                 else:
-                    allocations = []
-                    remaining = total_lb
-                    for lot in available_lots:
-                        if remaining <= 0: break
-                        take = min(float(lot['available']), remaining)
-                        allocations.append({"lot_id": lot['id'], "lot_code": lot['lot_code'], "available_lb": float(lot['available']), "allocated_lb": take, "sufficient": True})
-                        remaining -= take
+                    plan = _takeable_deduction_plan(available_lots, total_lb)
+                    can_pack = plan["can_take_lb"]
+                    reserved_taken = plan["reserved_taken_lb"]
+                    allocations = [
+                        {
+                            "lot_id": item["lot"]["lot_id"],
+                            "lot_code": item["lot"]["lot_code"],
+                            "available_lb": float(item["lot"]["on_hand"]),
+                            "takeable_lb": float(item["lot"]["takeable"]),
+                            "allocated_lb": float(item["quantity_lb"]),
+                            "sufficient": plan["short_lb"] <= BALANCE_EPSILON,
+                        }
+                        for item in plan["lots"]
+                    ]
 
                 all_sufficient = all(a.get('sufficient', False) for a in allocations)
                 if req.target_lot_code:
@@ -5583,6 +5717,13 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                 else:
                     output_lot_code = "UNKNOWN"
 
+                allocation_warning = _allocation_observe_warning(
+                    "Pack",
+                    total_lb,
+                    can_pack,
+                    reserved_taken,
+                    reservation_summary,
+                )
                 result = {
                     "mode": "preview",
                     "source_product_id": source['id'], "source_product_name": source['name'],
@@ -5590,10 +5731,17 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     "cases": req.cases, "case_weight_lb": case_weight, "total_lb": total_lb,
                     "output_lot_code": output_lot_code, "allocations": allocations,
                     "all_lots_sufficient": all_sufficient, "total_batch_available_lb": total_available,
+                    "total_takeable_lb": sum(float(lot['takeable']) for lot in available_lots),
+                    "can_pack_lb": can_pack,
+                    "reserved_others_lb": reservation_summary["reserved_others_lb"],
+                    "reserved_by_orders": reservation_summary["reserved_by_orders"],
                     "source_lot_count": len(available_lots),
-                    "source_lots": [{"lot_code": lot['lot_code'], "available_lb": float(lot['available'])} for lot in available_lots],
+                    "source_lots": [{"lot_code": lot['lot_code'], "available_lb": float(lot['on_hand']), "takeable_lb": float(lot['takeable'])} for lot in available_lots],
                     "preview_message": f"Ready to pack {req.cases} cases ({total_lb} lb) of {target['name']} from {source['name']} ({len(available_lots)} batch lot(s))"
                 }
+                if allocation_warning:
+                    result["allocation_warning"] = allocation_warning
+                    result["warning"] = allocation_warning["message"]
                 add_in_info = resolve_pack_add_ins(cur, source, target, total_lb)
                 if add_in_info:
                     # Strip internal keys before returning
@@ -5620,53 +5768,55 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     total_lb = req.cases * case_weight
                     now = get_plant_now()
 
-                    cur.execute(f"""
-                        SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                        FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                        WHERE l.product_id = %s GROUP BY l.id
-                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                    """, (source['id'],))
-                    candidate_lots = cur.fetchall()
-                    if not candidate_lots:
+                    lots = available_lots_for_product(
+                        cur,
+                        int(source['id']),
+                        lock=True,
+                        persist_expired=True,
+                        released_by=_operator_id(_),
+                    )
+                    reservation_summary = _allocation_reservation_summary(
+                        cur, int(source['id'])
+                    )
+                    if not lots:
                         raise HTTPException(400, f"No batch inventory available for {source['name']}")
 
-                    lot_ids = [lot['id'] for lot in candidate_lots]
-                    cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
-                    cur.execute(f"""
-                        SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                        FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                        WHERE l.id = ANY(%s) GROUP BY l.id
-                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                    """, (lot_ids,))
-                    lots = cur.fetchall()
                     lots_by_code = {lot['lot_code'].lower(): lot for lot in lots}
 
                     if req.lot_allocations:
                         alloc_plan = []
+                        can_pack = 0.0
+                        reserved_taken = 0.0
                         for alloc in req.lot_allocations:
                             lot = lots_by_code.get(alloc.lot_code.lower())
                             if not lot:
                                 raise HTTPException(400, f"Lot '{alloc.lot_code}' not found or empty for {source['name']}")
-                            validate_lot_deduction(cur, lot['id'], lot['lot_code'], alloc.quantity_lb)
+                            validate_lot_deduction(cur, lot['lot_id'], lot['lot_code'], alloc.quantity_lb)
+                            takeable = float(lot['takeable'])
+                            can_pack += min(float(alloc.quantity_lb), takeable)
+                            reserved_taken += max(0.0, float(alloc.quantity_lb) - takeable)
                             alloc_plan.append((lot, alloc.quantity_lb))
                         alloc_total = sum(qty for _, qty in alloc_plan)
                         if abs(alloc_total - total_lb) > 0.01:
                             raise HTTPException(400, f"Allocations sum to {alloc_total} lb, need {total_lb} lb ({req.cases} cases x {case_weight} lb)")
                     else:
-                        total_available = sum(float(l['available']) for l in lots)
-                        if total_available + BALANCE_EPSILON < total_lb:
-                            raise HTTPException(400, f"Insufficient batch inventory. Have {total_available:.4f} lb, need {total_lb} lb")
-                        alloc_plan = []
-                        remaining = total_lb
-                        for lot in lots:
-                            if remaining <= BALANCE_EPSILON: break
-                            avail = float(lot['available'])
-                            if avail < BALANCE_EPSILON: continue
-                            take = min(avail, remaining)
-                            alloc_plan.append((lot, take))
-                            remaining -= take
-                        if remaining > BALANCE_EPSILON:
-                            raise HTTPException(400, f"Could not fully allocate. Missing {remaining:.2f} lb")
+                        plan = _takeable_deduction_plan(lots, total_lb)
+                        if plan["short_lb"] > BALANCE_EPSILON:
+                            raise HTTPException(400, f"Insufficient batch inventory. Have {plan['total_on_hand_lb']:.4f} lb, need {total_lb} lb")
+                        can_pack = plan["can_take_lb"]
+                        reserved_taken = plan["reserved_taken_lb"]
+                        alloc_plan = [
+                            (item["lot"], float(item["quantity_lb"]))
+                            for item in plan["lots"]
+                        ]
+
+                    allocation_warning = _allocation_observe_warning(
+                        "Pack",
+                        total_lb,
+                        can_pack,
+                        reserved_taken,
+                        reservation_summary,
+                    )
 
                     if req.target_lot_code:
                         output_lot_code = req.target_lot_code
@@ -5685,8 +5835,8 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
 
                     consumed = []
                     for lot, qty in alloc_plan:
-                        cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['id'], -qty))
-                        cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['id'], qty))
+                        cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['lot_id'], -qty))
+                        cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['lot_id'], qty))
                         consumed.append({"lot_code": lot['lot_code'], "consumed_lb": qty})
 
                     # --- Add-in ingredient deduction ---
@@ -5748,9 +5898,15 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         "output_lot_id": output_lot_id, "output_lot_code": output_lot_code,
                         "target_product_name": target['name'], "source_product_name": source['name'],
                         "cases": req.cases, "case_weight_lb": case_weight, "total_lb": total_lb,
+                        "can_pack_lb": can_pack,
+                        "reserved_others_lb": reservation_summary["reserved_others_lb"],
+                        "reserved_by_orders": reservation_summary["reserved_by_orders"],
                         "batch_lots_consumed": consumed,
                         "message": f"Packed {req.cases} cases ({total_lb} lb) of {target['name']} as lot {output_lot_code}"
                     }
+                    if allocation_warning:
+                        response["allocation_warning"] = allocation_warning
+                        response["warning"] = allocation_warning["message"]
                     if add_in_consumed:
                         response["add_in_ingredients_consumed"] = add_in_consumed
                         add_in_names = ", ".join(set(ai['ingredient_name'] for ai in add_in_consumed))
@@ -10180,6 +10336,9 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                         lock=False,
                         persist_expired=False,
                     )
+                    reservation_summary = _allocation_reservation_summary(
+                        cur, int(line['product_id']), int(line['id'])
+                    )
                     on_hand = _product_on_hand(cur, int(line['product_id']))
                     can_ship = float(plan['actual_ship_lb'])
                     if can_ship < ship_qty:
@@ -10187,6 +10346,8 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                     preview.append({"line_id": line['id'], "product": line['name'], "ordered_lb": float(line['quantity_lb']),
                                     "already_shipped_lb": float(line['quantity_shipped_lb']), "remaining_lb": remaining,
                                     "requested_ship_lb": ship_qty, "can_ship_lb": can_ship, "on_hand_lb": on_hand,
+                                    "reserved_others_lb": reservation_summary["reserved_others_lb"],
+                                    "reserved_by_orders": reservation_summary["reserved_by_orders"],
                                     "short": max(0, ship_qty - can_ship)})
                 return {"mode": "preview", "order_number": order_row['order_number'], "customer": order_row['name'],
                         "status": order_row['status'], "lines": preview, "warnings": warnings,
