@@ -28,6 +28,23 @@ DB writes are rolled back via a savepoint-proxied connection).
 
 import os
 import sys
+
+# ─────────────────────────────────────────────────────────────────
+# Interpreter guard — MUST stay at the very top, before anything else
+# ─────────────────────────────────────────────────────────────────
+# On Python 3.14 this repo's suite has exited 0 with ZERO tests collected —
+# a green run that tested nothing. Until that is diagnosed and fixed, the
+# suite only runs on the pinned interpreter series. Use the repo venv:
+#     .venv-test/bin/python -m pytest   (rebuilt on Python 3.12 — see
+#     CHANGE_LOG.md 2026-08-20; recreate with python3.12 -m venv .venv-test)
+assert sys.version_info < (3, 13), (
+    "REFUSING TO RUN: Python "
+    f"{sys.version_info.major}.{sys.version_info.minor} interpreter detected. "
+    "This suite is pinned to Python 3.12: on 3.14, pytest has exited 0 with "
+    "ZERO tests collected (green-on-nothing hazard). Run via the pinned venv: "
+    ".venv-test/bin/python -m pytest (rebuild: python3.12 -m venv .venv-test)."
+)
+
 from pathlib import Path
 from urllib.parse import urlparse
 

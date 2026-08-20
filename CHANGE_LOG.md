@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-20 15:19 — Pinned .venv-test to Python 3.12 + conftest interpreter guard
+- **File(s) changed:** `tests/conftest.py` (also rebuilt untracked `.venv-test`; `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`)
+- **What changed:** Recreated `.venv-test` with `python3.12 -m venv` (3.12.14; was silently 3.14.5) from its own pip-freeze set (`httpx==0.27.2`, `anyio==3.7.1` preserved — latest httpx breaks TestClient). Added a top-of-file guard in `tests/conftest.py` asserting `sys.version_info < (3, 13)` with a loud REFUSING-TO-RUN message. Suite on rebuilt venv: 205 passed, 169 warnings; on a 3.14 interpreter the guard aborts at conftest import (pytest exit 4).
+- **Why:** On Python 3.14, `python -m pytest` in this repo has exited 0 with zero tests collected — a green run that tested nothing.
+
+---
+
 ## 2026-08-20 15:20 — Migration 045 applied to production; schema re-dumped; pending include dropped
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Applied migration 045 (`sales_order_allocation_reactivations`) to prod via the session-mode pooler on 5432 (clean COMMIT); verified live PK/CHECK/3 FKs and proved idempotence with a re-run (`NOTICE ... already exists, skipping`, clean COMMIT). Re-dumped the prod schema with `scripts/dump_prod_schema.sh` (3,986 lines, zero data rows) — 045 objects now in the dump body, pending `\ir 045` block removed per the row-79 rule. Fresh test-DB rebuild confirms the table comes from the dump body; full suite 205 passed / 169 warnings on Python 3.12.14 with the pinned package set (repo `.venv-test` is now 3.14.5 and also passes 205). Added changelog row 88.
