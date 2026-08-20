@@ -224,7 +224,7 @@ Row identity of leftover vs original is not part of the contract; aggregates, at
 
 ### S1 — allocate 100, ship 100 A, void A, ship 40 B, restore A
 
-Fully allocated, later partial re-ship blocks restore. Same 409 as the WIP S1 test; the `required_lb` source is the **record (100)**, coincidentally equal to the ledger.
+Fully allocated, later partial re-ship blocks restore. With only 100 lb ever seeded, the §2.1 stock preflight rejects before coverage is consulted (owner ruling 2026-08-20; supersedes this section's earlier `RESTORE_SPLIT_MISSING` expectation — see S1b for the coverage-409 variant). `required_lb` here is ship A's ledger lot deduction (100), coincidentally equal to the record.
 
 | Step | live | shipped SOA | on-hand | record(A) | notes |
 |---|---|---|---|---|---|
@@ -232,7 +232,9 @@ Fully allocated, later partial re-ship blocks restore. Same 409 as the WIP S1 te
 | ship 100 A | 0 | 100 on A | 0 | — | |
 | void A | 100 | 0 | 100 | **100** | explicit record |
 | ship 40 B | 60 | 40 on B | 60 | 100 | leftover does **not** carry last_ship=A |
-| restore A | **409 `RESTORE_SPLIT_MISSING`** `required_lb=100`, `available_lb=60` | (unchanged) | (unchanged) | 100 | A stays voided; no SOA attributed to A; leftover stays live |
+| restore A | **409 `RESTORE_STOCK_MISSING`** `required_lb=100`, `available_lb=60` | (unchanged) | (unchanged) | 100 | stock preflight fires first (§2.1 step 3: on-hand 60 < ship A's 100, owner ruling 2026-08-20); A stays voided; no SOA attributed to A; leftover stays live |
+
+**S1b (owner ruling 2026-08-20):** same sequence with 200 lb seeded — at restore A the stock preflight passes (on-hand 160 ≥ 100) and the **coverage** preflight fails: **409 `RESTORE_SPLIT_MISSING`** `required_lb=100`, `available_lb=60` (live 60 < recorded 100), state unchanged. This is the row that exercises `RESTORE_SPLIT_MISSING` for S1's shape; with only 100 lb seeded the stock guard short-circuits first per §2.1.
 
 End state (after 409, state unchanged from post-B): live 60 + shipped 40(B) = 100. Attribution A = 0 ≤ 100. On-hand 60. No leftover flipped to shipped-on-A (the `ef709e5` bug). No 100 lb superseded row flipped to shipped (the `e87219c` bug).
 

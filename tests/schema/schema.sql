@@ -3937,3 +3937,12 @@ ALTER TABLE ONLY public.transactions
 --
 
 \unrestrict 0UDfjBFEZmtOV8by2h6iD4FtzJBboUzXhhxjCvTyUZtTIgRb43UnN8YiI1zIA4L
+
+
+--
+-- PENDING MIGRATION 045 (feat/044-so-allocations) — appended so a fresh local
+-- test DB matches the branch. Remove this block after 045 is applied to prod
+-- and tests/schema/schema.sql is regenerated via scripts/dump_prod_schema.sh
+-- (precedent: 041 / changelog row 72; 044 / changelog row 79).
+--
+\ir ../../migrations/045_sales_order_allocation_reactivations.sql
