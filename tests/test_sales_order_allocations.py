@@ -689,6 +689,46 @@ def _post_stock(cur, product_id, lot_id, qty):
     return transaction_id
 
 
+def _allocation_checkpoint(
+    cur,
+    line_id,
+    product_id,
+    *,
+    live_lb,
+    shipped_lb,
+    on_hand_lb,
+    originally_allocated_lb=100,
+):
+    cur.execute(
+        """SELECT status, COALESCE(SUM(quantity_lb), 0) AS quantity_lb
+             FROM sales_order_allocations
+            WHERE sales_order_line_id = %s
+              AND status IN ('active', 'shipped')
+            GROUP BY status""",
+        (line_id,),
+    )
+    totals = {row["status"]: float(row["quantity_lb"]) for row in cur.fetchall()}
+    actual_live = totals.get("active", 0.0)
+    actual_shipped = totals.get("shipped", 0.0)
+    assert actual_live == pytest.approx(live_lb)
+    assert actual_shipped == pytest.approx(shipped_lb)
+    assert actual_live + actual_shipped == pytest.approx(originally_allocated_lb)
+    assert main._product_on_hand(cur, product_id) == pytest.approx(on_hand_lb)
+    assert main._product_on_hand(cur, product_id) >= -main.BALANCE_EPSILON
+
+
+def _allocation_row_state(cur, line_id):
+    cur.execute(
+        """SELECT id, status, quantity_lb, ship_transaction_id,
+                  last_ship_transaction_id, split_from_id, release_reason
+             FROM sales_order_allocations
+            WHERE sales_order_line_id = %s
+            ORDER BY id""",
+        (line_id,),
+    )
+    return [dict(row) for row in cur.fetchall()]
+
+
 @pytest.mark.db
 def test_available_lots_subtracts_lot_pins_then_shadows_foreign_sku_fifo(db_cursor):
     cur = db_cursor
@@ -730,6 +770,16 @@ def test_helper_full_void_then_restore_cycle(db_cursor):
     assert plan["actual_ship_lb"] == pytest.approx(40)
     assert plan["lots"] == [{"lot_id": lot_id, "lot_code": "T044-HELPER-CYCLE", "quantity_lb": 40.0}]
     transaction_id = _seed_txn(cur)
+    cur.execute(
+        "INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) "
+        "VALUES (%s, %s, %s, -40)",
+        (transaction_id, product_id, lot_id),
+    )
+    cur.execute(
+        "INSERT INTO sales_order_shipments "
+        "(sales_order_line_id, transaction_id, quantity_lb) VALUES (%s, %s, 40)",
+        (line_id, transaction_id),
+    )
     consumed = main._consume_sales_order_allocations(cur, plan, transaction_id)
     assert consumed[0]["allocation_id"] == allocation_id
 
@@ -759,11 +809,10 @@ def test_helper_full_void_then_restore_cycle(db_cursor):
     assert len(live) == 1 and float(live[0]["quantity_lb"]) == pytest.approx(100)
 
     reshipped = main._restore_ship_allocations(cur, transaction_id, "test")
-    assert reshipped == [{
-        "allocation_id": consumed[0]["shipped_id"],
-        "quantity_lb": 40.0,
-        "coalesced": True,
-    }]
+    assert len(reshipped) == 1
+    assert reshipped[0]["allocation_id"] == consumed[0]["leftover_id"]
+    assert reshipped[0]["quantity_lb"] == pytest.approx(40)
+    assert reshipped[0]["sales_order_line_id"] == line_id
     cur.execute(
         "SELECT status, quantity_lb FROM sales_order_allocations "
         "WHERE sales_order_line_id=%s AND status IN ('active', 'shipped') ORDER BY status",
@@ -993,7 +1042,7 @@ def test_http_allocate_ship_40_void_restore_cycle(db_cursor, allocation_client):
         json={"event_type": "restore", "reason": "allocation cycle restore"},
     )
     assert restored.status_code == 200, restored.text
-    assert restored.json()["allocations_reshipped"][0]["coalesced"] is True
+    assert restored.json()["allocations_reshipped"][0]["quantity_lb"] == pytest.approx(40)
     cur.execute(
         "SELECT status, quantity_lb FROM sales_order_allocations "
         "WHERE sales_order_line_id=%s AND status IN ('active', 'shipped') ORDER BY status",
@@ -1281,45 +1330,197 @@ def test_lot_pin_on_one_order_blocks_second_order_from_same_stock(db_cursor, all
 
 @pytest.mark.db
 def test_void_partial_reship_restore_keeps_leftover_active_and_reconciles_ledger(db_cursor, allocation_client):
-    """A full ship A, void, then partial ship B must not let restore A take B's leftover."""
+    """S1: restore A fails atomically when B leaves only 60 of A's 100 live."""
     cur = db_cursor
     order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE sales_order_lines SET quantity_lb=200 WHERE id=%s", (line_id,))
     lot_id = _seed_lot(cur, product_id, "T044-VOID-RESHIP-RESTORE")
     _post_stock(cur, product_id, lot_id, 100)
-    assert allocation_client.post(
+    allocated = allocation_client.post(
         f"/sales/orders/{order_id}/allocations",
         json={"mode": "manual", "line_id": line_id, "quantity_lb": 100, "lot_id": lot_id},
-    ).status_code == 200
+    )
+    assert allocated.status_code == 200, allocated.text
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=100, shipped_lb=0, on_hand_lb=100
+    )
+
     ship_a = allocation_client.post(
         f"/sales/orders/{order_id}/ship/commit",
         json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 100}]},
     )
     assert ship_a.status_code == 200, ship_a.text
     txn_a = ship_a.json()["lines_shipped"][0]["transaction_id"]
-    assert allocation_client.post(f"/void/{txn_a}", json={"reason": "void A"}).status_code == 200
-    # The shipping endpoint's existing quantity_shipped_lb void behavior is
-    # covered elsewhere; exercise the allocation state machine directly for
-    # the supported partial re-ship transition.
-    txn_b = _seed_txn(cur)
-    main._consume_allocation_row(
-        cur,
-        allocation_client.get(f"/sales/orders/{order_id}/allocations").json()["allocations"][0]["id"],
-        40,
-        txn_b,
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=0, shipped_lb=100, on_hand_lb=0
     )
-    main._restore_ship_allocations(cur, txn_a, "test")
+
+    void_a = allocation_client.post(f"/void/{txn_a}", json={"reason": "void A"})
+    assert void_a.status_code == 200, void_a.text
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=100, shipped_lb=0, on_hand_lb=100
+    )
+
+    ship_b = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 40}]},
+    )
+    assert ship_b.status_code == 200, ship_b.text
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=60, shipped_lb=40, on_hand_lb=60
+    )
+    before_restore = _allocation_row_state(cur, line_id)
+
+    restore_a = allocation_client.post(
+        f"/records/transactions/{txn_a}/corrections",
+        json={"event_type": "restore", "reason": "restore A without coverage"},
+    )
+    assert restore_a.status_code == 409, restore_a.text
+    assert restore_a.json()["detail"]["error_code"] == "RESTORE_SPLIT_MISSING"
+    assert restore_a.json()["detail"]["required_lb"] == pytest.approx(100)
+    assert restore_a.json()["detail"]["available_lb"] == pytest.approx(60)
+    assert _allocation_row_state(cur, line_id) == before_restore
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=60, shipped_lb=40, on_hand_lb=60
+    )
+
+
+@pytest.mark.db
+def test_void_b_then_restore_a_consumes_coalesced_live_quantity(db_cursor, allocation_client):
+    """S2: once B is voided, restore A consumes the full live 100."""
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE sales_order_lines SET quantity_lb=200 WHERE id=%s", (line_id,))
+    lot_id = _seed_lot(cur, product_id, "T044-VOID-B-RESTORE-A")
+    _post_stock(cur, product_id, lot_id, 100)
+    allocated = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 100, "lot_id": lot_id},
+    )
+    assert allocated.status_code == 200, allocated.text
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=100, shipped_lb=0, on_hand_lb=100
+    )
+
+    ship_a = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 100}]},
+    )
+    assert ship_a.status_code == 200, ship_a.text
+    txn_a = ship_a.json()["lines_shipped"][0]["transaction_id"]
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=0, shipped_lb=100, on_hand_lb=0
+    )
+    void_a = allocation_client.post(f"/void/{txn_a}", json={"reason": "void A"})
+    assert void_a.status_code == 200, void_a.text
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=100, shipped_lb=0, on_hand_lb=100
+    )
+
+    ship_b = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 40}]},
+    )
+    assert ship_b.status_code == 200, ship_b.text
+    txn_b = ship_b.json()["lines_shipped"][0]["transaction_id"]
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=60, shipped_lb=40, on_hand_lb=60
+    )
+    void_b = allocation_client.post(f"/void/{txn_b}", json={"reason": "void B"})
+    assert void_b.status_code == 200, void_b.text
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=100, shipped_lb=0, on_hand_lb=100
+    )
+
+    restore_a = allocation_client.post(
+        f"/records/transactions/{txn_a}/corrections",
+        json={"event_type": "restore", "reason": "restore A with full coverage"},
+    )
+    assert restore_a.status_code == 200, restore_a.text
+    assert sum(
+        float(row["quantity_lb"])
+        for row in restore_a.json()["allocations_reshipped"]
+    ) == pytest.approx(100)
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=0, shipped_lb=100, on_hand_lb=0
+    )
     cur.execute(
-        "SELECT status, quantity_lb, ship_transaction_id FROM sales_order_allocations "
-        "WHERE sales_order_line_id=%s ORDER BY id",
+        "SELECT ship_transaction_id, quantity_lb FROM sales_order_allocations "
+        "WHERE sales_order_line_id=%s AND status='shipped'",
         (line_id,),
     )
-    rows = cur.fetchall()
-    live = [r for r in rows if r["status"] == "active"]
-    shipped = [r for r in rows if r["status"] == "shipped"]
-    assert [(float(r["quantity_lb"]), r["ship_transaction_id"]) for r in live] == [(60.0, None)]
-    assert sorted((float(r["quantity_lb"]), r["ship_transaction_id"]) for r in shipped) == [(40.0, txn_b), (100.0, txn_a)]
-    assert sum(float(r["quantity_lb"]) for r in live) == pytest.approx(60)
-    assert sum(float(r["quantity_lb"]) for r in shipped) == pytest.approx(140)
+    assert [(row["ship_transaction_id"], float(row["quantity_lb"])) for row in cur.fetchall()] == [
+        (txn_a, 100.0)
+    ]
+
+
+@pytest.mark.db
+def test_partial_void_reship_restore_consumes_ledger_quantity_only(db_cursor, allocation_client):
+    """S3: T restores exactly its ledger 40; C's 30 stays shipped and 30 stays live."""
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    cur.execute("UPDATE sales_order_lines SET quantity_lb=200 WHERE id=%s", (line_id,))
+    lot_id = _seed_lot(cur, product_id, "T044-PARTIAL-RESTORE-LEDGER-QTY")
+    _post_stock(cur, product_id, lot_id, 100)
+    allocated = allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 100, "lot_id": lot_id},
+    )
+    assert allocated.status_code == 200, allocated.text
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=100, shipped_lb=0, on_hand_lb=100
+    )
+
+    ship_t = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 40}]},
+    )
+    assert ship_t.status_code == 200, ship_t.text
+    txn_t = ship_t.json()["lines_shipped"][0]["transaction_id"]
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=60, shipped_lb=40, on_hand_lb=60
+    )
+    void_t = allocation_client.post(f"/void/{txn_t}", json={"reason": "void T"})
+    assert void_t.status_code == 200, void_t.text
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=100, shipped_lb=0, on_hand_lb=100
+    )
+
+    ship_c = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 30}]},
+    )
+    assert ship_c.status_code == 200, ship_c.text
+    txn_c = ship_c.json()["lines_shipped"][0]["transaction_id"]
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=70, shipped_lb=30, on_hand_lb=70
+    )
+
+    restore_t = allocation_client.post(
+        f"/records/transactions/{txn_t}/corrections",
+        json={"event_type": "restore", "reason": "restore T ledger quantity"},
+    )
+    assert restore_t.status_code == 200, restore_t.text
+    assert sum(
+        float(row["quantity_lb"])
+        for row in restore_t.json()["allocations_reshipped"]
+    ) == pytest.approx(40)
+    _allocation_checkpoint(
+        cur, line_id, product_id, live_lb=30, shipped_lb=70, on_hand_lb=30
+    )
+    cur.execute(
+        """SELECT ship_transaction_id, quantity_lb
+             FROM sales_order_allocations
+            WHERE sales_order_line_id=%s AND status='shipped'
+            ORDER BY ship_transaction_id""",
+        (line_id,),
+    )
+    attributed = [
+        (row["ship_transaction_id"], float(row["quantity_lb"]))
+        for row in cur.fetchall()
+    ]
+    assert sorted(attributed) == sorted([(txn_t, 40.0), (txn_c, 30.0)])
+    assert max(qty for txn_id, qty in attributed if txn_id == txn_t) <= 40
 
 
 @pytest.mark.db
@@ -1330,6 +1531,16 @@ def test_restore_split_missing_returns_409(db_cursor):
     _post_stock(cur, product_id, lot_id, 100)
     allocation_id = _insert(cur, order_id, line_id, product_id, lot_id=lot_id, qty=100)
     txn_id = _seed_txn(cur)
+    cur.execute(
+        "INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) "
+        "VALUES (%s, %s, %s, -40)",
+        (txn_id, product_id, lot_id),
+    )
+    cur.execute(
+        "INSERT INTO sales_order_shipments "
+        "(sales_order_line_id, transaction_id, quantity_lb) VALUES (%s, %s, 40)",
+        (line_id, txn_id),
+    )
     main._consume_allocation_row(cur, allocation_id, 40, txn_id)
     main._void_ship_allocations(cur, txn_id, "test")
     cur.execute("UPDATE sales_order_allocations SET quantity_lb=20 WHERE status='active' AND sales_order_line_id=%s", (line_id,))

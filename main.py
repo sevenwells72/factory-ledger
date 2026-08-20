@@ -829,101 +829,94 @@ def _void_ship_allocations(cur, transaction_id: int, operator_id: Optional[str])
 
 
 def _restore_ship_allocations(cur, transaction_id: int, operator_id: Optional[str]) -> list:
+    """Consume live reservations for the ship quantity restored in the ledger.
+
+    ``last_ship_transaction_id`` is deliberately not an attribution source:
+    after void/coalesce and a later partial ship, a superseded row can carry an
+    older transaction marker without representing pounds available to restore.
+    The effective ledger is authoritative for the quantity, and only current
+    live rows may satisfy it.
+    """
     cur.execute(
-        """SELECT DISTINCT product_id
-             FROM sales_order_allocations
-             WHERE last_ship_transaction_id = %s
-               AND (
-                    status = 'active'
-                    OR (status = 'superseded' AND release_reason = 'split_on_ship')
-               )
-             ORDER BY product_id""",
-        (transaction_id,),
+        """WITH target_lines AS (
+                 SELECT DISTINCT sos.sales_order_line_id,
+                        sol.sales_order_id, sol.product_id
+                   FROM sales_order_shipments sos
+                   JOIN sales_order_lines sol
+                     ON sol.id = sos.sales_order_line_id
+                  WHERE sos.transaction_id = %s
+             )
+             SELECT target_lines.sales_order_line_id,
+                    target_lines.sales_order_id,
+                    target_lines.product_id,
+                    COALESCE(SUM(ABS(tl.quantity_lb)), 0) AS quantity_lb
+               FROM target_lines
+               JOIN ledger_current_transactions ct
+                 ON ct.id = %s
+                AND ct.type = 'ship'
+                AND ct.effective_status = 'posted'
+               JOIN ledger_current_transaction_lines tl
+                 ON tl.transaction_id = ct.id
+                AND tl.product_id = target_lines.product_id
+              GROUP BY target_lines.sales_order_line_id,
+                       target_lines.sales_order_id,
+                       target_lines.product_id
+              ORDER BY target_lines.product_id,
+                       target_lines.sales_order_line_id""",
+        (transaction_id, transaction_id),
     )
-    product_ids = [int(row["product_id"]) for row in cur.fetchall()]
-    reshipped = []
+    targets = [dict(row) for row in cur.fetchall()]
+    product_ids = sorted({int(row["product_id"]) for row in targets})
+
     for product_id in product_ids:
         _lock_allocation_product(cur, product_id)
         _expire_auto_fifo_allocations(cur, product_id, operator_id)
-        cur.execute(
-            """SELECT * FROM sales_order_allocations
-                 WHERE product_id = %s
-                   AND last_ship_transaction_id = %s
-                   AND release_reason = 'void_coalesced'
-                   AND status = 'superseded'
-                 ORDER BY id FOR UPDATE""",
-            (product_id, transaction_id),
-        )
-        coalesced_rows = [dict(row) for row in cur.fetchall()]
-        partial_leftover_ids = []
-        for shipped in coalesced_rows:
-            cur.execute(
-                """SELECT * FROM sales_order_allocations
-                     WHERE sales_order_line_id = %s
-                       AND lot_id IS NOT DISTINCT FROM %s
-                       AND status = 'active'
-                     ORDER BY id LIMIT 1 FOR UPDATE""",
-                (shipped["sales_order_line_id"], shipped["lot_id"]),
-            )
-            leftover = cur.fetchone()
-            needed = float(shipped["quantity_lb"])
-            if not leftover or float(leftover["quantity_lb"]) + BALANCE_EPSILON < needed:
-                _allocation_error(
-                    "RESTORE_SPLIT_MISSING",
-                    f"Cannot restore ship transaction #{transaction_id}: its allocation leftover is missing or too small",
-                    transaction_id=transaction_id,
-                    allocation_id=int(shipped["id"]),
-                    required_lb=needed,
-                    available_lb=float(leftover["quantity_lb"]) if leftover else 0.0,
-                )
-            partial_leftover_ids.append(int(leftover["id"]))
-            leftover_qty = float(leftover["quantity_lb"])
-            if leftover_qty - needed <= BALANCE_EPSILON:
-                cur.execute(
-                    """UPDATE sales_order_allocations
-                          SET status = 'superseded', release_reason = 'restore_split_consumed'
-                        WHERE id = %s""",
-                    (leftover["id"],),
-                )
-            else:
-                cur.execute(
-                    "UPDATE sales_order_allocations SET quantity_lb = quantity_lb - %s WHERE id = %s",
-                    (needed, leftover["id"]),
-                )
-            cur.execute(
-                """UPDATE sales_order_allocations
-                      SET status = 'shipped', ship_transaction_id = %s,
-                          release_reason = NULL
-                    WHERE id = %s""",
-                (transaction_id, shipped["id"]),
-            )
-            reshipped.append({"allocation_id": int(shipped["id"]), "quantity_lb": needed, "coalesced": True})
 
-        params = [product_id, transaction_id]
-        excluded = ""
-        if partial_leftover_ids:
-            excluded = " AND id <> ALL(%s)"
-            params.append(partial_leftover_ids)
+    plans = []
+    for target in targets:
+        needed = float(target["quantity_lb"] or 0)
+        if needed <= BALANCE_EPSILON:
+            continue
         cur.execute(
-            f"""SELECT id, quantity_lb FROM sales_order_allocations
-                  WHERE product_id = %s
-                    AND last_ship_transaction_id = %s
-                    AND (
-                         status = 'active'
-                         OR (status = 'superseded' AND release_reason = 'split_on_ship')
-                    ){excluded}
-                  ORDER BY id FOR UPDATE""",
-            params,
+            """SELECT id, quantity_lb
+                  FROM sales_order_allocations
+                 WHERE sales_order_line_id = %s
+                   AND product_id = %s
+                   AND status = 'active'
+                   AND (expires_at IS NULL OR expires_at > clock_timestamp())
+                 ORDER BY created_at ASC, id ASC
+                 FOR UPDATE""",
+            (target["sales_order_line_id"], target["product_id"]),
         )
-        for row in cur.fetchall():
-            cur.execute(
-                """UPDATE sales_order_allocations
-                      SET status = 'shipped', ship_transaction_id = %s,
-                          release_reason = NULL
-                    WHERE id = %s""",
-                (transaction_id, row["id"]),
+        live_rows = [dict(row) for row in cur.fetchall()]
+        available = sum(float(row["quantity_lb"]) for row in live_rows)
+        if available + BALANCE_EPSILON < needed:
+            _allocation_error(
+                "RESTORE_SPLIT_MISSING",
+                f"Cannot restore ship transaction #{transaction_id}: its live allocation coverage is missing or too small",
+                transaction_id=transaction_id,
+                sales_order_line_id=int(target["sales_order_line_id"]),
+                required_lb=needed,
+                available_lb=available,
             )
-            reshipped.append({"allocation_id": int(row["id"]), "quantity_lb": float(row["quantity_lb"]), "coalesced": False})
+        remaining = needed
+        takes = []
+        for row in live_rows:
+            if remaining <= BALANCE_EPSILON:
+                break
+            take = min(remaining, float(row["quantity_lb"]))
+            takes.append((int(row["id"]), take))
+            remaining -= take
+        plans.append((target, takes))
+
+    reshipped = []
+    for target, takes in plans:
+        for allocation_id, take in takes:
+            change = _consume_allocation_row(
+                cur, allocation_id, take, transaction_id
+            )
+            change["sales_order_line_id"] = int(target["sales_order_line_id"])
+            reshipped.append(change)
     return reshipped
 
 

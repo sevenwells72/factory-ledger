@@ -1,9 +1,16 @@
 # Change Log
 
-## 2026-08-20 — Review fix round for ef709e5
+## 2026-08-20 — Allocation restore review fix round 2 (e87219c)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Replaced transaction-marker restore selection with ledger-authoritative restore quantities. `_restore_ship_allocations` now derives each SO line's effective posted ship pounds from `ledger_current_transaction_lines`, preflights complete coverage from active/unexpired allocations, returns 409 `RESTORE_SPLIT_MISSING` atomically when coverage is short, and otherwise consumes exactly that quantity through `_consume_allocation_row`. Superseded rows are never flipped to shipped. API scenarios cover: A100 void, B40, restore A failing with live 60; void B then restore A consuming live 100; and T40 void, C30, restore T leaving 30 live with only 40 attributed to T. Every checkpoint asserts live+shipped conservation and nonnegative ledger on-hand.
+- **Why:** Round 1's selector extension treated an ambiguous `last_ship_transaction_id` on `superseded/split_on_ship` as attribution and could mark a full 100 lb historical row shipped without consuming live pounds, minting phantom allocation quantity and allowing the restore correction to drive inventory negative.
+
+---
+
+## 2026-08-20 — Review fix round 1 for ef709e5 (superseded by round 2)
 - **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
-- **What changed:** Fixed the void → partial re-ship → restore state machine: split leftovers no longer inherit `last_ship_transaction_id`, and restore recognizes an original full-consume row that was subsequently split. Aligned allocation release with `POST /sales/orders/{order_id}/allocations/{allocation_id}/release`, restoring the dashboard key DELETE guard. Added named coverage for the review's allocation guards and error paths.
-- **Why:** The independent review in `docs/reviews/ef709e5-pr3-review.md` reproduced a silent restore mis-attribution that could consume a live leftover reservation.
+- **What changed:** Correctly stopped split leftovers from inheriting `last_ship_transaction_id`, aligned allocation release with `POST /sales/orders/{order_id}/allocations/{allocation_id}/release`, restored the dashboard key DELETE guard, and added named allocation guard/error tests. The accompanying restore selector extension was incorrect and is superseded by round 2: it could flip an ambiguous superseded row at full quantity without consuming live allocation pounds.
+- **Why:** The independent review in `docs/reviews/ef709e5-pr3-review.md` reproduced a silent restore mis-attribution. Round 2 replaces the incomplete selector-based repair with ledger-derived consumption.
 
 ---
 
