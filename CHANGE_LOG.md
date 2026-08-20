@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-19 20:56 — Migration 044 production schema refresh and branch cleanup
+- **File(s) changed:** `tests/schema/schema.sql`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Ran `scripts/dump_prod_schema.sh` against production with PostgreSQL 17.11 and regenerated the schema-only test fixture (3,940 lines, verified zero data rows). The production dump now contains `sales_order_allocations`, its identity sequence, primary key, six supporting/partial indexes (including `soa_active_sku_uniq` and `soa_active_lot_uniq`), and seven foreign keys directly; the temporary `\ir ../../migrations/044_sales_order_allocations.sql` block is removed. This was a schema read/fixture refresh only: it did not execute migration 044 or deploy application code. Full local suite: 155/155 passed against `factory_ledger_test`.
+- **Why:** Production now exposes the 044 objects, so the committed test fixture must return to being a canonical production schema dump instead of layering the migration through a pending include.
+
+---
+
 ## 2026-08-19 14:02 — PR 1 review fix: full void→restore allocation test + DB-backed suite run
 - **File(s) changed:** `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
 - **What changed:** Added `test_full_void_then_restore_cycle_holds_under_unique_index` — the design's Q2 worked example end-to-end: allocate 100 lot-level → ship 40 (split: original superseded, leftover 60 active, 40 shipped) → void coalesces onto the leftover (one live 100, shipped row `superseded`/`void_coalesced`, naive re-activation proven to violate `soa_active_lot_uniq`) → restore shrinks the leftover back to 60 and flips the row to `shipped` → end state exactly {active: 1×60, shipped: 1×40, superseded: 1×100}, `source` untouched, then a second void/restore round with no unique violation. Re-ran the suite the documented way (`scripts/setup_test_db.sh` + `TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test`): 155/155, all 16 allocation tests PASSED (no skips). `created_by` unchanged (nullable source tag, owner-approved). No other changes.
