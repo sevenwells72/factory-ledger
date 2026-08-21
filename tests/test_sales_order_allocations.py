@@ -2607,3 +2607,280 @@ def test_lot_product_mismatch_manual_expiry_and_inactive_release_errors(db_curso
     )
     assert inactive.status_code == 409
     assert inactive.json()["detail"]["error_code"] == "ALLOCATION_NOT_ACTIVE"
+
+
+# ─────────────────────────────────────────────────────────────────
+# PR 5 ALLOCATIONS_ENFORCED hard-gate behavior
+# ─────────────────────────────────────────────────────────────────
+
+def _pr5_atomic_state(cur, product_id):
+    counts = {}
+    for table in (
+        "customers", "lots", "transactions", "transaction_lines", "shipments",
+        "shipment_lines", "ledger_corrections",
+    ):
+        cur.execute(f"SELECT count(*) AS n FROM {table}")
+        counts[table] = cur.fetchone()["n"]
+    cur.execute(
+        """SELECT id, sales_order_id, sales_order_line_id, lot_id, quantity_lb,
+                  status, ship_transaction_id, last_ship_transaction_id,
+                  release_reason
+             FROM sales_order_allocations
+            WHERE product_id=%s ORDER BY id""",
+        (product_id,),
+    )
+    allocations = [dict(row) for row in cur.fetchall()]
+    cur.execute(
+        """SELECT sol.id, sol.quantity_shipped_lb, sol.line_status, so.status AS order_status
+             FROM sales_order_lines sol
+             JOIN sales_orders so ON so.id=sol.sales_order_id
+            WHERE sol.product_id=%s ORDER BY sol.id""",
+        (product_id,),
+    )
+    lines = [dict(row) for row in cur.fetchall()]
+    return {
+        "counts": counts,
+        "allocations": allocations,
+        "lines": lines,
+        "on_hand_lb": main._product_on_hand(cur, product_id),
+    }
+
+
+def _assert_stock_allocated_detail(detail, *, requested, can_take, reserved_taken):
+    assert detail["error_code"] == "STOCK_ALLOCATED"
+    assert detail["requested_lb"] == pytest.approx(requested)
+    assert detail["can_take_lb"] == pytest.approx(can_take)
+    assert detail["reserved_taken_lb"] == pytest.approx(reserved_taken)
+    assert detail["reserved_others_lb"] >= reserved_taken
+    assert detail["reserved_by_orders"]
+
+
+def test_allocations_enforced_defaults_off_and_accepts_truthy_env(monkeypatch):
+    monkeypatch.delenv("ALLOCATIONS_ENFORCED", raising=False)
+    assert main._allocations_enforced() is False
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "true")
+    assert main._allocations_enforced() is True
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "OFF")
+    assert main._allocations_enforced() is False
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("allocation_level", ["lot", "sku"])
+def test_enforced_standalone_ship_lot_and_sku_steals_409_atomically(
+    db_cursor, allocation_client, monkeypatch, allocation_level
+):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, f"T044-PR5-SHIP-{allocation_level.upper()}")
+    _post_stock(cur, product_id, lot_id, 100)
+    request = {"mode": "manual", "line_id": line_id, "quantity_lb": 60}
+    if allocation_level == "lot":
+        request["lot_id"] = lot_id
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations", json=request
+    ).status_code == 200
+    cur.execute("SELECT name FROM products WHERE id=%s", (product_id,))
+    product_name = cur.fetchone()["name"]
+    ship_request = {
+        "product_name": product_name,
+        "quantity_lb": 80,
+        "customer_name": f"T044 PR5 Standalone {allocation_level} {order_id}",
+        "order_reference": f"T044-PR5-{allocation_level}-{order_id}",
+        "force_standalone": True,
+        "force_create_customer": True,
+    }
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "true")
+
+    safe_preview = allocation_client.post(
+        "/ship/preview", json={**ship_request, "quantity_lb": 20}
+    )
+    assert safe_preview.status_code == 200, safe_preview.text
+    safe_warning = safe_preview.json()["allocation_warning"]
+    assert safe_warning["warning_code"] == "STOCK_ALLOCATED"
+    assert safe_warning["reserved_taken_lb"] == pytest.approx(0)
+    assert safe_warning["reserved_others_lb"] == pytest.approx(60)
+
+    preview = allocation_client.post("/ship/preview", json=ship_request)
+    assert preview.status_code == 200, preview.text
+    warning = preview.json()["allocation_warning"]
+    assert warning["warning_code"] == "STOCK_ALLOCATED"
+    assert warning["reserved_taken_lb"] == pytest.approx(40)
+    assert "commit will be blocked" in warning["message"]
+
+    before = _pr5_atomic_state(cur, product_id)
+    shipped = allocation_client.post("/ship/commit", json=ship_request)
+    assert shipped.status_code == 409, shipped.text
+    _assert_stock_allocated_detail(
+        shipped.json()["detail"], requested=80, can_take=40, reserved_taken=40
+    )
+    assert _pr5_atomic_state(cur, product_id) == before
+
+
+@pytest.mark.db
+def test_enforced_pack_source_steal_409_is_atomic(db_cursor, allocation_client, monkeypatch):
+    cur = db_cursor
+    order_id, (source_line, _), (source_id, target_id) = _seed_order(cur, n_lines=2)
+    lot_id = _seed_lot(cur, source_id, "T044-PR5-PACK-SOURCE")
+    _post_stock(cur, source_id, lot_id, 100)
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": source_line, "quantity_lb": 60, "lot_id": lot_id},
+    ).status_code == 200
+    cur.execute("SELECT id, name FROM products WHERE id IN (%s, %s)", (source_id, target_id))
+    names = {row["id"]: row["name"] for row in cur.fetchall()}
+    request = {
+        "source_product": names[source_id],
+        "target_product": names[target_id],
+        "cases": 8,
+        "case_weight_lb": 10,
+        "target_lot_code": "T044-PR5-PACK-OUTPUT",
+    }
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "on")
+
+    preview = allocation_client.post("/pack/preview", json=request)
+    assert preview.status_code == 200, preview.text
+    assert preview.json()["allocation_warning"]["warning_code"] == "STOCK_ALLOCATED"
+    before = _pr5_atomic_state(cur, source_id)
+
+    packed = allocation_client.post("/pack/commit", json=request)
+    assert packed.status_code == 409, packed.text
+    _assert_stock_allocated_detail(
+        packed.json()["detail"], requested=80, can_take=40, reserved_taken=40
+    )
+    assert _pr5_atomic_state(cur, source_id) == before
+    cur.execute(
+        "SELECT count(*) AS n FROM lots WHERE product_id=%s AND lot_code=%s",
+        (target_id, "T044-PR5-PACK-OUTPUT"),
+    )
+    assert cur.fetchone()["n"] == 0
+
+
+@pytest.mark.db
+def test_enforced_order_ship_against_own_allocation_succeeds(
+    db_cursor, allocation_client, monkeypatch
+):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-PR5-OWN")
+    _post_stock(cur, product_id, lot_id, 100)
+    assert allocation_client.post(
+        f"/sales/orders/{order_id}/allocations",
+        json={"mode": "manual", "line_id": line_id, "quantity_lb": 100, "lot_id": lot_id},
+    ).status_code == 200
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "yes")
+
+    shipped = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 100}]},
+    )
+    assert shipped.status_code == 200, shipped.text
+    assert shipped.json()["lines_shipped"][0]["shipped_lb"] == pytest.approx(100)
+    cur.execute(
+        "SELECT status, quantity_lb FROM sales_order_allocations WHERE sales_order_line_id=%s",
+        (line_id,),
+    )
+    allocation = cur.fetchone()
+    assert allocation["status"] == "shipped"
+    assert float(allocation["quantity_lb"]) == pytest.approx(100)
+    assert main._product_on_hand(cur, product_id) == pytest.approx(0)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("competitor", ["sibling", "other_order"])
+def test_enforced_order_ship_sibling_and_other_pins_block_atomically(
+    db_cursor, allocation_client, monkeypatch, competitor
+):
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    if competitor == "sibling":
+        cur.execute(
+            "INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb) "
+            "VALUES (%s, %s, 100) RETURNING id",
+            (order_id, product_id),
+        )
+        competitor_order, competitor_line = order_id, cur.fetchone()["id"]
+    else:
+        competitor_order, (competitor_line,), _ = _seed_order(
+            cur, n_lines=1, product_ids=[product_id]
+        )
+    lot_id = _seed_lot(cur, product_id, f"T044-PR5-ORDER-{competitor}")
+    _post_stock(cur, product_id, lot_id, 100)
+    assert allocation_client.post(
+        f"/sales/orders/{competitor_order}/allocations",
+        json={"mode": "manual", "line_id": competitor_line, "quantity_lb": 60, "lot_id": lot_id},
+    ).status_code == 200
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "true")
+
+    preview = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/preview",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 80}]},
+    )
+    assert preview.status_code == 200, preview.text
+    warning = preview.json()["lines"][0]["allocation_warning"]
+    assert warning["warning_code"] == "STOCK_ALLOCATED"
+    assert warning["reserved_taken_lb"] == pytest.approx(40)
+
+    before = _pr5_atomic_state(cur, product_id)
+    shipped = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_id, "quantity_lb": 80}]},
+    )
+    assert shipped.status_code == 409, shipped.text
+    detail = shipped.json()["detail"]
+    _assert_stock_allocated_detail(
+        detail, requested=80, can_take=40, reserved_taken=40
+    )
+    assert detail["sales_order_line_id"] == line_id
+    assert _pr5_atomic_state(cur, product_id) == before
+
+
+@pytest.mark.db
+def test_enforced_restore_steal_409_precedes_shrink_and_is_atomic(
+    db_cursor, allocation_client, monkeypatch
+):
+    cur = db_cursor
+    order_a, (line_a,), (product_id,) = _seed_order(cur, n_lines=1)
+    lot_id = _seed_lot(cur, product_id, "T044-PR5-RESTORE")
+    _post_stock(cur, product_id, lot_id, 100)
+    shipped = allocation_client.post(
+        f"/sales/orders/{order_a}/ship/commit",
+        json={"ship_all": False, "lines": [{"line_id": line_a, "quantity_lb": 100}]},
+    )
+    assert shipped.status_code == 200, shipped.text
+    transaction_id = shipped.json()["lines_shipped"][0]["transaction_id"]
+    assert allocation_client.post(
+        f"/void/{transaction_id}", json={"reason": "PR5 restore setup"}
+    ).status_code == 200
+    assert _reactivation_quantity(cur, transaction_id, line_a) == pytest.approx(0)
+
+    order_b, (line_b,), _ = _seed_order(cur, n_lines=1, product_ids=[product_id])
+    pinned = allocation_client.post(
+        f"/sales/orders/{order_b}/allocations",
+        json={"mode": "manual", "line_id": line_b, "quantity_lb": 80, "lot_id": lot_id},
+    )
+    assert pinned.status_code == 200, pinned.text
+    allocation_id = pinned.json()["allocations"][0]["id"]
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "true")
+    before = _pr5_atomic_state(cur, product_id)
+
+    restored = allocation_client.post(
+        f"/records/transactions/{transaction_id}/corrections",
+        json={"event_type": "restore", "reason": "PR5 must not steal"},
+    )
+    assert restored.status_code == 409, restored.text
+    detail = restored.json()["detail"]
+    _assert_stock_allocated_detail(
+        detail, requested=100, can_take=20, reserved_taken=80
+    )
+    assert detail["transaction_id"] == transaction_id
+    assert detail["lot_id"] == lot_id
+    assert detail["sales_order_line_id"] == line_a
+    assert _pr5_atomic_state(cur, product_id) == before
+    cur.execute(
+        "SELECT status, quantity_lb, release_reason FROM sales_order_allocations WHERE id=%s",
+        (allocation_id,),
+    )
+    allocation = cur.fetchone()
+    assert allocation["status"] == "active"
+    assert float(allocation["quantity_lb"]) == pytest.approx(80)
+    assert allocation["release_reason"] is None

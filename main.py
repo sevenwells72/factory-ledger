@@ -354,6 +354,18 @@ def fifo_lot_balances(cur, product_id: int, include_empty: bool = False) -> list
 
 # ── Sales-order allocation write helpers (migration 044 / PR 3) ─────────────
 
+def _allocations_enforced() -> bool:
+    """Whether foreign sales-order reservations are a hard stock gate.
+
+    Read the environment on every call so tests and operators can flip the
+    rollout switch without changing allocation lifecycle behavior.  The
+    production-safe default is observe-only.
+    """
+    return os.getenv("ALLOCATIONS_ENFORCED", "false").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+
+
 def _allocation_error(code: str, message: str, status_code: int = 409, **fields):
     detail = {"error_code": code, "message": message, **fields}
     raise HTTPException(status_code=status_code, detail=detail)
@@ -610,7 +622,38 @@ def _allocation_observe_warning(
     can_take_lb: float,
     reserved_taken_lb: float,
     summary: dict,
+    *,
+    preview: bool = False,
 ) -> Optional[dict]:
+    if _allocations_enforced():
+        if (
+            reserved_taken_lb <= BALANCE_EPSILON
+            and (
+                not preview
+                or float(summary["reserved_others_lb"]) <= BALANCE_EPSILON
+            )
+        ):
+            return None
+        if reserved_taken_lb > BALANCE_EPSILON:
+            message = (
+                f"{action} would use {reserved_taken_lb:.4f} lb reserved for other "
+                "sales orders. Allocation enforcement is on, so commit will be blocked."
+            )
+        else:
+            message = (
+                f"{action} has {float(summary['reserved_others_lb']):.4f} lb reserved "
+                "for other sales orders. This preview stays within takeable stock; "
+                "a larger commit may be blocked while allocation enforcement is on."
+            )
+        return {
+            "warning_code": "STOCK_ALLOCATED",
+            "message": message,
+            "requested_lb": float(requested_lb),
+            "can_take_lb": float(can_take_lb),
+            "reserved_taken_lb": float(reserved_taken_lb),
+            "reserved_others_lb": float(summary["reserved_others_lb"]),
+            "reserved_by_orders": summary["reserved_by_orders"],
+        }
     if reserved_taken_lb <= BALANCE_EPSILON:
         return None
     return {
@@ -625,6 +668,32 @@ def _allocation_observe_warning(
         "reserved_others_lb": float(summary["reserved_others_lb"]),
         "reserved_by_orders": summary["reserved_by_orders"],
     }
+
+
+def _enforce_allocation_takeable(
+    action: str,
+    requested_lb: float,
+    can_take_lb: float,
+    reserved_taken_lb: float,
+    summary: dict,
+    **fields,
+):
+    """Raise the PR-5 steal envelope before a stock-reducing write."""
+    if not _allocations_enforced() or reserved_taken_lb <= BALANCE_EPSILON:
+        return
+    _allocation_error(
+        "STOCK_ALLOCATED",
+        (
+            f"{action} would use {reserved_taken_lb:.4f} lb reserved for other "
+            "sales orders. Allocation enforcement is on, so no stock was moved."
+        ),
+        requested_lb=float(requested_lb),
+        can_take_lb=float(can_take_lb),
+        reserved_taken_lb=float(reserved_taken_lb),
+        reserved_others_lb=float(summary["reserved_others_lb"]),
+        reserved_by_orders=summary["reserved_by_orders"],
+        **fields,
+    )
 
 
 def _copy_allocation_row(
@@ -1026,6 +1095,103 @@ def _preflight_restore_ship_stock(cur, transaction_id: int) -> list:
                 available_lb=available,
             )
     return product_ids
+
+
+def _preflight_restore_ship_takeable(cur, transaction_id: int):
+    """Reject a restore that would re-take another line's reserved pounds.
+
+    A restore re-posts its original fixed-lot deductions.  The owning SO line's
+    live lot pins are entitlement on that lot, and its SKU-level reservation is
+    already represented in ``takeable`` because only foreign SKU claims are
+    shadow-consumed.  Standalone ships have no owning line, so every live
+    reservation is foreign.
+    """
+    if not _allocations_enforced():
+        return
+
+    cur.execute(
+        """SELECT DISTINCT sol.product_id, sos.sales_order_line_id
+             FROM sales_order_shipments sos
+             JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+            WHERE sos.transaction_id = %s
+            ORDER BY sol.product_id, sos.sales_order_line_id""",
+        (transaction_id,),
+    )
+    lines_by_product = {}
+    for row in cur.fetchall():
+        lines_by_product.setdefault(int(row["product_id"]), []).append(
+            int(row["sales_order_line_id"])
+        )
+
+    cur.execute(
+        """SELECT tl.product_id, tl.lot_id, l.lot_code,
+                  SUM(ABS(tl.quantity_lb)) AS quantity_lb
+             FROM ledger_current_transaction_lines tl
+             JOIN lots l ON l.id = tl.lot_id
+            WHERE tl.transaction_id = %s
+            GROUP BY tl.product_id, tl.lot_id, l.lot_code
+            ORDER BY tl.product_id, tl.lot_id""",
+        (transaction_id,),
+    )
+    ship_lots = [dict(row) for row in cur.fetchall()]
+    lot_views = {}
+    summaries = {}
+    for row in ship_lots:
+        product_id = int(row["product_id"])
+        owner_lines = lines_by_product.get(product_id, [])
+        # The production ship path creates one transaction per physical line.
+        # If a historical/manual transaction is ambiguous, do not guess an
+        # entitlement: treat its reservations as foreign.
+        owner_line_id = owner_lines[0] if len(owner_lines) == 1 else None
+        cache_key = (product_id, owner_line_id)
+        if cache_key not in lot_views:
+            lot_views[cache_key] = {
+                int(lot["lot_id"]): lot
+                for lot in available_lots_for_product(
+                    cur, product_id, owner_line_id, lock=False,
+                    persist_expired=False,
+                )
+            }
+            summaries[cache_key] = _allocation_reservation_summary(
+                cur, product_id, owner_line_id
+            )
+
+        lot = lot_views[cache_key].get(int(row["lot_id"]))
+        required = float(row["quantity_lb"] or 0)
+        if not lot:
+            # The always-on stock preflight runs first and owns this condition.
+            continue
+        own_lot_cover = 0.0
+        if owner_line_id is not None:
+            own_lot_cover = min(
+                float(lot["reserved_this_line_lot"] or 0),
+                max(
+                    0.0,
+                    float(lot["on_hand"] or 0)
+                    - float(lot["reserved_others_lot"] or 0),
+                ),
+            )
+        can_take = min(
+            required,
+            float(lot["takeable"] or 0) + own_lot_cover,
+        )
+        reserved_taken = max(0.0, required - can_take)
+        extra_fields = {
+            "transaction_id": int(transaction_id),
+            "product_id": product_id,
+            "lot_id": int(row["lot_id"]),
+            "lot_code": row["lot_code"],
+        }
+        if owner_line_id is not None:
+            extra_fields["sales_order_line_id"] = owner_line_id
+        _enforce_allocation_takeable(
+            "Restore ship transaction",
+            required,
+            can_take,
+            reserved_taken,
+            summaries[cache_key],
+            **extra_fields,
+        )
 
 
 def _prepare_restore_ship_allocations(
@@ -4958,6 +5124,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     plan["can_take_lb"],
                     plan["reserved_taken_lb"],
                     reservation_summary,
+                    preview=True,
                 )
 
                 response = {
@@ -5055,6 +5222,14 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         plan["can_take_lb"],
                         plan["reserved_taken_lb"],
                         reservation_summary,
+                    )
+                    _enforce_allocation_takeable(
+                        "Standalone ship",
+                        req.quantity_lb,
+                        plan["can_take_lb"],
+                        plan["reserved_taken_lb"],
+                        reservation_summary,
+                        product_id=int(product["id"]),
                     )
 
                     txn_notes = None
@@ -5726,6 +5901,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     can_pack,
                     reserved_taken,
                     reservation_summary,
+                    preview=True,
                 )
                 result = {
                     "mode": "preview",
@@ -5829,6 +6005,14 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         can_pack,
                         reserved_taken,
                         reservation_summary,
+                    )
+                    _enforce_allocation_takeable(
+                        "Pack",
+                        total_lb,
+                        can_pack,
+                        reserved_taken,
+                        reservation_summary,
+                        product_id=int(source["id"]),
                     )
 
                     if req.target_lot_code:
@@ -6105,6 +6289,10 @@ def _append_transaction_correction(
         prepared_restore = _prepare_restore_ship_allocations(
             cur, transaction_id, operator_id
         )
+        # Preserve the addendum's stock-first, own-coverage-second error
+        # precedence. PR 5's foreign-stock gate is additive after those guards
+        # and still precedes the correction INSERT and inventory_restored shrink.
+        _preflight_restore_ship_takeable(cur, transaction_id)
 
     replacement = dict(previous)
     if event_type == "amend":
@@ -10356,12 +10544,25 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                     can_ship = float(plan['actual_ship_lb'])
                     if can_ship < ship_qty:
                         warnings.append(f"{line['name']}: only {can_ship:.1f} lb currently takeable, need {ship_qty:.1f} lb")
-                    preview.append({"line_id": line['id'], "product": line['name'], "ordered_lb": float(line['quantity_lb']),
+                    line_preview = {"line_id": line['id'], "product": line['name'], "ordered_lb": float(line['quantity_lb']),
                                     "already_shipped_lb": float(line['quantity_shipped_lb']), "remaining_lb": remaining,
                                     "requested_ship_lb": ship_qty, "can_ship_lb": can_ship, "on_hand_lb": on_hand,
                                     "reserved_others_lb": reservation_summary["reserved_others_lb"],
                                     "reserved_by_orders": reservation_summary["reserved_by_orders"],
-                                    "short": max(0, ship_qty - can_ship)})
+                                    "short": max(0, ship_qty - can_ship)}
+                    if _allocations_enforced():
+                        reserved_taken = max(0.0, min(float(ship_qty), on_hand) - can_ship)
+                        allocation_warning = _allocation_observe_warning(
+                            "Sales-order ship",
+                            ship_qty,
+                            can_ship,
+                            reserved_taken,
+                            reservation_summary,
+                            preview=True,
+                        )
+                        if allocation_warning:
+                            line_preview["allocation_warning"] = allocation_warning
+                    preview.append(line_preview)
                 return {"mode": "preview", "order_number": order_row['order_number'], "customer": order_row['name'],
                         "status": order_row['status'], "lines": preview, "warnings": warnings,
                         "message": "Preview only — set mode=commit to execute"}
@@ -10415,6 +10616,44 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
 
                     if not lines_to_ship:
                         raise HTTPException(status_code=409, detail={"error_code": "ORDER_ALREADY_FULFILLED", "message": f"Order {order_row['order_number']} has no remaining lines to ship.", "order_id": order_id, "order_number": order_row['order_number'], "status": order_row['status']})
+
+                    # PR 5 hard-gate preflight.  Run before the shipment header or
+                    # any line/service updates.  This is deliberately absent from
+                    # the flag-off path, whose PR 4 response/write behavior is a
+                    # regression contract.
+                    if _allocations_enforced():
+                        for item in lines_to_ship:
+                            if item["is_service"]:
+                                continue
+                            plan = _sales_order_ship_plan(
+                                cur,
+                                int(item["product_id"]),
+                                int(item["line_id"]),
+                                float(item["quantity_lb"]),
+                                released_by=_operator_id(_),
+                                lock=True,
+                                persist_expired=False,
+                            )
+                            can_ship = float(plan["actual_ship_lb"])
+                            on_hand = _product_on_hand(cur, int(item["product_id"]))
+                            reserved_taken = max(
+                                0.0,
+                                min(float(item["quantity_lb"]), on_hand) - can_ship,
+                            )
+                            reservation_summary = _allocation_reservation_summary(
+                                cur, int(item["product_id"]), int(item["line_id"])
+                            )
+                            _enforce_allocation_takeable(
+                                "Sales-order ship",
+                                float(item["quantity_lb"]),
+                                can_ship,
+                                reserved_taken,
+                                reservation_summary,
+                                order_id=int(order_id),
+                                order_number=order_row["order_number"],
+                                sales_order_line_id=int(item["line_id"]),
+                                product_id=int(item["product_id"]),
+                            )
 
                     now = get_plant_now()
 

@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-08-21 08:40 — Completed and verified FR-4 PR 5 allocation enforcement (local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Completed default-off/flag-on enforcement for standalone ship, pack source, sales-order ship, and restore; retained flag-off observe responses and shrink repairs; preserved restore stock/coverage error precedence; added final regression-guard row 92. Rebuilt the generated `.venv-test` on Python 3.12.14 after its old Homebrew symlink/cloud-evicted packages were unusable, and refreshed only the local `factory_ledger_test` schema.
+- **Why:** Deliver PR 5 as a locally committed, fully verified steal switch without deployment, production SQL, migrations, routes, or GPT schema changes. Verification: 16/16 restore-neighborhood tests; full suite **222 passed, 185 warnings in 4.20s**; office/Floor operation counts **30/22**.
+
+---
+
+## 2026-08-21 08:39 — Completed PR 5 Floor-preview reservation warnings (local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Flag-on previews now surface the reused structured allocation warning whenever foreign reservations exist, including when the current quantity still fits takeable stock (`reserved_taken_lb=0`); actual steal previews state that commit will be blocked. Commit responses remain warning-free when safely within takeable stock.
+- **Why:** The PR 5 design explicitly requires Floor-preview warning surfacing when `reserved_others_lb > 0`, not only after the requested quantity crosses the takeable floor.
+
+---
+
+## 2026-08-21 08:32 — Wired and covered FR-4 PR 5 enforcement paths (local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Wired flag-on atomic `STOCK_ALLOCATED` preflights into standalone ship, pack source consumption, sales-order ship (before the shipment header), and restore-of-ship (fixed original lots, before correction insert and the retained `inventory_restored` shrink). Added preview warning surfacing plus tests for lot/SKU standalone steals, pack, restore, own entitlement, sibling/other-order competition, envelope arithmetic, and before/after zero-write state.
+- **Why:** Complete PR 5's opt-in hard gate while leaving PR 4 observe behavior and addendum shrink repairs on the flag-off path.
+
+---
+
+## 2026-08-21 08:28 — Began FR-4 PR 5 allocation steal enforcement (local only)
+- **File(s) changed:** `main.py`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Added the default-off, dynamically read `ALLOCATIONS_ENFORCED` switch and shared PR-5 warning/error helpers. Flag-off `RESERVED_STOCK_OBSERVE_ONLY` fields and text remain unchanged; flag-on previews reuse that field shape with `STOCK_ALLOCATED`, and commits can raise the same reservation arithmetic as an atomic 409 before inventory writes.
+- **Why:** PR 5 must turn PR 4's observed reservation steals into an opt-in hard gate without changing default/off behavior.
+
+---
+
 ## 2026-08-20 16:48 — FR-4 PR 4 fix round: pinned-lot fidelity + review-gap tests (owner rulings 2026-08-20; local only)
 - **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `docs/designs/044-so-allocations-restore-addendum.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
 - **What changed:** Ruling 2 (FIX): a pinned `lot_code` on standalone `/ship` now restricts the deduction plan to that lot only — pounds never spill to other lots to avoid reserved stock; observe mode instead takes the pinned lot's reserved pounds with the `RESERVED_STOCK_OBSERVE_ONLY` warning and the `inventory_shipped` shrink; physical insufficiency on the pinned lot keeps the existing 400 (`_takeable_deduction_plan` lost its `preferred_lot_code` reordering — pinning is a call-site list restriction in both preview and commit; pinned previews keep product-wide `total_available_lb`/`total_takeable_lb`). Pack's explicit `lot_allocations` branch was already lot-exact; its commit arithmetic gained the preview's physical clamp for symmetry (judgment: clamp added rather than a comment relying on `validate_lot_deduction`, so commit == preview by construction). Ruling 1 (KEEP): standalone-steal shrink with `release_reason='inventory_shipped'` stands, now documented as addendum §4.a.1 (same repair philosophy as §4.a; pack keeps its documented hole until PR 5). Five new tests close review gaps (a)–(e): SKU-level shrink on standalone commit; same-order sibling competition on ship-order preview; commit-path expiry persistence; pack `lot_allocations` reserved arithmetic preview==commit; pinned-lot fidelity (E1 scenario: all 50 from pinned lot A incl. 30 stolen-with-warning, 400 on pinned 120, lot B untouched, pin shrunk 80→50). Full pinned Python 3.12.14 suite with `TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test`: **214 passed, 178 warnings in 3.54s**. E1 also re-probed green against a real uvicorn on a throwaway DB clone. No migration, GPT schema, allowlist, allocate-CRUD, or restore/void changes.
