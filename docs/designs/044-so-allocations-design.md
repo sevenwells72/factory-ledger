@@ -1056,7 +1056,7 @@ No new GPT history operation.
 
 ## Rollout Plan
 
-`ALLOCATIONS_ENFORCED` is a **steal switch only** (default off in prod, on in tests). It does **not** gate consume-on-ship.
+`ALLOCATIONS_ENFORCED` is a **steal switch only** (default off; tests enable it per case). It does **not** gate consume-on-ship. Preview allocation warnings are also flag-gated; this is a review-accepted variance (2026-08-21).
 
 | Stage | What is live | What is not |
 |---|---|---|

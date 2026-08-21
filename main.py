@@ -10635,7 +10635,16 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                                 persist_expired=False,
                             )
                             can_ship = float(plan["actual_ship_lb"])
-                            on_hand = _product_on_hand(cur, int(item["product_id"]))
+                            # Match the ship plan's physical basis exactly:
+                            # only positive-balance FIFO lots are consumable.
+                            # A negative audit lot must not offset those lots
+                            # and hide a foreign-reservation steal.
+                            on_hand = sum(
+                                float(lot["available"] or 0)
+                                for lot in fifo_lot_balances(
+                                    cur, int(item["product_id"]), include_empty=False
+                                )
+                            )
                             reserved_taken = max(
                                 0.0,
                                 min(float(item["quantity_lb"]), on_hand) - can_ship,

@@ -21,18 +21,15 @@ try:
 except ImportError:  # pragma: no cover — FastAPI should be installed in the test env
     pytest.skip("fastapi not installed", allow_module_level=True)
 
-try:
-    import main
-    from main import (
-        commit_ship_order,
-        ship_order,
-        ship_order_preview,
-        CommitShipOrderRequest,
-        ShipOrderLineRequest,
-        ShipOrderRequest,
-    )
-except Exception as e:  # pragma: no cover — PEP 604 syntax requires Python 3.10+
-    pytest.skip(f"cannot import main ({e})", allow_module_level=True)
+import main
+from main import (
+    commit_ship_order,
+    ship_order,
+    ship_order_preview,
+    CommitShipOrderRequest,
+    ShipOrderLineRequest,
+    ShipOrderRequest,
+)
 
 
 class _ConnProxy:

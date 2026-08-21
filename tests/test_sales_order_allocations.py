@@ -2835,6 +2835,57 @@ def test_enforced_order_ship_sibling_and_other_pins_block_atomically(
 
 
 @pytest.mark.db
+def test_order_ship_negative_lot_cannot_hide_foreign_reservation_steal(
+    db_cursor, allocation_client, monkeypatch
+):
+    """V-4 probe: A=100, B=-60, foreign pin=60 leaves takeable=40.
+
+    Enforcement must measure physical stock on the same positive-lot basis as
+    the plan. Observe mode keeps PR 4's partial-ship behavior.
+    """
+    cur = db_cursor
+    order_id, (line_id,), (product_id,) = _seed_order(cur, n_lines=1)
+    foreign_order, (foreign_line,), _ = _seed_order(
+        cur, n_lines=1, product_ids=[product_id]
+    )
+    lot_a = _seed_lot(cur, product_id, "T044-PR5-V4-POSITIVE")
+    lot_b = _seed_lot(cur, product_id, "T044-PR5-V4-NEGATIVE")
+    _post_stock(cur, product_id, lot_a, 100)
+    _post_stock(cur, product_id, lot_b, -60)
+    _insert(cur, foreign_order, foreign_line, product_id, qty=60)
+
+    request = {
+        "ship_all": False,
+        "lines": [{"line_id": line_id, "quantity_lb": 100}],
+    }
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "true")
+    before = _pr5_atomic_state(cur, product_id)
+    blocked = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit", json=request
+    )
+    assert blocked.status_code == 409, blocked.text
+    _assert_stock_allocated_detail(
+        blocked.json()["detail"], requested=100, can_take=40, reserved_taken=60
+    )
+    assert _pr5_atomic_state(cur, product_id) == before
+
+    monkeypatch.setenv("ALLOCATIONS_ENFORCED", "false")
+    shipped = allocation_client.post(
+        f"/sales/orders/{order_id}/ship/commit", json=request
+    )
+    assert shipped.status_code == 200, shipped.text
+    result = shipped.json()["lines_shipped"][0]
+    assert result["requested_lb"] == pytest.approx(100)
+    assert result["shipped_lb"] == pytest.approx(40)
+    assert result["short_lb"] == pytest.approx(60)
+    assert result["lots_used"] == [
+        {"lot_code": "T044-PR5-V4-POSITIVE", "quantity_lb": 40.0}
+    ]
+    assert main.lot_on_hand(cur, lot_a) == pytest.approx(60)
+    assert main.lot_on_hand(cur, lot_b) == pytest.approx(-60)
+
+
+@pytest.mark.db
 def test_enforced_restore_steal_409_precedes_shrink_and_is_atomic(
     db_cursor, allocation_client, monkeypatch
 ):

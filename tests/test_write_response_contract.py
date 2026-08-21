@@ -24,10 +24,7 @@ try:
 except ImportError:  # pragma: no cover
     pytest.skip("fastapi/httpx not installed", allow_module_level=True)
 
-try:
-    import main
-except Exception as e:  # pragma: no cover
-    pytest.skip(f"cannot import main ({e})", allow_module_level=True)
+import main
 
 
 class _ConnProxy:
