@@ -1,5 +1,39 @@
 # Change Log
 
+## 2026-08-21 08:14 — B-1: orders matrix export no longer 422s on bulk per-lb SKUs
+
+- **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`
+- **What changed:** `GET /export/orders-matrix.xlsx` treats NULL `case_size_lb` as the
+  existing "sold by the pound" marker instead of a fatal error. SQL now
+  `COALESCE(sol.quantity_lb / NULLIF(p.case_size_lb, 0), sol.quantity_lb) AS qty` so
+  per-lb rows return pounds; the handler maps NULL case size to `lb_per_case = 1.0` and
+  keeps the 422 only for `case_size_lb <= 0` or NULL qty. Per-lb product column headers
+  are suffixed " (lb)" on both Cases and Pounds sheets via `_matrix_column_header`, which
+  skips the suffix when the shortened name already ends in per/lb (so 70013/70016 do not
+  stutter); `_matrix_quantity_note` returns
+  `Optional[str]` — per-lb cells get lb-based pan math when a pan yield is on file and no
+  note at all otherwise, so no cases-to-pans text is attached to a pounds cell. Added 4
+  regression tests (bulk NULL case size exports 200; lb-based note when pan yield known;
+  `case_size_lb = 0` still 422s naming only that SKU; the COALESCE stays in the query), plus
+  2 header-suffix tests (70013 not doubled up; a per-lb SKU without per/lb in its name is
+  suffixed; unit coverage of the rule).
+- **Why:** The dashboard "Export Matrix (xlsx)" button failed for every user. Open orders
+  contain bulk per-lb SKUs 70013 and 70016, whose `case_size_lb` is NULL by design (the
+  same convention recorded for 70004 in changelog row 54), so the mandatory case
+  conversion aborted the whole workbook. Not an auth problem — the scoped dashboard key
+  is already on `DASHBOARD_KEY_ALLOWLIST`. Branch `fix/b1-matrix-bulk-lb`; not deployed.
+- **Narrows changelog row 61's guard — read before reverting:** row 61 required the export
+  to hard-fail on invalid case data. That guard is retained but narrowed: 422 now fires on
+  `case_size_lb <= 0` only. NULL is exempt, because row 54 records NULL `case_size_lb` as
+  the deliberate "sold by the pound" convention for bulk SKUs (70004 explicitly), not as
+  missing data. Row 61's actual scenario — raw ingredient 11033 sold by weight — is still
+  excluded upstream by the `p.type = 'finished'` filter, which is unchanged and still
+  covered by `test_orders_matrix_query_excludes_non_finished_products`. Reverting this
+  narrowing restores the total export failure whenever any open order contains a bulk
+  per-lb line; widening it back to reject NULL again would re-break 70004/70013/70016.
+
+---
+
 ## 2026-08-19 12:32 — FR-10 verification repair (local review; not deployed)
 - **File(s) changed:** `main.py`, `tests/test_production_today_tile.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
 - **What changed:** Rebuilt the local `factory_ledger_test` database from `tests/schema/schema.sql`, isolated the original full-suite stall to the first Production Warning test after the Today Tile auth test, and retained HTTP-level auth coverage (401 missing, 403 wrong, 200 scoped key) with the established post-TestClient `_db_connection.rollback()` cleanup. Split Today Tile coverage into seven independent tests. Missing batch/case unit definitions now surface under Other with their output pounds and a count-unavailable indicator; Other packing rows render whenever products exist. Full suite passes 139/139 (132 baseline + 7 new tests).

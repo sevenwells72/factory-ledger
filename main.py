@@ -7151,26 +7151,55 @@ def _matrix_short_header(product_name: str) -> str:
     return re.sub(r"\s+", " ", header).strip()
 
 
+_PER_LB_HEADER_RE = re.compile(r"per.?lb$", re.IGNORECASE)
+
+
+def _matrix_column_header(product: dict) -> str:
+    """Column header for one product column.
+
+    Per-lb bulk SKUs are marked "(lb)" so a Cases-sheet reader does not mistake
+    pounds for cases — unless the product name already ends in "per/lb", where
+    the suffix would just stutter.
+    """
+    header = _matrix_short_header(product["product_name"])
+    if product["per_lb"] and not _PER_LB_HEADER_RE.search(header):
+        header += " (lb)"
+    return header
+
+
 def _matrix_apply_numeric(cell, number_format='#,##0;(#,##0);"—"'):
     cell.alignment = Alignment(horizontal="center", vertical="center")
     cell.number_format = number_format
 
 
-def _matrix_quantity_note(sku: str, qty_cases: float, lb_per_case: float, sheet_name: str) -> str:
-    """Build the production-planning note for one nonzero matrix quantity."""
+def _matrix_quantity_note(
+    sku: str, qty_cases: float, lb_per_case: float, sheet_name: str, per_lb: bool = False
+) -> Optional[str]:
+    """Build the production-planning note for one nonzero matrix quantity.
+
+    Returns None when there is nothing truthful to say: a per-lb bulk SKU has no
+    cases to convert, so without a pan yield on file it gets no note at all
+    rather than misleading cases-to-pans text.
+    """
     pounds = qty_cases * lb_per_case
-    qty_text = f"{qty_cases:,g}"
-    if sheet_name == "Cases":
-        lead = f"{qty_text} cases = {pounds:,.0f} lb"
+    if per_lb:
+        pan_yield = _ORDERS_MATRIX_PAN_YIELD.get(sku)
+        if pan_yield is None:
+            return None
+        lead = f"{pounds:,.0f} lb (sold per lb)"
     else:
-        lead = f"{pounds:,.0f} lb ({qty_text} cases)"
+        qty_text = f"{qty_cases:,g}"
+        if sheet_name == "Cases":
+            lead = f"{qty_text} cases = {pounds:,.0f} lb"
+        else:
+            lead = f"{pounds:,.0f} lb ({qty_text} cases)"
 
-    if sku == "31012":
-        return f"{lead} — repack from 50 lb bulk, no pans"
+        if sku == "31012":
+            return f"{lead} — repack from 50 lb bulk, no pans"
 
-    pan_yield = _ORDERS_MATRIX_PAN_YIELD.get(sku)
-    if pan_yield is None:
-        return f"{lead} — no pan yield on file"
+        pan_yield = _ORDERS_MATRIX_PAN_YIELD.get(sku)
+        if pan_yield is None:
+            return f"{lead} — no pan yield on file"
 
     pans = pounds / pan_yield
     pans_text = "<0.1" if pans > 0 and f"{pans:,.1f}" == "0.0" else f"{pans:,.1f}"
@@ -7201,6 +7230,7 @@ def _build_orders_matrix_workbook(lines: List[dict], export_date: date) -> Workb
             "product_name": line["product_name"],
             "lb_per_case": line["lb_per_case"],
             "family": _matrix_family(line["product_name"]),
+            "per_lb": bool(line.get("per_lb")),
             "has_fractional_qty": False,
         })
         product["has_fractional_qty"] = product["has_fractional_qty"] or not math.isclose(
@@ -7223,7 +7253,7 @@ def _build_orders_matrix_workbook(lines: List[dict], export_date: date) -> Workb
         ws = workbook.create_sheet(sheet_name)
         total_col = 5 + len(products)
         headers = ["Due date", "Weekday", "Customer", "Order ID"] + [
-            _matrix_short_header(p["product_name"]) for p in products
+            _matrix_column_header(p) for p in products
         ] + ["Row total"]
         ws.append(headers)
         ws.row_dimensions[1].height = 34
@@ -7267,11 +7297,12 @@ def _build_orders_matrix_workbook(lines: List[dict], export_date: date) -> Workb
                 if qty is not None:
                     cell.value = qty if sheet_name == "Cases" else qty * product["lb_per_case"]
                     if not math.isclose(qty, 0, abs_tol=1e-9):
-                        cell.comment = _matrix_comment(
-                            _matrix_quantity_note(
-                                product["sku"], qty, product["lb_per_case"], sheet_name
-                            )
+                        note = _matrix_quantity_note(
+                            product["sku"], qty, product["lb_per_case"], sheet_name,
+                            per_lb=product["per_lb"],
                         )
+                        if note:
+                            cell.comment = _matrix_comment(note)
                 cell.fill = PatternFill("solid", fgColor=_MATRIX_BANDS[product["family"]][row_offset % 2])
                 _matrix_apply_numeric(
                     cell,
@@ -7387,7 +7418,7 @@ def export_orders_matrix(_: bool = Depends(verify_api_key)):
             SELECT c.name AS customer, so.order_number AS order_id,
                    so.requested_ship_date AS due_date, p.odoo_code AS sku,
                    p.name AS product_name,
-                   sol.quantity_lb / NULLIF(p.case_size_lb, 0) AS qty,
+                   COALESCE(sol.quantity_lb / NULLIF(p.case_size_lb, 0), sol.quantity_lb) AS qty,
                    p.case_size_lb AS lb_per_case
             FROM sales_orders so
             JOIN customers c ON c.id = so.customer_id
@@ -7407,10 +7438,18 @@ def export_orders_matrix(_: bool = Depends(verify_api_key)):
     lines = []
     for line in raw_lines:
         lb_per_case = line.get("lb_per_case")
-        if lb_per_case is None or lb_per_case <= 0 or line["qty"] is None:
+        # Bulk per-lb finished goods (70004/70013/70016) carry no case size by
+        # design — NULL case_size_lb is the marker for "sold by the pound", so
+        # their quantity is already pounds and one "case" is one pound. Only
+        # genuinely invalid case data (<= 0) still fails the export.
+        per_lb = lb_per_case is None
+        if per_lb:
+            lb_per_case = 1.0
+        if lb_per_case <= 0 or line["qty"] is None:
             offending.append(str(line["sku"]))
             continue
         line["lb_per_case"] = float(lb_per_case)
+        line["per_lb"] = per_lb
         lines.append(line)
     if offending:
         raise HTTPException(
