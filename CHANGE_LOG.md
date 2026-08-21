@@ -21,7 +21,9 @@
   contain bulk per-lb SKUs 70013 and 70016, whose `case_size_lb` is NULL by design (the
   same convention recorded for 70004 in changelog row 54), so the mandatory case
   conversion aborted the whole workbook. Not an auth problem — the scoped dashboard key
-  is already on `DASHBOARD_KEY_ALLOWLIST`. Branch `fix/b1-matrix-bulk-lb`; not deployed.
+  is already on `DASHBOARD_KEY_ALLOWLIST`. **DEPLOYED 2026-08-21 08:23 ET** — commit `cf2f54f`,
+  Railway deployment `3de52662-75b6-4b32-8090-8061504d5ea3` Success; prod returns 200 + XLSX with
+  both the master and scoped dashboard keys. Recorded as changelog row 79.
 - **Narrows changelog row 61's guard — read before reverting:** row 61 required the export
   to hard-fail on invalid case data. That guard is retained but narrowed: 422 now fires on
   `case_size_lb <= 0` only. NULL is exempt, because row 54 records NULL `case_size_lb` as
