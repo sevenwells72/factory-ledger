@@ -1856,6 +1856,8 @@
   const SALES_API_KEY = 'dashboard-key-2026';
   const SALES_ORDER_OPEN_STATUSES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship'];
   const SALES_ORDER_ALLOCATABLE_STATUSES = ['confirmed', 'in_production', 'ready', 'partial_ship'];
+  const SALES_ORDER_CLOSED_STATUSES = ['shipped', 'invoiced', 'cancelled'];
+  const ALLOCATION_INVENTORY_LIMIT = 500;
   const SALES_ORDER_STATUS_VALUES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship', 'shipped', 'invoiced', 'cancelled'];
   const SALES_ORDER_HEADER_EDIT_STATUSES = ['new', 'confirmed'];
   const READINESS_BLOCKER_LABELS = {
@@ -1879,6 +1881,7 @@
   state.currentOrderAllocations = null;
   state.orderDetailEditMode = false;
   state.allocationInventory = null;
+  state.allocationInventoryMayBeIncomplete = false;
   state.allocationInventoryPromise = null;
   state.allocationCountdownTimer = null;
 
@@ -1917,9 +1920,22 @@
   }
 
   function renderDispatchState(order) {
+    if (SALES_ORDER_CLOSED_STATUSES.includes(order.status)) return '&mdash;';
     return order.dispatch_ready
       ? '<span class="dispatch-pill dispatch-ready">Dispatch Ready</span>'
       : '<span class="dispatch-pill dispatch-blocked">Blocked</span>';
+  }
+
+  function renderOrderBlockers(order, showDetail = false) {
+    if (SALES_ORDER_CLOSED_STATUSES.includes(order.status)) return '&mdash;';
+    return renderBlockerChips(order.blockers, showDetail);
+  }
+
+  function renderLineReadiness(line, showDetail = false) {
+    if (line.line_status === 'cancelled') return '<span class="readiness-none">Cancelled</span>';
+    const readiness = line.readiness || {};
+    if (readiness.ordered_lb == null) return '<span class="readiness-none">Service</span>';
+    return renderBlockerChips(readiness.blockers, showDetail);
   }
 
   function isDispatchQueueMode() {
@@ -2049,6 +2065,30 @@
     return Number(line.quantity_lb) || 0;
   }
 
+  function deriveOrderRemainingUnits(order) {
+    const palletLines = Array.isArray(order.pallet_lines) ? order.pallet_lines : [];
+    if (order.remaining_units != null && palletLines.some(line => getSalesOrderLineCaseSizeLb(line))) {
+      return Number(order.remaining_units);
+    }
+    let units = 0;
+    let derivedAny = false;
+    for (const line of (Array.isArray(order.lines) ? order.lines : [])) {
+      const caseSizeLb = getSalesOrderLineCaseSizeLb(line);
+      const readiness = line.readiness || {};
+      const remainingLb = readiness.remaining_lb != null ? readiness.remaining_lb : line.remaining_lb;
+      if (!caseSizeLb || remainingLb == null) continue;
+      units += Math.round(Number(remainingLb) / caseSizeLb);
+      derivedAny = true;
+    }
+    return derivedAny ? units : null;
+  }
+
+  function formatOrderRemaining(order) {
+    const remainingLb = order.remaining_effective_lb != null ? order.remaining_effective_lb : order.remaining_lb;
+    const units = deriveOrderRemainingUnits(order);
+    return fmtLbs(remainingLb) + (units == null ? '' : ' &middot; ' + fmtInt(units) + ' units');
+  }
+
   async function loadOrderDetails(orders) {
     const details = new Array(orders.length);
     let nextIndex = 0;
@@ -2176,13 +2216,18 @@
       const statusFilter = document.getElementById('orders-status-filter').value;
       let data;
       if (statusFilter === 'dispatch_queue') {
-        data = await fetchSalesAPI('/sales/orders/fulfillment-check');
+        const [dispatchData, listData] = await Promise.all([
+          fetchSalesAPI('/sales/orders/fulfillment-check'),
+          fetchSalesAPI('/sales/orders?limit=200')
+        ]);
+        data = dispatchData;
+        const listOrdersById = new Map((listData.orders || []).map(order => [String(order.order_id), order]));
         state.ordersData = (data.orders || []).map(order => ({
           ...order,
           ready: Boolean(order.floor_ready),
-          note: null,
           order_date: null,
-          pallet_lines: [],
+          pallet_lines: (listOrdersById.get(String(order.order_id)) || {}).pallet_lines || [],
+          remaining_units: (listOrdersById.get(String(order.order_id)) || {}).remaining_units,
           remaining_lb: order.remaining_effective_lb,
           is_dispatch_queue: true
         }));
@@ -2244,18 +2289,19 @@
 
     for (const o of orders) {
       const overdue = isOrderOverdue(o);
+      const readyReadOnly = Boolean(o.is_dispatch_queue);
       html += `<tr class="order-row ${o.ready ? 'so-ready' : ''}" data-order-id="${o.order_id}">`;
       html += `<td class="order-expand-cell"><button type="button" class="order-expand-toggle" data-order-id="${o.order_id}" aria-expanded="false" aria-controls="order-lines-${o.order_id}" title="Show line items"><span class="order-expand-caret">&#9656;</span></button></td>`;
-      html += `<td class="order-ready-cell"><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} title="Factory Ready"></td>`;
+      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : 'title="Factory Ready"'}></td>`;
       html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
       html += `<td class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date)}</td>`;
       html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span>${orderReadyPill(o)}</td>`;
       html += `<td>${renderDispatchState(o)}</td>`;
-      html += `<td class="order-blockers-cell">${renderBlockerChips(o.blockers)}</td>`;
+      html += `<td class="order-blockers-cell">${renderOrderBlockers(o)}</td>`;
       html += `<td class="num order-pallet-total">${escHtml(calculateOrderPallets(o.pallet_lines || [], 'unit_count').display)}</td>`;
-      html += `<td class="num">${fmtLbs(o.remaining_effective_lb != null ? o.remaining_effective_lb : o.remaining_lb)}</td>`;
+      html += `<td class="num">${formatOrderRemaining(o)}</td>`;
       html += `</tr>`;
       // Hidden inline detail row — line items loaded on demand when expanded
       html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="11"><div class="order-lines-content"></div></td></tr>`;
@@ -2283,15 +2329,17 @@
     const lines = (order && order.lines) || [];
     const listOrder = state.ordersData.find(o => String(o.order_id) === String(order.order_id)) || order;
     const readyNote = listOrder.note || '';
-    let html = '<div class="order-ready-drawer">';
+    const readyReadOnly = Boolean(listOrder.is_dispatch_queue);
+    const readyTooltip = 'Toggle Factory Ready from All Open Orders';
+    let html = `<div class="order-ready-drawer"${readyReadOnly ? ` title="${readyTooltip}"` : ''}>`;
     html += '<label>Factory Ready note</label>';
-    html += `<div class="order-ready-note-row"><input type="text" class="order-ready-note-input" data-order-id="${order.order_id}" value="${escAttr(readyNote)}" placeholder="Optional note for the floor">`;
-    html += `<button type="button" class="btn-sm order-ready-note-save" data-order-id="${order.order_id}">Save</button></div>`;
+    html += `<div class="order-ready-note-row"><input type="text" class="order-ready-note-input" data-order-id="${order.order_id}" value="${escAttr(readyNote)}" placeholder="Optional note for the floor" ${readyReadOnly ? `disabled title="${readyTooltip}"` : ''}>`;
+    html += `<button type="button" class="btn-sm order-ready-note-save" data-order-id="${order.order_id}" ${readyReadOnly ? `disabled title="${readyTooltip}"` : ''}>Save</button></div>`;
     if (readyNote) html += `<div class="order-ready-note-text">${escHtml(readyNote)}</div>`;
     html += '</div>';
     html += '<div class="order-inline-readiness">';
     html += `<div><strong>${renderDispatchState(order)}</strong><span class="readiness-caption">Computed view only; shipping is not gated by this status.</span></div>`;
-    html += renderBlockerChips(order.blockers);
+    html += renderOrderBlockers(order);
     html += '</div>';
 
     if (lines.length === 0) {
@@ -2323,7 +2371,7 @@
       html += `<td class="num order-line-pallets">${escHtml(linePallets.display)}</td>`;
       html += `<td>${escHtml(uom)}</td>`;
       html += `<td class="num">${remaining}</td>`;
-      html += `<td>${readiness.ordered_lb == null ? '<span class="readiness-none">Service</span>' : renderBlockerChips(readiness.blockers)}</td>`;
+      html += `<td>${renderLineReadiness(l)}</td>`;
       html += '</tr>';
     }
     html += '</tbody></table>';
@@ -2331,6 +2379,9 @@
   }
 
   async function postOrderReady(order, ready, note) {
+    if (order.is_dispatch_queue) {
+      throw new Error('Toggle Factory Ready from All Open Orders');
+    }
     return fetchSalesAPI('/sales-orders/' + encodeURIComponent(order.order_number) + '/ready', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2354,7 +2405,7 @@
         const orderId = btn.dataset.orderId;
         const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
         const input = container.querySelector(`.order-ready-note-input[data-order-id="${orderId}"]`);
-        if (!order || !input) return;
+        if (!order || !input || order.is_dispatch_queue) return;
         const oldNote = order.note || null;
         order.note = input.value.trim() || null;
         btn.disabled = true;
@@ -2379,7 +2430,7 @@
         ev.stopPropagation();
         const orderId = cb.dataset.orderId;
         const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
-        if (!order) return;
+        if (!order || order.is_dispatch_queue) return;
 
         const oldFlag = {
           ready: Boolean(order.ready),
@@ -2818,7 +2869,7 @@
       '<div class="order-readiness-heading"><div>' + renderDispatchState(order) +
       `<span class="readiness-caption">Computed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.</span></div>` +
       `<div class="readiness-metrics"><span><strong>${fmtLbs(order.allocated_lb || 0)}</strong> allocated</span><span><strong>${fmtLbs(order.shortage_lb || 0)}</strong> shortage</span></div></div>` +
-      renderBlockerChips(order.blockers, true) +
+      renderOrderBlockers(order, true) +
       '</section>';
   }
 
@@ -2844,7 +2895,7 @@
       }).join('') + '</select></label>';
       html += '<label>Method<select class="allocation-mode-select"><option value="manual_sku">Manual · SKU level</option><option value="manual_lot">Manual · specific lot</option><option value="auto_fifo">Auto FIFO · 48h TTL</option></select></label>';
       html += '<label class="allocation-quantity-field">Quantity (lb)<input class="allocation-quantity-input" type="number" min="0.0001" step="0.0001" inputmode="decimal" required></label>';
-      html += '<label class="allocation-lot-field hidden">Lot<select class="allocation-lot-select"><option value="">Choose a lot…</option></select><span class="allocation-field-hint">Only positive on-hand lots for the selected product are shown.</span></label>';
+      html += '<label class="allocation-lot-field hidden">Lot<select class="allocation-lot-select"><option value="">Choose a lot…</option></select><span class="allocation-field-hint">Only positive on-hand lots for the selected product are shown.</span><span class="allocation-lot-limit-warning hidden" role="status">Lot list may be incomplete — only the first 500 inventory lots were loaded.</span></label>';
       html += '<label class="allocation-note-field">Note (optional)<input class="allocation-note-input" type="text" maxlength="500" placeholder="Why this stock is reserved"></label>';
       html += '<div class="allocation-form-actions"><button type="submit" class="btn-refresh allocation-submit-btn">Allocate</button><span class="allocation-form-note">Auto FIFO expires after 48 hours unless the API returns a different expiry.</span></div>';
       html += '</form>';
@@ -2901,12 +2952,6 @@
       const coverable = Number(detail.coverable_lb || 0);
       return `Only ${fmtWt(coverable)} lb is coverable. Reduce the request to ${fmtWt(coverable)} lb or release a competing reservation.`;
     }
-    if (code === 'LINE_ALLOCATION_EXCEEDED') {
-      const remaining = detail.remaining_effective_lb;
-      return remaining == null
-        ? 'This request exceeds the line’s effective remaining need. Reduce the quantity and try again.'
-        : `This line has only ${fmtWt(remaining)} lb of effective remaining need. Reduce the quantity and try again.`;
-    }
     if (code === 'LOT_PRODUCT_MISMATCH') return 'That lot belongs to a different product. Choose a lot listed for this line.';
     if (code === 'ALLOCATION_NOT_ACTIVE') return 'That reservation is no longer active. Refresh the order before trying again.';
     if (code === 'INVALID_AUTO_FIFO_REQUEST') return 'Auto FIFO chooses its own lots. Clear the manual lot selection and try again.';
@@ -2916,9 +2961,10 @@
   async function loadAllocationInventory() {
     if (state.allocationInventory) return state.allocationInventory;
     if (!state.allocationInventoryPromise) {
-      state.allocationInventoryPromise = fetchSalesAPI('/inventory/current?limit=500')
+      state.allocationInventoryPromise = fetchSalesAPI('/inventory/current?limit=' + ALLOCATION_INVENTORY_LIMIT)
         .then(data => {
           state.allocationInventory = data.inventory || [];
+          state.allocationInventoryMayBeIncomplete = state.allocationInventory.length === ALLOCATION_INVENTORY_LIMIT;
           return state.allocationInventory;
         })
         .finally(() => { state.allocationInventoryPromise = null; });
@@ -2929,6 +2975,7 @@
   async function populateAllocationLots(container) {
     const lineSelect = container.querySelector('.allocation-line-select');
     const lotSelect = container.querySelector('.allocation-lot-select');
+    const limitWarning = container.querySelector('.allocation-lot-limit-warning');
     if (!lineSelect || !lotSelect) return;
     const requestedLineId = lineSelect.value;
     const line = (state.currentOrderDetail.lines || []).find(item => String(item.line_id) === requestedLineId);
@@ -2938,10 +2985,15 @@
       const inventory = await loadAllocationInventory();
       if (lineSelect.value !== requestedLineId) return;
       const lots = inventory.filter(item => item.product_name === (line && (line.product || line.name)) && Number(item.quantity_on_hand || 0) > 0.0001);
+      if (limitWarning) limitWarning.classList.toggle('hidden', !state.allocationInventoryMayBeIncomplete);
       lotSelect.innerHTML = '<option value="">Choose a lot…</option>' + lots.map(lot =>
         `<option value="${escAttr(lot.lot_id)}">${escHtml(lot.lot_code)} · ${fmtWt(lot.quantity_on_hand)} lb on hand</option>`
       ).join('');
-      if (!lots.length) lotSelect.innerHTML = '<option value="">No positive on-hand lots found</option>';
+      if (!lots.length) {
+        lotSelect.innerHTML = state.allocationInventoryMayBeIncomplete
+          ? '<option value="">No matching lots in the loaded results</option>'
+          : '<option value="">No positive on-hand lots found</option>';
+      }
     } catch (error) {
       lotSelect.innerHTML = '<option value="">Unable to load lots</option>';
       setAllocationFeedback(container, 'Unable to load lot choices: ' + parseApiErrorMessage(error));
@@ -2997,9 +3049,17 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      await refreshOrderDetail(state.currentOrderDetail.order_id, mode === 'auto_fifo' ? 'Auto-FIFO reservation created.' : 'Reservation created.');
     } catch (error) {
       setAllocationFeedback(container, allocationErrorMessage(error));
+      button.disabled = false;
+      return;
+    }
+    const successMessage = mode === 'auto_fifo' ? 'Auto-FIFO reservation created.' : 'Reservation created.';
+    setAllocationFeedback(container, successMessage, 'success');
+    try {
+      await refreshOrderDetail(state.currentOrderDetail.order_id, successMessage);
+    } catch (_) {
+      setAllocationFeedback(container, 'Saved — refresh to see updated state', 'warning');
       button.disabled = false;
     }
   }
@@ -3012,9 +3072,16 @@
     setAllocationFeedback(container, '');
     try {
       await fetchSalesAPI('/sales/orders/' + state.currentOrderDetail.order_id + '/allocations/' + allocationId + '/release', { method: 'POST' });
-      await refreshOrderDetail(state.currentOrderDetail.order_id, 'Reservation released.');
     } catch (error) {
       setAllocationFeedback(container, allocationErrorMessage(error));
+      button.disabled = false;
+      return;
+    }
+    setAllocationFeedback(container, 'Reservation released.', 'success');
+    try {
+      await refreshOrderDetail(state.currentOrderDetail.order_id, 'Reservation released.');
+    } catch (_) {
+      setAllocationFeedback(container, 'Saved — refresh to see updated state', 'warning');
       button.disabled = false;
     }
   }
@@ -3181,7 +3248,7 @@
         html += `<td class="num">${lineFmt(remaining, effectiveRemainingUnits)}<small class="pallet-secondary">${escHtml(remainingLinePallets.display)}</small></td>`;
         html += `<td class="num">${isServiceReadiness ? '—' : fmtLbs(readiness.allocated_lb || 0)}</td>`;
         html += `<td class="num ${Number(readiness.shortage_lb || 0) > 0.0001 ? 'readiness-shortage' : ''}">${isServiceReadiness ? '—' : fmtLbs(readiness.shortage_lb || 0)}</td>`;
-        html += `<td class="line-blockers-cell">${isServiceReadiness ? '<span class="readiness-none">Service</span>' : renderBlockerChips(readiness.blockers, true)}</td>`;
+        html += `<td class="line-blockers-cell">${renderLineReadiness(l, true)}</td>`;
         html += `<td><span class="so-badge ${lineStatusClass}">${escHtml(l.line_status || 'pending')}</span></td>`;
         html += '</tr>';
         html += `<tr id="order-inventory-${l.line_id}" class="order-inventory-row hidden"><td colspan="${editMode ? 10 : 9}"></td></tr>`;
