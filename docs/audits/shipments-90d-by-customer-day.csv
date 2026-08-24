@@ -1,0 +1,97 @@
+customer,ship_date,total_lb,line_count
+A-1 Bakery Supply,2026-06-04,1500.0000,1
+A-1 Bakery Supply,2026-07-22,1500.0000,1
+Ace Endico,2026-06-02,2200.0000,5
+Ace Endico,2026-07-13,1600.0000,4
+Ace Endico,2026-08-17,2100.0000,4
+American Classic Specialties,2026-06-12,2200.0000,4
+American Classic Specialties,2026-06-30,2225.0000,3
+American Classic Specialties,2026-07-28,1450.0000,5
+American Classic Specialties,2026-08-14,2250.0000,6
+BiRite Foodservice Dist. Inc.,2026-06-03,3200.0000,9
+BiRite Foodservice Dist. Inc.,2026-08-04,2800.0000,3
+Blue Stripes,2026-07-30,7527.0600,2
+Clark Associate Inc.,2026-06-15,17150.0000,5
+Clark Associate Inc.,2026-06-16,5950.0000,2
+Clark Associate Inc.,2026-07-13,3150.0000,2
+Clark Core Serv.,2026-07-28,7700.0000,3
+Clark Core Serv.,2026-08-03,8400.0000,4
+Clark Core Serv.,2026-08-05,4900.0000,2
+Clark Core Serv.,2026-08-19,4750.0000,3
+Clark Core Serv.,2026-08-20,3150.0000,2
+Clove Distributor Inc.,2026-06-29,1000.0000,1
+CRS One Source,2026-06-01,3680.0000,7
+David Rosen Bakery Supply,2026-06-23,4600.0000,3
+David Rosen Bakery Supply,2026-08-10,50.0000,1
+David Rosen Bakery Supply,2026-08-17,3050.0000,3
+DiCarlo Food Service,2026-06-04,4250.0000,5
+DiCarlo Food Service,2026-06-25,3350.0000,5
+DiCarlo Food Service,2026-07-13,4150.0000,4
+DiCarlo Food Service,2026-08-06,4300.0000,5
+Dingman's Dairy,2026-07-08,1200.0000,4
+Dingman's Dairy,2026-08-05,900.0000,3
+Dingman's Dairy,2026-08-24,900.0000,6
+DOT Foods Inc,2026-06-11,7400.0000,8
+DOT Foods Inc,2026-07-09,4410.0000,9
+DOT Foods Inc,2026-07-24,9800.0000,7
+DOT Foods Inc,2026-08-17,4200.0000,6
+Ginsberg's Foods,2026-06-10,1450.0000,4
+Ginsberg's Foods,2026-07-08,1340.0000,4
+Grassland Food & Snacks LLC,2026-08-12,1575.0000,3
+Grassland Foods & Snacks LLC,2026-06-04,1500.0000,1
+Grassland Foods & Snacks LLC,2026-06-19,1500.0000,1
+Grassland Foods & Snacks LLC,2026-07-22,3250.0000,3
+Greco and Sons,2026-06-10,4400.0000,1
+Greco and Sons,2026-08-19,4400.0000,2
+Hannas Gourmet,2026-07-15,250.0000,2
+Hialea/New Urban Farms,2026-06-09,2000.0000,1
+Hialea/New Urban Farms,2026-06-19,1500.0000,2
+Hialea/New Urban Farms,2026-07-22,1500.0000,4
+Hialea/New Urban Farms,2026-08-17,2000.0000,1
+Inter-County Bakers,2026-05-28,3000.0000,3
+Inter-County Bakers,2026-06-09,800.0000,4
+Inter-County Bakers,2026-07-01,775.0000,4
+Inter-County Bakers,2026-07-13,2300.0000,4
+"Inter-County Bakers, Inc.",2026-07-28,2400.0000,5
+"Inter-County Bakers, Inc.",2026-08-12,2400.0000,5
+International Gourmet Foods Inc,2026-06-18,1690.0000,6
+International Gourmet Foods Inc,2026-07-15,2300.0000,2
+International Gourmet Foods Inc,2026-08-19,2100.0000,3
+"Janco Foods, Inc.",2026-06-01,1375.0000,3
+"Janco Foods, Inc.",2026-07-16,1500.0000,2
+JAS Wholesale & Supply Inc.,2026-07-22,1320.0000,2
+Juliette Food LLC,2026-07-01,4200.0000,7
+Kohl Wholesale Dist.,2026-06-03,2900.0000,4
+Kohl Wholesale Dist.,2026-08-13,2780.0000,4
+Nac Foods Corp.,2026-06-10,3300.0000,5
+Nac Foods Corp.,2026-08-10,3000.0000,6
+OG Fresh,2026-06-24,150.0000,1
+Oh Nuts,2026-07-07,750.0000,1
+Oh Nuts,2026-08-06,750.0000,2
+Oh Nuts,2026-08-24,1000.0000,3
+Olympic Mountain Ice Cream,2026-06-24,1400.0000,2
+PDI Cone,2026-05-28,12000.0000,7
+PDI Cone,2026-06-29,11200.0000,8
+PDI Cone,2026-07-02,1800.0000,2
+PDI Cone,2026-07-28,12500.0000,10
+Restaurant Depot / Jetro Haines City #407,2026-07-22,36400.0000,5
+Restaurant Depot LLC #499 Commerce,2026-06-29,22400.0000,8
+RESTAURANT DEPOT/Jetro Haines City #407,2026-06-01,36400.0000,11
+RESTAURANT DEPOT/Jetro Haines City #407,2026-06-15,36400.0000,11
+RESTAURANT DEPOT/Jetro Haines City #407,2026-07-07,36400.0000,10
+Restaurant Depot/Jetro-RD #189 Chicago IL,2026-08-03,36400.0000,11
+Restaurant Depot/Jetro-RD #436 Streetsboro OH,2026-06-29,14000.0000,6
+Restaurant Depot/Jetro-RD #436 Streetsboro OH,2026-08-17,25200.0000,7
+Somerset Syrup,2026-08-03,550.0000,2
+Sparta Foods Distributors Inc.,2026-06-04,4525.0000,3
+Sparta Foods Distributors Inc.,2026-06-30,1875.0000,1
+Sparta Foods Distributors Inc.,2026-08-04,4575.0000,5
+Sunshine Granola,2026-06-11,43657.5000,18
+Sunshine Granola,2026-08-14,46667.5000,14
+Superedibles,2026-06-12,1000.0000,1
+Superedibles,2026-07-21,2000.0000,1
+Tauros NY Style Cheesecakes,2026-07-13,500.0000,1
+Wards Ice Cream,2026-06-23,625.0000,3
+Wards Ice Cream,2026-06-26,400.0000,1
+Wards Ice Cream,2026-07-28,640.0000,4
+Wards Ice Cream,2026-08-24,690.0000,4

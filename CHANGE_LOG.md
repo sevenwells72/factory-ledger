@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-08-24 15:50 — Shipment CSV exports for the traceability audit
+- **File(s) changed:** `docs/audits/shipments-90d.csv`, `docs/audits/shipments-90d-by-customer-day.csv`
+- **What changed:** Read-only export of the last 90 days of posted ship transactions (effective/posted via `ledger_current_transactions` + `ledger_current_transaction_lines`), one row per lot-level line (408 rows): ship_date (business_date), customer, SKU (odoo_code), lot, qty (lb, sign-flipped to positive), order_reference, SO/SO-line ids (via `sales_order_shipments`), BOL, entered_by (operator_id), created_at. Plus a customer × ship-date aggregate (96 rows, total_lb + line_count). Queries ran inside `BEGIN TRANSACTION READ ONLY … COMMIT` on the 6543 pooler, no session GUCs, no data modified.
+- **Why:** Michael asked for shipment exports as part of the traceability audit; committed together with the audit script/report on branch `audit/traceability-2026-08`.
+
+---
+
+## 2026-08-24 15:35 — Traceability data-entry audit (Passes 1–2): script + report
+- **File(s) changed:** `scripts/traceability_audit.sql`, `docs/traceability-audit-2026-08.md`
+- **What changed:** New read-only audit script (every query wrapped in `BEGIN TRANSACTION READ ONLY … COMMIT`, no session GUCs, run via the 6543 pooler) covering the last 90 days: per-event-type daily entry counts, zero-days, null rates, and entry-lag percentiles for receive/expected-receipt/ship/SO-allocation/make/pack/FG-lot/adjust. New report with the schema coverage matrix, raw metrics, and A–D grades per event type on completeness/timeliness/linkage. Key findings: expected_receipts has 0 rows ever; ship order_reference blank 90% and no dispatch proof captured; adjustments 84% entered late (p50 3 days); make/pack/receive completeness clean. No application code or data modified; prod access was read-only.
+- **Why:** Michael requested a traceability data-entry audit (Passes 1–2) of Factory Ledger.
+
+---
+
 ## 2026-08-24 14:27 — 044 series DEPLOYED (push 35e3171; Railway 14:17:27, Netlify by 14:16:47)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (deploy record, row 98)
 - **What changed:** Pushed `4d9a196..35e3171` to origin/main with owner approval. Railway auto-deploy served the new code at 14:17:27 (fulfillment-check `dispatch_ready` shape); Netlify live `dashboard.js` byte-identical to `35e3171` (v=37, Railway `SALES_API_BASE`). Read-only smoke with the dashboard key only: orders list/detail/fulfillment-check/allocations all 200; 19 open-set orders, 0 dispatch_ready; blocker codes unallocated/shortage/not_floor_ready/fulfillment_diverged; prod allocations count 0; no-key 401 / wrong-key 403. No prod SQL, no prod writes.
