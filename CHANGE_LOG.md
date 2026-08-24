@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-24 14:27 — 044 series DEPLOYED (push 35e3171; Railway 14:17:27, Netlify by 14:16:47)
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (deploy record, row 98)
+- **What changed:** Pushed `4d9a196..35e3171` to origin/main with owner approval. Railway auto-deploy served the new code at 14:17:27 (fulfillment-check `dispatch_ready` shape); Netlify live `dashboard.js` byte-identical to `35e3171` (v=37, Railway `SALES_API_BASE`). Read-only smoke with the dashboard key only: orders list/detail/fulfillment-check/allocations all 200; 19 open-set orders, 0 dispatch_ready; blocker codes unallocated/shortage/not_floor_ready/fulfillment_diverged; prod allocations count 0; no-key 401 / wrong-key 403. No prod SQL, no prod writes.
+- **Why:** Owner-approved deploy of the merged 044 series. Round-trip verify: prod smoke allocate 100 lb + release on SO-260814-002 line 687, allocation id 1, persisted after reload; ALLOCATIONS_ENFORCED confirmed absent in Railway env (default OFF).
+
+---
+
 ## 2026-08-24 14:11 — 044 series squash-merged to main (local commit `15b3cd6`; NOT pushed, NOT deployed)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Squash-merged `feat/044-so-allocations` onto main over `4d9a196` as local commit `15b3cd6` (29 files, +10,844/−429); merged-tree suite 229 passed, 192 warnings (223 branch + 6 B-1). Recorded regression-guard row 97. PR 6 manual test: all-pass; step 10 (flag-on preview warning) deferred until an authorized staging/local flag-on run. Ship-and-note items for PR 6.1: manual-test doc `psql -v` interpolation (step 1 confirmation query needs a literal id or stdin), `mini-calendar.js` separate API base, cancelled-line units. Office `.venv-test` rebuilt as `.venv-test.nosync` + symlink after iCloud evicted the synced venv; `.gitignore` entries for both paths still pending.
