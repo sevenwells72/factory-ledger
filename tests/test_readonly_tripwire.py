@@ -34,10 +34,7 @@ import psycopg2
 import psycopg2.errors
 import pytest
 
-try:
-    import main
-except Exception as e:  # pragma: no cover — PEP 604 requires py3.10+
-    pytest.skip(f"cannot import main ({e})", allow_module_level=True)
+import main
 
 
 # ─── Fake conn/cursor that raises a given exception on the first execute ───

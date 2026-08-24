@@ -17,9 +17,9 @@ import time, BEFORE any test module imports `main`:
      DB-backed tests skip with instructions.
 
 Setup for the local test database: scripts/setup_test_db.sh
-Typical run:
-    TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test \
-        python3 -m pytest
+Typical run (sets the local test URL and applies the Homebrew expat workaround
+only if the pinned interpreter needs it):
+    scripts/run_tests.sh
 
 Every test that needs a database connection uses the `db_cursor` fixture
 (rolls back on teardown), or the `client` fixture (FastAPI TestClient whose
@@ -28,6 +28,23 @@ DB writes are rolled back via a savepoint-proxied connection).
 
 import os
 import sys
+
+# ─────────────────────────────────────────────────────────────────
+# Interpreter guard — MUST stay at the very top, before anything else
+# ─────────────────────────────────────────────────────────────────
+# On Python 3.14 this repo's suite has exited 0 with ZERO tests collected —
+# a green run that tested nothing. Until that is diagnosed and fixed, the
+# suite only runs on the pinned interpreter series. Use the repo runner:
+#     scripts/run_tests.sh   (uses .venv-test Python 3.12 — see
+#     CHANGE_LOG.md 2026-08-20; recreate with python3.12 -m venv .venv-test)
+assert sys.version_info < (3, 13), (
+    "REFUSING TO RUN: Python "
+    f"{sys.version_info.major}.{sys.version_info.minor} interpreter detected. "
+    "This suite is pinned to Python 3.12: on 3.14, pytest has exited 0 with "
+    "ZERO tests collected (green-on-nothing hazard). Run via the pinned test "
+    "runner: scripts/run_tests.sh (rebuild: python3.12 -m venv .venv-test)."
+)
+
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -104,8 +121,7 @@ def _db_connection():
     if not url:
         pytest.skip(
             "TEST_DATABASE_URL not set — DB-backed tests skipped. "
-            "Run scripts/setup_test_db.sh, then: "
-            "TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test python3 -m pytest"
+            "Run scripts/setup_test_db.sh, then scripts/run_tests.sh"
         )
     try:
         import psycopg2

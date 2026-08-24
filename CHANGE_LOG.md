@@ -1,5 +1,61 @@
 # Change Log
 
+## 2026-08-24 — Resolved squash-merge changelog conflicts (feat/044-so-allocations → main)
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Resolved the two conflicted files from `git merge --squash feat/044-so-allocations` onto main at `4d9a196`. CHANGE_LOG.md keeps both sides in chronological order (main's B-1 entry, 2026-08-21 08:14, slots between the branch's 08:28 and 2026-08-20 16:48 entries). FACTORY_LEDGER_CHANGELOG.md: main's row 79 (B-1 orders-matrix export, deployed `cf2f54f`) keeps 79; the branch's rows 79–95 are renumbered 80–96 in order (row-28/row-70 precedent), and in-row cross-references were bumped to match (`row 80`→81, `row 86`/`Row 86`→87, `row-79`→row-80). No row content changed beyond the numbers.
+- **Why:** Main gained rows/entries (`cf2f54f`/`4d9a196`, B-1 fix deployed 2026-08-21) after the branch diverged, colliding on changelog row 79 and the top of CHANGE_LOG.md.
+
+---
+
+## 2026-08-21 10:14 — Fixed PR 6 dashboard review findings (local only)
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `docs/manual-tests/044-so-allocations-pr6-dashboard.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Closed the Dispatch Queue floor-note data-loss path by removing the synthesized null note, disabling the Factory Ready checkbox and inline note drawer there with `Toggle Factory Ready from All Open Orders`, and guarding both handlers plus the shared ready writer against dispatch-derived rows. Closed shipped/invoiced/cancelled orders now render em dashes instead of Dispatch/Blocker pills, and cancelled lines are classified before the service sentinel so they read Cancelled. Allocation writes now report write success independently; a later detail-refresh failure shows the soft `Saved — refresh to see updated state` warning and never passes through allocation error parsing. Removed the dead `LINE_ALLOCATION_EXCEEDED` case. The lot picker detects an exactly-full 500-row inventory response, displays a visible incompleteness warning, and does not claim no positive lots in that state. Restored the orders-list `· N units` suffix beside effective remaining pounds in every filter mode, supplementing Dispatch Queue with the existing list-response unit derivation. Expanded the localhost manual script with the exact line/constant override, released+shipped fixture curl/SQL, exact `OVER_ALLOCATION`, 60-second TTL tick, and dispatch-mode read-only assertion. Cache-busters are CSS v26 / JS v37.
+- **Why:** Address the review of `1eb68f4` without backend changes. `main.py` is byte-identical to `1eb68f4`; `node --check` passes for `dashboard.js`, `mini-calendar.js`, and `pallet-calculations.js`; `git diff --check` is clean; `scripts/run_tests.sh` against localhost `factory_ledger_test` passed **223 tests, 186 warnings in 5.26s**. No database mutation, production call, deployment, push, or GPT schema change was made.
+
+---
+
+## 2026-08-21 09:44 — Built PR 6 allocation dashboard UI (local only)
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `docs/manual-tests/044-so-allocations-pr6-dashboard.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Added a read-only Dispatch Queue mode with ready/blocked filtering, dispatch-first sorting, effective remaining pounds, and severity-distinct blocker chips. Sales-order detail now shows effective ordered/shipped/remaining/allocated/shortage readiness, explicit computed-not-gated semantics, allocation history with source and SKU/lot level, live auto-FIFO TTL countdowns, manual SKU/lot and auto-FIFO create controls, release actions, actionable structured allocation errors, and a read-only ship-capacity preview that renders `reserved_others_lb`, owning orders, and optional allocation warnings without empty artifacts when the field is absent. Bumped dashboard CSS/JS cache versions to v25/v36 and added the numbered localhost/staging-only PR 6 manual test procedure, including the V-2 flag-off absence assertion and deferred-if-needed flag-on warning check.
+- **Why:** Complete the 044 allocation series PR 6 UI without backend, database, deployment, Netlify, or GPT schema changes. Verification: `node --check` and `git diff --check` clean; office/Floor operation counts remain 30/22; `scripts/run_tests.sh` against localhost `factory_ledger_test` passed **223 tests, 186 warnings in 5.14s**.
+
+---
+
+## 2026-08-21 09:07 — Closed accepted PR 5 review fixes (local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `tests/test_expected_receipts.py`, `tests/test_notes_auth.py`, `tests/test_production_warning.py`, `tests/test_readonly_tripwire.py`, `tests/test_sales_order_line_fields.py`, `tests/test_ship_order_service_line.py`, `tests/test_supplies.py`, `tests/test_void_semantics.py`, `tests/test_write_response_contract.py`, `tests/conftest.py`, `scripts/run_tests.sh`, `docs/designs/044-so-allocations-design.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Fixed the sales-order flag-on preflight to measure on-hand from the same positive-balance FIFO lot set as its deduction plan, with an exact A=100/B=-60/foreign-pin=60 regression proving atomic `STOCK_ALLOCATED` versus the unchanged flag-off 40-lb partial ship. Removed ten module-level `except Exception` import skips so broken `main` imports fail collection loudly. Added `scripts/run_tests.sh`, which defaults to the localhost `factory_ledger_test`, probes `pyexpat`, applies the Homebrew expat `DYLD_LIBRARY_PATH` only when needed, and invokes the pinned Python 3.12 pytest. Pointed the conftest guard at the runner and documented the default-off/per-case flag plus review-accepted flag-gated preview-warning variance.
+- **Why:** Close V-4, the silent-green skip hole, the local Homebrew Python/expat venv hazard, and V-1/V-2 documentation findings from the accepted review of `224a17b`. Verification: deliberate broken `main` import produced a pytest collection ERROR (exit 2, zero skips); healthy runner suite **223 passed, 186 warnings in 4.30s**. No push, deployment, production database access, migration, schema, GPT schema, or system-state change.
+
+---
+
+## 2026-08-21 08:40 — Completed and verified FR-4 PR 5 allocation enforcement (local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Completed default-off/flag-on enforcement for standalone ship, pack source, sales-order ship, and restore; retained flag-off observe responses and shrink repairs; preserved restore stock/coverage error precedence; added final regression-guard row 92. Rebuilt the generated `.venv-test` on Python 3.12.14 after its old Homebrew symlink/cloud-evicted packages were unusable, and refreshed only the local `factory_ledger_test` schema.
+- **Why:** Deliver PR 5 as a locally committed, fully verified steal switch without deployment, production SQL, migrations, routes, or GPT schema changes. Verification: 16/16 restore-neighborhood tests; full suite **222 passed, 185 warnings in 4.20s**; office/Floor operation counts **30/22**.
+
+---
+
+## 2026-08-21 08:39 — Completed PR 5 Floor-preview reservation warnings (local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Flag-on previews now surface the reused structured allocation warning whenever foreign reservations exist, including when the current quantity still fits takeable stock (`reserved_taken_lb=0`); actual steal previews state that commit will be blocked. Commit responses remain warning-free when safely within takeable stock.
+- **Why:** The PR 5 design explicitly requires Floor-preview warning surfacing when `reserved_others_lb > 0`, not only after the requested quantity crosses the takeable floor.
+
+---
+
+## 2026-08-21 08:32 — Wired and covered FR-4 PR 5 enforcement paths (local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Wired flag-on atomic `STOCK_ALLOCATED` preflights into standalone ship, pack source consumption, sales-order ship (before the shipment header), and restore-of-ship (fixed original lots, before correction insert and the retained `inventory_restored` shrink). Added preview warning surfacing plus tests for lot/SKU standalone steals, pack, restore, own entitlement, sibling/other-order competition, envelope arithmetic, and before/after zero-write state.
+- **Why:** Complete PR 5's opt-in hard gate while leaving PR 4 observe behavior and addendum shrink repairs on the flag-off path.
+
+---
+
+## 2026-08-21 08:28 — Began FR-4 PR 5 allocation steal enforcement (local only)
+- **File(s) changed:** `main.py`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Added the default-off, dynamically read `ALLOCATIONS_ENFORCED` switch and shared PR-5 warning/error helpers. Flag-off `RESERVED_STOCK_OBSERVE_ONLY` fields and text remain unchanged; flag-on previews reuse that field shape with `STOCK_ALLOCATED`, and commits can raise the same reservation arithmetic as an atomic 409 before inventory writes.
+- **Why:** PR 5 must turn PR 4's observed reservation steals into an opt-in hard gate without changing default/off behavior.
+
+---
+
 ## 2026-08-21 08:14 — B-1: orders matrix export no longer 422s on bulk per-lb SKUs
 
 - **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`
@@ -33,6 +89,111 @@
   covered by `test_orders_matrix_query_excludes_non_finished_products`. Reverting this
   narrowing restores the total export failure whenever any open order contains a bulk
   per-lb line; widening it back to reject NULL again would re-break 70004/70013/70016.
+
+---
+
+## 2026-08-20 16:48 — FR-4 PR 4 fix round: pinned-lot fidelity + review-gap tests (owner rulings 2026-08-20; local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `docs/designs/044-so-allocations-restore-addendum.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Ruling 2 (FIX): a pinned `lot_code` on standalone `/ship` now restricts the deduction plan to that lot only — pounds never spill to other lots to avoid reserved stock; observe mode instead takes the pinned lot's reserved pounds with the `RESERVED_STOCK_OBSERVE_ONLY` warning and the `inventory_shipped` shrink; physical insufficiency on the pinned lot keeps the existing 400 (`_takeable_deduction_plan` lost its `preferred_lot_code` reordering — pinning is a call-site list restriction in both preview and commit; pinned previews keep product-wide `total_available_lb`/`total_takeable_lb`). Pack's explicit `lot_allocations` branch was already lot-exact; its commit arithmetic gained the preview's physical clamp for symmetry (judgment: clamp added rather than a comment relying on `validate_lot_deduction`, so commit == preview by construction). Ruling 1 (KEEP): standalone-steal shrink with `release_reason='inventory_shipped'` stands, now documented as addendum §4.a.1 (same repair philosophy as §4.a; pack keeps its documented hole until PR 5). Five new tests close review gaps (a)–(e): SKU-level shrink on standalone commit; same-order sibling competition on ship-order preview; commit-path expiry persistence; pack `lot_allocations` reserved arithmetic preview==commit; pinned-lot fidelity (E1 scenario: all 50 from pinned lot A incl. 30 stolen-with-warning, 400 on pinned 120, lot B untouched, pin shrunk 80→50). Full pinned Python 3.12.14 suite with `TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test`: **214 passed, 178 warnings in 3.54s**. E1 also re-probed green against a real uvicorn on a throwaway DB clone. No migration, GPT schema, allowlist, allocate-CRUD, or restore/void changes.
+- **Why:** The accepted-with-variances PR 4 review found pinned-lot spillover (owner ruled it a defect: reservation-avoidance must not override an operator's named lot — traceability) and left the invented `inventory_shipped` shrink pending an owner ruling (kept, must be documented in the design addendum), plus five untested behaviors.
+
+---
+
+## 2026-08-20 15:29 — FR-4 PR 4 standalone ship + pack takeable (local only)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Wired standalone `/ship` and `/pack` preview+commit through the existing allocation-aware lot helper and a shared reservation-preserving deduction plan. Live unexpired lot pins are subtracted per lot, foreign SKU rows shadow FIFO unpinned stock, and unreserved capacity is consumed before observe-mode fallback to physical reserved pounds. Responses add owning-order summaries (`reserved_others_lb`, `reserved_by_orders`), `can_ship_lb` / `can_pack_lb`, and structured `RESERVED_STOCK_OBSERVE_ONLY` warnings. The flag still does not exist, so no `STOCK_ALLOCATED` 409 was added: both writes proceed. Standalone steals run the existing shrink repair with `inventory_shipped`; pack does not convert/shrink SOA and retains the PR-4 observe-mode hole. Sales-order ship preview also exposes competing reservations while excluding that line's own allocations. Four real-endpoint tests cover lot+SKU arithmetic, owning SO numbers, expired exclusion without preview writes, own-line exclusion, standalone warning+write+shrink, pack warning+write, and target allocations not blocking pack output. Full pinned Python 3.12.14 suite with `TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test`: **209 passed, 173 warnings in 3.39s**. Office/Floor operation counts remain 30/22; no GPT schema, migration, allocation CRUD, or restore/void edits.
+- **Why:** Raw posted-balance FIFO let standalone ship/pack consume reserved pounds invisibly and could choose a reserved early lot even when later unreserved stock existed. PR 4 must expose takeable competition and observe steals without introducing PR 5's enforcement flag.
+
+---
+
+## 2026-08-20 15:19 — Pinned .venv-test to Python 3.12 + conftest interpreter guard
+- **File(s) changed:** `tests/conftest.py` (also rebuilt untracked `.venv-test`; `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`)
+- **What changed:** Recreated `.venv-test` with `python3.12 -m venv` (3.12.14; was silently 3.14.5) from its own pip-freeze set (`httpx==0.27.2`, `anyio==3.7.1` preserved — latest httpx breaks TestClient). Added a top-of-file guard in `tests/conftest.py` asserting `sys.version_info < (3, 13)` with a loud REFUSING-TO-RUN message. Suite on rebuilt venv: 205 passed, 169 warnings; on a 3.14 interpreter the guard aborts at conftest import (pytest exit 4).
+- **Why:** On Python 3.14, `python -m pytest` in this repo has exited 0 with zero tests collected — a green run that tested nothing.
+
+---
+
+## 2026-08-20 15:20 — Migration 045 applied to production; schema re-dumped; pending include dropped
+- **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Applied migration 045 (`sales_order_allocation_reactivations`) to prod via the session-mode pooler on 5432 (clean COMMIT); verified live PK/CHECK/3 FKs and proved idempotence with a re-run (`NOTICE ... already exists, skipping`, clean COMMIT). Re-dumped the prod schema with `scripts/dump_prod_schema.sh` (3,986 lines, zero data rows) — 045 objects now in the dump body, pending `\ir 045` block removed per the row-79 rule. Fresh test-DB rebuild confirms the table comes from the dump body; full suite 205 passed / 169 warnings on Python 3.12.14 with the pinned package set (repo `.venv-test` is now 3.14.5 and also passes 205). Added changelog row 88.
+- **Why:** PR 3's void/restore code needs the table in prod before deploy; the pending-include convention (rows 72/79) requires removal after prod apply + re-dump.
+
+---
+
+## 2026-08-20 — Review of 1bb6c72 accepted; cosmetic variances fixed
+- **File(s) changed:** `tests/schema/schema.sql`, `docs/designs/044-so-allocations-restore-addendum.md`, `CHANGE_LOG.md`
+- **What changed:** Independent review of 1bb6c72 (fix round 3) accepted with cosmetic variances, now fixed: appended the pending `\ir 045` block to `tests/schema/schema.sql` (041/044 precedent — remove after prod apply + re-dump) so a fresh `setup_test_db.sh` build contains `sales_order_allocation_reactivations`; corrected the addendum §3 S1 restore row to 409 `RESTORE_STOCK_MISSING` (stock preflight first per §2.1, owner ruling 2026-08-20) and added the S1b note (200 lb seeded → stock passes → 409 `RESTORE_SPLIT_MISSING` required=100 available=60). Fresh-DB rebuild + full pinned 3.12 suite: 205 passed.
+- **Why:** The review found the implementation and tests already followed the owner's S1 re-ruling, but the schema dump lacked the 045 include (broke fresh test-DB reproducibility) and the addendum's S1 table still showed the pre-ruling error code.
+
+---
+
+## 2026-08-20 — Allocation restore review fix round 3 (record-at-void)
+- **File(s) changed:** `docs/designs/044-so-allocations-restore-addendum.md`, `docs/designs/045-write-foundation-design.md`, `migrations/045_sales_order_allocation_reactivations.sql`, `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Landed the normative restore addendum and idempotent migration 045 for `sales_order_allocation_reactivations`, keyed by ship transaction and SO line with explicit zero quantities and void-correction attribution. Ship void now records the exact SOA pounds it reactivated per line. Ship restore locks the transaction, performs lot-level `RESTORE_STOCK_MISSING` before the correction insert, loads recorded quantities with missing-row warning-as-zero behavior, expires auto-FIFO rows, performs recorded-positive live coverage preflight, inserts the correction, consumes only this line's live lot pins then SKU row through `_consume_allocation_row`, and shrinks uncovered reservations with `inventory_restored`. It never derives demand from ledger pounds, selects by `last_ship_transaction_id`, calls `_sales_order_ship_plan`, or flips superseded rows. The write-foundation design now reserves its migrations for 046+. Tests cover S1 stock-first, S1b split-only, S2–S5, explicit zero, partial allocation, multi-line zero/full records, historical missing-record warnings, competing-stock failure, restore shrink, repeated uniqueness cycles, atomicity, conservation, attribution cap, nonnegative product/lot stock, and superseded immunity. Pinned Python 3.12 suite: **205 passed, 169 warnings**; readiness module **17/17 unmodified**.
+- **Why:** Row 86's permanent rule was wrong: ledger shipped pounds exceed allocation-reactivated pounds for unallocated and partially allocated ships, causing legitimate restores to 409. Restore demand is now the void-time reactivation record; effective ledger quantity remains only the attribution ceiling. This supersedes row 86 without discarding its correct live-row consume, expiry, atomic coverage, and superseded-immunity pieces.
+
+---
+
+## 2026-08-20 — Allocation restore review fix round 2 (e87219c)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Replaced transaction-marker restore selection with ledger-authoritative restore quantities. `_restore_ship_allocations` now derives each SO line's effective posted ship pounds from `ledger_current_transaction_lines`, preflights complete coverage from active/unexpired allocations, returns 409 `RESTORE_SPLIT_MISSING` atomically when coverage is short, and otherwise consumes exactly that quantity through `_consume_allocation_row`. Superseded rows are never flipped to shipped. API scenarios cover: A100 void, B40, restore A failing with live 60; void B then restore A consuming live 100; and T40 void, C30, restore T leaving 30 live with only 40 attributed to T. Every checkpoint asserts live+shipped conservation and nonnegative ledger on-hand.
+- **Why:** Round 1's selector extension treated an ambiguous `last_ship_transaction_id` on `superseded/split_on_ship` as attribution and could mark a full 100 lb historical row shipped without consuming live pounds, minting phantom allocation quantity and allowing the restore correction to drive inventory negative.
+
+---
+
+## 2026-08-20 — Review fix round 1 for ef709e5 (superseded by round 2)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Correctly stopped split leftovers from inheriting `last_ship_transaction_id`, aligned allocation release with `POST /sales/orders/{order_id}/allocations/{allocation_id}/release`, restored the dashboard key DELETE guard, and added named allocation guard/error tests. The accompanying restore selector extension was incorrect and is superseded by round 2: it could flip an ambiguous superseded row at full quantity without consuming live allocation pounds.
+- **Why:** The independent review in `docs/reviews/ef709e5-pr3-review.md` reproduced a silent restore mis-attribution. Round 2 replaces the incomplete selector-based repair with ledger-derived consumption.
+
+---
+
+## 2026-08-20 12:42 — Independent review report for commit ef709e5 (FR-4 PR 3)
+- **File(s) changed:** `docs/reviews/ef709e5-pr3-review.md`
+- **What changed:** Added the verbatim independent review of commit ef709e5 (allocation CRUD, consume-on-ship, void/restore/cancel/line-edit, merge coalesce, PATCH received-at). Records: full 186/186 local suite output; PASS on over-allocation guard, consume-on-ship split fields, auto-FIFO ordering/TTL, received-at validation, 30/22 operation counts, and forbidden-pattern checks; one CONFIRMED defect where `_restore_ship_allocations` (main.py:901-908) mis-attributes a split leftover because it inherits `last_ship_transaction_id` (main.py:578), silently converting a live reservation to shipped after a void -> partial re-ship -> restore sequence; eight design must-pass cases with no covering test. Verdict: fix round required.
+- **Why:** Builder self-reports are not trusted; the review had to be verified against the code and docs/designs/044-so-allocations-design.md and kept in-repo as the record for the fix round. Report only — no source changes, not committed.
+
+---
+
+## 2026-08-20 08:50 — FR-4 PR 3 allocation writes and lifecycle integration
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Added product-locked SKU/lot allocation upserts, sibling-aware over-allocation rejection, deterministic auto-FIFO lot pins with 48-hour TTL, effective expiry on writes, manual release/list routes, and dashboard-only received-at correction. Sales-order shipping now consumes and splits covering allocations unconditionally; void/restore coalesces and reverses partial splits under the unique-live indexes; inventory voids shrink uncovered product/lot claims; order/line cancel and quantity reductions release excess; lot merge coalesces duplicate survivor pins. The dashboard key allowlist covers only the new allocation and received-at routes; office/Floor GPT schemas remain 30/22 operations. Added API and state-machine tests covering manual/auto allocation, upsert, release, competition, SKU/lot consumption, 100→ship 40→void→restore, merge 40+60→100, expiry, received-at validation/clearing, scoped auth, cancel/edit release, and effective-shipped edit guards. Full local PostgreSQL suite passes 186/186.
+- **Why:** PRs 1–2 provided allocation storage and read-only readiness, but no safe way to create, consume, release, restore, or maintain exclusive reservations through order and lot lifecycle writes.
+
+---
+
+## 2026-08-19 23:22 — FR-7 readiness follow-up: existing incomplete-lot pins clear unstaged
+- **File(s) changed:** `main.py`, `tests/test_sales_order_readiness.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Corrected incomplete-lot FIFO readiness so a live lot-level allocation on that same lot clears `unstaged` for the line, while a partial pin still reports `partial_allocation` and `missing_lot_dates`. Added eight DB regression tests for that predicate, ordinary received lots with null `received_at`, physical `no_production` SKUs, cross-order allocation competition, non-diverged `partial_ship` fulfillment-check inclusion, cancelled-line exclusion, void→restore effective shipping, and closed/cancelled expected-receipt exclusion. Full suite passes 172/172 against `factory_ledger_test`.
+- **Why:** PR 2 treated the unpinned balance of an already-pinned incomplete lot as unstaged, contrary to the design's line-and-lot pin exception, and the additional read semantics lacked direct regression coverage.
+
+---
+
+## 2026-08-19 21:20 — FR-7 PR 2 read-only sales-order readiness and dispatch blockers
+- **File(s) changed:** `main.py`, `openapi-gpt-v3.yaml`, `tests/test_sales_order_readiness.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Added one shared batched readiness CTE for the list page, order detail, and fulfillment-check. Effective shipped pounds come only from effective-posted physical ledger lines (`SUM(ABS(transaction_lines.quantity_lb))` linked by shipment transaction), while the mutable SO shipped counter is diagnostic only and the two-decimal shipment-link quantity is never summed. Added ε=0.0001 remaining/available/coverable/shortage/unallocated/inventory-ready formulas, sibling SKU competition, live allocation TTL filtering without writes, all block/warn/info codes, configurable Factory Ready severity (default block), additive list summaries and nested line readiness. Fulfillment-check now includes `partial_ship` and fulfillment-diverged closed statuses. OpenAPI descriptions changed with operation counts fixed at office 30 / Floor 22. Nine new DB tests cover the design's read-applicable cases; full suite passes 164/164. A rolled-back synthetic 50-order `EXPLAIN (ANALYZE, BUFFERS)` returned 50 rows with one allocation scan and one shipped aggregate (planning 6.209 ms, execution 1.118 ms).
+- **Why:** Readiness previously double-counted stock across orders, included services, trusted a void-blind counter, omitted allocation/lot/floor blockers, and could report a zero-allocation order as feasible without an explicit reason.
+
+---
+
+## 2026-08-19 20:56 — Migration 044 production schema refresh and branch cleanup
+- **File(s) changed:** `tests/schema/schema.sql`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Ran `scripts/dump_prod_schema.sh` against production with PostgreSQL 17.11 and regenerated the schema-only test fixture (3,940 lines, verified zero data rows). The production dump now contains `sales_order_allocations`, its identity sequence, primary key, six supporting/partial indexes (including `soa_active_sku_uniq` and `soa_active_lot_uniq`), and seven foreign keys directly; the temporary `\ir ../../migrations/044_sales_order_allocations.sql` block is removed. This was a schema read/fixture refresh only: it did not execute migration 044 or deploy application code. Full local suite: 155/155 passed against `factory_ledger_test`.
+- **Why:** Production now exposes the 044 objects, so the committed test fixture must return to being a canonical production schema dump instead of layering the migration through a pending include.
+
+---
+
+## 2026-08-19 14:02 — PR 1 review fix: full void→restore allocation test + DB-backed suite run
+- **File(s) changed:** `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Added `test_full_void_then_restore_cycle_holds_under_unique_index` — the design's Q2 worked example end-to-end: allocate 100 lot-level → ship 40 (split: original superseded, leftover 60 active, 40 shipped) → void coalesces onto the leftover (one live 100, shipped row `superseded`/`void_coalesced`, naive re-activation proven to violate `soa_active_lot_uniq`) → restore shrinks the leftover back to 60 and flips the row to `shipped` → end state exactly {active: 1×60, shipped: 1×40, superseded: 1×100}, `source` untouched, then a second void/restore round with no unique violation. Re-ran the suite the documented way (`scripts/setup_test_db.sh` + `TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test`): 155/155, all 16 allocation tests PASSED (no skips). `created_by` unchanged (nullable source tag, owner-approved). No other changes.
+- **Why:** Reviewer's verification run had `TEST_DATABASE_URL` unset (132 skipped) and asked for the full restore leg of the worked example, not just the void half.
+
+---
+
+## 2026-08-19 13:53 — FR-4 PR 1: migration 044 `sales_order_allocations` (schema only; NOT applied to prod, NOT deployed)
+- **File(s) changed:** `migrations/044_sales_order_allocations.sql` (new), `tests/test_sales_order_allocations.py` (new), `tests/schema/schema.sql`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Implements PR 1 of `docs/designs/044-so-allocations-design.md` on branch `feat/044-so-allocations`. New idempotent migration creates `sales_order_allocations` — hybrid reservation rows (`lot_id` NULL = SKU-level, NOT NULL = lot-level pin) with FKs to sales_orders / sales_order_lines / products / lots / transactions / self (`split_from_id`), `quantity_lb numeric(14,4) > 0`, `status` active|released|shipped|superseded, `source` manual|auto_fifo|staged_lot, CHECKs `shipped <=> ship_transaction_id` and `released => released_at`, partial unique LIVE indexes `soa_active_sku_uniq (sales_order_line_id) WHERE active AND lot_id IS NULL` and `soa_active_lot_uniq (sales_order_line_id, lot_id) WHERE active AND lot_id IS NOT NULL`, plus product/lot/order/ship-txn lookup indexes. One deliberate deviation from the design DDL: `created_by` is nullable with **no** `'legacy-shared-key'` default, matching `expected_receipts.created_by` and the interim FR-15 `caller_source_tag()` convention (plain source tags, never the operator placeholder). 15 new tests cover column shape, FKs, CHECKs, the unique-live-index semantics (incl. the design's void-coalesce worked example and "two lines may pin the same lot"), migration idempotency/hygiene, and the 30-op office / 22-op floor OpenAPI regression guard. `tests/schema/schema.sql` carries a pending `\ir ../../migrations/044_sales_order_allocations.sql` block (041 precedent) — remove after prod apply + `scripts/dump_prod_schema.sh`. Zero behavior change: no `main.py`, endpoint, dashboard, or GPT schema edits. Suite 154/154 (139 baseline + 15); office schema 30 ops, floor 22.
+- **Why:** FR-4 needs persisted, exclusive, auditable reservations before readiness math (PR 2) and allocate/consume writes (PR 3) can land; shipping the table first keeps PR 1 independently reviewable with no production behavior risk.
 
 ---
 

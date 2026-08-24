@@ -24,18 +24,15 @@ try:
 except ImportError:  # pragma: no cover
     pytest.skip("fastapi not installed", allow_module_level=True)
 
-try:
-    import main
-    from main import (
-        VoidRequest,
-        get_current_inventory,
-        get_lot,
-        lot_on_hand,
-        validate_lot_deduction,
-        void_transaction,
-    )
-except Exception as e:  # pragma: no cover
-    pytest.skip(f"cannot import main ({e})", allow_module_level=True)
+import main
+from main import (
+    VoidRequest,
+    get_current_inventory,
+    get_lot,
+    lot_on_hand,
+    validate_lot_deduction,
+    void_transaction,
+)
 
 
 class _ConnProxy:
