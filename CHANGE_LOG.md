@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-24 14:11 — 044 series squash-merged to main (local commit `15b3cd6`; NOT pushed, NOT deployed)
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Squash-merged `feat/044-so-allocations` onto main over `4d9a196` as local commit `15b3cd6` (29 files, +10,844/−429); merged-tree suite 229 passed, 192 warnings (223 branch + 6 B-1). Recorded regression-guard row 97. PR 6 manual test: all-pass; step 10 (flag-on preview warning) deferred until an authorized staging/local flag-on run. Ship-and-note items for PR 6.1: manual-test doc `psql -v` interpolation (step 1 confirmation query needs a literal id or stdin), `mini-calendar.js` separate API base, cancelled-line units. Office `.venv-test` rebuilt as `.venv-test.nosync` + symlink after iCloud evicted the synced venv; `.gitignore` entries for both paths still pending.
+- **Why:** Merge approved for local commit only; push and deploy remain separate approvals. Branch `feat/044-so-allocations` preserved unmerged for audit (known-bad intermediates `e87219c`, `4e51115`).
+
+---
+
 ## 2026-08-24 — Resolved squash-merge changelog conflicts (feat/044-so-allocations → main)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Resolved the two conflicted files from `git merge --squash feat/044-so-allocations` onto main at `4d9a196`. CHANGE_LOG.md keeps both sides in chronological order (main's B-1 entry, 2026-08-21 08:14, slots between the branch's 08:28 and 2026-08-20 16:48 entries). FACTORY_LEDGER_CHANGELOG.md: main's row 79 (B-1 orders-matrix export, deployed `cf2f54f`) keeps 79; the branch's rows 79–95 are renumbered 80–96 in order (row-28/row-70 precedent), and in-row cross-references were bumped to match (`row 80`→81, `row 86`/`Row 86`→87, `row-79`→row-80). No row content changed beyond the numbers.
