@@ -611,6 +611,8 @@ def test_dashboard_forward_trace_filters_same_code_shipments_by_lot_id(
     dashboard = (ROOT / "dashboard/traceability.html").read_text(encoding="utf-8")
     assert "if (line.lot_id === lotId)" in dashboard
     assert "line.lot_code.toLowerCase() === lotCode.toLowerCase()" not in dashboard
+    assert "line.lot_code + '|'" not in dashboard
+    assert "const key = line.lot_id;" in dashboard
     assert "id: 'batch-' + b.lot_id" in dashboard
 
 

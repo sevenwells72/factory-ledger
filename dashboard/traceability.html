@@ -378,13 +378,13 @@ async function buildLotIndex() {
     for (const txn of data.transactions) {
       if (!txn.lines) continue;
       for (const line of txn.lines) {
-        if (!line.lot_code) continue;
-        const key = line.lot_id || (line.lot_code + '|' + (line.product_id || line.product_name || ''));
+        if (!line.lot_code || line.lot_id == null) continue;
+        const key = line.lot_id;
         if (seen.has(key)) continue;
         seen.add(key);
         lotIndex.push({
           lot_code: line.lot_code,
-          lot_id: line.lot_id || null,
+          lot_id: line.lot_id,
           product_name: line.product_name || '',
           product_id: line.product_id || null,
           type: txn.type,
