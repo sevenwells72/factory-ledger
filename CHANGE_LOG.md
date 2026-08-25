@@ -1,9 +1,44 @@
 # Change Log
 
+## 2026-08-25 15:08 — Audit branch committed + PR opened; pending changelog block relocated
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/data-health-baseline-2026-08-24.md`, `.gitignore`, `docs/sql/lot-code-cleanup-2026-08-25.sql`, `docs/sql/found-lot-suppliers-2026-08-25.sql`, `scripts/data_health.py`, `scripts/forms_crosscheck.py`
+- **What changed:** Created branch `audit/data-health-2026-08` from origin/main `6a3d37f` and committed all uncommitted audit work (scripts, report, draft SQL, `.gitignore` `data/forms/*.csv` entry, changelog edits). The uncommitted changelog entries were re-based onto the merged main's versions: working-tree row 100 (the 046 deploy record) renumbered to 103 after colliding with upstream rows 100–102 (row-28 precedent); audit row 99 kept. The "Pending changelog lines" block at the end of the baseline report was relocated verbatim into CHANGE_LOG.md (14:30 + 15:10 entries), FACTORY_LEDGER_CHANGELOG.md (rows 104 + 105), and `~/change-log.md`, then deleted from the report. `data/forms/*.csv` confirmed gitignored; no CSV staged. Branch pushed and PR opened (no merge).
+- **Why:** Michael approved committing the audit work on a branch and opening a PR; the block move was deferred until PR #17 merged because another agent owned the changelog files.
+
+---
+
+## 2026-08-25 15:10 — Branch feat/backfill-flag-daily-entries: explicit entry_backfilled flag + entered-at basis fix (commit c1cd975, NOT pushed, migration NOT applied)
+- **File(s) changed:** `migrations/046_entry_backfilled_flag.sql` (new), `main.py` (daily-entries endpoint), `dashboard/dashboard.js` + `dashboard/index.html` (js v38), `tests/test_daily_entries.py` (+3 tests), `tests/schema/schema.sql` (pending \ir 046 include + SET search_path)
+- **What changed:** Migration 046 adds `transactions.entry_backfilled boolean NOT NULL DEFAULT false` and a one-time data fix marking the 8/17 recon session's backdated rows (operator inv-recon-2026-08-17, business_date < 8/17 — 77 rows incl. two 5/12 rows beyond the specced 7/24–8/14 range, noted in the migration; append-only trigger disabled for that one statement; view NOT recreated, 041 precedent — join base transactions). Daily Entries API now reports entered_at/entered_date/entered_time from the legacy "timestamp" column for migration_backfill_039 rows (entered live; created_at is just the 039 stamp), computes late/days_late and date_mode=entered on that basis, marks such rows entry_time_reliable, and adds entry_backfilled; the dashboard badge keys ONLY off entry_backfilled (both createdAtMeta and renderDailyEntries — the badge no longer appears for migration_backfill_039 rows anywhere). Built in isolated worktree ~/Documents/factory-ledger-backfill-flag (shared checkout untouched — Codex owns it during #17). Suite 232 passed on fresh factory_ledger_test_046 (built from schema.sql + 046; separate DB so the shared test DB wasn't rebuilt under Codex).
+- **Why:** Michael's F1 addendum — §7 of this report proved migration_backfill_039 ≠ backfilled; badge must mean actual reconstruction only.
+
+---
+
+## 2026-08-25 15:05 — PRs #17+#18 merged, migration 046 applied to prod, deploys verified
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (row 103 — renumbered from 100 after collision with upstream rows 100-102); prod DB via `migrations/046_inventory_occurred_at.sql` (already merged, not edited)
+- **What changed:** With owner approval: merged PR #17 "Fix forward trace for batch output lots" (head `9e78fbc`, the reviewed hash; merge `b9062e7`) and PR #18 "Add occurrence timestamps to inventory writes" (head `e6e0f2f`, merge `6a3d37f`), both with branch deletion; origin/main now `6a3d37f`. Applied migration 046 to prod at ~14:59 ET via the session pooler (port 5432, `psql -X -v ON_ERROR_STOP=1 -f`, same method as 040–045) from a clean worktree of the merged head (`~/Documents/factory-ledger-046-verify`); the built-in recon guard passed (selector matched exactly 77 rows) and the transaction committed. Verified via 6543 in a `BEGIN TRANSACTION READ ONLY` txn: `entry_backfilled` exists (boolean NOT NULL DEFAULT false) and `count(*) WHERE entry_backfilled` = 77. Railway auto-deploy live (health 200; Daily Entries 2026-08-10 returns 200 with the new `entry_backfilled` field). Netlify deploy `ready` at 18:57:56Z from commit `6a3d37f`: `dashboard.js` v40 byte-identical to the merged head; `traceability.html` identical except Netlify Pretty-URLs rewriting of 3 nav hrefs. Read-only API spot-checks all passed: (a) txn 1888 (make, 2026-08-10) entered 04:10 PM ET, `entry_backfilled` false, `days_late` 0; (b) txn 1953 (adjust, event 2026-05-12, entered 2026-08-17, operator `inv-recon-2026-08-17`) `entry_backfilled` true, `days_late` 97; (c) forward trace of lot 1318 (AUG 21 2026, Batch Classic Granola #9) → pack txn 2093 (−350 lb) → FG lot 1326 (Granola Classic 25 LB, 350 lb on hand, zero shipments), with no reference to lot 1321 or txns 2087/2090 in any trace response.
+- **Why:** Michael approved both PRs and the migration ("apply") in-session; 046 adds `entry_backfilled` provenance and marks the 77 intentional 8/17 inventory-recon backfill rows.
+
+---
+
+## 2026-08-25 14:30 — Backfill re-measure, aged on-hand, PR #17 duplicate check (read-only); lot-578 rename added to cleanup draft
+- **File(s) changed:** `docs/data-health-baseline-2026-08-24.md` (§7–§9 + this block), `docs/sql/lot-code-cleanup-2026-08-25.sql` (lot 578 → 'MAY 11 2026-dup' rename per owner decision)
+- **What changed:** Re-measured F1 on legacy "timestamp": July was 96–100% same-day live for every family; the only true reconstruction is the 8/17 recon session (business dates 7/24–8/14); the "Aug 11 10:32 coconut-medium rebuild" does not exist — that timestamp is the 039 migration created_at stamp. Aged on-hand: Batch Coconut Flake has 18,193 lb >60 d (oldest 26-05-05-COCO-002, 112 d); Desiccated Flake 50 LB 102,500 lb at 125 d; lot 620 (25120 Medium, 16,375 lb) never consumed. Duplicate-branch check: fix/trace-batch-output-lots == PR #17 head (9e78fbc) everywhere — no duplicate, nothing to cherry-pick. All queries 6543 pooler, per-query BEGIN TRANSACTION READ ONLY; no prod writes; SQL drafts still NOT executed.
+- **Why:** Michael's follow-ups during PR #17 revision.
+
+---
+
 ## 2026-08-25 14:12 — Reconciled migration-039 Activity provenance and explicit backfill flag (PR #18; NOT deployed)
 - **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `migrations/046_inventory_occurred_at.sql`, `migrations/down/046_inventory_occurred_at_down.sql`, `tests/schema/schema.sql`, `tests/test_daily_entries.py`, `tests/test_inventory_occurred_at.py`, `tests/test_recent_ledger.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Activity and transaction lag/cutoff reads use legacy `timestamp` as the effective entered time only for `created_at_source='migration_backfill_039'`; those rows now have zero false lag and no backfill badge. The single migration 046 adds one explicit `transactions.entry_backfilled` boolean, makes API `backfill:true` inserts set it, and marks the post-039 2026-08-17 recon session by operator, note, pre-8/17 business date, and its reliable database-owned `created_at` entry day. The migration aborts unless that selector returns exactly **77** rows, including the two 2026-05-12 rows. Activity, recent events, shipping/receiving logs, and lot timelines carry the flag; every Backfilled badge keys only off it. Dashboard JS cache version is 40. Office/Floor GPT schemas remain exactly **30/22 operations**.
 - **Why:** Migration-039 provenance identifies a mass-stamped `created_at`, not an intentional backfill; treating it as backfilled created false badges and lag. The prior 046 selector excluded the two May recon rows. Regression coverage proves legacy-timestamp timing for actual migration-039 rows, flag-only badges, the exact 77-row post-039 recon selector with decoy exclusion and idempotency, and new API backfills. Migration up/down/up passed locally with 77/77 rows flagged while all 77 retained `created_at_source='database'`. Full suite: **244 passed, 202 warnings in 3.74s**. No production SQL, deployment, merge, or schema-count change. Final branch commit: `b837cec`. Apply migration 046 on prod BEFORE deploying this code (five SELECTs read `transactions.entry_backfilled`).
+
+---
+
+## 2026-08-25 13:40 — Drafted lot-code cleanup + found-lot supplier SQL (NOT executed)
+- **File(s) changed:** `docs/sql/lot-code-cleanup-2026-08-25.sql` (new), `docs/sql/found-lot-suppliers-2026-08-25.sql` (new)
+- **What changed:** Two DRAFT SQL files, verified against prod read-only first, neither executed. Cleanup file: none of the 18 §6c defect codes exist as FL lot codes (they are form/sticker-side only — each documented as a no-op with its FL counterpart), but verification found two FL-side typo lots: UPDATE for lot 1329 `AUG 24 2027`→`AUG 24 2026` (Batch Classic #9, 3,230 lb, no collision) and a no-merge collision comment for lot 578 `MAY 011 2026` vs lot 590 `MAY 11 2026` (both 0 lb); wrapped in one transaction ending with a per-product (product_id, code) uniqueness re-check. Supplier file: retro-attribution via lots.entry_source_notes/supplier_lot_code/received_at for found lots 616/620 (25120), 624 (6013) with :vendor/:received_on placeholders, lot 34 Flavor–Almond → Parker Flavors (form refs 260521PARK001 [sic], BOL 10032188), lot 48 Salt → Essex Food Ingredients (BOLs 211226040498/2120050/2121095); limitation documented (lots-only update does not satisfy the receive-with-shipper trace metric). Also investigated ship txn 1709 (7/22 Jetro 36,400 lb) read-only — single SO-ship commit for SO-260629-001, not a recon lump.
+- **Why:** Michael requested draft-only SQL for the §6c defects and §3g found-lot supplier gaps, plus an explanation of the largest 30-day Sankey edge.
 
 ---
 
@@ -21,6 +56,20 @@
 
 ---
 
+## 2026-08-25 13:05 — Forms-vs-FL cross-check added to data-health baseline (section 6)
+- **File(s) changed:** `scripts/forms_crosscheck.py` (new), `docs/data-health-baseline-2026-08-24.md` (section 6 replaced the earlier "skipped" stub), `.gitignore` (added `data/forms/*.csv`), `FACTORY_LEDGER_CHANGELOG.md` (row 99)
+- **What changed:** New read-only cross-check script (6543 pooler, per-query `BEGIN TRANSACTION READ ONLY`) comparing the floor Google-Form exports in `data/forms/` against prod FL. Receiving: 75/112 form rows matched to FL day×supplier delivery events (unmatched dominated by packaging suppliers FL doesn't track); live matched pairs show FL entered a median 2 min BEFORE the form; Quali Pack 8/4 (txn 1824) confirmed missing from the form. Coconut: post-epoch pan agreement is perfect incl. Aug 20 (12=12); pre-epoch mismatches are mostly ±6-pan adjacent-day offsets in backfilled data; F4 case-lot misattribution = 6.2% of 30,840 matched cases; the 8/7 79-case Jul-30-lot pack reconciles by lot but is split 60+19 across two FL days. Lot-code sanity: 18 real defects (3026/2027 years, Agu/De months, future-dated 261230JA, sticker 260827ABAK on Aug 17). Shipping: form has NO product/case/lot columns, so slip-lot vs FL-lot is not computable; day×customer presence match reported instead (Aug: 0 form-only). Form CSVs are gitignored, not committed. No prod writes.
+- **Why:** Michael supplied the three form exports and asked for step 6 of the audit plus the shipping comparison.
+
+---
+
+## 2026-08-25 12:19 — Read-only data-health baseline script + report
+- **File(s) changed:** `scripts/data_health.py` (new), `docs/data-health-baseline-2026-08-24.md` (new)
+- **What changed:** Added a read-only data-health audit script (all queries via 6543 pooler wrapped in `BEGIN TRANSACTION READ ONLY; ...; COMMIT`, no session GUCs) computing entry lag, backfill rate, entry bursts, production-day coverage, ship/receipt linkage, trace completeness, lot hygiene, lot-code collisions (incl. the "AUG 21 2026" / txns 2087+2090 case), on-hand drift, customer-name collisions, and multi-lot packs; generated the baseline report with reading notes, the forward-trace dead-end root cause (`trace_ingredient` output-lot branch), and a schema-notes section. Forms-vs-FL cross-check skipped — `data/forms/*.csv` not present. No data modified, no migrations, no branches, no pushes.
+- **Why:** Michael requested a measured data-health baseline (post-epoch 2026-08-11 vs all-time) before tightening floor data entry.
+
+---
+
 ## 2026-08-24 14:27 — 044 series DEPLOYED (push 35e3171; Railway 14:17:27, Netlify by 14:16:47)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (deploy record, row 98)
 - **What changed:** Pushed `4d9a196..35e3171` to origin/main with owner approval. Railway auto-deploy served the new code at 14:17:27 (fulfillment-check `dispatch_ready` shape); Netlify live `dashboard.js` byte-identical to `35e3171` (v=37, Railway `SALES_API_BASE`). Read-only smoke with the dashboard key only: orders list/detail/fulfillment-check/allocations all 200; 19 open-set orders, 0 dispatch_ready; blocker codes unallocated/shortage/not_floor_ready/fulfillment_diverged; prod allocations count 0; no-key 401 / wrong-key 403. No prod SQL, no prod writes.
@@ -32,13 +81,6 @@
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Squash-merged `feat/044-so-allocations` onto main over `4d9a196` as local commit `15b3cd6` (29 files, +10,844/−429); merged-tree suite 229 passed, 192 warnings (223 branch + 6 B-1). Recorded regression-guard row 97. PR 6 manual test: all-pass; step 10 (flag-on preview warning) deferred until an authorized staging/local flag-on run. Ship-and-note items for PR 6.1: manual-test doc `psql -v` interpolation (step 1 confirmation query needs a literal id or stdin), `mini-calendar.js` separate API base, cancelled-line units. Office `.venv-test` rebuilt as `.venv-test.nosync` + symlink after iCloud evicted the synced venv; `.gitignore` entries for both paths still pending.
 - **Why:** Merge approved for local commit only; push and deploy remain separate approvals. Branch `feat/044-so-allocations` preserved unmerged for audit (known-bad intermediates `e87219c`, `4e51115`).
-
----
-
-## 2026-08-24 — Resolved squash-merge changelog conflicts (feat/044-so-allocations → main)
-- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
-- **What changed:** Resolved the two conflicted files from `git merge --squash feat/044-so-allocations` onto main at `4d9a196`. CHANGE_LOG.md keeps both sides in chronological order (main's B-1 entry, 2026-08-21 08:14, slots between the branch's 08:28 and 2026-08-20 16:48 entries). FACTORY_LEDGER_CHANGELOG.md: main's row 79 (B-1 orders-matrix export, deployed `cf2f54f`) keeps 79; the branch's rows 79–95 are renumbered 80–96 in order (row-28/row-70 precedent), and in-row cross-references were bumped to match (`row 80`→81, `row 86`/`Row 86`→87, `row-79`→row-80). No row content changed beyond the numbers.
-- **Why:** Main gained rows/entries (`cf2f54f`/`4d9a196`, B-1 fix deployed 2026-08-21) after the branch diverged, colliding on changelog row 79 and the top of CHANGE_LOG.md.
 
 ---
 
@@ -141,13 +183,6 @@
 
 ---
 
-## 2026-08-20 15:19 — Pinned .venv-test to Python 3.12 + conftest interpreter guard
-- **File(s) changed:** `tests/conftest.py` (also rebuilt untracked `.venv-test`; `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`)
-- **What changed:** Recreated `.venv-test` with `python3.12 -m venv` (3.12.14; was silently 3.14.5) from its own pip-freeze set (`httpx==0.27.2`, `anyio==3.7.1` preserved — latest httpx breaks TestClient). Added a top-of-file guard in `tests/conftest.py` asserting `sys.version_info < (3, 13)` with a loud REFUSING-TO-RUN message. Suite on rebuilt venv: 205 passed, 169 warnings; on a 3.14 interpreter the guard aborts at conftest import (pytest exit 4).
-- **Why:** On Python 3.14, `python -m pytest` in this repo has exited 0 with zero tests collected — a green run that tested nothing.
-
----
-
 ## 2026-08-20 15:20 — Migration 045 applied to production; schema re-dumped; pending include dropped
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Applied migration 045 (`sales_order_allocation_reactivations`) to prod via the session-mode pooler on 5432 (clean COMMIT); verified live PK/CHECK/3 FKs and proved idempotence with a re-run (`NOTICE ... already exists, skipping`, clean COMMIT). Re-dumped the prod schema with `scripts/dump_prod_schema.sh` (3,986 lines, zero data rows) — 045 objects now in the dump body, pending `\ir 045` block removed per the row-79 rule. Fresh test-DB rebuild confirms the table comes from the dump body; full suite 205 passed / 169 warnings on Python 3.12.14 with the pinned package set (repo `.venv-test` is now 3.14.5 and also passes 205). Added changelog row 88.
@@ -155,31 +190,10 @@
 
 ---
 
-## 2026-08-20 — Review of 1bb6c72 accepted; cosmetic variances fixed
-- **File(s) changed:** `tests/schema/schema.sql`, `docs/designs/044-so-allocations-restore-addendum.md`, `CHANGE_LOG.md`
-- **What changed:** Independent review of 1bb6c72 (fix round 3) accepted with cosmetic variances, now fixed: appended the pending `\ir 045` block to `tests/schema/schema.sql` (041/044 precedent — remove after prod apply + re-dump) so a fresh `setup_test_db.sh` build contains `sales_order_allocation_reactivations`; corrected the addendum §3 S1 restore row to 409 `RESTORE_STOCK_MISSING` (stock preflight first per §2.1, owner ruling 2026-08-20) and added the S1b note (200 lb seeded → stock passes → 409 `RESTORE_SPLIT_MISSING` required=100 available=60). Fresh-DB rebuild + full pinned 3.12 suite: 205 passed.
-- **Why:** The review found the implementation and tests already followed the owner's S1 re-ruling, but the schema dump lacked the 045 include (broke fresh test-DB reproducibility) and the addendum's S1 table still showed the pre-ruling error code.
-
----
-
-## 2026-08-20 — Allocation restore review fix round 3 (record-at-void)
-- **File(s) changed:** `docs/designs/044-so-allocations-restore-addendum.md`, `docs/designs/045-write-foundation-design.md`, `migrations/045_sales_order_allocation_reactivations.sql`, `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
-- **What changed:** Landed the normative restore addendum and idempotent migration 045 for `sales_order_allocation_reactivations`, keyed by ship transaction and SO line with explicit zero quantities and void-correction attribution. Ship void now records the exact SOA pounds it reactivated per line. Ship restore locks the transaction, performs lot-level `RESTORE_STOCK_MISSING` before the correction insert, loads recorded quantities with missing-row warning-as-zero behavior, expires auto-FIFO rows, performs recorded-positive live coverage preflight, inserts the correction, consumes only this line's live lot pins then SKU row through `_consume_allocation_row`, and shrinks uncovered reservations with `inventory_restored`. It never derives demand from ledger pounds, selects by `last_ship_transaction_id`, calls `_sales_order_ship_plan`, or flips superseded rows. The write-foundation design now reserves its migrations for 046+. Tests cover S1 stock-first, S1b split-only, S2–S5, explicit zero, partial allocation, multi-line zero/full records, historical missing-record warnings, competing-stock failure, restore shrink, repeated uniqueness cycles, atomicity, conservation, attribution cap, nonnegative product/lot stock, and superseded immunity. Pinned Python 3.12 suite: **205 passed, 169 warnings**; readiness module **17/17 unmodified**.
-- **Why:** Row 86's permanent rule was wrong: ledger shipped pounds exceed allocation-reactivated pounds for unallocated and partially allocated ships, causing legitimate restores to 409. Restore demand is now the void-time reactivation record; effective ledger quantity remains only the attribution ceiling. This supersedes row 86 without discarding its correct live-row consume, expiry, atomic coverage, and superseded-immunity pieces.
-
----
-
-## 2026-08-20 — Allocation restore review fix round 2 (e87219c)
-- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
-- **What changed:** Replaced transaction-marker restore selection with ledger-authoritative restore quantities. `_restore_ship_allocations` now derives each SO line's effective posted ship pounds from `ledger_current_transaction_lines`, preflights complete coverage from active/unexpired allocations, returns 409 `RESTORE_SPLIT_MISSING` atomically when coverage is short, and otherwise consumes exactly that quantity through `_consume_allocation_row`. Superseded rows are never flipped to shipped. API scenarios cover: A100 void, B40, restore A failing with live 60; void B then restore A consuming live 100; and T40 void, C30, restore T leaving 30 live with only 40 attributed to T. Every checkpoint asserts live+shipped conservation and nonnegative ledger on-hand.
-- **Why:** Round 1's selector extension treated an ambiguous `last_ship_transaction_id` on `superseded/split_on_ship` as attribution and could mark a full 100 lb historical row shipped without consuming live pounds, minting phantom allocation quantity and allowing the restore correction to drive inventory negative.
-
----
-
-## 2026-08-20 — Review fix round 1 for ef709e5 (superseded by round 2)
-- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
-- **What changed:** Correctly stopped split leftovers from inheriting `last_ship_transaction_id`, aligned allocation release with `POST /sales/orders/{order_id}/allocations/{allocation_id}/release`, restored the dashboard key DELETE guard, and added named allocation guard/error tests. The accompanying restore selector extension was incorrect and is superseded by round 2: it could flip an ambiguous superseded row at full quantity without consuming live allocation pounds.
-- **Why:** The independent review in `docs/reviews/ef709e5-pr3-review.md` reproduced a silent restore mis-attribution. Round 2 replaces the incomplete selector-based repair with ledger-derived consumption.
+## 2026-08-20 15:19 — Pinned .venv-test to Python 3.12 + conftest interpreter guard
+- **File(s) changed:** `tests/conftest.py` (also rebuilt untracked `.venv-test`; `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`)
+- **What changed:** Recreated `.venv-test` with `python3.12 -m venv` (3.12.14; was silently 3.14.5) from its own pip-freeze set (`httpx==0.27.2`, `anyio==3.7.1` preserved — latest httpx breaks TestClient). Added a top-of-file guard in `tests/conftest.py` asserting `sys.version_info < (3, 13)` with a loud REFUSING-TO-RUN message. Suite on rebuilt venv: 205 passed, 169 warnings; on a 3.14 interpreter the guard aborts at conftest import (pytest exit 4).
+- **Why:** On Python 3.14, `python -m pytest` in this repo has exited 0 with zero tests collected — a green run that tested nothing.
 
 ---
 
@@ -246,27 +260,6 @@
 
 ---
 
-## 2026-08-19 — FR-12 local verification completed (not deployed)
-- **File(s) changed:** `dashboard/dashboard.css`, `tests/test_recent_ledger.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
-- **What changed:** Corrected the shared mobile header wrapping so the Recent Entries screen has no document-level horizontal overflow at 390px, and adjusted the auth test to reuse the shared test client without closing its connection pool. Local endpoint tests pass 4/4; full suite passes 132/132. JS syntax, Python compilation, and diff checks pass. The local dashboard preview confirmed desktop and 390px error states, 44px refresh control, and 390px `scrollWidth === clientWidth`.
-- **Why:** Complete the required mobile and regression verification before review without changing production state.
-
----
-
-## 2026-08-19 — FR-12 Recent Entries audit feed and dashboard view (local review; not deployed)
-- **File(s) changed:** `main.py`, `tests/test_recent_ledger.py`, `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
-- **What changed:** Added dashboard-key-authorized `GET /ledger/recent?limit=20` (max 50): one read-only global feed unioning original transactions and append-only corrections, ordered by each event’s entered-at timestamp and stable ID. Original entries expose effective ledger status and effective product/quantity/unit/lot lines; correction entries retain target transaction context and explicit correction metadata. Added the mobile-first Recent Entries dashboard tab with distinct loading/error/empty states, retry/refresh controls, ET timestamp formatting, calendar-safe business dates, status badges, and visible-tab 60-second polling that pauses while hidden. Cache versions: JS v33→v34; CSS v22→v23. Added endpoint/auth/order/limit/void/restore/direction contract tests. No migration, commit, push, or deployment.
-- **Why:** Floor leads need a reliable phone-friendly audit feed confirming that ledger events—including voids and corrections—were actually recorded.
-
----
-
-## 2026-08-19 — FR-1 Supplies Incoming column wired to expected receipts (local review; not deployed)
-- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
-- **What changed:** The Supplies inventory refresh now also makes the existing dashboard-key-allowlisted `GET /expected-receipts?status=open&limit=500` read. Each product’s Incoming cell shows the sum of its open receipts’ computed `remaining` quantity in lb, or an em dash only when no incoming receipt remains. Expanded product rows now list each open expected receipt’s supplier, remaining quantity, expected date, and reference before the existing FIFO lot detail. No backend requests mutate data; no backend files changed. Cache versions are dashboard JS v33 / CSS v22.
-- **Why:** Expected receipts are already the live source of truth for incoming supplies, including FIFO receive matching and auto-close, so the Supplies view can surface incoming quantity without introducing purchase-order state.
-
----
-
 ## 2026-08-18 15:56 — Supplies dashboard verified locally and ready for review (not deployed)
 - **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Completed local verification of the Supplies screen against deployed backend commit `f563100`: live inventory and requests GETs succeeded; desktop and 390 px browser checks covered category/search filtering, sticky controls, zero-on-hand rows, em-dash Incoming values, blank non-low status cells, keyboard row expansion, multiple simultaneous expansions, FIFO ordering, cached re-expansion, empty/error lot states, product/free-text request modes, unit display, requester options, and client-side validation. `node --check dashboard/dashboard.js`, duplicate-ID validation (139/139 unique), the exact-one-Supplies-TODO assertion, and `git diff --check` passed. The existing Python suite passed `128 passed, 121 warnings in 2.21s`; the repository defines no frontend test, lint, or build command, so no new test infrastructure was added.
@@ -288,6 +281,13 @@
 
 ---
 
+## 2026-08-18 15:20 — Hard rules in CLAUDE.md; inactive suppliers excluded from receiving auto-match; migration 042 (sentinel suppliers) written, NOT applied
+- **File(s) changed:** `CLAUDE.md`, `main.py`, `tests/test_expected_receipts.py`, `migrations/042_deactivate_sentinel_suppliers.sql` (new), `FACTORY_LEDGER_CHANGELOG.md` (row 71), `CHANGE_LOG.md`
+- **What changed:** (1) `CLAUDE.md` gains a `## Hard rules` section: never push to origin/main or merge into main without explicit per-action approval in the current session, deploy sequences confirmed one discrete step at a time; on this shared checkout stage hunks (`git add -p`) never whole files, and re-check `git status`/`git log -3` before every commit/push (lesson from the B-2/FR-2 cross-contamination in e66d2cc/69b2e0f and the un-sequenced push of main 778e0f9). (2) Receiving auto-match now requires the resolved supplier to be **active** — `receive()` commit (`if er_supplier and er_supplier["active"]`) and `preview_expected_receipt_match()`; an open expected receipt whose supplier is later deactivated is no longer auto-linked (stays open for manual close/cancel; reactivating restores matching). Resolution was already active-only (`require_supplier` → 422 SUPPLIER_INACTIVE; candidates and `GET /suppliers` filter `active`). New test `test_inactive_supplier_is_excluded_from_resolution_and_auto_match`; suite 116/116. (3) Backfill re-run behaviour verified empirically on the local DB: re-running 041 with a supplier **deactivated** keeps it inactive (`ON CONFLICT DO NOTHING`); re-running after a supplier row is **deleted** recreates it ACTIVE — so sentinel pseudo-suppliers must be deactivated, never deleted. (4) `migrations/042_deactivate_sentinel_suppliers.sql` (idempotent, normalised-name match: found, found inventory, inventory found, physical count, initial inventory, inventory correction, inventory intake, unknown) written — **NOT applied to prod, NOT pushed**; awaiting approval.
+- **Why:** Michael's post-incident rules, plus confirmation that deactivated suppliers are fully excluded from both GPT resolution and receiving auto-match.
+
+---
+
 ## 2026-08-18 15:18 — Migration 043 APPLIED to prod (Supplies); tests/schema/schema.sql re-dumped from prod
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md` (row 72), `CHANGE_LOG.md`
 - **What changed:** With Michael's approval ("apply"), ran `migrations/043_supplies.sql` against prod via the 5432 session pooler (single transaction, ON_ERROR_STOP): ALTER ×5, COMMENT, CREATE TABLE, CREATE INDEX ×2, COMMIT. Read-only verification: `products_type_check` now admits `consumable`; `products.low_stock_threshold numeric` NULL with `products_low_stock_threshold_check` (≥ 0); `supply_requests` exists (0 rows) with all 7 constraints (pkey, product_id fkey, status, target XOR, item_text non-blank, qty > 0, done_at ⇔ done) and both indexes; product type counts unchanged (batch 25 / finished 75 / ingredient 78 / packaging 32). `tests/schema/schema.sql` regenerated via `scripts/dump_prod_schema.sh` (3,788 lines, zero data rows; diff = exactly the 043 objects + pg_dump's `\restrict` token) and the pending `\ir 043` block is gone; local test DB rebuilt `--fresh` from it; suite 128/128. Backend NOT yet committed/pushed — awaiting the next per-action approval.
@@ -299,6 +299,13 @@
 - **File(s) changed:** `migrations/043_supplies.sql` (new), `main.py`, `tests/test_supplies.py` (new), `tests/schema/schema.sql` (pending `\ir` block), `FACTORY_LEDGER_CHANGELOG.md` (row 72), `CHANGE_LOG.md`
 - **What changed:** (1) **Migration 043** (idempotent, single transaction): the product "category" is `products.type` (text + CHECK, not an enum) — `products_type_check` re-created to admit `'consumable'` (`'packaging'` was already allowed: 32 live rows, kept); `products.low_stock_threshold numeric` NULL (CHECK ≥ 0, applies to every type incl. ingredients; NULL = no alerting); new `supply_requests` (id, product_id FK nullable, item_text nullable, qty numeric nullable > 0, note, requested_by NOT NULL, status open|done default open, created_at, done_at) with CHECKs: exactly one of product_id/item_text (`(product_id IS NULL) <> (item_text IS NULL)`), item_text non-blank, `(status='done') = (done_at IS NOT NULL)`; indexes on (status, created_at DESC) and product_id. Applied to the LOCAL test DB (twice — re-run is a no-op) and `tests/schema/schema.sql` carries a pending `\ir ../../migrations/043_supplies.sql` block (remove after prod apply + re-dump, FR-2 precedent). Prod preconditions verified read-only: constraint name matches, column/table absent, all 210 `type` values already in the new list. (2) **main.py**: `fifo_lot_balances(cur, product_id, include_empty)` + `FIFO_LOT_ORDER_SQL` added beside `lot_on_hand()` — the ship/make/pack allocation query (posted-only per-lot SUM, HAVING > 0, `ORDER BY COALESCE(l.received_at, l.created_at)`) was inlined ~20× with no shared helper, so it is extracted verbatim (plus `l.id` tie-break) for new read paths; the existing write paths are untouched. New section "SUPPLIES (dashboard-only)" before SHIP ENDPOINTS: `GET /supplies/inventory` (ALL products incl. zero-inventory and inactive, `on_hand` = posted-only ledger SUM via LEFT JOIN lots/POSTED_LINES, `low_stock_threshold`, `is_low` = on_hand < threshold, false when NULL; `?category=` validated against products.type values, `?active_only`, `?low_only`; alphabetical by lower(name)); `GET /supplies/inventory/{product_id}/lots` (FIFO breakdown via `fifo_lot_balances`: fifo_rank, lot_code, lot_date = COALESCE(received_at, created_at), remaining per lot, depleted lots hidden unless `?include_empty=true`, 404 unknown product); `POST /supply-requests` (XOR product_id/item_text → 422 SUPPLY_REQUEST_TARGET_REQUIRED / _AMBIGUOUS, 404 PRODUCT_NOT_FOUND, qty > 0, requested_by required); `GET /supply-requests?status=open|done|all` (default all, newest first, open/done counts); `PATCH /supply-requests/{id}` body `{"status":"done"}` only — open→done sets done_at, done again → 409 SUPPLY_REQUEST_NOT_OPEN. All five on `DASHBOARD_KEY_ALLOWLIST`; write envelope applies (success / error_detail). `openapi-gpt-v3.yaml` untouched (still 30 ops). (3) `tests/test_supplies.py` (12): zero-inventory rows, posted-only SUM (voided txn drops out), is_low semantics incl. ingredients + equality + NULL, category filter/order/422, CHECK constraints, FIFO order + include_empty, **lots order == `POST /ship` preview `multi_lot_fifo` allocation order**, XOR/validation, list order/filters, PATCH transitions + DB guards, dashboard-key allowlist, requests never touch inventory. Suite 128/128 (was 116) incl. after `scripts/setup_test_db.sh --fresh`.
 - **Why:** Supplies feature backend (packaging + consumables inventory with FIFO lot view, low-stock alerting on any product, floor→office supply request queue). Awaiting Michael's approval to apply 043 to prod, then commit/push/deploy — nothing pushed, `feat/planner-v2` untouched.
+
+---
+
+## 2026-08-18 15:05 — Landed B-2 dashboard fix leftovers; renumbered B-2 changelog row 69 → 70
+- **File(s) changed:** `dashboard/process-flow.html`, `tests/test_dashboard_b2.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 70), `CHANGE_LOG.md`
+- **What changed:** Committed the two B-2 files another tool left uncommitted after its JS/API/index.html/css hunks rode into `e66d2cc` (FR-2) and its changelog rows into `69b2e0f`: `process-flow.html` (summary strip 4→3 columns, hardcoded "Workers on Floor 8/10" placeholder card + `.placeholder` CSS removed, both `Math.round`→`Math.floor` for lbs→cases) and `tests/test_dashboard_b2.py` (3 tests: batch panel includes coconut + applies yield, ingredient panel returns `products.uom`, `_floor_unit_count` never overstates). Both `FACTORY_LEDGER_CHANGELOG.md` rows written today as **69** collided (B-2 14:11 and FR-2 GPT follow-up 14:32, both committed in `69b2e0f`); the FR-2 follow-up keeps 69 (already cited in the global change-log and elsewhere) and B-2 is now **row 70** (moved above 69, next free row — row-28 renumber precedent). Row 70 also records the prod check requested before landing (read-only `scripts/psql_ro.sh`): 25 active `type='batch'` products, every `Batch …`-named product is `type='batch'` (0 exceptions), `yield_multiplier`=1.11 only on Batch Coconut Sweetened Fancy/Flake/Medium (column default 1.0 → real data, not a default). Suite 115/115 on the local test DB (113 + the 2 tests added by 69b2e0f). NOT pushed, NOT deployed.
+- **Why:** Land the partially committed B-2 work as one reviewable commit and resolve the duplicate row number before it propagates.
 
 ---
 
@@ -316,20 +323,6 @@
 
 ---
 
-## 2026-08-18 15:20 — Hard rules in CLAUDE.md; inactive suppliers excluded from receiving auto-match; migration 042 (sentinel suppliers) written, NOT applied
-- **File(s) changed:** `CLAUDE.md`, `main.py`, `tests/test_expected_receipts.py`, `migrations/042_deactivate_sentinel_suppliers.sql` (new), `FACTORY_LEDGER_CHANGELOG.md` (row 71), `CHANGE_LOG.md`
-- **What changed:** (1) `CLAUDE.md` gains a `## Hard rules` section: never push to origin/main or merge into main without explicit per-action approval in the current session, deploy sequences confirmed one discrete step at a time; on this shared checkout stage hunks (`git add -p`) never whole files, and re-check `git status`/`git log -3` before every commit/push (lesson from the B-2/FR-2 cross-contamination in e66d2cc/69b2e0f and the un-sequenced push of main 778e0f9). (2) Receiving auto-match now requires the resolved supplier to be **active** — `receive()` commit (`if er_supplier and er_supplier["active"]`) and `preview_expected_receipt_match()`; an open expected receipt whose supplier is later deactivated is no longer auto-linked (stays open for manual close/cancel; reactivating restores matching). Resolution was already active-only (`require_supplier` → 422 SUPPLIER_INACTIVE; candidates and `GET /suppliers` filter `active`). New test `test_inactive_supplier_is_excluded_from_resolution_and_auto_match`; suite 116/116. (3) Backfill re-run behaviour verified empirically on the local DB: re-running 041 with a supplier **deactivated** keeps it inactive (`ON CONFLICT DO NOTHING`); re-running after a supplier row is **deleted** recreates it ACTIVE — so sentinel pseudo-suppliers must be deactivated, never deleted. (4) `migrations/042_deactivate_sentinel_suppliers.sql` (idempotent, normalised-name match: found, found inventory, inventory found, physical count, initial inventory, inventory correction, inventory intake, unknown) written — **NOT applied to prod, NOT pushed**; awaiting approval.
-- **Why:** Michael's post-incident rules, plus confirmation that deactivated suppliers are fully excluded from both GPT resolution and receiving auto-match.
-
----
-
-## 2026-08-18 14:27 — DEPLOYED B-2 (+ FR-2 backend/dashboard riding along): main c22c180 → 778e0f9, all live checks pass
-- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (rows 68/69/70 status), `CHANGE_LOG.md`
-- **What changed:** Confirmed migration 041 objects already in prod (read-only: 51 `suppliers`, `expected_receipts` 0 rows, `transactions.expected_receipt_id`, `supplier_name_norm()`), then fast-forwarded `main` (== origin/main c22c180) to `feat/fr2-expected-receipts` head 778e0f9 and pushed at 14:24 ET. Railway deployment `4e24da3e` SUCCESS (`GET /expected-receipts` 502 → 200 by 14:25:12), Netlify deploy `6a84a36321c754000806e871` ready 14:24:46 (title = B-2 commit). Live verification, all PASS: (1) `/dashboard/api/inventory/batches` — 4 coconut batches present (`production_family: coconut`, `yield_multiplier` 1.11, `made_unit_size_lbs` 399.6); lot 26-05-06-COCO-003 4,795.2 lb → `batch_count` 12.0; product totals equal an independent read-only ledger recompute (Sweetened Flake 25,551.6 lb → 63.94, Fancy 3,602.8 → 9.02, Medium 1,033.6 → 2.59, Toasted 500 → 1.67). (2) Floor not round — the only live division where floor ≠ round: `/dashboard/api/activity/shipments` line Graham Cracker Crumbs – 50 LB 1,690 lb / 50 = 33.8 → `unit_count` **33**; additionally 164/164 shipment lines, 24/24 receipt lines, 19/19 finished-goods lots, 5/5 production rows all equal floor; deployed dashboard.js v31 has only `Math.floor` (no `Math.round`) at the case-math sites; process-flow.html serves `repeat(3, 1fr)` + `Math.floor` ×2. (3) `/dashboard/api/inventory/ingredients` returns `uom` on 59/59 items and 91/91 lots (54 lb, 4 unit — BS printed bags, 1 "50 lb bag" — Graham Cracker Crumbs – 50 LB). (4) Netlify index.html: `dashboard.js?v=31`, `dashboard.css?v=20`, `mini-calendar.js?v=3`; `#global-search` placeholder "Search SKU, lot, SO, customer..." (0 "supplier"); "Workers on Floor" absent from index.html and process-flow.html. Rows 68 (FR-2 backend/dashboard) and 70 (B-2) marked DEPLOYED; row 69 (office GPT paste) still NOT PASTED but now unblocked. `feat/planner-v2` untouched.
-- **Why:** Michael asked to deploy and verify B-2 live; B-2's JS/API hunks live inside the FR-2 commits so FR-2 shipped with it (041 was already applied by another session at ~14:40 ET per f3e9f61).
-
----
-
 ## 2026-08-18 14:48 — Migration 041 APPLIED to prod; tests/schema/schema.sql re-dumped from prod
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md` (rows 68/69 status), `CHANGE_LOG.md`
 - **What changed:** Ran `migrations/041_expected_receipts.sql` against production via the session-mode pooler (port 5432, single transaction, ON_ERROR_STOP) at ~14:40 ET: CREATE FUNCTION / CREATE TABLE suppliers / unique norm index / **INSERT 0 51** / CREATE TABLE expected_receipts / 2 indexes / ALTER TABLE transactions ADD expected_receipt_id / index / COMMIT. Read-only verification: suppliers = 51 rows (51 active) = 51 distinct normalised shipper names, 0 unmatched shipper names; `expected_receipts` exists (0 rows) with the expected 11 columns; `transactions.expected_receipt_id integer NULL` + FK `transactions_expected_receipt_id_fkey`; all 4 new indexes present; `supplier_name_norm('  Jack’s   EGGS ')` = `jack's eggs`; transactions 1,940 rows / max id 2037 unchanged; `ledger_current_transactions` still resolves; prod `/health` 200 (old code, unaffected by the nullable column). Then `scripts/dump_prod_schema.sh` regenerated `tests/schema/schema.sql` from prod (3,720 lines, zero data rows) — the pending `\ir 041` block is gone; only 041 objects differ from the previous dump (plus the hand-added `CREATE EXTENSION pg_trgm` line, which `setup_test_db.sh` creates itself). `scripts/setup_test_db.sh --fresh` rebuild + suite **115/115**.
@@ -337,17 +330,17 @@
 
 ---
 
-## 2026-08-18 15:05 — Landed B-2 dashboard fix leftovers; renumbered B-2 changelog row 69 → 70
-- **File(s) changed:** `dashboard/process-flow.html`, `tests/test_dashboard_b2.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 70), `CHANGE_LOG.md`
-- **What changed:** Committed the two B-2 files another tool left uncommitted after its JS/API/index.html/css hunks rode into `e66d2cc` (FR-2) and its changelog rows into `69b2e0f`: `process-flow.html` (summary strip 4→3 columns, hardcoded "Workers on Floor 8/10" placeholder card + `.placeholder` CSS removed, both `Math.round`→`Math.floor` for lbs→cases) and `tests/test_dashboard_b2.py` (3 tests: batch panel includes coconut + applies yield, ingredient panel returns `products.uom`, `_floor_unit_count` never overstates). Both `FACTORY_LEDGER_CHANGELOG.md` rows written today as **69** collided (B-2 14:11 and FR-2 GPT follow-up 14:32, both committed in `69b2e0f`); the FR-2 follow-up keeps 69 (already cited in the global change-log and elsewhere) and B-2 is now **row 70** (moved above 69, next free row — row-28 renumber precedent). Row 70 also records the prod check requested before landing (read-only `scripts/psql_ro.sh`): 25 active `type='batch'` products, every `Batch …`-named product is `type='batch'` (0 exceptions), `yield_multiplier`=1.11 only on Batch Coconut Sweetened Fancy/Flake/Medium (column default 1.0 → real data, not a default). Suite 115/115 on the local test DB (113 + the 2 tests added by 69b2e0f). NOT pushed, NOT deployed.
-- **Why:** Land the partially committed B-2 work as one reviewable commit and resolve the duplicate row number before it propagates.
-
----
-
 ## 2026-08-18 14:32 — FR-2 follow-up: GPT schema swap (listProducts → createExpectedReceipt), instructions v3.8.0, created_by source tag, dashboard-key tests
 - **File(s) changed:** `openapi-gpt-v3.yaml`, `gpt-instructions-v3.md`, `main.py`, `dashboard/dashboard.js`, `tests/test_expected_receipts.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 69)
 - **What changed:** **Schema** (v3.4.0 → 3.5.0, still exactly **30 operations**, all descriptions ≤300 chars — audited): removed `listProducts` (`GET /bom/products`; searchProducts/resolveProducts cover office lookup) and added `createExpectedReceipt` (`POST /expected-receipts`) with new `ExpectedReceiptCreate` component (product_name|product_id, supplier_name, expected_qty lb, expected_date, reference_number, notes, `created_by` default `gpt-sales-admin`). Floor GPT (`gpt-configs/schemas/openapi-floor.yaml`, `GPT_FLOOR_INSTRUCTIONS.md`) untouched. **Instructions** (`gpt-instructions-v3.md`, header v3.7.0 → v3.8.0, 7,991 → **7,982 chars**, under the 8,000 cap): dropped `listProducts` from QUERIES; added `## EXPECTED RECEIPTS` ("expecting/incoming X lb [product] from [supplier]" → createExpectedReceipt with created_by "gpt-sales-admin"; 422 → show candidates, never create supplier; not a PO, receipts auto-link). To fit under the cap, redundant text was trimmed (no rule removed; all 10 Permanent Rules intact): NEVER INSTRUCT lost "; every endpoint here is an Action" (restated in NEVER CLAIM UNAVAILABILITY); "the actual API error" → "the API error"; PRE-FLIGHT — INTENT lost the duplicate "Never call transactional endpoint until action is known"; ORDER ENTRY "NEVER: explain flow, show payload, offer next steps, use step headers" → "NEVER: explain flow or use step headers" (payload/next-steps already banned in CRITICAL RULES); ORDER EDITING three NEVERs merged into one sentence; SUPPLIER LOT CROSS-REFERENCE lost the duplicate "Receive: required." (RECEIVE section keeps the MUST); DAY SUMMARY "(accepts optional date param YYYY-MM-DD)" → "(optional date YYYY-MM-DD)"; QUERIES lost the duplicate "Day summary: getDaySummary". Also fixed repo drift vs the live editor (row 64): the two `createSalesOrder` references → `createOrder`. **created_by (interim FR-15 attribution):** new `caller_source_tag(request, body_tag)` in main.py — scoped dashboard key → `'dashboard'` (body value ignored); master key → caller-supplied tag (office GPT sends `gpt-sales-admin`), else NULL. No placeholder/fake ids (deliberately NOT the ledger's `operator_id='legacy-shared-key'` convention). Column already `text NULL` in migration 041 — no migration change. Dashboard no longer sends created_by (server-derived). **Allowlist:** the FR-2 routes were already on `DASHBOARD_KEY_ALLOWLIST` (GET/POST `/expected-receipts`, GET/PATCH `/expected-receipts/{expected_receipt_id}`, GET/POST `/suppliers`); added `test_dashboard_key_can_use_expected_receipts_and_suppliers` (asserts allowlist membership, dashboard key → 200 on GET/POST/PATCH/GET-by-id + `/suppliers`, body `created_by` spoof ignored, `/make` still 403) and `test_created_by_is_caller_source_tag_never_a_fake_user_id`. Suite **115/115**. **Still pending manual steps:** paste `openapi-gpt-v3.yaml` (30 ops, v3.5.0) + `gpt-instructions-v3.md` (v3.8.0) into the office GPT editor after the backend deploys (the op 404s until then); apply migration 041 to prod (needs Michael's go).
 - **Why:** Michael chose to drop `listProducts` for the 30-op cap and asked for the dashboard-key allowlist to be tested and for `created_by` to be a plain caller source tag until FR-15 exists.
+
+---
+
+## 2026-08-18 14:27 — DEPLOYED B-2 (+ FR-2 backend/dashboard riding along): main c22c180 → 778e0f9, all live checks pass
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (rows 68/69/70 status), `CHANGE_LOG.md`
+- **What changed:** Confirmed migration 041 objects already in prod (read-only: 51 `suppliers`, `expected_receipts` 0 rows, `transactions.expected_receipt_id`, `supplier_name_norm()`), then fast-forwarded `main` (== origin/main c22c180) to `feat/fr2-expected-receipts` head 778e0f9 and pushed at 14:24 ET. Railway deployment `4e24da3e` SUCCESS (`GET /expected-receipts` 502 → 200 by 14:25:12), Netlify deploy `6a84a36321c754000806e871` ready 14:24:46 (title = B-2 commit). Live verification, all PASS: (1) `/dashboard/api/inventory/batches` — 4 coconut batches present (`production_family: coconut`, `yield_multiplier` 1.11, `made_unit_size_lbs` 399.6); lot 26-05-06-COCO-003 4,795.2 lb → `batch_count` 12.0; product totals equal an independent read-only ledger recompute (Sweetened Flake 25,551.6 lb → 63.94, Fancy 3,602.8 → 9.02, Medium 1,033.6 → 2.59, Toasted 500 → 1.67). (2) Floor not round — the only live division where floor ≠ round: `/dashboard/api/activity/shipments` line Graham Cracker Crumbs – 50 LB 1,690 lb / 50 = 33.8 → `unit_count` **33**; additionally 164/164 shipment lines, 24/24 receipt lines, 19/19 finished-goods lots, 5/5 production rows all equal floor; deployed dashboard.js v31 has only `Math.floor` (no `Math.round`) at the case-math sites; process-flow.html serves `repeat(3, 1fr)` + `Math.floor` ×2. (3) `/dashboard/api/inventory/ingredients` returns `uom` on 59/59 items and 91/91 lots (54 lb, 4 unit — BS printed bags, 1 "50 lb bag" — Graham Cracker Crumbs – 50 LB). (4) Netlify index.html: `dashboard.js?v=31`, `dashboard.css?v=20`, `mini-calendar.js?v=3`; `#global-search` placeholder "Search SKU, lot, SO, customer..." (0 "supplier"); "Workers on Floor" absent from index.html and process-flow.html. Rows 68 (FR-2 backend/dashboard) and 70 (B-2) marked DEPLOYED; row 69 (office GPT paste) still NOT PASTED but now unblocked. `feat/planner-v2` untouched.
+- **Why:** Michael asked to deploy and verify B-2 live; B-2's JS/API hunks live inside the FR-2 commits so FR-2 shipped with it (041 was already applied by another session at ~14:40 ET per f3e9f61).
 
 ---
 
@@ -411,35 +404,6 @@
 
 ---
 
-## 2026-08-17 15:23 — Replaced session-level read-only guard with transaction-scoped pattern
-- **File(s) changed:** `CONTEXT.md`, `scripts/psql_ro.sh` (new)
-- **What changed:** Added "Read-only investigation access" section to CONTEXT.md documenting the canonical pattern (`BEGIN TRANSACTION READ ONLY` per transaction, session-mode pooler port 5432, psycopg2 `SET TRANSACTION READ ONLY`) and banning session-level read-only GUCs (`PGOPTIONS`/`options='-c default_transaction_read_only=on'`/`SET SESSION CHARACTERISTICS`) against pooler URLs. Added `scripts/psql_ro.sh` helper that rewrites the DATABASE_URL to the session pooler and opens psql with a reminder banner (smoke-tested).
-- **Why:** The session-level guard leaks `default_transaction_read_only=on` onto shared transaction-mode pooler (port 6543) connections, which the app then receives — the likely cause of the 2026-08-17 19:03–19:08Z READONLY_TRIPWIRE burst on SO-260811-002 (6 failed writes, no shipment written). The session-mode pooler also silently drops PGOPTIONS, so the old guard was unreliable everywhere.
-
----
-
-## 2026-08-13 15:11 — Deploy and verify Sales Order Matrix export fix
-- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
-- **What changed:** Pushed commit `1cdd9cb` to `main`; Railway deployment `68da81ca-0279-4cf8-b8a8-78dec6e817cf` succeeded. Production returned HTTP 200 with the XLSX media type, attachment filename, and CORS header; the 16,024-byte workbook loaded successfully with populated Cases/Pounds sheets and excluded raw ingredient SKU `11033`. Health remained connected.
-- **Why:** Record the production rollout and acceptance evidence for the Sales Order Matrix download repair.
-
----
-
-## 2026-08-13 15:00 — Fix Sales Order Matrix export for raw-material sales
-- **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
-- **What changed:** Restricted the production-oriented XLSX matrix query to `products.type = 'finished'` while preserving the existing service, no-production, SKU, status, case-size, workbook-format, and calculation rules. Added a route regression test that requires the finished-goods query boundary and verifies a valid workbook response.
-- **Why:** A live open order for ingredient SKU `11033` (Oats – Gluten Free, sold by pound with no `case_size_lb`) entered the case matrix query and made the endpoint return HTTP 422, so the dashboard could not download any workbook.
-
----
-
-## 2026-08-13 13:49 — Remediate admin SQL, effective-ledger reads, and Floor void contract
-- **File(s) changed:** `main.py`, `gpt-configs/schemas/openapi-floor.yaml`, `tests/test_batch1_correctness_security.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`
-- **What changed:** Removed the arbitrary `/admin/sql` execution route; moved current trace, shipment-display, packing-slip, and integrity reads to Phase 1 effective transaction/line views; added the required `reason` request body to the Floor `voidTransaction` action; added security, effective-void, packing-slip/integrity SQL, sales-shipment, and schema-contract regressions; amended the authoritative system knowledge document to distinguish these working-tree changes from deployed/live facts.
-- **Why:** Prevent shared-key arbitrary SQL execution, keep correction-voided activity out of current operational reads, and make the Floor GPT void action match the backend contract.
-- **Verification:** All five Batch 1 tests, all 63 explicitly DB-marked tests, and the complete 84-test Python suite passed against a disposable schema-only local PostgreSQL 17 database; the four-case JavaScript pallet suite also passed. No production credentials or data were used.
-
----
-
 ## 2026-08-17 15:56 — Ban session-level readonly on the 6543 pooler
 - **File(s) changed:** `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `FACTORY_LEDGER_CHANGELOG.md`, `scripts/propose_pack_format_backfill.py`, `scripts/psql_ro.sh`
 - **What changed:** Encoded a hard rule: never use `set_session(readonly=True)` or other session-level readonly GUCs against the transaction-mode pooler (port 6543). Read-only work must use port 5432 or `BEGIN` + `SET TRANSACTION READ ONLY`. Replaced the backfill script’s `set_session(readonly=...)` with a transaction-scoped SET. Documented the poison path in CONTEXT.md and Known Root Causes.
@@ -472,6 +436,13 @@
 - **File(s) changed:** `scripts/dump_prod_schema.sh`
 - **What changed:** Removed a stray backslash in the bash substitution that rewrites the pooler port (`${URL/:6543\//:5432\/}` → `${URL/:6543\//:5432/}`); the old form produced `:5432\/` — an invalid URL pg_dump rejects.
 - **Why:** Latent bug found while building `scripts/psql_ro.sh`; the script only worked when DATABASE_URL was already a port-5432 URL.
+
+---
+
+## 2026-08-17 15:23 — Replaced session-level read-only guard with transaction-scoped pattern
+- **File(s) changed:** `CONTEXT.md`, `scripts/psql_ro.sh` (new)
+- **What changed:** Added "Read-only investigation access" section to CONTEXT.md documenting the canonical pattern (`BEGIN TRANSACTION READ ONLY` per transaction, session-mode pooler port 5432, psycopg2 `SET TRANSACTION READ ONLY`) and banning session-level read-only GUCs (`PGOPTIONS`/`options='-c default_transaction_read_only=on'`/`SET SESSION CHARACTERISTICS`) against pooler URLs. Added `scripts/psql_ro.sh` helper that rewrites the DATABASE_URL to the session pooler and opens psql with a reminder banner (smoke-tested).
+- **Why:** The session-level guard leaks `default_transaction_read_only=on` onto shared transaction-mode pooler (port 6543) connections, which the app then receives — the likely cause of the 2026-08-17 19:03–19:08Z READONLY_TRIPWIRE burst on SO-260811-002 (6 failed writes, no shipment written). The session-mode pooler also silently drops PGOPTIONS, so the old guard was unreliable everywhere.
 
 ---
 
@@ -517,6 +488,20 @@
 
 ---
 
+## 2026-08-13 15:11 — Deploy and verify Sales Order Matrix export fix
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Pushed commit `1cdd9cb` to `main`; Railway deployment `68da81ca-0279-4cf8-b8a8-78dec6e817cf` succeeded. Production returned HTTP 200 with the XLSX media type, attachment filename, and CORS header; the 16,024-byte workbook loaded successfully with populated Cases/Pounds sheets and excluded raw ingredient SKU `11033`. Health remained connected.
+- **Why:** Record the production rollout and acceptance evidence for the Sales Order Matrix download repair.
+
+---
+
+## 2026-08-13 15:00 — Fix Sales Order Matrix export for raw-material sales
+- **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Restricted the production-oriented XLSX matrix query to `products.type = 'finished'` while preserving the existing service, no-production, SKU, status, case-size, workbook-format, and calculation rules. Added a route regression test that requires the finished-goods query boundary and verifies a valid workbook response.
+- **Why:** A live open order for ingredient SKU `11033` (Oats – Gluten Free, sold by pound with no `case_size_lb`) entered the case matrix query and made the endpoint return HTTP 422, so the dashboard could not download any workbook.
+
+---
+
 ## 2026-08-13 15:00 — Fix Sales Order Matrix export for raw-material sales
 - **File(s) changed:** `main.py`, `tests/test_orders_matrix_export.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Restricted the production-oriented XLSX matrix query to `products.type = 'finished'` while preserving the existing service, no-production, SKU, status, case-size, workbook-format, and calculation rules. Added a route regression test that requires the finished-goods query boundary and verifies a valid workbook response.
@@ -528,6 +513,14 @@
 - **File(s) changed:** `week1-scoring-extract-2026-08-13.md` (new)
 - **What changed:** Generated the CNS Floor Manager Trial v8.1 Week 1 scoring extract from PRODUCTION (read-only): all 35 window transactions (1882–1916) Mon 8/10–Thu 8/13 14:35 ET with production/packing/shipment/ILC detail, entry-timing tables, late-entry query results (0 rows), corrections (1 smoke-test void), certifications (only 1900-01-01 test rows), and gaps/anomalies (no receives all week, shared-key operator_id only, no dispatch-proof fields in schema, 8/12 wrong-output-product adjust sequence, lot-ID gaps). Monday 8/10 entries flagged as legacy-unverifiable (pre-migration-039 backfilled created_at).
 - **Why:** Weekly scoring input for Michael; facts only, scoring judgments made separately.
+
+---
+
+## 2026-08-13 13:49 — Remediate admin SQL, effective-ledger reads, and Floor void contract
+- **File(s) changed:** `main.py`, `gpt-configs/schemas/openapi-floor.yaml`, `tests/test_batch1_correctness_security.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`
+- **What changed:** Removed the arbitrary `/admin/sql` execution route; moved current trace, shipment-display, packing-slip, and integrity reads to Phase 1 effective transaction/line views; added the required `reason` request body to the Floor `voidTransaction` action; added security, effective-void, packing-slip/integrity SQL, sales-shipment, and schema-contract regressions; amended the authoritative system knowledge document to distinguish these working-tree changes from deployed/live facts.
+- **Why:** Prevent shared-key arbitrary SQL execution, keep correction-voided activity out of current operational reads, and make the Floor GPT void action match the backend contract.
+- **Verification:** All five Batch 1 tests, all 63 explicitly DB-marked tests, and the complete 84-test Python suite passed against a disposable schema-only local PostgreSQL 17 database; the four-case JavaScript pallet suite also passed. No production credentials or data were used.
 
 ---
 
@@ -640,27 +633,6 @@
 - **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/dashboard_config.json`, `dashboard/index.html`, `main.py`, `tests/test_phase1_ledger_integrity.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added case-insensitive Graham product classification and a dedicated green GRAHAM production-calendar column, with compact 10 LB labels, readable stacked category sections in seven-column month view, and an optional rendered OTHER section plus console warning for uncategorized production. Added the exact active DB names `Graham Cracker Crumbs – 10 LB` to the 10 LB finished-goods panel and `Graham Cracker Crumbs – 50 LB` to a new Bulk Crumbs ingredient panel; bumped dashboard CSS/JS cache versions. Switched `get_daily_production_summary`, `GET /dashboard/api/production`, and every production query in `GET /production/day-summary` to `ledger_current_transactions` / `ledger_current_transaction_lines` with `effective_status='posted'`. Added a regression test proving corrected line quantities appear and append-only voids disappear across all three reads; full suite passes 69/69. Branch `fix/dashboard-graham-visibility`; not pushed or deployed.
 - **Why:** Graham crumb production and inventory were omitted from dashboard views, while the affected production summaries still bypassed Phase 1 corrected ledger state.
-
----
-
-## 2026-08-11 — Show database entry time in daily dashboard transaction views
-- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `tests/test_phase1_ledger_integrity.py`, `FACTORY_LEDGER_CHANGELOG.md`
-- **What changed:** Added `created_at`, plant-local created date/time, and timestamp provenance to the Shipping, Receiving, and lot-timeline dashboard APIs. Their visible time column now shows operational occurrence time plus a compact `Entered:` line; migration backfills and legacy timestamps are visibly identified. These reads now resolve Phase 1 effective transaction and line state so append-only voids do not remain in the dashboard. Added regression coverage; full suite passes 68/68.
-- **Why:** Let operators inspect database entry time day-to-day without downloading evidence, while preserving the distinction between when activity occurred and when it was entered.
-
----
-
-## 2026-08-11 — Deploy Trial v8.1 Phase 1 timestamp/cutoff integrity
-- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/phase-1-ledger-trial.md`
-- **What changed:** Recorded the successful production application of migration 039 and Railway deployment `8a005c7b-6205-4046-a5de-8b04d89d3f47` for commit `d17836f`. The guarded migration asserted the approved 12,526-row scope; the Floor `POST /adjust` smoke transaction `1891` was preserved with append-only void correction `549ba2f1-d50b-43f6-9f6f-aa5f6ae44ff0`; past-date certification `0d9af99b-975f-4962-b8f2-311b4f1fd558` was corrected by `ce5d1b11-e5c1-4baf-b4d9-4a0d815db853`. Health and tonight's certification slot passed. Phases 2–6 remain absent.
-- **Why:** Keep the repository's operational record aligned with the exact live migration, deployment, evidence rows, and Phase 1-only boundary.
-
----
-
-## 2026-08-10 — Prepare Trial v8.1 Phase 1 timestamp/cutoff deployment
-- **File(s) changed:** `main.py`, `migrations/039_trial_timestamp_integrity.sql`, `migrations/dry-runs/039_phase1_timestamp_integrity_dry_run.sql`, `tests/schema/schema.sql`, `tests/test_phase1_ledger_integrity.py`, `tests/test_void_semantics.py`, `docs/deployments/phase-1-ledger-trial.md`, `FACTORY_LEDGER_CHANGELOG.md`
-- **What changed:** Added database-forced timestamp provenance, separate business/occurred time, append-only transaction and line corrections, append-only daily certification chains, late-entry JSON/CSV evidence, effective-state history/balance reads, and a Phase 1-only deployment/preflight package.
-- **Why:** Make the Aug 10–14 Trial v8.1 scoring week able to prove when original entries and corrections were created relative to the owner’s evening certification.
 
 ---
 
@@ -1138,34 +1110,6 @@
 
 ---
 
-## 2026-04-22 — Let HTTPException pass through in /receive preview
-- **File(s) changed:** `main.py`
-- **What changed:** Added `except HTTPException: raise` clause before the existing `except Exception as e` block at the end of the `/receive` preview branch (around line 2304). Other endpoints' preview branches already have this pattern.
-- **Why:** The preview branch was catching `HTTPException` via the broad `except Exception`, swallowing legitimate 4xx responses (notably the 409 from `resolve_product_full` with disambiguation suggestions) and converting them to empty 500 errors with just `{"error": str(e)}`. Now HTTPException passes through to FastAPI's default handler with its original status and detail body intact.
-
----
-
-## 2026-04-21 — Close print-fabrication gap in NEVER CLAIM SUCCESS rule
-- **File(s) changed:** `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`
-- **What changed:** Appended `You can't print.` to the NEVER CLAIM SUCCESS CRITICAL RULE in both files. Line 103 PACKING SLIP rule `NEVER say "Printing."` left as-is (token-level belt-and-suspenders). Final char counts: `gpt-instructions-v3.md` 7,966 → **7,983 / 8,000** (17 headroom); `GPT_INSTRUCTIONS.md` 7,632 → **7,649 / 8,000** (351 headroom).
-- **Why:** Follow-up verification caught that the earlier sprint's removal of the `NEVER FAKE PRINTING` CRITICAL RULE was not fully covered by the new `NEVER CLAIM SUCCESS` rule. Two gaps: (1) `Printed` is absent from the `Done/Updated/Created/Cancelled/Shipped` verb list; (2) the rule's scope clause `only after a successful mutation response` does not apply to packing slips, which are read-path (listOrders to get order_id, then a static link is returned — no mutation endpoint is ever called). A strict reading of NEVER CLAIM SUCCESS therefore does not forbid `"Printed ✅"` fabrications. The retained `NEVER say "Printing."` on line 103 is literal-match only and does not cover `Printed`/`Sent to printer`/other variants. The removal + restoration within the same sprint is intentional, not a reversal: the initial offset assumed the new rule covered print; this follow-up analysis showed it doesn't, so one capability disclaimer (`You can't print.`) is restored in the semantically correct place — the CRITICAL RULES block alongside NEVER CLAIM SUCCESS — rather than re-adding a full NEVER FAKE PRINTING line.
-
----
-
-## 2026-04-21 — Ship audit fix: anti-fabrication rule + status transition graph in GPT instructions
-- **File(s) changed:** `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`, `FACTORY_LEDGER_CHANGELOG.md`
-- **What changed:** (a) Added new CRITICAL RULE `NEVER CLAIM SUCCESS — "Done/Updated/Created/Cancelled/Shipped" only after a successful mutation response this turn. Never fake a tool call.` (b) Replaced ambiguous `Status: new→confirmed→...→invoiced` one-liner in SALES ORDERS with explicit one-step transition block including the `ready↔in_production` reverse edge, `shipped/partial_ship auto-only via shipOrder` callout, and the worked `confirmed→ready = confirmed→in_production→ready` example. (c) Added `Status → updateOrderStatus (one-step only; see SALES ORDERS)` bullet to ORDER EDITING — CALL API IMMEDIATELY so the GPT knows the Action exists and routes to it on "mark ready"/"move to production"/"cancel". Offsets to stay under 8,000-char ceiling: removed `Max 1 emoji per message.` from ACT DON'T LOOP; removed `Never restate what you're about to do.` from ACT DON'T LOOP (redundant with `No reconfirmation`); removed `- NEVER FAKE PRINTING — You CANNOT print. Clickable links only.` CRITICAL RULE (functionality retained in PACKING SLIP section `NEVER say "Printing."`); removed `- When in doubt → inventoryLookup first (fast, useful while you plan next call)` from ROUTING RULES. Final counts: `gpt-instructions-v3.md` 7,966 / 8,000 chars; `GPT_INSTRUCTIONS.md` 7,632 / 8,000 chars. Synced identical changes to both files since both claim v3.6.0 and which is deployed to the Custom GPT admin is ambiguous (dual-file drift flagged in audit as out-of-scope follow-up). Added FACTORY_LEDGER_CHANGELOG row #27.
-- **Why:** Shipping the Finding 1 + Finding 2 instruction fixes from [AUDIT_GPT_FABRICATION_2026-04-21.md](AUDIT_GPT_FABRICATION_2026-04-21.md) alone, per user direction (don't bundle with Pass-1 4xx normalization). Every day the current instructions are live is another day ship_order / updateSupplierLot / shipOrder could fabricate an FDA-recall-tier success message without a tool call. OpenAPI enrichment and optional main.py 4xx normalization remain deferred to a separate change.
-
----
-
-## 2026-04-21 — Audit: GPT fabricates mutation confirmations without calling the API
-- **File(s) changed:** `AUDIT_GPT_FABRICATION_2026-04-21.md` (new)
-- **What changed:** Created findings doc for the incident where the GPT replied `"Done. All 5 orders are now set to ready ✅"` without invoking `updateOrderStatus`. Scoped Step 0 design-intent review (changelog rows #7, #11, #13, #21), GPT instruction audit (`gpt-instructions-v3.md` 7,987 chars / 8,000 ceiling), OpenAPI audit (`updateOrderStatus` at line 807, op count 30/30 at cap), `main.py:5528-5583` handler review with full `MANUAL_TRANSITIONS` graph extracted from [main.py:4991](main.py#L4991), and a cross-cut risk table for all 15 GPT-exposed mutation endpoints. Two findings: (1) no CRITICAL RULE forbids claiming mutation success without a tool call — `NEVER HALLUCINATE` is parsed as "don't invent rows," doesn't cover "don't invent outcomes"; (2) transition graph is shown as an ambiguous display-order one-liner rather than a one-step-transitions table, and omits `ready→in_production` reverse edge + `shipped`/`partial_ship` auto-only flag. Proposed instruction text, OpenAPI enrichment, and optional 4xx normalization (bundled with FOLLOWUPS #2).
-- **Why:** Operator reported the GPT fabricating `"Done ✅"` responses across 3 turns before actually invoking the API. Incident transcript pasted into audit prompt. Audit-only — no code changes made this session per prompt constraints.
-
----
-
 ## 2026-04-20 15:40 — FOLLOWUPS #6 resolved: deleted legacy `factory-ledger` Railway service
 - **File(s) changed:** `FOLLOWUPS.md`
 - **What changed:** Marked #6 as RESOLVED with investigation findings. Both services (`factory-ledger` and `FastAPI` in Railway project `gleaming-solace`) were deploying the same `main.py` from the same repo with identical env-var key sets; only `DATABASE_URL` differed (factory-ledger had a stale Supabase pooler password, no `sslmode`). `factory-ledger-production.up.railway.app` appeared nowhere in the repo (GPT instructions, OpenAPI, dashboard config, Netlify — all clean). Live check confirmed `factory-ledger` at HTTP 502, `FastAPI` at HTTP 200. Deleted the `factory-ledger` service via the Railway dashboard (CLI has no service-delete verb). Relinked local `railway` CLI to `FastAPI` so subsequent `railway ssh` / `railway logs` hit the live service.
@@ -1189,13 +1133,6 @@
 
 ---
 
-## 2026-04-20 12:14 — Gitignore .env + archive migrations 032-034
-- **File(s) changed:** `.gitignore`, `migrations/032_backfill_skus_and_merge_bs_cocoa.sql`, `migrations/033_force_close_so260326002_ace_endico.sql`, `migrations/034_force_close_so260414003_hannas.sql`
-- **What changed:** Appended `.env` to `.gitignore` (history confirmed clean — `git log --all --full-history -- .env` returned empty, so no credential rotation needed). Committed migrations 032-034 into the repo; all three were already applied to prod, this aligns the checked-in history with deployed schema.
-- **Why:** Pre-smoke-test housekeeping. `.env` was previously untracked but unignored, one `git add .` away from leaking Supabase/Railway/Google OAuth creds. Migrations 032-034 had been sitting untracked since application; committing them keeps `migrations/` in sync with prod.
-
----
-
 ## 2026-04-20 12:20 — FOLLOWUPS #5 added (createOrder auto-create audit) + Pass 1 merge
 - **File(s) changed:** `FOLLOWUPS.md`
 - **What changed:** Added section #5 — deferred audit item flagging that `create_sales_order` (main.py:5010) calls `resolve_customer_id` without `auto_create=False`, so a typo'd name with no address silently creates a duplicate customer row. Proposed fix: trigram-similarity guard (>0.7) before the auto-create branch fires.
@@ -1203,27 +1140,17 @@
 
 ---
 
+## 2026-04-20 12:14 — Gitignore .env + archive migrations 032-034
+- **File(s) changed:** `.gitignore`, `migrations/032_backfill_skus_and_merge_bs_cocoa.sql`, `migrations/033_force_close_so260326002_ace_endico.sql`, `migrations/034_force_close_so260414003_hannas.sql`
+- **What changed:** Appended `.env` to `.gitignore` (history confirmed clean — `git log --all --full-history -- .env` returned empty, so no credential rotation needed). Committed migrations 032-034 into the repo; all three were already applied to prod, this aligns the checked-in history with deployed schema.
+- **Why:** Pre-smoke-test housekeeping. `.env` was previously untracked but unignored, one `git add .` away from leaking Supabase/Railway/Google OAuth creds. Migrations 032-034 had been sitting untracked since application; committing them keeps `migrations/` in sync with prod.
+
+---
+
 ## 2026-04-20 12:05 — Pre-merge verification: Pass 1 Setton tests + FOLLOWUPS additions
 - **File(s) changed:** `FOLLOWUPS.md`
 - **What changed:** Ran pytest `tests/` inside the Railway fastapi container (Python 3.11, Supabase prod DB via SAVEPOINT+ROLLBACK fixture) against the Pass 1 local `main.py` — 4/4 tests PASSED. Added two items to FOLLOWUPS: (3) threshold tuning for `_pick_by_address` after 2–4 weeks of traffic, (4) GPT instruction headroom note (7,987/8,000 chars).
 - **Why:** Four pre-merge checklist items for Pass 1: actual test run (not just compile check), audit of `resolve_customer_id` call sites, FOLLOWUPS additions, and CUSTOMER_NOT_FOUND reachability trace from createOrder. Audit and trace reported in-chat; no code changes required.
-
----
-
-## 2026-04-20 — Pass 1: customer address tiebreaker + 4xx error shape normalization
-- **File(s) changed:** `main.py`, `gpt-instructions-v3.md`, `openapi-gpt-v3.yaml`, `tests/__init__.py` (new), `tests/conftest.py` (new), `tests/test_resolve_customer.py` (new), `pytest.ini` (new), `FOLLOWUPS.md` (new)
-- **What changed:**
-  - `resolve_customer_id` now accepts an optional `address` kwarg; when the fuzzy name match returns >1 candidate and an address is supplied, a trigram-similarity tiebreaker on `customers.address` (thresholds 0.6 absolute + 0.2 gap) collapses to a single match. Fully additive: no address → behavior unchanged. New helper `_pick_by_address` in main.py.
-  - `customer_address` field added to `OrderCreate` (POST /sales/orders) and `ShipRequest` (POST /ship), threaded through both `resolve_customer_id` call sites.
-  - `resolve_customer_id` final 404 "Customer not found" now uses the standard dict error shape (error_code=CUSTOMER_NOT_FOUND). Auto-insert now persists supplied address.
-  - `resolve_product_id` and `resolve_product_full` normalized to dict shape. Status-code shift 400 → 409 for PRODUCT_AMBIGUOUS and PRODUCT_UNCERTAIN (matches CUSTOMER_AMBIGUOUS). 404 PRODUCT_NOT_FOUND unchanged.
-  - `resolve_order_id` 404 normalized to dict shape (error_code=ORDER_NOT_FOUND).
-  - Sales-order endpoints `createOrder`, `getOrder`, `updateOrderHeader`, `addOrderLines`, `updateOrderLine` — all string-detail 4xx raises converted to dict shape (error_codes: ORDER_NOT_FOUND, CUSTOMER_NOT_FOUND, ORDER_HEADER_LOCKED, NO_FIELDS_TO_UPDATE, CASE_WEIGHT_REQUIRED, ORDER_LINES_LOCKED, LINE_NOT_FOUND).
-  - `gpt-instructions-v3.md`: added PRE-FLIGHT — CUSTOMER section (searchCustomers before resolveProducts on PO entry; batched disambiguation notation); removed duplicate DAY SUMMARY routing line; expanded ERRORS section with "4xx with detail.error_code + detail.suggestions → show suggestions" rule. 7,643 → 7,987 chars (under 8,000 cap).
-  - `openapi-gpt-v3.yaml`: added `components.schemas.ErrorResponse`; added `customer_address` field to OrderCreate/ShipRequest; added 400/404/409 response blocks referencing ErrorResponse on createOrder, getOrder, updateOrderHeader, addOrderLines, updateOrderLine (only status codes each operation actually raises). Operation count held at 30/30.
-  - `tests/` scaffolding: pytest.ini, conftest.py with `db_cursor` fixture (SAVEPOINT + ROLLBACK per test), test_resolve_customer.py with 4 tests covering Setton-style tiebreaker (seeds temp rows in a rolled-back txn).
-  - `FOLLOWUPS.md`: (a) NULL-address backfill for recurring customers (Setton Farms address is currently NULL — tiebreaker can't fire); (b) full list of the ~25 remaining 4xx raise sites to normalize in a follow-up PR.
-- **Why:** Two real-world failures: GPT was asking for customer disambiguation even when a PO address uniquely identified the right row; plain-string 4xx error responses forced the GPT into a generic "something went wrong" fallback instead of surfacing the structured suggestions to the operator.
 
 ---
 
@@ -1255,17 +1182,17 @@
 
 ---
 
-## 2026-04-16 13:22 — Fix stale dashboard config SKU name for Vanilla Crisp #16
-- **File(s) changed:** `dashboard/dashboard_config.json`
-- **What changed:** Removed one space in `batch_skus` entry at line 104: `"Batch Vanilla Crisp Granola #16 (no almonds)"` → `"Batch Vanilla Crisp Granola #16(no almonds)"`, matching the canonical product name in the DB (products.id=112, odoo_code=90024).
-- **Why:** Dashboard Operations tab flagged this SKU under "Missing SKUs". Root cause: `/dashboard/api/inventory/batches` does `LOWER(p.name) = ANY(unnest(%s::text[]))` exact match (main.py:6709), and the single extra space in the config prevented a match. Product exists and is active — config was stale.
-
----
-
 ## 2026-04-16 20:10 — Product catalog cleanup (migration 032 applied)
 - **File(s) changed:** `migrations/032_backfill_skus_and_merge_bs_cocoa.sql`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Migration 032 applied via Supabase SQL Editor (MyFirstProject). (1) Backfilled odoo_code='70089' on `Classic Granola 25 LB` (id=171). (2) Merged SKU-less duplicates `BS Cocoa Chips` (id=167) and `BS Cocoa Liquor` (id=168) into canonical 15008 `BS Cocoa Liquor – Chips` (id=61): repointed 2 rows in `lots`, 3 in `transaction_lines`, 2 in `inventory_adjustments`, updated 2 rows in `product_verification_history` to action='merged' + merged_into_product_id=61, deleted the two duplicate product rows. (3) Idempotently asserted label_type='private_label' on odoo_code 70082 (already correct; no-op UPDATE). Products count 203 → 201. All 8 post-flight SELECT assertions PASS (verified via /admin/sql). Changelog row #22 added to FACTORY_LEDGER_CHANGELOG.md.
 - **Why:** Product catalog had 3 SKU-less rows (noticed during SKU printout). Two of the three (BS Cocoa Chips, BS Cocoa Liquor) were semantic duplicates of 15008; the third (Classic Granola 25 LB) just needed a code assigned from the next 700xx slot (70089). 70082 guard is defensive — it's already correct but a stale-backup restore could silently flip it to 'house'.
+
+---
+
+## 2026-04-16 13:22 — Fix stale dashboard config SKU name for Vanilla Crisp #16
+- **File(s) changed:** `dashboard/dashboard_config.json`
+- **What changed:** Removed one space in `batch_skus` entry at line 104: `"Batch Vanilla Crisp Granola #16 (no almonds)"` → `"Batch Vanilla Crisp Granola #16(no almonds)"`, matching the canonical product name in the DB (products.id=112, odoo_code=90024).
+- **Why:** Dashboard Operations tab flagged this SKU under "Missing SKUs". Root cause: `/dashboard/api/inventory/batches` does `LOWER(p.name) = ANY(unnest(%s::text[]))` exact match (main.py:6709), and the single extra space in the config prevented a match. Product exists and is active — config was stale.
 
 ---
 
@@ -1280,69 +1207,6 @@
 - **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-gpt-v3.yaml`
 - **What changed:** Replaced hard 400 rejection on missing supplier_lot_code with fallback logic: defaults to lot_code if provided, then 'N/A'. Added description to supplier_lot_code field in both OpenAPI schemas documenting the fallback.
 - **Why:** GPT couldn't complete receives — schema said supplier_lot_code was optional but the API hard-rejected when it was omitted.
-
----
-
-## 2026-03-26 — Trim GPT instructions to fit 8000-char limit
-- **File(s) changed:** `GPT_INSTRUCTIONS.md`
-- **What changed:** Compressed ROUTING RULES, PRE-FLIGHT INTENT, QUERIES, and LOT MERGES sections to fit under 8,000 chars (now 7,986). Updated QUERIES to list /inventory/lookup as primary. Removed /inventory/{item} and packing-slip line from QUERIES (covered elsewhere).
-- **Why:** Adding ROUTING RULES pushed instructions to 8,279 chars, exceeding the 8,000-char GPT limit.
-
----
-
-## 2026-03-26 — Add ROUTING RULES section to GPT instructions
-- **File(s) changed:** `GPT_INSTRUCTIONS.md`
-- **What changed:** Added ROUTING RULES section before PRE-FLIGHT — INTENT. Bare product names route directly to inventoryLookup; product + "orders" routes to listOrders; product + "trace"/"lot" routes to trace endpoints; default fallback is inventoryLookup.
-- **Why:** GPT was asking unnecessary clarification questions instead of immediately calling the right endpoint.
-
----
-
-## 2026-03-26 — Performance fix for /inventory/lookup bulk queries
-- **File(s) changed:** `main.py`
-- **What changed:** Added `_inventory_detail_for_products()` that fetches product info and lot inventory for multiple product_ids in 2 SQL queries (using `ANY(%s)`) instead of 2N. Refactored `/inventory/lookup` to call the bulk function. Changed default limit from 10 to 5 to reduce payload size for broad queries.
-- **Why:** Queries like "coconut" matching 17 products caused 34+ database round trips, making the endpoint slow.
-
----
-
-## 2026-03-26 — Remove temporary debug endpoint and logging from inventory lookup
-- **File(s) changed:** `main.py`
-- **What changed:** Removed `/inventory/debug/{product_id}` endpoint and all diagnostic logging from `_inventory_detail_for_product()`. The 0-lb bug was caused by uncommitted code not being deployed, not a query issue.
-- **Why:** Cleanup after confirming the inventory lookup works correctly once deployed.
-
----
-
-## 2026-03-26 — Add debug logging and /inventory/debug/{product_id} endpoint for inventory lookup bug
-- **File(s) changed:** `main.py`
-- **What changed:** Added detailed debug logging to `_inventory_detail_for_product()` (logs all lots before HAVING, transaction_lines by product_id, and product_id mismatches). Added temporary `/inventory/debug/{product_id}` endpoint that returns raw diagnostic data (lots, txn_lines via lot join vs product_id, grouped results without HAVING, inventory_summary view).
-- **Why:** `/inventory/lookup` returns 0 lb on hand for product 10305 (Sprinkles Rainbow 25 LB) despite 3,125 lb existing in lot 26-03-20-INVE-001. Dashboard shows correct balance. Debugging whether HAVING clause, lot_id join, or product_id mismatch is the root cause.
-
----
-
-## 2026-03-26 — Remove getInventoryItem from GPT schema to stay at 30-op limit
-- **File(s) changed:** `openapi-gpt-v3.yaml`
-- **What changed:** Removed /inventory/{item_name} (getInventoryItem) from GPT schema since /inventory/lookup fully replaces it for GPT use. Brings operation count from 31 back to 30.
-- **Why:** ChatGPT GPT actions enforce a 30-operation maximum
-
----
-
-## 2026-03-26 — Add /inventory/lookup unified endpoint + fuzzy fallback on getInventoryItem
-- **File(s) changed:** `main.py`, `openapi-gpt-v3.yaml`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`
-- **What changed:** New GET /inventory/lookup?q= endpoint that combines fuzzy product search with lot-level inventory detail in a single call. Added _inventory_detail_for_product helper. Updated /inventory/{item_name} with fuzzy fallback (tiered search if no LIKE match; returns 404/300 for zero/multiple matches). Updated all three OpenAPI schemas with the new endpoint and revised summaries.
-- **Why:** Replace the two-step searchProducts → getInventoryItem flow with a single unified lookup for the GPT
-
----
-
-## 2026-03-26 — Create openapi-gpt-v3.yaml (unified schema for ChatGPT GPT action)
-- **File(s) changed:** `openapi-gpt-v3.yaml`
-- **What changed:** Created trimmed GPT action schema from openapi-v3.yaml (30 operations, the ChatGPT limit). Removed productsMissingCaseSize, searchCustomers, productionDaySummary. Added back getBatchFormula (needed for /make lot overrides). Uses unified mode-in-body endpoints instead of deprecated split /preview /commit paths.
-- **Why:** The GPT is currently using the deprecated openapi-schema-gpt.yaml with split paths. This new schema uses the correct unified endpoints and fits within the 30-operation ChatGPT limit.
-
----
-
-## 2026-03-26 — Fix GPT shipping 404: add split-path route aliases
-- **File(s) changed:** `main.py`, `openapi-schema-gpt.yaml`
-- **What changed:** Added thin wrapper routes for /preview and /commit sub-paths on all transactional endpoints (/receive, /ship, /make, /pack, /adjust, /sales/orders/{id}/ship). The GPT schema uses these split paths but the API only had the combined endpoint with mode in the body, causing 404s. Also added the missing shipOrderPreview endpoint to the GPT schema.
-- **Why:** GPT was getting "not found" when trying to ship SO-260325-003 because it called /sales/orders/SO-260325-003/ship/commit which didn't exist as a route.
 
 ---
 
@@ -1481,115 +1345,10 @@
 
 ---
 
-## 2026-03-23 — "Ready to Ship" display label and reverse transition
-- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `main.py`, `gpt-instructions-v3.md`, `GUIDE.md`, `CONTEXT.md`
-- **What changed:** Renamed dashboard display label from "Ready" to "Ready to Ship" in status label mapping and filter dropdown. Added `ready → in_production` reverse transition in both VALID_TRANSITIONS and MANUAL_TRANSITIONS. Updated GPT instructions to suggest marking orders as "Ready to Ship" after production completes, and documented the reverse transition. Updated GUIDE.md and CONTEXT.md to reflect the new display name and reverse transition.
-- **Why:** Improve clarity of the "ready" status (now displayed as "Ready to Ship") and allow orders to move back to in_production if production falls short or inventory is consumed elsewhere.
-
----
-
-## 2026-03-19 — Fix /make commit crash: is_ingredient column does not exist
-- **File(s) changed:** `main.py`
-- **What changed:** Replaced `COALESCE(is_ingredient, false) = false` with `type != 'ingredient'` in the post-commit auto-prompt /pack query (line ~2622). The `is_ingredient` column never existed in the products table; the correct column is `type` with value `'ingredient'`.
-- **Why:** /make commit failed with "column is_ingredient does not exist" when trying to query finished goods for pack prompting after batch creation.
-
----
-
 ## 2026-03-19 15:20 — Add regression guard changelog and update CLAUDE.md
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CLAUDE.md`
 - **What changed:** Created FACTORY_LEDGER_CHANGELOG.md documenting all major fixes with "Breaks If Reverted" column, known root causes, and 10 permanent rules. Added Regression Guard section to CLAUDE.md so future sessions check the changelog before making changes.
 - **Why:** Prevent regressions by ensuring every Claude Code session is aware of past fixes and their dependencies.
-
----
-
-## 2026-03-19 — Fix pallet charges counted as weight in sales order totals
-- **File(s) changed:** `main.py`, `migrations/028_add_is_service_to_products.sql`
-- **What changed:** Added `is_service` boolean column to products table (migration 028) to flag service/charge items like pallets, freight, surcharges. Updated 4 locations in main.py to exclude service products from weight totals: order detail Python loop (lines ~4441-4442), order list SQL SUM (lines ~4171-4172), dashboard overdue query (line ~5488), dashboard due-this-week query (line ~5507). Uses PostgreSQL FILTER clause in SQL queries and DB flag + keyword fallback in Python.
-- **Why:** Pallet Charge lines (e.g., 1 unit stored as 1 lb) were inflating order weight totals. SO-260305-003 showed 251 lb instead of 250 lb due to a pallet charge line.
-
----
-
-## 2026-03-19 — Swap GPT schema to openapi-v3.yaml; add sliced almonds products; update GPT instructions
-- **File(s) changed:** `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `GPT_INSTRUCTIONS.md`, `migrations/027_add_sliced_almonds_products.sql`
-- **What changed:** Added "ACTIVE GPT SCHEMA" header comment to openapi-v3.yaml confirming it's the canonical spec (30/30 ops). Added large deprecation warning box to openapi-schema-gpt.yaml. Updated GPT_INSTRUCTIONS.md to reference openapi-v3.yaml instead of deprecated schema. Created migration 027 to add two missing sliced almonds products: "Almonds – Sliced" (general ingredient) and "BS Almonds – Sliced – Raw" (Blue Stripes ingredient), both with idempotent NOT EXISTS guards.
-- **Why:** GPT was configured with deprecated openapi-schema-gpt.yaml causing 404s on all receive operations (split /preview /commit endpoints no longer exist). Arturo couldn't receive "Almonds Slice" because no sliced almonds product existed in the DB.
-
----
-
-## 2026-03-19 — Trim GPT instructions to fit 8,000 char limit
-- **File(s) changed:** `gpt-instructions-v3.md`
-- **What changed:** Condensed SOURCE BATCH MISMATCH WARNING and QUERIES product lookup lines to save ~300 characters. Final count: 7,869 chars (131 under limit). No behavioral rules removed.
-- **Why:** GPT instructions were 8,167 chars after adding pack_needed/batch_hint rules, exceeding OpenAI's 8,000 char limit.
-
----
-
-## 2026-03-19 — Update GPT instructions for pack_needed and batch_hint fields
-- **File(s) changed:** `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`
-- **What changed:** Added behavioral rule in MAKE section: when /make commit returns `pack_needed`, GPT must surface FG SKUs, ask operator to pack, and execute /pack calls. Added batch_hint note in PACKING SLIP section: when INSUFFICIENT lines have a `batch_hint`, GPT explains unpacked batch inventory exists and offers to run /pack. Added corresponding sections to developer-facing GPT_INSTRUCTIONS.md.
-- **Why:** Ensures the GPT actually acts on the new `pack_needed` and `batch_hint` fields added to the API, closing the loop on forgotten /pack steps.
-
----
-
-## 2026-03-19 — Add batch-inventory hints for INSUFFICIENT packing slips and /pack prompt after /make
-- **File(s) changed:** `main.py`
-- **What changed:** Fix 1: When packing slip shows INSUFFICIENT for a FG product, cross-references `parent_batch_product_id` to check if unpacked batch inventory exists and displays a hint (e.g., "Note: 500 lb of Batch BS Dark Chocolate is available — run /pack to convert to finished goods") both in the JSON data and rendered on the PDF. Fix 2: After `/make` commit, the response now includes a `pack_needed` object listing all FG SKUs linked via `parent_batch_product_id` that can be packed from the batch, prompting the operator to run `/pack`.
-- **Why:** Recurring issue where production happens (/make) but the /pack step is forgotten, leaving batch inventory idle while packing slips show INSUFFICIENT for finished goods. FOUND lots were being used as a workaround.
-
----
-
-## 2026-03-19 — Add automatic add-in ingredient deduction to /pack
-- **File(s) changed:** `main.py`, `GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`
-- **What changed:** Replaced `check_pack_source_mismatch()` with `resolve_pack_add_ins()` that detects when packing from a base batch into an FG with an intermediate batch BOM containing add-in ingredients. Preview now shows add-in quantities needed with FIFO availability. Commit automatically deducts add-in ingredients via FIFO with row-level locking. Falls back to mismatch warning when intermediate BOM is missing or source batch not in BOM. Updated GPT instructions and OpenAPI schemas.
-- **Why:** Floor process blends add-in ingredients (PB Chips, Banana Bites) at the packing hopper — there is no separate /make step for flavor variants. System now matches the actual workflow.
-
----
-
-## 2026-03-19 — Add pack source batch mismatch warning safeguard
-- **File(s) changed:** `main.py`, `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`
-- **What changed:** Added `parent_batch_product_id` column to products table (inline migration 012) linking FG products to their expected source batch. Added `check_pack_source_mismatch()` helper that returns warning fields when the /pack source batch doesn't match the target FG's expected parent batch. Warning (English + Spanish) included in both preview and commit responses. Populated mappings for all 8 BS Granola FG→batch pairs. Updated GPT instructions to display mismatch warnings prominently and suggest running /make first.
-- **Why:** Arturo packed PB Banana FG cases directly from Dark Chocolate Granola base batch, skipping the required intermediate /make step that deducts add-in ingredients (PB Chips, Banana Bites).
-
----
-
-## 2026-03-18 — Expose listProducts endpoint to GPT; drop getProduct
-- **File(s) changed:** `openapi-v3.yaml`, `main.py`, `gpt-instructions-v3.md`
-- **What changed:** Replaced `getProduct` (GET /products/{product_id}) with `listProducts` (GET /bom/products) in OpenAPI schema to stay at 30-operation ChatGPT cap. Bumped /bom/products default limit from 50→200 and max from 200→500. Updated GPT instructions to use listProducts for catalog queries and searchProducts for single lookups; removed /products/{id} reference.
-- **Why:** GPT "list finished goods" queries only returned 7 SKUs because no catalog endpoint was exposed — it fell back to getCurrentInventory which only returns products with positive on-hand stock.
-
----
-
-## 2026-03-18 — Add 8oz BS panel to dashboard; fix case weight display rounding
-- **File(s) changed:** `dashboard/dashboard_config.json`, `dashboard/dashboard.js`
-- **What changed:** Added new "6x8 OZ Retail Cases (BS Line)" panel with SKUs 70085-70088 to dashboard config. Fixed case weight display: `fmtInt()` was truncating 2.63 to 2 for 7oz BS products — added `fmtWt()` formatter that preserves decimals for non-integer weights while showing whole numbers cleanly (e.g., "25" not "25.0").
-- **Why:** New 8oz BS products were missing from dashboard; 7oz products showed "× 2 lb" instead of "× 2.63 lb"
-
----
-
-## 2026-03-18 — Add Blue Stripes 8 OZ Granola product SKUs
-- **File(s) changed:** `migrations/026_add_bs_8oz_granola_products.sql`
-- **What changed:** Created migration to insert 4 new BS Granola finished goods (Hazelnut Butter, Almond Butter, Dark Chocolate, Peanut Butter Banana — all 6x8 OZ Case, 3.0 lb, private_label). odoo_codes 70085–70088 (70081–70084 were already taken by Setton products). Product IDs: 206–209. Type is `finished` (not `finished_good` — check constraint).
-- **Why:** New SKUs needed in the products table
-
----
-
-## 2026-03-18 — Fix day summary to show pack consumption from older batch lots; void test transaction 469
-- **File(s) changed:** `main.py`
-- **What changed:** Fixed `/production/day-summary` endpoint to include pack consumption (and adjustments) from batch lots produced on previous days. Previously, only lots with a `make` transaction on the same day were included in `batch_lots`, so pack consumption from older lots was silently dropped. Now, when a lot_id is not already in the dict, it looks up the lot's product info and adds it with `produced_lb: 0.0`. Also voided test transaction 469 (1-case test pack of CQ Granola 10 LB, TXN-8EB734).
-- **Why:** Production team reported that the day summary was missing pack consumption from batch lots made on prior days (e.g., Batch Classic Granola #9 made across MAR 10-11, with MAR 10 lot consumption missing from MAR 11 summary).
-
----
-
-## 2026-03-18 — Add PATCH /lots/{lot_code}/supplier-lot endpoint and GPT integration
-- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `gpt-instructions-v3.md`
-- **What changed:** Added new `PATCH /lots/{lot_code}/supplier-lot` endpoint to attach or update supplier lot cross-references on existing lots after receiving. Updated OpenAPI schema (v3.3.0) with the new endpoint. Added "SUPPLIER LOT CROSS-REFERENCE" section to GPT instructions so the GPT auto-records mismatches when Arturo reports packing slip lot differs from system lot. Added new endpoint to QUERIES reference.
-- **Why:** Arturo frequently encounters supplier lot numbers on packing slips (e.g., 550078168 for sprinkles) that don't match system lot codes. Previously there was no way to record this post-receive — only at receive time. This endpoint closes that gap.
-
----
-
-## 2026-03-18 — Add supplier lot cross-reference for lot 26-03-10-FOUN-001
-- **File(s) changed:** `migrations/025_set_supplier_lot_sprinkles_26-03-10-FOUN-001.sql`
-- **What changed:** Created migration to set supplier_lot_code = '550078168' on lot 26-03-10-FOUN-001 (Sprinkles Rainbow 10 LB). This lot was used to ship 23 cases to International Gourmet Foods (SO-260318-001, Shipment #32).
-- **Why:** Packing slip shows supplier lot 550078168; adding cross-reference for traceability.
 
 ---
 
@@ -1642,31 +1401,10 @@
 
 ---
 
-## 2026-03-12 — Close SO-260213-001 unrecorded shipment (Juliette Food LLC)
-- **File(s) changed:** `migrations/024_close_so260213001_juliette.sql`
-- **What changed:** Marked all 5 order lines (4 granola products + pallets) as fulfilled and set order to shipped. The physical shipment (BOL 28106-I, 02/26/2026, customer pick up) was never recorded as ship transactions in the system.
-- **Why:** Order was stuck in confirmed status with 0 shipped despite physical shipment being complete per packing slip
-
----
-
-## 2026-03-12 — Reconcile SO-260312-005 with pre-existing shipments (DiCarlo Food Service)
-- **File(s) changed:** `migrations/023_reconcile_so260312005_dicarlo.sql`
-- **What changed:** Linked 4 standalone ship transactions (Graham Cracker Crumbs 400 lb, Fancy UNIPRO 400 lb, Sprinkles Chocolate 600 lb, Sprinkles Rainbow 1,800 lb) to sales order SO-260312-005. Created shipments, sales_order_shipments, and shipment_lines records; updated line shipped quantities and statuses to fulfilled; set order status to shipped.
-- **Why:** Shipments were recorded before the sales order was entered, so they weren't linked
-
----
-
-## 2026-03-12 — Close SO-260217-001 partial ship (Feeser's Food Distributors)
-- **File(s) changed:** `migrations/022_close_so260217001.sql`
-- **What changed:** Closed order SO-260217-001 by reducing Flake UNIPRO 10 LB ordered qty from 300 → 200 lb to match what was shipped, marked line as fulfilled, updated order status to shipped. Remaining 100 lb will not be shipped per business decision.
-- **Why:** Order was stuck in partial_ship status; business decided to close it as-is
-
----
-
-## 2026-03-12 — Fix SO-260217-008 under-shipment (Curtze Food Service)
-- **File(s) changed:** `migrations/021_fix_so260217008_undershipment.sql`
-- **What changed:** Created correction migration to fix order SO-260217-008 which shows "Partial Ship" but was fully shipped per packing slip (invoice 28108-I, 02/24/2026). Medium UNIPRO 10 LB was recorded as 1,080 lb shipped instead of 1,200 lb (120 lb short due to insufficient on-hand at ship time). Pallets line (qty 1) was not recorded at all. Migration updates sales_order_lines, sales_order_shipments, shipment_lines, and order status.
-- **Why:** Physical shipment (per BOL) was complete but system under-recorded due to inventory cap at ship time
+## 2026-03-09 18:45 — Add since/until date filters to /transactions/history
+- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `gpt-instructions-v3.md`
+- **What changed:** Added `since` and `until` (YYYY-MM-DD, both inclusive) query parameters to the `/transactions/history` endpoint. Filters on `t.timestamp`. Updated both OpenAPI specs and GPT instructions to document the new parameters.
+- **Why:** GPT was hanging when users asked for transactions since a specific date — the endpoint had no date filtering, causing either no results or too much data.
 
 ---
 
@@ -1674,13 +1412,6 @@
 - **File(s) changed:** `openapi-v3.yaml`, `gpt-instructions-v3.md`
 - **What changed:** Added `/production/day-summary` GET endpoint to OpenAPI schema (was in main.py but missing from schema). Removed `/lots/{lot_id}` (getLot) to stay within GPT's 30-operation limit — `getLotByCode` covers all real usage. Bumped schema version to 3.2.0. Trimmed GPT instructions from ~9,400 chars to ~5,600 chars by removing redundant field-by-field listings for RECEIVE, MAKE, PACK, and ADJUST sections (the schema already provides these).
 - **Why:** GPT was slow due to ~500-800 wasted tokens per turn from duplicated field listings. Missing day-summary endpoint caused GPT to hallucinate when users said "wrap up" or "daily summary". Hit 30-operation GPT limit after adding day-summary.
-
----
-
-## 2026-03-09 18:45 — Add since/until date filters to /transactions/history
-- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `gpt-instructions-v3.md`
-- **What changed:** Added `since` and `until` (YYYY-MM-DD, both inclusive) query parameters to the `/transactions/history` endpoint. Filters on `t.timestamp`. Updated both OpenAPI specs and GPT instructions to document the new parameters.
-- **Why:** GPT was hanging when users asked for transactions since a specific date — the endpoint had no date filtering, causing either no results or too much data.
 
 ---
 
@@ -1793,15 +1524,6 @@
 
 ---
 
-## 2026-02-26 — Add Sprinkles 25 LB finished goods (Rainbow & Chocolate)
-- **File(s) changed:** `main.py`, `dashboard/dashboard_config.json`
-- **What changed:**
-  - Added Migration 012 in main.py: inserts two new finished goods — Sprinkles Rainbow 25 LB (Odoo 10305) and Sprinkles Chocolate 25 LB (Odoo 10306)
-  - Added both SKUs to the "25 LB Bulk Cases" panel in dashboard_config.json
-- **Why:** 25 LB versions of existing 10 LB sprinkles products (10302 Rainbow, 10303 Chocolate) were needed.
-
----
-
 ## 2026-02-26 15:10 — Supplier lot field: complete read integration
 - **File(s) changed:** `main.py`, `openapi-v3.yaml`, `gpt-instructions-v3.md`
 - **What changed:**
@@ -1853,6 +1575,347 @@
 
 ---
 
+## 2026-02-25 14:42 — Moved global change log to iCloud Drive
+- **File(s) changed:** `~/change-log.md` (now symlink)
+- **What changed:** Moved `~/change-log.md` to `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md` (iCloud Drive) and created a symlink at `~/change-log.md` pointing to the new location
+- **Why:** Enable remote sync of the global change log via iCloud without syncing all files
+
+---
+
+## 2026-02-25 14:36 — Added CLAUDE.md with change log protocol instructions
+- **File(s) changed:** `CLAUDE.md`, `~/.claude/CLAUDE.md`
+- **What changed:** Created project-level and global CLAUDE.md files containing instructions for maintaining dual change logs (project-level CHANGE_LOG.md and global ~/change-log.md) on every file change
+- **Why:** User requested standardized change log protocol across all projects
+
+---
+
+## 2026-08-24 — Resolved squash-merge changelog conflicts (feat/044-so-allocations → main)
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Resolved the two conflicted files from `git merge --squash feat/044-so-allocations` onto main at `4d9a196`. CHANGE_LOG.md keeps both sides in chronological order (main's B-1 entry, 2026-08-21 08:14, slots between the branch's 08:28 and 2026-08-20 16:48 entries). FACTORY_LEDGER_CHANGELOG.md: main's row 79 (B-1 orders-matrix export, deployed `cf2f54f`) keeps 79; the branch's rows 79–95 are renumbered 80–96 in order (row-28/row-70 precedent), and in-row cross-references were bumped to match (`row 80`→81, `row 86`/`Row 86`→87, `row-79`→row-80). No row content changed beyond the numbers.
+- **Why:** Main gained rows/entries (`cf2f54f`/`4d9a196`, B-1 fix deployed 2026-08-21) after the branch diverged, colliding on changelog row 79 and the top of CHANGE_LOG.md.
+
+---
+
+## 2026-08-20 — Review of 1bb6c72 accepted; cosmetic variances fixed
+- **File(s) changed:** `tests/schema/schema.sql`, `docs/designs/044-so-allocations-restore-addendum.md`, `CHANGE_LOG.md`
+- **What changed:** Independent review of 1bb6c72 (fix round 3) accepted with cosmetic variances, now fixed: appended the pending `\ir 045` block to `tests/schema/schema.sql` (041/044 precedent — remove after prod apply + re-dump) so a fresh `setup_test_db.sh` build contains `sales_order_allocation_reactivations`; corrected the addendum §3 S1 restore row to 409 `RESTORE_STOCK_MISSING` (stock preflight first per §2.1, owner ruling 2026-08-20) and added the S1b note (200 lb seeded → stock passes → 409 `RESTORE_SPLIT_MISSING` required=100 available=60). Fresh-DB rebuild + full pinned 3.12 suite: 205 passed.
+- **Why:** The review found the implementation and tests already followed the owner's S1 re-ruling, but the schema dump lacked the 045 include (broke fresh test-DB reproducibility) and the addendum's S1 table still showed the pre-ruling error code.
+
+---
+
+## 2026-08-20 — Allocation restore review fix round 3 (record-at-void)
+- **File(s) changed:** `docs/designs/044-so-allocations-restore-addendum.md`, `docs/designs/045-write-foundation-design.md`, `migrations/045_sales_order_allocation_reactivations.sql`, `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Landed the normative restore addendum and idempotent migration 045 for `sales_order_allocation_reactivations`, keyed by ship transaction and SO line with explicit zero quantities and void-correction attribution. Ship void now records the exact SOA pounds it reactivated per line. Ship restore locks the transaction, performs lot-level `RESTORE_STOCK_MISSING` before the correction insert, loads recorded quantities with missing-row warning-as-zero behavior, expires auto-FIFO rows, performs recorded-positive live coverage preflight, inserts the correction, consumes only this line's live lot pins then SKU row through `_consume_allocation_row`, and shrinks uncovered reservations with `inventory_restored`. It never derives demand from ledger pounds, selects by `last_ship_transaction_id`, calls `_sales_order_ship_plan`, or flips superseded rows. The write-foundation design now reserves its migrations for 046+. Tests cover S1 stock-first, S1b split-only, S2–S5, explicit zero, partial allocation, multi-line zero/full records, historical missing-record warnings, competing-stock failure, restore shrink, repeated uniqueness cycles, atomicity, conservation, attribution cap, nonnegative product/lot stock, and superseded immunity. Pinned Python 3.12 suite: **205 passed, 169 warnings**; readiness module **17/17 unmodified**.
+- **Why:** Row 86's permanent rule was wrong: ledger shipped pounds exceed allocation-reactivated pounds for unallocated and partially allocated ships, causing legitimate restores to 409. Restore demand is now the void-time reactivation record; effective ledger quantity remains only the attribution ceiling. This supersedes row 86 without discarding its correct live-row consume, expiry, atomic coverage, and superseded-immunity pieces.
+
+---
+
+## 2026-08-20 — Allocation restore review fix round 2 (e87219c)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`
+- **What changed:** Replaced transaction-marker restore selection with ledger-authoritative restore quantities. `_restore_ship_allocations` now derives each SO line's effective posted ship pounds from `ledger_current_transaction_lines`, preflights complete coverage from active/unexpired allocations, returns 409 `RESTORE_SPLIT_MISSING` atomically when coverage is short, and otherwise consumes exactly that quantity through `_consume_allocation_row`. Superseded rows are never flipped to shipped. API scenarios cover: A100 void, B40, restore A failing with live 60; void B then restore A consuming live 100; and T40 void, C30, restore T leaving 30 live with only 40 attributed to T. Every checkpoint asserts live+shipped conservation and nonnegative ledger on-hand.
+- **Why:** Round 1's selector extension treated an ambiguous `last_ship_transaction_id` on `superseded/split_on_ship` as attribution and could mark a full 100 lb historical row shipped without consuming live pounds, minting phantom allocation quantity and allowing the restore correction to drive inventory negative.
+
+---
+
+## 2026-08-20 — Review fix round 1 for ef709e5 (superseded by round 2)
+- **File(s) changed:** `main.py`, `tests/test_sales_order_allocations.py`, `tests/test_dashboard_api_key.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Correctly stopped split leftovers from inheriting `last_ship_transaction_id`, aligned allocation release with `POST /sales/orders/{order_id}/allocations/{allocation_id}/release`, restored the dashboard key DELETE guard, and added named allocation guard/error tests. The accompanying restore selector extension was incorrect and is superseded by round 2: it could flip an ambiguous superseded row at full quantity without consuming live allocation pounds.
+- **Why:** The independent review in `docs/reviews/ef709e5-pr3-review.md` reproduced a silent restore mis-attribution. Round 2 replaces the incomplete selector-based repair with ledger-derived consumption.
+
+---
+
+## 2026-08-19 — FR-12 local verification completed (not deployed)
+- **File(s) changed:** `dashboard/dashboard.css`, `tests/test_recent_ledger.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Corrected the shared mobile header wrapping so the Recent Entries screen has no document-level horizontal overflow at 390px, and adjusted the auth test to reuse the shared test client without closing its connection pool. Local endpoint tests pass 4/4; full suite passes 132/132. JS syntax, Python compilation, and diff checks pass. The local dashboard preview confirmed desktop and 390px error states, 44px refresh control, and 390px `scrollWidth === clientWidth`.
+- **Why:** Complete the required mobile and regression verification before review without changing production state.
+
+---
+
+## 2026-08-19 — FR-12 Recent Entries audit feed and dashboard view (local review; not deployed)
+- **File(s) changed:** `main.py`, `tests/test_recent_ledger.py`, `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Added dashboard-key-authorized `GET /ledger/recent?limit=20` (max 50): one read-only global feed unioning original transactions and append-only corrections, ordered by each event’s entered-at timestamp and stable ID. Original entries expose effective ledger status and effective product/quantity/unit/lot lines; correction entries retain target transaction context and explicit correction metadata. Added the mobile-first Recent Entries dashboard tab with distinct loading/error/empty states, retry/refresh controls, ET timestamp formatting, calendar-safe business dates, status badges, and visible-tab 60-second polling that pauses while hidden. Cache versions: JS v33→v34; CSS v22→v23. Added endpoint/auth/order/limit/void/restore/direction contract tests. No migration, commit, push, or deployment.
+- **Why:** Floor leads need a reliable phone-friendly audit feed confirming that ledger events—including voids and corrections—were actually recorded.
+
+---
+
+## 2026-08-19 — FR-1 Supplies Incoming column wired to expected receipts (local review; not deployed)
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** The Supplies inventory refresh now also makes the existing dashboard-key-allowlisted `GET /expected-receipts?status=open&limit=500` read. Each product’s Incoming cell shows the sum of its open receipts’ computed `remaining` quantity in lb, or an em dash only when no incoming receipt remains. Expanded product rows now list each open expected receipt’s supplier, remaining quantity, expected date, and reference before the existing FIFO lot detail. No backend requests mutate data; no backend files changed. Cache versions are dashboard JS v33 / CSS v22.
+- **Why:** Expected receipts are already the live source of truth for incoming supplies, including FIFO receive matching and auto-close, so the Supplies view can surface incoming quantity without introducing purchase-order state.
+
+---
+
+## 2026-08-11 — Show database entry time in daily dashboard transaction views
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `tests/test_phase1_ledger_integrity.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added `created_at`, plant-local created date/time, and timestamp provenance to the Shipping, Receiving, and lot-timeline dashboard APIs. Their visible time column now shows operational occurrence time plus a compact `Entered:` line; migration backfills and legacy timestamps are visibly identified. These reads now resolve Phase 1 effective transaction and line state so append-only voids do not remain in the dashboard. Added regression coverage; full suite passes 68/68.
+- **Why:** Let operators inspect database entry time day-to-day without downloading evidence, while preserving the distinction between when activity occurred and when it was entered.
+
+---
+
+## 2026-08-11 — Deploy Trial v8.1 Phase 1 timestamp/cutoff integrity
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/phase-1-ledger-trial.md`
+- **What changed:** Recorded the successful production application of migration 039 and Railway deployment `8a005c7b-6205-4046-a5de-8b04d89d3f47` for commit `d17836f`. The guarded migration asserted the approved 12,526-row scope; the Floor `POST /adjust` smoke transaction `1891` was preserved with append-only void correction `549ba2f1-d50b-43f6-9f6f-aa5f6ae44ff0`; past-date certification `0d9af99b-975f-4962-b8f2-311b4f1fd558` was corrected by `ce5d1b11-e5c1-4baf-b4d9-4a0d815db853`. Health and tonight's certification slot passed. Phases 2–6 remain absent.
+- **Why:** Keep the repository's operational record aligned with the exact live migration, deployment, evidence rows, and Phase 1-only boundary.
+
+---
+
+## 2026-08-10 — Prepare Trial v8.1 Phase 1 timestamp/cutoff deployment
+- **File(s) changed:** `main.py`, `migrations/039_trial_timestamp_integrity.sql`, `migrations/dry-runs/039_phase1_timestamp_integrity_dry_run.sql`, `tests/schema/schema.sql`, `tests/test_phase1_ledger_integrity.py`, `tests/test_void_semantics.py`, `docs/deployments/phase-1-ledger-trial.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added database-forced timestamp provenance, separate business/occurred time, append-only transaction and line corrections, append-only daily certification chains, late-entry JSON/CSV evidence, effective-state history/balance reads, and a Phase 1-only deployment/preflight package.
+- **Why:** Make the Aug 10–14 Trial v8.1 scoring week able to prove when original entries and corrections were created relative to the owner’s evening certification.
+
+---
+
+## 2026-04-22 — Let HTTPException pass through in /receive preview
+- **File(s) changed:** `main.py`
+- **What changed:** Added `except HTTPException: raise` clause before the existing `except Exception as e` block at the end of the `/receive` preview branch (around line 2304). Other endpoints' preview branches already have this pattern.
+- **Why:** The preview branch was catching `HTTPException` via the broad `except Exception`, swallowing legitimate 4xx responses (notably the 409 from `resolve_product_full` with disambiguation suggestions) and converting them to empty 500 errors with just `{"error": str(e)}`. Now HTTPException passes through to FastAPI's default handler with its original status and detail body intact.
+
+---
+
+## 2026-04-21 — Close print-fabrication gap in NEVER CLAIM SUCCESS rule
+- **File(s) changed:** `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`
+- **What changed:** Appended `You can't print.` to the NEVER CLAIM SUCCESS CRITICAL RULE in both files. Line 103 PACKING SLIP rule `NEVER say "Printing."` left as-is (token-level belt-and-suspenders). Final char counts: `gpt-instructions-v3.md` 7,966 → **7,983 / 8,000** (17 headroom); `GPT_INSTRUCTIONS.md` 7,632 → **7,649 / 8,000** (351 headroom).
+- **Why:** Follow-up verification caught that the earlier sprint's removal of the `NEVER FAKE PRINTING` CRITICAL RULE was not fully covered by the new `NEVER CLAIM SUCCESS` rule. Two gaps: (1) `Printed` is absent from the `Done/Updated/Created/Cancelled/Shipped` verb list; (2) the rule's scope clause `only after a successful mutation response` does not apply to packing slips, which are read-path (listOrders to get order_id, then a static link is returned — no mutation endpoint is ever called). A strict reading of NEVER CLAIM SUCCESS therefore does not forbid `"Printed ✅"` fabrications. The retained `NEVER say "Printing."` on line 103 is literal-match only and does not cover `Printed`/`Sent to printer`/other variants. The removal + restoration within the same sprint is intentional, not a reversal: the initial offset assumed the new rule covered print; this follow-up analysis showed it doesn't, so one capability disclaimer (`You can't print.`) is restored in the semantically correct place — the CRITICAL RULES block alongside NEVER CLAIM SUCCESS — rather than re-adding a full NEVER FAKE PRINTING line.
+
+---
+
+## 2026-04-21 — Ship audit fix: anti-fabrication rule + status transition graph in GPT instructions
+- **File(s) changed:** `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** (a) Added new CRITICAL RULE `NEVER CLAIM SUCCESS — "Done/Updated/Created/Cancelled/Shipped" only after a successful mutation response this turn. Never fake a tool call.` (b) Replaced ambiguous `Status: new→confirmed→...→invoiced` one-liner in SALES ORDERS with explicit one-step transition block including the `ready↔in_production` reverse edge, `shipped/partial_ship auto-only via shipOrder` callout, and the worked `confirmed→ready = confirmed→in_production→ready` example. (c) Added `Status → updateOrderStatus (one-step only; see SALES ORDERS)` bullet to ORDER EDITING — CALL API IMMEDIATELY so the GPT knows the Action exists and routes to it on "mark ready"/"move to production"/"cancel". Offsets to stay under 8,000-char ceiling: removed `Max 1 emoji per message.` from ACT DON'T LOOP; removed `Never restate what you're about to do.` from ACT DON'T LOOP (redundant with `No reconfirmation`); removed `- NEVER FAKE PRINTING — You CANNOT print. Clickable links only.` CRITICAL RULE (functionality retained in PACKING SLIP section `NEVER say "Printing."`); removed `- When in doubt → inventoryLookup first (fast, useful while you plan next call)` from ROUTING RULES. Final counts: `gpt-instructions-v3.md` 7,966 / 8,000 chars; `GPT_INSTRUCTIONS.md` 7,632 / 8,000 chars. Synced identical changes to both files since both claim v3.6.0 and which is deployed to the Custom GPT admin is ambiguous (dual-file drift flagged in audit as out-of-scope follow-up). Added FACTORY_LEDGER_CHANGELOG row #27.
+- **Why:** Shipping the Finding 1 + Finding 2 instruction fixes from [AUDIT_GPT_FABRICATION_2026-04-21.md](AUDIT_GPT_FABRICATION_2026-04-21.md) alone, per user direction (don't bundle with Pass-1 4xx normalization). Every day the current instructions are live is another day ship_order / updateSupplierLot / shipOrder could fabricate an FDA-recall-tier success message without a tool call. OpenAPI enrichment and optional main.py 4xx normalization remain deferred to a separate change.
+
+---
+
+## 2026-04-21 — Audit: GPT fabricates mutation confirmations without calling the API
+- **File(s) changed:** `AUDIT_GPT_FABRICATION_2026-04-21.md` (new)
+- **What changed:** Created findings doc for the incident where the GPT replied `"Done. All 5 orders are now set to ready ✅"` without invoking `updateOrderStatus`. Scoped Step 0 design-intent review (changelog rows #7, #11, #13, #21), GPT instruction audit (`gpt-instructions-v3.md` 7,987 chars / 8,000 ceiling), OpenAPI audit (`updateOrderStatus` at line 807, op count 30/30 at cap), `main.py:5528-5583` handler review with full `MANUAL_TRANSITIONS` graph extracted from [main.py:4991](main.py#L4991), and a cross-cut risk table for all 15 GPT-exposed mutation endpoints. Two findings: (1) no CRITICAL RULE forbids claiming mutation success without a tool call — `NEVER HALLUCINATE` is parsed as "don't invent rows," doesn't cover "don't invent outcomes"; (2) transition graph is shown as an ambiguous display-order one-liner rather than a one-step-transitions table, and omits `ready→in_production` reverse edge + `shipped`/`partial_ship` auto-only flag. Proposed instruction text, OpenAPI enrichment, and optional 4xx normalization (bundled with FOLLOWUPS #2).
+- **Why:** Operator reported the GPT fabricating `"Done ✅"` responses across 3 turns before actually invoking the API. Incident transcript pasted into audit prompt. Audit-only — no code changes made this session per prompt constraints.
+
+---
+
+## 2026-04-20 — Pass 1: customer address tiebreaker + 4xx error shape normalization
+- **File(s) changed:** `main.py`, `gpt-instructions-v3.md`, `openapi-gpt-v3.yaml`, `tests/__init__.py` (new), `tests/conftest.py` (new), `tests/test_resolve_customer.py` (new), `pytest.ini` (new), `FOLLOWUPS.md` (new)
+- **What changed:**
+  - `resolve_customer_id` now accepts an optional `address` kwarg; when the fuzzy name match returns >1 candidate and an address is supplied, a trigram-similarity tiebreaker on `customers.address` (thresholds 0.6 absolute + 0.2 gap) collapses to a single match. Fully additive: no address → behavior unchanged. New helper `_pick_by_address` in main.py.
+  - `customer_address` field added to `OrderCreate` (POST /sales/orders) and `ShipRequest` (POST /ship), threaded through both `resolve_customer_id` call sites.
+  - `resolve_customer_id` final 404 "Customer not found" now uses the standard dict error shape (error_code=CUSTOMER_NOT_FOUND). Auto-insert now persists supplied address.
+  - `resolve_product_id` and `resolve_product_full` normalized to dict shape. Status-code shift 400 → 409 for PRODUCT_AMBIGUOUS and PRODUCT_UNCERTAIN (matches CUSTOMER_AMBIGUOUS). 404 PRODUCT_NOT_FOUND unchanged.
+  - `resolve_order_id` 404 normalized to dict shape (error_code=ORDER_NOT_FOUND).
+  - Sales-order endpoints `createOrder`, `getOrder`, `updateOrderHeader`, `addOrderLines`, `updateOrderLine` — all string-detail 4xx raises converted to dict shape (error_codes: ORDER_NOT_FOUND, CUSTOMER_NOT_FOUND, ORDER_HEADER_LOCKED, NO_FIELDS_TO_UPDATE, CASE_WEIGHT_REQUIRED, ORDER_LINES_LOCKED, LINE_NOT_FOUND).
+  - `gpt-instructions-v3.md`: added PRE-FLIGHT — CUSTOMER section (searchCustomers before resolveProducts on PO entry; batched disambiguation notation); removed duplicate DAY SUMMARY routing line; expanded ERRORS section with "4xx with detail.error_code + detail.suggestions → show suggestions" rule. 7,643 → 7,987 chars (under 8,000 cap).
+  - `openapi-gpt-v3.yaml`: added `components.schemas.ErrorResponse`; added `customer_address` field to OrderCreate/ShipRequest; added 400/404/409 response blocks referencing ErrorResponse on createOrder, getOrder, updateOrderHeader, addOrderLines, updateOrderLine (only status codes each operation actually raises). Operation count held at 30/30.
+  - `tests/` scaffolding: pytest.ini, conftest.py with `db_cursor` fixture (SAVEPOINT + ROLLBACK per test), test_resolve_customer.py with 4 tests covering Setton-style tiebreaker (seeds temp rows in a rolled-back txn).
+  - `FOLLOWUPS.md`: (a) NULL-address backfill for recurring customers (Setton Farms address is currently NULL — tiebreaker can't fire); (b) full list of the ~25 remaining 4xx raise sites to normalize in a follow-up PR.
+- **Why:** Two real-world failures: GPT was asking for customer disambiguation even when a PO address uniquely identified the right row; plain-string 4xx error responses forced the GPT into a generic "something went wrong" fallback instead of surfacing the structured suggestions to the operator.
+
+---
+
+## 2026-03-26 — Trim GPT instructions to fit 8000-char limit
+- **File(s) changed:** `GPT_INSTRUCTIONS.md`
+- **What changed:** Compressed ROUTING RULES, PRE-FLIGHT INTENT, QUERIES, and LOT MERGES sections to fit under 8,000 chars (now 7,986). Updated QUERIES to list /inventory/lookup as primary. Removed /inventory/{item} and packing-slip line from QUERIES (covered elsewhere).
+- **Why:** Adding ROUTING RULES pushed instructions to 8,279 chars, exceeding the 8,000-char GPT limit.
+
+---
+
+## 2026-03-26 — Add ROUTING RULES section to GPT instructions
+- **File(s) changed:** `GPT_INSTRUCTIONS.md`
+- **What changed:** Added ROUTING RULES section before PRE-FLIGHT — INTENT. Bare product names route directly to inventoryLookup; product + "orders" routes to listOrders; product + "trace"/"lot" routes to trace endpoints; default fallback is inventoryLookup.
+- **Why:** GPT was asking unnecessary clarification questions instead of immediately calling the right endpoint.
+
+---
+
+## 2026-03-26 — Performance fix for /inventory/lookup bulk queries
+- **File(s) changed:** `main.py`
+- **What changed:** Added `_inventory_detail_for_products()` that fetches product info and lot inventory for multiple product_ids in 2 SQL queries (using `ANY(%s)`) instead of 2N. Refactored `/inventory/lookup` to call the bulk function. Changed default limit from 10 to 5 to reduce payload size for broad queries.
+- **Why:** Queries like "coconut" matching 17 products caused 34+ database round trips, making the endpoint slow.
+
+---
+
+## 2026-03-26 — Remove temporary debug endpoint and logging from inventory lookup
+- **File(s) changed:** `main.py`
+- **What changed:** Removed `/inventory/debug/{product_id}` endpoint and all diagnostic logging from `_inventory_detail_for_product()`. The 0-lb bug was caused by uncommitted code not being deployed, not a query issue.
+- **Why:** Cleanup after confirming the inventory lookup works correctly once deployed.
+
+---
+
+## 2026-03-26 — Add debug logging and /inventory/debug/{product_id} endpoint for inventory lookup bug
+- **File(s) changed:** `main.py`
+- **What changed:** Added detailed debug logging to `_inventory_detail_for_product()` (logs all lots before HAVING, transaction_lines by product_id, and product_id mismatches). Added temporary `/inventory/debug/{product_id}` endpoint that returns raw diagnostic data (lots, txn_lines via lot join vs product_id, grouped results without HAVING, inventory_summary view).
+- **Why:** `/inventory/lookup` returns 0 lb on hand for product 10305 (Sprinkles Rainbow 25 LB) despite 3,125 lb existing in lot 26-03-20-INVE-001. Dashboard shows correct balance. Debugging whether HAVING clause, lot_id join, or product_id mismatch is the root cause.
+
+---
+
+## 2026-03-26 — Remove getInventoryItem from GPT schema to stay at 30-op limit
+- **File(s) changed:** `openapi-gpt-v3.yaml`
+- **What changed:** Removed /inventory/{item_name} (getInventoryItem) from GPT schema since /inventory/lookup fully replaces it for GPT use. Brings operation count from 31 back to 30.
+- **Why:** ChatGPT GPT actions enforce a 30-operation maximum
+
+---
+
+## 2026-03-26 — Add /inventory/lookup unified endpoint + fuzzy fallback on getInventoryItem
+- **File(s) changed:** `main.py`, `openapi-gpt-v3.yaml`, `openapi-v3.yaml`, `openapi-schema-gpt.yaml`
+- **What changed:** New GET /inventory/lookup?q= endpoint that combines fuzzy product search with lot-level inventory detail in a single call. Added _inventory_detail_for_product helper. Updated /inventory/{item_name} with fuzzy fallback (tiered search if no LIKE match; returns 404/300 for zero/multiple matches). Updated all three OpenAPI schemas with the new endpoint and revised summaries.
+- **Why:** Replace the two-step searchProducts → getInventoryItem flow with a single unified lookup for the GPT
+
+---
+
+## 2026-03-26 — Create openapi-gpt-v3.yaml (unified schema for ChatGPT GPT action)
+- **File(s) changed:** `openapi-gpt-v3.yaml`
+- **What changed:** Created trimmed GPT action schema from openapi-v3.yaml (30 operations, the ChatGPT limit). Removed productsMissingCaseSize, searchCustomers, productionDaySummary. Added back getBatchFormula (needed for /make lot overrides). Uses unified mode-in-body endpoints instead of deprecated split /preview /commit paths.
+- **Why:** The GPT is currently using the deprecated openapi-schema-gpt.yaml with split paths. This new schema uses the correct unified endpoints and fits within the 30-operation ChatGPT limit.
+
+---
+
+## 2026-03-26 — Fix GPT shipping 404: add split-path route aliases
+- **File(s) changed:** `main.py`, `openapi-schema-gpt.yaml`
+- **What changed:** Added thin wrapper routes for /preview and /commit sub-paths on all transactional endpoints (/receive, /ship, /make, /pack, /adjust, /sales/orders/{id}/ship). The GPT schema uses these split paths but the API only had the combined endpoint with mode in the body, causing 404s. Also added the missing shipOrderPreview endpoint to the GPT schema.
+- **Why:** GPT was getting "not found" when trying to ship SO-260325-003 because it called /sales/orders/SO-260325-003/ship/commit which didn't exist as a route.
+
+---
+
+## 2026-03-23 — "Ready to Ship" display label and reverse transition
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `main.py`, `gpt-instructions-v3.md`, `GUIDE.md`, `CONTEXT.md`
+- **What changed:** Renamed dashboard display label from "Ready" to "Ready to Ship" in status label mapping and filter dropdown. Added `ready → in_production` reverse transition in both VALID_TRANSITIONS and MANUAL_TRANSITIONS. Updated GPT instructions to suggest marking orders as "Ready to Ship" after production completes, and documented the reverse transition. Updated GUIDE.md and CONTEXT.md to reflect the new display name and reverse transition.
+- **Why:** Improve clarity of the "ready" status (now displayed as "Ready to Ship") and allow orders to move back to in_production if production falls short or inventory is consumed elsewhere.
+
+---
+
+## 2026-03-19 — Fix /make commit crash: is_ingredient column does not exist
+- **File(s) changed:** `main.py`
+- **What changed:** Replaced `COALESCE(is_ingredient, false) = false` with `type != 'ingredient'` in the post-commit auto-prompt /pack query (line ~2622). The `is_ingredient` column never existed in the products table; the correct column is `type` with value `'ingredient'`.
+- **Why:** /make commit failed with "column is_ingredient does not exist" when trying to query finished goods for pack prompting after batch creation.
+
+---
+
+## 2026-03-19 — Fix pallet charges counted as weight in sales order totals
+- **File(s) changed:** `main.py`, `migrations/028_add_is_service_to_products.sql`
+- **What changed:** Added `is_service` boolean column to products table (migration 028) to flag service/charge items like pallets, freight, surcharges. Updated 4 locations in main.py to exclude service products from weight totals: order detail Python loop (lines ~4441-4442), order list SQL SUM (lines ~4171-4172), dashboard overdue query (line ~5488), dashboard due-this-week query (line ~5507). Uses PostgreSQL FILTER clause in SQL queries and DB flag + keyword fallback in Python.
+- **Why:** Pallet Charge lines (e.g., 1 unit stored as 1 lb) were inflating order weight totals. SO-260305-003 showed 251 lb instead of 250 lb due to a pallet charge line.
+
+---
+
+## 2026-03-19 — Swap GPT schema to openapi-v3.yaml; add sliced almonds products; update GPT instructions
+- **File(s) changed:** `openapi-v3.yaml`, `openapi-schema-gpt.yaml`, `GPT_INSTRUCTIONS.md`, `migrations/027_add_sliced_almonds_products.sql`
+- **What changed:** Added "ACTIVE GPT SCHEMA" header comment to openapi-v3.yaml confirming it's the canonical spec (30/30 ops). Added large deprecation warning box to openapi-schema-gpt.yaml. Updated GPT_INSTRUCTIONS.md to reference openapi-v3.yaml instead of deprecated schema. Created migration 027 to add two missing sliced almonds products: "Almonds – Sliced" (general ingredient) and "BS Almonds – Sliced – Raw" (Blue Stripes ingredient), both with idempotent NOT EXISTS guards.
+- **Why:** GPT was configured with deprecated openapi-schema-gpt.yaml causing 404s on all receive operations (split /preview /commit endpoints no longer exist). Arturo couldn't receive "Almonds Slice" because no sliced almonds product existed in the DB.
+
+---
+
+## 2026-03-19 — Trim GPT instructions to fit 8,000 char limit
+- **File(s) changed:** `gpt-instructions-v3.md`
+- **What changed:** Condensed SOURCE BATCH MISMATCH WARNING and QUERIES product lookup lines to save ~300 characters. Final count: 7,869 chars (131 under limit). No behavioral rules removed.
+- **Why:** GPT instructions were 8,167 chars after adding pack_needed/batch_hint rules, exceeding OpenAI's 8,000 char limit.
+
+---
+
+## 2026-03-19 — Update GPT instructions for pack_needed and batch_hint fields
+- **File(s) changed:** `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`
+- **What changed:** Added behavioral rule in MAKE section: when /make commit returns `pack_needed`, GPT must surface FG SKUs, ask operator to pack, and execute /pack calls. Added batch_hint note in PACKING SLIP section: when INSUFFICIENT lines have a `batch_hint`, GPT explains unpacked batch inventory exists and offers to run /pack. Added corresponding sections to developer-facing GPT_INSTRUCTIONS.md.
+- **Why:** Ensures the GPT actually acts on the new `pack_needed` and `batch_hint` fields added to the API, closing the loop on forgotten /pack steps.
+
+---
+
+## 2026-03-19 — Add batch-inventory hints for INSUFFICIENT packing slips and /pack prompt after /make
+- **File(s) changed:** `main.py`
+- **What changed:** Fix 1: When packing slip shows INSUFFICIENT for a FG product, cross-references `parent_batch_product_id` to check if unpacked batch inventory exists and displays a hint (e.g., "Note: 500 lb of Batch BS Dark Chocolate is available — run /pack to convert to finished goods") both in the JSON data and rendered on the PDF. Fix 2: After `/make` commit, the response now includes a `pack_needed` object listing all FG SKUs linked via `parent_batch_product_id` that can be packed from the batch, prompting the operator to run `/pack`.
+- **Why:** Recurring issue where production happens (/make) but the /pack step is forgotten, leaving batch inventory idle while packing slips show INSUFFICIENT for finished goods. FOUND lots were being used as a workaround.
+
+---
+
+## 2026-03-19 — Add automatic add-in ingredient deduction to /pack
+- **File(s) changed:** `main.py`, `GPT_INSTRUCTIONS.md`, `gpt-instructions-v3.md`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`
+- **What changed:** Replaced `check_pack_source_mismatch()` with `resolve_pack_add_ins()` that detects when packing from a base batch into an FG with an intermediate batch BOM containing add-in ingredients. Preview now shows add-in quantities needed with FIFO availability. Commit automatically deducts add-in ingredients via FIFO with row-level locking. Falls back to mismatch warning when intermediate BOM is missing or source batch not in BOM. Updated GPT instructions and OpenAPI schemas.
+- **Why:** Floor process blends add-in ingredients (PB Chips, Banana Bites) at the packing hopper — there is no separate /make step for flavor variants. System now matches the actual workflow.
+
+---
+
+## 2026-03-19 — Add pack source batch mismatch warning safeguard
+- **File(s) changed:** `main.py`, `gpt-instructions-v3.md`, `GPT_INSTRUCTIONS.md`, `openapi-schema-gpt.yaml`, `openapi-v3.yaml`
+- **What changed:** Added `parent_batch_product_id` column to products table (inline migration 012) linking FG products to their expected source batch. Added `check_pack_source_mismatch()` helper that returns warning fields when the /pack source batch doesn't match the target FG's expected parent batch. Warning (English + Spanish) included in both preview and commit responses. Populated mappings for all 8 BS Granola FG→batch pairs. Updated GPT instructions to display mismatch warnings prominently and suggest running /make first.
+- **Why:** Arturo packed PB Banana FG cases directly from Dark Chocolate Granola base batch, skipping the required intermediate /make step that deducts add-in ingredients (PB Chips, Banana Bites).
+
+---
+
+## 2026-03-18 — Expose listProducts endpoint to GPT; drop getProduct
+- **File(s) changed:** `openapi-v3.yaml`, `main.py`, `gpt-instructions-v3.md`
+- **What changed:** Replaced `getProduct` (GET /products/{product_id}) with `listProducts` (GET /bom/products) in OpenAPI schema to stay at 30-operation ChatGPT cap. Bumped /bom/products default limit from 50→200 and max from 200→500. Updated GPT instructions to use listProducts for catalog queries and searchProducts for single lookups; removed /products/{id} reference.
+- **Why:** GPT "list finished goods" queries only returned 7 SKUs because no catalog endpoint was exposed — it fell back to getCurrentInventory which only returns products with positive on-hand stock.
+
+---
+
+## 2026-03-18 — Add 8oz BS panel to dashboard; fix case weight display rounding
+- **File(s) changed:** `dashboard/dashboard_config.json`, `dashboard/dashboard.js`
+- **What changed:** Added new "6x8 OZ Retail Cases (BS Line)" panel with SKUs 70085-70088 to dashboard config. Fixed case weight display: `fmtInt()` was truncating 2.63 to 2 for 7oz BS products — added `fmtWt()` formatter that preserves decimals for non-integer weights while showing whole numbers cleanly (e.g., "25" not "25.0").
+- **Why:** New 8oz BS products were missing from dashboard; 7oz products showed "× 2 lb" instead of "× 2.63 lb"
+
+---
+
+## 2026-03-18 — Add Blue Stripes 8 OZ Granola product SKUs
+- **File(s) changed:** `migrations/026_add_bs_8oz_granola_products.sql`
+- **What changed:** Created migration to insert 4 new BS Granola finished goods (Hazelnut Butter, Almond Butter, Dark Chocolate, Peanut Butter Banana — all 6x8 OZ Case, 3.0 lb, private_label). odoo_codes 70085–70088 (70081–70084 were already taken by Setton products). Product IDs: 206–209. Type is `finished` (not `finished_good` — check constraint).
+- **Why:** New SKUs needed in the products table
+
+---
+
+## 2026-03-18 — Fix day summary to show pack consumption from older batch lots; void test transaction 469
+- **File(s) changed:** `main.py`
+- **What changed:** Fixed `/production/day-summary` endpoint to include pack consumption (and adjustments) from batch lots produced on previous days. Previously, only lots with a `make` transaction on the same day were included in `batch_lots`, so pack consumption from older lots was silently dropped. Now, when a lot_id is not already in the dict, it looks up the lot's product info and adds it with `produced_lb: 0.0`. Also voided test transaction 469 (1-case test pack of CQ Granola 10 LB, TXN-8EB734).
+- **Why:** Production team reported that the day summary was missing pack consumption from batch lots made on prior days (e.g., Batch Classic Granola #9 made across MAR 10-11, with MAR 10 lot consumption missing from MAR 11 summary).
+
+---
+
+## 2026-03-18 — Add PATCH /lots/{lot_code}/supplier-lot endpoint and GPT integration
+- **File(s) changed:** `main.py`, `openapi-v3.yaml`, `gpt-instructions-v3.md`
+- **What changed:** Added new `PATCH /lots/{lot_code}/supplier-lot` endpoint to attach or update supplier lot cross-references on existing lots after receiving. Updated OpenAPI schema (v3.3.0) with the new endpoint. Added "SUPPLIER LOT CROSS-REFERENCE" section to GPT instructions so the GPT auto-records mismatches when Arturo reports packing slip lot differs from system lot. Added new endpoint to QUERIES reference.
+- **Why:** Arturo frequently encounters supplier lot numbers on packing slips (e.g., 550078168 for sprinkles) that don't match system lot codes. Previously there was no way to record this post-receive — only at receive time. This endpoint closes that gap.
+
+---
+
+## 2026-03-18 — Add supplier lot cross-reference for lot 26-03-10-FOUN-001
+- **File(s) changed:** `migrations/025_set_supplier_lot_sprinkles_26-03-10-FOUN-001.sql`
+- **What changed:** Created migration to set supplier_lot_code = '550078168' on lot 26-03-10-FOUN-001 (Sprinkles Rainbow 10 LB). This lot was used to ship 23 cases to International Gourmet Foods (SO-260318-001, Shipment #32).
+- **Why:** Packing slip shows supplier lot 550078168; adding cross-reference for traceability.
+
+---
+
+## 2026-03-12 — Close SO-260213-001 unrecorded shipment (Juliette Food LLC)
+- **File(s) changed:** `migrations/024_close_so260213001_juliette.sql`
+- **What changed:** Marked all 5 order lines (4 granola products + pallets) as fulfilled and set order to shipped. The physical shipment (BOL 28106-I, 02/26/2026, customer pick up) was never recorded as ship transactions in the system.
+- **Why:** Order was stuck in confirmed status with 0 shipped despite physical shipment being complete per packing slip
+
+---
+
+## 2026-03-12 — Reconcile SO-260312-005 with pre-existing shipments (DiCarlo Food Service)
+- **File(s) changed:** `migrations/023_reconcile_so260312005_dicarlo.sql`
+- **What changed:** Linked 4 standalone ship transactions (Graham Cracker Crumbs 400 lb, Fancy UNIPRO 400 lb, Sprinkles Chocolate 600 lb, Sprinkles Rainbow 1,800 lb) to sales order SO-260312-005. Created shipments, sales_order_shipments, and shipment_lines records; updated line shipped quantities and statuses to fulfilled; set order status to shipped.
+- **Why:** Shipments were recorded before the sales order was entered, so they weren't linked
+
+---
+
+## 2026-03-12 — Close SO-260217-001 partial ship (Feeser's Food Distributors)
+- **File(s) changed:** `migrations/022_close_so260217001.sql`
+- **What changed:** Closed order SO-260217-001 by reducing Flake UNIPRO 10 LB ordered qty from 300 → 200 lb to match what was shipped, marked line as fulfilled, updated order status to shipped. Remaining 100 lb will not be shipped per business decision.
+- **Why:** Order was stuck in partial_ship status; business decided to close it as-is
+
+---
+
+## 2026-03-12 — Fix SO-260217-008 under-shipment (Curtze Food Service)
+- **File(s) changed:** `migrations/021_fix_so260217008_undershipment.sql`
+- **What changed:** Created correction migration to fix order SO-260217-008 which shows "Partial Ship" but was fully shipped per packing slip (invoice 28108-I, 02/24/2026). Medium UNIPRO 10 LB was recorded as 1,080 lb shipped instead of 1,200 lb (120 lb short due to insufficient on-hand at ship time). Pallets line (qty 1) was not recorded at all. Migration updates sales_order_lines, sales_order_shipments, shipment_lines, and order status.
+- **Why:** Physical shipment (per BOL) was complete but system under-recorded due to inventory cap at ship time
+
+---
+
+## 2026-02-26 — Add Sprinkles 25 LB finished goods (Rainbow & Chocolate)
+- **File(s) changed:** `main.py`, `dashboard/dashboard_config.json`
+- **What changed:**
+  - Added Migration 012 in main.py: inserts two new finished goods — Sprinkles Rainbow 25 LB (Odoo 10305) and Sprinkles Chocolate 25 LB (Odoo 10306)
+  - Added both SKUs to the "25 LB Bulk Cases" panel in dashboard_config.json
+- **Why:** 25 LB versions of existing 10 LB sprinkles products (10302 Rainbow, 10303 Chocolate) were needed.
+
+---
+
 ## 2026-02-26 — Upgrade to v3.0.0: Merged endpoints, LAT Code Policy v1.1, shipment records
 - **File(s) changed:** `main.py`, `openapi-v3.yaml`, `gpt-instructions-v3.md`
 - **What changed:**
@@ -1867,19 +1930,5 @@
   - Generated OpenAPI YAML with exactly 30 operations (excludes dashboard, admin, system, scheduler endpoints)
   - Generated updated GPT instructions for v3.0.0
 - **Why:** Upgrade to v3.0.0 — merging preview/commit stays under ChatGPT's 30-operation OpenAPI limit; LAT Code Policy v1.1 compliance; shipment tracking for sales orders; commingled receipt support
-
----
-
-## 2026-02-25 14:42 — Moved global change log to iCloud Drive
-- **File(s) changed:** `~/change-log.md` (now symlink)
-- **What changed:** Moved `~/change-log.md` to `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md` (iCloud Drive) and created a symlink at `~/change-log.md` pointing to the new location
-- **Why:** Enable remote sync of the global change log via iCloud without syncing all files
-
----
-
-## 2026-02-25 14:36 — Added CLAUDE.md with change log protocol instructions
-- **File(s) changed:** `CLAUDE.md`, `~/.claude/CLAUDE.md`
-- **What changed:** Created project-level and global CLAUDE.md files containing instructions for maintaining dual change logs (project-level CHANGE_LOG.md and global ~/change-log.md) on every file change
-- **Why:** User requested standardized change log protocol across all projects
 
 ---

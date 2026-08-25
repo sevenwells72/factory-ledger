@@ -13,3 +13,6 @@ __pycache__/
 
 # macOS Finder metadata
 .DS_Store
+
+# floor form exports (local only, never commit)
+data/forms/*.csv
