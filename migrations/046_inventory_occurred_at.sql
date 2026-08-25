@@ -1,9 +1,17 @@
--- Optional inventory occurrence time and explicit API backfill provenance.
+-- Optional inventory occurrence time and explicit backfill provenance.
 --
 -- `occurred_at` is event time. `created_at` remains database entry time and
 -- is still forced to clock_timestamp() for every insert.
 
 BEGIN;
+
+ALTER TABLE public.transactions
+    ADD COLUMN IF NOT EXISTS entry_backfilled boolean NOT NULL DEFAULT false;
+
+COMMENT ON COLUMN public.transactions.entry_backfilled IS
+    'TRUE only for an intentional reconstruction/backfill. '
+    'created_at_source=migration_backfill_039 does not imply a backfill; '
+    'those rows retain their entry time in the legacy timestamp column.';
 
 CREATE OR REPLACE FUNCTION public.ledger_fill_transaction_business_time()
 RETURNS trigger
@@ -45,6 +53,9 @@ BEGIN
            OR NEW.created_at_source IS DISTINCT FROM 'api_backfill' THEN
             NEW.created_at_source := 'database';
         END IF;
+        IF TG_TABLE_NAME = 'transactions' THEN
+            NEW.entry_backfilled := NEW.created_at_source = 'api_backfill';
+        END IF;
         RETURN NEW;
     END IF;
 
@@ -59,25 +70,44 @@ $$;
 
 -- BEGIN 8/17 RECON BACKFILL MARKER
 -- These transactions were intentionally posted on 2026-08-17 for earlier
--- business dates. Migration 039's created_at stamp is not usable as their
--- entry time, so give only this documented recon set the explicit backfill
--- provenance consumed by Activity. Both write guards are restored before the
--- transaction can commit.
+-- business dates. They were inserted after migration 039, so their database-
+-- owned created_at is the reliable entry time. (For rows that actually carry
+-- created_at_source='migration_backfill_039', readers must instead use the
+-- surviving legacy timestamp; that separate rule is implemented in Activity.)
+-- Measured 2026-08-25: exactly 77 rows: 72 dated 2026-08-14, one each dated
+-- 2026-07-24/29/30, and two dated 2026-05-12. Abort rather than partially
+-- classify the session if production no longer matches that measured set.
 ALTER TABLE public.transactions
     DISABLE TRIGGER trg_transactions_original_append_only;
-ALTER TABLE public.transactions
-    DISABLE TRIGGER trg_transactions_created_at;
 
-UPDATE public.transactions
-SET created_at_source = 'api_backfill'
-WHERE created_at_source IN ('database', 'migration_backfill_039')
-  AND operator_id = 'inv-recon-2026-08-17'
-  AND notes LIKE '%INV-RECON-2026-08-17%'
-  AND (created_at AT TIME ZONE 'America/New_York')::date = DATE '2026-08-17'
-  AND business_date BETWEEN DATE '2026-07-24' AND DATE '2026-08-14';
+DO $$
+DECLARE
+    recon_count integer;
+BEGIN
+    SELECT count(*)
+      INTO recon_count
+      FROM public.transactions
+     WHERE operator_id = 'inv-recon-2026-08-17'
+       AND notes LIKE '%INV-RECON-2026-08-17%'
+       AND (created_at AT TIME ZONE 'America/New_York')::date = DATE '2026-08-17'
+       AND business_date < DATE '2026-08-17';
 
-ALTER TABLE public.transactions
-    ENABLE TRIGGER trg_transactions_created_at;
+    IF recon_count <> 77 THEN
+        RAISE EXCEPTION
+            'migration 046 expected 77 inventory-recon rows, found %',
+            recon_count;
+    END IF;
+
+    UPDATE public.transactions
+       SET entry_backfilled = true
+     WHERE operator_id = 'inv-recon-2026-08-17'
+       AND notes LIKE '%INV-RECON-2026-08-17%'
+       AND (created_at AT TIME ZONE 'America/New_York')::date = DATE '2026-08-17'
+       AND business_date < DATE '2026-08-17'
+       AND NOT entry_backfilled;
+END;
+$$;
+
 ALTER TABLE public.transactions
     ENABLE TRIGGER trg_transactions_original_append_only;
 -- END 8/17 RECON BACKFILL MARKER

@@ -89,7 +89,7 @@ def _transaction(conn, transaction_id):
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             "SELECT id, timestamp, occurred_at, business_date, created_at, "
-            "created_at_source FROM transactions WHERE id = %s",
+            "created_at_source, entry_backfilled FROM transactions WHERE id = %s",
             (transaction_id,),
         )
         return cur.fetchone()
@@ -103,7 +103,7 @@ def _migration_marker_sql(relative_path):
     )[0]
 
 
-def _force_transaction_provenance(cur, transaction_ids, source, created_at):
+def _force_created_at(cur, transaction_ids, entered_at):
     cur.execute(
         "ALTER TABLE transactions DISABLE TRIGGER trg_transactions_original_append_only"
     )
@@ -111,10 +111,8 @@ def _force_transaction_provenance(cur, transaction_ids, source, created_at):
         "ALTER TABLE transactions DISABLE TRIGGER trg_transactions_created_at"
     )
     cur.execute(
-        """UPDATE transactions
-           SET created_at = %s, created_at_source = %s
-           WHERE id = ANY(%s)""",
-        (created_at, source, transaction_ids),
+        "UPDATE transactions SET created_at = %s WHERE id = ANY(%s)",
+        (entered_at, transaction_ids),
     )
     cur.execute(
         "ALTER TABLE transactions ENABLE TRIGGER trg_transactions_created_at"
@@ -190,6 +188,7 @@ def test_backfill_accepts_old_event_and_sets_existing_marker(
 
     assert transaction["occurred_at"] == old
     assert transaction["created_at_source"] == main.INVENTORY_BACKFILL_SOURCE
+    assert transaction["entry_backfilled"] is True
     assert transaction["created_at"] > transaction["occurred_at"]
 
     recent = occurred_client.get("/ledger/recent", params={"limit": 50})
@@ -200,52 +199,92 @@ def test_backfill_accepts_old_event_and_sets_existing_marker(
         and event["transaction_id"] == transaction["id"]
     )
     assert event["created_at_source"] == "api_backfill"
+    assert event["entry_backfilled"] is True
 
 
 @pytest.mark.db
-def test_migration_046_marks_only_8_17_recon_rows_and_down_restores_database(
+def test_migration_046_marks_exact_77_row_8_17_recon_set_by_entry_time(
     _db_connection,
 ):
     entered_at = datetime(2026, 8, 17, 19, 48, tzinfo=timezone.utc)
     event_at = datetime(2026, 8, 14, 16, 0, tzinfo=timezone.utc)
-    legacy_timestamp = event_at.replace(tzinfo=None)
+    recon_dates = (
+        [datetime(2026, 8, 14).date()] * 72
+        + [
+            datetime(2026, 7, 24).date(),
+            datetime(2026, 7, 29).date(),
+            datetime(2026, 7, 30).date(),
+            datetime(2026, 5, 12).date(),
+            datetime(2026, 5, 12).date(),
+        ]
+    )
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
-        transaction_ids = []
-        for operator_id, notes in (
-            ("inv-recon-2026-08-17", "INV-RECON-2026-08-17 test row"),
-            ("not-the-recon", "ordinary entry"),
-        ):
+        recon_ids = []
+        for business_date in recon_dates:
+            legacy_timestamp = datetime(
+                business_date.year, business_date.month, business_date.day, 12
+            )
             cur.execute(
                 """INSERT INTO transactions
                        (type, timestamp, occurred_at, business_date, operator_id,
                         notes, status)
-                   VALUES ('adjust', %s, %s, DATE '2026-08-14', %s, %s, 'posted')
+                   VALUES ('adjust', %s, %s, %s, 'inv-recon-2026-08-17',
+                           'INV-RECON-2026-08-17 test row', 'posted')
                    RETURNING id""",
-                (legacy_timestamp, event_at, operator_id, notes),
+                (legacy_timestamp, event_at, business_date),
             )
-            transaction_ids.append(cur.fetchone()["id"])
+            recon_ids.append(cur.fetchone()["id"])
 
-        recon_id, decoy_id = transaction_ids
-        _force_transaction_provenance(
-            cur, transaction_ids, "database", entered_at
+        decoy_specs = (
+            ("not-the-recon", "INV-RECON-2026-08-17 test row", datetime(2026, 8, 14).date()),
+            ("inv-recon-2026-08-17", "ordinary entry", datetime(2026, 8, 14).date()),
+            ("inv-recon-2026-08-17", "INV-RECON-2026-08-17 test row", datetime(2026, 8, 14).date()),
+            ("inv-recon-2026-08-17", "INV-RECON-2026-08-17 test row", datetime(2026, 8, 17).date()),
         )
-        cur.execute(_migration_marker_sql("migrations/046_inventory_occurred_at.sql"))
-        cur.execute(
-            "SELECT id, created_at_source FROM transactions WHERE id = ANY(%s)",
-            (transaction_ids,),
-        )
-        sources = {row["id"]: row["created_at_source"] for row in cur.fetchall()}
-        assert sources == {recon_id: "api_backfill", decoy_id: "database"}
+        decoy_ids = []
+        for operator_id, notes, business_date in decoy_specs:
+            legacy_timestamp = datetime(
+                business_date.year, business_date.month, business_date.day, 12
+            )
+            cur.execute(
+                """INSERT INTO transactions
+                       (type, timestamp, occurred_at, business_date, operator_id,
+                        notes, status)
+                   VALUES ('adjust', %s, %s, %s, %s, %s, 'posted')
+                   RETURNING id""",
+                (legacy_timestamp, event_at, business_date, operator_id, notes),
+            )
+            decoy_ids.append(cur.fetchone()["id"])
 
-        cur.execute(
-            _migration_marker_sql("migrations/down/046_inventory_occurred_at_down.sql")
+        _force_created_at(cur, recon_ids + decoy_ids[:2] + decoy_ids[3:], entered_at)
+        _force_created_at(
+            cur,
+            [decoy_ids[2]],
+            datetime(2026, 8, 18, 19, 48, tzinfo=timezone.utc),
         )
-        cur.execute(
-            "SELECT id, created_at_source FROM transactions WHERE id = ANY(%s)",
-            (transaction_ids,),
+
+        marker_sql = _migration_marker_sql(
+            "migrations/046_inventory_occurred_at.sql"
         )
-        sources = {row["id"]: row["created_at_source"] for row in cur.fetchall()}
-        assert sources == {recon_id: "database", decoy_id: "database"}
+        cur.execute(marker_sql)
+        cur.execute(marker_sql)  # idempotent while still enforcing count=77
+        cur.execute(
+            """SELECT count(*) FILTER (WHERE entry_backfilled) AS marked,
+                      count(*) FILTER (
+                          WHERE created_at_source <> 'database'
+                      ) AS source_changed
+                 FROM transactions
+                WHERE id = ANY(%s)""",
+            (recon_ids,),
+        )
+        recon_result = cur.fetchone()
+        assert recon_result == {"marked": 77, "source_changed": 0}
+        cur.execute(
+            "SELECT count(*) FILTER (WHERE entry_backfilled) AS marked "
+            "FROM transactions WHERE id = ANY(%s)",
+            (decoy_ids,),
+        )
+        assert cur.fetchone()["marked"] == 0
 
 
 @pytest.mark.db

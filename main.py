@@ -7624,6 +7624,7 @@ def get_recent_ledger_events(
                             ELSE ct.created_at
                         END AS entered_at,
                         ct.created_at_source,
+                        base_transaction.entry_backfilled,
                         ct.effective_status,
                         ct.status AS raw_status,
                         NULL::uuid AS correction_id,
@@ -7644,6 +7645,8 @@ def get_recent_ledger_events(
                         END AS direction,
                         COALESCE(ld.lines, '[]'::json) AS lines
                     FROM ledger_current_transactions ct
+                    JOIN transactions base_transaction
+                      ON base_transaction.id = ct.id
                     LEFT JOIN line_data ld ON ld.transaction_id = ct.id
 
                     UNION ALL
@@ -7658,6 +7661,7 @@ def get_recent_ledger_events(
                         target.occurred_at,
                         c.created_at AS entered_at,
                         c.created_at_source,
+                        false AS entry_backfilled,
                         target.effective_status,
                         target.status AS raw_status,
                         c.id AS correction_id,
@@ -7708,6 +7712,7 @@ def get_recent_ledger_events(
                 "occurred_at": row["occurred_at"],
                 "entered_at": row["entered_at"],
                 "created_at_source": row["created_at_source"],
+                "entry_backfilled": bool(row["entry_backfilled"]),
                 "effective_status": row["effective_status"],
                 "raw_status": row["raw_status"],
                 "direction": row["direction"],
@@ -12120,6 +12125,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                            ELSE t.created_at
                        END AS created_at,
                        t.created_at_source,
+                       t.entry_backfilled,
                        t.customer_name, t.order_reference, t.notes,
                        json_agg(json_build_object(
                            'product_name', p.name,
@@ -12168,6 +12174,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 "created_date": created_date,
                 "created_time": created_time,
                 "created_at_source": s['created_at_source'],
+                "entry_backfilled": bool(s['entry_backfilled']),
                 "customer_name": s['customer_name'],
                 "order_reference": s['order_reference'],
                 "total_lbs": total_lbs,
@@ -12194,6 +12201,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                            ELSE t.created_at
                        END AS created_at,
                        t.created_at_source,
+                       t.entry_backfilled,
                        t.shipper_name, t.bol_reference, t.notes,
                        t.cases_received, t.case_size_lb,
                        json_agg(json_build_object(
@@ -12236,6 +12244,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                 "created_date": created_date,
                 "created_time": created_time,
                 "created_at_source": r['created_at_source'],
+                "entry_backfilled": bool(r['entry_backfilled']),
                 "shipper_name": r['shipper_name'],
                 "bol_reference": r['bol_reference'],
                 "total_lbs": total_lbs,
@@ -12281,7 +12290,8 @@ def dashboard_api_daily_entries(
             cur.execute(f"""
                 SELECT ct.id, ct.type, ct.business_date, ct.occurred_at,
                        {entered_at_sql} AS entered_at,
-                       ct.created_at_source, ct.operator_id,
+                       ct.created_at_source, base_transaction.entry_backfilled,
+                       ct.operator_id,
                        json_agg(json_build_object(
                            'product_name', p.name,
                            'product_id', p.id,
@@ -12290,6 +12300,8 @@ def dashboard_api_daily_entries(
                            'quantity_lb', tl.quantity_lb
                        ) ORDER BY tl.id) AS lines
                 FROM ledger_current_transactions ct
+                JOIN transactions base_transaction
+                  ON base_transaction.id = ct.id
                 JOIN ledger_current_transaction_lines tl ON tl.transaction_id = ct.id
                 LEFT JOIN products p ON p.id = tl.product_id
                 LEFT JOIN lots l ON l.id = tl.lot_id
@@ -12297,7 +12309,7 @@ def dashboard_api_daily_entries(
                   AND {date_filter}
                 GROUP BY ct.id, ct.type, ct.business_date, ct.occurred_at,
                          ct.created_at, ct.created_at_source, ct.operator_id,
-                         ct."timestamp"
+                         ct."timestamp", base_transaction.entry_backfilled
                 ORDER BY entered_at, ct.id
             """, (target_date,))
             rows = cur.fetchall()
@@ -12324,6 +12336,7 @@ def dashboard_api_daily_entries(
                 "created_date": created_date,
                 "created_time": created_time,
                 "created_at_source": t['created_at_source'],
+                "entry_backfilled": bool(t['entry_backfilled']),
                 "entry_time_reliable": entry_time_reliable,
                 "late_entry": late_entry,
                 "days_late": days_late if entry_time_reliable else None,
@@ -12398,12 +12411,15 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
                            ELSE t.created_at
                        END AS created_at,
                        t.created_at_source,
+                       base_transaction.entry_backfilled,
                        tl.quantity_lb,
                        t.customer_name, t.shipper_name, t.order_reference,
                        t.bol_reference, t.adjust_reason, t.notes,
                        t.cases_received, t.case_size_lb
                 FROM ledger_current_transaction_lines tl
                 JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+                JOIN transactions base_transaction
+                  ON base_transaction.id = t.id
                 WHERE tl.lot_id = %s
                   AND t.effective_status = 'posted'
                 ORDER BY t.timestamp ASC
@@ -12433,6 +12449,7 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
                 "created_date": created_date,
                 "created_time": created_time,
                 "created_at_source": tr['created_at_source'],
+                "entry_backfilled": bool(tr['entry_backfilled']),
                 "quantity_lb": qty_lb,
                 "cases": cases,
                 "customer_name": tr['customer_name'],

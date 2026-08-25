@@ -210,6 +210,7 @@ def test_recent_pre_039_entry_has_zero_effective_lag(client, cur):
     )
 
     assert event["created_at_source"] == "migration_backfill_039"
+    assert event["entry_backfilled"] is False
     occurred_at = datetime.fromisoformat(event["occurred_at"])
     entered_at = datetime.fromisoformat(event["entered_at"])
     assert entered_at == occurred_at
@@ -225,9 +226,9 @@ def test_dashboard_activity_renders_occurred_entered_lag_and_backfill_badge():
     assert "<strong>Entered:</strong>" in dashboard
     assert "if (Math.abs(lagMinutes) <= 60) return '';" in dashboard
     assert "recent-entry-backfilled" in dashboard
-    assert "if (source !== 'api_backfill') return '';" in dashboard
-    assert "if (source === 'api_backfill') provenance = ' · backfilled';" in dashboard
+    assert "if (event.entry_backfilled !== true) return '';" in dashboard
+    assert "if (record.entry_backfilled === true) provenance = ' · backfilled';" in dashboard
     assert "migration_backfill_039" not in dashboard
     assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
     assert 'dashboard.css?v=27' in index
-    assert 'dashboard.js?v=39' in index
+    assert 'dashboard.js?v=40' in index
