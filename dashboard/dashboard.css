@@ -305,8 +305,12 @@ body {
 .recent-line-quantity { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .recent-line-lot { grid-column: 1 / -1; color: var(--text-muted); font-family: var(--mono); font-size: 12px; }
 .recent-entry-no-lines { color: var(--text-muted); font-size: 13px; margin: 12px 0; }
-.recent-entry-dates { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 11px; }
+.recent-entry-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); padding-top: 11px; }
 .recent-entry-dates strong { color: var(--text-secondary); }
+.recent-entry-timing-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.recent-entry-lag, .recent-entry-backfilled { display: inline-flex; align-items: center; min-height: 22px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.recent-entry-lag { background: var(--badge-amber-bg); color: var(--badge-amber-text); }
+.recent-entry-backfilled { background: var(--badge-bg); color: var(--badge-text); }
 .recent-entries-loading, .recent-entries-empty, .recent-entries-error { display: grid; gap: 6px; padding: 22px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); }
 .recent-entries-error { border-color: var(--danger); color: var(--text); }
 .recent-entries-retry { width: fit-content; min-height: 44px; margin-top: 6px; }

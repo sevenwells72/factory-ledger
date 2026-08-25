@@ -58,6 +58,14 @@ components:
                 type: number
               notes:
                 type: string
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the receipt happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     ShipRequest:
       type: object
       required: [product_name, quantity_lb, customer_name, order_reference]
@@ -81,6 +89,14 @@ components:
           type: boolean
           default: false
           description: "Bypass the open-sales-order check. Use only when operator explicitly says 'standalone' or no open order exists."
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the shipment happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     MakeRequest:
       type: object
       required: [product_name, batches]
@@ -111,6 +127,14 @@ components:
         confirmed_sku:
           type: boolean
           description: "Set to true on commit ONLY after operator confirms the correct FG SKU from sibling disambiguation. See sku_confirmation_required in preview response."
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when production happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     PackRequest:
       type: object
       required: [source_product, target_product, cases]
@@ -147,6 +171,14 @@ components:
         target_lot_code:
           type: string
           description: "OUTPUT lot code on the finished good. Defaults to the primary source lot code. If the operator provides a lot code for the physical batch they are packing FROM, that is a SOURCE lot — put it in lot_allocations, not here."
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when packing happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     AdjustRequest:
       type: object
       required: [product_name, lot_code, adjustment_lb, reason]
@@ -166,6 +198,14 @@ components:
           type: string
         reason_es:
           type: string
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the adjustment happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     VoidRequest:
       type: object
       additionalProperties: false
@@ -200,6 +240,14 @@ components:
               quantity_lb:
                 type: number
                 exclusiveMinimum: 0
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the shipment happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     CommitShipOrderRequest:
       type: object
       additionalProperties: false
@@ -221,6 +269,14 @@ components:
               quantity_lb:
                 type: number
                 exclusiveMinimum: 0
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the shipment happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     OrderStatus:
       type: string
       enum: [new, confirmed, in_production, ready, partial_ship, shipped, invoiced, cancelled]
@@ -430,6 +486,7 @@ paths:
     post:
       operationId: receive
       summary: "Receive inventory (preview or commit)."
+      description: "Only ask 'When did this happen?' when the operator implies the receipt was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -443,7 +500,7 @@ paths:
     post:
       operationId: ship
       summary: "Ship inventory STANDALONE (no sales order). Use only when no open order exists or operator explicitly says 'standalone'."
-      description: "If the customer has open orders, the API returns 409 OPEN_SALES_ORDER_EXISTS with the order ship endpoint to use instead. Do not set force_standalone=true without explicit operator instruction."
+      description: "If the customer has open orders, the API returns 409 OPEN_SALES_ORDER_EXISTS with the order ship endpoint to use instead. Do not set force_standalone=true without explicit operator instruction. Only ask 'When did this happen?' when the operator implies the shipment was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -459,7 +516,7 @@ paths:
     post:
       operationId: make
       summary: "Record batch production (preview or commit)."
-      description: "Preview checks ingredient availability. Sibling SKUs sharing the formula → sku_confirmation_required + sibling_skus; commit needs confirmed_sku=true. production_warning (e.g. Kosher Ignition) → relay verification_notes (EN + ES) verbatim; get operator acknowledgment before commit."
+      description: "Preview checks ingredient availability. Sibling SKUs sharing the formula → sku_confirmation_required + sibling_skus; commit needs confirmed_sku=true. production_warning (e.g. Kosher Ignition) → relay verification_notes (EN + ES) verbatim; get operator acknowledgment before commit. Only ask 'When did this happen?' when the operator implies production was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -473,7 +530,7 @@ paths:
     post:
       operationId: pack
       summary: "Pack batch into finished goods (preview or commit). Pack = batch → FG; use /make for batch production."
-      description: "FIFO on source batch by default. For intermediate BOM packs (e.g., base batch → flavored FG), preview includes add_in_ingredients showing what will be added at the hopper. Commit returns add_in_ingredients_consumed. target_lot_code is the OUTPUT FG lot — don't put source lot codes there."
+      description: "FIFO on source batch by default. For intermediate BOM packs (e.g., base batch → flavored FG), preview includes add_in_ingredients showing what will be added at the hopper. Commit returns add_in_ingredients_consumed. target_lot_code is the OUTPUT FG lot — don't put source lot codes there. Only ask 'When did this happen?' when the operator implies packing was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -487,7 +544,7 @@ paths:
     post:
       operationId: adjust
       summary: "Adjust inventory quantity (preview or commit)."
-      description: "Positive adjustment_lb = increase, negative = decrease. Private-label SKUs block merge/deprecate reasons (403)."
+      description: "Positive adjustment_lb = increase, negative = decrease. Private-label SKUs block merge/deprecate reasons (403). Only ask 'When did this happen?' when the operator implies the adjustment was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -664,7 +721,7 @@ paths:
     post:
       operationId: shipOrder
       summary: "PREVIEW a dispatch/shipment for a sales order. Makes no changes. Use commitShipOrder only after explicit operator approval."
-      description: "Use for the safe first stage of sales-order dispatch. Send mode: preview with ship_all: true or explicit lines. Show the resulting quantities, shortages, and warnings to the operator; call commitShipOrder only after the operator explicitly says to commit or dispatch."
+      description: "Use for the safe first stage of sales-order dispatch. Send mode: preview with ship_all: true or explicit lines. Show the resulting quantities, shortages, and warnings to the operator; call commitShipOrder only after the operator explicitly says to commit or dispatch. Only ask 'When did this happen?' when the operator implies the shipment was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       x-openai-isConsequential: false
       parameters:
         - name: order_id
@@ -692,7 +749,7 @@ paths:
     post:
       operationId: commitShipOrder
       summary: "COMMIT a dispatch/shipment for a sales order. Call ONLY after the operator has seen the shipOrder preview and explicitly said to commit/dispatch. Returns the shipment receipt."
-      description: "Always commits. The request contains ship_all or explicit lines and never contains mode. The operator-level confirmation is enforced by the GPT's two-stage preview/approval protocol."
+      description: "Always commits. The request contains ship_all or explicit lines and never contains mode. The operator-level confirmation is enforced by the GPT's two-stage preview/approval protocol. Carry forward occurred_at/backfill from preview. Only ask 'When did this happen?' when the operator implies the shipment was not just now; otherwise omit occurred_at."
       x-openai-isConsequential: false
       parameters:
         - name: order_id

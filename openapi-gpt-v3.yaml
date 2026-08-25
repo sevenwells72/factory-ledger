@@ -86,6 +86,14 @@ components:
                 type: number
               notes:
                 type: string
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the receipt happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     ExpectedReceiptCreate:
       type: object
       required: [supplier_name, expected_qty]
@@ -142,6 +150,14 @@ components:
         force_create_customer:
           type: boolean
           default: false
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the shipment happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     MakeRequest:
       type: object
       required: [product_name, batches]
@@ -168,6 +184,14 @@ components:
             type: integer
         confirmed_sku:
           type: boolean
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when production happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     PackRequest:
       type: object
       required: [source_product, target_product, cases]
@@ -201,6 +225,14 @@ components:
         target_lot_code:
           type: string
           description: "Override output lot code; defaults to primary source lot code"
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when packing happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     AdjustRequest:
       type: object
       required: [product_name, lot_code, adjustment_lb, reason]
@@ -219,6 +251,14 @@ components:
           type: string
         reason_es:
           type: string
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the adjustment happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     CustomerCreate:
       type: object
       required: [name]
@@ -351,6 +391,14 @@ components:
                 type: integer
               quantity_lb:
                 type: number
+        occurred_at:
+          type: string
+          format: date-time
+          description: "Optional event time. Omit when the shipment happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+        backfill:
+          type: boolean
+          default: false
+          description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
 paths:
   /products/search:
     get:
@@ -483,6 +531,7 @@ paths:
     post:
       operationId: receive
       summary: Receive inventory (preview or commit)
+      description: "Only ask 'When did this happen?' when the user implies the receipt was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -512,6 +561,7 @@ paths:
     post:
       operationId: ship
       summary: Ship inventory standalone (preview or commit)
+      description: "Only ask 'When did this happen?' when the user implies the shipment was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -525,6 +575,7 @@ paths:
     post:
       operationId: make
       summary: Record batch production (preview or commit)
+      description: "Only ask 'When did this happen?' when the user implies production was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -538,6 +589,7 @@ paths:
     post:
       operationId: pack
       summary: Pack batch into finished goods (preview or commit)
+      description: "Only ask 'When did this happen?' when the user implies packing was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -551,6 +603,7 @@ paths:
     post:
       operationId: adjust
       summary: Adjust inventory quantity (preview or commit)
+      description: "Only ask 'When did this happen?' when the user implies the adjustment was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       requestBody:
         required: true
         content:
@@ -955,6 +1008,7 @@ paths:
     post:
       operationId: shipOrder
       summary: Ship against a sales order (preview or commit)
+      description: "Only ask 'When did this happen?' when the user implies the shipment was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
       parameters:
         - name: order_id
           in: path

@@ -2273,6 +2273,53 @@ def get_plant_now():
     return datetime.now(PLANT_TIMEZONE)
 
 
+INVENTORY_OCCURRED_AT_FUTURE_GRACE = timedelta(minutes=5)
+INVENTORY_OCCURRED_AT_STANDARD_WINDOW = timedelta(days=14)
+INVENTORY_BACKFILL_SOURCE = "api_backfill"
+
+
+def validate_inventory_occurred_at(
+    occurred_at: Optional[datetime], backfill: bool = False
+) -> tuple[Optional[datetime], Optional[str]]:
+    """Normalize and validate an optional inventory event timestamp.
+
+    Offset-free ISO timestamps are plant-local. Offset-aware timestamps are
+    converted to the plant timezone before comparison/storage. A NULL return
+    deliberately preserves the legacy insert path, where migration 039 fills
+    occurred_at from the transaction timestamp.
+    """
+    if occurred_at is None:
+        return None, None
+
+    if occurred_at.tzinfo is None:
+        event_time = occurred_at.replace(tzinfo=PLANT_TIMEZONE)
+    else:
+        event_time = occurred_at.astimezone(PLANT_TIMEZONE)
+
+    now = get_plant_now()
+    if event_time > now + INVENTORY_OCCURRED_AT_FUTURE_GRACE:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "OCCURRED_AT_IN_FUTURE",
+                "message": "occurred_at cannot be more than 5 minutes in the future.",
+            },
+        )
+    if event_time < now - INVENTORY_OCCURRED_AT_STANDARD_WINDOW and not backfill:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "OCCURRED_AT_BACKFILL_REQUIRED",
+                "message": (
+                    "occurred_at is more than 14 days old. "
+                    "Set backfill=true to record an intentional historical entry."
+                ),
+            },
+        )
+
+    return event_time, INVENTORY_BACKFILL_SOURCE if backfill else None
+
+
 def generate_confirmation_code(transaction_id: int) -> str:
     """Generate a short unique confirmation code from a transaction ID."""
     import hashlib
@@ -2376,7 +2423,13 @@ def bilingual_response(english_val, spanish_val, field_name: str) -> dict:
 class CommandRequest(BaseModel):
     raw_text: str
 
-class ReceiveRequest(BaseModel):
+
+class InventoryWriteRequest(BaseModel):
+    occurred_at: Optional[datetime] = None
+    backfill: bool = False
+
+
+class ReceiveRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     cases: int
@@ -2439,7 +2492,7 @@ class SupplyRequestUpdate(BaseModel):
     status: Literal["done"]
 
 
-class ShipRequest(BaseModel):
+class ShipRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     quantity_lb: float
@@ -2450,7 +2503,7 @@ class ShipRequest(BaseModel):
     force_standalone: bool = False
     force_create_customer: bool = False
 
-class MakeRequest(BaseModel):
+class MakeRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     batches: int
@@ -2479,7 +2532,7 @@ class PackLotAllocation(BaseModel):
     lot_code: str
     quantity_lb: float
 
-class PackRequest(BaseModel):
+class PackRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     source_product: str          # Batch product name or code (e.g., "Batch Classic Granola #9" or "90002")
     target_product: str          # Finished good name or code (e.g., "CQ Granola 10 LB" or "1614")
@@ -2490,7 +2543,7 @@ class PackRequest(BaseModel):
     # Only auto-generate (inherit from batch lot) if target_lot_code is omitted.
     target_lot_code: Optional[str] = None
 
-class AdjustRequest(BaseModel):
+class AdjustRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     lot_code: str
@@ -2524,7 +2577,7 @@ class LotReassignmentRequest(BaseModel):
     reason_notes_es: Optional[str] = None
     performed_by: str = "system"
 
-class AddFoundInventoryRequest(BaseModel):
+class AddFoundInventoryRequest(InventoryWriteRequest):
     product_id: int
     quantity: float
     uom: str = "lb"
@@ -2540,7 +2593,7 @@ class AddFoundInventoryRequest(BaseModel):
     # Only auto-generate if lot_code is omitted.
     lot_code: Optional[str] = None
 
-class AddFoundInventoryWithNewProductRequest(BaseModel):
+class AddFoundInventoryWithNewProductRequest(InventoryWriteRequest):
     product_name: str
     product_type: str
     quantity: float
@@ -2711,7 +2764,7 @@ class ShipOrderLineRequest(BaseModel):
     line_id: int
     quantity_lb: float
 
-class ShipOrderRequest(BaseModel):
+class ShipOrderRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     ship_all: Optional[bool] = False
     lines: Optional[List[ShipOrderLineRequest]] = None
@@ -2728,7 +2781,7 @@ class SalesOrderAllocationCreate(BaseModel):
     expires_at: Optional[datetime] = None
     note: Optional[str] = None
 
-class CommitShipOrderRequest(BaseModel):
+class CommitShipOrderRequest(InventoryWriteRequest):
     """Mode-less request for the dedicated sales-order shipment commit route."""
     ship_all: Optional[bool] = False
     lines: Optional[List[ShipOrderLineRequest]] = None
@@ -4038,6 +4091,9 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
 @app.post("/receive")
 def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
     """Receive inventory. mode=preview returns what will happen; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     # Fallback: use lot_code if supplier_lot_code not provided, then 'N/A'
     supplier_lot = (req.supplier_lot_code or "").strip()
     if not supplier_lot:
@@ -4139,10 +4195,18 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                             expected_receipt_id = er_match['id']
 
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, bol_reference, shipper_name, shipper_code, cases_received, case_size_lb, expected_receipt_id)
-                        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO transactions (
+                            type, timestamp, bol_reference, shipper_name,
+                            shipper_code, cases_received, case_size_lb,
+                            expected_receipt_id, occurred_at, created_at_source
+                        )
+                        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
-                    """, (now, req.bol_reference, req.shipper_name, shipper_code, req.cases, req.case_size_lb, expected_receipt_id))
+                    """, (
+                        now, req.bol_reference, req.shipper_name, shipper_code,
+                        req.cases, req.case_size_lb, expected_receipt_id,
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
 
                     cur.execute("""
@@ -5041,6 +5105,9 @@ def check_open_orders_for_ship(cur, customer_id: int, customer_name: str) -> dic
 @app.post("/ship")
 def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
     """Ship inventory. mode=preview returns allocation plan; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
@@ -5237,9 +5304,15 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         txn_notes = f"standalone_override=true | {standalone_warning}"
                     now = get_plant_now()
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, customer_name, order_reference, notes)
-                        VALUES ('ship', %s, %s, %s, %s) RETURNING id
-                    """, (now, canonical_customer, req.order_reference, txn_notes))
+                        INSERT INTO transactions (
+                            type, timestamp, customer_name, order_reference,
+                            notes, occurred_at, created_at_source
+                        )
+                        VALUES ('ship', %s, %s, %s, %s, %s, %s) RETURNING id
+                    """, (
+                        now, canonical_customer, req.order_reference, txn_notes,
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
 
                     shipped_lots = []
@@ -5271,7 +5344,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     cur.execute("""
                         INSERT INTO shipments (transaction_id, shipped_at, customer_id)
                         VALUES (%s, %s, %s) RETURNING id
-                    """, (txn_id, now, customer_id))
+                    """, (txn_id, occurred_at or now, customer_id))
                     shipment_id = cur.fetchone()['id']
 
                     for sl in shipped_lots:
@@ -5351,6 +5424,9 @@ def build_production_warning(product: dict) -> dict | None:
 @app.post("/make")
 def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
     """Record batch production. mode=preview returns ingredient check; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
@@ -5565,9 +5641,14 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         exclusion_note += f" (auto-excluded IDs: {sorted(auto_excluded_ids)})"
 
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, notes)
-                        VALUES ('make', %s, %s) RETURNING id
-                    """, (now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}"))
+                        INSERT INTO transactions (
+                            type, timestamp, notes, occurred_at, created_at_source
+                        )
+                        VALUES ('make', %s, %s, %s, %s) RETURNING id
+                    """, (
+                        now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
 
                     cur.execute("""
@@ -5832,6 +5913,9 @@ def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> di
 @app.post("/pack")
 def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
     """Pack batch into finished goods. mode=preview returns allocation plan; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
@@ -6023,9 +6107,15 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     output_lot_id, is_new_lot = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
                     source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, notes)
-                        VALUES ('pack', %s, %s) RETURNING id
-                    """, (now, f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}"))
+                        INSERT INTO transactions (
+                            type, timestamp, notes, occurred_at, created_at_source
+                        )
+                        VALUES ('pack', %s, %s, %s, %s) RETURNING id
+                    """, (
+                        now,
+                        f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
 
                     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, target['id'], output_lot_id, total_lb))
@@ -6130,6 +6220,9 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
 @app.post("/adjust")
 def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
     """Adjust inventory. mode=preview returns balance check; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     validate_bilingual(req.reason, req.reason_es, "reason")
     if req.mode == "preview":
         try:
@@ -6192,9 +6285,16 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
 
                     now = get_plant_now()
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, adjust_reason, adjust_reason_es, notes)
-                        VALUES ('adjust', %s, %s, %s, %s) RETURNING id
-                    """, (now, req.reason, req.reason_es, f"Adjustment: {req.adjustment_lb} lb"))
+                        INSERT INTO transactions (
+                            type, timestamp, adjust_reason, adjust_reason_es,
+                            notes, occurred_at, created_at_source
+                        )
+                        VALUES ('adjust', %s, %s, %s, %s, %s, %s) RETURNING id
+                    """, (
+                        now, req.reason, req.reason_es,
+                        f"Adjustment: {req.adjustment_lb} lb",
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
                     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
 
@@ -7236,13 +7336,27 @@ def _late_records(cur, target_date: date):
 
     cur.execute(
         """SELECT ct.id AS transaction_id, ct.type, ct.business_date,
-                  ct.occurred_at, ct.created_at, ct.operator_id,
+                  ct.occurred_at,
+                  CASE
+                      WHEN ct.created_at_source = 'migration_backfill_039'
+                          THEN ct."timestamp" AT TIME ZONE 'UTC'
+                      ELSE ct.created_at
+                  END AS created_at,
+                  ct.operator_id,
                   ct.effective_status, ct.latest_correction_id,
-                  (ct.created_at > %s) AS late,
-                  GREATEST(EXTRACT(EPOCH FROM (ct.created_at - %s)) / 60.0, 0) AS minutes_after_cutoff
+                  (CASE
+                      WHEN ct.created_at_source = 'migration_backfill_039'
+                          THEN ct."timestamp" AT TIME ZONE 'UTC'
+                      ELSE ct.created_at
+                  END > %s) AS late,
+                  GREATEST(EXTRACT(EPOCH FROM ((CASE
+                      WHEN ct.created_at_source = 'migration_backfill_039'
+                          THEN ct."timestamp" AT TIME ZONE 'UTC'
+                      ELSE ct.created_at
+                  END) - %s)) / 60.0, 0) AS minutes_after_cutoff
            FROM ledger_current_transactions ct
            WHERE ct.business_date = %s
-           ORDER BY ct.created_at, ct.id""",
+           ORDER BY created_at, ct.id""",
         (cutoff, cutoff, target_date),
     )
     entries = [dict(row) for row in cur.fetchall()]
@@ -7503,7 +7617,14 @@ def get_recent_ledger_events(
                         ct.type AS transaction_type,
                         ct.type AS event_type,
                         ct.business_date,
-                        ct.created_at AS entered_at,
+                        ct.occurred_at,
+                        CASE
+                            WHEN ct.created_at_source = 'migration_backfill_039'
+                                THEN ct."timestamp" AT TIME ZONE 'UTC'
+                            ELSE ct.created_at
+                        END AS entered_at,
+                        ct.created_at_source,
+                        base_transaction.entry_backfilled,
                         ct.effective_status,
                         ct.status AS raw_status,
                         NULL::uuid AS correction_id,
@@ -7524,6 +7645,8 @@ def get_recent_ledger_events(
                         END AS direction,
                         COALESCE(ld.lines, '[]'::json) AS lines
                     FROM ledger_current_transactions ct
+                    JOIN transactions base_transaction
+                      ON base_transaction.id = ct.id
                     LEFT JOIN line_data ld ON ld.transaction_id = ct.id
 
                     UNION ALL
@@ -7535,7 +7658,10 @@ def get_recent_ledger_events(
                         target.type AS transaction_type,
                         c.event_type AS event_type,
                         target.business_date,
+                        target.occurred_at,
                         c.created_at AS entered_at,
+                        c.created_at_source,
+                        false AS entry_backfilled,
                         target.effective_status,
                         target.status AS raw_status,
                         c.id AS correction_id,
@@ -7583,7 +7709,10 @@ def get_recent_ledger_events(
                 "transaction_type": row["transaction_type"],
                 "event_type": row["event_type"],
                 "business_date": row["business_date"].isoformat() if row["business_date"] else None,
+                "occurred_at": row["occurred_at"],
                 "entered_at": row["entered_at"],
+                "created_at_source": row["created_at_source"],
+                "entry_backfilled": bool(row["entry_backfilled"]),
                 "effective_status": row["effective_status"],
                 "raw_status": row["raw_status"],
                 "direction": row["direction"],
@@ -7849,6 +7978,9 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
 
 @app.post("/inventory/found")
 def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key)):
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
@@ -7889,10 +8021,15 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                 )
 
                 cur.execute("""
-                    INSERT INTO transactions (type, timestamp, notes)
-                    VALUES ('adjust', %s, %s)
+                    INSERT INTO transactions (
+                        type, timestamp, notes, occurred_at, created_at_source
+                    )
+                    VALUES ('adjust', %s, %s, %s, %s)
                     RETURNING id
-                """, (now, f"Found inventory: {req.reason_code}"))
+                """, (
+                    now, f"Found inventory: {req.reason_code}",
+                    occurred_at, created_at_source,
+                ))
                 txn_id = cur.fetchone()['id']
 
                 cur.execute("""
@@ -7934,6 +8071,9 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
 @app.post("/inventory/found-with-new-product")
 def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key)):
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
@@ -7977,10 +8117,15 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 )
                 
                 cur.execute("""
-                    INSERT INTO transactions (type, timestamp, notes)
-                    VALUES ('adjust', %s, %s)
+                    INSERT INTO transactions (
+                        type, timestamp, notes, occurred_at, created_at_source
+                    )
+                    VALUES ('adjust', %s, %s, %s, %s)
                     RETURNING id
-                """, (now, f"Found inventory with new product: {req.reason_code}"))
+                """, (
+                    now, f"Found inventory with new product: {req.reason_code}",
+                    occurred_at, created_at_source,
+                ))
                 txn_id = cur.fetchone()['id']
                 
                 cur.execute("""
@@ -10553,6 +10698,10 @@ def update_order_line(
 @app.post("/sales/orders/{order_id}/ship")
 def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
     """Ship against a sales order. mode=preview returns feasibility; mode=commit executes and creates shipment record."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at if req else None,
+        req.backfill if req else False,
+    )
     mode = "preview" if req is None else req.mode
     if mode == "preview":
         try:
@@ -10733,7 +10882,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                     cur.execute("""
                         INSERT INTO shipments (sales_order_id, shipped_at, customer_id)
                         VALUES (%s, %s, %s) RETURNING id
-                    """, (order_id, now, order_row['customer_id']))
+                    """, (order_id, occurred_at or now, order_row['customer_id']))
                     shipment_id = cur.fetchone()['id']
 
                     results = []
@@ -10773,8 +10922,17 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                             all_fully_shipped = False
                             continue
 
-                        cur.execute("INSERT INTO transactions (type, timestamp, customer_name, notes) VALUES ('ship', %s, %s, %s) RETURNING id",
-                                    (now, order_row['name'], f"Sales order {order_row['order_number']} — {item['product_name']}"))
+                        cur.execute("""
+                            INSERT INTO transactions (
+                                type, timestamp, customer_name, notes,
+                                occurred_at, created_at_source
+                            )
+                            VALUES ('ship', %s, %s, %s, %s, %s) RETURNING id
+                        """, (
+                            now, order_row['name'],
+                            f"Sales order {order_row['order_number']} — {item['product_name']}",
+                            occurred_at, created_at_source,
+                        ))
                         txn_id = cur.fetchone()['id']
                         lots_used = []
                         for lot in plan["lots"]:
@@ -10924,6 +11082,8 @@ def commit_ship_order(req: CommitShipOrderRequest, order_id: int = Depends(resol
         mode="commit",
         ship_all=req.ship_all,
         lines=req.lines,
+        occurred_at=req.occurred_at,
+        backfill=req.backfill,
     )
     return ship_order(order_id, commit_req, _)
 
@@ -11958,7 +12118,14 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT t.id, t.timestamp, t.created_at, t.created_at_source,
+                SELECT t.id, t.timestamp,
+                       CASE
+                           WHEN t.created_at_source = 'migration_backfill_039'
+                               THEN t.timestamp AT TIME ZONE 'UTC'
+                           ELSE t.created_at
+                       END AS created_at,
+                       t.created_at_source,
+                       t.entry_backfilled,
                        t.customer_name, t.order_reference, t.notes,
                        json_agg(json_build_object(
                            'product_name', p.name,
@@ -12007,6 +12174,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 "created_date": created_date,
                 "created_time": created_time,
                 "created_at_source": s['created_at_source'],
+                "entry_backfilled": bool(s['entry_backfilled']),
                 "customer_name": s['customer_name'],
                 "order_reference": s['order_reference'],
                 "total_lbs": total_lbs,
@@ -12026,7 +12194,14 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
     try:
         with get_transaction() as cur:
             cur.execute("""
-                SELECT t.id, t.timestamp, t.created_at, t.created_at_source,
+                SELECT t.id, t.timestamp,
+                       CASE
+                           WHEN t.created_at_source = 'migration_backfill_039'
+                               THEN t.timestamp AT TIME ZONE 'UTC'
+                           ELSE t.created_at
+                       END AS created_at,
+                       t.created_at_source,
+                       t.entry_backfilled,
                        t.shipper_name, t.bol_reference, t.notes,
                        t.cases_received, t.case_size_lb,
                        json_agg(json_build_object(
@@ -12069,6 +12244,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                 "created_date": created_date,
                 "created_time": created_time,
                 "created_at_source": r['created_at_source'],
+                "entry_backfilled": bool(r['entry_backfilled']),
                 "shipper_name": r['shipper_name'],
                 "bol_reference": r['bol_reference'],
                 "total_lbs": total_lbs,
@@ -12088,27 +12264,34 @@ def dashboard_api_daily_entries(
     target_date: date = Query(..., alias="date", description="Day to list (YYYY-MM-DD)"),
     date_mode: str = Query(default="event", description="'event' filters by business_date; 'entered' filters by the plant-local calendar day of created_at"),
 ):
-    """Every posted ledger entry for one day, with the database entry timestamp.
+    """Every posted ledger entry for one day, with its effective entry timestamp.
 
-    For scoring timely data entry: an entry is 'late' when created_at falls on a
+    For scoring timely data entry: an entry is 'late' when entered_at falls on a
     later America/New_York calendar day than the event date (business_date).
     business_date already encodes the plant-day convention (naive UTC timestamp
     -> America/New_York, migration 039), so event-date filtering uses it directly.
-    Late flags are only computed when created_at_source='database' — backfilled
-    legacy rows (migration_backfill_039 / legacy_unverified) carry the migration
-    run time, not the real entry time, and are reported as unreliable instead.
+    migration_backfill_039 rows use their legacy timestamp because created_at is
+    the migration stamp, not their entry time. Explicit API backfills retain the
+    database entry time and provenance. legacy_unverified remains unreliable.
     """
     if date_mode not in ("event", "entered"):
         raise HTTPException(422, "date_mode must be 'event' or 'entered'")
     try:
         with get_transaction() as cur:
+            entered_at_sql = """CASE
+                    WHEN ct.created_at_source = 'migration_backfill_039'
+                        THEN ct.\"timestamp\" AT TIME ZONE 'UTC'
+                    ELSE ct.created_at
+                END"""
             if date_mode == "entered":
-                date_filter = "(ct.created_at AT TIME ZONE 'America/New_York')::date = %s"
+                date_filter = f"({entered_at_sql} AT TIME ZONE 'America/New_York')::date = %s"
             else:
                 date_filter = "ct.business_date = %s"
             cur.execute(f"""
                 SELECT ct.id, ct.type, ct.business_date, ct.occurred_at,
-                       ct.created_at, ct.created_at_source, ct.operator_id,
+                       {entered_at_sql} AS entered_at,
+                       ct.created_at_source, base_transaction.entry_backfilled,
+                       ct.operator_id,
                        json_agg(json_build_object(
                            'product_name', p.name,
                            'product_id', p.id,
@@ -12117,26 +12300,31 @@ def dashboard_api_daily_entries(
                            'quantity_lb', tl.quantity_lb
                        ) ORDER BY tl.id) AS lines
                 FROM ledger_current_transactions ct
+                JOIN transactions base_transaction
+                  ON base_transaction.id = ct.id
                 JOIN ledger_current_transaction_lines tl ON tl.transaction_id = ct.id
                 LEFT JOIN products p ON p.id = tl.product_id
                 LEFT JOIN lots l ON l.id = tl.lot_id
                 WHERE ct.effective_status = 'posted'
                   AND {date_filter}
                 GROUP BY ct.id, ct.type, ct.business_date, ct.occurred_at,
-                         ct.created_at, ct.created_at_source, ct.operator_id
-                ORDER BY ct.created_at, ct.id
+                         ct.created_at, ct.created_at_source, ct.operator_id,
+                         ct."timestamp", base_transaction.entry_backfilled
+                ORDER BY entered_at, ct.id
             """, (target_date,))
             rows = cur.fetchall()
 
         entries = []
         for t in rows:
             d, tm = format_timestamp(t['occurred_at'])
-            created_date, created_time = format_timestamp(t['created_at'])
-            entry_time_reliable = t['created_at_source'] == 'database'
-            created_at = t['created_at']
-            if created_at.tzinfo is None:
-                created_at = created_at.replace(tzinfo=timezone.utc)
-            days_late = (created_at.astimezone(PLANT_TIMEZONE).date() - t['business_date']).days
+            created_date, created_time = format_timestamp(t['entered_at'])
+            entry_time_reliable = t['created_at_source'] in {
+                'database', 'migration_backfill_039', 'api_backfill'
+            }
+            entered_at = t['entered_at']
+            if entered_at.tzinfo is None:
+                entered_at = entered_at.replace(tzinfo=timezone.utc)
+            days_late = (entered_at.astimezone(PLANT_TIMEZONE).date() - t['business_date']).days
             late_entry = entry_time_reliable and days_late > 0
             entries.append({
                 "transaction_id": t['id'],
@@ -12144,10 +12332,11 @@ def dashboard_api_daily_entries(
                 "event_date": t['business_date'].isoformat(),
                 "date": d,
                 "time": tm,
-                "created_at": t['created_at'],
+                "created_at": t['entered_at'],
                 "created_date": created_date,
                 "created_time": created_time,
                 "created_at_source": t['created_at_source'],
+                "entry_backfilled": bool(t['entry_backfilled']),
                 "entry_time_reliable": entry_time_reliable,
                 "late_entry": late_entry,
                 "days_late": days_late if entry_time_reliable else None,
@@ -12216,13 +12405,21 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
             # Full timeline
             cur.execute("""
                 SELECT t.id as transaction_id, t.type, t.timestamp,
-                       t.created_at, t.created_at_source,
+                       CASE
+                           WHEN t.created_at_source = 'migration_backfill_039'
+                               THEN t.timestamp AT TIME ZONE 'UTC'
+                           ELSE t.created_at
+                       END AS created_at,
+                       t.created_at_source,
+                       base_transaction.entry_backfilled,
                        tl.quantity_lb,
                        t.customer_name, t.shipper_name, t.order_reference,
                        t.bol_reference, t.adjust_reason, t.notes,
                        t.cases_received, t.case_size_lb
                 FROM ledger_current_transaction_lines tl
                 JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+                JOIN transactions base_transaction
+                  ON base_transaction.id = t.id
                 WHERE tl.lot_id = %s
                   AND t.effective_status = 'posted'
                 ORDER BY t.timestamp ASC
@@ -12252,6 +12449,7 @@ def dashboard_api_lot_detail(lot_code: str, product_id: Optional[int] = Query(de
                 "created_date": created_date,
                 "created_time": created_time,
                 "created_at_source": tr['created_at_source'],
+                "entry_backfilled": bool(tr['entry_backfilled']),
                 "quantity_lb": qty_lb,
                 "cases": cases,
                 "customer_name": tr['customer_name'],

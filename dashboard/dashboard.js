@@ -439,9 +439,9 @@
     if (!record || !record.created_date || !record.created_time) return '';
     const source = record.created_at_source || 'unknown';
     let provenance = '';
-    if (source === 'migration_backfill_039') provenance = ' · backfilled';
+    if (record.entry_backfilled === true) provenance = ' · backfilled';
     if (source === 'legacy_unverified') provenance = ' · legacy';
-    const title = `Database created_at (${source})`;
+    const title = `Entered time (${source})`;
     return `<div class="created-at-meta" title="${escAttr(title)}">Entered: ${escHtml(record.created_date)} ${escHtml(record.created_time)}${escHtml(provenance)}</div>`;
   }
 
@@ -530,6 +530,30 @@
     }).format(date);
   }
 
+  function recentEntryLagChip(event) {
+    const occurred = new Date(event.occurred_at || '');
+    const entered = new Date(event.entered_at || '');
+    if (Number.isNaN(occurred.getTime()) || Number.isNaN(entered.getTime())) return '';
+    const lagMinutes = Math.round((entered.getTime() - occurred.getTime()) / 60000);
+    if (Math.abs(lagMinutes) <= 60) return '';
+    const absoluteMinutes = Math.abs(lagMinutes);
+    const days = Math.floor(absoluteMinutes / 1440);
+    const hours = Math.floor((absoluteMinutes % 1440) / 60);
+    const minutes = absoluteMinutes % 60;
+    const duration = days
+      ? `${days}d${hours ? ` ${hours}h` : ''}`
+      : `${hours}h${minutes ? ` ${minutes}m` : ''}`;
+    const label = lagMinutes >= 0
+      ? `Entered ${duration} later`
+      : `Entered ${duration} before occurrence`;
+    return `<span class="recent-entry-lag" title="${escAttr(`${absoluteMinutes} minute difference`)}">${escHtml(label)}</span>`;
+  }
+
+  function recentEntryBackfillBadge(event) {
+    if (event.entry_backfilled !== true) return '';
+    return '<span class="recent-entry-backfilled">Backfilled</span>';
+  }
+
   function recentStatus(event) {
     if (event.event_kind === 'correction') {
       const type = String(event.event_type || '').toLowerCase();
@@ -561,6 +585,7 @@
       const linesHtml = lines.length
         ? `<ul class="recent-entry-lines">${lines.map(line => `<li><span class="recent-line-product">${escHtml(line.product_name || 'Unknown product')}</span><span class="recent-line-quantity">${escHtml(fmt(line.quantity))} ${escHtml(line.unit || '—')}</span>${line.lot_code ? `<span class="recent-line-lot">Lot: ${escHtml(line.lot_code)}</span>` : ''}</li>`).join('')}</ul>`
         : (isCorrection ? '<p class="recent-entry-no-lines">This correction references the original transaction; no separate ledger lines were created.</p>' : '');
+      const timingFlags = recentEntryLagChip(event) + recentEntryBackfillBadge(event);
       return `<article class="recent-entry-card" data-event-id="${escAttr(event.event_id || '')}">
         <div class="recent-entry-topline">
           <div><h3>${escHtml(title)}</h3><p class="recent-entry-direction">${escHtml(event.direction || '—')}</p></div>
@@ -568,7 +593,8 @@
         </div>
         ${correctionDetail}
         ${linesHtml}
-        <div class="recent-entry-dates"><span><strong>For:</strong> ${escHtml(formatBusinessDate(event.business_date))}</span><span><strong>Entered:</strong> ${escHtml(formatEnteredAt(event.entered_at))}</span></div>
+        <div class="recent-entry-dates"><span><strong>Occurred:</strong> ${escHtml(formatEnteredAt(event.occurred_at))}</span><span><strong>Entered:</strong> ${escHtml(formatEnteredAt(event.entered_at))}</span></div>
+        ${timingFlags ? `<div class="recent-entry-timing-flags">${timingFlags}</div>` : ''}
       </article>`;
     }).join('');
   }
@@ -1291,7 +1317,7 @@
       const rowClass = t.late_entry ? ' class="late-entry"' : '';
       const lines = (t.lines && t.lines.length > 0) ? t.lines : [{}];
       let provenance = '';
-      if (t.created_at_source === 'migration_backfill_039') provenance = ' · backfilled';
+      if (t.entry_backfilled === true) provenance = ' · backfilled';
       if (t.created_at_source === 'legacy_unverified') provenance = ' · legacy';
       lines.forEach((l, i) => {
         html += `<tr${rowClass}>`;
