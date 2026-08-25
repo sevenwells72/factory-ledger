@@ -6548,7 +6548,8 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 return _trace_ingredient_backward(cur, lot_row)
 
             cur.execute("""
-                SELECT p.name as ingredient_name, l.lot_code as ingredient_lot,
+                SELECT l.id as lot_id, p.id as product_id,
+                       p.name as ingredient_name, l.lot_code as ingredient_lot,
                        l.supplier_lot_code, ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
                 JOIN products p ON p.id = ilc.ingredient_product_id
@@ -6611,6 +6612,8 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
             output_lb = float(batch['output_lb'])
             result = {
                 "trace_type": "batch",
+                "lot_id": lot_row['id'],
+                "product_id": lot_row['product_id'],
                 "batch_lot_code": batch['lot_code'],
                 "product_name": batch['product_name'],
                 "output_lb": output_lb,
@@ -6618,6 +6621,8 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 "produced_time": time_str,
                 "ingredients": [
                     {
+                        "lot_id": ing['lot_id'],
+                        "product_id": ing['product_id'],
                         "ingredient_name": ing['ingredient_name'],
                         "lot_code": ing['ingredient_lot'],
                         "supplier_lot_code": ing['supplier_lot_code'],
@@ -6675,7 +6680,8 @@ def _trace_ingredient_backward(cur, lot_row):
 
     # 2. Find downstream batches that consumed this ingredient lot
     cur.execute("""
-        SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product,
+        SELECT DISTINCT bl.id as lot_id, bp.id as product_id,
+               bl.lot_code as batch_lot, bp.name as batch_product,
                ilc.quantity_lb as quantity_consumed, t.timestamp
         FROM ingredient_lot_consumption ilc
         JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
@@ -6692,6 +6698,8 @@ def _trace_ingredient_backward(cur, lot_row):
     for b in downstream:
         b_date, b_time = format_timestamp(b['timestamp'])
         batches_out.append({
+            "lot_id": b['lot_id'],
+            "product_id": b['product_id'],
             "batch_lot_code": b['batch_lot'],
             "batch_product": b['batch_product'],
             "quantity_consumed": float(b['quantity_consumed']),
@@ -6745,6 +6753,8 @@ def _trace_ingredient_backward(cur, lot_row):
 
     return {
         "trace_type": "ingredient",
+        "lot_id": lot_row['id'],
+        "product_id": lot_row['product_id'],
         "lot_code": lot_code,
         "product_name": lot_row['product_name'],
         "supplier_lot_code": lot_row['supplier_lot_code'],
@@ -6806,7 +6816,8 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 upstream_ingredients = []
                 if prod_txn:
                     cur.execute("""
-                        SELECT p.name as ingredient_name, l.lot_code,
+                        SELECT l.id as lot_id, p.id as product_id,
+                               p.name as ingredient_name, l.lot_code,
                                ilc.quantity_lb, l.supplier_lot_code
                         FROM ingredient_lot_consumption ilc
                         JOIN products p ON p.id = ilc.ingredient_product_id
@@ -6815,6 +6826,8 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                     """, (prod_txn['transaction_id'],))
                     upstream_ingredients = [
                         {
+                            "lot_id": r['lot_id'],
+                            "product_id": r['product_id'],
                             "ingredient_name": r['ingredient_name'],
                             "lot_code": r['lot_code'],
                             "quantity_lb": float(r['quantity_lb']),
@@ -6827,7 +6840,9 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
 
             # Production/pack consumption, keyed by lot id because lot codes can collide.
             cur.execute("""
-                SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
+                SELECT DISTINCT bl.id as lot_id, bp.id as product_id,
+                       bl.lot_code as batch_lot, bp.name as batch_product,
+                       ilc.quantity_lb as quantity_consumed
                 FROM ingredient_lot_consumption ilc
                 JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
                 JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
@@ -6883,11 +6898,15 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
             on_hand = lot_on_hand(cur, lot['id'])
 
             result = {
+                "lot_id": lot['id'],
+                "product_id": lot['product_id'],
                 "ingredient_lot_code": lot['lot_code'],
                 "supplier_lot_code": lot['supplier_lot_code'],
                 "ingredient_name": lot['ingredient_name'],
                 "used_in_batches": [
                     {
+                        "lot_id": b['lot_id'],
+                        "product_id": b['product_id'],
                         "batch_lot_code": b['batch_lot'],
                         "batch_product": b['batch_product'],
                         "quantity_used": float(b['quantity_consumed'])
@@ -6979,7 +6998,8 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
 
                 # Production consumption (ingredient_lot_consumption)
                 cur.execute("""
-                    SELECT bl.lot_code as batch_lot_code, bp.name as batch_product,
+                    SELECT bl.id as lot_id, bp.id as product_id,
+                           bl.lot_code as batch_lot_code, bp.name as batch_product,
                            ilc.quantity_lb as quantity_used_lb
                     FROM ingredient_lot_consumption ilc
                     JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
@@ -6992,6 +7012,8 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                 """, (lot_id,))
                 production = cur.fetchall()
                 production_usage = [{
+                    "lot_id": p['lot_id'],
+                    "product_id": p['product_id'],
                     "batch_lot_code": p['batch_lot_code'],
                     "batch_product": p['batch_product'],
                     "quantity_used_lb": float(p['quantity_used_lb'])
@@ -7031,6 +7053,7 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                 lot_shipped_total = sum(s['quantity_lb'] for s in customer_shipments)
 
                 results.append({
+                    "lot_id": lot['lot_id'],
                     "lot_code": lot['lot_code'],
                     "product_name": lot['product_name'],
                     "product_id": lot['product_id'],
@@ -7353,7 +7376,9 @@ def get_transaction_history(
                 LEFT JOIN LATERAL (
                     SELECT json_agg(json_build_object(
                            'product_name', p.name,
+                           'product_id', tl.product_id,
                            'lot_code', l.lot_code,
+                           'lot_id', tl.lot_id,
                            'quantity_lb', tl.quantity_lb,
                            'case_size_lb', p.case_size_lb,
                            'product_type', p.type

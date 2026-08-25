@@ -379,11 +379,12 @@ async function buildLotIndex() {
       if (!txn.lines) continue;
       for (const line of txn.lines) {
         if (!line.lot_code) continue;
-        const key = line.lot_code + '|' + (line.product_id || line.product_name || '');
+        const key = line.lot_id || (line.lot_code + '|' + (line.product_id || line.product_name || ''));
         if (seen.has(key)) continue;
         seen.add(key);
         lotIndex.push({
           lot_code: line.lot_code,
+          lot_id: line.lot_id || null,
           product_name: line.product_name || '',
           product_id: line.product_id || null,
           type: txn.type,
@@ -585,7 +586,7 @@ async function traceBackwardBatch(batchData) {
     ? `${batchData.output_lb} lb \u00b7 ${batchData.output_units} units`
     : (batchData.output_batches != null ? `${batchData.output_lb} lb \u00b7 ${batchData.output_batches} batches` : `${batchData.output_lb} lb`);
   const batchId = addNode({
-    id: 'batch-' + batchData.batch_lot_code,
+    id: 'batch-' + batchData.lot_id,
     type: 'batch', label: batchData.batch_lot_code,
     sublabel: batchData.product_name,
     detail: `${batchOutputStr} | ${batchData.produced_date} ${batchData.produced_time} ET`,
@@ -600,7 +601,7 @@ async function traceBackwardBatch(batchData) {
   for (const ing of batchData.ingredients) {
     const isLegacy = !ing.lot_code || ing.lot_code === 'UNKNOWN';
     const ingId = addNode({
-      id: 'ing-' + (ing.lot_code || 'UNKNOWN') + '-' + ing.ingredient_name,
+      id: ing.lot_id ? 'ing-' + ing.lot_id : 'ing-UNKNOWN-' + ing.ingredient_name,
       type: isLegacy ? 'gap' : 'ingredient',
       label: isLegacy ? 'UNKNOWN' : ing.lot_code,
       sublabel: ing.ingredient_name,
@@ -616,12 +617,12 @@ async function traceBackwardBatch(batchData) {
 
     // Supplier lookup for each ingredient lot (if not legacy)
     if (!isLegacy) {
-      await findSupplierForLot(ing.lot_code, ingId);
+      await findSupplierForLot(ing.lot_id, ingId);
     }
   }
 
   // Check for shipments of this batch
-  await findShipmentsForLot(batchData.batch_lot_code, batchId);
+  await findShipmentsForLot(batchData.lot_id, batchId);
 
   currentTrace = {
     direction: 'backward', startLot: batchData.batch_lot_code,
@@ -638,7 +639,7 @@ async function traceBackwardIngredient(data) {
   // Supplier node (layer 0)
   let confirmedCount = 0;
   const ingId = addNode({
-    id: 'ing-' + data.lot_code,
+    id: 'ing-' + data.lot_id,
     type: 'ingredient', label: data.lot_code,
     sublabel: data.product_name,
     detail: data.supplier_lot_code ? `Supplier lot: ${data.supplier_lot_code}` : `Source: ${data.entry_source || 'received'}`,
@@ -659,7 +660,7 @@ async function traceBackwardIngredient(data) {
     confirmedCount++;
   } else {
     const unknownId = addNode({
-      id: 'supplier-unknown-' + data.lot_code,
+      id: 'supplier-unknown-' + data.lot_id,
       type: 'gap', label: 'Supplier unknown',
       sublabel: 'Receipt transaction not found', detail: '', layer: 0
     });
@@ -669,7 +670,7 @@ async function traceBackwardIngredient(data) {
   // Downstream batches (layer 2) and their shipments (layer 3)
   for (const b of data.downstream_batches) {
     const batchId = addNode({
-      id: 'batch-' + b.batch_lot_code,
+      id: 'batch-' + b.lot_id,
       type: 'batch', label: b.batch_lot_code,
       sublabel: b.batch_product,
       detail: `Used ${b.quantity_consumed} lb | ${b.produced_date} ${b.produced_time} ET`,
@@ -678,7 +679,7 @@ async function traceBackwardIngredient(data) {
     addLink(ingId, batchId, b.quantity_consumed, 'confirmed');
     confirmedCount++;
 
-    await findShipmentsForLot(b.batch_lot_code, batchId);
+    await findShipmentsForLot(b.lot_id, batchId);
   }
 
   const hasDownstream = data.downstream_batches.length > 0;
@@ -718,7 +719,7 @@ async function traceForward(lotCode) {
 
   // Origin node: the ingredient
   const ingId = addNode({
-    id: 'ing-' + ingData.ingredient_lot_code,
+    id: 'ing-' + ingData.lot_id,
     type: 'ingredient', label: ingData.ingredient_lot_code,
     sublabel: ingData.ingredient_name,
     detail: ingData.supplier_lot_code ? `Supplier lot: ${ingData.supplier_lot_code}` : '',
@@ -726,7 +727,7 @@ async function traceForward(lotCode) {
   });
 
   // Find supplier
-  await findSupplierForLot(ingData.ingredient_lot_code, ingId);
+  await findSupplierForLot(ingData.lot_id, ingId);
 
   if (ingData.used_in_batches.length === 0) {
     currentTrace = {
@@ -748,7 +749,7 @@ async function traceForward(lotCode) {
   for (let i = 0; i < showCount; i++) {
     const b = batches[i];
     const batchId = addNode({
-      id: 'batch-' + b.batch_lot_code,
+      id: 'batch-' + b.lot_id,
       type: 'batch', label: b.batch_lot_code,
       sublabel: b.batch_product,
       detail: `Used ${b.quantity_used} lb of ingredient`,
@@ -757,7 +758,7 @@ async function traceForward(lotCode) {
     addLink(ingId, batchId, b.quantity_used, 'confirmed');
 
     // Find shipments for each batch
-    await findShipmentsForLot(b.batch_lot_code, batchId);
+    await findShipmentsForLot(b.lot_id, batchId);
   }
 
   if (collapsed > 0) {
@@ -799,13 +800,13 @@ async function traceForwardAsBatch(lotCode) {
 
   const nodeType = batchData ? 'batch' : 'finished';
   const mainId = addNode({
-    id: 'lot-' + lotCode, type: nodeType,
+    id: 'lot-' + lotInfo.id, type: nodeType,
     label: lotCode, sublabel: lotInfo.product_name,
     detail: `On hand: ${lotInfo.unit_count != null ? lotInfo.quantity_on_hand + ' lb \u00b7 ' + lotInfo.unit_count + ' units' : lotInfo.quantity_on_hand + ' lb'}`,
     lotCode, quantity: parseFloat(lotInfo.quantity_on_hand) || 0, layer: 1
   });
 
-  await findShipmentsForLot(lotCode, mainId);
+  await findShipmentsForLot(lotInfo.id, mainId);
 
   currentTrace = {
     direction: 'forward', startLot: lotCode,
@@ -817,13 +818,13 @@ async function traceForwardAsBatch(lotCode) {
 }
 
 // ── Supplier lookup ──
-async function findSupplierForLot(lotCode, ingNodeId) {
+async function findSupplierForLot(lotId, ingNodeId) {
   try {
     const data = await api(`/transactions/history?transaction_type=receive&limit=100`);
     for (const txn of data.transactions) {
       if (!txn.lines) continue;
       for (const line of txn.lines) {
-        if (line.lot_code && line.lot_code.toLowerCase() === lotCode.toLowerCase()) {
+        if (line.lot_id === lotId) {
           const supplierName = txn.shipper_name || 'Unknown supplier';
           const suppId = addNode({
             id: 'supplier-' + supplierName + '-' + (txn.bol_reference || ''),
@@ -840,19 +841,19 @@ async function findSupplierForLot(lotCode, ingNodeId) {
     }
     // No receive found
     addNode({
-      id: 'supplier-unknown-' + lotCode,
+      id: 'supplier-unknown-' + lotId,
       type: 'gap', label: 'Supplier unknown',
       sublabel: 'Lot origin not in recent transactions',
       detail: '', layer: 0
     });
-    addLink('supplier-unknown-' + lotCode, ingNodeId, 0, 'legacy');
+    addLink('supplier-unknown-' + lotId, ingNodeId, 0, 'legacy');
   } catch (e) {
     console.warn('[Supplier lookup failed]', e);
   }
 }
 
 // ── Shipment lookup ──
-async function findShipmentsForLot(lotCode, batchNodeId) {
+async function findShipmentsForLot(lotId, batchNodeId) {
   try {
     const data = await api(`/transactions/history?transaction_type=ship&limit=100`);
     let found = false;
@@ -861,7 +862,7 @@ async function findShipmentsForLot(lotCode, batchNodeId) {
     for (const txn of data.transactions) {
       if (!txn.lines) continue;
       for (const line of txn.lines) {
-        if (line.lot_code && line.lot_code.toLowerCase() === lotCode.toLowerCase()) {
+        if (line.lot_id === lotId) {
           const custName = txn.customer_name || 'Unknown customer';
           const qty = Math.abs(parseFloat(line.quantity_lb) || 0);
           const key = custName;
@@ -890,7 +891,7 @@ async function findShipmentsForLot(lotCode, batchNodeId) {
 
     if (!found) {
       const stockId = addNode({
-        id: 'stock-' + lotCode,
+        id: 'stock-' + lotId,
         type: 'finished', label: 'In stock',
         sublabel: 'No shipments recorded',
         detail: '', layer: 3

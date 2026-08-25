@@ -463,6 +463,8 @@ def test_output_lot_forward_trace_isolated_by_lot_id_when_codes_collide(
     assert forward.status_code == 200, forward.text
     assert forward.json()["used_in_batches"] == [
         {
+            "lot_id": lots["pack"]["id"],
+            "product_id": product_ids["pack"],
             "batch_lot_code": lots["pack"]["code"],
             "batch_product": f"Classic Granola Pack {token}",
             "quantity_used": 20.0,
@@ -479,6 +481,137 @@ def test_output_lot_forward_trace_isolated_by_lot_id_when_codes_collide(
     ]
     assert shipment_ids == [expected_ship_id]
     assert not set(shipment_ids) & set(other_ship_ids)
+
+
+@pytest.mark.db
+def test_dashboard_forward_trace_filters_same_code_shipments_by_lot_id(
+    _db_connection, remediation_client
+):
+    token = uuid4().hex[:10]
+    shared_lot_code = f"DASH-COLLISION-{token}"
+
+    with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
+        product_ids = {}
+        for key, product_type in (
+            ("source", "batch"),
+            ("target", "finished"),
+            ("other_source", "batch"),
+            ("other_target", "finished"),
+        ):
+            cur.execute(
+                "INSERT INTO products (name, type, odoo_code, active) "
+                "VALUES (%s, %s, %s, true) RETURNING id",
+                (f"Dashboard {key} {token}", product_type, f"DASH-{key}-{token}"),
+            )
+            product_ids[key] = cur.fetchone()["id"]
+
+        lots = {}
+        for key, product_key, entry_source in (
+            ("source", "source", "production_output"),
+            ("target", "target", "pack_output"),
+            ("other_source", "other_source", "production_output"),
+            ("other_target", "other_target", "pack_output"),
+        ):
+            cur.execute(
+                "INSERT INTO lots (product_id, lot_code, entry_source) "
+                "VALUES (%s, %s, %s) RETURNING id",
+                (product_ids[product_key], shared_lot_code, entry_source),
+            )
+            lots[key] = cur.fetchone()["id"]
+
+        for source_key in ("source", "other_source"):
+            _insert_transaction(
+                cur,
+                "make",
+                [(product_ids[source_key], lots[source_key], 20)],
+            )
+
+        for source_key, target_key in (
+            ("source", "target"),
+            ("other_source", "other_target"),
+        ):
+            pack_id = _insert_transaction(
+                cur,
+                "pack",
+                [
+                    (product_ids[source_key], lots[source_key], -10),
+                    (product_ids[target_key], lots[target_key], 10),
+                ],
+            )
+            cur.execute(
+                "INSERT INTO ingredient_lot_consumption "
+                "(transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) "
+                "VALUES (%s, %s, %s, 10)",
+                (pack_id, product_ids[source_key], lots[source_key]),
+            )
+
+        expected_ship_id = _insert_transaction(
+            cur,
+            "ship",
+            [(product_ids["target"], lots["target"], -4)],
+            customer_name="Dashboard Expected Customer",
+        )
+        other_ship_id = _insert_transaction(
+            cur,
+            "ship",
+            [(product_ids["other_target"], lots["other_target"], -6)],
+            customer_name="Dashboard Other Customer",
+        )
+
+    forward = remediation_client.get(
+        f"/trace/ingredient/{shared_lot_code}",
+        params={"product_id": product_ids["source"]},
+    )
+    assert forward.status_code == 200, forward.text
+    output = forward.json()["used_in_batches"]
+    assert output == [
+        {
+            "lot_id": lots["target"],
+            "product_id": product_ids["target"],
+            "batch_lot_code": shared_lot_code,
+            "batch_product": f"Dashboard target {token}",
+            "quantity_used": 10.0,
+        }
+    ]
+
+    history = remediation_client.get(
+        "/transactions/history",
+        params={"transaction_type": "ship", "limit": 1000},
+    )
+    assert history.status_code == 200, history.text
+    transactions = history.json()["transactions"]
+    code_matched_ids = {
+        txn["id"]
+        for txn in transactions
+        if any(
+            line["lot_code"] == shared_lot_code
+            for line in (txn.get("lines") or [])
+        )
+    }
+    assert {expected_ship_id, other_ship_id} <= code_matched_ids
+
+    rendered_ids = {
+        txn["id"]
+        for txn in transactions
+        if any(
+            line["lot_id"] == output[0]["lot_id"]
+            for line in (txn.get("lines") or [])
+        )
+    }
+    assert rendered_ids == {expected_ship_id}
+    assert other_ship_id not in rendered_ids
+    expected_line = next(
+        line
+        for txn in transactions
+        if txn["id"] == expected_ship_id
+        for line in txn["lines"]
+    )
+    assert expected_line["product_id"] == product_ids["target"]
+
+    dashboard = (ROOT / "dashboard/traceability.html").read_text(encoding="utf-8")
+    assert "if (line.lot_id === lotId)" in dashboard
+    assert "line.lot_code.toLowerCase() === lotCode.toLowerCase()" not in dashboard
+    assert "id: 'batch-' + b.lot_id" in dashboard
 
 
 @pytest.mark.db
