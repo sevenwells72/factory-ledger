@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-25 13:12 — Completed ID-safe batch/output-lot forward trace on PR #17 (NOT deployed)
+- **File(s) changed:** `main.py`, `dashboard/traceability.html`, `tests/test_batch1_correctness_security.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** Commit `6f85045` fixed `trace_ingredient`'s output-lot consumption query by numeric lot id, but its changelog incorrectly claimed the unchanged dashboard excluded same-code shipments; independent review correctly requested changes because the UI still compared lot-code strings. Follow-up commit `97cbf7d` carries additive `lot_id` and `product_id` fields through both `used_in_batches` branches, nested trace lot references, and `/transactions/history` lines, then makes dashboard supplier/shipment matching and output-node identity use numeric lot ids only. Commit `4ccf7c2` removes the last defensive lot-code-derived identity fallback from the dashboard's history index. The existing backend collision test remains, and a new dashboard-data regression combines the trace endpoint with `/transactions/history`, packs and ships both same-code product lineages, and proves the other lineage's shipment id is absent. Full suite: **231 passed, 193 warnings**.
+- **Why:** Lot codes are not identities and collide across products. Transaction-scoped read-only production verification through the corrected render-data path: lot **1318** → pack **2093** → FG lot **1326** → no shipments, with **2087/2090 absent** (the old code-only control finds both); lot **965** → pack **2064** → FG lot **1308** → shipment **2086** → **Dingman's Dairy**. No schema, migration, GPT schema, deployment, production write, or merge.
+
+---
+
 ## 2026-08-24 14:27 — 044 series DEPLOYED (push 35e3171; Railway 14:17:27, Netlify by 14:16:47)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (deploy record, row 98)
 - **What changed:** Pushed `4d9a196..35e3171` to origin/main with owner approval. Railway auto-deploy served the new code at 14:17:27 (fulfillment-check `dispatch_ready` shape); Netlify live `dashboard.js` byte-identical to `35e3171` (v=37, Railway `SALES_API_BASE`). Read-only smoke with the dashboard key only: orders list/detail/fulfillment-check/allocations all 200; 19 open-set orders, 0 dispatch_ready; blocker codes unallocated/shortage/not_floor_ready/fulfillment_diverged; prod allocations count 0; no-key 401 / wrong-key 403. No prod SQL, no prod writes.
