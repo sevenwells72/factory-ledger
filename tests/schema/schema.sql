@@ -114,7 +114,10 @@ CREATE FUNCTION public.ledger_enforce_created_at() RETURNS trigger
 BEGIN
     IF TG_OP = 'INSERT' THEN
         NEW.created_at := clock_timestamp();
-        NEW.created_at_source := 'database';
+        IF TG_TABLE_NAME <> 'transactions'
+           OR NEW.created_at_source IS DISTINCT FROM 'api_backfill' THEN
+            NEW.created_at_source := 'database';
+        END IF;
         RETURN NEW;
     END IF;
 
@@ -3983,4 +3986,3 @@ ALTER TABLE ONLY public.transactions
 --
 
 \unrestrict lLAWZcgkJFF1oXCgBXDD1uTvn4qEZYTsQa6SYb9objg1ubWzjefTNcURoaQtZPw
-

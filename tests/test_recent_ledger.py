@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -108,9 +109,13 @@ def test_correction_is_newer_feed_event_and_voided_original_remains(client, cur)
     original = events[original_index]
     assert correction_index < original_index
     assert correction["event_type"] == "void"
+    assert correction["occurred_at"]
+    assert correction["created_at_source"] == "database"
     assert correction["lines"] == []
     assert correction["correction"]["target_id"] == txn_id
     assert original["effective_status"] == "voided"
+    assert original["occurred_at"] == correction["occurred_at"]
+    assert original["created_at_source"] == "database"
     assert original["lines"][0] == {
         "product_name": "RECENT-VOID", "quantity": 11, "unit": "lb", "lot_code": "RECENT-VOID-LOT"
     }
@@ -169,3 +174,19 @@ def test_recent_ledger_requires_and_accepts_dashboard_scoped_key(client):
 
     scoped = _recent(client, headers={"X-API-Key": main.DASHBOARD_API_KEY})
     assert "events" in scoped
+
+
+def test_dashboard_activity_renders_occurred_entered_lag_and_backfill_badge():
+    root = Path(__file__).resolve().parent.parent
+    dashboard = (root / "dashboard/dashboard.js").read_text(encoding="utf-8")
+    styles = (root / "dashboard/dashboard.css").read_text(encoding="utf-8")
+    index = (root / "dashboard/index.html").read_text(encoding="utf-8")
+
+    assert "<strong>Occurred:</strong>" in dashboard
+    assert "<strong>Entered:</strong>" in dashboard
+    assert "if (Math.abs(lagMinutes) <= 60) return '';" in dashboard
+    assert "recent-entry-backfilled" in dashboard
+    assert "source !== 'api_backfill'" in dashboard
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
+    assert 'dashboard.css?v=27' in index
+    assert 'dashboard.js?v=38' in index

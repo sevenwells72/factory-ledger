@@ -2273,6 +2273,53 @@ def get_plant_now():
     return datetime.now(PLANT_TIMEZONE)
 
 
+INVENTORY_OCCURRED_AT_FUTURE_GRACE = timedelta(minutes=5)
+INVENTORY_OCCURRED_AT_STANDARD_WINDOW = timedelta(days=14)
+INVENTORY_BACKFILL_SOURCE = "api_backfill"
+
+
+def validate_inventory_occurred_at(
+    occurred_at: Optional[datetime], backfill: bool = False
+) -> tuple[Optional[datetime], Optional[str]]:
+    """Normalize and validate an optional inventory event timestamp.
+
+    Offset-free ISO timestamps are plant-local. Offset-aware timestamps are
+    converted to the plant timezone before comparison/storage. A NULL return
+    deliberately preserves the legacy insert path, where migration 039 fills
+    occurred_at from the transaction timestamp.
+    """
+    if occurred_at is None:
+        return None, None
+
+    if occurred_at.tzinfo is None:
+        event_time = occurred_at.replace(tzinfo=PLANT_TIMEZONE)
+    else:
+        event_time = occurred_at.astimezone(PLANT_TIMEZONE)
+
+    now = get_plant_now()
+    if event_time > now + INVENTORY_OCCURRED_AT_FUTURE_GRACE:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "OCCURRED_AT_IN_FUTURE",
+                "message": "occurred_at cannot be more than 5 minutes in the future.",
+            },
+        )
+    if event_time < now - INVENTORY_OCCURRED_AT_STANDARD_WINDOW and not backfill:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "OCCURRED_AT_BACKFILL_REQUIRED",
+                "message": (
+                    "occurred_at is more than 14 days old. "
+                    "Set backfill=true to record an intentional historical entry."
+                ),
+            },
+        )
+
+    return event_time, INVENTORY_BACKFILL_SOURCE if backfill else None
+
+
 def generate_confirmation_code(transaction_id: int) -> str:
     """Generate a short unique confirmation code from a transaction ID."""
     import hashlib
@@ -2376,7 +2423,13 @@ def bilingual_response(english_val, spanish_val, field_name: str) -> dict:
 class CommandRequest(BaseModel):
     raw_text: str
 
-class ReceiveRequest(BaseModel):
+
+class InventoryWriteRequest(BaseModel):
+    occurred_at: Optional[datetime] = None
+    backfill: bool = False
+
+
+class ReceiveRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     cases: int
@@ -2439,7 +2492,7 @@ class SupplyRequestUpdate(BaseModel):
     status: Literal["done"]
 
 
-class ShipRequest(BaseModel):
+class ShipRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     quantity_lb: float
@@ -2450,7 +2503,7 @@ class ShipRequest(BaseModel):
     force_standalone: bool = False
     force_create_customer: bool = False
 
-class MakeRequest(BaseModel):
+class MakeRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     batches: int
@@ -2479,7 +2532,7 @@ class PackLotAllocation(BaseModel):
     lot_code: str
     quantity_lb: float
 
-class PackRequest(BaseModel):
+class PackRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     source_product: str          # Batch product name or code (e.g., "Batch Classic Granola #9" or "90002")
     target_product: str          # Finished good name or code (e.g., "CQ Granola 10 LB" or "1614")
@@ -2490,7 +2543,7 @@ class PackRequest(BaseModel):
     # Only auto-generate (inherit from batch lot) if target_lot_code is omitted.
     target_lot_code: Optional[str] = None
 
-class AdjustRequest(BaseModel):
+class AdjustRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     lot_code: str
@@ -2524,7 +2577,7 @@ class LotReassignmentRequest(BaseModel):
     reason_notes_es: Optional[str] = None
     performed_by: str = "system"
 
-class AddFoundInventoryRequest(BaseModel):
+class AddFoundInventoryRequest(InventoryWriteRequest):
     product_id: int
     quantity: float
     uom: str = "lb"
@@ -2540,7 +2593,7 @@ class AddFoundInventoryRequest(BaseModel):
     # Only auto-generate if lot_code is omitted.
     lot_code: Optional[str] = None
 
-class AddFoundInventoryWithNewProductRequest(BaseModel):
+class AddFoundInventoryWithNewProductRequest(InventoryWriteRequest):
     product_name: str
     product_type: str
     quantity: float
@@ -2711,7 +2764,7 @@ class ShipOrderLineRequest(BaseModel):
     line_id: int
     quantity_lb: float
 
-class ShipOrderRequest(BaseModel):
+class ShipOrderRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
     ship_all: Optional[bool] = False
     lines: Optional[List[ShipOrderLineRequest]] = None
@@ -2728,7 +2781,7 @@ class SalesOrderAllocationCreate(BaseModel):
     expires_at: Optional[datetime] = None
     note: Optional[str] = None
 
-class CommitShipOrderRequest(BaseModel):
+class CommitShipOrderRequest(InventoryWriteRequest):
     """Mode-less request for the dedicated sales-order shipment commit route."""
     ship_all: Optional[bool] = False
     lines: Optional[List[ShipOrderLineRequest]] = None
@@ -4038,6 +4091,9 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
 @app.post("/receive")
 def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
     """Receive inventory. mode=preview returns what will happen; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     # Fallback: use lot_code if supplier_lot_code not provided, then 'N/A'
     supplier_lot = (req.supplier_lot_code or "").strip()
     if not supplier_lot:
@@ -4139,10 +4195,18 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                             expected_receipt_id = er_match['id']
 
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, bol_reference, shipper_name, shipper_code, cases_received, case_size_lb, expected_receipt_id)
-                        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO transactions (
+                            type, timestamp, bol_reference, shipper_name,
+                            shipper_code, cases_received, case_size_lb,
+                            expected_receipt_id, occurred_at, created_at_source
+                        )
+                        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
-                    """, (now, req.bol_reference, req.shipper_name, shipper_code, req.cases, req.case_size_lb, expected_receipt_id))
+                    """, (
+                        now, req.bol_reference, req.shipper_name, shipper_code,
+                        req.cases, req.case_size_lb, expected_receipt_id,
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
 
                     cur.execute("""
@@ -5041,6 +5105,9 @@ def check_open_orders_for_ship(cur, customer_id: int, customer_name: str) -> dic
 @app.post("/ship")
 def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
     """Ship inventory. mode=preview returns allocation plan; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
@@ -5237,9 +5304,15 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         txn_notes = f"standalone_override=true | {standalone_warning}"
                     now = get_plant_now()
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, customer_name, order_reference, notes)
-                        VALUES ('ship', %s, %s, %s, %s) RETURNING id
-                    """, (now, canonical_customer, req.order_reference, txn_notes))
+                        INSERT INTO transactions (
+                            type, timestamp, customer_name, order_reference,
+                            notes, occurred_at, created_at_source
+                        )
+                        VALUES ('ship', %s, %s, %s, %s, %s, %s) RETURNING id
+                    """, (
+                        now, canonical_customer, req.order_reference, txn_notes,
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
 
                     shipped_lots = []
@@ -5271,7 +5344,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     cur.execute("""
                         INSERT INTO shipments (transaction_id, shipped_at, customer_id)
                         VALUES (%s, %s, %s) RETURNING id
-                    """, (txn_id, now, customer_id))
+                    """, (txn_id, occurred_at or now, customer_id))
                     shipment_id = cur.fetchone()['id']
 
                     for sl in shipped_lots:
@@ -5351,6 +5424,9 @@ def build_production_warning(product: dict) -> dict | None:
 @app.post("/make")
 def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
     """Record batch production. mode=preview returns ingredient check; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
@@ -5565,9 +5641,14 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         exclusion_note += f" (auto-excluded IDs: {sorted(auto_excluded_ids)})"
 
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, notes)
-                        VALUES ('make', %s, %s) RETURNING id
-                    """, (now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}"))
+                        INSERT INTO transactions (
+                            type, timestamp, notes, occurred_at, created_at_source
+                        )
+                        VALUES ('make', %s, %s, %s, %s) RETURNING id
+                    """, (
+                        now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
 
                     cur.execute("""
@@ -5832,6 +5913,9 @@ def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> di
 @app.post("/pack")
 def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
     """Pack batch into finished goods. mode=preview returns allocation plan; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
@@ -6023,9 +6107,15 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     output_lot_id, is_new_lot = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
                     source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, notes)
-                        VALUES ('pack', %s, %s) RETURNING id
-                    """, (now, f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}"))
+                        INSERT INTO transactions (
+                            type, timestamp, notes, occurred_at, created_at_source
+                        )
+                        VALUES ('pack', %s, %s, %s, %s) RETURNING id
+                    """, (
+                        now,
+                        f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
 
                     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, target['id'], output_lot_id, total_lb))
@@ -6130,6 +6220,9 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
 @app.post("/adjust")
 def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
     """Adjust inventory. mode=preview returns balance check; mode=commit executes."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     validate_bilingual(req.reason, req.reason_es, "reason")
     if req.mode == "preview":
         try:
@@ -6192,9 +6285,16 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
 
                     now = get_plant_now()
                     cur.execute("""
-                        INSERT INTO transactions (type, timestamp, adjust_reason, adjust_reason_es, notes)
-                        VALUES ('adjust', %s, %s, %s, %s) RETURNING id
-                    """, (now, req.reason, req.reason_es, f"Adjustment: {req.adjustment_lb} lb"))
+                        INSERT INTO transactions (
+                            type, timestamp, adjust_reason, adjust_reason_es,
+                            notes, occurred_at, created_at_source
+                        )
+                        VALUES ('adjust', %s, %s, %s, %s, %s, %s) RETURNING id
+                    """, (
+                        now, req.reason, req.reason_es,
+                        f"Adjustment: {req.adjustment_lb} lb",
+                        occurred_at, created_at_source,
+                    ))
                     txn_id = cur.fetchone()['id']
                     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
 
@@ -7503,7 +7603,9 @@ def get_recent_ledger_events(
                         ct.type AS transaction_type,
                         ct.type AS event_type,
                         ct.business_date,
+                        ct.occurred_at,
                         ct.created_at AS entered_at,
+                        ct.created_at_source,
                         ct.effective_status,
                         ct.status AS raw_status,
                         NULL::uuid AS correction_id,
@@ -7535,7 +7637,9 @@ def get_recent_ledger_events(
                         target.type AS transaction_type,
                         c.event_type AS event_type,
                         target.business_date,
+                        target.occurred_at,
                         c.created_at AS entered_at,
+                        target.created_at_source,
                         target.effective_status,
                         target.status AS raw_status,
                         c.id AS correction_id,
@@ -7583,7 +7687,9 @@ def get_recent_ledger_events(
                 "transaction_type": row["transaction_type"],
                 "event_type": row["event_type"],
                 "business_date": row["business_date"].isoformat() if row["business_date"] else None,
+                "occurred_at": row["occurred_at"],
                 "entered_at": row["entered_at"],
+                "created_at_source": row["created_at_source"],
                 "effective_status": row["effective_status"],
                 "raw_status": row["raw_status"],
                 "direction": row["direction"],
@@ -7849,6 +7955,9 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
 
 @app.post("/inventory/found")
 def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key)):
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
@@ -7889,10 +7998,15 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                 )
 
                 cur.execute("""
-                    INSERT INTO transactions (type, timestamp, notes)
-                    VALUES ('adjust', %s, %s)
+                    INSERT INTO transactions (
+                        type, timestamp, notes, occurred_at, created_at_source
+                    )
+                    VALUES ('adjust', %s, %s, %s, %s)
                     RETURNING id
-                """, (now, f"Found inventory: {req.reason_code}"))
+                """, (
+                    now, f"Found inventory: {req.reason_code}",
+                    occurred_at, created_at_source,
+                ))
                 txn_id = cur.fetchone()['id']
 
                 cur.execute("""
@@ -7934,6 +8048,9 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
 @app.post("/inventory/found-with-new-product")
 def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key)):
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at, req.backfill
+    )
     validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
@@ -7977,10 +8094,15 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 )
                 
                 cur.execute("""
-                    INSERT INTO transactions (type, timestamp, notes)
-                    VALUES ('adjust', %s, %s)
+                    INSERT INTO transactions (
+                        type, timestamp, notes, occurred_at, created_at_source
+                    )
+                    VALUES ('adjust', %s, %s, %s, %s)
                     RETURNING id
-                """, (now, f"Found inventory with new product: {req.reason_code}"))
+                """, (
+                    now, f"Found inventory with new product: {req.reason_code}",
+                    occurred_at, created_at_source,
+                ))
                 txn_id = cur.fetchone()['id']
                 
                 cur.execute("""
@@ -10553,6 +10675,10 @@ def update_order_line(
 @app.post("/sales/orders/{order_id}/ship")
 def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
     """Ship against a sales order. mode=preview returns feasibility; mode=commit executes and creates shipment record."""
+    occurred_at, created_at_source = validate_inventory_occurred_at(
+        req.occurred_at if req else None,
+        req.backfill if req else False,
+    )
     mode = "preview" if req is None else req.mode
     if mode == "preview":
         try:
@@ -10733,7 +10859,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                     cur.execute("""
                         INSERT INTO shipments (sales_order_id, shipped_at, customer_id)
                         VALUES (%s, %s, %s) RETURNING id
-                    """, (order_id, now, order_row['customer_id']))
+                    """, (order_id, occurred_at or now, order_row['customer_id']))
                     shipment_id = cur.fetchone()['id']
 
                     results = []
@@ -10773,8 +10899,17 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                             all_fully_shipped = False
                             continue
 
-                        cur.execute("INSERT INTO transactions (type, timestamp, customer_name, notes) VALUES ('ship', %s, %s, %s) RETURNING id",
-                                    (now, order_row['name'], f"Sales order {order_row['order_number']} — {item['product_name']}"))
+                        cur.execute("""
+                            INSERT INTO transactions (
+                                type, timestamp, customer_name, notes,
+                                occurred_at, created_at_source
+                            )
+                            VALUES ('ship', %s, %s, %s, %s, %s) RETURNING id
+                        """, (
+                            now, order_row['name'],
+                            f"Sales order {order_row['order_number']} — {item['product_name']}",
+                            occurred_at, created_at_source,
+                        ))
                         txn_id = cur.fetchone()['id']
                         lots_used = []
                         for lot in plan["lots"]:
@@ -10924,6 +11059,8 @@ def commit_ship_order(req: CommitShipOrderRequest, order_id: int = Depends(resol
         mode="commit",
         ship_all=req.ship_all,
         lines=req.lines,
+        occurred_at=req.occurred_at,
+        backfill=req.backfill,
     )
     return ship_order(order_id, commit_req, _)
 
