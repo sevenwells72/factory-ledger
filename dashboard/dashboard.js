@@ -439,9 +439,9 @@
     if (!record || !record.created_date || !record.created_time) return '';
     const source = record.created_at_source || 'unknown';
     let provenance = '';
-    if (source === 'migration_backfill_039' || source === 'api_backfill') provenance = ' · backfilled';
+    if (source === 'api_backfill') provenance = ' · backfilled';
     if (source === 'legacy_unverified') provenance = ' · legacy';
-    const title = `Database created_at (${source})`;
+    const title = `Entered time (${source})`;
     return `<div class="created-at-meta" title="${escAttr(title)}">Entered: ${escHtml(record.created_date)} ${escHtml(record.created_time)}${escHtml(provenance)}</div>`;
   }
 
@@ -551,7 +551,7 @@
 
   function recentEntryBackfillBadge(event) {
     const source = event.created_at_source || '';
-    if (source !== 'api_backfill' && source !== 'migration_backfill_039') return '';
+    if (source !== 'api_backfill') return '';
     return '<span class="recent-entry-backfilled">Backfilled</span>';
   }
 
@@ -1318,7 +1318,7 @@
       const rowClass = t.late_entry ? ' class="late-entry"' : '';
       const lines = (t.lines && t.lines.length > 0) ? t.lines : [{}];
       let provenance = '';
-      if (t.created_at_source === 'migration_backfill_039' || t.created_at_source === 'api_backfill') provenance = ' · backfilled';
+      if (t.created_at_source === 'api_backfill') provenance = ' · backfilled';
       if (t.created_at_source === 'legacy_unverified') provenance = ' · legacy';
       lines.forEach((l, i) => {
         html += `<tr${rowClass}>`;

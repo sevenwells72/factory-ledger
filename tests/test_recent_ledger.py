@@ -90,6 +90,28 @@ def _recent(client, limit=50, headers=None):
     return response.json()
 
 
+def _mark_as_migration_039(cur, transaction_id):
+    cur.execute(
+        "ALTER TABLE transactions DISABLE TRIGGER trg_transactions_original_append_only"
+    )
+    cur.execute(
+        "ALTER TABLE transactions DISABLE TRIGGER trg_transactions_created_at"
+    )
+    cur.execute(
+        """UPDATE transactions
+           SET created_at = TIMESTAMPTZ '2026-08-11 14:32:00+00',
+               created_at_source = 'migration_backfill_039'
+           WHERE id = %s""",
+        (transaction_id,),
+    )
+    cur.execute(
+        "ALTER TABLE transactions ENABLE TRIGGER trg_transactions_created_at"
+    )
+    cur.execute(
+        "ALTER TABLE transactions ENABLE TRIGGER trg_transactions_original_append_only"
+    )
+
+
 @pytest.mark.db
 def test_correction_is_newer_feed_event_and_voided_original_remains(client, cur):
     txn_id = _seed_transaction(cur, "RECENT-VOID", quantity=11)
@@ -176,6 +198,23 @@ def test_recent_ledger_requires_and_accepts_dashboard_scoped_key(client):
     assert "events" in scoped
 
 
+@pytest.mark.db
+def test_recent_pre_039_entry_has_zero_effective_lag(client, cur):
+    transaction_id = _seed_transaction(cur, "RECENT-PRE-039")
+    _mark_as_migration_039(cur, transaction_id)
+
+    event = next(
+        event for event in _recent(client)["events"]
+        if event["event_kind"] == "transaction"
+        and event["transaction_id"] == transaction_id
+    )
+
+    assert event["created_at_source"] == "migration_backfill_039"
+    occurred_at = datetime.fromisoformat(event["occurred_at"])
+    entered_at = datetime.fromisoformat(event["entered_at"])
+    assert entered_at == occurred_at
+
+
 def test_dashboard_activity_renders_occurred_entered_lag_and_backfill_badge():
     root = Path(__file__).resolve().parent.parent
     dashboard = (root / "dashboard/dashboard.js").read_text(encoding="utf-8")
@@ -186,7 +225,9 @@ def test_dashboard_activity_renders_occurred_entered_lag_and_backfill_badge():
     assert "<strong>Entered:</strong>" in dashboard
     assert "if (Math.abs(lagMinutes) <= 60) return '';" in dashboard
     assert "recent-entry-backfilled" in dashboard
-    assert "source !== 'api_backfill'" in dashboard
+    assert "if (source !== 'api_backfill') return '';" in dashboard
+    assert "if (source === 'api_backfill') provenance = ' · backfilled';" in dashboard
+    assert "migration_backfill_039" not in dashboard
     assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
     assert 'dashboard.css?v=27' in index
-    assert 'dashboard.js?v=38' in index
+    assert 'dashboard.js?v=39' in index

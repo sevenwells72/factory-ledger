@@ -57,4 +57,29 @@ BEGIN
 END;
 $$;
 
+-- BEGIN 8/17 RECON BACKFILL MARKER
+-- These transactions were intentionally posted on 2026-08-17 for earlier
+-- business dates. Migration 039's created_at stamp is not usable as their
+-- entry time, so give only this documented recon set the explicit backfill
+-- provenance consumed by Activity. Both write guards are restored before the
+-- transaction can commit.
+ALTER TABLE public.transactions
+    DISABLE TRIGGER trg_transactions_original_append_only;
+ALTER TABLE public.transactions
+    DISABLE TRIGGER trg_transactions_created_at;
+
+UPDATE public.transactions
+SET created_at_source = 'api_backfill'
+WHERE created_at_source IN ('database', 'migration_backfill_039')
+  AND operator_id = 'inv-recon-2026-08-17'
+  AND notes LIKE '%INV-RECON-2026-08-17%'
+  AND (created_at AT TIME ZONE 'America/New_York')::date = DATE '2026-08-17'
+  AND business_date BETWEEN DATE '2026-07-24' AND DATE '2026-08-14';
+
+ALTER TABLE public.transactions
+    ENABLE TRIGGER trg_transactions_created_at;
+ALTER TABLE public.transactions
+    ENABLE TRIGGER trg_transactions_original_append_only;
+-- END 8/17 RECON BACKFILL MARKER
+
 COMMIT;

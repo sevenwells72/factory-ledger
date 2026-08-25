@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -94,6 +95,35 @@ def _transaction(conn, transaction_id):
         return cur.fetchone()
 
 
+def _migration_marker_sql(relative_path):
+    root = Path(__file__).resolve().parent.parent
+    text = (root / relative_path).read_text(encoding="utf-8")
+    return text.split("-- BEGIN 8/17 RECON BACKFILL MARKER", 1)[1].split(
+        "-- END 8/17 RECON BACKFILL MARKER", 1
+    )[0]
+
+
+def _force_transaction_provenance(cur, transaction_ids, source, created_at):
+    cur.execute(
+        "ALTER TABLE transactions DISABLE TRIGGER trg_transactions_original_append_only"
+    )
+    cur.execute(
+        "ALTER TABLE transactions DISABLE TRIGGER trg_transactions_created_at"
+    )
+    cur.execute(
+        """UPDATE transactions
+           SET created_at = %s, created_at_source = %s
+           WHERE id = ANY(%s)""",
+        (created_at, source, transaction_ids),
+    )
+    cur.execute(
+        "ALTER TABLE transactions ENABLE TRIGGER trg_transactions_created_at"
+    )
+    cur.execute(
+        "ALTER TABLE transactions ENABLE TRIGGER trg_transactions_original_append_only"
+    )
+
+
 @pytest.mark.db
 def test_past_occurred_at_inside_window_is_preserved(
     _db_connection, occurred_client
@@ -161,6 +191,61 @@ def test_backfill_accepts_old_event_and_sets_existing_marker(
     assert transaction["occurred_at"] == old
     assert transaction["created_at_source"] == main.INVENTORY_BACKFILL_SOURCE
     assert transaction["created_at"] > transaction["occurred_at"]
+
+    recent = occurred_client.get("/ledger/recent", params={"limit": 50})
+    assert recent.status_code == 200, recent.text
+    event = next(
+        event for event in recent.json()["events"]
+        if event["event_kind"] == "transaction"
+        and event["transaction_id"] == transaction["id"]
+    )
+    assert event["created_at_source"] == "api_backfill"
+
+
+@pytest.mark.db
+def test_migration_046_marks_only_8_17_recon_rows_and_down_restores_database(
+    _db_connection,
+):
+    entered_at = datetime(2026, 8, 17, 19, 48, tzinfo=timezone.utc)
+    event_at = datetime(2026, 8, 14, 16, 0, tzinfo=timezone.utc)
+    legacy_timestamp = event_at.replace(tzinfo=None)
+    with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
+        transaction_ids = []
+        for operator_id, notes in (
+            ("inv-recon-2026-08-17", "INV-RECON-2026-08-17 test row"),
+            ("not-the-recon", "ordinary entry"),
+        ):
+            cur.execute(
+                """INSERT INTO transactions
+                       (type, timestamp, occurred_at, business_date, operator_id,
+                        notes, status)
+                   VALUES ('adjust', %s, %s, DATE '2026-08-14', %s, %s, 'posted')
+                   RETURNING id""",
+                (legacy_timestamp, event_at, operator_id, notes),
+            )
+            transaction_ids.append(cur.fetchone()["id"])
+
+        recon_id, decoy_id = transaction_ids
+        _force_transaction_provenance(
+            cur, transaction_ids, "database", entered_at
+        )
+        cur.execute(_migration_marker_sql("migrations/046_inventory_occurred_at.sql"))
+        cur.execute(
+            "SELECT id, created_at_source FROM transactions WHERE id = ANY(%s)",
+            (transaction_ids,),
+        )
+        sources = {row["id"]: row["created_at_source"] for row in cur.fetchall()}
+        assert sources == {recon_id: "api_backfill", decoy_id: "database"}
+
+        cur.execute(
+            _migration_marker_sql("migrations/down/046_inventory_occurred_at_down.sql")
+        )
+        cur.execute(
+            "SELECT id, created_at_source FROM transactions WHERE id = ANY(%s)",
+            (transaction_ids,),
+        )
+        sources = {row["id"]: row["created_at_source"] for row in cur.fetchall()}
+        assert sources == {recon_id: "database", decoy_id: "database"}
 
 
 @pytest.mark.db

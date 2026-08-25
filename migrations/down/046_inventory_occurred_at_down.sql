@@ -41,4 +41,24 @@ BEGIN
 END;
 $$;
 
+-- BEGIN 8/17 RECON BACKFILL MARKER
+ALTER TABLE public.transactions
+    DISABLE TRIGGER trg_transactions_original_append_only;
+ALTER TABLE public.transactions
+    DISABLE TRIGGER trg_transactions_created_at;
+
+UPDATE public.transactions
+SET created_at_source = 'database'
+WHERE created_at_source = 'api_backfill'
+  AND operator_id = 'inv-recon-2026-08-17'
+  AND notes LIKE '%INV-RECON-2026-08-17%'
+  AND (created_at AT TIME ZONE 'America/New_York')::date = DATE '2026-08-17'
+  AND business_date BETWEEN DATE '2026-07-24' AND DATE '2026-08-14';
+
+ALTER TABLE public.transactions
+    ENABLE TRIGGER trg_transactions_created_at;
+ALTER TABLE public.transactions
+    ENABLE TRIGGER trg_transactions_original_append_only;
+-- END 8/17 RECON BACKFILL MARKER
+
 COMMIT;

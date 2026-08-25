@@ -97,6 +97,28 @@ def _fetch_entries(client, day, date_mode="event"):
     return response.json()["entries"]
 
 
+def _mark_as_migration_039(cur, transaction_id, migration_stamp):
+    """Recreate migration-039 provenance without weakening production guards."""
+    cur.execute(
+        "ALTER TABLE transactions DISABLE TRIGGER trg_transactions_original_append_only"
+    )
+    cur.execute(
+        "ALTER TABLE transactions DISABLE TRIGGER trg_transactions_created_at"
+    )
+    cur.execute(
+        """UPDATE transactions
+           SET created_at = %s, created_at_source = 'migration_backfill_039'
+           WHERE id = %s""",
+        (migration_stamp, transaction_id),
+    )
+    cur.execute(
+        "ALTER TABLE transactions ENABLE TRIGGER trg_transactions_created_at"
+    )
+    cur.execute(
+        "ALTER TABLE transactions ENABLE TRIGGER trg_transactions_original_append_only"
+    )
+
+
 @pytest.mark.db
 def test_same_day_entry_appears_with_created_at(_db_connection, daily_client):
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
@@ -141,6 +163,35 @@ def test_late_entry_is_flagged(_db_connection, daily_client):
     # ...and by-event mode for the entry day must NOT include it
     event_day_entries = _fetch_entries(daily_client, entered_day, date_mode="event")
     assert all(e["transaction_id"] != txn["id"] for e in event_day_entries)
+
+
+@pytest.mark.db
+def test_migration_039_row_uses_legacy_timestamp_with_zero_lag(
+    _db_connection, daily_client
+):
+    event_time = datetime(2026, 8, 10, 16, 0)
+    migration_stamp = datetime(2026, 8, 11, 14, 32, tzinfo=timezone.utc)
+    with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
+        txn = _seed_transaction(
+            cur, "DAILY-PRE-039", event_naive_utc=event_time
+        )
+        _mark_as_migration_039(cur, txn["id"], migration_stamp)
+
+    entries = _fetch_entries(daily_client, txn["business_date"])
+    entry = next(e for e in entries if e["transaction_id"] == txn["id"])
+
+    assert entry["created_at_source"] == "migration_backfill_039"
+    assert datetime.fromisoformat(entry["created_at"]) == event_time.replace(
+        tzinfo=timezone.utc
+    )
+    assert entry["entry_time_reliable"] is True
+    assert entry["late_entry"] is False
+    assert entry["days_late"] == 0
+
+    entered_entries = _fetch_entries(
+        daily_client, txn["business_date"], date_mode="entered"
+    )
+    assert any(e["transaction_id"] == txn["id"] for e in entered_entries)
 
 
 @pytest.mark.db
