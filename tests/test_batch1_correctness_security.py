@@ -359,6 +359,129 @@ def test_effective_trace_directions_exclude_correction_voids_and_keep_originals(
 
 
 @pytest.mark.db
+def test_output_lot_forward_trace_isolated_by_lot_id_when_codes_collide(
+    _db_connection, remediation_client
+):
+    token = uuid4().hex[:10]
+    shared_lot_code = "AUG 21 2026"
+
+    with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
+        product_ids = {}
+        for key, name, product_type in (
+            ("batch", f"Batch Classic Granola #9 {token}", "batch"),
+            ("pack", f"Classic Granola Pack {token}", "finished"),
+            ("other_batch", f"Coconut Batch {token}", "batch"),
+            ("other_pack", f"Coconut Pack {token}", "finished"),
+        ):
+            cur.execute(
+                "INSERT INTO products (name, type, odoo_code, active) "
+                "VALUES (%s, %s, %s, true) RETURNING id",
+                (name, product_type, f"TRACE-{key}-{token}"),
+            )
+            product_ids[key] = cur.fetchone()["id"]
+
+        lots = {}
+        for key, product_key, lot_code, entry_source in (
+            ("batch", "batch", shared_lot_code, "production_output"),
+            ("pack", "pack", f"PACK-CLASSIC-{token}", "pack_output"),
+            ("other_batch", "other_batch", shared_lot_code, "production_output"),
+            ("other_pack", "other_pack", f"PACK-COCONUT-{token}", "pack_output"),
+        ):
+            cur.execute(
+                "INSERT INTO lots (product_id, lot_code, entry_source) "
+                "VALUES (%s, %s, %s) RETURNING id",
+                (product_ids[product_key], lot_code, entry_source),
+            )
+            lots[key] = {"id": cur.fetchone()["id"], "code": lot_code}
+
+        _insert_transaction(
+            cur, "make", [(product_ids["batch"], lots["batch"]["id"], 50)]
+        )
+        _insert_transaction(
+            cur,
+            "make",
+            [(product_ids["other_batch"], lots["other_batch"]["id"], 50)],
+        )
+
+        pack_id = _insert_transaction(
+            cur,
+            "pack",
+            [
+                (product_ids["batch"], lots["batch"]["id"], -20),
+                (product_ids["pack"], lots["pack"]["id"], 20),
+            ],
+        )
+        cur.execute(
+            "INSERT INTO ingredient_lot_consumption "
+            "(transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) "
+            "VALUES (%s, %s, %s, %s)",
+            (pack_id, product_ids["batch"], lots["batch"]["id"], 20),
+        )
+
+        other_pack_id = _insert_transaction(
+            cur,
+            "pack",
+            [
+                (product_ids["other_batch"], lots["other_batch"]["id"], -20),
+                (product_ids["other_pack"], lots["other_pack"]["id"], 20),
+            ],
+        )
+        cur.execute(
+            "INSERT INTO ingredient_lot_consumption "
+            "(transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) "
+            "VALUES (%s, %s, %s, %s)",
+            (
+                other_pack_id,
+                product_ids["other_batch"],
+                lots["other_batch"]["id"],
+                20,
+            ),
+        )
+
+        expected_ship_id = _insert_transaction(
+            cur,
+            "ship",
+            [(product_ids["pack"], lots["pack"]["id"], -5)],
+            customer_name="Classic Customer",
+            order_reference=f"CLASSIC-{token}",
+        )
+        other_ship_ids = [
+            _insert_transaction(
+                cur,
+                "ship",
+                [(product_ids["other_pack"], lots["other_pack"]["id"], -quantity)],
+                customer_name="Coconut Customer",
+                order_reference=f"COCONUT-{token}-{quantity}",
+            )
+            for quantity in (3, 4)
+        ]
+
+    forward = remediation_client.get(
+        f"/trace/ingredient/{shared_lot_code}",
+        params={"product_id": product_ids["batch"]},
+    )
+    assert forward.status_code == 200, forward.text
+    assert forward.json()["used_in_batches"] == [
+        {
+            "batch_lot_code": lots["pack"]["code"],
+            "batch_product": f"Classic Granola Pack {token}",
+            "quantity_used": 20.0,
+        }
+    ]
+
+    pack_trace = remediation_client.get(
+        f"/trace/batch/{lots['pack']['code']}",
+        params={"product_id": product_ids["pack"]},
+    )
+    assert pack_trace.status_code == 200, pack_trace.text
+    shipment_ids = [
+        row["transaction_id"] for row in pack_trace.json()["customer_shipments"]
+    ]
+    assert shipment_ids == [expected_ship_id]
+    assert not set(shipment_ids) & set(other_ship_ids)
+
+
+@pytest.mark.db
 def test_sales_order_shipment_history_excludes_correction_voids(
     _db_connection, remediation_client
 ):

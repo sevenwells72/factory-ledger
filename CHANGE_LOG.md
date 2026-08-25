@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-25 13:10 — Fixed forward trace from batch/output lots (PR branch; NOT deployed)
+- **File(s) changed:** `main.py`, `tests/test_batch1_correctness_security.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `~/change-log.md`
+- **What changed:** In `trace_ingredient`, output lots now run the same posted `ingredient_lot_consumption` downstream query as ingredient lots, keyed strictly by `ilc.ingredient_lot_id = lot['id']`; `used_in_batches` therefore exposes the finished-goods lots produced by pack transactions. Added a DB-backed collision regression with two products sharing `AUG 21 2026`: the selected Classic batch lot returns only its Classic pack output, following that output returns its shipment/customer, and two coconut-lineage shipments are excluded. Full suite: **230 passed, 192 warnings**. Read-only production verification: Batch Classic Granola #9 lot **1318** resolves to pack txn **2093** and Granola Classic 25 LB lot **1326** (SKU 70050); txns **2087/2090** are SKU 10010 coconut deductions from lot **1321** and are excluded. Lot 1326 currently has no posted shipments, so the live customer list is correctly empty until it ships.
+- **Why:** The output-lot branch hard-coded `batches = []` even though pack writes batch-lot consumption rows, causing the dashboard's forward graph to stop before pack → ship → customer. No schema, migration, dashboard, deployment, production write, or GPT schema change.
+
+---
+
 ## 2026-08-24 14:27 — 044 series DEPLOYED (push 35e3171; Railway 14:17:27, Netlify by 14:16:47)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (deploy record, row 98)
 - **What changed:** Pushed `4d9a196..35e3171` to origin/main with owner approval. Railway auto-deploy served the new code at 14:17:27 (fulfillment-check `dispatch_ready` shape); Netlify live `dashboard.js` byte-identical to `35e3171` (v=37, Railway `SALES_API_BASE`). Read-only smoke with the dashboard key only: orders list/detail/fulfillment-check/allocations all 200; 19 open-set orders, 0 dispatch_ready; blocker codes unallocated/shortage/not_floor_ready/fulfillment_diverged; prod allocations count 0; no-key 401 / wrong-key 403. No prod SQL, no prod writes.

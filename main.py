@@ -6822,22 +6822,21 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                         } for r in cur.fetchall()
                     ]
 
-                batches = []  # output lots aren't consumed as ingredients
             else:
                 upstream_ingredients = None
 
-                # Production consumption
-                cur.execute("""
-                    SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
-                    FROM ingredient_lot_consumption ilc
-                    JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
-                    JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
-                    JOIN lots bl ON bl.id = tl.lot_id
-                    JOIN products bp ON bp.id = bl.product_id
-                    WHERE ilc.ingredient_lot_id = %s
-                      AND t.effective_status = 'posted'
-                """, (lot['id'],))
-                batches = cur.fetchall()
+            # Production/pack consumption, keyed by lot id because lot codes can collide.
+            cur.execute("""
+                SELECT DISTINCT bl.lot_code as batch_lot, bp.name as batch_product, ilc.quantity_lb as quantity_consumed
+                FROM ingredient_lot_consumption ilc
+                JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+                JOIN lots bl ON bl.id = tl.lot_id
+                JOIN products bp ON bp.id = bl.product_id
+                WHERE ilc.ingredient_lot_id = %s
+                  AND t.effective_status = 'posted'
+            """, (lot['id'],))
+            batches = cur.fetchall()
 
             # Direct shipments (ship transactions that deducted from this lot)
             cur.execute("""
