@@ -3990,3 +3990,9 @@ ALTER TABLE ONLY public.transactions
 --
 
 \unrestrict lLAWZcgkJFF1oXCgBXDD1uTvn4qEZYTsQa6SYb9objg1ubWzjefTNcURoaQtZPw
+
+-- ═══ PENDING MIGRATION 047 (lot identity) ═══
+-- Not yet applied to prod. Remove this block after migrations/047_lot_identity.sql
+-- is applied to production and the schema is re-dumped via scripts/dump_prod_schema.sh
+-- (same pattern as the 041 pending block, removed 2026-08-18).
+\ir ../../migrations/047_lot_identity.sql
