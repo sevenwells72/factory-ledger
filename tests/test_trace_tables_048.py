@@ -1,6 +1,6 @@
 """Migration 048 (trace tables — TRACEABILITY_DESIGN.md §3.2/§3.3, §9 step 2)
-coverage. Schema only: no emission code exists yet, so every test drives the
-tables directly with SQL.
+coverage. Every test here drives the tables directly with SQL — endpoint
+emission coverage (§9 step 3) lives in test_trace_emission.py.
 
 1. Migration application: applies cleanly on a fresh DB (post-047 schema.sql
    base) and re-runs as a no-op.
@@ -38,8 +38,18 @@ ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = ROOT / "tests" / "schema" / "schema.sql"
 MIGRATION_048 = ROOT / "migrations" / "048_trace_tables.sql"
 
-# schema.sql is a post-047 (pre-048) prod dump, so a scratch build needs no
-# revert step: load the schema, then apply 048 on top.
+# schema.sql is now a post-048 prod dump, so scratch builds revert the 048
+# objects to reconstruct a pre-048 base — the migration is then applied ON
+# TOP of it, which is what these tests exist to prove (same move as
+# test_lot_identity_047.py's REVERT_047_SQL). Dropping the tables also drops
+# their triggers. ledger_enforce_created_at is deliberately NOT reverted to
+# its 046 body: 048 replaces it with CREATE OR REPLACE regardless, and its
+# post-048 body is inert while the trace tables are absent (the trace
+# branches key on TG_TABLE_NAME).
+REVERT_048_SQL = """
+DROP TABLE IF EXISTS public.trace_event_lots;
+DROP TABLE IF EXISTS public.trace_events;
+"""
 
 
 def _psql():
@@ -77,6 +87,8 @@ def _scratch_setup():
         assert proc.returncode == 0, proc.stderr
         proc = _run(url, "-f", str(SCHEMA))
         assert proc.returncode == 0, f"schema load failed:\n{proc.stderr}"
+        proc = _run(url, "-c", REVERT_048_SQL)
+        assert proc.returncode == 0, f"pre-048 revert failed:\n{proc.stderr}"
         return db_name, url
 
     def apply_048(url):
