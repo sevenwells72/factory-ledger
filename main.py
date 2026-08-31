@@ -5634,6 +5634,14 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     manual_excluded_ids = set(req.excluded_ingredients or [])
                     auto_excluded_ids = set()
 
+                    # Serialize make commits with each other for lot-code
+                    # generation (receive holds advisory lock 1, found-inventory
+                    # holds 2). Without this, two concurrent makes read the same
+                    # MAX sequence and mint identical B-codes — and for the same
+                    # product, find_or_create_lot's ON CONFLICT DO NOTHING
+                    # silently folds two production runs into one lot.
+                    cur.execute("SELECT pg_advisory_xact_lock(3)")
+
                     if req.lot_code:
                         lot_code = req.lot_code
                     else:
