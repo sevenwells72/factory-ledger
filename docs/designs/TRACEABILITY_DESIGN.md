@@ -78,28 +78,45 @@ ALTER TABLE lots ADD CONSTRAINT lots_lot_uuid_key UNIQUE (lot_uuid);
 - The **UUID is the machine identity** (QR payload, API scan key). It is minted once, survives `PATCH /lots/{lot_id}/rename`, and is never ambiguous.
 - The **code stays human**: `UNIQUE (product_id, lot_code)` (already exists, `lots_product_id_lot_code_key`) remains the only code constraint that is *true* in this domain — `/pack` legitimately reuses the batch lot's code across FG SKUs, so global code uniqueness would break the plant's actual labeling practice. Every code-based lookup must carry `product_id` (the API already 409s `ambiguous_lot_code` without it).
 
-Additional DB-level collision hardening (all safe against the 159 existing collisions because they constrain **new rows only** or normalize within the existing key):
+Additional DB-level collision hardening — a **two-tier scheme** (safe against the 159 existing collisions because it constrains **new rows only** or normalizes within the existing key; tier choice validated against full lot history 2026-08-31, evidence below):
+
+**Tier 1 — HARD unique index (blocks the write).** Case + whitespace normalization plus the trailing `LOT` noise-token strip — the strongest normalization the historical data affirmatively supports for a blocking constraint:
 
 ```sql
--- Code twins within one product ("APR 10 2026 Lot" vs "APR 10 2026", "JUL15 2026" vs
--- "JUL 15 2026", "BB041327 Lot" vs "BB041327"): normalize by upper-casing, dropping a
--- trailing 'LOT' noise token, and stripping all whitespace and punctuation ([./#-] etc.)
--- so spacing/punctuation variants of the same physical lot collide at mint time.
+-- Code twins within one product ("APR 10 2026 Lot" vs "APR 10 2026", "BB041327 Lot" vs
+-- "BB041327"): upper-case, trim + collapse internal whitespace, drop a trailing 'LOT'
+-- noise token, so casing/spacing/'Lot'-suffix variants of the same physical lot
+-- collide at mint time.
 -- Merged lots keep their lot_code (merge sets status='merged' without renaming), so the
 -- index MUST exclude them — otherwise the first twin-merge leaves a colliding merged row
 -- that makes the index impossible to build and future twin-merges impossible to complete.
 CREATE UNIQUE INDEX lots_product_code_norm_uniq
     ON lots (product_id,
              regexp_replace(
-                 regexp_replace(upper(btrim(lot_code)), '\s+LOT$', ''),  -- trailing 'LOT' token
-                 '[^A-Z0-9]', '', 'g'))                                  -- whitespace + [./#-] etc.
+                 regexp_replace(upper(btrim(lot_code)), '\s+', ' ', 'g'),  -- case + whitespace
+                 '\s+LOT$', ''))                                           -- trailing 'LOT' token
     WHERE status IS DISTINCT FROM 'merged';
--- Step-0 dry run, 2026-08-31 (docs/trace-preclean-worklist-2026-08.md): 0 violations of the
--- originally proposed case/whitespace-only index (the "expected ≈3" APR 10 2026 twins are
--- cross-product and never violated the per-product index); the stronger normalization above
--- found 2 within-product twin groups (1003/999 on product 107, 401/410 on product 145),
--- both merged pre-047.
+```
 
+**Tier 2 — SOFT mint-time warning (never blocks the write).** The full aggressive normalization — tier 1 plus stripping *all* remaining non-alphanumerics (internal whitespace and punctuation `[./#-]` etc.) — moves out of the constraint and into detection. At every code-minting path (`/receive`, `/make`, `/pack`, found-inventory entry), if the new code's aggressive key matches an existing non-merged lot of the same product while their tier-1 keys differ, the write **succeeds** and the API response carries a `suspicious_code_similarity` warning naming the near-twin lot; the §8 T2 integrity check lists all such within-product near-twin pairs for human review (→ `/admin/lots/merge` when they turn out to be real twins).
+
+```sql
+-- SOFT key (warning + §8 T2 report only — never a unique index or constraint):
+regexp_replace(
+    regexp_replace(upper(btrim(lot_code)), '\s+LOT$', ''),
+    '[^A-Z0-9]', '', 'g')
+```
+
+**Why the split — validation evidence (2026-08-31, read-only sweep of all 1,048 historical lots, all statuses incl. the 2 merged, all products):**
+
+- *Case + whitespace-collapse tier:* **0** within-product collision groups anywhere in history.
+- *+ trailing-LOT strip (= the tier-1 index):* exactly **1** additional group — `BB041327 Lot` / `BB041327` (product 145, lots 401/410), both house `pack_output` codes, a confirmed twin already merged in step-0. Under the index's non-merged predicate: **0** violations — the tier-1 index builds clean today.
+- *Full aggressive tier:* exactly **1** further group — `JUL15 2026` / `JUL 15 2026` (product 107, lots 999/1003), both house `production_output`, also a confirmed step-0-merged twin. A punctuation-only variant (strip `[./#-]` but keep whitespace) creates **0** additional groups; the aggressive tier's extra catch came entirely from internal-whitespace removal.
+- *Supplier-assigned codes:* **no tier collapses any pair of supplier-entered lots** (`received` + `found_inventory`, 314 lots), and the `lots.supplier_lot_code` side-channel (112 real values; `lot_supplier_codes` table is empty) has **0** aggressive-key twins. So no plausibly-distinct supplier pair is collapsed — but this is *vacuous* rather than affirmative evidence for punctuation-stripping: 273 of the punctuation-bearing supplier/manual codes are house-format receiving codes (`26-01-28-DUTV-001` style, where dash-stripping is harmless), only ~43 lot codes are genuinely supplier-style (bare numerics like `25120`, `261212585122`), and almost none carry punctuation. The punctuation rule has effectively never been exercised by a real supplier code.
+- Every real twin the stronger tiers ever caught was **house-generated**, and the generator races that minted those twins are being closed separately (advisory lock 3, suffix-safe probe). A future supplier pair like `1234-1` vs `123-41` would be collapsed — and the receive **hard-blocked at the dock** — by an aggressive unique index, with zero historical precedent to justify that risk. Blocking a legitimate receive is the costlier failure mode; promoting the soft key into the hard index later (if T2 stays quiet) is a cheap follow-up migration, while demoting it after a dock incident is not. Hence: aggressive = warn, never block.
+- Step-0 pre-clean cross-check (`docs/trace-preclean-worklist-2026-08.md`): the 2 twin groups found there are exactly the 2 groups above, both merged pre-047; the "expected ≈3" APR 10 2026 twins are cross-product and never violated any per-product tier.
+
+```sql
 -- Format discipline for newly minted codes, without invalidating history:
 ALTER TABLE lots ADD CONSTRAINT lots_code_format_chk
     CHECK (lot_code ~ '^[A-Z0-9][A-Z0-9 ./#-]{2,49}$' AND lot_code !~ '(ENE|ABR|AGO|DIC|SET) ')
@@ -325,7 +342,7 @@ Already designed into §3.2; summarized as policy:
 | M2 | **Mass balance — batch lots** | produced(output) − packed(inputs of pack events) ± adjusts = remaining. |
 | M3 | **Mass balance — FG lots** | packed(output) − shipped ± adjusts = remaining. |
 | T1 | Timeliness | `late_recorded` events by type/operator; `entry_backfilled` split out. Informational. |
-| T2 | Code hygiene | new lots violating the normalized-uniq/format rules (should be impossible post-migration; belt-and-braces). |
+| T2 | Code hygiene | Two parts, mirroring §3.1's two tiers. (a) *Hard-rule violations:* new lots violating the tier-1 normalized-uniq or format rules (should be impossible post-047; belt-and-braces). (b) **Near-twin listing (soft tier):** within-product non-merged lot pairs whose §3.1 aggressive keys match while their tier-1 keys differ — i.e. codes differing only by internal whitespace/punctuation — the same population the mint-time `suspicious_code_similarity` API warning fires on. Listed with lot ids/codes/`entry_source` for human review (→ `/admin/lots/merge` for real twins); informational, never blocks a write and never fails the report. Historical baseline at design time: 0 pairs (both known twins merged in step-0). |
 | E1 | **Scan sync exceptions** | open entries in the offline-scan exceptions queue (§6.5) — synced scans rejected by server-side validation, awaiting replay or dismissal. Reported with payload/device/occurred_at drill-down; counts as a failing class while any remain open (a rejected scan is a real physical event the ledger hasn't recorded). |
 
 M1–M3 are the requirement's mass-balance identity split by lot tier; because trace quantities mirror `transaction_lines` (R2) and on-hand is `lot_on_hand()` over the same lines, M-checks catch *semantic* holes (missing events, wrong roles) rather than arithmetic drift.
@@ -335,7 +352,7 @@ M1–M3 are the requirement's mass-balance identity split by lot tier; because t
 ## 9. Migration & backfill plan (sequenced; each step separately approvable per house rules)
 
 0. **Pre-clean (data-only, no DDL):** DONE 2026-08-31 — `docs/trace-preclean-worklist-2026-08.md`. (a) Twin dry run: **0 violations** of the original case/whitespace-only index; **2 within-product twin groups** under the stronger §3.1 normalization (1003→999 product 107, 401→410 product 145), merged via `/admin/lots/merge` with per-merge owner approval. (b) ILC-less pack census (full history, not the 90-day audit window): **8 posted + 1 voided** legacy packs in two shapes — txns 1964/1966 (lines but no ILC mirror) and Feb-05 txns 77/78/94/95/97/98 (no ILC, no FG output line) — annotated in the worklist as the approved grandfather population; the marker itself is applied by step 4.
-1. **Migration 047 — identity:** `lots.lot_uuid` + unique; normalized unique index; `NOT VALID` format CHECK. (Backfills UUIDs via default on ADD COLUMN; table is small — ~1.3k rows.)
+1. **Migration 047 — identity:** `lots.lot_uuid` + unique; **tier-1** normalized unique index (§3.1 hard tier — case/whitespace/trailing-LOT only); `NOT VALID` format CHECK. (Backfills UUIDs via default on ADD COLUMN; table is small — ~1.3k rows.) The §3.1 tier-2 `suspicious_code_similarity` warning is API code, not DDL — it ships with the mint-path/emission changes (step 3 at the latest).
 2. **Migration 048 — trace tables:** `trace_events`, `trace_event_lots`, indexes, append-only + created_at triggers. Zero rows, zero behavior.
 3. **Deploy emission code** (all 6 hook sites + `emit_trace_event`, fail-hard). From this moment forward-writes are dual. Smoke: one make on prod, verify event + roles.
 4. **Backfill script** (idempotent, keyed on `transaction_id`): walk `ledger_current_transactions` **base rows** (all statuses — void markers come from `ledger_corrections` replay) ordered by id; synthesize events per §4's table. Sources: `transaction_lines` for roles/quantities, `ingredient_lot_consumption` for inputs, `shipments`/`sales_order_shipments` for customer/SO ids, `shipper_name`/`customer_name` for parties. Time columns: `occurred_at` from the transaction; `recorded_at` from `created_at` **where `created_at_source='database'`**, else from legacy `"timestamp"` (the 039 backfill stamped `created_at` with the migration time — using it would mark 500+ historical rows falsely late); `created_at_source='trace_backfill_048'` on every synthesized row (the append-only trigger's created_at enforcement needs the same `api_backfill`-style carve-out 046 used — noted in the migration). For the 9 legacy ILC-less packs the backfill **synthesizes what actually exists**: txns 1964/1966 get `input` rows taken from their negative `transaction_lines` (quantities are right there — real genealogy preserved, no ILC needed); the Feb-05 six (77/78/94/95/97/98) get their input side from lines but **no `output` row** (none was ever posted). All 9 carry the `trace_backfill_048` marker. |

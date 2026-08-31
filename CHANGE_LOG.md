@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-31 14:04 — Traceability design: two-tier lot-code normalization (hard index vs soft T2 warning)
+- **File(s) changed:** `docs/designs/TRACEABILITY_DESIGN.md`
+- **What changed:** §3.1 restructured into a two-tier scheme: the HARD unique index `lots_product_code_norm_uniq` weakens to case + whitespace-collapse + trailing-'LOT'-strip (was: strip all non-alphanumerics incl. punctuation); the full aggressive normalization moves to a SOFT tier — mint-time `suspicious_code_similarity` API warning + §8 T2 near-twin listing, never blocking a write. Recorded the 2026-08-31 read-only validation evidence (all 1,048 lots, all statuses/products): 0 collisions at case+whitespace; 1 group at +trailing-LOT (BB041327 pair, house pack_output, already merged) and 1 more at full aggressive (JUL15 2026 pair, house production_output, already merged) — 0 index violations under the non-merged predicate; zero supplier-entered pairs collapsed at any tier, but punctuation-bearing genuine supplier codes are nearly absent (evidence vacuous), so punctuation-stripping stays soft. §8 T2 split into hard-rule violations + informational near-twin listing; §9 step 1 scoped to the tier-1 index with the tier-2 warning shipping as API code.
+- **Why:** Validate §3.1's strengthened normalization against full history before migration 047 makes it a hard unique index; aggressive stripping had zero exercised evidence on real supplier codes and its over-collapse failure mode would hard-block legitimate receives at the dock.
+
+---
+
 ## 2026-08-31 13:52 — Approved lot twin merges executed + receipts appended to worklist
 - **File(s) changed:** `docs/trace-preclean-worklist-2026-08.md`, `FACTORY_LEDGER_CHANGELOG.md` (row 107)
 - **What changed:** Ran the two owner-approved hygiene merges against production via `POST /admin/lots/merge`, one at a time with read-only verification after each: 1003 `JUL 15 2026` → 999 `JUL15 2026` (Batch Classic Granola #9, merged_at 2026-08-31 17:49:06Z, line corrections 0f144ec0…/8b994421…) and 401 `BB041327 Lot` → 410 `BB041327` (SS Chocolate Chip case, merged_at 17:49:25Z, corrections 822671b9…/b8f77428…). Verified: sources status='merged' with merged_into_lot_id set and 0 residual effective lines; survivor histories intact + absorbed (6 posted lines each); on-hand unchanged (all zero); ILC unchanged; 0 allocation moves. Post-merge strengthened normalized-index dry run: 0 within-product twin groups. Appended §4 merge receipts to the worklist (worklist NOT committed, per instruction).
