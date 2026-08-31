@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-31 12:06 — Problem 1: audit inserts wrapped in savepoints (branch fix/audit-insert-savepoints, NOT pushed)
+- **File(s) changed:** `main.py`, `tests/test_audit_savepoints_lotcodes.py` (new)
+- **What changed:** New helper `best_effort_audit_insert(cur, table_label, sql, params, returning=False)` runs each best-effort audit INSERT inside a `SAVEPOINT audit_insert_sp`: a DB-level failure (constraint, value-too-long, NOT NULL) rolls back only the audit row and can no longer abort the surrounding transaction — previously the abort made `get_db_connection()`'s `conn.commit()` a silent ROLLBACK while the endpoint returned `success: true` (2026-08-25 audit, Risk notes §3, empirically confirmed). Failures are now logged at ERROR (`AUDIT_INSERT_FAILED …`, previously `except: pass` at two sites) and surfaced as an additive `audit_warning` response field. Converted all four sites: `product_verification_history` in `/products/quick-create` and `/products/{id}/verify`, `lot_reassignments` in `/lots/{lot_id}/reassign`, `inventory_adjustments` in `/inventory/found`. Also closed the §3 coverage gap: `/inventory/found-with-new-product` now writes an `inventory_adjustments` row (same savepoint protection). New tests (8): each endpoint's primary write survives a forced audit failure (over-length varchar via unbounded request strings — the audit's reachable failure vector) with `audit_warning` present and zero audit rows; happy paths still write audit rows with no warning; the new-product found path now has an adjustment row. Verified the 5 fix-dependent tests fail against pre-fix main.py ("current transaction is aborted"). Suite 252 passed.
+- **Why:** Problem 1 of the 2026-08-25 data-entry audit — a failed audit insert silently discarded the primary write while reporting success.
+
+---
+
 ## 2026-08-31 11:51 — Committed the 8/25 data-entry audit work (local commit on main, NOT pushed)
 - **File(s) changed:** `docs/data-entry-inventory.md`, `CHANGE_LOG.md` (git commit only — no content changes beyond this entry)
 - **What changed:** Committed the previously uncommitted 2026-08-25 read-only audit work on `main` (ahead of origin/main by 1, awaiting push approval): `docs/data-entry-inventory.md` (write-endpoint inventory + Problems 1–3 risk notes) and its two pending CHANGE_LOG entries (15:10 and 15:19 below). Staged only those two files; `.venv-test`/`.venv-test.nosync/` left untracked. No push, no code/schema/data changes.

@@ -1997,6 +1997,33 @@ def get_transaction():
             yield cur
 
 
+def best_effort_audit_insert(cur, table_label, sql, params, returning=False):
+    """Run an audit-trail INSERT without endangering the primary write.
+
+    The insert runs inside a SAVEPOINT: a DB-level failure (constraint,
+    value-too-long, NOT NULL) rolls back only the audit row. Without the
+    savepoint, the failed statement aborts the whole transaction and
+    get_db_connection()'s commit silently becomes a ROLLBACK while the
+    endpoint still reports success — the primary write vanishes.
+
+    Returns (row, error_message): row is the RETURNING row when requested
+    (None on failure), error_message is None on success. Callers should put
+    a non-None error_message into the response so the failure is surfaced.
+    """
+    cur.execute("SAVEPOINT audit_insert_sp")
+    try:
+        cur.execute(sql, params)
+        row = cur.fetchone() if returning else None
+        cur.execute("RELEASE SAVEPOINT audit_insert_sp")
+        return row, None
+    except Exception as e:
+        cur.execute("ROLLBACK TO SAVEPOINT audit_insert_sp")
+        cur.execute("RELEASE SAVEPOINT audit_insert_sp")
+        msg = f"audit record not written to {table_label}: {e}"
+        logger.error(f"AUDIT_INSERT_FAILED {msg} (primary write preserved)")
+        return None, msg
+
+
 READONLY_PROBE_SQL = """
 SELECT
   current_setting('default_transaction_read_only') AS default_ro,
@@ -7764,17 +7791,18 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
                 """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes, verification_notes_es))
                 product = cur.fetchone()
 
-                try:
-                    cur.execute("""
+                _, audit_error = best_effort_audit_insert(
+                    cur, "product_verification_history",
+                    """
                         INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, action_notes_es, performed_by)
                         VALUES (%s, NULL, 'unverified', 'created', %s, %s, %s)
-                    """, (product['id'], f"Quick-created during receive. {verification_notes}", verification_notes_es, req.performed_by))
-                except Exception:
-                    pass
+                    """,
+                    (product['id'], f"Quick-created during receive. {verification_notes}", verification_notes_es, req.performed_by),
+                )
 
                 logger.info(f"Quick-created product: {product['name']} (ID: {product['id']})")
 
-                return {
+                response = {
                     "success": True,
                     "product_id": product['id'],
                     "product_name": product['name'],
@@ -7782,6 +7810,9 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
                     "verification_status": product['verification_status'],
                     "message": f"Created '{product['name']}' - flagged for verification"
                 }
+                if audit_error:
+                    response["audit_warning"] = audit_error
+                return response
     except HTTPException:
         raise
     except Exception as e:
@@ -7929,21 +7960,21 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     for line_id in affected_line_ids
                 ]
                 
-                reassignment_id = None
-                try:
-                    cur.execute("""
+                _hist, audit_error = best_effort_audit_insert(
+                    cur, "lot_reassignments",
+                    """
                         INSERT INTO lot_reassignments
                         (lot_id, lot_code, from_product_id, from_product_name, to_product_id, to_product_name,
                          quantity_affected, uom, reason_code, reason_notes, reason_notes_es, reassigned_by)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
-                    """, (lot_id, lot['lot_code'], lot['product_id'], lot['product_name'],
-                          req.to_product_id, to_product['name'], float(lot['quantity_on_hand']), 'lb',
-                          req.reason_code, req.reason_notes, req.reason_notes_es, req.performed_by))
-                    _hist = cur.fetchone()
-                    reassignment_id = _hist['id'] if _hist else None
-                except Exception as e:
-                    logger.warning(f"Failed to record lot reassignment history: {e}")
+                    """,
+                    (lot_id, lot['lot_code'], lot['product_id'], lot['product_name'],
+                     req.to_product_id, to_product['name'], float(lot['quantity_on_hand']), 'lb',
+                     req.reason_code, req.reason_notes, req.reason_notes_es, req.performed_by),
+                    returning=True,
+                )
+                reassignment_id = _hist['id'] if _hist else None
 
                 logger.info(f"Reassigned lot {lot['lot_code']} from {lot['product_name']} to {to_product['name']}")
 
@@ -7963,6 +7994,8 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     response["reason_notes"] = req.reason_notes
                 if req.reason_notes_es:
                     response["reason_notes_es"] = req.reason_notes_es
+                if audit_error:
+                    response["audit_warning"] = audit_error
                 return response
     except HTTPException:
         raise
@@ -8037,21 +8070,22 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, req.product_id, lot_id, req.quantity))
 
-                try:
-                    cur.execute("""
+                _, audit_error = best_effort_audit_insert(
+                    cur, "inventory_adjustments",
+                    """
                         INSERT INTO inventory_adjustments
                         (lot_id, product_id, adjustment_type, quantity_before, quantity_adjustment, quantity_after,
                          uom, reason_code, reason_notes, reason_notes_es, found_location, estimated_age, suspected_supplier, adjusted_by)
                         VALUES (%s, %s, 'found', 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (lot_id, req.product_id, req.quantity, req.quantity, req.uom,
-                          req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
-                          req.suspected_supplier, req.performed_by))
-                except Exception as e:
-                    logger.warning(f"Failed to record inventory adjustment: {e}")
-                
+                    """,
+                    (lot_id, req.product_id, req.quantity, req.quantity, req.uom,
+                     req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
+                     req.suspected_supplier, req.performed_by),
+                )
+
                 logger.info(f"Added found inventory: {lot_code} - {req.quantity} {req.uom} of {product['name']}")
-                
-                return {
+
+                response = {
                     "success": True,
                     "lot_id": lot_id,
                     "lot_code": lot_code,
@@ -8061,6 +8095,9 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                     "entry_source": "found_inventory",
                     "message": f"Added {req.quantity} {req.uom} of {product['name']} as lot {lot_code}"
                 }
+                if audit_error:
+                    response["audit_warning"] = audit_error
+                return response
     except HTTPException:
         raise
     except Exception as e:
@@ -8132,10 +8169,26 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, product['id'], lot_id, req.quantity))
-                
+
+                # Coverage gap closed (2026-08-25 audit): this path previously
+                # wrote no inventory_adjustments row at all, so found events
+                # through it were invisible to the adjustments audit trail.
+                _, audit_error = best_effort_audit_insert(
+                    cur, "inventory_adjustments",
+                    """
+                        INSERT INTO inventory_adjustments
+                        (lot_id, product_id, adjustment_type, quantity_before, quantity_adjustment, quantity_after,
+                         uom, reason_code, reason_notes, reason_notes_es, found_location, estimated_age, suspected_supplier, adjusted_by)
+                        VALUES (%s, %s, 'found', 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (lot_id, product['id'], req.quantity, req.quantity, req.uom,
+                     req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
+                     req.suspected_supplier, req.performed_by),
+                )
+
                 logger.info(f"Created product and found inventory: {product['name']} - {lot_code}")
-                
-                return {
+
+                response = {
                     "success": True,
                     "product_id": product['id'],
                     "product_name": product['name'],
@@ -8145,6 +8198,9 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     "quantity": req.quantity,
                     "message": f"Created '{product['name']}' and added {req.quantity} {req.uom} as lot {lot_code}"
                 }
+                if audit_error:
+                    response["audit_warning"] = audit_error
+                return response
     except HTTPException:
         raise
     except Exception as e:
@@ -8219,17 +8275,18 @@ def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends
                 else:
                     raise HTTPException(status_code=400, detail=f"Invalid action: {req.action}")
 
-                try:
-                    cur.execute("""
+                _, audit_error = best_effort_audit_insert(
+                    cur, "product_verification_history",
+                    """
                         INSERT INTO product_verification_history (product_id, from_status, to_status, action, action_notes, action_notes_es, performed_by)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, (product_id, old_status, new_status, req.action, req.notes, req.notes_es, req.performed_by))
-                except Exception:
-                    pass
-                
+                    """,
+                    (product_id, old_status, new_status, req.action, req.notes, req.notes_es, req.performed_by),
+                )
+
                 logger.info(f"Product {product_id} {req.action}: {old_status} -> {new_status}")
-                
-                return {
+
+                response = {
                     "success": True,
                     "product_id": product_id,
                     "action": req.action,
@@ -8237,6 +8294,9 @@ def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends
                     "to_status": new_status,
                     "message": f"Product {req.action}d successfully"
                 }
+                if audit_error:
+                    response["audit_warning"] = audit_error
+                return response
     except HTTPException:
         raise
     except Exception as e:
