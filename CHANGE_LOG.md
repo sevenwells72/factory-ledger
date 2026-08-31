@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-31 15:25 — Migration 048: trace tables (branch feat/048-trace-tables, schema only, not applied to prod)
+- **File(s) changed:** `migrations/048_trace_tables.sql`, `tests/test_trace_tables_048.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 109)
+- **What changed:** New migration per TRACEABILITY_DESIGN §3.2/§3.3 (§9 step 2): `trace_events` (correction-pairing CHECK, generated 24 h `late_recorded` flag, UNIQUE NULLS NOT DISTINCT on (transaction_id, event_type, correction_id) — deviation from the doc's plain UNIQUE, which never fires for NULL correction_ids — and the three design indexes) + `trace_event_lots` (role CHECK, `tel_role_sign` sign convention, (event, lot, role) unique, both indexes). Both tables carry the 039 created_at-enforcement and append-only triggers; `ledger_enforce_created_at` replaced (046's api_backfill pattern) to add the `trace_backfill_048` provenance carve-out, which on trace_events also unlocks a caller-supplied historical `recorded_at` for the §9 step-4 backfill (all other inserts get it forced to clock_timestamp()). No emission code, no main.py changes — deploys inert. 40 new tests (fresh apply + re-run no-op, constraint matrix, 24 h boundary, append-only, carve-out isolation, FK integrity); suite 320/320.
+- **Why:** §9 step 2 of the trace migration plan — the tables must exist (as a zero-risk deploy) before the step-3 emission hooks and step-4 backfill can land.
+
+---
+
 ## 2026-08-31 14:47 — Schema re-dump post-047; pending include dropped; scratch tests build pre-047 base by revert
 - **File(s) changed:** `tests/schema/schema.sql`, `tests/test_lot_identity_047.py`
 - **What changed:** Ran `scripts/dump_prod_schema.sh` — schema.sql is now a fresh post-047 prod dump (4,028 lines, zero data rows) carrying lot_uuid, `lots_product_code_norm_uniq`, and the NOT VALID `lots_code_format_chk` natively; the pending `\ir` 047 block is gone (overwritten by the dump). The scratch-DB migration tests previously reconstructed a pre-047 base by stripping that pending block — with 047 baked into the dump they now revert the three 047 objects (drop CHECK, UNIQUE, index, lot_uuid column) after loading the schema, then seed historical shapes and apply the migration on top, preserving the applies-cleanly coverage. Test DB rebuilt --fresh from the new dump; suite 280/280.
