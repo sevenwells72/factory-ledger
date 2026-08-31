@@ -81,10 +81,24 @@ ALTER TABLE lots ADD CONSTRAINT lots_lot_uuid_key UNIQUE (lot_uuid);
 Additional DB-level collision hardening (all safe against the 159 existing collisions because they constrain **new rows only** or normalize within the existing key):
 
 ```sql
--- Case/whitespace twins ("APR 10 2026 Lot" vs "APR 10 2026") within one product:
+-- Code twins within one product ("APR 10 2026 Lot" vs "APR 10 2026", "JUL15 2026" vs
+-- "JUL 15 2026", "BB041327 Lot" vs "BB041327"): normalize by upper-casing, dropping a
+-- trailing 'LOT' noise token, and stripping all whitespace and punctuation ([./#-] etc.)
+-- so spacing/punctuation variants of the same physical lot collide at mint time.
+-- Merged lots keep their lot_code (merge sets status='merged' without renaming), so the
+-- index MUST exclude them — otherwise the first twin-merge leaves a colliding merged row
+-- that makes the index impossible to build and future twin-merges impossible to complete.
 CREATE UNIQUE INDEX lots_product_code_norm_uniq
-    ON lots (product_id, upper(regexp_replace(btrim(lot_code), '\s+', ' ', 'g')));
--- NOTE: 3 pre-existing violations must be merged first (§9 step 0 lists them via a dry-run query).
+    ON lots (product_id,
+             regexp_replace(
+                 regexp_replace(upper(btrim(lot_code)), '\s+LOT$', ''),  -- trailing 'LOT' token
+                 '[^A-Z0-9]', '', 'g'))                                  -- whitespace + [./#-] etc.
+    WHERE status IS DISTINCT FROM 'merged';
+-- Step-0 dry run, 2026-08-31 (docs/trace-preclean-worklist-2026-08.md): 0 violations of the
+-- originally proposed case/whitespace-only index (the "expected ≈3" APR 10 2026 twins are
+-- cross-product and never violated the per-product index); the stronger normalization above
+-- found 2 within-product twin groups (1003/999 on product 107, 401/410 on product 145),
+-- both merged pre-047.
 
 -- Format discipline for newly minted codes, without invalidating history:
 ALTER TABLE lots ADD CONSTRAINT lots_code_format_chk
@@ -304,7 +318,7 @@ Already designed into §3.2; summarized as policy:
 | R1 | Coverage | every posted-effective transaction of the 5 types has exactly its expected `trace_events` row(s); every trace event has a live parent transaction. (Guards forgotten emission hooks and drift.) |
 | R2 | Quantity mirror | per (transaction, lot): Σ`trace_event_lots.quantity_lb` = Σ posted `transaction_lines.quantity_lb`; make/pack inputs match `ingredient_lot_consumption`. |
 | O1 | **Orphan lots** | lots with any outbound/consumption event but **no origin event** (`received`/`output`/positive `adjusted`). `entry_source='found_inventory'` lots *with* their found-adjust origin are **explained** — reported informationally, not failures (this is the CC-2 population: `25120`, `6013`, the FOUND-series). A lot with no origin event at all is unexplained → FAIL. |
-| O2 | **Outputs with no inputs** | transformation events (`make`/`pack`) having an `output` row but zero `input` rows (the 2 known ILC-less packs are the seed population; grandfathered by backfill marker, new occurrences FAIL). |
+| O2 | **Outputs with no inputs** | transformation events (`make`/`pack`) having an `output` row but zero `input` rows. Grandfathered seed population = the **8 posted + 1 voided legacy ILC-less packs** (full-history census, §9 step 0 — the old "2 known" figure was the 90-day-windowed audit count), in two shapes: (i) txns **1964, 1966** — batch debits exist in `transaction_lines` but have no ILC mirror; (ii) Feb-05 txns **77, 78, 94, 95, 97, 98** — single negative batch line, no ILC *and no FG output line at all*. The backfill synthesizes whatever each shape actually has and marks every synthesized row `created_at_source='trace_backfill_048'`; O2 exempts marked events and FAILs on any unmarked occurrence. |
 | O3 | **Shipments with no source lot** | `ship` events with zero `shipped` rows, or shipped lots with no origin event. |
 | O4 | **Consumption from nonexistent inventory** | `input`/`shipped` rows whose lot has no prior positive event, or whose cumulative lot balance (by `occurred_at`) goes negative at the event. |
 | M1 | **Mass balance — ingredient lots** | per lot: received − consumed(inputs) − |negative adjusts| + positive adjusts = on-hand (`lot_on_hand()`); tolerance 0.01 lb. |
@@ -320,12 +334,12 @@ M1–M3 are the requirement's mass-balance identity split by lot tier; because t
 
 ## 9. Migration & backfill plan (sequenced; each step separately approvable per house rules)
 
-0. **Pre-clean (data-only, no DDL):** dry-run query listing (a) violations of the normalized-code unique index within one product (expected ≈3, e.g. `APR 10 2026 Lot` twins) → merge via `/admin/lots/merge`; (b) the 2 ILC-less packs → annotate. Owner approves each merge.
+0. **Pre-clean (data-only, no DDL):** DONE 2026-08-31 — `docs/trace-preclean-worklist-2026-08.md`. (a) Twin dry run: **0 violations** of the original case/whitespace-only index; **2 within-product twin groups** under the stronger §3.1 normalization (1003→999 product 107, 401→410 product 145), merged via `/admin/lots/merge` with per-merge owner approval. (b) ILC-less pack census (full history, not the 90-day audit window): **8 posted + 1 voided** legacy packs in two shapes — txns 1964/1966 (lines but no ILC mirror) and Feb-05 txns 77/78/94/95/97/98 (no ILC, no FG output line) — annotated in the worklist as the approved grandfather population; the marker itself is applied by step 4.
 1. **Migration 047 — identity:** `lots.lot_uuid` + unique; normalized unique index; `NOT VALID` format CHECK. (Backfills UUIDs via default on ADD COLUMN; table is small — ~1.3k rows.)
 2. **Migration 048 — trace tables:** `trace_events`, `trace_event_lots`, indexes, append-only + created_at triggers. Zero rows, zero behavior.
 3. **Deploy emission code** (all 6 hook sites + `emit_trace_event`, fail-hard). From this moment forward-writes are dual. Smoke: one make on prod, verify event + roles.
-4. **Backfill script** (idempotent, keyed on `transaction_id`): walk `ledger_current_transactions` **base rows** (all statuses — void markers come from `ledger_corrections` replay) ordered by id; synthesize events per §4's table. Sources: `transaction_lines` for roles/quantities, `ingredient_lot_consumption` for inputs, `shipments`/`sales_order_shipments` for customer/SO ids, `shipper_name`/`customer_name` for parties. Time columns: `occurred_at` from the transaction; `recorded_at` from `created_at` **where `created_at_source='database'`**, else from legacy `"timestamp"` (the 039 backfill stamped `created_at` with the migration time — using it would mark 500+ historical rows falsely late); `created_at_source='trace_backfill_048'` on every synthesized row (the append-only trigger's created_at enforcement needs the same `api_backfill`-style carve-out 046 used — noted in the migration). |
-5. **Verify:** run the full §8 report. Gate: R1/R2 = 0, O-class = 0 unexplained (found-inventory origins explained; the 2 legacy packs grandfathered), M-class within tolerance. Fix-forward and re-run until green.
+4. **Backfill script** (idempotent, keyed on `transaction_id`): walk `ledger_current_transactions` **base rows** (all statuses — void markers come from `ledger_corrections` replay) ordered by id; synthesize events per §4's table. Sources: `transaction_lines` for roles/quantities, `ingredient_lot_consumption` for inputs, `shipments`/`sales_order_shipments` for customer/SO ids, `shipper_name`/`customer_name` for parties. Time columns: `occurred_at` from the transaction; `recorded_at` from `created_at` **where `created_at_source='database'`**, else from legacy `"timestamp"` (the 039 backfill stamped `created_at` with the migration time — using it would mark 500+ historical rows falsely late); `created_at_source='trace_backfill_048'` on every synthesized row (the append-only trigger's created_at enforcement needs the same `api_backfill`-style carve-out 046 used — noted in the migration). For the 9 legacy ILC-less packs the backfill **synthesizes what actually exists**: txns 1964/1966 get `input` rows taken from their negative `transaction_lines` (quantities are right there — real genealogy preserved, no ILC needed); the Feb-05 six (77/78/94/95/97/98) get their input side from lines but **no `output` row** (none was ever posted). All 9 carry the `trace_backfill_048` marker. |
+5. **Verify:** run the full §8 report. Gate: R1/R2 = 0, O-class = 0 unexplained (found-inventory origins explained; the 8 posted + 1 voided legacy packs grandfathered via the `trace_backfill_048` marker), M-class within tolerance — with **R2 and M2 excluding the marked population**: the Feb-05 shape has no output row so its quantity mirror and batch mass balance can never reconcile, and 1964/1966 have no ILC to mirror; marked rows report informationally instead of failing the gate. Fix-forward and re-run until green.
 6. **Cut reads over:** new `/trace/*` endpoints + dashboard `traceability.html` switch; retire `trace_ingredient`'s traversal (the ≤5-line `batches=[]` fix from baseline §4 is superseded but worth shipping independently *now* as a stopgap).
 7. **Labels/scan** (§6) — separate PR; needs no further schema.
 
