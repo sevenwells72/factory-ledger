@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-08-31 11:51 — Committed the 8/25 data-entry audit work (local commit on main, NOT pushed)
+- **File(s) changed:** `docs/data-entry-inventory.md`, `CHANGE_LOG.md` (git commit only — no content changes beyond this entry)
+- **What changed:** Committed the previously uncommitted 2026-08-25 read-only audit work on `main` (ahead of origin/main by 1, awaiting push approval): `docs/data-entry-inventory.md` (write-endpoint inventory + Problems 1–3 risk notes) and its two pending CHANGE_LOG entries (15:10 and 15:19 below). Staged only those two files; `.venv-test`/`.venv-test.nosync/` left untracked. No push, no code/schema/data changes.
+- **Why:** Michael asked (back from time off, 8/31 status catch-up) to get the loose audit findings out of the working tree before deciding next steps on the Problems 1–3 fix.
+
+---
+
+## 2026-08-25 15:19 — Risk notes appended to data-entry inventory (read-only audit)
+- **File(s) changed:** `docs/data-entry-inventory.md`
+- **What changed:** Appended a "Risk notes" section covering three read-only checks against main.py @ 65bca82: (1) the four lot-code generators (`generate_lot_code()` L4058, inline make L5532/L5613, inline found L8002/L8107, pack's inherit-source-code at L6103) — formats carry date + source tag + per-day global sequence only, never product/line/shift; three ways two products get identical codes on one date (pack by design, make by race since it takes no advisory lock unlike receive's lock 1 and found's lock 2, and sequence reset when a manual code shares the prefix and fails the `int(split('-')[-1])` parse); entry-date-not-event-date stamping under PR #18 `occurred_at`; unsanitised `shipper_code_override` reaching a LIKE pattern. (2) `mode="preview"` on all five core endpoints plus SO-ship — no writes (the two write-capable helpers, `resolve_customer_id` and `_expire_auto_fifo_allocations`, are gated off at every preview call site), no success-path logging, no middleware DB logging, no sequence consumption; an abandoned preview is undetectable from the database, and only the alias routes (`/x/preview`) distinguish it in the HTTP access log. (3) The three best-effort audit inserts — `product_verification_history` swallows with bare `except: pass` (not logged), `lot_reassignments` and `inventory_adjustments` log a warning; all three share the primary write's transaction, so a DB-level failure aborts it and `get_db_connection()`'s `conn.commit()` silently becomes a ROLLBACK while the endpoint returns `success: true` (confirmed empirically against the local test DB with psycopg2 2.9.9 — 0 rows survived). Also noted: `/inventory/found-with-new-product` writes no `inventory_adjustments` row at all, and unbounded request-model strings vs. varchar column limits are the reachable failure vector. No code, schema, or data touched.
+- **Why:** Michael asked for three specific read-only checks (lot-code collision surface, preview observability, audit-insert failure behaviour) to be folded into the data-entry inventory doc.
+
+---
+
+## 2026-08-25 15:10 — Data-entry path inventory doc (read-only audit)
+- **File(s) changed:** `docs/data-entry-inventory.md` (new)
+- **What changed:** Inventoried all ~48 write endpoints in main.py (@ 65bca82): tables written, business event, GPT-schema exposure (office v3.5.0 / floor v4.1.0 / neither), dashboard-key allowlist coverage, required fields, and lot-code requirements; plus the list of tables with no write endpoint (SQL-only/migration-seeded). No code, schema, or data touched.
+- **Why:** Michael asked for a complete map of data-entry paths into Factory Ledger.
+
+---
+
 ## 2026-08-25 15:08 — Audit branch committed + PR opened; pending changelog block relocated
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/data-health-baseline-2026-08-24.md`, `.gitignore`, `docs/sql/lot-code-cleanup-2026-08-25.sql`, `docs/sql/found-lot-suppliers-2026-08-25.sql`, `scripts/data_health.py`, `scripts/forms_crosscheck.py`
 - **What changed:** Created branch `audit/data-health-2026-08` from origin/main `6a3d37f` and committed all uncommitted audit work (scripts, report, draft SQL, `.gitignore` `data/forms/*.csv` entry, changelog edits). The uncommitted changelog entries were re-based onto the merged main's versions: working-tree row 100 (the 046 deploy record) renumbered to 103 after colliding with upstream rows 100–102 (row-28 precedent); audit row 99 kept. The "Pending changelog lines" block at the end of the baseline report was relocated verbatim into CHANGE_LOG.md (14:30 + 15:10 entries), FACTORY_LEDGER_CHANGELOG.md (rows 104 + 105), and `~/change-log.md`, then deleted from the report. `data/forms/*.csv` confirmed gitignored; no CSV staged. Branch pushed and PR opened (no merge).
