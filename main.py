@@ -2024,6 +2024,83 @@ def best_effort_audit_insert(cur, table_label, sql, params, returning=False):
         return None, msg
 
 
+# ═══════════════════════════════════════════════════════════════
+# TRACE EMISSION (TRACEABILITY_DESIGN.md §4 — §9 step 3)
+# One trace_events row (+ trace_event_lots roles) per operational commit,
+# written inside the same DB transaction as the operational rows.
+# ═══════════════════════════════════════════════════════════════
+
+def trace_emit_enabled() -> bool:
+    """§9 rollback flag: TRACE_EMIT_ENABLED env var, default ON when absent
+    or unrecognized. Each commit path reads this ONCE per request and skips
+    its emission hook(s) entirely when off — the nightly R1 coverage check
+    then shows the accumulated debt."""
+    return os.getenv("TRACE_EMIT_ENABLED", "true").strip().lower() not in (
+        "0", "false", "off", "no",
+    )
+
+
+def _txn_trace_times(cur, txn_id: int):
+    """occurred_at/business_date for an emission, read back from the
+    transactions row itself (the 039 fill trigger owns their defaults, so the
+    row — not the request — is the source of truth)."""
+    cur.execute(
+        "SELECT occurred_at, business_date FROM transactions WHERE id = %s",
+        (txn_id,),
+    )
+    row = cur.fetchone()
+    return row["occurred_at"], row["business_date"]
+
+
+def emit_trace_event(cur, txn_id, event_type, epcis_type, lot_roles,
+                     occurred_at, business_date, *, correction_id=None,
+                     source_party=None, destination_party=None,
+                     customer_id=None, sales_order_id=None, operator_id=None):
+    """Append one trace_events row plus its trace_event_lots rows (§3.2/§3.3).
+
+    FAIL-HARD BY DESIGN (§4): call sites must NOT wrap this in try/except or
+    a best-effort savepoint — an emission failure aborts the operational
+    commit (an untraceable transaction is worse than a retried one). Never
+    call it inside a best_effort_audit_insert-style savepoint scope.
+
+    occurred_at/business_date are copied from the already-inserted
+    transactions row (RETURNING at the call site, or _txn_trace_times).
+
+    lot_roles: iterable of (lot_id, role, signed_quantity_lb) following the
+    transaction_lines sign convention. Quantities are summed per (lot_id,
+    role) — tel_event_lot_role_uniq admits one row per pair — and rows whose
+    sum is zero are dropped (the table CHECK forbids quantity_lb = 0; a
+    zero-quantity touch is not a trace fact). Marker events (void/restore/
+    amend/merge) pass an empty list.
+    """
+    cur.execute(
+        """INSERT INTO trace_events
+               (event_type, epcis_type, transaction_id, correction_id,
+                occurred_at, business_date, source_party, destination_party,
+                customer_id, sales_order_id, operator_id)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+           RETURNING id""",
+        (event_type, epcis_type, txn_id, correction_id, occurred_at,
+         business_date, source_party, destination_party, customer_id,
+         sales_order_id, operator_id),
+    )
+    event_id = cur.fetchone()["id"]
+    totals = {}
+    for lot_id, role, qty in lot_roles:
+        key = (int(lot_id), role)
+        totals[key] = totals.get(key, 0.0) + float(qty)
+    for (lot_id, role), qty in totals.items():
+        if abs(qty) < 1e-9:
+            continue
+        cur.execute(
+            """INSERT INTO trace_event_lots
+                   (trace_event_id, lot_id, role, quantity_lb)
+               VALUES (%s, %s, %s, %s)""",
+            (event_id, lot_id, role, qty),
+        )
+    return event_id
+
+
 READONLY_PROBE_SQL = """
 SELECT
   current_setting('default_transaction_read_only') AS default_ro,
@@ -4382,13 +4459,14 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                             expected_receipt_id, occurred_at, created_at_source
                         )
                         VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id
+                        RETURNING id, occurred_at, business_date
                     """, (
                         now, req.bol_reference, req.shipper_name, shipper_code,
                         req.cases, req.case_size_lb, expected_receipt_id,
                         occurred_at, created_at_source,
                     ))
-                    txn_id = cur.fetchone()['id']
+                    txn_row = cur.fetchone()
+                    txn_id = txn_row['id']
 
                     cur.execute("""
                         INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
@@ -4411,6 +4489,15 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                             """, (lot_id, entry.get('supplier_lot_code'), entry.get('supplier_name'),
                                   entry.get('quantity_lb'), entry.get('notes')))
                             supplier_entries_saved.append(cur.fetchone()['id'])
+
+                    # Trace emission (§4): last write before commit, fail-hard.
+                    if trace_emit_enabled():
+                        emit_trace_event(
+                            cur, txn_id, 'receive', 'object',
+                            [(lot_id, 'received', total_lb)],
+                            txn_row['occurred_at'], txn_row['business_date'],
+                            source_party=req.shipper_name,
+                        )
 
                     date_str, time_str = format_timestamp(now)
                     receipt = f"RECEIVED: {req.cases} cases ({total_lb} lb) {product['name']}\nLot: {lot_code}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
@@ -5492,12 +5579,14 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                             type, timestamp, customer_name, order_reference,
                             notes, occurred_at, created_at_source
                         )
-                        VALUES ('ship', %s, %s, %s, %s, %s, %s) RETURNING id
+                        VALUES ('ship', %s, %s, %s, %s, %s, %s)
+                        RETURNING id, occurred_at, business_date
                     """, (
                         now, canonical_customer, req.order_reference, txn_notes,
                         occurred_at, created_at_source,
                     ))
-                    txn_id = cur.fetchone()['id']
+                    txn_row = cur.fetchone()
+                    txn_id = txn_row['id']
 
                     shipped_lots = []
                     for item in plan["lots"]:
@@ -5544,6 +5633,19 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                             [int(product['id'])],
                             _operator_id(_),
                             release_reason="inventory_shipped",
+                        )
+
+                    # Trace emission (§4, §10): after the inventory_shipped
+                    # shrink so roles reflect the final deduction plan;
+                    # fail-hard, last write before commit.
+                    if trace_emit_enabled():
+                        emit_trace_event(
+                            cur, txn_id, 'ship', 'object',
+                            [(item["lot"]["lot_id"], 'shipped', -float(item["quantity_lb"]))
+                             for item in plan["lots"]],
+                            txn_row['occurred_at'], txn_row['business_date'],
+                            destination_party=canonical_customer,
+                            customer_id=customer_id,
                         )
 
                     if standalone_warning:
@@ -5830,12 +5932,14 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         INSERT INTO transactions (
                             type, timestamp, notes, occurred_at, created_at_source
                         )
-                        VALUES ('make', %s, %s, %s, %s) RETURNING id
+                        VALUES ('make', %s, %s, %s, %s)
+                        RETURNING id, occurred_at, business_date
                     """, (
                         now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
                         occurred_at, created_at_source,
                     ))
-                    txn_id = cur.fetchone()['id']
+                    txn_row = cur.fetchone()
+                    txn_id = txn_row['id']
 
                     cur.execute("""
                         INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
@@ -5844,6 +5948,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
 
                     consumed_by_ingredient = {}
                     excluded_from_run = []
+                    trace_inputs = []  # (lot_id, 'input', -qty) mirroring each ILC row
                     lot_overrides = req.get_lot_overrides()
 
                     all_formula_ids = [ing['ingredient_product_id'] for ing in formula]
@@ -5879,6 +5984,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             available = validate_lot_deduction(cur, override_lot['id'], override_lot['lot_code'], needed)
                             cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, override_lot['id'], -needed))
                             cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, override_lot['id'], needed))
+                            trace_inputs.append((override_lot['id'], 'input', -needed))
                             consumed_by_ingredient[ing_id]["total_consumed_lb"] += needed
                             consumed_by_ingredient[ing_id]["lots"].append({"lot_code": override_lot['lot_code'], "consumed_lb": needed, "override": True})
                         else:
@@ -5908,11 +6014,21 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                                 take = min(avail, remaining)
                                 cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], -take))
                                 cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], take))
+                                trace_inputs.append((lot['id'], 'input', -take))
                                 consumed_by_ingredient[ing_id]["total_consumed_lb"] += take
                                 consumed_by_ingredient[ing_id]["lots"].append({"lot_code": lot['lot_code'], "consumed_lb": take})
                                 remaining -= take
                             if remaining > BALANCE_EPSILON:
                                 raise HTTPException(status_code=400, detail=f"Insufficient inventory for ingredient ID {ing_id}. Missing {remaining:.2f} lb")
+
+                    # Trace emission (§4): after every transaction_lines/ILC
+                    # write, fail-hard. /make has no allocation side-writes.
+                    if trace_emit_enabled():
+                        emit_trace_event(
+                            cur, txn_id, 'make', 'transformation',
+                            trace_inputs + [(output_lot_id, 'output', total_output)],
+                            txn_row['occurred_at'], txn_row['business_date'],
+                        )
 
                     consumed_flat = []
                     for group in consumed_by_ingredient.values():
@@ -6302,20 +6418,24 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         INSERT INTO transactions (
                             type, timestamp, notes, occurred_at, created_at_source
                         )
-                        VALUES ('pack', %s, %s, %s, %s) RETURNING id
+                        VALUES ('pack', %s, %s, %s, %s)
+                        RETURNING id, occurred_at, business_date
                     """, (
                         now,
                         f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
                         occurred_at, created_at_source,
                     ))
-                    txn_id = cur.fetchone()['id']
+                    txn_row = cur.fetchone()
+                    txn_id = txn_row['id']
 
                     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, target['id'], output_lot_id, total_lb))
 
                     consumed = []
+                    trace_inputs = []  # (lot_id, 'input', -qty) mirroring each ILC row
                     for lot, qty in alloc_plan:
                         cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['lot_id'], -qty))
                         cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['lot_id'], qty))
+                        trace_inputs.append((lot['lot_id'], 'input', -qty))
                         consumed.append({"lot_code": lot['lot_code'], "consumed_lb": qty})
 
                     # --- Add-in ingredient deduction ---
@@ -6363,10 +6483,22 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                                 take = min(avail, remaining)
                                 cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], -take))
                                 cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], take))
+                                trace_inputs.append((lot['id'], 'input', -take))
                                 add_in_consumed.append({"ingredient_name": ing_name, "lot_code": lot['lot_code'], "consumed_lb": round(take, 2)})
                                 remaining -= take
                             if remaining > BALANCE_EPSILON:
                                 raise HTTPException(400, f"Insufficient inventory for add-in ingredient {ing_name}: need {needed} lb, could only allocate {needed - remaining:.2f} lb")
+
+                    # Trace emission (§4, §10): after the source + add-in ILC
+                    # writes and the allocation expiry that ran inside
+                    # available_lots_for_product(persist_expired=True) above;
+                    # fail-hard, last write before commit.
+                    if trace_emit_enabled():
+                        emit_trace_event(
+                            cur, txn_id, 'pack', 'transformation',
+                            trace_inputs + [(output_lot_id, 'output', total_lb)],
+                            txn_row['occurred_at'], txn_row['business_date'],
+                        )
 
                     logger.info(f"Pack committed: {output_lot_code} - {total_lb} lb of {target['name']} from {source['name']}")
 
@@ -6484,14 +6616,24 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
                             type, timestamp, adjust_reason, adjust_reason_es,
                             notes, occurred_at, created_at_source
                         )
-                        VALUES ('adjust', %s, %s, %s, %s, %s, %s) RETURNING id
+                        VALUES ('adjust', %s, %s, %s, %s, %s, %s)
+                        RETURNING id, occurred_at, business_date
                     """, (
                         now, req.reason, req.reason_es,
                         f"Adjustment: {req.adjustment_lb} lb",
                         occurred_at, created_at_source,
                     ))
-                    txn_id = cur.fetchone()['id']
+                    txn_row = cur.fetchone()
+                    txn_id = txn_row['id']
                     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
+
+                    # Trace emission (§4): signed adjust, fail-hard.
+                    if trace_emit_enabled():
+                        emit_trace_event(
+                            cur, txn_id, 'adjust', 'object',
+                            [(result['lot_id'], 'adjusted', req.adjustment_lb)],
+                            txn_row['occurred_at'], txn_row['business_date'],
+                        )
 
                     new_balance = lot_on_hand(cur, result['lot_id'])
                     logger.info(f"Adjust committed: {req.adjustment_lb} lb to lot {result['lot_code']} (balance: {new_balance} lb)")
@@ -6665,6 +6807,18 @@ def _append_transaction_correction(
         if unknown_line_ids:
             result["allocation_reactivation_unknown"] = True
             result["allocation_reactivation_unknown_line_ids"] = unknown_line_ids
+
+    # Trace emission (§3.4, §10): append the audit marker AFTER every
+    # allocation side-write above. Marker only — correction_id set, no lot
+    # rows; the original operational event is never touched (visibility is
+    # resolved through effective_status at read time). Fail-hard.
+    if trace_emit_enabled():
+        occurred_at, business_date = _txn_trace_times(cur, transaction_id)
+        emit_trace_event(
+            cur, transaction_id, event_type, 'object', [],
+            occurred_at, business_date,
+            correction_id=correction_id,
+        )
     return result
 
 
@@ -8219,12 +8373,13 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                         type, timestamp, notes, occurred_at, created_at_source
                     )
                     VALUES ('adjust', %s, %s, %s, %s)
-                    RETURNING id
+                    RETURNING id, occurred_at, business_date
                 """, (
                     now, f"Found inventory: {req.reason_code}",
                     occurred_at, created_at_source,
                 ))
-                txn_id = cur.fetchone()['id']
+                txn_row = cur.fetchone()
+                txn_id = txn_row['id']
 
                 cur.execute("""
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
@@ -8243,6 +8398,16 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                      req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
                      req.suspected_supplier, req.performed_by),
                 )
+
+                # Trace emission (§4): found inventory is a signed adjust.
+                # Fail-hard — deliberately OUTSIDE the best-effort savepoint
+                # scope released above.
+                if trace_emit_enabled():
+                    emit_trace_event(
+                        cur, txn_id, 'adjust', 'object',
+                        [(lot_id, 'adjusted', req.quantity)],
+                        txn_row['occurred_at'], txn_row['business_date'],
+                    )
 
                 logger.info(f"Added found inventory: {lot_code} - {req.quantity} {req.uom} of {product['name']}")
 
@@ -8324,12 +8489,13 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                         type, timestamp, notes, occurred_at, created_at_source
                     )
                     VALUES ('adjust', %s, %s, %s, %s)
-                    RETURNING id
+                    RETURNING id, occurred_at, business_date
                 """, (
                     now, f"Found inventory with new product: {req.reason_code}",
                     occurred_at, created_at_source,
                 ))
-                txn_id = cur.fetchone()['id']
+                txn_row = cur.fetchone()
+                txn_id = txn_row['id']
                 
                 cur.execute("""
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
@@ -8351,6 +8517,16 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                      req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
                      req.suspected_supplier, req.performed_by),
                 )
+
+                # Trace emission (§4): found inventory is a signed adjust.
+                # Fail-hard — deliberately OUTSIDE the best-effort savepoint
+                # scope released above.
+                if trace_emit_enabled():
+                    emit_trace_event(
+                        cur, txn_id, 'adjust', 'object',
+                        [(lot_id, 'adjusted', req.quantity)],
+                        txn_row['occurred_at'], txn_row['business_date'],
+                    )
 
                 logger.info(f"Created product and found inventory: {product['name']} - {lot_code}")
 
@@ -11116,6 +11292,9 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
 
                     results = []
                     all_fully_shipped = True
+                    # Flag read once per request (§9); each per-line ship
+                    # transaction below emits its own trace event.
+                    trace_on = trace_emit_enabled()
 
                     for item in lines_to_ship:
                         qty_to_ship = item["quantity_lb"]
@@ -11156,13 +11335,15 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                                 type, timestamp, customer_name, notes,
                                 occurred_at, created_at_source
                             )
-                            VALUES ('ship', %s, %s, %s, %s, %s) RETURNING id
+                            VALUES ('ship', %s, %s, %s, %s, %s)
+                            RETURNING id, occurred_at, business_date
                         """, (
                             now, order_row['name'],
                             f"Sales order {order_row['order_number']} — {item['product_name']}",
                             occurred_at, created_at_source,
                         ))
-                        txn_id = cur.fetchone()['id']
+                        txn_row = cur.fetchone()
+                        txn_id = txn_row['id']
                         lots_used = []
                         for lot in plan["lots"]:
                             take = float(lot["quantity_lb"])
@@ -11195,6 +11376,22 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                             INSERT INTO shipment_lines (shipment_id, transaction_id, sales_order_line_id, product_id, quantity_lb)
                             VALUES (%s, %s, %s, %s, %s)
                         """, (shipment_id, txn_id, item["line_id"], item["product_id"], actual_ship))
+
+                        # Trace emission (§4, §10): after this line's
+                        # transaction_lines, allocation consumption (and the
+                        # expire that ran inside _sales_order_ship_plan), and
+                        # shipment side-writes — roles mirror the final plan.
+                        # Fail-hard.
+                        if trace_on:
+                            emit_trace_event(
+                                cur, txn_id, 'ship', 'object',
+                                [(lot['lot_id'], 'shipped', -float(lot['quantity_lb']))
+                                 for lot in plan["lots"]],
+                                txn_row['occurred_at'], txn_row['business_date'],
+                                destination_party=order_row['name'],
+                                customer_id=order_row['customer_id'],
+                                sales_order_id=order_id,
+                            )
 
                         # Fetch case_size_lb for unit count
                         cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (item["product_id"],))
@@ -13451,10 +13648,13 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                 # 5. Move transaction lines through append-only effective-state
                 # corrections; raw historical line rows never change.
                 cur.execute(
-                    "SELECT id FROM ledger_current_transaction_lines WHERE lot_id = %s ORDER BY id",
+                    "SELECT id, transaction_id FROM ledger_current_transaction_lines "
+                    "WHERE lot_id = %s ORDER BY id",
                     (req.source_lot_id,),
                 )
-                line_ids = [row["id"] for row in cur.fetchall()]
+                line_rows = cur.fetchall()
+                line_ids = [row["id"] for row in line_rows]
+                affected_txn_ids = {row["transaction_id"] for row in line_rows}
                 line_correction_ids = [
                     _append_transaction_line_correction(
                         cur,
@@ -13469,10 +13669,13 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
 
                 # Move ingredient_lot_consumption
                 cur.execute(
-                    "UPDATE ingredient_lot_consumption SET ingredient_lot_id = %s WHERE ingredient_lot_id = %s",
+                    "UPDATE ingredient_lot_consumption SET ingredient_lot_id = %s "
+                    "WHERE ingredient_lot_id = %s RETURNING transaction_id",
                     (req.target_lot_id, req.source_lot_id)
                 )
-                rows_moved["ingredient_lot_consumption"] = cur.rowcount
+                ilc_rows = cur.fetchall()
+                rows_moved["ingredient_lot_consumption"] = len(ilc_rows)
+                affected_txn_ids |= {row["transaction_id"] for row in ilc_rows}
 
                 # 6. Mark source lot as merged
                 now = get_plant_now()
@@ -13485,7 +13688,33 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                     WHERE id = %s
                 """, (req.target_lot_id, now, req.reason, req.source_lot_id))
 
-                # 7. Recalculate target lot balance from ledger (posted-only)
+                # 7. Trace emission (§10 M1, Q2): one 'merge' marker per
+                # affected transaction, no lot rows and NO trace rewrite —
+                # traversals resolve lots.merged_into_lot_id at read time.
+                # 'merge' sits outside the correction-pairing CHECK, so
+                # correction_id stays NULL and the (txn, 'merge', NULL)
+                # NULLS-NOT-DISTINCT unique admits only one marker per
+                # transaction ever: a later merge touching an already-marked
+                # transaction skips that marker instead of aborting the
+                # whole merge. The emit itself stays fail-hard.
+                trace_merge_markers = 0
+                if affected_txn_ids and trace_emit_enabled():
+                    for marker_txn_id in sorted(affected_txn_ids):
+                        cur.execute(
+                            "SELECT 1 FROM trace_events "
+                            "WHERE transaction_id = %s AND event_type = 'merge'",
+                            (marker_txn_id,),
+                        )
+                        if cur.fetchone():
+                            continue
+                        occurred_at, business_date = _txn_trace_times(cur, marker_txn_id)
+                        emit_trace_event(
+                            cur, marker_txn_id, 'merge', 'object', [],
+                            occurred_at, business_date,
+                        )
+                        trace_merge_markers += 1
+
+                # 8. Recalculate target lot balance from ledger (posted-only)
                 computed_balance = lot_on_hand(cur, req.target_lot_id)
 
                 total_rows = sum(rows_moved.values())
@@ -13506,6 +13735,7 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                     "rows_moved": rows_moved,
                     "line_correction_ids": line_correction_ids,
                     "allocation_moves": allocation_moves,
+                    "trace_merge_markers": trace_merge_markers,
                     "target_lot_new_balance": computed_balance,
                     "audit_note": req.reason
                 }
