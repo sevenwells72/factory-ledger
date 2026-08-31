@@ -3963,7 +3963,7 @@ def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_
     Validates no duplicate lot_code exists for the same product.
     Only lots.lot_code needs updating — all other tables use integer FKs.
     """
-    new_code = req.new_lot_code.strip()
+    new_code = normalize_lot_code_input(req.new_lot_code)
     if not new_code:
         raise HTTPException(400, "new_lot_code must not be empty")
 
@@ -4070,6 +4070,18 @@ _LOT_CODE_T2_NORM_SQL = (
     "regexp_replace(regexp_replace(upper(btrim({expr})), '\\s+LOT$', ''), "
     "'[^A-Z0-9]', '', 'g')"
 )
+
+
+def normalize_lot_code_input(code: str) -> str:
+    """Canonicalize a CALLER-SUPPLIED lot code before any lookup or insert:
+    upper-case, trim, collapse internal whitespace — the input-side mirror of
+    the tier-1 index's case/whitespace folding, so lots_code_format_chk can
+    never reject a code for casing/whitespace and lookups hit the same lot
+    the constraint sees. Nothing else is altered: punctuation and 'LOT'
+    tokens stay as typed (tier 2 warns about those near-twins; input
+    handling never silently rewrites a code).
+    """
+    return re.sub(r"\s+", " ", code.strip()).upper()
 
 
 def check_suspicious_code_similarity(cur, product_id: int, lot_id: int, lot_code: str):
@@ -4272,10 +4284,10 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
 
                 # Lot Identity Policy: honor physical lot code if provided
                 if req.lot_code:
-                    lot_code = req.lot_code
+                    lot_code = normalize_lot_code_input(req.lot_code)
                     shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
                     auto = False
-                    cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product['id'], req.lot_code))
+                    cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product['id'], lot_code))
                     existing = cur.fetchone()
                 else:
                     lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
@@ -4328,7 +4340,7 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                     product = resolve_product_full(cur, req.product_name)
 
                     if req.lot_code:
-                        lot_code = req.lot_code
+                        lot_code = normalize_lot_code_input(req.lot_code)
                         shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
                     else:
                         lot_code, shipper_code, _ = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
@@ -5698,7 +5710,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
 
                 all_sufficient = all(i['sufficient'] for i in ingredients_needed)
                 if req.lot_code:
-                    lot_code = req.lot_code
+                    lot_code = normalize_lot_code_input(req.lot_code)
                 else:
                     now = get_plant_now()
                     date_part = now.strftime("%y-%m%d")
@@ -5783,7 +5795,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     cur.execute("SELECT pg_advisory_xact_lock(3)")
 
                     if req.lot_code:
-                        lot_code = req.lot_code
+                        lot_code = normalize_lot_code_input(req.lot_code)
                     else:
                         date_part = now.strftime("%y-%m%d")
                         seq = next_lot_sequence(cur, f"B{date_part}-%")
@@ -6149,7 +6161,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
 
                 all_sufficient = all(a.get('sufficient', False) for a in allocations)
                 if req.target_lot_code:
-                    output_lot_code = req.target_lot_code
+                    output_lot_code = normalize_lot_code_input(req.target_lot_code)
                 elif allocations and allocations[0].get('lot_code'):
                     output_lot_code = allocations[0]['lot_code']
                 else:
@@ -6276,7 +6288,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     )
 
                     if req.target_lot_code:
-                        output_lot_code = req.target_lot_code
+                        output_lot_code = normalize_lot_code_input(req.target_lot_code)
                     else:
                         output_lot_code = alloc_plan[0][0]['lot_code']
 
@@ -8186,7 +8198,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
                 # Lot Identity Policy: honor physical lot code if provided
                 if req.lot_code:
-                    lot_code = req.lot_code
+                    lot_code = normalize_lot_code_input(req.lot_code)
                 else:
                     date_part = now.strftime("%y-%m-%d")
                     seq = next_lot_sequence(cur, f"{date_part}-FOUND-%")
@@ -8291,7 +8303,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
 
                 # Lot Identity Policy: honor physical lot code if provided
                 if req.lot_code:
-                    lot_code = req.lot_code
+                    lot_code = normalize_lot_code_input(req.lot_code)
                 else:
                     date_part = now.strftime("%y-%m-%d")
                     seq = next_lot_sequence(cur, f"{date_part}-FOUND-%")

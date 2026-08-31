@@ -581,9 +581,10 @@ def test_make_commit_lot_uuid_and_t2_warning(client, _db_connection):
 
     second = client.post("/make", json={
         "mode": "commit", "product_name": name, "batches": 1,
-        "lot_code": "ZZ047MK1",
+        "lot_code": "zz047mk1",  # lowercase input is normalized before mint
     })
     assert second.status_code == 200, second.text
+    assert second.json()["lot_code"] == "ZZ047MK1"
     warnings = _similarity_warnings(second.json())
     assert len(warnings) == 1
     assert warnings[0]["similar_lot_code"] == "ZZ047-MK-1"
@@ -616,8 +617,9 @@ def test_pack_commit_lot_uuid_and_t2_warning(client, _db_connection):
     assert body["output_lot_uuid"] == _db_lot_uuid(_db_connection, body["output_lot_id"])
     assert _similarity_warnings(body) == []
 
-    second = client.post("/pack", json={**base, "target_lot_code": "ZZ047PK1"})
+    second = client.post("/pack", json={**base, "target_lot_code": "zz047pk1"})
     assert second.status_code == 200, second.text
+    assert second.json()["output_lot_code"] == "ZZ047PK1"  # input normalized
     warnings = _similarity_warnings(second.json())
     assert len(warnings) == 1
     assert warnings[0]["similar_lot_code"] == "ZZ047-PK-1"
@@ -645,6 +647,70 @@ def test_lot_uuid_survives_rename_and_appears_in_lookups(client, _db_connection)
                          params={"product_id": pid})
     assert by_code.status_code == 200, by_code.text
     assert by_code.json()["lot_uuid"] == lot_uuid
+
+
+# ─────────────────────────────────────────────────────────────────
+# 4. Caller-supplied lot-code input normalization (upper + trim +
+#    collapse whitespace; punctuation/'LOT' tokens untouched)
+# ─────────────────────────────────────────────────────────────────
+
+def test_lowercase_receive_code_lands_upcased_with_uuid(client, _db_connection):
+    pid = _seed_product(_db_connection)
+    with _cur(_db_connection) as cur:
+        cur.execute("SELECT name FROM products WHERE id = %s", (pid,))
+        name = cur.fetchone()["name"]
+    resp = client.post("/receive", json={
+        "mode": "commit", "product_name": name, "cases": 1,
+        "case_size_lb": 50, "shipper_name": "ZZ047 Foods",
+        "bol_reference": "BOL-047-LC", "lot_code": "zz047-lc-rcv-1",
+    })
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["lot_code"] == "ZZ047-LC-RCV-1"
+    uuidlib.UUID(body["lot_uuid"])
+    with _cur(_db_connection) as cur:
+        cur.execute("SELECT lot_code, lot_uuid FROM lots WHERE id = %s", (body["lot_id"],))
+        row = cur.fetchone()
+    assert row["lot_code"] == "ZZ047-LC-RCV-1"
+    assert str(row["lot_uuid"]) == body["lot_uuid"]
+
+
+def test_casing_variants_resolve_to_same_lot(client, _db_connection):
+    pid = _seed_product(_db_connection)
+    first = _found(client, pid, "BB041327")
+    assert first.status_code == 200, first.text
+    second = _found(client, pid, "bb041327")
+    assert second.status_code == 200, second.text
+    assert second.json()["lot_id"] == first.json()["lot_id"]
+    assert second.json()["lot_code"] == "BB041327"
+    assert _similarity_warnings(second.json()) == []
+    assert _lot_count(_db_connection, pid) == 1
+
+
+def test_whitespace_variants_resolve_to_same_lot(client, _db_connection):
+    pid = _seed_product(_db_connection)
+    first = _found(client, pid, "ZZ047 WS X")
+    assert first.status_code == 200, first.text
+    for variant in ("  ZZ047 WS X  ", "ZZ047  WS   X", "zz047 ws x"):
+        resp = _found(client, pid, variant)
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["lot_id"] == first.json()["lot_id"], variant
+        assert resp.json()["lot_code"] == "ZZ047 WS X", variant
+        assert _similarity_warnings(resp.json()) == [], variant
+    assert _lot_count(_db_connection, pid) == 1
+
+
+def test_rename_input_is_normalized(client, _db_connection):
+    pid = _seed_product(_db_connection)
+    minted = _found(client, pid, "ZZ047-RN-LC-A")
+    lot_id = minted.json()["lot_id"]
+    resp = client.patch(f"/lots/{lot_id}/rename",
+                        json={"new_lot_code": "  zz047-rn-lc  b "})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["lot_code"] == "ZZ047-RN-LC B"
+    with _cur(_db_connection) as cur:
+        cur.execute("SELECT lot_code FROM lots WHERE id = %s", (lot_id,))
+        assert cur.fetchone()["lot_code"] == "ZZ047-RN-LC B"
 
 
 def test_rename_onto_tier1_variant_is_409(client, _db_connection):
