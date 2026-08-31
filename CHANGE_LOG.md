@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-08-31 13:52 — Approved lot twin merges executed + receipts appended to worklist
+- **File(s) changed:** `docs/trace-preclean-worklist-2026-08.md`, `FACTORY_LEDGER_CHANGELOG.md` (row 107)
+- **What changed:** Ran the two owner-approved hygiene merges against production via `POST /admin/lots/merge`, one at a time with read-only verification after each: 1003 `JUL 15 2026` → 999 `JUL15 2026` (Batch Classic Granola #9, merged_at 2026-08-31 17:49:06Z, line corrections 0f144ec0…/8b994421…) and 401 `BB041327 Lot` → 410 `BB041327` (SS Chocolate Chip case, merged_at 17:49:25Z, corrections 822671b9…/b8f77428…). Verified: sources status='merged' with merged_into_lot_id set and 0 residual effective lines; survivor histories intact + absorbed (6 posted lines each); on-hand unchanged (all zero); ILC unchanged; 0 allocation moves. Post-merge strengthened normalized-index dry run: 0 within-product twin groups. Appended §4 merge receipts to the worklist (worklist NOT committed, per instruction).
+- **Why:** Trace pre-clean (§9 step 0) — clears the two normalized-code twin groups before migration 047's strengthened unique index.
+
+---
+
+## 2026-08-31 13:47 — Traceability design updated with step-0 findings
+- **File(s) changed:** `docs/designs/TRACEABILITY_DESIGN.md`
+- **What changed:** §3.1: normalized unique index gains `WHERE status IS DISTINCT FROM 'merged'` predicate and a stronger normalization expression (upper + strip trailing 'LOT' token + strip all non-alphanumerics incl. whitespace and [./#-]) so twins like `JUL15 2026`/`JUL 15 2026` and `BB041327 Lot`/`BB041327` collide at mint time; the stale "expected ≈3 violations" note replaced with the actual step-0 result (0 violations of the original index; 2 twin groups under stronger normalization, merged pre-047). §8 O2 + §9 steps 0/4/5: grandfather population widened from "the 2 ILC-less packs" to 8 posted + 1 voided legacy packs in two shapes (1964/1966 no-ILC-mirror; Feb-05 77/78/94/95/97/98 no ILC and no FG output line); backfill synthesizes what exists per shape, marks all with `created_at_source='trace_backfill_048'`; O2 exempts marked events; R2/M2 gate excludes the marked population.
+- **Why:** Step-0 pre-clean dry run (docs/trace-preclean-worklist-2026-08.md, 2026-08-31) showed the design's twin expectations were stale and its grandfather language undercounted the legacy population.
+
+---
+
+## 2026-08-31 13:45 — Trace pre-clean worklist (§9 step 0 dry run, read-only)
+- **File(s) changed:** `docs/trace-preclean-worklist-2026-08.md` (new)
+- **What changed:** Wrote the §9 step-0 pre-clean worklist from a read-only prod dry run (psql_ro.sh session pooler, per-txn READ ONLY, no writes/merges). Findings: 0 violations of the proposed `lots_product_code_norm_uniq` index (design's "≈3 expected" was stale — the APR 10 2026 Lot twins are cross-product); 2 optional hygiene near-twin merges recommended (1003→999 Batch Classic #9 `JUL 15 2026`/`JUL15 2026`; 401→410 SS Choc Chip case `BB041327 Lot`/`BB041327`), both obviously safe (zero on-hand, zero open allocations); ILC-less pack population is 8 posted + 1 voided, not 2 (audit's 2 = 90-day window: txns 1964/1966; six Feb-05 legacy packs additionally lack any FG output line); grandfather marker = `created_at_source='trace_backfill_048'`; no new twins or ILC-less packs since the 8/24 baseline. Flags two design fixes: index needs a `status IS DISTINCT FROM 'merged'` predicate; §8/§9 must widen the grandfathered population to 8 packs / two shapes.
+- **Why:** TRACEABILITY_DESIGN.md §9 step 0 requires an owner-approvable worklist before migration 047; each merge needs individual approval.
+
+---
+
 ## 2026-08-31 13:30 — Traceability design: offline scanning section + Q1–Q4 decisions
 - **File(s) changed:** `docs/designs/TRACEABILITY_DESIGN.md`
 - **What changed:** (1) New §6.5 "Offline scanning" (inserted between §6 and §7 without renumbering, preserving all §7–§12 cross-references): scanner UI is an offline-first PWA (service worker + IndexedDB queue); each scan stores payload, device-captured occurred_at, device_id, and a client-minted idempotency UUID; queue drains in order on reconnect with server-side dedup on the idempotency key, which must ride through to the underlying /make//pack//ship//adjust call so a re-synced scan cannot double-post; server-side validation failures don't block sync — they land in an exceptions queue surfaced by the §8 report as new check class E1 (added to the checks table; failing class while open); ~60 min dead-zone occurred/recorded gaps noted as added justification for the 24 h late_recorded threshold. (2) Replaced §12's four open questions with a "Decisions (2026-08-31)" subsection: Q1 no trace_emission_debt trigger (fail-hard emission + nightly R1; revisit only if R1 catches a miss); Q2 merges followed via lots.merged_into_lot_id at read time, history never rewritten; Q3 threshold stays 24 h, T1 stays non-gating, floor communication + October re-review; Q4 scan ship is standalone-only in v1, SO-allocation pre-fill deferred past the ALLOCATIONS_ENFORCED flip.
