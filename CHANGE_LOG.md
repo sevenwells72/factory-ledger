@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-31 14:06 — Changelog row 106 amended: PR #20 merged and deployed
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 106's Area column no longer says branch fix/audit-insert-savepoints is "NOT pushed/deployed" — updated to record: merged to main via PR #20 (merge commit e1ba515), deployed to Railway as e1ba515, deploy SUCCESS health 200 on 2026-08-31.
+- **Why:** The row was written before the merge/deploy; the stale status would mislead the next regression-guard read.
+
+---
+
 ## 2026-08-31 14:04 — Traceability design: two-tier lot-code normalization (hard index vs soft T2 warning)
 - **File(s) changed:** `docs/designs/TRACEABILITY_DESIGN.md`
 - **What changed:** §3.1 restructured into a two-tier scheme: the HARD unique index `lots_product_code_norm_uniq` weakens to case + whitespace-collapse + trailing-'LOT'-strip (was: strip all non-alphanumerics incl. punctuation); the full aggressive normalization moves to a SOFT tier — mint-time `suspicious_code_similarity` API warning + §8 T2 near-twin listing, never blocking a write. Recorded the 2026-08-31 read-only validation evidence (all 1,048 lots, all statuses/products): 0 collisions at case+whitespace; 1 group at +trailing-LOT (BB041327 pair, house pack_output, already merged) and 1 more at full aggressive (JUL15 2026 pair, house production_output, already merged) — 0 index violations under the non-merged predicate; zero supplier-entered pairs collapsed at any tier, but punctuation-bearing genuine supplier codes are nearly absent (evidence vacuous), so punctuation-stripping stays soft. §8 T2 split into hard-rule violations + informational near-twin listing; §9 step 1 scoped to the tier-1 index with the tier-2 warning shipping as API code.
