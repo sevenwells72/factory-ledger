@@ -44,9 +44,15 @@ import main
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = ROOT / "tests" / "schema" / "schema.sql"
 MIGRATION_047 = ROOT / "migrations" / "047_lot_identity.sql"
-# Marker of the pending-migration include appended to schema.sql; the scratch
-# builds strip it so the migration can be applied ON TOP of seeded data.
-PENDING_047_MARKER = "PENDING MIGRATION 047"
+# schema.sql is a post-047 prod dump, so scratch builds revert the three 047
+# objects to reconstruct a pre-047 base — the migration is then applied ON
+# TOP of seeded pre-047-shaped data, which is what these tests exist to prove.
+REVERT_047_SQL = """
+ALTER TABLE public.lots DROP CONSTRAINT IF EXISTS lots_code_format_chk;
+ALTER TABLE public.lots DROP CONSTRAINT IF EXISTS lots_lot_uuid_key;
+DROP INDEX IF EXISTS public.lots_product_code_norm_uniq;
+ALTER TABLE public.lots DROP COLUMN IF EXISTS lot_uuid;
+"""
 
 # The tier-1 index expression (must mirror migrations/047_lot_identity.sql).
 T1_SQL = ("regexp_replace(regexp_replace(upper(btrim(lot_code)), '\\s+', ' ', 'g'), "
@@ -169,22 +175,8 @@ def _psql():
     return None
 
 
-def _stripped_schema(tmp_path):
-    """schema.sql with the pending-047 include removed, so scratch builds can
-    seed pre-047 data before applying the migration."""
-    text = SCHEMA.read_text()
-    marker_pos = text.find(PENDING_047_MARKER)
-    if marker_pos != -1:
-        # Cut from the start of the marker's comment line.
-        cut = text.rfind("\n--", 0, marker_pos)
-        text = text[:cut] if cut != -1 else text
-    out = tmp_path / "schema_no_047.sql"
-    out.write_text(text)
-    return out
-
-
 @pytest.fixture
-def scratch_db_factory(tmp_path):
+def scratch_db_factory():
     """Yields a builder: fresh scratch DB loaded with the pre-047 schema.
     Drops every scratch DB it created on teardown."""
     test_url = os.environ.get("TEST_DATABASE_URL")
@@ -196,7 +188,6 @@ def scratch_db_factory(tmp_path):
 
     parsed = urlparse(test_url)
     admin_url = urlunparse(parsed._replace(path="/postgres"))
-    schema_file = _stripped_schema(tmp_path)
     created = []
 
     def _run(url, *args):
@@ -214,8 +205,10 @@ def scratch_db_factory(tmp_path):
         url = urlunparse(parsed._replace(path=f"/{db_name}"))
         proc = _run(url, "-c", "CREATE EXTENSION IF NOT EXISTS pg_trgm")
         assert proc.returncode == 0, proc.stderr
-        proc = _run(url, "-f", str(schema_file))
-        assert proc.returncode == 0, f"pre-047 schema load failed:\n{proc.stderr}"
+        proc = _run(url, "-f", str(SCHEMA))
+        assert proc.returncode == 0, f"schema load failed:\n{proc.stderr}"
+        proc = _run(url, "-c", REVERT_047_SQL)
+        assert proc.returncode == 0, f"pre-047 revert failed:\n{proc.stderr}"
         return url
 
     def apply_047(url):

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict lLAWZcgkJFF1oXCgBXDD1uTvn4qEZYTsQa6SYb9objg1ubWzjefTNcURoaQtZPw
+\restrict kY1arehLoqZtAOPJg0bYYjZanEbNRm8hDnJYG739vluvDN19k04FMgYi83OWcdu
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -113,6 +113,8 @@ CREATE FUNCTION public.ledger_enforce_created_at() RETURNS trigger
     AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
+        -- Entry time remains database-owned. Only the existing provenance
+        -- marker is caller-selectable, and only for transaction backfills.
         NEW.created_at := clock_timestamp();
         IF TG_TABLE_NAME <> 'transactions'
            OR NEW.created_at_source IS DISTINCT FROM 'api_backfill' THEN
@@ -142,14 +144,23 @@ CREATE FUNCTION public.ledger_fill_transaction_business_time() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
+    -- Preserve an event time supplied by the inventory write endpoint. The
+    -- legacy timestamp-derived value remains the exact fallback for callers
+    -- that omit occurred_at.
     IF NEW.occurred_at IS NULL THEN
-        NEW.occurred_at := COALESCE(NEW."timestamp" AT TIME ZONE 'UTC', clock_timestamp());
+        NEW.occurred_at := COALESCE(
+            NEW."timestamp" AT TIME ZONE 'UTC',
+            clock_timestamp()
+        );
     END IF;
     IF NEW.business_date IS NULL THEN
         NEW.business_date := timezone('America/New_York', NEW.occurred_at)::date;
     END IF;
     IF NEW.operator_id IS NULL OR btrim(NEW.operator_id) = '' THEN
-        NEW.operator_id := COALESCE(NULLIF(current_setting('app.operator_id', true), ''), 'legacy-shared-key');
+        NEW.operator_id := COALESCE(
+            NULLIF(current_setting('app.operator_id', true), ''),
+            'legacy-shared-key'
+        );
     END IF;
     RETURN NEW;
 END;
@@ -932,11 +943,11 @@ CREATE TABLE public.transactions (
     status text DEFAULT 'posted'::text NOT NULL,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     created_at_source text DEFAULT 'database'::text NOT NULL,
-    entry_backfilled boolean DEFAULT false NOT NULL,
     occurred_at timestamp with time zone NOT NULL,
     business_date date NOT NULL,
     operator_id text DEFAULT 'legacy-shared-key'::text NOT NULL,
-    expected_receipt_id integer
+    expected_receipt_id integer,
+    entry_backfilled boolean DEFAULT false NOT NULL
 );
 
 
@@ -1153,7 +1164,8 @@ CREATE TABLE public.lots (
     supplier_lot_code text,
     lot_type text,
     received_at timestamp with time zone,
-    created_at_source text DEFAULT 'database'::text NOT NULL
+    created_at_source text DEFAULT 'database'::text NOT NULL,
+    lot_uuid uuid DEFAULT gen_random_uuid() NOT NULL
 );
 
 
@@ -2579,6 +2591,22 @@ ALTER TABLE ONLY public.lot_supplier_codes
 
 
 --
+-- Name: lots lots_code_format_chk; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.lots
+    ADD CONSTRAINT lots_code_format_chk CHECK (((lot_code ~ '^[A-Z0-9][A-Z0-9 ./#-]{2,49}$'::text) AND (lot_code !~ '(ENE|ABR|AGO|DIC|SET) '::text))) NOT VALID;
+
+
+--
+-- Name: lots lots_lot_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lots
+    ADD CONSTRAINT lots_lot_uuid_key UNIQUE (lot_uuid);
+
+
+--
 -- Name: lots lots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3256,6 +3284,13 @@ CREATE INDEX idx_transactions_status ON public.transactions USING btree (status)
 --
 
 CREATE INDEX idx_transactions_timestamp ON public.transactions USING btree ("timestamp" DESC);
+
+
+--
+-- Name: lots_product_code_norm_uniq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX lots_product_code_norm_uniq ON public.lots USING btree (product_id, regexp_replace(regexp_replace(upper(btrim(lot_code)), '\s+'::text, ' '::text, 'g'::text), '\s+LOT$'::text, ''::text)) WHERE (status IS DISTINCT FROM 'merged'::text);
 
 
 --
@@ -3989,10 +4024,5 @@ ALTER TABLE ONLY public.transactions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict lLAWZcgkJFF1oXCgBXDD1uTvn4qEZYTsQa6SYb9objg1ubWzjefTNcURoaQtZPw
+\unrestrict kY1arehLoqZtAOPJg0bYYjZanEbNRm8hDnJYG739vluvDN19k04FMgYi83OWcdu
 
--- ═══ PENDING MIGRATION 047 (lot identity) ═══
--- Not yet applied to prod. Remove this block after migrations/047_lot_identity.sql
--- is applied to production and the schema is re-dumped via scripts/dump_prod_schema.sh
--- (same pattern as the 041 pending block, removed 2026-08-18).
-\ir ../../migrations/047_lot_identity.sql

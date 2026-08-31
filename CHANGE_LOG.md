@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-31 14:47 — Schema re-dump post-047; pending include dropped; scratch tests build pre-047 base by revert
+- **File(s) changed:** `tests/schema/schema.sql`, `tests/test_lot_identity_047.py`
+- **What changed:** Ran `scripts/dump_prod_schema.sh` — schema.sql is now a fresh post-047 prod dump (4,028 lines, zero data rows) carrying lot_uuid, `lots_product_code_norm_uniq`, and the NOT VALID `lots_code_format_chk` natively; the pending `\ir` 047 block is gone (overwritten by the dump). The scratch-DB migration tests previously reconstructed a pre-047 base by stripping that pending block — with 047 baked into the dump they now revert the three 047 objects (drop CHECK, UNIQUE, index, lot_uuid column) after loading the schema, then seed historical shapes and apply the migration on top, preserving the applies-cleanly coverage. Test DB rebuilt --fresh from the new dump; suite 280/280.
+- **Why:** Close the row-108 follow-up: the pending-include pattern (041 precedent) ends with a prod apply + re-dump; the fixture change keeps the migration-application regression tests meaningful against a post-047 dump.
+
+---
+
 ## 2026-08-31 14:36 — Migration 047 DEPLOYED: applied to prod, PR #21 merged, Railway live
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 108 amended to deployed status)
 - **What changed:** Sequenced deploy executed with per-step approval: (1) branch pushed, PR #21 opened; (2) approval; (3) `migrations/047_lot_identity.sql` applied to production via the 5432 session-pooler write path in its own transaction — read-only verification: 1,048/1,048 lots carry distinct non-null lot_uuid, `lots_product_code_norm_uniq` exists with 0 violation groups, `lots_code_format_chk` convalidated=false, old app unaffected (/health 200, GET /lots/999 200); (4) approval; (5) PR #21 merged as d237754, Railway auto-deploy 10e28c90 SUCCESS, /health 200, smoke GET /lots/999 shows lot_uuid on the new build, logs clean (no tracebacks, no suspicious_code_similarity machinery errors). Follow-up left open: prod schema re-dump + removal of the pending `\ir` 047 block in tests/schema/schema.sql.
