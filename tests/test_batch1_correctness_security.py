@@ -82,7 +82,7 @@ def _insert_transaction(cur, txn_type, lines, **header):
 
 
 def _seed_trace_graph(cur):
-    token = uuid4().hex[:10]
+    token = uuid4().hex[:10].upper()
     ingredient_name = f"B1 Ingredient {token}"
     active_batch_name = f"B1 Active Batch {token}"
     void_batch_name = f"B1 Void Batch {token}"
@@ -107,7 +107,7 @@ def _seed_trace_graph(cur):
         ("active_batch", "active_batch", "production_output"),
         ("void_batch", "void_batch", "production_output"),
     ):
-        lot_code = f"B1-{key.upper()}-{token}"
+        lot_code = f"B1-{key.upper().replace('_', '-')}-{token}"
         cur.execute(
             "INSERT INTO lots (product_id, lot_code, entry_source, supplier_lot_code) "
             "VALUES (%s, %s, %s, %s) RETURNING id",
@@ -362,7 +362,7 @@ def test_effective_trace_directions_exclude_correction_voids_and_keep_originals(
 def test_output_lot_forward_trace_isolated_by_lot_id_when_codes_collide(
     _db_connection, remediation_client
 ):
-    token = uuid4().hex[:10]
+    token = uuid4().hex[:10].upper()
     shared_lot_code = "AUG 21 2026"
 
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
@@ -487,7 +487,7 @@ def test_output_lot_forward_trace_isolated_by_lot_id_when_codes_collide(
 def test_dashboard_forward_trace_filters_same_code_shipments_by_lot_id(
     _db_connection, remediation_client
 ):
-    token = uuid4().hex[:10]
+    token = uuid4().hex[:10].upper()
     shared_lot_code = f"DASH-COLLISION-{token}"
 
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
@@ -620,7 +620,7 @@ def test_dashboard_forward_trace_filters_same_code_shipments_by_lot_id(
 def test_sales_order_shipment_history_excludes_correction_voids(
     _db_connection, remediation_client
 ):
-    token = uuid4().hex[:10]
+    token = uuid4().hex[:10].upper()
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             "INSERT INTO customers (name, active) VALUES (%s, true) RETURNING id",

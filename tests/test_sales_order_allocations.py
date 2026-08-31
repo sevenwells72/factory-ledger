@@ -2803,7 +2803,7 @@ def test_enforced_order_ship_sibling_and_other_pins_block_atomically(
         competitor_order, (competitor_line,), _ = _seed_order(
             cur, n_lines=1, product_ids=[product_id]
         )
-    lot_id = _seed_lot(cur, product_id, f"T044-PR5-ORDER-{competitor}")
+    lot_id = _seed_lot(cur, product_id, f"T044-PR5-ORDER-{competitor.upper().replace('_', '-')}")
     _post_stock(cur, product_id, lot_id, 100)
     assert allocation_client.post(
         f"/sales/orders/{competitor_order}/allocations",

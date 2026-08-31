@@ -3698,7 +3698,7 @@ def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_ap
         with get_transaction() as cur:
             # Search lots table (direct supplier_lot_code on lot)
             cur.execute(f"""
-                SELECT l.id, l.lot_code, l.supplier_lot_code, l.lot_type,
+                SELECT l.id, l.lot_uuid, l.lot_code, l.supplier_lot_code, l.lot_type,
                        l.product_id, p.name AS product_name, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) AS quantity_on_hand
                 FROM lots l
@@ -3711,7 +3711,7 @@ def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_ap
 
             # Search lot_supplier_codes table (commingled entries)
             cur.execute(f"""
-                SELECT DISTINCT l.id, l.lot_code, l.supplier_lot_code, l.lot_type,
+                SELECT DISTINCT l.id, l.lot_uuid, l.lot_code, l.supplier_lot_code, l.lot_type,
                        l.product_id, p.name AS product_name, p.odoo_code,
                        COALESCE(oh.on_hand, 0) AS quantity_on_hand,
                        lsc.supplier_lot_code AS commingled_supplier_lot,
@@ -3734,6 +3734,7 @@ def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_ap
                 seen_ids.add(lot['id'])
                 results.append({
                     "lot_id": lot['id'],
+                    "lot_uuid": str(lot['lot_uuid']),
                     "lot_code": lot['lot_code'],
                     "supplier_lot_code": lot['supplier_lot_code'],
                     "lot_type": lot['lot_type'],
@@ -3745,6 +3746,7 @@ def get_lots_by_supplier_lot(supplier_lot_code: str, _: bool = Depends(verify_ap
             for row in commingled_matches:
                 entry = {
                     "lot_id": row['id'],
+                    "lot_uuid": str(row['lot_uuid']),
                     "lot_code": row['lot_code'],
                     "supplier_lot_code": row['supplier_lot_code'],
                     "lot_type": row['lot_type'],
@@ -3789,7 +3791,7 @@ def get_lot_by_code(lot_code: str, product_id: Optional[int] = Query(None), _: b
     try:
         with get_transaction() as cur:
             query = f"""
-                SELECT l.id, l.lot_code, l.product_id, p.name as product_name, p.odoo_code,
+                SELECT l.id, l.lot_uuid, l.lot_code, l.product_id, p.name as product_name, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand,
                        l.entry_source, l.found_location, l.estimated_age,
                        l.supplier_lot_code, l.lot_type,
@@ -3961,7 +3963,7 @@ def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_
     Validates no duplicate lot_code exists for the same product.
     Only lots.lot_code needs updating — all other tables use integer FKs.
     """
-    new_code = req.new_lot_code.strip()
+    new_code = normalize_lot_code_input(req.new_lot_code)
     if not new_code:
         raise HTTPException(400, "new_lot_code must not be empty")
 
@@ -3969,7 +3971,7 @@ def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_
         with get_transaction() as cur:
             # Fetch the lot
             cur.execute("""
-                SELECT l.id, l.lot_code, l.product_id, p.name AS product_name
+                SELECT l.id, l.lot_uuid, l.lot_code, l.product_id, p.name AS product_name
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 WHERE l.id = %s
@@ -3997,6 +3999,28 @@ def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_
                     f"Lot code '{new_code}' already exists for product {product_id} "
                     f"(lot id {conflict['id']})")
 
+            # Tier-1 normalized twin (§3.1 / migration 047): renaming onto a
+            # casing/whitespace/'Lot'-suffix variant of another non-merged
+            # lot's code would violate lots_product_code_norm_uniq — surface
+            # it as a 409 instead of letting the UPDATE 500.
+            t1_col = _LOT_CODE_T1_NORM_SQL.format(expr="lot_code")
+            t1_param = _LOT_CODE_T1_NORM_SQL.format(expr="%s")
+            cur.execute(f"""
+                SELECT id, lot_code FROM lots
+                WHERE product_id = %s
+                  AND id <> %s
+                  AND status IS DISTINCT FROM 'merged'
+                  AND {t1_col} = {t1_param}
+                LIMIT 1
+            """, (product_id, lot_id, new_code))
+            norm_conflict = cur.fetchone()
+            if norm_conflict:
+                raise HTTPException(409,
+                    f"Lot code '{new_code}' normalizes to the same code as existing lot "
+                    f"'{norm_conflict['lot_code']}' (lot id {norm_conflict['id']}) for "
+                    f"product {product_id} — a casing/whitespace/'Lot'-suffix variant "
+                    f"of the same code.")
+
             # Rename
             cur.execute("""
                 UPDATE lots SET lot_code = %s WHERE id = %s
@@ -4007,6 +4031,7 @@ def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_
 
             return {
                 "lot_id": lot_id,
+                "lot_uuid": str(lot['lot_uuid']),
                 "previous_lot_code": old_code,
                 "lot_code": new_code,
                 "product_id": product_id,
@@ -4028,14 +4053,116 @@ def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_
 # If lot_code is provided, find-or-create by (product_id, lot_code).
 # Only auto-generate if lot_code is omitted.
 
+# Two-tier lot-code normalization (TRACEABILITY_DESIGN.md §3.1, migration 047).
+# Tier 1 (HARD — must stay in lockstep with the lots_product_code_norm_uniq
+# index expression): upper-case, trim + collapse whitespace, strip a trailing
+# 'LOT' noise token. A tier-1 twin of a non-merged lot of the same product
+# blocks the write.
+_LOT_CODE_T1_NORM_SQL = (
+    "regexp_replace(regexp_replace(upper(btrim({expr})), '\\s+', ' ', 'g'), "
+    "'\\s+LOT$', '')"
+)
+# Tier 2 (SOFT — never a constraint): tier 1 plus stripping ALL remaining
+# non-alphanumerics. An aggressive-key match only warns
+# (suspicious_code_similarity) so a legitimate supplier code is never
+# hard-blocked at the dock.
+_LOT_CODE_T2_NORM_SQL = (
+    "regexp_replace(regexp_replace(upper(btrim({expr})), '\\s+LOT$', ''), "
+    "'[^A-Z0-9]', '', 'g')"
+)
+
+
+def normalize_lot_code_input(code: str) -> str:
+    """Canonicalize a CALLER-SUPPLIED lot code before any lookup or insert:
+    upper-case, trim, collapse internal whitespace — the input-side mirror of
+    the tier-1 index's case/whitespace folding, so lots_code_format_chk can
+    never reject a code for casing/whitespace and lookups hit the same lot
+    the constraint sees. Nothing else is altered: punctuation and 'LOT'
+    tokens stay as typed (tier 2 warns about those near-twins; input
+    handling never silently rewrites a code).
+    """
+    return re.sub(r"\s+", " ", code.strip()).upper()
+
+
+def check_suspicious_code_similarity(cur, product_id: int, lot_id: int, lot_code: str):
+    """§3.1 tier-2 SOFT near-twin check, run at lot-mint time.
+
+    Returns a suspicious_code_similarity warning dict when the newly minted
+    code's aggressive key matches an existing non-merged lot of the same
+    product, else None. (Among distinct non-merged lots the tier-1 index
+    guarantees the tier-1 keys differ, so any hit here is a genuine
+    tier-2-only near-twin.) NEVER blocks or fails the write: runs inside its
+    own SAVEPOINT and swallows its own errors.
+    """
+    t2_col = _LOT_CODE_T2_NORM_SQL.format(expr="lot_code")
+    t2_param = _LOT_CODE_T2_NORM_SQL.format(expr="%s")
+    try:
+        cur.execute("SAVEPOINT t2_similarity")
+        cur.execute(f"""
+            SELECT id, lot_code FROM lots
+            WHERE product_id = %s
+              AND id <> %s
+              AND status IS DISTINCT FROM 'merged'
+              AND {t2_col} = {t2_param}
+            ORDER BY id
+            LIMIT 1
+        """, (product_id, lot_id, lot_code))
+        match = cur.fetchone()
+        cur.execute("RELEASE SAVEPOINT t2_similarity")
+    except Exception as e:
+        try:
+            cur.execute("ROLLBACK TO SAVEPOINT t2_similarity")
+        except Exception:
+            pass
+        logger.warning(f"suspicious_code_similarity check failed (write unaffected): {e}")
+        return None
+    if not match:
+        return None
+    return {
+        "warning": "suspicious_code_similarity",
+        "similar_lot_id": match['id'],
+        "similar_lot_code": match['lot_code'],
+        "message": (
+            f"Lot code '{lot_code}' looks suspiciously similar to existing lot "
+            f"'{match['lot_code']}' (lot id {match['id']}) of the same product. "
+            f"The write went through; if these are the same physical lot, "
+            f"merge them via /admin/lots/merge."
+        ),
+    }
+
+
 def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
                        entry_source_notes: str = None, entry_source_notes_es: str = None,
                        found_location: str = None, estimated_age: str = None) -> tuple:
-    """Find existing lot or create a new one. Returns (lot_id, is_new).
+    """Find existing lot or create a new one. Returns (lot_id, is_new, lot_uuid).
 
     Uses INSERT ... ON CONFLICT DO NOTHING + SELECT to guarantee exactly one lot
     per (product_id, lot_code) pair, leveraging the unique index.
+
+    Tier-1 twins (§3.1 / migration 047): a code that normalizes onto an
+    existing non-merged lot of the same product WITHOUT matching it exactly
+    (casing/whitespace/'Lot'-suffix variant) is rejected with a 409 — checked
+    up front for a clear message, with the lots_product_code_norm_uniq index
+    as the concurrent-mint backstop.
     """
+    t1_col = _LOT_CODE_T1_NORM_SQL.format(expr="lot_code")
+    t1_param = _LOT_CODE_T1_NORM_SQL.format(expr="%s")
+    cur.execute(f"""
+        SELECT id, lot_code FROM lots
+        WHERE product_id = %s
+          AND lot_code <> %s
+          AND status IS DISTINCT FROM 'merged'
+          AND {t1_col} = {t1_param}
+        LIMIT 1
+    """, (product_id, lot_code, lot_code))
+    twin = cur.fetchone()
+    if twin:
+        raise HTTPException(409,
+            f"Lot code '{lot_code}' normalizes to the same code as existing lot "
+            f"'{twin['lot_code']}' (lot id {twin['id']}) for this product — a "
+            f"casing/whitespace/'Lot'-suffix variant of the same code. Use the "
+            f"existing lot's exact code to add to it, or a genuinely different code.")
+
     # Build dynamic INSERT with optional columns
     columns = ["product_id", "lot_code", "entry_source"]
     values = [product_id, lot_code, entry_source]
@@ -4061,21 +4188,33 @@ def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
     col_str = ", ".join(columns)
     ph_str = ", ".join(placeholders)
 
-    cur.execute(f"""
-        INSERT INTO lots ({col_str})
-        VALUES ({ph_str})
-        ON CONFLICT (product_id, lot_code) DO NOTHING
-    """, values)
+    try:
+        cur.execute(f"""
+            INSERT INTO lots ({col_str})
+            VALUES ({ph_str})
+            ON CONFLICT (product_id, lot_code) DO NOTHING
+        """, values)
+    except psycopg2.errors.UniqueViolation as e:
+        # Concurrent mint of a tier-1 variant slipped past the pre-check and
+        # hit lots_product_code_norm_uniq. (An exact-code race is absorbed by
+        # the ON CONFLICT arbiter and never lands here.)
+        if e.diag.constraint_name == 'lots_product_code_norm_uniq':
+            raise HTTPException(409,
+                f"Lot code '{lot_code}' normalizes to the same code as an "
+                f"existing lot of this product (concurrent entry). Retry with "
+                f"the existing lot's exact code, or a genuinely different code.")
+        raise
     is_new = cur.rowcount > 0
 
     # Fetch the lot (whether just created or already existed)
-    cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product_id, lot_code))
-    lot_id = cur.fetchone()['id']
+    cur.execute("SELECT id, lot_uuid FROM lots WHERE product_id = %s AND lot_code = %s", (product_id, lot_code))
+    row = cur.fetchone()
+    lot_id = row['id']
 
     if not is_new:
         logger.info(f"Found existing lot {lot_code} (id={lot_id}) for product_id={product_id}")
 
-    return lot_id, is_new
+    return lot_id, is_new, row['lot_uuid']
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -4145,10 +4284,10 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
 
                 # Lot Identity Policy: honor physical lot code if provided
                 if req.lot_code:
-                    lot_code = req.lot_code
+                    lot_code = normalize_lot_code_input(req.lot_code)
                     shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
                     auto = False
-                    cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product['id'], req.lot_code))
+                    cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product['id'], lot_code))
                     existing = cur.fetchone()
                 else:
                     lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
@@ -4201,7 +4340,7 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                     product = resolve_product_full(cur, req.product_name)
 
                     if req.lot_code:
-                        lot_code = req.lot_code
+                        lot_code = normalize_lot_code_input(req.lot_code)
                         shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
                     else:
                         lot_code, shipper_code, _ = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
@@ -4211,7 +4350,11 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                     # Determine lot_type
                     lot_type = req.lot_type or ("commingled" if req.supplier_lot_entries else "single_supplier")
 
-                    lot_id, is_new_lot = find_or_create_lot(cur, product['id'], lot_code, 'received')
+                    lot_id, is_new_lot, lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'received')
+                    code_similarity = (
+                        check_suspicious_code_similarity(cur, product['id'], lot_id, lot_code)
+                        if is_new_lot else None
+                    )
 
                     # Update lot with LAT Code Policy v1.1 fields
                     cur.execute("""
@@ -4281,6 +4424,7 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                         "transaction_id": txn_id,
                         "confirmation_code": generate_confirmation_code(txn_id),
                         "lot_id": lot_id,
+                        "lot_uuid": str(lot_uuid),
                         "lot_code": lot_code,
                         "lot_is_new": is_new_lot,
                         "lot_type": lot_type,
@@ -4288,6 +4432,8 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                         "receipt_text": receipt,
                         "message": f"Received {total_lb} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
                     }
+                    if code_similarity:
+                        response.setdefault("warnings", []).append(code_similarity)
                     if supplier_entries_saved:
                         response["supplier_lot_entries_created"] = len(supplier_entries_saved)
                     response["expected_receipt"] = expected_receipt_summary
@@ -5564,7 +5710,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
 
                 all_sufficient = all(i['sufficient'] for i in ingredients_needed)
                 if req.lot_code:
-                    lot_code = req.lot_code
+                    lot_code = normalize_lot_code_input(req.lot_code)
                 else:
                     now = get_plant_now()
                     date_part = now.strftime("%y-%m%d")
@@ -5649,13 +5795,17 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                     cur.execute("SELECT pg_advisory_xact_lock(3)")
 
                     if req.lot_code:
-                        lot_code = req.lot_code
+                        lot_code = normalize_lot_code_input(req.lot_code)
                     else:
                         date_part = now.strftime("%y-%m%d")
                         seq = next_lot_sequence(cur, f"B{date_part}-%")
                         lot_code = f"B{date_part}-{seq:03d}"
 
-                    output_lot_id, is_new_lot = find_or_create_lot(cur, product['id'], lot_code, 'production_output')
+                    output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'production_output')
+                    code_similarity = (
+                        check_suspicious_code_similarity(cur, product['id'], output_lot_id, lot_code)
+                        if is_new_lot else None
+                    )
 
                     cur.execute("""
                         SELECT bf.ingredient_product_id, bf.quantity_lb,
@@ -5775,13 +5925,15 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         "mode": "commit",
                         "success": True, "transaction_id": txn_id,
                         "confirmation_code": generate_confirmation_code(txn_id),
-                        "lot_id": output_lot_id, "lot_code": lot_code,
+                        "lot_id": output_lot_id, "lot_uuid": str(output_lot_uuid), "lot_code": lot_code,
                         "yield_multiplier": yield_multiplier, "formula_weight_lb": formula_weight_lb,
                         "estimated_yield_lb": total_output, "output_lb": total_output,
                         "ingredients_consumed": consumed_flat,
                         "ingredients_consumed_grouped": list(consumed_by_ingredient.values()),
                         "message": f"Produced {total_output} lb as lot {lot_code}"
                     }
+                    if code_similarity:
+                        response.setdefault("warnings", []).append(code_similarity)
                     production_warning = build_production_warning(product)
                     if production_warning:
                         response["production_warning"] = production_warning
@@ -6009,7 +6161,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
 
                 all_sufficient = all(a.get('sufficient', False) for a in allocations)
                 if req.target_lot_code:
-                    output_lot_code = req.target_lot_code
+                    output_lot_code = normalize_lot_code_input(req.target_lot_code)
                 elif allocations and allocations[0].get('lot_code'):
                     output_lot_code = allocations[0]['lot_code']
                 else:
@@ -6136,11 +6288,15 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     )
 
                     if req.target_lot_code:
-                        output_lot_code = req.target_lot_code
+                        output_lot_code = normalize_lot_code_input(req.target_lot_code)
                     else:
                         output_lot_code = alloc_plan[0][0]['lot_code']
 
-                    output_lot_id, is_new_lot = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
+                    output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
+                    code_similarity = (
+                        check_suspicious_code_similarity(cur, target['id'], output_lot_id, output_lot_code)
+                        if is_new_lot else None
+                    )
                     source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
                     cur.execute("""
                         INSERT INTO transactions (
@@ -6218,7 +6374,8 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         "mode": "commit",
                         "success": True, "transaction_id": txn_id,
                         "confirmation_code": generate_confirmation_code(txn_id),
-                        "output_lot_id": output_lot_id, "output_lot_code": output_lot_code,
+                        "output_lot_id": output_lot_id, "output_lot_uuid": str(output_lot_uuid),
+                        "output_lot_code": output_lot_code,
                         "target_product_name": target['name'], "source_product_name": source['name'],
                         "cases": req.cases, "case_weight_lb": case_weight, "total_lb": total_lb,
                         "can_pack_lb": can_pack,
@@ -6227,6 +6384,8 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         "batch_lots_consumed": consumed,
                         "message": f"Packed {req.cases} cases ({total_lb} lb) of {target['name']} as lot {output_lot_code}"
                     }
+                    if code_similarity:
+                        response.setdefault("warnings", []).append(code_similarity)
                     if allocation_warning:
                         response["allocation_warning"] = allocation_warning
                         response["warning"] = allocation_warning["message"]
@@ -8039,16 +8198,20 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
                 # Lot Identity Policy: honor physical lot code if provided
                 if req.lot_code:
-                    lot_code = req.lot_code
+                    lot_code = normalize_lot_code_input(req.lot_code)
                 else:
                     date_part = now.strftime("%y-%m-%d")
                     seq = next_lot_sequence(cur, f"{date_part}-FOUND-%")
                     lot_code = f"{date_part}-FOUND-{seq:03d}"
 
-                lot_id, is_new_lot = find_or_create_lot(
+                lot_id, is_new_lot, lot_uuid = find_or_create_lot(
                     cur, req.product_id, lot_code, 'found_inventory',
                     entry_source_notes=req.notes, entry_source_notes_es=req.notes_es,
                     found_location=req.found_location, estimated_age=req.estimated_age
+                )
+                code_similarity = (
+                    check_suspicious_code_similarity(cur, req.product_id, lot_id, lot_code)
+                    if is_new_lot else None
                 )
 
                 cur.execute("""
@@ -8086,6 +8249,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                 response = {
                     "success": True,
                     "lot_id": lot_id,
+                    "lot_uuid": str(lot_uuid),
                     "lot_code": lot_code,
                     "product_name": product['name'],
                     "quantity": req.quantity,
@@ -8093,6 +8257,8 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                     "entry_source": "found_inventory",
                     "message": f"Added {req.quantity} {req.uom} of {product['name']} as lot {lot_code}"
                 }
+                if code_similarity:
+                    response.setdefault("warnings", []).append(code_similarity)
                 if audit_error:
                     response["audit_warning"] = audit_error
                 return response
@@ -8137,16 +8303,20 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
 
                 # Lot Identity Policy: honor physical lot code if provided
                 if req.lot_code:
-                    lot_code = req.lot_code
+                    lot_code = normalize_lot_code_input(req.lot_code)
                 else:
                     date_part = now.strftime("%y-%m-%d")
                     seq = next_lot_sequence(cur, f"{date_part}-FOUND-%")
                     lot_code = f"{date_part}-FOUND-{seq:03d}"
 
-                lot_id, is_new_lot = find_or_create_lot(
+                lot_id, is_new_lot, lot_uuid = find_or_create_lot(
                     cur, product['id'], lot_code, 'found_inventory',
                     entry_source_notes=req.notes, entry_source_notes_es=req.notes_es,
                     found_location=req.found_location, estimated_age=req.estimated_age
+                )
+                code_similarity = (
+                    check_suspicious_code_similarity(cur, product['id'], lot_id, lot_code)
+                    if is_new_lot else None
                 )
                 
                 cur.execute("""
@@ -8190,10 +8360,13 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     "product_name": product['name'],
                     "verification_status": "unverified",
                     "lot_id": lot_id,
+                    "lot_uuid": str(lot_uuid),
                     "lot_code": lot_code,
                     "quantity": req.quantity,
                     "message": f"Created '{product['name']}' and added {req.quantity} {req.uom} as lot {lot_code}"
                 }
+                if code_similarity:
+                    response.setdefault("warnings", []).append(code_similarity)
                 if audit_error:
                     response["audit_warning"] = audit_error
                 return response

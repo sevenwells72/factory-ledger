@@ -49,7 +49,7 @@ def client(_db_connection, monkeypatch):
 
 
 def _seed_customer(cur):
-    token = uuid4().hex[:10]
+    token = uuid4().hex[:10].upper()
     name = f"READINESS Customer {token}"
     cur.execute("INSERT INTO customers (name, active) VALUES (%s, true) RETURNING id", (name,))
     return cur.fetchone()["id"], name, token
@@ -66,7 +66,7 @@ def _seed_product(
     no_production=False,
     stock=0,
 ):
-    suffix = uuid4().hex[:6]
+    suffix = uuid4().hex[:6].upper()
     cur.execute(
         "INSERT INTO products "
         "(name, type, odoo_code, uom, is_service, no_production, active) "

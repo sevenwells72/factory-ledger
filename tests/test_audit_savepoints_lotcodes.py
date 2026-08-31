@@ -222,7 +222,7 @@ def test_reassign_survives_audit_failure(client, _db_connection):
     with _cur(_db_connection) as cur:
         cur.execute(
             "INSERT INTO lots (product_id, lot_code) VALUES (%s, %s) RETURNING id",
-            (from_id, f"AUDITSP-{uuid4().hex[:8]}"),
+            (from_id, f"AUDITSP-{uuid4().hex[:8].upper()}"),
         )
         lot_id = cur.fetchone()["id"]
 
@@ -252,7 +252,7 @@ def test_reassign_audit_row_written_on_success(client, _db_connection):
     with _cur(_db_connection) as cur:
         cur.execute(
             "INSERT INTO lots (product_id, lot_code) VALUES (%s, %s) RETURNING id",
-            (from_id, f"AUDITSP-{uuid4().hex[:8]}"),
+            (from_id, f"AUDITSP-{uuid4().hex[:8].upper()}"),
         )
         lot_id = cur.fetchone()["id"]
 
@@ -338,7 +338,7 @@ def _seed_makeable_product(conn, name):
         )
         cur.execute(
             "INSERT INTO lots (product_id, lot_code) VALUES (%s, %s) RETURNING id",
-            (ing_id, f"MAKELOCK-ING-{uuid4().hex[:8]}"),
+            (ing_id, f"MAKELOCK-ING-{uuid4().hex[:8].upper()}"),
         )
         lot_id = cur.fetchone()["id"]
         cur.execute(

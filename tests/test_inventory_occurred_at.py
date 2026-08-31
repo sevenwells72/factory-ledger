@@ -53,7 +53,7 @@ def occurred_client(_db_connection, monkeypatch):
 
 
 def _seed_adjustment_target(conn):
-    token = uuid4().hex[:10]
+    token = uuid4().hex[:10].upper()
     product_name = f"Occurred At Product {token}"
     lot_code = f"OCCURRED-{token}"
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
