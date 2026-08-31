@@ -4082,35 +4082,46 @@ def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
 # RECEIVE ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+def next_lot_sequence(cur, like_pattern: str) -> int:
+    """Next numeric suffix for auto-generated lot codes matching like_pattern.
+
+    MAX over the numeric -NNN suffixes only. The old probe took the
+    lexically-highest matching code and int()-parsed its suffix: a manually
+    entered code sharing the prefix but ending non-numerically (e.g.
+    '26-08-25-COST-A' — ASCII sorts above the digits) failed the parse and
+    reset the counter to 001, silently colliding with the existing -001 lot.
+    Numeric MAX also keeps counting past -999, where lexical ordering breaks
+    ('1000' < '999'). Suffixes longer than 6 digits are ignored rather than
+    risking an int-cast error inside the caller's transaction.
+    """
+    cur.execute(
+        r"""
+        SELECT MAX(substring(lot_code FROM '-(\d{1,6})$')::int) AS max_seq
+        FROM lots
+        WHERE lot_code LIKE %s AND lot_code ~ '-\d{1,6}$'
+        """,
+        (like_pattern,),
+    )
+    row = cur.fetchone()
+    max_seq = row['max_seq'] if row else None
+    return int(max_seq or 0) + 1
+
+
 def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None) -> tuple:
     now = get_plant_now()
     date_part = now.strftime("%y-%m-%d")
-    
+
     if shipper_code_override:
         shipper_code = shipper_code_override.upper()[:4]
         auto = False
     else:
         shipper_code = ''.join(c for c in shipper_name.upper() if c.isalpha())[:4]
         auto = True
-    
+
     shipper_code = shipper_code or "UNKN"
-    
-    cur.execute("""
-        SELECT lot_code FROM lots 
-        WHERE lot_code LIKE %s 
-        ORDER BY lot_code DESC LIMIT 1
-    """, (f"{date_part}-{shipper_code}-%",))
-    existing = cur.fetchone()
-    
-    if existing:
-        try:
-            last_seq = int(existing['lot_code'].split('-')[-1])
-            seq = last_seq + 1
-        except (ValueError, IndexError):
-            seq = 1
-    else:
-        seq = 1
-    
+
+    seq = next_lot_sequence(cur, f"{date_part}-{shipper_code}-%")
+
     lot_code = f"{date_part}-{shipper_code}-{seq:03d}"
     return lot_code, shipper_code, auto
 
@@ -5557,12 +5568,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                 else:
                     now = get_plant_now()
                     date_part = now.strftime("%y-%m%d")
-                    cur.execute("SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1", (f"B{date_part}-%",))
-                    existing = cur.fetchone()
-                    if existing:
-                        try: seq = int(existing['lot_code'].split('-')[-1]) + 1
-                        except (ValueError, IndexError): seq = 1
-                    else: seq = 1
+                    seq = next_lot_sequence(cur, f"B{date_part}-%")
                     lot_code = f"B{date_part}-{seq:03d}"
 
                 siblings = get_sibling_skus(cur, product['id'])
@@ -5646,12 +5652,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                         lot_code = req.lot_code
                     else:
                         date_part = now.strftime("%y-%m%d")
-                        cur.execute("SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1", (f"B{date_part}-%",))
-                        existing = cur.fetchone()
-                        if existing:
-                            try: seq = int(existing['lot_code'].split('-')[-1]) + 1
-                            except (ValueError, IndexError): seq = 1
-                        else: seq = 1
+                        seq = next_lot_sequence(cur, f"B{date_part}-%")
                         lot_code = f"B{date_part}-{seq:03d}"
 
                     output_lot_id, is_new_lot = find_or_create_lot(cur, product['id'], lot_code, 'production_output')
@@ -8041,18 +8042,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
                     lot_code = req.lot_code
                 else:
                     date_part = now.strftime("%y-%m-%d")
-                    cur.execute("""
-                        SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1
-                    """, (f"{date_part}-FOUND-%",))
-                    existing = cur.fetchone()
-                    if existing:
-                        try:
-                            last_seq = int(existing['lot_code'].split('-')[-1])
-                            seq = last_seq + 1
-                        except (ValueError, IndexError):
-                            seq = 1
-                    else:
-                        seq = 1
+                    seq = next_lot_sequence(cur, f"{date_part}-FOUND-%")
                     lot_code = f"{date_part}-FOUND-{seq:03d}"
 
                 lot_id, is_new_lot = find_or_create_lot(
@@ -8150,9 +8140,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     lot_code = req.lot_code
                 else:
                     date_part = now.strftime("%y-%m-%d")
-                    cur.execute("SELECT lot_code FROM lots WHERE lot_code LIKE %s ORDER BY lot_code DESC LIMIT 1", (f"{date_part}-FOUND-%",))
-                    existing_lot = cur.fetchone()
-                    seq = (int(existing_lot['lot_code'].split('-')[-1]) + 1) if existing_lot else 1
+                    seq = next_lot_sequence(cur, f"{date_part}-FOUND-%")
                     lot_code = f"{date_part}-FOUND-{seq:03d}"
 
                 lot_id, is_new_lot = find_or_create_lot(

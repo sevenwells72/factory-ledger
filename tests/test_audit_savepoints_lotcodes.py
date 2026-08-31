@@ -437,6 +437,91 @@ def test_sequential_make_commits_mint_distinct_codes(raw_client):
     assert second_seq == first_seq + 1
 
 
+# ─────────────────────────────────────────────────────────────────
+# Problem 3 — nonnumeric lot-code suffixes must not reset the sequence
+# ─────────────────────────────────────────────────────────────────
+
+def _seed_lots(conn, product_id, codes):
+    with _cur(conn) as cur:
+        for code in codes:
+            cur.execute(
+                "INSERT INTO lots (product_id, lot_code) VALUES (%s, %s)",
+                (product_id, code),
+            )
+
+
+@pytest.mark.db
+def test_next_lot_sequence_ignores_nonnumeric_suffix(db_cursor, _db_connection):
+    pid = _seed_product(_db_connection)
+    # '-A' sorts ABOVE '-001' lexically; the old probe parsed it, failed,
+    # and reset the counter to 001.
+    _seed_lots(_db_connection, pid, ["ZZSEQ-TEST-001", "ZZSEQ-TEST-A"])
+    assert main.next_lot_sequence(db_cursor, "ZZSEQ-TEST-%") == 2
+
+
+@pytest.mark.db
+def test_next_lot_sequence_counts_past_999(db_cursor, _db_connection):
+    pid = _seed_product(_db_connection)
+    # '1000' < '999' lexically, so the old probe stuck at 1000 forever.
+    _seed_lots(_db_connection, pid, ["ZZSEQ-BIG-999", "ZZSEQ-BIG-1000"])
+    assert main.next_lot_sequence(db_cursor, "ZZSEQ-BIG-%") == 1001
+
+
+@pytest.mark.db
+def test_next_lot_sequence_fresh_prefix_starts_at_1(db_cursor, _db_connection):
+    pid = _seed_product(_db_connection)
+    assert main.next_lot_sequence(db_cursor, "ZZSEQ-FRESH-%") == 1
+    # Only nonnumeric suffixes on the prefix → still start at 1.
+    _seed_lots(_db_connection, pid, ["ZZSEQ-FRESH-A", "ZZSEQ-FRESH-XY"])
+    assert main.next_lot_sequence(db_cursor, "ZZSEQ-FRESH-%") == 1
+
+
+def test_receive_preview_seq_survives_manual_nonnumeric_code(client, _db_connection):
+    pid = _seed_product(_db_connection)
+    date_part = main.get_plant_now().strftime("%y-%m-%d")
+    _seed_lots(_db_connection, pid, [f"{date_part}-QQZZ-001", f"{date_part}-QQZZ-A"])
+    with _cur(_db_connection) as cur:
+        cur.execute("SELECT name FROM products WHERE id = %s", (pid,))
+        name = cur.fetchone()["name"]
+    resp = client.post("/receive", json={
+        "mode": "preview",
+        "product_name": name,
+        "cases": 1, "case_size_lb": 50,
+        "shipper_name": "QQZZ Foods",
+        "bol_reference": "BOL-SEQ-TEST",
+    })
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["lot_code"] == f"{date_part}-QQZZ-002"
+
+
+def test_found_seq_survives_manual_nonnumeric_code(client, _db_connection):
+    pid = _seed_product(_db_connection)
+    date_part = main.get_plant_now().strftime("%y-%m-%d")
+    _seed_lots(_db_connection, pid, [f"{date_part}-FOUND-007", f"{date_part}-FOUND-B"])
+    resp = client.post("/inventory/found", json={
+        "product_id": pid,
+        "quantity": 5,
+        "reason_code": "found_count",
+    })
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["lot_code"] == f"{date_part}-FOUND-008"
+
+
+def test_make_preview_seq_survives_manual_nonnumeric_code(client, _db_connection):
+    pid = _seed_product(_db_connection, product_type="batch")
+    with _cur(_db_connection) as cur:
+        cur.execute("UPDATE products SET default_batch_lb = 50 WHERE id = %s", (pid,))
+        cur.execute("SELECT name FROM products WHERE id = %s", (pid,))
+        name = cur.fetchone()["name"]
+    date_part = main.get_plant_now().strftime("%y-%m%d")
+    _seed_lots(_db_connection, pid, [f"B{date_part}-004", f"B{date_part}-XYZ"])
+    resp = client.post("/make", json={
+        "mode": "preview", "product_name": name, "batches": 1,
+    })
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["lot_code"] == f"B{date_part}-005"
+
+
 def test_found_with_new_product_writes_adjustment_row(client, _db_connection):
     """Coverage gap closed: this path previously wrote no inventory_adjustments
     row at all (2026-08-25 audit, Risk notes §3)."""
