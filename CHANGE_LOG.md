@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-31 15:52 — Migration 048 DEPLOYED: applied to prod, PR #22 merged, Railway live
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 109 amended to deployed status)
+- **What changed:** Sequenced deploy executed with per-step approval: (1) branch pushed, PR #22 opened; (2) approval; (3) `migrations/048_trace_tables.sql` applied to production via the 5432 session-pooler write path in a single transaction (only expected DROP-TRIGGER-IF-EXISTS notices) — read-only verification: trace_events + trace_event_lots exist and are EMPTY, all four trg_trace_* triggers present, trace_events_txn_type_uniq has indnullsnotdistinct=t, replaced ledger_enforce_created_at contains trace_backfill_048 and retains api_backfill, latest transaction (id 2146) created_at_source='database', /health 200 + keyed GET /lots/999 200 + dashboard daily-entries 200 on the old build; (4) approval; (5) PR #22 merged as 165bf49, Railway auto-deploy 8378758f SUCCESS (app code unchanged — rebuild of identical behavior), /health 200 + daily-entries 200 on the new build.
+- **Why:** TRACEABILITY_DESIGN §9 step 2 goes live as inert schema, unblocking step 3 (emission hooks) and step 4 (backfill).
+
+---
+
 ## 2026-08-31 15:25 — Migration 048: trace tables (branch feat/048-trace-tables, schema only, not applied to prod)
 - **File(s) changed:** `migrations/048_trace_tables.sql`, `tests/test_trace_tables_048.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 109)
 - **What changed:** New migration per TRACEABILITY_DESIGN §3.2/§3.3 (§9 step 2): `trace_events` (correction-pairing CHECK, generated 24 h `late_recorded` flag, UNIQUE NULLS NOT DISTINCT on (transaction_id, event_type, correction_id) — deviation from the doc's plain UNIQUE, which never fires for NULL correction_ids — and the three design indexes) + `trace_event_lots` (role CHECK, `tel_role_sign` sign convention, (event, lot, role) unique, both indexes). Both tables carry the 039 created_at-enforcement and append-only triggers; `ledger_enforce_created_at` replaced (046's api_backfill pattern) to add the `trace_backfill_048` provenance carve-out, which on trace_events also unlocks a caller-supplied historical `recorded_at` for the §9 step-4 backfill (all other inserts get it forced to clock_timestamp()). No emission code, no main.py changes — deploys inert. 40 new tests (fresh apply + re-run no-op, constraint matrix, 24 h boundary, append-only, carve-out isolation, FK integrity); suite 320/320.
