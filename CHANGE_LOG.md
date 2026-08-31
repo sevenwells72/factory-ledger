@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-08-31 14:36 — Migration 047 DEPLOYED: applied to prod, PR #21 merged, Railway live
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 108 amended to deployed status)
+- **What changed:** Sequenced deploy executed with per-step approval: (1) branch pushed, PR #21 opened; (2) approval; (3) `migrations/047_lot_identity.sql` applied to production via the 5432 session-pooler write path in its own transaction — read-only verification: 1,048/1,048 lots carry distinct non-null lot_uuid, `lots_product_code_norm_uniq` exists with 0 violation groups, `lots_code_format_chk` convalidated=false, old app unaffected (/health 200, GET /lots/999 200); (4) approval; (5) PR #21 merged as d237754, Railway auto-deploy 10e28c90 SUCCESS, /health 200, smoke GET /lots/999 shows lot_uuid on the new build, logs clean (no tracebacks, no suspicious_code_similarity machinery errors). Follow-up left open: prod schema re-dump + removal of the pending `\ir` 047 block in tests/schema/schema.sql.
+- **Why:** Ship the §3.1 lot-identity layer (migration before app deploy — app code SELECTs lot_uuid at mint).
+
+---
+
 ## 2026-08-31 14:31 — Lot-code input normalization at all mint/rename entry points (feat/047-lot-identity)
 - **File(s) changed:** `main.py`, `tests/test_lot_identity_047.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** New `normalize_lot_code_input()` (upper + trim + collapse internal whitespace; punctuation and 'LOT' tokens untouched — tier-2 warns about those, input handling never silently rewrites) applied to every caller-supplied lot code before any lookup or insert: /receive and /make `lot_code` (preview + commit), /pack `target_lot_code` (preview + commit), /inventory/found and /inventory/found-with-new-product `lot_code`, and /lots/{id}/rename `new_lot_code` (reassign takes no lot code — nothing to do there). Prevents the 047 format CHECK from 500ing on casing/whitespace and makes lookups hit the same lot the tier-1 constraint sees. 4 new tests (lowercase receive lands upcased with lot_uuid; 'bb041327'/'BB041327' resolve to the same lot; leading/trailing/internal-whitespace variants likewise; rename input normalized) + make/pack tests extended with lowercase inputs; suite 280/280. FACTORY row 108 amended accordingly. Still NOT pushed; migration NOT applied to prod.
