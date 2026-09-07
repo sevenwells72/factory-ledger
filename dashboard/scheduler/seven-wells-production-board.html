@@ -449,10 +449,14 @@ function importOrdersCSV(text){
   for(let r=1;r<rows.length;r++){
     const g=h=>idx[h]>=0?String(rows[r][idx[h]]||"").trim():"";
     const orderId=g("order_id"), sku=g("sku"), due=g("due_date");
-    let qty=parseFloat(g("qty"));
+    let qty=numIn(g("qty"));
+    if(Number.isNaN(qty)){bad.push("row "+(r+1)+": qty \""+g("qty")+"\" is not a number"); continue;}
     if(!sku){ if(fl){nonProduct++; continue;} if(!orderId)continue; }
     if(!PRODS[sku]){unknown.add(sku||"(blank)"); continue;}
-    if(fl&&PRODS[sku].cl===1&&idxOpenLbs>=0) qty=parseFloat(rows[r][idxOpenLbs]);
+    if(fl&&PRODS[sku].cl===1&&idxOpenLbs>=0){
+      qty=numIn(rows[r][idxOpenLbs]);
+      if(Number.isNaN(qty)){bad.push("row "+(r+1)+": open_lbs \""+rows[r][idxOpenLbs]+"\" is not a number"); continue;}
+    }
     if(fl&&!(qty>0)){fulfilled++; continue;}
     if(!(qty>0)){bad.push("row "+(r+1)+": qty"); continue;}
     if(!/^\d{4}-\d{2}-\d{2}$/.test(due)){bad.push("row "+(r+1)+": due_date must be YYYY-MM-DD"); continue;}
@@ -982,6 +986,24 @@ function computeSchedule(){
    RENDERING + INTERACTION
    ===================================================================== */
 const $=s=>document.querySelector(s);
+/* Strict numeric input (IMP-006). parseFloat truncates silently — "12O"
+   (letter O) becomes 12, "2,000 lb" becomes 2 — so every number typed into
+   this board goes through here. Returns null for blank and NaN for text that
+   is not a complete number, so callers can tell "cleared" from "invalid"
+   instead of both collapsing to a fallback. */
+function numIn(raw){
+  const v=String(raw==null?"":raw).trim();
+  if(v==="")return null;
+  if(!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(v))return NaN;
+  const n=Number(v);
+  return Number.isFinite(n)?n:NaN;
+}
+/* Reject a bad entry in place: say so, restore the last good value, focus. */
+function rejectNum(el,label,prev){
+  alert(label+' must be a number \u2014 "'+el.value+'" is not.');
+  el.value=(prev==null?"":prev);
+  el.focus();
+}
 function esc(x){return String(x).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 function shortName(p){
   if(!p)return"";
@@ -1233,7 +1255,10 @@ function renderFG(){
     +"<td><input type='number' min='0' data-fg='"+s+"' value='"+(ST.fg[s]||0)+"'></td><td>"+(PRODS[s].cl===1?"lb":"cs")+"</td></tr>").join("");
   b.innerHTML="<div class='hint'>Deducted from demand before scheduling (earliest-due orders first).</div>"
     +"<table class='mini'><tr><th>SKU</th><th>On hand</th><th></th></tr>"+rows+"</table>"+skuPicker("fgadd");
-  b.querySelectorAll("[data-fg]").forEach(i=>i.onchange=()=>{ST.fg[i.dataset.fg]=parseFloat(i.value)||0; recalc();});
+  b.querySelectorAll("[data-fg]").forEach(i=>i.onchange=()=>{
+    const n=numIn(i.value);
+    if(Number.isNaN(n)){rejectNum(i,"On hand",ST.fg[i.dataset.fg]||0); return;}
+    ST.fg[i.dataset.fg]=(n==null?0:n); recalc();});
   $("#fgadd").onchange=e=>{if(e.target.value){ST.fg[e.target.value]=ST.fg[e.target.value]||0; saveState(); renderLeft();}};
 }
 function renderWIP(){
@@ -1243,7 +1268,10 @@ function renderWIP(){
     +"<td><input type='number' min='0' data-wip='"+s+"' value='"+(ST.wip[s]||0)+"'></td><td>lb</td></tr>").join("");
   b.innerHTML="<div class='hint'>Granola already baked and cooling in bulk bins — packable immediately, no bake needed.</div>"
     +"<table class='mini'><tr><th>SKU</th><th>WIP lbs</th><th></th></tr>"+rows+"</table>";
-  b.querySelectorAll("[data-wip]").forEach(i=>i.onchange=()=>{ST.wip[i.dataset.wip]=parseFloat(i.value)||0; recalc();});
+  b.querySelectorAll("[data-wip]").forEach(i=>i.onchange=()=>{
+    const n=numIn(i.value);
+    if(Number.isNaN(n)){rejectNum(i,"WIP lbs",ST.wip[i.dataset.wip]||0); return;}
+    ST.wip[i.dataset.wip]=(n==null?0:n); recalc();});
 }
 function renderCatalog(){
   const b=$("#catbody"); if(!b)return;
@@ -1253,13 +1281,15 @@ function renderCatalog(){
       +"<br><span style='color:var(--ink2)'>"+esc(p.n.slice(0,24))+"</span>"
       +"<input class='floor-name' data-cattext='"+c.s+":floorName' value='"+esc(p.floorName||"")+"' placeholder='Floor name'></td>"
       +"<td>"+p.r+(isBake?"·"+p.line:"")+"</td>"
-      +"<td>"+(isBake?"<input data-cat='"+c.s+":pl' value='"+p.pl+"' title='base lbs/pan'>":isCoco?"<input data-cat='"+c.s+":cpp' value='"+p.cpp+"' title='cases/pan'>":"—")+"</td>"
+      +"<td>"+(isBake?"<input type='number' min='0' step='any' inputmode='decimal' data-cat='"+c.s+":pl' value='"+p.pl+"' title='base lbs/pan'>":isCoco?"<input type='number' min='0' step='any' inputmode='decimal' data-cat='"+c.s+":cpp' value='"+p.cpp+"' title='cases/pan'>":"—")+"</td>"
       +"<td>"+(isBake?"<select data-cats='"+c.s+":tier'><option "+(p.tier==="def"?"selected":"")+" value='def'>18</option><option "+(p.tier==="slow"?"selected":"")+" value='slow'>16</option></select>":"")+"</td></tr>";
   }).join("");
   b.innerHTML="<div class='hint'>Edit pan yields / cases-per-pan / bake tier. ⚠ = seeded assumption or placeholder from the reconciliation.</div>"
     +"<table class='mini'><tr><th>SKU</th><th>Route</th><th>Yield</th><th>Tier</th></tr>"+rows+"</table>";
   b.querySelectorAll("[data-cat]").forEach(i=>i.onchange=()=>{const[s,f]=i.dataset.cat.split(":");
-    (ST.prodOv[s]=ST.prodOv[s]||{})[f]=parseFloat(i.value)||PRODS[s][f]; recalc();});
+    const n=numIn(i.value);
+    if(Number.isNaN(n)){rejectNum(i,f==="pl"?"Lbs per pan":"Cases per pan",PRODS[s][f]); return;}
+    (ST.prodOv[s]=ST.prodOv[s]||{})[f]=(n==null?PRODS[s][f]:n); recalc();});
   b.querySelectorAll("[data-cats]").forEach(i=>i.onchange=()=>{const[s,f]=i.dataset.cats.split(":");
     (ST.prodOv[s]=ST.prodOv[s]||{})[f]=i.value; recalc();});
   b.querySelectorAll("[data-cattext]").forEach(i=>i.onchange=()=>{const[s,f]=i.dataset.cattext.split(":"),value=i.value.trim();
@@ -1271,7 +1301,11 @@ function bindLeft(){
       const k=i.dataset.set;
       if(i.type==="checkbox")ST.settings[k]=i.checked;
       else if(i.type==="date")ST.settings[k]=i.value;
-      else ST.settings[k]=parseFloat(i.value)||0;
+      else {
+        const n=numIn(i.value);
+        if(Number.isNaN(n)){rejectNum(i,k,ST.settings[k]!=null?ST.settings[k]:S[k]); return;}
+        ST.settings[k]=(n==null?0:n);
+      }
       recalc();
     };
   });
@@ -1428,7 +1462,9 @@ function renderBoard(){
     const cur=ST.ot[d]||"";
     const v=prompt("Overtime for "+fmtShort(d)+" — total productive minutes (blank to remove; full day = "+S.minutesFullDay+"):",cur);
     if(v===null)return;
-    if(v.trim()==="")delete ST.ot[d]; else ST.ot[d]=Math.max(0,parseFloat(v)||0);
+    const n=numIn(v);
+    if(Number.isNaN(n)){alert('Overtime minutes must be a number \u2014 "'+v+'" is not.'); return;}
+    if(n===null)delete ST.ot[d]; else ST.ot[d]=Math.max(0,n);
     recalc();});
 }
 
@@ -1455,9 +1491,10 @@ function openPin(day,st){
     +"<div class='m-btns'><button class='act sec' id='pin-clear'>Clear pins</button><button class='act sec' id='pin-cancel'>Cancel</button><button class='act' id='pin-save'>Pin &amp; replan</button></div>";
   $("#modalbg").className="show";
   const feas=()=>{
-    const q=parseFloat($("#pin-qty").value);
+    const q=numIn($("#pin-qty").value);
     const el=$("#pin-feas");
-    if(isNaN(q)){el.className="m-feas ok"; el.textContent="No quantity pin — the optimizer decides. You can still pin the crew."; return;}
+    if(Number.isNaN(q)){el.className="m-feas bad"; el.textContent='Quantity must be a number — "'+$("#pin-qty").value+'" is not.'; return;}
+    if(q===null){el.className="m-feas ok"; el.textContent="No quantity pin — the optimizer decides. You can still pin the crew."; return;}
     const cap=stationCapacity(st,day,$("#pin-crew").value);
     if(q<=cap.cap+1e-9){el.className="m-feas ok"; el.textContent="Feasible: capacity ≈ "+Math.round(cap.cap*10)/10+" "+M.unit+" ("+cap.why+").";}
     else{el.className="m-feas bad"; el.textContent="Over capacity: ≈ "+Math.round(cap.cap*10)/10+" "+M.unit+" available ("+cap.why+"). To make "+q+" real: "+cap.fix+" The pin will be honored but flagged red.";}
@@ -1468,7 +1505,8 @@ function openPin(day,st){
     if(!Object.keys(ST.pins[day].qty||{}).length&&!Object.keys(ST.pins[day].crews||{}).length)delete ST.pins[day];}
     closeModal(); recalc();};
   $("#pin-save").onclick=()=>{
-    const q=parseFloat($("#pin-qty").value);
+    const q=numIn($("#pin-qty").value);
+    if(Number.isNaN(q)){rejectNum($("#pin-qty"),"Quantity",""); return;}
     const cw=$("#pin-crew").value;
     const P=ST.pins[day]=ST.pins[day]||{qty:{},crews:{}};
     P.qty=P.qty||{}; P.crews=P.crews||{};
@@ -1561,7 +1599,8 @@ function renderOrders(){
       +"<div class='ctl'><label>Due</label><input id='ao-due' type='date' value='"+fD(addD(pD(S.startDate),7))+"'></div>"
       +"<button class='act' id='ao-save'>Add</button></div>";
     $("#ao-save").onclick=()=>{
-      const sku=$("#ao-sku").value, qty=parseFloat($("#ao-qty").value), due=$("#ao-due").value;
+      const sku=$("#ao-sku").value, qty=numIn($("#ao-qty").value), due=$("#ao-due").value;
+      if(Number.isNaN(qty))return alert('Qty must be a number \u2014 "'+$("#ao-qty").value+'" is not.');
       if(!sku||!(qty>0)||!due)return alert("SKU, qty, and due date are required.");
       ST.orders.push({id:ST.nextId++,orderId:$("#ao-id").value||("#"+ST.nextId),customer:$("#ao-cust").value||"—",
         sku,name:PRODS[sku].n,qty,uom:PRODS[sku].cl===1?"lb":"case",due,notes:"",included:true});

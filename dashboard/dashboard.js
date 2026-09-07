@@ -41,6 +41,25 @@
     },
   };
 
+  // ── Numeric input (IMP-006) ──
+  // parseFloat silently truncates: "12O" (letter O) yields 12 and "2,000 lb"
+  // pasted from a supplier email yields 2. Every quantity a user types goes
+  // through here instead, and anything that is not a complete, finite number
+  // is rejected rather than coerced.
+  function readNumericInput(el) {
+    if (!el) return { empty: true, valid: false, value: null };
+    const raw = String(el.value == null ? '' : el.value).trim();
+    if (raw === '') return { empty: true, valid: false, value: null };
+    // A type="number" field already reports "" for text the browser rejected,
+    // but the field can be re-typed or the attribute removed, so re-check.
+    if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(raw)) {
+      return { empty: false, valid: false, value: null };
+    }
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return { empty: false, valid: false, value: null };
+    return { empty: false, valid: true, value };
+  }
+
   // ── Sticky stack offsets (IMP-002) ──
   // .site-nav is fixed and .app-header/.tab-bar are sticky beneath it. The
   // offsets used to be hard-coded (48px / 91px), which held only for a
@@ -1624,7 +1643,7 @@
         document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'orders'));
         document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-orders'));
         state.currentTab = 'orders';
-        openOrderDetail(parseInt(orderId));
+        openOrderDetail(Number(orderId));
       });
     });
 
@@ -3613,8 +3632,17 @@
 
   async function saveEr() {
     hideError('er-modal-error');
-    const qty = parseFloat(document.getElementById('er-qty').value);
-    if (!(qty > 0)) { showError('er-modal-error', 'Expected qty must be a positive number of pounds.'); return; }
+    const qtyField = document.getElementById('er-qty');
+    const qtyRead = readNumericInput(qtyField);
+    if (!qtyRead.valid) {
+      showError('er-modal-error', qtyRead.empty
+        ? 'Enter the expected qty in pounds.'
+        : 'Expected qty must be a number \u2014 "' + qtyField.value + '" is not. Enter digits only, e.g. 2000.');
+      qtyField.focus();
+      return;
+    }
+    const qty = qtyRead.value;
+    if (!(qty > 0)) { showError('er-modal-error', 'Expected qty must be a positive number of pounds.'); qtyField.focus(); return; }
     const expectedDate = document.getElementById('er-date').value || null;
     const reference = document.getElementById('er-reference').value.trim() || null;
     const notes = document.getElementById('er-notes').value.trim() || null;
@@ -3677,6 +3705,15 @@
       if (e.target === e.currentTarget) closeErModal();
     });
     document.getElementById('er-save-btn').addEventListener('click', saveEr);
+    // Surface a bad quantity on blur rather than at commit (IMP-006).
+    document.getElementById('er-qty').addEventListener('blur', (e) => {
+      const read = readNumericInput(e.target);
+      if (!read.empty && !read.valid) {
+        showError('er-modal-error', 'Expected qty must be a number \u2014 "' + e.target.value + '" is not. Enter digits only, e.g. 2000.');
+      } else {
+        hideError('er-modal-error');
+      }
+    });
     document.getElementById('er-product-search').addEventListener('input', (e) => {
       setErProduct(null);
       clearTimeout(state.erProductTimer);

@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 20:08 — IMP-006: constrain every quantity input to numeric; no silent parseFloat truncation
+
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/scheduler/seven-wells-production-board.html`
+- **What changed:** `#er-qty` is now `type="number" min="0" step="any" inputmode="decimal"` (it was `type="text"`), matching `#supply-request-qty` and `.allocation-quantity-input`. Added `readNumericInput(el)` to `dashboard.js` — a strict reader that returns `{empty, valid, value}` and rejects anything that is not a complete finite decimal — and used it in `saveEr()` in place of `parseFloat`, plus a `blur` handler on `#er-qty` that reports a bad value before commit. Replaced the last `parseInt` in `dashboard.js` (`openOrderDetail(parseInt(orderId))`) with `Number(...)`. In the scheduler, added the equivalent `numIn(raw)` / `rejectNum(el, label, prev)` pair and routed all ten `parseFloat` call sites through it: the finished-goods on-hand and WIP inputs, the pan-yield / cases-per-pan catalog overrides (which were untyped `<input>` and are now `type="number"`), the left-panel settings, the overtime prompt, the day-pin quantity (both the feasibility preview and the save), the add-order quantity, and the two pasted-import columns `qty` and `open_lbs`. Invalid entries now name the offending text, restore the previous value, and refocus the field; pasted-import rows with non-numeric `qty`/`open_lbs` are reported in the existing bad-row list instead of being coerced. Blank still means "cleared" everywhere it did before. Verified against the audit's own cases: `"12O"` and `"2,000 lb"` are rejected where `parseFloat` returned 12 and 2.
+- **Why:** Band 0 of the design audit, IMP-006 (INPUT-007 and INPUT-008, both Critical, plus INPUT-020). The rule's hard clause is "Invalid data is never silently accepted"; `parseFloat("12O")` committing 12 on an incoming-delivery quantity is a 1000x error accepted without a word. The brief for this branch extended the item to every quantity input rather than `#er-qty` alone, so every `parseFloat`/`parseInt` reachable from a user-typed value was fixed. The two `parseInt` calls left in the scheduler (`1514`, `1521`) read `<select>` values whose options the page itself emits, and the `parseInt`/`parseFloat` calls in `sankey.html` and `traceability.html` read `<select>` values and API response fields, not typed input. The scheduler's rejection messages reuse the page's existing native `alert()`; replacing those dialogs is IMP-014, a Band 1 item deliberately left untouched.
+
+---
+
 ## 2026-09-07 19:52 — IMP-002: derive the sticky offsets from the measured header height
 
 - **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`
