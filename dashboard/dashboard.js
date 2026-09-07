@@ -1058,7 +1058,7 @@
       html += `<div id="${panelId}" class="collapsible-body${expanded ? ' expanded' : ''}">`;
 
       if (panel.products.length > 0) {
-        html += '<table class="inv-table"><thead><tr><th>Product</th><th class="num">On Hand (lb)</th><th>Cases</th><th class="num">Pallets</th></tr></thead><tbody>';
+        html += '<div class="table-scroll"><table class="inv-table"><thead><tr><th>Product</th><th class="num">On Hand (lb)</th><th>Cases</th><th class="num">Pallets</th></tr></thead><tbody>';
         for (const p of panel.products) {
           const rowId = panelId + '-' + p.product_name.replace(/\W/g, '_');
           const caseWt = p.case_weight_lb || panel.case_weight_lb;
@@ -1083,7 +1083,7 @@
           }
           html += `</tbody>`;
         }
-        html += '</tbody></table>';
+        html += '</tbody></table></div>';
       } else {
         html += '<div class="loading-indicator">No inventory on hand.</div>';
       }
@@ -1142,7 +1142,7 @@
   }
 
   function renderBatchFamilyTable(batches) {
-    let html = '<table class="inv-table"><thead><tr><th>Batch</th><th class="num">On Hand (lb)</th><th>Est. Batches</th></tr></thead><tbody>';
+    let html = '<div class="table-scroll"><table class="inv-table"><thead><tr><th>Batch</th><th class="num">On Hand (lb)</th><th>Est. Batches</th></tr></thead><tbody>';
     for (const b of batches) {
       const rowId = 'batch-' + b.product_name.replace(/\W/g, '_');
       const estRaw = estimatedBatchesOnHand(b);
@@ -1181,7 +1181,7 @@
       }
       html += `</tbody>`;
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     return html;
   }
 
@@ -1246,7 +1246,7 @@
         const uniqueUnits = [...new Set(itemUnits)];
         const headerUnit = uniqueUnits.length === 1 ? uniqueUnits[0] : null;
         const qtyHeader = headerUnit ? `On Hand (${escHtml(headerUnit)})` : 'On Hand';
-        html += `<table class="inv-table"><thead><tr><th>Ingredient</th><th class="num">${qtyHeader}</th></tr></thead><tbody>`;
+        html += `<div class="table-scroll"><table class="inv-table"><thead><tr><th>Ingredient</th><th class="num">${qtyHeader}</th></tr></thead><tbody>`;
         for (const item of cat.items) {
           const rowId = panelId + '-' + item.name.replace(/\W/g, '_');
           const uom = String(item.uom || cat.unit || 'lb').trim() || 'lb';
@@ -1268,7 +1268,7 @@
           }
           html += `</tbody>`;
         }
-        html += '</tbody></table>';
+        html += '</tbody></table></div>';
       } else {
         html += '<div class="loading-indicator">No inventory on hand.</div>';
       }
@@ -1331,7 +1331,7 @@
       container.innerHTML = '<div class="loading-indicator">No shipments found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
+    let html = '<div class="table-scroll"><table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
     for (const [idx, s] of shipments.entries()) {
       const rowId = 'ship-' + s.transaction_id;
       const products = (s.lines || []).map(l => l.product_name).filter(Boolean);
@@ -1357,7 +1357,7 @@
       if (s.notes) html += `<br><strong>Notes:</strong> ${escHtml(s.notes)}`;
       html += `</td></tr>`;
     }
-    html += '</tbody>' + showMoreFooter(shipments.length, 5) + '</table>';
+    html += '</tbody>' + showMoreFooter(shipments.length, 5) + '</table></div>';
     container.innerHTML = html;
     bindExpandableRows(container);
     bindLotLinks(container);
@@ -1384,7 +1384,7 @@
       container.innerHTML = '<div class="loading-indicator">No receipts found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
+    let html = '<div class="table-scroll"><table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
     for (const [idx, r] of receipts.entries()) {
       const rowId = 'recv-' + r.transaction_id;
       const products = (r.lines || []).map(l => l.product_name).filter(Boolean);
@@ -1411,7 +1411,7 @@
       if (r.notes) html += `<br><strong>Notes:</strong> ${escHtml(r.notes)}`;
       html += `</td></tr>`;
     }
-    html += '</tbody>' + showMoreFooter(receipts.length, 5) + '</table>';
+    html += '</tbody>' + showMoreFooter(receipts.length, 5) + '</table></div>';
     container.innerHTML = html;
     bindExpandableRows(container);
     bindLotLinks(container);
@@ -1455,7 +1455,7 @@
       container.innerHTML = '<div class="loading-indicator">No entries for ' + escHtml(data.date) + '.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Entered</th><th>Type</th><th>Product</th><th>SKU</th><th class="num">Qty (lb)</th></tr></thead><tbody>';
+    let html = '<div class="table-scroll"><table class="activity-table"><thead><tr><th>Entered</th><th>Type</th><th>Product</th><th>SKU</th><th class="num">Qty (lb)</th></tr></thead><tbody>';
     for (const t of entries) {
       const rowClass = t.late_entry ? ' class="late-entry"' : '';
       const lines = (t.lines && t.lines.length > 0) ? t.lines : [{}];
@@ -1479,7 +1479,7 @@
         html += `</tr>`;
       });
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
   }
 
@@ -2460,7 +2460,7 @@
       return;
     }
 
-    let html = '<table class="orders-table"><thead><tr>';
+    let html = '<div class="table-scroll"><table class="orders-table"><thead><tr>';
     html += '<th class="order-expand-col" aria-label="Expand"></th><th class="order-ready-col" aria-label="Factory Ready"></th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th>Dispatch</th><th>Blockers / Warnings</th><th class="num">Pallets</th><th class="num">Effective Remaining</th>';
     html += '</tr></thead><tbody>';
 
@@ -2487,7 +2487,7 @@
       html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="11"><div class="order-lines-content"></div></td></tr>`;
     }
 
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 
     // Bind row clicks — clicking the row (incl. the SO number) opens the full detail page
@@ -3587,7 +3587,7 @@
       return;
     }
 
-    let html = '<table class="orders-table er-table"><thead><tr>';
+    let html = '<div class="table-scroll"><table class="orders-table er-table"><thead><tr>';
     html += '<th>Product</th><th>Supplier</th><th class="num">Expected (lb)</th><th class="num">Received (lb)</th><th class="num">Remaining (lb)</th><th>Expected Date</th><th>Reference</th><th>Status</th><th class="er-actions-col"></th>';
     html += '</tr></thead><tbody>';
     for (const r of rows) {
@@ -3612,7 +3612,7 @@
       }
       html += '</tr>';
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 
     container.querySelectorAll('.er-edit-btn').forEach(btn => {

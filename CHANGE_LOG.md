@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 21:06 — IMP-003: horizontal-scroll wrappers on the eight unwrapped tables
+
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`
+- **What changed:** Added a shared `.table-scroll { overflow-x: auto }` to `dashboard.css`, generalising the wrapper that already existed as `.order-detail-table-wrap` / `.allocation-table-wrap` and `.supplies-table-scroll`, with per-table minimum widths (`.orders-table` 1040px, matching the existing `.order-readiness-table`; `.er-table` 860px; `.activity-table` 620px; `.inv-table` 360px). Wrapped the eight tables the audit names across the six render functions it lists: `#orders-table-container` (`renderOrdersList`), `#er-table-container` (`renderExpectedReceipts`), `.inv-table` in Finished Goods, Batch and Ingredients (`renderFinishedGoodsPanels`, `renderBatchFamilyTable`, `renderIngredients`), and `.activity-table` in Shipping, Receiving and Daily Entries (`renderShipments`, `renderReceipts`, `renderDailyEntries`). Verified each opening `<div class="table-scroll">` has its matching `</div>` in the same function with no early return in between, and that the two selectors that walk the DOM near these tables (`btn.closest('table')` in `bindShowMore`) are unaffected by the extra element.
+- **Why:** Band 0 of the design audit, IMP-003 (LAYOUT-003 Critical / Hard rule, plus LAYOUT-011, LAYOUT-013, DATA-004, ACCESS-001). With no `overflow-x` container of their own, an 11-column orders table and a 9-column expected-receipts table made the **page** scroll horizontally on a narrow window, sliding content out from under the fixed nav and the sticky header — the same failure at 200% zoom. The wrapper takes the scroll instead, so the page itself no longer moves sideways.
+
+---
+
 ## 2026-09-07 20:52 — IMP-005: a single fetch wrapper with a 15 s timeout, a stall message and Retry
 
 - **File(s) changed:** `dashboard/fetch-timeout.js` (new), `dashboard/interaction.css`, `dashboard/dashboard.js`, `dashboard/mini-calendar.js`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`

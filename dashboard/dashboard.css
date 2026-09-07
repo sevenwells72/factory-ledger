@@ -1821,6 +1821,18 @@ body {
   overflow-x: auto;
 }
 
+/* Shared horizontal-scroll wrapper (IMP-003).
+   Without a container of their own, wide tables make the *page* scroll
+   horizontally, sliding content out from under the fixed nav and sticky
+   header. Generalises the wrapper that already existed for the order-detail,
+   allocation and supplies tables. The min-widths keep columns readable and
+   let the wrapper take the scroll instead. */
+.table-scroll { overflow-x: auto; }
+.table-scroll > .orders-table { min-width: 1040px; }
+.table-scroll > .er-table { min-width: 860px; }
+.table-scroll > .activity-table { min-width: 620px; }
+.table-scroll > .inv-table { min-width: 360px; }
+
 .order-readiness-table { min-width: 1040px; }
 .line-blockers-cell { min-width: 210px; max-width: 300px; }
 .readiness-shortage { color: var(--danger) !important; font-weight: 700; }
