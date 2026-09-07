@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 17:05 — Design audit group 02: Actions, Data Entry & Touch (ACTION, INPUT, TOUCH)
+
+- **File(s) changed:** `docs/design/audit/02-actions-input-touch.md` (new)
+- **What changed:** Audited all 91 screens against the 39 ACTION/INPUT/TOUCH rules. Three status matrices plus findings with `file:line` evidence. Headline findings: no `:active` press state exists on any button in any of the six style sources (ACTION-002 Critical hard rule) and two commit paths are unguarded against double-tap; essentially every interactive control is below the 44x44pt minimum, with only `.recent-entries-refresh/.recent-entries-retry` meeting it (TOUCH-003 Critical); no destructive button style exists and all four native confirm()/alert() dialogs make the destructive choice the Enter default (ACTION-006/008 Critical); the scheduler order-line delete has no confirmation at all; `#er-qty` is `type="text"` so `parseFloat("12O")` silently accepts 12 (INPUT-007/008 Critical); `#note-entity-id` is free text over an enumerable set (INPUT-011 Critical); zero required-field markers and zero gated commits across all five forms (INPUT-019 Critical); the ER edit modal never names the product being edited (INPUT-002); `postOrderReady` hard-codes `by:'floor'` and displays it as audit data (INPUT-017); the write-capable `SALES_API_KEY` is shipped in clear to every browser (INPUT-003); five search fields are `type="text"` with placeholder-only labels and no clear control (INPUT-002/012/013); no modal traps focus and `.lot-link`/`tr.expandable` drill paths are keyboard-unreachable (INPUT-006). Reference implementations recorded: the scheduler pin modal's live feasibility check (INPUT-007), the Supply Request product select + "not listed" escape (INPUT-011/014), and the supplies row's full keyboard/ARIA implementation (ACTION-011). No application code was modified.
+- **Why:** Step 2 of the UX/UI audit against `docs/design/FL-Design-Standards-MASTER.md`.
+
+---
+
 ## 2026-09-07 16:52 — Design audit group 01: Navigation & Layout (NAV, LAYOUT)
 
 - **File(s) changed:** `docs/design/audit/01-nav-layout.md` (new)
