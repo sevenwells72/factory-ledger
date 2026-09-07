@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 20:26 — IMP-004: shared press state, and the four commit paths disable while in flight
+
+- **File(s) changed:** `dashboard/interaction.css` (new), `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/scheduler/seven-wells-production-board.html`, `dashboard/dashboard.js`
+- **What changed:** Added `dashboard/interaction.css`, a single shared stylesheet linked from all five pages in `dashboard/` (the scheduler links `../interaction.css`), placed after each page's own styles so it wins without `!important`. It defines the product's first `:active` rule — `transform: translateY(1px)` plus `filter: brightness(0.92)` on `button`, `[role="button"]`, `summary`, `.tab` and `a.btn` — along with a `:disabled` appearance and an `.is-submitting` state; existing per-page `:disabled` rules (`dashboard.css:2452`, `traceability.html:126`) are more specific and still win. Added `beginSubmit`/`endSubmit` and `beginRowCommit`/`endRowCommit` to `dashboard.js` and wired the four commit paths the audit lists: **Save a note** (`saveNote`) now guards re-entry, disables `#note-save-btn` and shows "Saving…" with a `finally` restore; **toggle a note done** disables the checkbox and freezes its `.note-card` for the duration; **toggle Factory Ready** guards on both the checkbox and an in-flight flag carried on the order record, which the orders-table markup reads so the control stays disabled across the re-render, and is cleared before the settling render so no extra re-render is introduced; **Close / Cancel an expected receipt** disables the armed button and shows "Closing…" / "Cancelling…", restoring the pre-armed label if the row survives the refresh. All four follow the pattern already used by `submitSupplyRequest`.
+- **Why:** Band 0 of the design audit, IMP-004 (ACTION-002 and FEEDBACK-001, both Critical). No `:active` rule existed in any of the six style sources, so no button in the product showed that a tap had registered, and the four commit paths were never disabled while in flight — a double-tap on Save a note created two notes. The rule names the causal chain directly: nothing visibly changing invites a second tap and a duplicate submission. The Factory Ready fix deliberately adds no re-render, since the existing full-container re-renders are IMP-007, a Band 1 item left untouched.
+
+---
+
 ## 2026-09-07 20:08 — IMP-006: constrain every quantity input to numeric; no silent parseFloat truncation
 
 - **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/scheduler/seven-wells-production-board.html`

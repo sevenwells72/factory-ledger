@@ -41,6 +41,42 @@
     },
   };
 
+  // ── Commit-in-flight state (IMP-004) ──
+  // ACTION-002 / FEEDBACK-001: a commit control must show that the tap
+  // registered and must not accept a second tap while the first request is
+  // still open. Mirrors the pattern already used by submitSupplyRequest.
+  function beginSubmit(btn, busyLabel) {
+    if (!btn) return null;
+    const prev = { text: btn.textContent, disabled: btn.disabled };
+    btn.disabled = true;
+    btn.classList.add('is-submitting');
+    if (busyLabel) btn.textContent = busyLabel;
+    return prev;
+  }
+
+  function endSubmit(btn, prev) {
+    if (!btn || !prev) return;
+    btn.classList.remove('is-submitting');
+    if (btn.isConnected) {
+      btn.textContent = prev.text;
+      btn.disabled = prev.disabled;
+    }
+  }
+
+  // A checkbox has no label to change, so freeze the row it lives in.
+  function beginRowCommit(el) {
+    const row = el && el.closest ? (el.closest('.note-card') || el.closest('tr') || el.parentElement) : null;
+    if (el) el.disabled = true;
+    if (row) row.classList.add('is-committing');
+    return { el, row };
+  }
+
+  function endRowCommit(handle) {
+    if (!handle) return;
+    if (handle.el && handle.el.isConnected) handle.el.disabled = false;
+    if (handle.row && handle.row.isConnected) handle.row.classList.remove('is-committing');
+  }
+
   // ── Numeric input (IMP-006) ──
   // parseFloat silently truncates: "12O" (letter O) yields 12 and "2,000 lb"
   // pasted from a supplier email yields 2. Every quantity a user types goes
@@ -1795,7 +1831,9 @@
     // Bind checkbox toggles
     container.querySelectorAll('.note-checkbox').forEach(cb => {
       cb.addEventListener('change', async () => {
+        if (cb.disabled) return;
         const id = cb.dataset.id;
+        const commit = beginRowCommit(cb);
         try {
           await fetch(API_BASE + '/notes/' + id + '/toggle', {
             method: 'PUT',
@@ -1804,6 +1842,8 @@
           refreshNotes();
         } catch (err) {
           showError('notes-error', 'Toggle failed: ' + err.message);
+        } finally {
+          endRowCommit(commit);
         }
       });
     });
@@ -1862,6 +1902,10 @@
   }
 
   async function saveNote() {
+    const saveBtn = document.getElementById('note-save-btn');
+    // Guard the whole handler, not just the request: the early returns below
+    // must not leave the button disabled (IMP-004).
+    if (saveBtn && saveBtn.disabled) return;
     const category = document.querySelector('input[name="note-cat"]:checked').value;
     const title = document.getElementById('note-title').value.trim();
     if (!title) {
@@ -1877,6 +1921,7 @@
 
     const payload = { title, body, priority, due_date, entity_type, entity_id };
 
+    const prevSave = beginSubmit(saveBtn, 'Saving\u2026');
     try {
       if (state.editingNoteId) {
         // Update
@@ -1898,6 +1943,8 @@
       refreshNotes();
     } catch (err) {
       alert('Save failed: ' + err.message);
+    } finally {
+      endSubmit(saveBtn, prevSave);
     }
   }
 
@@ -2373,7 +2420,10 @@
       const readyReadOnly = Boolean(o.is_dispatch_queue);
       html += `<tr class="order-row ${o.ready ? 'so-ready' : ''}" data-order-id="${o.order_id}">`;
       html += `<td class="order-expand-cell"><button type="button" class="order-expand-toggle" data-order-id="${o.order_id}" aria-expanded="false" aria-controls="order-lines-${o.order_id}" title="Show line items"><span class="order-expand-caret">&#9656;</span></button></td>`;
-      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : 'title="Factory Ready"'}></td>`;
+      // A Factory Ready write re-renders this table, so carry the in-flight
+      // state through the re-render and keep the control disabled (IMP-004).
+      const readyBusy = Boolean(o.readyInFlight);
+      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></td>`;
       html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
@@ -2509,9 +2559,15 @@
       cb.addEventListener('click', ev => ev.stopPropagation());
       cb.addEventListener('change', async (ev) => {
         ev.stopPropagation();
+        if (cb.disabled) return;
         const orderId = cb.dataset.orderId;
         const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
         if (!order || order.is_dispatch_queue) return;
+        // The list is re-rendered below, which replaces this checkbox, so the
+        // in-flight guard also lives on the order record (IMP-004).
+        if (order.readyInFlight) { cb.checked = Boolean(order.ready); return; }
+        order.readyInFlight = true;
+        cb.disabled = true;
 
         const oldFlag = {
           ready: Boolean(order.ready),
@@ -2528,6 +2584,9 @@
         try {
           const saved = await postOrderReady(order, nextReady, order.note || null);
           updateCachedOrderReady(orderId, saved);
+          // Clear before the render below so the replacement checkbox comes
+          // back enabled — no extra re-render is added for the busy state.
+          order.readyInFlight = false;
           if (isDispatchQueueMode()) {
             await refreshOrders();
           } else {
@@ -2535,8 +2594,12 @@
           }
         } catch (e) {
           Object.assign(order, oldFlag);
+          order.readyInFlight = false;
           renderOrdersList();
           showError('orders-error', 'Factory Ready update failed: ' + e.message);
+        } finally {
+          order.readyInFlight = false;
+          if (cb.isConnected) cb.disabled = false;
         }
       });
     });
@@ -3537,6 +3600,8 @@
       return;
     }
     hideError('er-error');
+    if (btn && btn.disabled) return;
+    const prevEr = beginSubmit(btn, status === 'closed' ? 'Closing\u2026' : 'Cancelling\u2026');
     try {
       await fetchSalesAPI(`/expected-receipts/${id}`, {
         method: 'PATCH',
@@ -3546,6 +3611,14 @@
       await refreshExpectedReceipts();
     } catch (e) {
       showError('er-error', `Failed to ${verb.toLowerCase()} ${label}: ${e.message}`);
+    } finally {
+      // refreshExpectedReceipts() re-renders the row, so restore only if this
+      // button survived; otherwise the replacement starts clean.
+      if (btn && btn.isConnected) {
+        btn.dataset.armed = '';
+        btn.classList.remove('er-armed');
+        endSubmit(btn, prevEr && { text: btn.dataset.originalText || prevEr.text, disabled: false });
+      }
     }
   }
 
