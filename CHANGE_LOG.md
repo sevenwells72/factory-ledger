@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 16:52 — Design audit group 01: Navigation & Layout (NAV, LAYOUT)
+
+- **File(s) changed:** `docs/design/audit/01-nav-layout.md` (new)
+- **What changed:** Audited all 91 inventoried screens against the 33 NAV/LAYOUT rules in `FL-Design-Standards-MASTER.md`. Two status matrices (NAV-001..012, LAYOUT-001..021) plus a findings list with `file:line` evidence for every FAIL and PARTIAL. Tier A = full rule walk; Tier B (Activity, Notes, Sankey, Process Flow, print views, scheduler) = Critical and High rules only. Mobile-platform rules (LAYOUT-014/015) weighted only on Luz/Arturo screens with Mobile Yes/Partial, N/A "desktop-only surface" elsewhere. Headline findings: sticky `.tab-bar { top: 91px }` overlaps the wrapped app header at <=768px (LAYOUT-003 Critical); six wide tables have no horizontal-scroll wrapper; `renderOrdersList()` full-table rebuild on every Factory Ready click destroys other rows' unsaved notes (NAV-005 hard rule, LAYOUT-020 Critical); 60s Recent Entries and Process Flow polling replaces innerHTML wholesale (LAYOUT-020 Critical); notes Edit/Delete 4px apart at 22x20px and scheduler order-line delete has no confirmation (LAYOUT-012 Critical); nine list endpoints truncate silently, incl. the Traceability lot index capped at 100 transactions (NAV-012); `var(--bg-card, #fff)` in the lot-disambiguation panel is undefined, rendering near-white text on white; seven tabs are seven app sections behind one horizontally-scrolling strip (NAV-004/008); no shared button component, four confirmation patterns, six error surfaces (LAYOUT-002 hard rule). No application code was modified.
+- **Why:** Step 1 of the UX/UI audit against `docs/design/FL-Design-Standards-MASTER.md`, following the screen inventory in `docs/design/audit/00-screen-inventory.md`.
+
+---
+
 ## 2026-09-07 16:45 — Screen inventory for the design-standards audit
 
 - **File(s) changed:** `docs/design/audit/00-screen-inventory.md` (new)
