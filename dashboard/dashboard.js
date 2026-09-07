@@ -575,8 +575,57 @@
     if (el) el.classList.add('hidden');
   }
 
+  // ── Stall reporting (IMP-005) ──
+  // FEEDBACK-003: a stationary indicator reads as a freeze, so a request that
+  // exceeds the fetch timeout must change the UI to explain the stall and
+  // offer a next step. Ordinary failures keep the existing message.
+  function lastRefreshLabel() {
+    if (!state.lastRefresh) return null;
+    return state.lastRefresh.toLocaleString('en-US', {
+      timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true
+    }) + ' ET';
+  }
+
+  function showLoadError(elementId, prefix, error, retry) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const stalled = Boolean(window.FL && window.FL.isStall(error));
+    if (!stalled) {
+      showError(elementId, prefix + ': ' + ((error && error.message) || 'Failed to load data.'));
+      return;
+    }
+    el.textContent = '';
+    el.classList.remove('hidden');
+    const asOf = lastRefreshLabel();
+    const msg = document.createElement('span');
+    msg.className = 'fl-stall-msg';
+    msg.textContent = asOf
+      ? 'Server not responding \u2014 showing data from ' + asOf + '.'
+      : 'Server not responding after ' + Math.round(window.FL.DEFAULT_TIMEOUT_MS / 1000) + ' seconds.';
+    el.appendChild(msg);
+    if (typeof retry === 'function') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fl-stall-retry';
+      btn.textContent = 'Retry';
+      btn.addEventListener('click', () => {
+        btn.disabled = true;
+        btn.classList.add('is-submitting');
+        btn.textContent = 'Retrying\u2026';
+        Promise.resolve().then(retry).catch(() => {}).then(() => {
+          if (btn.isConnected) {
+            btn.disabled = false;
+            btn.classList.remove('is-submitting');
+            btn.textContent = 'Retry';
+          }
+        });
+      });
+      el.appendChild(btn);
+    }
+  }
+
   async function fetchAPI(path) {
-    const res = await fetch(API_BASE + path);
+    const res = await FL.fetchWithTimeout(API_BASE + path);
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`HTTP ${res.status}: ${body}`);
@@ -792,7 +841,7 @@
       renderProductionCalendar(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('production-error', 'Failed to load production calendar: ' + e.message);
+      showLoadError('production-error', 'Failed to load production calendar', e, refreshProductionCalendar);
     }
   }
 
@@ -991,7 +1040,7 @@
       renderFinishedGoodsPanels(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('finished-goods-error', 'Failed to load finished goods: ' + e.message);
+      showLoadError('finished-goods-error', 'Failed to load finished goods', e, refreshFinishedGoods);
     }
   }
 
@@ -1061,7 +1110,7 @@
       renderBatchInventory(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('batches-error', 'Failed to load batch inventory: ' + e.message);
+      showLoadError('batches-error', 'Failed to load batch inventory', e, refreshBatchInventory);
     }
   }
 
@@ -1177,7 +1226,7 @@
       renderIngredients(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('ingredients-error', 'Failed to load ingredients: ' + e.message);
+      showLoadError('ingredients-error', 'Failed to load ingredients', e, refreshIngredients);
     }
   }
 
@@ -1272,7 +1321,7 @@
       renderShipments(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('shipments-error', 'Failed to load shipments: ' + e.message);
+      showLoadError('shipments-error', 'Failed to load shipments', e, refreshShipments);
     }
   }
 
@@ -1325,7 +1374,7 @@
       renderReceipts(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('receipts-error', 'Failed to load receipts: ' + e.message);
+      showLoadError('receipts-error', 'Failed to load receipts', e, refreshReceipts);
     }
   }
 
@@ -1390,7 +1439,7 @@
       renderDailyEntries(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('daily-entries-error', 'Failed to load daily entries: ' + e.message);
+      showLoadError('daily-entries-error', 'Failed to load daily entries', e, refreshDailyEntries);
     }
   }
 
@@ -1445,7 +1494,7 @@
     try {
       let url = API_BASE + '/lot/' + encodeURIComponent(lotCode);
       if (productId) url += '?product_id=' + encodeURIComponent(productId);
-      const res = await fetch(url);
+      const res = await FL.fetchWithTimeout(url);
       if (res.status === 409) {
         // Ambiguous lot code — show disambiguation picker
         const err = await res.json();
@@ -1760,7 +1809,7 @@
       renderNotes(container);
     } catch (e) {
       container.innerHTML = '';
-      showError('notes-error', 'Failed to load notes: ' + e.message);
+      showLoadError('notes-error', 'Failed to load notes', e, refreshNotes);
     }
   }
 
@@ -1835,7 +1884,7 @@
         const id = cb.dataset.id;
         const commit = beginRowCommit(cb);
         try {
-          await fetch(API_BASE + '/notes/' + id + '/toggle', {
+          await FL.fetchWithTimeout(API_BASE + '/notes/' + id + '/toggle', {
             method: 'PUT',
             headers: { 'X-API-Key': SALES_API_KEY },
           });
@@ -1865,7 +1914,7 @@
         const id = btn.dataset.id;
         if (!confirm('Delete this item?')) return;
         try {
-          await fetch(API_BASE + '/notes/' + id, {
+          await FL.fetchWithTimeout(API_BASE + '/notes/' + id, {
             method: 'DELETE',
             headers: { 'X-API-Key': SALES_API_KEY },
           });
@@ -1925,7 +1974,7 @@
     try {
       if (state.editingNoteId) {
         // Update
-        await fetch(API_BASE + '/notes/' + state.editingNoteId, {
+        await FL.fetchWithTimeout(API_BASE + '/notes/' + state.editingNoteId, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'X-API-Key': SALES_API_KEY },
           body: JSON.stringify(payload),
@@ -1933,7 +1982,7 @@
       } else {
         // Create
         payload.category = category;
-        await fetch(API_BASE + '/notes', {
+        await FL.fetchWithTimeout(API_BASE + '/notes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Key': SALES_API_KEY },
           body: JSON.stringify(payload),
@@ -2015,7 +2064,7 @@
 
   async function fetchSalesAPI(path, options = {}) {
     const headers = { 'X-API-Key': SALES_API_KEY, ...(options.headers || {}) };
-    const res = await fetch(SALES_API_BASE + path, { ...options, headers });
+    const res = await FL.fetchWithTimeout(SALES_API_BASE + path, { ...options, headers });
     if (!res.ok) {
       const body = await res.text();
       const error = new Error(`HTTP ${res.status}: ${body}`);
@@ -2298,7 +2347,7 @@
     hideError('orders-error');
 
     try {
-      const response = await fetch(SALES_API_BASE + '/export/orders-matrix.xlsx', {
+      const response = await FL.fetchWithTimeout(SALES_API_BASE + '/export/orders-matrix.xlsx', {
         headers: { 'X-API-Key': SALES_API_KEY }
       });
       if (!response.ok) {
@@ -2371,7 +2420,7 @@
       renderOrdersList();
     } catch (e) {
       container.innerHTML = '';
-      showError('orders-error', 'Failed to load sales orders: ' + e.message);
+      showLoadError('orders-error', 'Failed to load sales orders', e, refreshOrders);
     }
   }
 
@@ -3496,7 +3545,7 @@
       renderExpectedReceipts();
     } catch (e) {
       container.innerHTML = '';
-      showError('er-error', 'Failed to load expected receipts: ' + e.message);
+      showLoadError('er-error', 'Failed to load expected receipts', e, refreshExpectedReceipts);
     }
   }
 
@@ -3868,7 +3917,8 @@
       renderSuppliesInventory();
     } catch (e) {
       container.innerHTML = '';
-      showError('supplies-inventory-error', 'Failed to load supplies: ' + supplyApiErrorMessage(e));
+      if (window.FL && window.FL.isStall(e)) showLoadError('supplies-inventory-error', '', e, refreshSuppliesInventory);
+      else showError('supplies-inventory-error', 'Failed to load supplies: ' + supplyApiErrorMessage(e));
     }
   }
 
@@ -4059,7 +4109,8 @@
       renderSupplyRequests();
     } catch (e) {
       container.innerHTML = '';
-      showError('supply-requests-error', 'Failed to load supply requests: ' + supplyApiErrorMessage(e));
+      if (window.FL && window.FL.isStall(e)) showLoadError('supply-requests-error', '', e, refreshSupplyRequests);
+      else showError('supply-requests-error', 'Failed to load supply requests: ' + supplyApiErrorMessage(e));
     }
   }
 
@@ -4257,7 +4308,7 @@
   async function refreshHealthBadge() {
     const badge = document.getElementById('health-badge');
     try {
-      const res = await fetch('https://fastapi-production-b73a.up.railway.app/audit/integrity');
+      const res = await FL.fetchWithTimeout('https://fastapi-production-b73a.up.railway.app/audit/integrity');
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       const score = data.score;

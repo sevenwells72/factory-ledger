@@ -105,7 +105,7 @@
 
   async function fetchShipDateCounts() {
     try {
-      const res = await fetch(SALES_API_BASE + '/sales/orders?limit=200', {
+      const res = await FL.fetchWithTimeout(SALES_API_BASE + '/sales/orders?limit=200', {
         headers: { 'X-API-Key': SALES_API_KEY }
       });
       if (!res.ok) return;

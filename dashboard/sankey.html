@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Ledger — Product Flow (Sankey)</title>
 <link rel="stylesheet" href="mini-calendar.css?v=2">
+<script src="fetch-timeout.js?v=1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
 <style>
@@ -414,7 +415,7 @@
 
   // --- API fetch ---
   async function apiFetch(path) {
-    const res = await fetch(API_BASE + path, {
+    const res = await FL.fetchWithTimeout(API_BASE + path, {
       headers: { 'X-Api-Key': API_KEY }
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -824,7 +825,17 @@
         'Updated ' + new Date().toLocaleTimeString();
     } catch (err) {
       console.error('API error:', err);
-      showBanner('API unreachable — showing sample data', 'warning');
+      if (window.FL && FL.isStall(err)) {
+        // A stall is not the same as an unreachable API — say so and offer a
+        // next step rather than silently swapping in sample data (IMP-005).
+        const b = document.getElementById('banner');
+        b.className = 'banner warning';
+        b.textContent = '';
+        b.style.display = 'flex';
+        FL.renderStall(b, loadData, null);
+      } else {
+        showBanner('API unreachable — showing sample data', 'warning');
+      }
       const links = getFallbackLinks();
       renderSankey(links);
     } finally {
