@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 17:25 — Design audit group 04: Search, Tables, Drag & Charts (SEARCH, DATA, DRAG, CHART)
+
+- **File(s) changed:** `docs/design/audit/04-search-data-drag-chart.md` (new)
+- **What changed:** Audited all 91 screens against the 39 SEARCH/DATA/DRAG/CHART rules. Three matrices (SEARCH, DATA, and CHART for the 15 chart-bearing screens) plus findings with `file:line` evidence. Established that no drag-and-drop exists anywhere, so DRAG-002..011 are N/A app-wide and DRAG-001's Critical alternative clause passes vacuously; and that no table has a sortable column, driving DATA-008 to FAIL everywhere. Headline findings: the Supplies search is silently scoped to the active sub-tab so a real item returns "No products match this search" (SEARCH-003 Critical — the exact failure the rule names); Traceability truncates the disambiguating product name with no tooltip and end-truncates lot codes, hiding the distinguishing suffix (DATA-004 Critical); the global-search customer handler targets a non-existent element id `orders-customer-filter` so clicking a customer applies no filter silently (SEARCH-002 — live bug); Traceability runs a second divergent "global" search over its own 100-transaction cache; the alternating row shading never appears on the Shipping and Receiving logs because detail rows occupy every even position, and the inventory tables emit nested `<tbody>` which is invalid HTML (DATA-006); the lot row has seven different anatomies (DATA-007); no URL state anywhere in the dashboard so no record is shareable or refresh-survivable (SEARCH-008); thirteen date/time formats coexist and `getCalendarParams` contains dead code (DATA-012); Sankey and Traceability use the same four hex values for opposite meanings and coconut has five colours (CHART-007); Sankey has no takeaway sentence, no ARIA, no adjacent table and no drill-through (CHART-004/005/008). Reference implementations recorded: Traceability's URL state, recents + type-ahead + near-miss correction, completeness badge, and adjacent detail table; the ER toolbar's scope statement and unit-bearing headers; the scheduler order book's status-priority default sort. No application code was modified.
+- **Why:** Step 4 of the UX/UI audit against `docs/design/FL-Design-Standards-MASTER.md`.
+
+---
+
 ## 2026-09-07 17:16 — Design audit group 03: Feedback, Errors & Notifications (FEEDBACK, ERROR, NOTIFY)
 
 - **File(s) changed:** `docs/design/audit/03-feedback-error-notify.md` (new)
