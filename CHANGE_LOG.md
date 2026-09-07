@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 17:16 — Design audit group 03: Feedback, Errors & Notifications (FEEDBACK, ERROR, NOTIFY)
+
+- **File(s) changed:** `docs/design/audit/03-feedback-error-notify.md` (new)
+- **What changed:** Audited all 91 screens against the 36 FEEDBACK/ERROR/NOTIFY rules. Three matrices plus findings with `file:line` evidence. Established that no notification channel exists in the product, so NOTIFY-001/002/003/006/007/008/009/012 are N/A app-wide and NOTIFY-011 carries the entire attention model. Headline findings: no fetch anywhere has a timeout or AbortController, so an API hang spins forever with no stall message (FEEDBACK-003 Critical); thirteen catch blocks blank the container before showing an error, destroying the last-good view on a transient blip, and all three modals discard drafts on backdrop click with no warning (ERROR-002 Critical); no undo anywhere and four one-way doors with no UI path back — ER Close, ER Cancel, Supply Request Done, scheduler line delete (ERROR-003 Critical); four commit paths are never disabled and can double-fire (FEEDBACK-001 Critical); only two surfaces auto-refresh and `#last-refreshed` is set only by refreshAll regardless of failures (FEEDBACK-007); five status cues are colour-only incl. overdue dates and product families (FEEDBACK-011 Critical); `--category-granola` is byte-identical to `--badge-amber-text` and `--category-coconut` to `--primary-hover`, and nine status colours are hard-coded dark-mode values so `.so-ready-pill` and the "Header saved." message are near-invisible in light theme (FEEDBACK-012 Critical); no attention item is surfaced on app entry although every count is already computed (NOTIFY-011 — flagged as the highest-value single change); the dispatch summary mixes server and client populations so "blocked" is overstated (NOTIFY-010). Reference implementations recorded: Process Flow's stale banner + keep-last-good-data, the scheduler's localStorage persistence and baseline/delta, the calendar day-card selection, `populateAllocationLots`' inline progress, and the scheduler's copy-to-clipboard. No application code was modified.
+- **Why:** Step 3 of the UX/UI audit against `docs/design/FL-Design-Standards-MASTER.md`.
+
+---
+
 ## 2026-09-07 17:05 — Design audit group 02: Actions, Data Entry & Touch (ACTION, INPUT, TOUCH)
 
 - **File(s) changed:** `docs/design/audit/02-actions-input-touch.md` (new)
