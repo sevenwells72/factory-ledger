@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 17:37 — Design audit group 05: Accessibility, Icons & Cross-Cutting (ACCESS, ICON, OTHER)
+
+- **File(s) changed:** `docs/design/audit/05-access-icon-other.md` (new)
+- **What changed:** Audited all 91 screens against the 31 ACCESS/ICON/OTHER rules. Three matrices plus findings with `file:line` evidence and computed WCAG ratios. Headline findings: `--text-dimmed` fails AA in both themes (3.07:1 dark, 2.56:1 light) across nine selectors; `.so-ready-pill` and `.order-edit-message.success` compute to ~1.27:1 in light theme, so the "READY" pill and the "Header saved." confirmation are effectively invisible; `.tab.active` (3.98:1) and `.date-overdue` (3.89:1) fail in the default dark theme; the scheduler's red/green delta pair sits at near-identical luminance (0.132 vs 0.158) — the exact colourblind-unsafe pairing the rule prohibits; at least 22 selectors put operational text below the 12px floor, with the mini-calendar at 8px, and no mobile body-size override against a 17px floor (ACCESS-006 Critical); every font-size is px so browser text scaling has no effect and 200% zoom triggers the sticky-header overlap plus table overflow (ACCESS-001); six clickable element types have no tabindex/role/key handler, so opening a lot, expanding a row, selecting a search result and opening an order are all keyboard-unreachable (ACCESS-003); six icon-only buttons compute their accessible name from the glyph (ACCESS-010); the × glyph carries four meanings — close, delete, exclude, incomplete (ICON-004); four incompatible icon families are mixed (ICON-002); five separate token palettes with no high-contrast variant and twelve raw values bypassing them, incl. `var(--bg-card, #fff)` referencing a token that does not exist (OTHER-010); no role model and pricing rendered to every viewer (OTHER-003); no help control anywhere in the dashboard (OTHER-009). Passing outright: ACCESS-007 (no sub-Regular weights anywhere), OTHER-004 (floor vocabulary throughout — the product's strongest area), OTHER-008, OTHER-011. Reference implementations recorded: the Supplies tab's full ARIA/keyboard support, the scheduler's aria-labels that name the record and its consistent `.info` help control, Traceability's glyph vocabulary, and the dark/light token architecture itself. No application code was modified.
+- **Why:** Step 5 (final group) of the UX/UI audit against `docs/design/FL-Design-Standards-MASTER.md`.
+
+---
+
 ## 2026-09-07 17:25 — Design audit group 04: Search, Tables, Drag & Charts (SEARCH, DATA, DRAG, CHART)
 
 - **File(s) changed:** `docs/design/audit/04-search-data-drag-chart.md` (new)
