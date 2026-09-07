@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 16:45 — Screen inventory for the design-standards audit
+
+- **File(s) changed:** `docs/design/audit/00-screen-inventory.md` (new)
+- **What changed:** Created the audit directory and wrote a 91-row screen inventory covering every user-facing screen, view, tab, dialog, form, and overlay in `dashboard/` and `dashboard/scheduler/`. Each row records screen name, file(s) with verified line anchors, purpose, inferred primary user (Luz/Arturo/Blubber), primary action, and mobile-width support with the CSS breakpoint or fixed-width constraint that justifies the rating. Includes a per-surface summary, a by-type/by-user breakdown, and five observations carried forward. No evaluation against the standards; no application code touched.
+- **Why:** Step 0 of the UX/UI audit against `docs/design/FL-Design-Standards-MASTER.md` — the audit needs a stable, ID-addressable list of screens before any rule can be applied.
+
+---
+
 ## 2026-08-31 15:54 — Trace emission hooks (§9 step 3) on branch feat/trace-emission + post-048 schema re-dump
 - **File(s) changed:** `main.py`, `tests/test_trace_emission.py` (new), `tests/test_trace_tables_048.py`, `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md` (row 110), `CHANGE_LOG.md`
 - **What changed:** New `emit_trace_event()` (fail-hard, per-(lot,role) aggregation, zero-sum rows dropped), `trace_emit_enabled()` (TRACE_EMIT_ENABLED env flag, default ON, read once per request), `_txn_trace_times()`. Emission hooks at every §4 site — /receive, /make, /pack, /ship, SO-ship (per line-transaction), /adjust, both /inventory/found* paths, void/restore/amend markers in `_append_transaction_correction`, and per-affected-transaction 'merge' markers in /admin/lots/merge (correction_id NULL, already-marked transactions skipped; response gains `trace_merge_markers`). Each hook sits after all transaction_lines/ILC/allocation side-writes as the last write before commit, outside every best-effort savepoint; previews emit nothing. occurred_at/business_date copied from the transactions row via RETURNING/SELECT. Bundled housekeeping: prod schema re-dumped post-048 (diff verified 048-objects-only) and test_trace_tables_048.py gained the REVERT_048_SQL scratch-DB preamble per the 047 pattern; local test DB rebuilt fresh. 24 new tests in tests/test_trace_emission.py (commit/preview per endpoint, fail-hard rollback proofs, flag gate, markers, double-fire guard, 044 expire/foreign-pin interplay, merge markers). Suite 344/344.
