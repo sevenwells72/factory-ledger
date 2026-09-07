@@ -41,6 +41,45 @@
     },
   };
 
+  // ── Sticky stack offsets (IMP-002) ──
+  // .site-nav is fixed and .app-header/.tab-bar are sticky beneath it. The
+  // offsets used to be hard-coded (48px / 91px), which held only for a
+  // single-row desktop header; at <=768px the header wraps to three rows and
+  // the tab bar landed on top of it, hiding global search and Refresh. The
+  // same happened at 200% zoom, which reports a sub-768px viewport. Measure
+  // both bars instead and publish their heights as CSS variables.
+  function initStickyOffsets() {
+    const root = document.documentElement;
+    const siteNav = document.querySelector('.site-nav');
+    const header = document.querySelector('.app-header');
+
+    function publish() {
+      if (siteNav) {
+        root.style.setProperty('--site-nav-h', Math.ceil(siteNav.getBoundingClientRect().height) + 'px');
+      }
+      if (header) {
+        root.style.setProperty('--header-h', Math.ceil(header.getBoundingClientRect().height) + 'px');
+      }
+    }
+
+    publish();
+
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(publish);
+      if (siteNav) ro.observe(siteNav);
+      if (header) ro.observe(header);
+    } else {
+      // Older browsers: the CSS defaults stand until something resizes.
+      window.addEventListener('resize', publish);
+      window.addEventListener('orientationchange', publish);
+    }
+
+    // The nav toggle expands .site-nav; ResizeObserver catches it, but fire
+    // once directly so the no-ResizeObserver path stays correct too.
+    const navToggle = document.getElementById('navToggle');
+    if (navToggle) navToggle.addEventListener('click', () => setTimeout(publish, 0));
+  }
+
   // ── Theme ──
   function initTheme() {
     const saved = localStorage.getItem('dashboard-theme');
@@ -4172,6 +4211,7 @@
 
   // ── Init ──
   function init() {
+    initStickyOffsets();
     initTheme();
     initTabs();
     initNotes();

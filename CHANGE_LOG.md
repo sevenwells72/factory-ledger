@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 19:52 — IMP-002: derive the sticky offsets from the measured header height
+
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`
+- **What changed:** Replaced the hard-coded sticky offsets with two CSS variables, `--site-nav-h` and `--header-h`, seeded in `:root` with the desktop single-row values (48px / 43px) and overwritten at runtime. `body { padding-top }` and `.app-header { top }` now use `var(--site-nav-h)`; `.tab-bar { top }` uses `calc(var(--site-nav-h) + var(--header-h))`. Removed the stale `.tab-bar { top: 91px }` restatement from the `@media (max-width: 768px)` block. Added `initStickyOffsets()` in `dashboard.js`, called first in `init()`: it measures `.site-nav` and `.app-header` with `getBoundingClientRect()`, publishes their heights onto `document.documentElement`, and keeps them current with a `ResizeObserver` on both elements (falling back to `resize`/`orientationchange` listeners where `ResizeObserver` is unavailable), plus a post-click re-measure on `#navToggle` for the mobile menu.
+- **Why:** Band 0 of the design audit, IMP-002 (LAYOUT-003 Critical / Hard rule, plus LAYOUT-011, LAYOUT-015, ACCESS-001, TOUCH-001). `.tab-bar` was pinned at `top: 91px` — 48px of site nav plus a 43px single-row header. At <=768px the same stylesheet deliberately wraps `.app-header` to three rows (brand, a full-width `.header-right` with the mini-calendar, a full-width search row), taking it well past 150px, so the tab bar sat on top of the header and hid global search and the Refresh control. The same failure occurred at 200% desktop zoom, which reports a sub-768px viewport. The offsets now compose from the real heights at any width, text size, or zoom level. If JavaScript fails to run, the seeded defaults reproduce exactly the previous desktop behaviour, so there is no regression path.
+
+---
+
 ## 2026-09-07 19:40 — IMP-001: define `--bg-card`; remove the `#fff` fallback at the lot-disambiguation decision point
 
 - **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`
