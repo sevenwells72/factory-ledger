@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 19:40 — IMP-001: define `--bg-card`; remove the `#fff` fallback at the lot-disambiguation decision point
+
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`
+- **What changed:** Defined `--bg-card` in both theme blocks in `dashboard.css` (dark `#283548`, light `#ffffff`) — it was referenced but declared nowhere. Replaced the inline styles on the lot-disambiguation choice buttons (`dashboard.js` `renderLotDisambiguation`) with new theme-resolved classes `.disambig-wrap`, `.disambig-intro`, `.disambig-list`, `.disambig-btn`, `.disambig-source`, removing `background: var(--bg-card, #fff)`. Verified by script that no `var(--token)` reference across `dashboard.css`, `mini-calendar.css`, `index.html`, `dashboard.js`, `mini-calendar.js`, `sankey.html`, `process-flow.html`, `traceability.html`, `scheduler/seven-wells-production-board.html` and `pallet-calculations.js` now resolves to an undeclared token.
+- **Why:** Band 0 of the design audit, IMP-001 (ACCESS-008 Critical / Hard rule). The undeclared token meant the `#fff` fallback applied while text inherited `--text: #f1f5f9` from the panel — contrast approximately 1.1:1, near-white on white, on the screen where a lot code matches more than one product and the operator must pick correctly. Audit test: "Does every text/icon element meet the contrast target in light, dark, and high-contrast modes, including over overlays, images, and colored fills?" — the buttons now render `--text` on `--bg-card` in both themes (approximately 12.6:1 dark, 17.9:1 light).
+
+---
+
 ## 2026-09-07 17:46 — Design audit: deduplicated improvements master
 
 - **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md` (new)

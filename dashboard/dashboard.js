@@ -1370,16 +1370,13 @@
   }
 
   function renderLotDisambiguation(lotCode, matches, body) {
-    let html = '<div style="padding:8px 0;">';
-    html += `<p style="margin:0 0 12px;font-size:14px;">Lot code <strong>${escHtml(lotCode)}</strong> matches multiple products. Select the one you want:</p>`;
-    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+    let html = '<div class="disambig-wrap">';
+    html += `<p class="disambig-intro">Lot code <strong>${escHtml(lotCode)}</strong> matches multiple products. Select the one you want:</p>`;
+    html += '<div class="disambig-list">';
     for (const m of matches) {
-      html += `<button class="disambig-btn" data-product-id="${m.product_id}" style="
-        text-align:left;padding:10px 12px;border:1px solid var(--border);border-radius:6px;
-        background:var(--bg-card,#fff);cursor:pointer;font-size:13px;
-      ">`;
+      html += `<button class="disambig-btn" data-product-id="${m.product_id}">`;
       html += `<strong>${escHtml(m.product_name)}</strong>`;
-      if (m.source) html += ` <span style="color:var(--text-muted);font-size:12px;">(${escHtml(m.source)})</span>`;
+      if (m.source) html += ` <span class="disambig-source">(${escHtml(m.source)})</span>`;
       html += '</button>';
     }
     html += '</div></div>';

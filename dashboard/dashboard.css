@@ -33,6 +33,7 @@
   --panel-header-bg: #162032;
   --search-bg: #283548;
   --search-border: #475569;
+  --bg-card: #283548;
   --overlay-bg: rgba(0, 0, 0, 0.5);
   --radius: 12px;
   --radius-sm: 8px;
@@ -71,6 +72,7 @@
   --panel-header-bg: #f1f5f9;
   --search-bg: #ffffff;
   --search-border: #cbd5e1;
+  --bg-card: #ffffff;
   --overlay-bg: rgba(0, 0, 0, 0.3);
 }
 
@@ -1835,6 +1837,29 @@ body {
   cursor: pointer;
 }
 .btn-secondary:hover { color: var(--text); }
+
+/* Lot-code disambiguation choices (IMP-001) — resolves through the theme
+   system; no hard-coded fallback that could put --text on white. */
+.disambig-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.disambig-intro { margin: 0 0 12px; font-size: 14px; }
+.disambig-wrap { padding: 8px 0; }
+.disambig-btn {
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.disambig-btn:hover { background: var(--surface-hover); }
+.disambig-btn .disambig-source { color: var(--text-muted); font-size: 12px; }
 
 .order-status-select,
 .order-edit-input {
