@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 17:46 — Design audit: deduplicated improvements master
+
+- **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md` (new)
+- **What changed:** Collapsed every FAIL and PARTIAL from the five group files into 48 deduplicated improvements (IMP-001..IMP-064, non-contiguous by band), each with the rule IDs it resolves, the screens affected, Importance from the standard, an S/M/L effort estimate, and a suggested fix with `file:line` evidence. Twenty-one resolve at least one Critical rule. Sequenced Critical-first then by screen count, with a "Band 0" of six Critical fixes that are each under a day: the undefined `--bg-card` token rendering near-white on white at the lot-disambiguation decision point, the sticky-offset overlap that hides the header on every phone, the six missing horizontal-scroll wrappers, the absent `:active` press state plus four double-fireable commits, the absent fetch timeout, and `#er-qty` being `type="text"` so `parseFloat("12O")` commits 12. Added a "Systemic" section identifying twelve root causes (SYS-1..SYS-12) that account for the majority of findings — no shared component/token layer, innerHTML-replacement as the universal render strategy, interaction attached to non-controls, no minimum-hit-size rule, px-only type, colour escaping the theme system, native dialogs, no fetch timeout, silent list truncation, no URL state, no identity, nothing promoted to the entry screen. Added an "Unverifiable — needs browser check" section listing 20 rule/screen pairs with what a rendered check must confirm. Added a "What the product already does well" section recording 20 patterns worth protecting. No application code was modified.
+- **Why:** Final step of the UX/UI audit against `docs/design/FL-Design-Standards-MASTER.md` — turns the per-rule findings into an actionable, sequenced work list.
+
+---
+
 ## 2026-09-07 17:37 — Design audit group 05: Accessibility, Icons & Cross-Cutting (ACCESS, ICON, OTHER)
 
 - **File(s) changed:** `docs/design/audit/05-access-icon-other.md` (new)
