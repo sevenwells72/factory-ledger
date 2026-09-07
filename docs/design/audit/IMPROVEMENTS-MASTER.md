@@ -28,14 +28,14 @@ Ordered as the brief specifies: **Critical rules first, then by number of screen
 
 These six resolve Critical rules and are each an hour to a day of work.
 
-| # | Improvement | Effort | Screens |
-|---|---|---|---|
-| **IMP-001** | Fix `var(--bg-card, #fff)` — near-white text on white at Arturo's decision point | S | 1 |
-| **IMP-002** | Fix the sticky-offset overlap that hides the header on every phone | S | 5+ |
-| **IMP-003** | Add horizontal-scroll wrappers to the six unwrapped tables | S | 14 |
-| **IMP-004** | Add a press state and disable every commit button synchronously | S | ~60 |
-| **IMP-005** | Add a fetch timeout with a stall message and Retry | S | ~40 |
-| **IMP-006** | Constrain `#er-qty` to numeric — `parseFloat("12O")` currently commits 12 | S | 1 |
+| # | Improvement | Effort | Screens | Status | Commit |
+|---|---|---|---|---|---|
+| **IMP-001** | Fix `var(--bg-card, #fff)` — near-white text on white at Arturo's decision point | S | 1 | **DONE** | `4a96cc7` |
+| **IMP-002** | Fix the sticky-offset overlap that hides the header on every phone | S | 5+ | **DONE** | `45be3eb` |
+| **IMP-003** | Add horizontal-scroll wrappers to the six unwrapped tables | S | 14 | **DONE** | `4f34036` |
+| **IMP-004** | Add a press state and disable every commit button synchronously | S | ~60 | **DONE** | `6083037` |
+| **IMP-005** | Add a fetch timeout with a stall message and Retry | S | ~40 | **DONE** | `c451682` |
+| **IMP-006** | Constrain `#er-qty` to numeric — `parseFloat("12O")` currently commits 12 | S | 1 | **DONE** | `44c5eb5` |
 
 ### Band 1 — Critical
 
@@ -118,6 +118,8 @@ These six resolve Critical rules and are each an hour to a day of work.
 
 ### IMP-001 — Fix `var(--bg-card, #fff)` in the lot-disambiguation panel
 
+**Status:** **DONE** · commit `4a96cc7` (branch `fix/ux-band-0`) — Defined `--bg-card` in both theme blocks in `dashboard.css` and moved the disambiguation button styles into `.disambig-*` classes, removing the `#fff` fallback. No `var(--token)` reference in `dashboard/` now resolves to an undeclared token.
+
 **Rules:** ACCESS-008 (Critical) · LAYOUT-002 · FEEDBACK-012 · OTHER-010 · INPUT-022
 **Screens:** S-55 · **Importance:** Critical · **Effort:** S
 
@@ -131,6 +133,8 @@ This is the screen Arturo lands on when a lot code matches more than one product
 
 ### IMP-002 — Fix the sticky offsets that hide the header on every phone
 
+**Status:** **DONE** · commit `45be3eb` (branch `fix/ux-band-0`) — Replaced the hard-coded offsets with `--site-nav-h` / `--header-h`, seeded in `:root` at the previous desktop values and kept current by a `ResizeObserver` on `.site-nav` and `.app-header`. `.tab-bar` now uses `top: calc(var(--site-nav-h) + var(--header-h))`; the stale `.tab-bar { top: 91px }` in the `≤768px` block is gone. Verified by reading the CSS/JS, not in a browser — see the PR note on local verification.
+
 **Rules:** LAYOUT-003 (Critical) · LAYOUT-011 · LAYOUT-015 · ACCESS-001 · TOUCH-001
 **Screens:** S-03, S-05, and the top of every tab pane · **Importance:** Critical · **Effort:** S
 
@@ -143,6 +147,8 @@ Result: **the tab bar sits on top of the app header on every phone**, hiding the
 ---
 
 ### IMP-003 — Add horizontal-scroll wrappers to the six unwrapped tables
+
+**Status:** **DONE** · commit `4f34036` (branch `fix/ux-band-0`) — Added a shared `.table-scroll` with per-table minimum widths and wrapped all eight tables across the six render functions listed above.
 
 **Rules:** LAYOUT-003 (Critical) · LAYOUT-011 · LAYOUT-013 · DATA-004 · ACCESS-001
 **Screens:** S-10, S-11, S-12, S-13, S-16, S-17, S-18, S-25, S-26, S-27, S-28, S-42, S-43 (13) · **Importance:** Critical · **Effort:** S
@@ -163,6 +169,8 @@ The pattern already exists in the same stylesheet: `.order-detail-table-wrap` an
 ---
 
 ### IMP-004 — Add a press state and disable every commit button synchronously
+
+**Status:** **DONE** · commit `6083037` (branch `fix/ux-band-0`) — Added `dashboard/interaction.css`, linked from all five pages, carrying the product's first `:active` rule plus `:disabled` and `.is-submitting`. All four commit paths now disable and relabel while in flight, matching `submitSupplyRequest`.
 
 **Rules:** ACTION-002 (Critical) · FEEDBACK-001 (Critical)
 **Screens:** every screen with an interactive control (~60) · **Importance:** Critical · **Effort:** S
@@ -186,6 +194,8 @@ The rule names the causal chain exactly: *"nothing visibly changing invites a se
 
 ### IMP-005 — Add a fetch timeout with a stall message and a Retry
 
+**Status:** **DONE** · commit `c451682` (branch `fix/ux-band-0`) — Added `dashboard/fetch-timeout.js` (`window.FL`) with a 15 s default timeout and a distinguishable `StallError`. All 13 `fetch` call sites in `dashboard/` route through it, and a stall renders a message with a working Retry. Rendering **over** the last-good view stays with IMP-008.
+
 **Rules:** FEEDBACK-003 (Critical) · ERROR-001 · ERROR-002
 **Screens:** every network-bound screen (~40) · **Importance:** Critical · **Effort:** S
 
@@ -198,6 +208,8 @@ If the API accepts a connection and then hangs — the common cold-container fai
 ---
 
 ### IMP-006 — Constrain `#er-qty` to numeric and validate on blur
+
+**Status:** **DONE** · commit `44c5eb5` (branch `fix/ux-band-0`) — `#er-qty` is now `type="number" min="0" step="any" inputmode="decimal"` with a strict `readNumericInput` reader and a blur check. The scope was extended to every quantity input: the scheduler's ten `parseFloat` sites now go through an equivalent `numIn`/`rejectNum` pair. `"12O"` and `"2,000 lb"` are rejected where `parseFloat` returned 12 and 2.
 
 **Rules:** INPUT-007 (Critical) · INPUT-008 (Critical) · INPUT-020
 **Screens:** S-45 · **Importance:** Critical · **Effort:** S

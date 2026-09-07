@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 21:18 — Band 0 bookkeeping: IMP rows marked DONE, cache-bust bumps, regression changelog
+
+- **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Marked IMP-001 through IMP-006 **DONE** in the Band 0 summary table (two new columns, Status and Commit) and added a Status line with the commit hash and a one-line account of the fix to each of the six per-improvement sections. Bumped the cache-bust query strings on every asset this branch changed: `dashboard.css?v=27→28`, `dashboard.js?v=40→41` in `index.html`, and `mini-calendar.js?v=3→4` on all four pages. Added row 111 to `FACTORY_LEDGER_CHANGELOG.md` with the "Breaks If Reverted" analysis the Regression Guard requires — notably that `interaction.css` and `fetch-timeout.js` must move together with their link/script tags, since removing `fetch-timeout.js` leaves `FL` undefined and every fetch call site throws.
+- **Why:** A commit cannot contain its own hash, so the six work commits are one per improvement and this seventh commit records their hashes. The cache-bust bumps and the regression-changelog row are required by `CLAUDE.md` before this branch could be deployed.
+
+---
+
 ## 2026-09-07 21:06 — IMP-003: horizontal-scroll wrappers on the eight unwrapped tables
 
 - **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`
