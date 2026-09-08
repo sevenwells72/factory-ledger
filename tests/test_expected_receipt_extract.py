@@ -1237,6 +1237,121 @@ class TestApprovalAdvisoryLock:
         finally:
             conn.close()
 
+    def test_two_full_approvals_same_pair_loser_gets_409(self, monkeypatch):
+        """Audit-2 (finding 10, end-to-end): two COMPLETE approvals of two
+        different documents with the same (supplier, reference), each on its
+        own real DB connection, racing through the real endpoint. A third
+        connection pre-holds the pair's advisory lock so both requests are
+        provably in flight together; on release they serialize — exactly one
+        201, and the loser re-checks under the lock and gets the 409."""
+        url = os.environ.get("TEST_DATABASE_URL")
+        if not url:
+            pytest.skip("TEST_DATABASE_URL not set")
+        import threading
+        import time
+        from contextlib import contextmanager
+        import psycopg2 as pg
+        from psycopg2.extras import RealDictCursor
+        import main as main_mod
+        from fastapi.testclient import TestClient as TC
+
+        REF = "PO-RACE-049"
+        LOCK_KEY = "er-intake-ref:%d:po-race-049"
+
+        seed = pg.connect(url)
+        seed.autocommit = True
+        sup_id = pid = None
+        doc_ids = []
+        try:
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("INSERT INTO suppliers (name) VALUES ('Vendor Race Co 049') RETURNING id")
+                sup_id = sc.fetchone()["id"]
+                sc.execute("INSERT INTO products (name, type, uom, active) VALUES ('Race Prod 049', 'ingredient', 'lb', true) RETURNING id")
+                pid = sc.fetchone()["id"]
+                for n in (1, 2):
+                    sc.execute(
+                        """INSERT INTO purchase_documents (storage_path, mime_type, file_sha256, byte_size, status)
+                           VALUES (%s, 'image/png', %s, 10, 'extracted') RETURNING id""",
+                        (f"x/race-049-{n}.png", f"race-sha-{n}"))
+                    doc_ids.append(sc.fetchone()["id"])
+
+            # Every endpoint transaction gets its OWN real connection with
+            # real commits — the savepoint proxy of the `client` fixture
+            # would serialize everything onto one connection.
+            @contextmanager
+            def _real_conn():
+                conn = pg.connect(url)
+                try:
+                    yield conn
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.close()
+
+            monkeypatch.setattr(main_mod, "get_db_connection", _real_conn)
+
+            holder = pg.connect(url)
+            results = []
+            try:
+                with holder.cursor() as hc:
+                    hc.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (LOCK_KEY % sup_id,))
+
+                with TC(main_mod.app) as tc:
+                    tc.headers["X-API-Key"] = main_mod.API_KEY
+
+                    def _approve(doc_id):
+                        r = tc.post("/expected-receipts/extract/approve", json={
+                            "document_id": doc_id, "supplier_id": sup_id, "reference_number": REF,
+                            "lines": [{"product_id": pid, "expected_qty_lb": 100,
+                                       "vendor_description": f"RACE LINE {doc_id}", "save_alias": False}]})
+                        results.append(r)
+
+                    threads = [threading.Thread(target=_approve, args=(d,)) for d in doc_ids]
+                    for t in threads:
+                        t.start()
+                    # Both requests must be blocked on the pair lock together
+                    # before it is released — that is the race under test.
+                    deadline = time.time() + 15
+                    with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                        while time.time() < deadline:
+                            sc.execute("SELECT count(*) AS n FROM pg_locks WHERE locktype = 'advisory' AND NOT granted")
+                            if sc.fetchone()["n"] >= 2:
+                                break
+                            time.sleep(0.05)
+                        else:
+                            pytest.fail("both approvals never queued on the advisory lock")
+                    holder.rollback()  # release: the two approvals serialize
+                    for t in threads:
+                        t.join(timeout=30)
+                    assert not any(t.is_alive() for t in threads), "an approval hung"
+            finally:
+                holder.close()
+
+            assert sorted(r.status_code for r in results) == [201, 409], \
+                [(r.status_code, r.text[:200]) for r in results]
+            loser = next(r for r in results if r.status_code == 409)
+            assert loser.json()["detail"]["error_code"] == "DUPLICATE_REFERENCE"
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT count(*) AS n FROM expected_receipts WHERE supplier_id = %s", (sup_id,))
+                assert sc.fetchone()["n"] == 1, "exactly the winner's receipt exists"
+                sc.execute("SELECT count(*) AS n FROM purchase_documents WHERE id = ANY(%s) AND status = 'approved'", (doc_ids,))
+                assert sc.fetchone()["n"] == 1, "exactly one document approved"
+        finally:
+            with seed.cursor() as sc:
+                if doc_ids:
+                    sc.execute("DELETE FROM expected_receipts WHERE source_document_id = ANY(%s)", (doc_ids,))
+                    sc.execute("DELETE FROM purchase_documents WHERE id = ANY(%s)", (doc_ids,))
+                if sup_id:
+                    sc.execute("DELETE FROM supplier_product_aliases WHERE supplier_id = %s", (sup_id,))
+                    sc.execute("DELETE FROM expected_receipts WHERE supplier_id = %s", (sup_id,))
+                if pid:
+                    sc.execute("DELETE FROM products WHERE id = %s", (pid,))
+                if sup_id:
+                    sc.execute("DELETE FROM suppliers WHERE id = %s", (sup_id,))
+            seed.close()
+
     def test_approve_takes_the_pair_lock(self, client, cur, monkeypatch):
         sup = _seed_supplier(cur, "Vendor Lock Co 049")
         pid = _seed_product(cur, "Lock Prod 049")
