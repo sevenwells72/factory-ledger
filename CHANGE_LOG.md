@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-08 00:20 — Changelog row 112 deploy status corrected
+
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Corrected `FACTORY_LEDGER_CHANGELOG.md` row 112, which still described the IMP-044 / ERROR-010 work as "NOT pushed/deployed". PR #25 merged into `main` at `a6b65e0` on 2026-09-08 and deployed. Verified against the live site before writing the note: the deployed `sankey.html`, `process-flow.html`, `traceability.html`, `dashboard.js` and `dashboard.css` are byte-identical to `a6b65e0` apart from Netlify's pretty-URL rewriting of the nav-link hrefs, and the `getFallback*` sample-data paths deleted by `684af02` are confirmed absent.
+- **Why:** Same staleness as row 111, corrected in the previous commit on this branch and flagged there for follow-up. The Regression Guard depends on the changelog stating accurately what is live, so a row claiming undeployed work that is in fact serving to users is a trap for the next person reading it.
+
+---
+
 ## 2026-09-07 23:05 — IMP-030: attention strip on the dashboard entry screen
 
 - **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.css`, `dashboard/dashboard.js`, `docs/design/audit/IMPROVEMENTS-MASTER.md`, `FACTORY_LEDGER_CHANGELOG.md`
