@@ -581,6 +581,49 @@ class TestExtractEndpoint:
         assert r.status_code == 404
         assert r.json()["detail"]["error_code"] == "DOCUMENT_NOT_FOUND"
 
+    # Audit fix 5: an extraction retry must never reopen an approved document.
+
+    def test_retry_on_approved_document_409(self, client, cur, mock_storage, mock_extractor):
+        doc = _insert_document(cur, path="x/retry-approved-049.png")
+        cur.execute("UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
+                    (doc["id"],))
+        r = client.post(f"/purchase-documents/{doc['id']}/extract")
+        assert r.status_code == 409
+        assert r.json()["detail"]["error_code"] == "DOCUMENT_ALREADY_APPROVED"
+        assert mock_extractor["calls"] == 0, "no paid model call for an approved document"
+
+    def test_approval_during_retry_model_call_wins(self, client, cur, mock_storage, monkeypatch):
+        """The race the audit reproduced: retry passes its status pre-check,
+        approval commits while the model call runs, then the retry's status
+        write must be a conditional no-op + 409 — never a reopen."""
+        doc = _insert_document(cur, path="x/retry-race-049.png")
+
+        def _extract(content, mime):
+            cur.execute(
+                "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
+                (doc["id"],))
+            return {"extraction": dict(GOOD_EXTRACTION), "extraction_model": "race-model"}
+
+        monkeypatch.setattr(extraction, "extract_purchase_document", _extract)
+        r = client.post(f"/purchase-documents/{doc['id']}/extract")
+        assert r.status_code == 409, r.text
+        assert r.json()["detail"]["error_code"] == "DOCUMENT_ALREADY_APPROVED"
+        assert _doc_row(cur, doc["id"])["status"] == "approved"
+
+    def test_approval_during_failed_retry_model_call_wins(self, client, cur, mock_storage, monkeypatch):
+        doc = _insert_document(cur, path="x/retry-race-fail-049.png")
+
+        def _extract(content, mime):
+            cur.execute(
+                "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
+                (doc["id"],))
+            raise ExtractionError("model refused")
+
+        monkeypatch.setattr(extraction, "extract_purchase_document", _extract)
+        r = client.post(f"/purchase-documents/{doc['id']}/extract")
+        assert r.status_code == 409, r.text
+        assert _doc_row(cur, doc["id"])["status"] == "approved", "failure path must not flip an approved doc"
+
 
 class TestMatchEndpoint:
     def _seed(self, cur):

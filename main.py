@@ -5458,14 +5458,26 @@ def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str) 
     transaction to store the outcome. Raises 502 EXTRACTION_FAILED with the
     document_id on failure; the file + row are kept so retry needs no
     re-upload."""
+    def _already_approved() -> HTTPException:
+        # Audit fix 5: the document was approved while the (slow, lock-free)
+        # model call ran. Its status is final — never flip it back to
+        # 'extracted'/'extraction_failed', which would allow a second approval.
+        return HTTPException(
+            status_code=409,
+            detail={"error_code": "DOCUMENT_ALREADY_APPROVED",
+                    "message": f"Purchase document {document_id} was approved while extraction ran; its status is unchanged."},
+        )
+
     try:
         result = extraction.extract_purchase_document(content, mime_type)
     except extraction.ExtractionError as exc:
         with get_transaction() as cur:
             cur.execute(
-                "UPDATE purchase_documents SET status = 'extraction_failed' WHERE id = %s",
+                "UPDATE purchase_documents SET status = 'extraction_failed' WHERE id = %s AND status <> 'approved'",
                 (document_id,),
             )
+            if cur.rowcount == 0:
+                raise _already_approved()
         raise HTTPException(
             status_code=502,
             detail={"error_code": "EXTRACTION_FAILED", "document_id": document_id,
@@ -5475,9 +5487,11 @@ def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str) 
         cur.execute(
             """UPDATE purchase_documents
                SET extraction = %s, extraction_model = %s, status = 'extracted'
-               WHERE id = %s""",
+               WHERE id = %s AND status <> 'approved'""",
             (json.dumps(result["extraction"]), result["extraction_model"], document_id),
         )
+        if cur.rowcount == 0:
+            raise _already_approved()
     return result
 
 
