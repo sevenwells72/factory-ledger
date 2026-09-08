@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-08 13:33 — ER intake re-audit (round 2) fixes: findings 3, 4a, 4b, 8, 11, 12 + race test for 10
+- **File(s) changed:** `main.py`, `extraction.py`, `dashboard/dashboard.js`, `dashboard/er-intake-logic.js`, `dashboard/index.html`, `migrations/049_purchase_doc_intake.sql`, `tests/test_expected_receipt_extract.py`, `tests/test_er_intake_logic.js`, `docs/designs/er-intake-audit-1-response.md`
+- **What changed:** One commit per re-audit item on `feat/er-intake`: (3) approve now enforces the alias-consistency invariant server-side — save_alias with |qty × lb/unit − expected lb| > 0.01 → 422 `ALIAS_CONVERSION_MISMATCH`; (4a) a failed supplier re-match keeps the new supplier but resets every line to unconfirmed and blocks Approve (matchStale + Retry-matching button) until a re-match succeeds; (4b) all line inputs/pickers lock while a match request is in flight (`lockLines` + mutator guards + disabled rendering, cache-busts js v50 / logic v5); (8) upload dedupes on sha256 — identical bytes resume the existing non-approved row with 200/already_seen (upload_failed rows are healed by re-uploading the object), and the dashboard timeout copy says "Upload timed out. Drop the same file again to resume."; (11) extraction dates must match `^\d{4}-\d{2}-\d{2}$` before calendar validation ('2026-2-3' now rejected); (12) migration 049 header no longer claims re-runs are no-ops (constraint drop/recreate + re-validate; only the end schema is idempotent); (10, optional) end-to-end two-connection double-approval race test — loser gets 409. Suite 482 passed + known pre-existing `test_recent_ledger` failure.
+- **Why:** Round-2 independent audit left findings 3, 4, 8, 11, 12 open; owner ordered fixes with regression tests on the auditor's exact reproductions.
+
+---
+
 ## 2026-09-08 13:12 — Fix-by-finding response doc for ER intake audit #1
 
 - **File(s) changed:** `docs/designs/er-intake-audit-1-response.md` (new)

@@ -44,3 +44,25 @@ Suite after fixes: **466 passed** + 1 known pre-existing failure
 * The audit's "Additional" observations not in the fix scope (readonly mock
   granularity, duplicated schema validation, redundant per-line document
   lookup) remain open as cleanups.
+
+## Round 2 — response to the re-audit (2026-09-08)
+
+The re-audit left findings **3, 4, 8, 11, 12** open (plus an optional
+concurrency-test ask on 10). One commit per item, each with a regression test
+on the auditor's exact reproduction. Suite after fixes: **482 passed** + the
+same known pre-existing `tests/test_recent_ledger.py` failure. Cache-busts:
+`dashboard.js?v=50`, `er-intake-logic.js?v=5`.
+
+| # | Reopened as | Fix | Commit | Regression tests |
+|---|-------------|-----|--------|------------------|
+| 3 | Client-only consistency gate | The alias-consistency rule is now a SERVER invariant on `/extract/approve`: `save_alias` with a non-null `lb_per_unit` where \|quantity × lb_per_unit − expected_qty_lb\| > 0.01 rejects the whole request with 422 `ALIAS_CONVERSION_MISMATCH` before anything is written. `lb_per_unit=null` + `save_alias` still teaches the product-only mapping (the dashboard's audit-fix-3 behavior stays legal). | `8bed0ba` | Auditor's case: qty 4 × 50 lb/BAG vs expected 175 with save_alias=true → 422 + nothing created; identical line with save_alias=false → 201, zero alias rows; product-only alias still 201 |
+| 4a | Failed supplier re-match leaves stale review approvable | The newly selected supplier is kept; `ERIntake.applyRematchFailure` resets every line to unconfirmed (`chosen`, `lb_per_unit`, expected lb cleared; exclusions and explicit save_alias choices survive) and `intake.matchStale` holds Approve disabled — even against hand re-picked products — until a re-match succeeds (new Retry-matching button). | `d3e9413` | logic tests: alias-confirmed old product with 200 lb is not approvable after `applyRematchFailure`; exclusion + explicit save_alias survival |
+| 4b | Only Approve was disabled while matching | `lockLines()`/`unlockLines()` in the logic module; every line mutator refuses edits on a locked line, and the review renders every input, picker, and header control disabled while `intake.matching`. Success unlocks via fresh merged lines; failure unlocks via `applyRematchFailure`. | `1536f1c` | logic tests: all seven mutators are no-ops while matching=true (deep-equal state unchanged); unlock re-enables edits; a failed rematch never leaves lines locked |
+| 8 | Upload retry after timeout mints sibling documents | `POST /expected-receipts/extract` dedupes on sha256 before inserting: an existing row in status uploaded/extracted/extraction_failed/upload_failed is returned with **200** + `already_seen=true` instead of a new row; an `upload_failed` row is healed in place (object re-uploaded to its original path, status back to `uploaded`) since the bytes are in hand again. `approved` documents still start a fresh row. Dashboard upload-timeout copy: "Upload timed out. Drop the same file again to resume." | `a81f9b8` | second upload of identical bytes → 200 with the FIRST document_id, no sibling row, no re-upload; upload_failed resume heals the row and extraction then succeeds; approved doc does not block a fresh 201 |
+| 11 | `strptime` accepts unpadded dates | `extraction.py` dates must match `^\d{4}-\d{2}-\d{2}$` (re.fullmatch) BEFORE the calendar check. | `a4ca5c3` | parametrized rejects incl. the auditor's `2026-2-3`, plus `2026-02-3`, `2026-2-03`, leading space, trailing newline; valid dates still pass |
+| 12 | Migration 049 comment claims re-runs are no-ops | Header corrected: re-runs drop/recreate and re-VALIDATE the status CHECK constraint (brief ACCESS EXCLUSIVE lock); only the resulting schema is idempotent. Comment-only, DDL unchanged, still applied to the local test DB only. | `f996dac` | existing `test_reapply_is_noop` (re-run converges, exit 0) unchanged |
+| 10 (optional) | Lock tested only as a primitive | End-to-end race test: two complete approvals of different documents with the same (supplier, reference), each endpoint transaction on its own real connection, provably in flight together (pre-held advisory lock, pg_locks-verified two waiters), then released. | `d254780` | exactly one 201; the loser gets 409 `DUPLICATE_REFERENCE`; exactly one receipt and one approved document exist |
+
+Note: the re-audit report itself was not delivered with the fix order (the
+paste was empty), so `docs/designs/er-intake-audit-2.md` is still pending —
+add it verbatim when the report text is available.
