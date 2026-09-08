@@ -66,26 +66,26 @@ These six resolve Critical rules and are each an hour to a day of work.
 
 ### Band 2 — High
 
-| # | Improvement | Effort | Screens |
-|---|---|---|---|
-| **IMP-029** | Signal truncation on every limited list | S | 12 |
-| **IMP-030** | Promote attention items to the entry screen | M | 7 |
-| **IMP-031** | Make every click target a real, focusable control | M | 25 |
-| **IMP-032** | Add accessible names to the six icon-only buttons | S | 15 |
-| **IMP-033** | Bind Enter to the primary action; trap focus in modals | S | 8 |
-| **IMP-034** | Give every field a persistent label with its unit | S | 8 |
-| **IMP-035** | Stop showing raw API bodies to the user | S | 17 |
-| **IMP-036** | Auto-refresh the operational lists; fix the last-updated timestamp | M | 20 |
-| **IMP-037** | Add a fixed spacing scale and a named type scale | M | all |
-| **IMP-038** | Restructure the tab bar into primary navigation | L | ~35 |
-| **IMP-039** | Add a shared page header carrying global search to all four pages | M | 14 |
-| **IMP-040** | Replace four small-set dropdowns and toggles with segmented controls | S | 4 |
-| **IMP-041** | Add sortable columns to the four tables where the task demands it | M | 10 |
-| **IMP-042** | Trim the multi-line table rows | M | 5 |
-| **IMP-043** | Stop dimming Factory-Ready rows; move the KPI row above the line table | S | 3 |
-| **IMP-044** | Stop the fabricated sample-data fallback in Sankey and Process Flow | S | 6 |
-| **IMP-045** | Give the Sankey a takeaway, an accessible table, and drill-through | M | 1 |
-| **IMP-046** | Adopt an accessibility checklist and write down the role → workflow map | S | all |
+| # | Improvement | Effort | Screens | Status | Commit |
+|---|---|---|---|---|---|
+| **IMP-029** | Signal truncation on every limited list | S | 12 | | |
+| **IMP-030** | Promote attention items to the entry screen | M | 7 | | |
+| **IMP-031** | Make every click target a real, focusable control | M | 25 | | |
+| **IMP-032** | Add accessible names to the six icon-only buttons | S | 15 | | |
+| **IMP-033** | Bind Enter to the primary action; trap focus in modals | S | 8 | | |
+| **IMP-034** | Give every field a persistent label with its unit | S | 8 | | |
+| **IMP-035** | Stop showing raw API bodies to the user | S | 17 | | |
+| **IMP-036** | Auto-refresh the operational lists; fix the last-updated timestamp | M | 20 | | |
+| **IMP-037** | Add a fixed spacing scale and a named type scale | M | all | | |
+| **IMP-038** | Restructure the tab bar into primary navigation | L | ~35 | | |
+| **IMP-039** | Add a shared page header carrying global search to all four pages | M | 14 | | |
+| **IMP-040** | Replace four small-set dropdowns and toggles with segmented controls | S | 4 | | |
+| **IMP-041** | Add sortable columns to the four tables where the task demands it | M | 10 | | |
+| **IMP-042** | Trim the multi-line table rows | M | 5 | | |
+| **IMP-043** | Stop dimming Factory-Ready rows; move the KPI row above the line table | S | 3 | | |
+| **IMP-044** | Stop the fabricated sample-data fallback in Sankey and Process Flow | S | 6 | **DONE** | `c972526` `028c685` `684af02` `a6ae9d3` |
+| **IMP-045** | Give the Sankey a takeaway, an accessible table, and drill-through | M | 1 | | |
+| **IMP-046** | Adopt an accessibility checklist and write down the role → workflow map | S | all | | |
 
 ### Band 3 — Medium and below
 
@@ -896,6 +896,12 @@ The rule caps a list row at two lines. Three rows exceed it structurally:
 ---
 
 ### IMP-044 — Stop the fabricated sample-data fallback in Sankey and Process Flow
+
+**Status:** **DONE** · branch `fix/error-surfacing`, four commits — `c972526` traceability's status bar renders API-controlled text with `textContent`/DOM nodes instead of `innerHTML` (`setStatus`, `suggestSimilar`, `showDisambiguation`; ERROR-010); `028c685` both chart pages' `apiFetch` now read and keep the response body on `!res.ok` (`HTTP <status> <path>: <body>` plus `error.status` / `error.body` / `error.payload`, the shape `fetchSalesAPI` already uses) and the banners show it verbatim in a selectable monospace block with a Copy button (ERROR-010); `684af02` deleted `getFallbackData()`, `getFallbackProductDetails()`, `useFallback`, and `getFallbackLinks()` — a failure with no prior successful load now renders a named failure state with the verbatim error and Retry, and sankey tracks `lastSuccessTime` so a failed refresh (including the debounced resize refetch) keeps the real chart under a *“Refresh failed — showing data from &lt;time&gt;”* banner instead of redrawing it; `a6ae9d3` `supplyApiErrorMessage` keeps the `HTTP <status>` prefix when unwrapping a structured error (ERROR-010).
+
+**Note on IMP-035.** IMP-035 (*“Stop showing raw API bodies to the user”*) is **not** done and is in partial tension with the second commit here: on Sankey and Process Flow the verbatim body is now shown *deliberately*, because ERROR-010 asks for an error that can be *“pasted to Claude Code verbatim”* and these two pages have no other diagnostic surface. When IMP-035 is taken up, the resolution to aim for is a plain-language headline extracted via `parseApiErrorMessage` with the raw body kept behind the existing copyable detail block — not deleting the body.
+
+**Not covered here:** the other ERROR-010 findings from [03-feedback-error-notify.md](03-feedback-error-notify.md) — the native `alert()`/`confirm()` bodies (IMP-014), the `.lot-link` / `.order-link` click handlers that swallow a click-drag selection (IMP-031), the `pointer-events: none` node tooltip (S-69), and the absence of a copy affordance on lot codes and SO numbers.
 
 **Rules:** ERROR-002 · FEEDBACK-008 · CHART-001 · OTHER-003 (Hard rule) · OTHER-007
 **Screens:** S-57, S-58, S-59, S-60, S-61, S-62 (6) · **Importance:** High · **Effort:** S

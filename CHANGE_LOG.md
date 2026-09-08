@@ -16,6 +16,14 @@
 
 ---
 
+## 2026-09-07 21:05 — Bookkeeping: IMP-044 marked DONE; regression changelog row 112
+
+- **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added Status/Commit columns to the Band 2 table and marked **IMP-044 DONE** against commits `c972526`, `028c685`, `684af02`, `a6ae9d3`, with a Status paragraph on the IMP-044 section recording what each commit did. Recorded two things the section did not previously say: that IMP-035 (*"Stop showing raw API bodies"*) is not done and is in partial tension with the verbatim-body decision on the two chart pages, with the intended resolution; and which ERROR-010 findings are still open (native dialogs, click-drag selection on `.lot-link`/`.order-link`, the `pointer-events: none` tooltip, no copy affordance on lot codes). Added `FACTORY_LEDGER_CHANGELOG.md` row 112 with the Breaks If Reverted analysis the Regression Guard requires. Numbered 112 because `fix/ux-band-0` claims 111; that branch has since been squash-merged to `main` as PR #24 (`da76ffe`) and this branch is rebased on top of it, so both rows now stand together (row-28 / row-100 renumbering precedent).
+- **Why:** CLAUDE.md Regression Guard step 4 and the audit's own bookkeeping. A commit cannot contain its own hash, so the four work commits are one per item and this one records them.
+
+---
+
 ## 2026-09-07 20:52 — IMP-005: a single fetch wrapper with a 15 s timeout, a stall message and Retry
 
 - **File(s) changed:** `dashboard/fetch-timeout.js` (new), `dashboard/interaction.css`, `dashboard/dashboard.js`, `dashboard/mini-calendar.js`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`
@@ -24,11 +32,51 @@
 
 ---
 
+---
+
+## 2026-09-07 20:52 — supplyApiErrorMessage keeps the HTTP status prefix (ERROR-010)
+
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`
+- **What changed:** `supplyApiErrorMessage` unwrapped `HTTP <status>: {"detail":{"message":"…"}}` down to the bare message, dropping the status. It now returns `HTTP <status>: <message>`, so the failure class survives the unwrap. The match is also anchored (`^HTTP (\d+): `) so a message that merely contains the word HTTP is no longer treated as a wrapped API body, and a non-structured body still falls through to the raw message, which already carries the prefix. Cache-bust: `dashboard.js?v=41` → `?v=42` (one above the `?v=41` Band 0 left on `main`).
+- **Why:** ERROR-010 — the error a user copies out of the supplies surfaces has to say which failure it was; "Lot already allocated" and "HTTP 409: Lot already allocated" are not equally useful in a bug report. `parseApiErrorMessage` (the orders-side equivalent) is deliberately left alone: its callers prepend their own context.
+
+---
+
+---
+
+## 2026-09-07 20:41 — Delete the fabricated sample-data fallback; explicit failure state with Retry (IMP-044)
+
+- **File(s) changed:** `dashboard/process-flow.html`, `dashboard/sankey.html`
+- **What changed:** Removed `getFallbackData()`, `getFallbackProductDetails()`, and the `useFallback` flag from `process-flow.html`, and `getFallbackLinks()` from `sankey.html` — on an API failure with no prior successful load, both pages used to render invented lots (`GH-2026-0316`, `CS-2026-0087`) and invented flows (`Graham Crumb 25lb → DOT Foods, 2,400`) styled identically to real data behind a small warning banner. Both now render an explicit failure state instead: a named heading, a sentence saying the data source failed and that nothing shown is a real number, the verbatim error, and a Retry button. `sankey.html` now tracks `lastSuccessTime`; when a prior successful render exists a failed refresh keeps that chart and says `Refresh failed — showing data from <time>` rather than redrawing anything — this closes the resize path (a window resize triggers a debounced refetch, which previously redrew the chart from the fabricated data). `process-flow.html` keeps its existing `Data may be stale — last updated <time>` banner for the same case, now with the verbatim error and a Retry, and it only fires when a prior success actually exists (it used to print `last updated unknown`).
+- **Why:** IMP-044 (ERROR-002, FEEDBACK-008, CHART-001, OTHER-003 hard rule, OTHER-007). On an operational ledger a plausible number read off a chart that is describing nothing is worse than an error state.
+
+---
+
 ## 2026-09-07 20:26 — IMP-004: shared press state, and the four commit paths disable while in flight
 
 - **File(s) changed:** `dashboard/interaction.css` (new), `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/scheduler/seven-wells-production-board.html`, `dashboard/dashboard.js`
 - **What changed:** Added `dashboard/interaction.css`, a single shared stylesheet linked from all five pages in `dashboard/` (the scheduler links `../interaction.css`), placed after each page's own styles so it wins without `!important`. It defines the product's first `:active` rule — `transform: translateY(1px)` plus `filter: brightness(0.92)` on `button`, `[role="button"]`, `summary`, `.tab` and `a.btn` — along with a `:disabled` appearance and an `.is-submitting` state; existing per-page `:disabled` rules (`dashboard.css:2452`, `traceability.html:126`) are more specific and still win. Added `beginSubmit`/`endSubmit` and `beginRowCommit`/`endRowCommit` to `dashboard.js` and wired the four commit paths the audit lists: **Save a note** (`saveNote`) now guards re-entry, disables `#note-save-btn` and shows "Saving…" with a `finally` restore; **toggle a note done** disables the checkbox and freezes its `.note-card` for the duration; **toggle Factory Ready** guards on both the checkbox and an in-flight flag carried on the order record, which the orders-table markup reads so the control stays disabled across the re-render, and is cleared before the settling render so no extra re-render is introduced; **Close / Cancel an expected receipt** disables the armed button and shows "Closing…" / "Cancelling…", restoring the pre-armed label if the row survives the refresh. All four follow the pattern already used by `submitSupplyRequest`.
 - **Why:** Band 0 of the design audit, IMP-004 (ACTION-002 and FEEDBACK-001, both Critical). No `:active` rule existed in any of the six style sources, so no button in the product showed that a tap had registered, and the four commit paths were never disabled while in flight — a double-tap on Save a note created two notes. The rule names the causal chain directly: nothing visibly changing invites a second tap and a duplicate submission. The Factory Ready fix deliberately adds no re-render, since the existing full-container re-renders are IMP-007, a Band 1 item left untouched.
+
+---
+
+---
+
+## 2026-09-07 20:24 — Sankey and Process Flow preserve the API response body and show it verbatim (IMP-044 / ERROR-010)
+
+- **File(s) changed:** `dashboard/process-flow.html`, `dashboard/sankey.html`
+- **What changed:** Both `apiFetch` helpers now read the response body on `!res.ok` and throw an error carrying it, in the same shape `dashboard.js`'s `fetchSalesAPI` uses — `HTTP <status> <path>: <body>` as the message plus `error.status`, `error.body`, and a parsed `error.payload`. Previously `process-flow.html` threw `API <status>: <path>` and `sankey.html` threw `HTTP <status>`, discarding the body entirely. The error banners now take a `detail` argument and render it verbatim in a selectable monospace block with a "Copy error" button (`navigator.clipboard` with an `execCommand` fallback, the same pattern as the scheduler's `copyScheduleText`). Banner text is still built with `textContent`/DOM nodes, never `innerHTML`.
+- **Why:** IMP-044 / ERROR-010: the failure reason was thrown away at the fetch boundary, so the banner could only ever say something generic and there was nothing to paste into a bug report. ERROR-010 asks for error text that is selectable and copyable in one gesture.
+
+---
+
+---
+
+## 2026-09-07 20:10 — Traceability status bar renders API text as text, not markup (IMP-044 / ERROR-010)
+
+- **File(s) changed:** `dashboard/traceability.html`
+- **What changed:** `setStatus`, `suggestSimilar`, and `showDisambiguation` now build DOM nodes and set `textContent` instead of assigning `innerHTML`. `setStatus('error', ...)` receives raw API error bodies (`Trace failed: ${e.message}`) and typed lot codes; those are now appended as text nodes. `suggestSimilar` and `showDisambiguation` write into the same status bar and previously interpolated `lot_code`, `product_name`, `product_id`, and `entry_source` straight into an HTML string — they now build `<a>`/`<button>` elements with `textContent` and real `addEventListener` handlers instead of inline `onclick` attributes. Behaviour and styling are unchanged.
+- **Why:** ERROR-010 / IMP-044: never route API-controlled text through `innerHTML`. `dashboard.js` already does this correctly (`showError` uses `textContent`; other surfaces use `escHtml`); traceability was the only standalone page still assigning API text as markup. Checked the other standalone pages: `process-flow.html` (`showError`/`showStale`) and `sankey.html` (`showBanner`) already use `textContent`, and the scheduler escapes with `esc()` and makes no network calls — no other instances to fix.
 
 ---
 
@@ -53,6 +101,8 @@
 - **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`
 - **What changed:** Defined `--bg-card` in both theme blocks in `dashboard.css` (dark `#283548`, light `#ffffff`) — it was referenced but declared nowhere. Replaced the inline styles on the lot-disambiguation choice buttons (`dashboard.js` `renderLotDisambiguation`) with new theme-resolved classes `.disambig-wrap`, `.disambig-intro`, `.disambig-list`, `.disambig-btn`, `.disambig-source`, removing `background: var(--bg-card, #fff)`. Verified by script that no `var(--token)` reference across `dashboard.css`, `mini-calendar.css`, `index.html`, `dashboard.js`, `mini-calendar.js`, `sankey.html`, `process-flow.html`, `traceability.html`, `scheduler/seven-wells-production-board.html` and `pallet-calculations.js` now resolves to an undeclared token.
 - **Why:** Band 0 of the design audit, IMP-001 (ACCESS-008 Critical / Hard rule). The undeclared token meant the `#fff` fallback applied while text inherited `--text: #f1f5f9` from the panel — contrast approximately 1.1:1, near-white on white, on the screen where a lot code matches more than one product and the operator must pick correctly. Audit test: "Does every text/icon element meet the contrast target in light, dark, and high-contrast modes, including over overlays, images, and colored fills?" — the buttons now render `--text` on `--bg-card` in both themes (approximately 12.6:1 dark, 17.9:1 light).
+
+---
 
 ---
 

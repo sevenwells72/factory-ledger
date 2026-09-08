@@ -133,9 +133,65 @@
     padding: 8px 24px;
     font-size: 13px;
     display: none;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
   }
+  .banner-headline { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .banner-detail {
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 160px;
+    overflow: auto;
+    user-select: text;
+  }
+  .banner-btn {
+    background: transparent;
+    border: 1px solid currentColor;
+    color: inherit;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1.2;
+    min-height: 28px;
+    cursor: pointer;
+  }
+  .banner-btn:hover { background: rgba(255,255,255,0.08); }
+
+  /* Explicit data-source failure state — replaces the old sample-data fallback */
+  .data-failure {
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    padding: 24px;
+  }
+  .data-failure-title { font-size: 16px; font-weight: 600; color: #fca5a5; }
+  .data-failure-body { font-size: 14px; color: var(--text-muted); max-width: 60ch; line-height: 1.5; }
+  .data-failure .banner-detail { align-self: stretch; text-align: left; max-width: 900px; margin: 0 auto; }
+  .data-failure-retry {
+    background: var(--primary);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 20px;
+    min-height: 40px;
+    cursor: pointer;
+  }
+  .data-failure-retry:disabled { opacity: 0.6; cursor: default; }
   .banner.warning {
     background: #78350f;
     color: #fef3c7;
@@ -414,11 +470,20 @@
   }
 
   // --- API fetch ---
+  // Keep the response body: it is the only thing that says *why* the call
+  // failed, and the banner shows it verbatim so it can be pasted as-is.
   async function apiFetch(path) {
     const res = await FL.fetchWithTimeout(API_BASE + path, {
       headers: { 'X-Api-Key': API_KEY }
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      const error = new Error(`HTTP ${res.status} ${path}${body ? ': ' + body : ''}`);
+      error.status = res.status;
+      error.body = body;
+      try { error.payload = JSON.parse(body); } catch (_) { error.payload = null; }
+      throw error;
+    }
     return res.json();
   }
 
@@ -728,39 +793,6 @@
   }
 
   // --- Fallback data ---
-  function getFallbackLinks() {
-    return [
-      { source: 'Coconut Flake', target: 'Coconut Sweetened', value: 12500, type: 'il' },
-      { source: 'Rolled Oats', target: 'Granola Baking', value: 9800, type: 'il' },
-      { source: 'Sugar', target: 'Granola Baking', value: 3200, type: 'il' },
-      { source: 'Sugar', target: 'Coconut Sweetened', value: 4100, type: 'il' },
-      { source: 'Chocolate', target: 'Bulk Packing', value: 5600, type: 'il' },
-      { source: 'Graham Cracker', target: 'Bulk Packing', value: 4200, type: 'il' },
-      { source: 'Other Ingredients', target: 'Granola Baking', value: 2100, type: 'il' },
-      { source: 'Other Ingredients', target: 'Pouch Line', value: 1500, type: 'il' },
-      { source: 'Coconut Sweetened', target: 'Sweetened Flake 25lb', value: 8200, type: 'lf' },
-      { source: 'Coconut Sweetened', target: 'CQ Coconut 25lb', value: 5800, type: 'lf' },
-      { source: 'Granola Baking', target: 'Honey Granola 30lb', value: 6100, type: 'lf' },
-      { source: 'Granola Baking', target: 'Vanilla Granola 30lb', value: 5200, type: 'lf' },
-      { source: 'Bulk Packing', target: 'Choc Chips 25lb', value: 5600, type: 'lf' },
-      { source: 'Bulk Packing', target: 'Graham Crumb 25lb', value: 4200, type: 'lf' },
-      { source: 'Pouch Line', target: 'Sprinkles 25lb', value: 1500, type: 'lf' },
-      { source: 'Sweetened Flake 25lb', target: 'Restaurant Depot', value: 4800, type: 'fc' },
-      { source: 'Sweetened Flake 25lb', target: 'DOT Foods', value: 2200, type: 'fc' },
-      { source: 'CQ Coconut 25lb', target: 'Setton Farms', value: 3100, type: 'fc' },
-      { source: 'CQ Coconut 25lb', target: 'UNIPRO', value: 1900, type: 'fc' },
-      { source: 'Honey Granola 30lb', target: 'Restaurant Depot', value: 3200, type: 'fc' },
-      { source: 'Honey Granola 30lb', target: 'Blue Stripes', value: 1800, type: 'fc' },
-      { source: 'Vanilla Granola 30lb', target: 'DOT Foods', value: 2900, type: 'fc' },
-      { source: 'Vanilla Granola 30lb', target: 'Setton Farms', value: 1500, type: 'fc' },
-      { source: 'Choc Chips 25lb', target: 'Restaurant Depot', value: 3100, type: 'fc' },
-      { source: 'Graham Crumb 25lb', target: 'DOT Foods', value: 2400, type: 'fc' },
-      { source: 'Graham Crumb 25lb', target: 'Other Customers', value: 1200, type: 'fc' },
-      { source: 'Sprinkles 25lb', target: 'UNIPRO', value: 900, type: 'fc' },
-      { source: 'Other Products', target: 'Other Customers', value: 1100, type: 'fc' },
-    ];
-  }
-
   // --- Loading UI ---
   function showLoading() {
     let el = document.querySelector('.loading-overlay');
@@ -777,18 +809,114 @@
     if (el) el.style.display = 'none';
   }
 
-  function showBanner(msg, type) {
+  function copyText(text, button) {
+    if (!button.dataset.label) button.dataset.label = button.textContent;
+    const finish = ok => {
+      button.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(() => { button.textContent = button.dataset.label; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => finish(true), () => finish(false));
+      return;
+    }
+    const scratch = document.createElement('textarea');
+    scratch.value = text;
+    scratch.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(scratch);
+    scratch.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+    document.body.removeChild(scratch);
+    finish(ok);
+  }
+
+  // `detail` is the verbatim failure text (status, path, response body).
+  // It is rendered as text, selectable, with a one-gesture copy.
+  function showBanner(msg, type, detail, onRetry) {
     const b = document.getElementById('banner');
     b.className = 'banner ' + type;
-    b.textContent = msg;
+    b.replaceChildren();
+
+    const headline = document.createElement('div');
+    headline.className = 'banner-headline';
+    const label = document.createElement('span');
+    label.textContent = msg;
+    headline.append(label);
+
+    if (detail) {
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'banner-btn';
+      copyBtn.textContent = 'Copy error';
+      copyBtn.addEventListener('click', () => copyText(detail, copyBtn));
+      headline.append(copyBtn);
+    }
+    if (onRetry) {
+      const retryBtn = document.createElement('button');
+      retryBtn.type = 'button';
+      retryBtn.className = 'banner-btn';
+      retryBtn.textContent = 'Retry';
+      retryBtn.addEventListener('click', () => { retryBtn.disabled = true; onRetry(); });
+      headline.append(retryBtn);
+    }
+    b.append(headline);
+
+    if (detail) {
+      const pre = document.createElement('pre');
+      pre.className = 'banner-detail';
+      pre.textContent = detail;
+      b.append(pre);
+    }
     b.style.display = 'flex';
   }
   function hideBanner() {
     document.getElementById('banner').style.display = 'none';
   }
 
+  // No prior successful render: draw nothing rather than something invented.
+  function renderChartFailure(detail) {
+    const container = document.getElementById('sankey-chart');
+    container.replaceChildren();
+
+    const box = document.createElement('div');
+    box.className = 'data-failure';
+
+    const title = document.createElement('div');
+    title.className = 'data-failure-title';
+    title.textContent = 'Flow data unavailable';
+
+    const body = document.createElement('div');
+    body.className = 'data-failure-body';
+    body.textContent = 'The ledger API did not answer, so there is no flow to draw. '
+      + 'No volumes have been loaded \u2014 nothing on this page is a real number.';
+    box.append(title, body);
+
+    if (detail) {
+      const pre = document.createElement('pre');
+      pre.className = 'banner-detail';
+      pre.textContent = detail;
+      box.append(pre);
+    }
+
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'data-failure-retry';
+    retry.textContent = 'Retry';
+    retry.addEventListener('click', () => {
+      retry.disabled = true;
+      retry.textContent = 'Retrying\u2026';
+      loadData();
+    });
+    box.append(retry);
+    container.append(box);
+
+    document.getElementById('truncation-note').textContent = '';
+    document.getElementById('last-updated').textContent = 'Not updated \u2014 data source failed';
+  }
+
   // --- Main load ---
   let debounceTimer = null;
+  let lastSuccessTime = null;
 
   async function loadData() {
     const range = getDateRange();
@@ -821,23 +949,29 @@
           'Showing most recent 100 transactions per type. Actual volumes may be higher.';
       }
 
+      lastSuccessTime = new Date();
       document.getElementById('last-updated').textContent =
-        'Updated ' + new Date().toLocaleTimeString();
+        'Updated ' + lastSuccessTime.toLocaleTimeString();
     } catch (err) {
       console.error('API error:', err);
-      if (window.FL && FL.isStall(err)) {
-        // A stall is not the same as an unreachable API — say so and offer a
-        // next step rather than silently swapping in sample data (IMP-005).
-        const b = document.getElementById('banner');
-        b.className = 'banner warning';
-        b.textContent = '';
-        b.style.display = 'flex';
-        FL.renderStall(b, loadData, null);
+      // No fabricated data on any path (IMP-044); a stall is still named as
+      // its own failure class rather than folded into a generic error (IMP-005).
+      const detail = err && err.message ? err.message : String(err);
+      const stalled = !!(window.FL && FL.isStall(err));
+      if (lastSuccessTime) {
+        // A real chart is still on screen. Say how old it is; do not redraw it.
+        const since = lastSuccessTime.toLocaleTimeString();
+        showBanner(
+          stalled
+            ? `Server not responding — showing data from ${since}`
+            : `Refresh failed — showing data from ${since}`,
+          'warning', detail, loadData);
       } else {
-        showBanner('API unreachable — showing sample data', 'warning');
+        showBanner(
+          stalled ? 'Server not responding.' : 'Could not load flow data.',
+          'error', detail, loadData);
+        renderChartFailure(detail);
       }
-      const links = getFallbackLinks();
-      renderSankey(links);
     } finally {
       hideLoading();
     }
