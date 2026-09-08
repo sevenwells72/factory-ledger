@@ -511,27 +511,53 @@ def _post_file(client, name="po.png", mime="image/png", content=b"png-bytes"):
 
 
 class TestExtractEndpoint:
-    def test_happy_path(self, client, cur, mock_storage, mock_extractor):
+    def test_upload_is_upload_only(self, client, cur, mock_storage, mock_extractor):
+        """Audit fix 8: POST /expected-receipts/extract stores the file and
+        returns the document_id WITHOUT calling the vision model."""
         r = _post_file(client)
         assert r.status_code == 201, r.text
         data = r.json()
         assert data["success"] is True
         assert data["already_seen"] is False
-        assert data["extraction"] == GOOD_EXTRACTION
-        assert data["extraction_model"] == "claude-sonnet-5"
+        assert data["status"] == "uploaded"
+        assert "extraction" not in data
+        assert mock_extractor["calls"] == 0, "upload must not invoke the model"
         assert len(mock_storage["uploads"]) == 1
         assert mock_storage["uploads"][0]["path"] == data["storage_path"]
         row = _doc_row(cur, data["document_id"])
-        assert row["status"] == "extracted"
+        assert row["status"] == "uploaded"
         assert row["mime_type"] == "image/png"
-        assert row["extraction"]["supplier_name"] == GOOD_EXTRACTION["supplier_name"]
         assert row["file_sha256"]
+
+    def test_upload_then_extract_happy_path(self, client, cur, mock_storage, mock_extractor):
+        doc_id = _post_file(client).json()["document_id"]
+        r = client.post(f"/purchase-documents/{doc_id}/extract")
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["extraction"] == GOOD_EXTRACTION
+        assert data["extraction_model"] == "claude-sonnet-5"
+        assert mock_extractor["calls"] == 1
+        assert mock_storage["downloads"], "extraction reads the stored file"
+        row = _doc_row(cur, doc_id)
+        assert row["status"] == "extracted"
+        assert row["extraction"]["supplier_name"] == GOOD_EXTRACTION["supplier_name"]
+
+    def test_handlers_run_in_threadpool(self):
+        """Audit fix 8: both handlers are plain def — FastAPI runs them in the
+        threadpool, so the sync DB/Storage/model calls can't block the loop."""
+        import inspect
+        assert not inspect.iscoroutinefunction(main.extract_expected_receipt_document)
+        assert not inspect.iscoroutinefunction(main.run_purchase_document_extraction)
 
     def test_already_seen_on_same_bytes(self, client, mock_storage, mock_extractor):
         assert _post_file(client).json()["already_seen"] is False
         r2 = _post_file(client)
         assert r2.status_code == 201
         assert r2.json()["already_seen"] is True
+        # The extract call reports it too (server-side, not trusted from the client).
+        r3 = client.post(f"/purchase-documents/{r2.json()['document_id']}/extract")
+        assert r3.status_code == 200
+        assert r3.json()["already_seen"] is True
 
     def test_unsupported_type(self, client, mock_storage, mock_extractor):
         r = _post_file(client, name="po.gif", mime="image/gif")
@@ -556,19 +582,21 @@ class TestExtractEndpoint:
         assert r.json()["detail"]["error_code"] == "FILE_TOO_LARGE"
 
     def test_extraction_failure_keeps_file_and_row(self, client, cur, mock_storage, mock_extractor):
+        doc_id = _post_file(client).json()["document_id"]
         mock_extractor["error"] = ExtractionError("model refused")
-        r = _post_file(client)
+        r = client.post(f"/purchase-documents/{doc_id}/extract")
         assert r.status_code == 502
         detail = r.json()["detail"]
         assert detail["error_code"] == "EXTRACTION_FAILED"
-        doc_id = detail["document_id"]
+        assert detail["document_id"] == doc_id
         row = _doc_row(cur, doc_id)
         assert row["status"] == "extraction_failed"
         assert len(mock_storage["uploads"]) == 1  # file kept, no re-upload needed
 
     def test_retry_after_failure(self, client, cur, mock_storage, mock_extractor):
+        doc_id = _post_file(client).json()["document_id"]
         mock_extractor["error"] = ExtractionError("model refused")
-        doc_id = _post_file(client).json()["detail"]["document_id"]
+        assert client.post(f"/purchase-documents/{doc_id}/extract").status_code == 502
         mock_extractor["error"] = None
         r = client.post(f"/purchase-documents/{doc_id}/extract")
         assert r.status_code == 200, r.text

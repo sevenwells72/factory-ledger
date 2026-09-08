@@ -3934,38 +3934,39 @@
       erExtractStatus(`<span class="error-msg">"${escHtml(file.name)}" is over the 15 MB limit.</span>`);
       return;
     }
-    erExtractStatus(`Reading <strong>${escHtml(file.name)}</strong>… (the document goes to the extraction model; nothing is created yet)`);
+    // Audit fix 8: upload and extraction are separate requests. The upload is
+    // quick and returns the document_id immediately, so a slow vision call can
+    // never lose it; extraction then gets its own 90-second budget.
+    erExtractStatus(`Uploading <strong>${escHtml(file.name)}</strong>… (nothing is created yet)`);
     const form = new FormData();
     form.append('file', file, file.name);
+    let uploaded;
     try {
       // No Content-Type header — the browser sets the multipart boundary.
-      const data = await fetchSalesAPI('/expected-receipts/extract', { method: 'POST', body: form });
-      await erStartReview(data);
+      uploaded = await fetchSalesAPI('/expected-receipts/extract', { method: 'POST', body: form, timeoutMs: ER_UPLOAD_TIMEOUT_MS });
     } catch (e) {
-      const detail = apiErrorDetail(e) || {};
-      const d = detail.detail || detail;
-      if (d.error_code === 'EXTRACTION_FAILED' && d.document_id) {
-        erExtractStatus(
-          `<span class="error-msg">${escHtml(d.message || 'Extraction failed.')}</span>` +
-          `<button type="button" class="btn-sm er-retry-btn" data-doc-id="${d.document_id}">Retry extraction</button>`);
-        document.querySelector('#er-extract-status .er-retry-btn').addEventListener('click', (ev) => erRetryExtraction(Number(ev.target.dataset.docId)));
-      } else {
-        erExtractStatus(`<span class="error-msg">Upload failed: ${escHtml((d.message || e.message || '').slice(0, 300))}</span>`);
-      }
+      const d = (apiErrorDetail(e) || {}).detail || apiErrorDetail(e) || {};
+      erExtractStatus(`<span class="error-msg">Upload failed: ${escHtml((d.message || e.message || '').slice(0, 300))}</span>`);
+      return;
     }
+    await erRunExtraction(uploaded.document_id, uploaded.already_seen);
   }
 
-  async function erRetryExtraction(documentId) {
-    erExtractStatus('Retrying extraction…');
+  const ER_UPLOAD_TIMEOUT_MS = 60000;   // a 15 MB photo on a slow uplink
+  const ER_EXTRACT_TIMEOUT_MS = 90000;  // audit fix 8: vision-model budget
+
+  async function erRunExtraction(documentId, alreadySeen) {
+    erExtractStatus(`Reading document #${documentId} with the extraction model… (can take up to ~90 seconds; nothing is created yet)`);
     try {
-      const data = await fetchSalesAPI(`/purchase-documents/${documentId}/extract`, { method: 'POST' });
+      const data = await fetchSalesAPI(`/purchase-documents/${documentId}/extract`, { method: 'POST', timeoutMs: ER_EXTRACT_TIMEOUT_MS });
+      if (alreadySeen) data.already_seen = true;
       await erStartReview(data);
     } catch (e) {
       const d = (apiErrorDetail(e) || {}).detail || apiErrorDetail(e) || {};
       erExtractStatus(
-        `<span class="error-msg">${escHtml(d.message || e.message)}</span>` +
+        `<span class="error-msg">${escHtml((d.message || e.message || 'Extraction failed.').slice(0, 300))}</span>` +
         `<button type="button" class="btn-sm er-retry-btn" data-doc-id="${documentId}">Retry extraction</button>`);
-      document.querySelector('#er-extract-status .er-retry-btn').addEventListener('click', () => erRetryExtraction(documentId));
+      document.querySelector('#er-extract-status .er-retry-btn').addEventListener('click', () => erRunExtraction(documentId, alreadySeen));
     }
   }
 

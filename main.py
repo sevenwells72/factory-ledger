@@ -5522,15 +5522,18 @@ def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str) 
 
 
 @app.post("/expected-receipts/extract", status_code=201)
-async def extract_expected_receipt_document(
+def extract_expected_receipt_document(
     request: Request,
     file: UploadFile = File(...),
     _: bool = Depends(verify_api_key),
 ):
-    """Step 1 of the intake flow: store the vendor PO / order confirmation and
-    run vision extraction. NO expected receipts are created here — matching is
-    POST /expected-receipts/match, creation is POST /expected-receipts/extract/approve."""
-    content = await file.read()
+    """Step 1 of the intake flow — UPLOAD ONLY (audit fix 8): validate, insert
+    the purchase_documents row, store the file, 201 with the document_id. The
+    dashboard then calls POST /purchase-documents/{id}/extract (its own, longer
+    browser timeout) so a slow vision call can never lose the document id.
+    Plain def: FastAPI runs it in the threadpool — the sync DB/Storage calls
+    never block the event loop. NO expected receipts are created here."""
+    content = file.file.read()
     mime = (file.content_type or "").strip().lower()
     if mime == "image/jpg":
         mime = "image/jpeg"
@@ -5572,25 +5575,33 @@ async def extract_expected_receipt_document(
 
     storage_upload_purchase_document(storage_path, content, mime)
 
-    result = _run_extraction_and_store(document_id, content, mime)
-
     return {
         "document_id": document_id,
         "storage_path": storage_path,
         "already_seen": already_seen,
-        "extraction": result["extraction"],
-        "extraction_model": result["extraction_model"],
-        "message": f"Extracted {len(result['extraction']['lines'])} line(s) from {file.filename or 'document'}"
-                   + (" — this file was uploaded before (matching will surface duplicates)" if already_seen else ""),
+        "status": "uploaded",
+        "message": f"Stored {file.filename or 'document'} ({len(content)} bytes). "
+                   f"Run extraction via POST /purchase-documents/{document_id}/extract."
+                   + (" This exact file was uploaded before (matching will surface duplicates)." if already_seen else ""),
     }
 
 
 @app.post("/purchase-documents/{document_id}/extract")
-def retry_purchase_document_extraction(document_id: int, _: bool = Depends(verify_api_key)):
-    """Re-run extraction on an already-stored document (no re-upload)."""
+def run_purchase_document_extraction(document_id: int, _: bool = Depends(verify_api_key)):
+    """Step 1b: run (or re-run) vision extraction on a stored document — the
+    dashboard calls this right after the upload, and again for retries (no
+    re-upload). Plain def (threadpool): the model call can take tens of
+    seconds and must not block the event loop."""
     with get_transaction() as cur:
         cur.execute("SELECT * FROM purchase_documents WHERE id = %s", (document_id,))
         doc = cur.fetchone()
+        already_seen = False
+        if doc:
+            cur.execute(
+                "SELECT 1 FROM purchase_documents WHERE file_sha256 = %s AND id <> %s LIMIT 1",
+                (doc["file_sha256"], document_id),
+            )
+            already_seen = cur.fetchone() is not None
     if not doc:
         raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {document_id} not found"})
     if doc["status"] == "approved":
@@ -5601,10 +5612,10 @@ def retry_purchase_document_extraction(document_id: int, _: bool = Depends(verif
     return {
         "document_id": document_id,
         "storage_path": doc["storage_path"],
-        "already_seen": False,
+        "already_seen": already_seen,
         "extraction": result["extraction"],
         "extraction_model": result["extraction_model"],
-        "message": f"Re-extracted {len(result['extraction']['lines'])} line(s)",
+        "message": f"Extracted {len(result['extraction']['lines'])} line(s)",
     }
 
 
