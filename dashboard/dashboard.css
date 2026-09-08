@@ -236,6 +236,7 @@ body {
 .header-right { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 
 .health-badge {
+  position: relative; /* contains the visually-hidden label (IMP-073) */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -246,6 +247,12 @@ body {
   font-weight: 700;
   cursor: default;
   transition: background-color 0.3s ease;
+}
+/* IMP-073: the badge carries its own visible "Health:" label at every width —
+   the desktop badge already reads "Health: N/100", and at phone width, where
+   the title tooltip cannot be reached, the label is what names the score. */
+.health-label {
+  white-space: nowrap;
 }
 .health-badge.health-green { background: var(--badge-green-bg); color: var(--badge-green-text); }
 .health-badge.health-yellow { background: var(--badge-amber-bg); color: var(--badge-amber-text); }
@@ -1688,6 +1695,10 @@ body {
   display: block;
   line-height: 1.25;
 }
+/* IMP-072: the weekday line contains the visually-hidden "overdue" text,
+   which is absolutely positioned; without a positioned ancestor it escapes
+   the .table-scroll wrapper and widens the document on phones. */
+.ship-by-weekday { position: relative; }
 
 .ship-by-date {
   color: inherit;
@@ -1703,6 +1714,10 @@ body {
 .date-overdue .ship-by-weekday {
   color: color-mix(in srgb, var(--danger) 72%, var(--text-muted));
 }
+/* IMP-072: an overdue weekday carries a shape and visually-hidden "overdue"
+   text as well as the colour. The glyph is shown at phone width (below); the
+   hidden text reads at every width. */
+.ship-by-flag { display: none; }
 
 .order-link {
   color: var(--primary-text);
@@ -1984,6 +1999,17 @@ body {
    header. Generalises the wrapper that already existed for the order-detail,
    allocation and supplies tables. The min-widths keep columns readable and
    let the wrapper take the scroll instead. */
+/* IMP-070: identifiers never break at their hyphens — SO numbers, lot codes
+   and PO / reference numbers stay on one line and the .table-scroll wrapper
+   absorbs the width. Scoped to cells so the search dropdown's product and
+   customer names, which reuse .lot-link, can still wrap. */
+td .order-link,
+td .lot-link,
+td .er-reference,
+.order-number,
+.supply-lot-code,
+.supply-reference { white-space: nowrap; }
+
 .table-scroll { overflow-x: auto; }
 .table-scroll > .orders-table { min-width: 1040px; }
 .table-scroll > .er-table { min-width: 860px; }
@@ -2426,6 +2452,53 @@ body {
 @media (max-height: 600px) {
   .app-header { position: static; }
   .tab-bar { top: var(--site-nav-h); }
+}
+
+/* IMP-038 (phone header) / IMP-069 / IMP-072 / IMP-073 — the ≤520px entry
+   screen. The header becomes a four-row grid: title + health badge, then the
+   three 44px controls, then the collapsed calendar, then search. .header-left
+   and .header-right dissolve (display: contents) so their children are placed
+   directly; nothing above 520px reads any of this. */
+@media (max-width: 520px) {
+  .app-header {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "title  title   health"
+      "theme  refresh updated"
+      "cal    cal     cal"
+      "search search  search";
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 8px;
+    padding: 8px 12px;
+  }
+  .header-left,
+  .header-right { display: contents; }
+  .app-header h1 {
+    grid-area: title;
+    display: flex;
+    align-items: center;
+    min-height: var(--hit-min);
+    font-size: 17px;
+  }
+  .health-badge { grid-area: health; justify-self: end; gap: 5px; }
+  .health-label { font-weight: 600; }
+  .btn-theme { grid-area: theme; }
+  .btn-refresh { grid-area: refresh; }
+  .refresh-ts { grid-area: updated; min-width: 0; white-space: normal; }
+  .header-right > .mini-calendar-strip { grid-area: cal; order: 0; width: auto; }
+  .header-center { grid-area: search; order: 0; margin: 0; }
+
+  /* IMP-072 */
+  .ship-by-flag {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    margin-right: 3px;
+    vertical-align: -1px;
+    color: var(--danger);
+  }
 }
 
 /* === Expected Receipts (FR-2) === */
