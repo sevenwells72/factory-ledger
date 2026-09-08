@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 20:41 — Delete the fabricated sample-data fallback; explicit failure state with Retry (IMP-044)
+
+- **File(s) changed:** `dashboard/process-flow.html`, `dashboard/sankey.html`
+- **What changed:** Removed `getFallbackData()`, `getFallbackProductDetails()`, and the `useFallback` flag from `process-flow.html`, and `getFallbackLinks()` from `sankey.html` — on an API failure with no prior successful load, both pages used to render invented lots (`GH-2026-0316`, `CS-2026-0087`) and invented flows (`Graham Crumb 25lb → DOT Foods, 2,400`) styled identically to real data behind a small warning banner. Both now render an explicit failure state instead: a named heading, a sentence saying the data source failed and that nothing shown is a real number, the verbatim error, and a Retry button. `sankey.html` now tracks `lastSuccessTime`; when a prior successful render exists a failed refresh keeps that chart and says `Refresh failed — showing data from <time>` rather than redrawing anything — this closes the resize path (a window resize triggers a debounced refetch, which previously redrew the chart from the fabricated data). `process-flow.html` keeps its existing `Data may be stale — last updated <time>` banner for the same case, now with the verbatim error and a Retry, and it only fires when a prior success actually exists (it used to print `last updated unknown`).
+- **Why:** IMP-044 (ERROR-002, FEEDBACK-008, CHART-001, OTHER-003 hard rule, OTHER-007). On an operational ledger a plausible number read off a chart that is describing nothing is worse than an error state.
+
+---
+
 ## 2026-09-07 20:24 — Sankey and Process Flow preserve the API response body and show it verbatim (IMP-044 / ERROR-010)
 
 - **File(s) changed:** `dashboard/process-flow.html`, `dashboard/sankey.html`
