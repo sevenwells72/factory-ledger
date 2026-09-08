@@ -2358,6 +2358,11 @@ body {
   border: 1px solid var(--border); border-radius: 8px; padding: 0 5px; white-space: nowrap;
 }
 .er-lb-missing { color: var(--warning); font-size: 11px; }
+/* Audit fix 1: the fuzzy suggestion is highlighted, but never pre-selected. */
+.er-line-suggest-primary {
+  background: var(--badge-amber-bg); color: var(--badge-amber-text);
+  border-radius: 8px; padding: 0 6px; font-weight: 600;
+}
 .er-line-picker { position: relative; }
 .er-line-picker .er-product-results { position: absolute; z-index: 30; width: 100%; }
 

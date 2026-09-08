@@ -3994,13 +3994,9 @@
       });
       intake.match = match;
       // Working copies: user edits live here, the raw extraction stays intact.
-      intake.lines = match.lines.map(l => ({
-        ...l,
-        include: true,
-        chosen: l.product || null,
-        qty_lb: l.expected_qty_lb,
-        qty_lb_source: l.expected_qty_lb != null ? l.lb_source : null,
-      }));
+      // Audit fix 1: fuzzy matches arrive as suggestions, never selections —
+      // ERIntake.buildReviewLine sets `chosen` only for alias/exact.
+      intake.lines = match.lines.map(ERIntake.buildReviewLine);
       renderErReview();
     } catch (e) {
       erExtractStatus(`<span class="error-msg">Matching failed: ${escHtml(e.message.slice(0, 300))}</span>`);
@@ -4053,14 +4049,19 @@
 
     let rows = '';
     intake.lines.forEach((l, i) => {
+      // Audit fix 1: a fuzzy match is rendered as a pre-highlighted candidate
+      // (er-line-suggest-primary), never as a selection — the picker stays
+      // open until a human clicks a product.
+      const suggestions = (l.suggested && !l.candidates.some(c => c.product_id === l.suggested.product_id)
+        ? [l.suggested, ...l.candidates] : l.candidates).slice(0, 3);
       const prodCell = l.chosen
         ? `<div>${escHtml(l.chosen.name)}${l.chosen.odoo_code ? ` <span class="er-sku">${escHtml(l.chosen.odoo_code)}</span>` : ''}</div>
            <button type="button" class="btn-sm er-line-change" data-i="${i}">Change</button>`
         : `<div class="er-line-picker"><input type="text" class="er-line-search" data-i="${i}"
              placeholder="Search products…" autocomplete="off"
              value=""><div class="er-product-results hidden" id="er-line-results-${i}"></div></div>` +
-          (l.candidates.length ? `<div class="er-sku">Suggestions: ${l.candidates.slice(0, 3).map(c =>
-             `<a href="#" class="er-line-suggest" data-i="${i}" data-pid="${c.product_id}" data-name="${escAttr(c.name)}" data-sku="${escAttr(c.odoo_code || '')}">${escHtml(c.name)}</a>`).join(' · ')}</div>` : '');
+          (suggestions.length ? `<div class="er-sku">Suggestions: ${suggestions.map(c =>
+             `<a href="#" class="er-line-suggest${l.suggested && l.suggested.product_id === c.product_id ? ' er-line-suggest-primary' : ''}" data-i="${i}" data-pid="${c.product_id}" data-name="${escAttr(c.name)}" data-sku="${escAttr(c.odoo_code || '')}">${escHtml(c.name)}</a>`).join(' · ')}</div>` : '');
       const lbCell = `
         <input type="number" step="any" min="0" class="er-line-lbper" data-i="${i}" value="${l.lb_per_unit != null ? l.lb_per_unit : ''}" placeholder="?">
         ${l.lb_source && l.lb_source !== 'none' ? `<span class="er-lb-source" title="Where this conversion came from">${erLbSourceLabel(l.lb_source)}</span>` : ''}`;
@@ -4080,7 +4081,7 @@
     });
 
     const included = intake.lines.filter(l => l.include);
-    const ready = included.length > 0 && included.every(l => l.chosen && l.qty_lb > 0);
+    const ready = included.length > 0 && included.every(ERIntake.lineApprovable);
     const totalLb = included.reduce((s, l) => s + (l.qty_lb > 0 ? l.qty_lb : 0), 0);
 
     body.innerHTML = `
@@ -4176,41 +4177,28 @@
       renderErReview();
     }));
     body.querySelectorAll('.er-line-qty').forEach(inp => inp.addEventListener('change', (e) => {
-      const l = intake.lines[Number(e.target.dataset.i)];
-      l.quantity = Number(e.target.value) || 0;
-      if (l.lb_per_unit > 0 && l.chosen) { l.qty_lb = Math.round(l.quantity * l.lb_per_unit * 100) / 100; l.qty_lb_source = l.lb_source; }
+      ERIntake.applyQuantityChange(intake.lines[Number(e.target.dataset.i)], e.target.value);
       renderErReview();
     }));
     body.querySelectorAll('.er-line-unit').forEach(inp => inp.addEventListener('change', (e) => {
       intake.lines[Number(e.target.dataset.i)].unit = e.target.value.trim() || null;
     }));
     body.querySelectorAll('.er-line-lbper').forEach(inp => inp.addEventListener('change', (e) => {
-      const l = intake.lines[Number(e.target.dataset.i)];
-      l.lb_per_unit = Number(e.target.value) > 0 ? Number(e.target.value) : null;
-      l.lb_source = l.lb_per_unit != null ? 'manual' : 'none';
-      if (l.lb_per_unit > 0 && l.chosen) { l.qty_lb = Math.round(l.quantity * l.lb_per_unit * 100) / 100; l.qty_lb_source = 'manual'; }
+      ERIntake.applyLbPerUnitChange(intake.lines[Number(e.target.dataset.i)], e.target.value);
       renderErReview();
     }));
     body.querySelectorAll('.er-line-qtylb').forEach(inp => inp.addEventListener('change', (e) => {
-      const l = intake.lines[Number(e.target.dataset.i)];
-      l.qty_lb = Number(e.target.value) > 0 ? Number(e.target.value) : null;
-      l.qty_lb_source = l.qty_lb != null ? 'manual' : null;
+      ERIntake.applyQtyLbOverride(intake.lines[Number(e.target.dataset.i)], e.target.value);
       renderErReview();
     }));
 
     function pickLineProduct(i, pid, name, sku) {
-      const l = intake.lines[i];
-      l.chosen = { product_id: Number(pid), name, odoo_code: sku || null };
-      // Product confirmed by a human — text-derived conversions may now compute.
-      if (l.qty_lb == null && l.lb_per_unit > 0) {
-        l.qty_lb = Math.round(l.quantity * l.lb_per_unit * 100) / 100;
-        l.qty_lb_source = l.lb_source;
-      }
+      ERIntake.applyProductPick(intake.lines[i], { product_id: pid, name, odoo_code: sku });
       renderErReview();
     }
 
     body.querySelectorAll('.er-line-change').forEach(btn => btn.addEventListener('click', (e) => {
-      intake.lines[Number(e.target.dataset.i)].chosen = null;
+      ERIntake.clearChosen(intake.lines[Number(e.target.dataset.i)]);
       renderErReview();
     }));
     body.querySelectorAll('.er-line-suggest').forEach(a => a.addEventListener('click', (e) => {
@@ -4251,7 +4239,7 @@
     const supplierId = Number(document.getElementById('er-review-supplier').value);
     if (!supplierId) { showError('er-review-error', 'Pick a supplier before approving.'); return; }
     const included = intake.lines.filter(l => l.include);
-    const bad = included.find(l => !l.chosen || !(l.qty_lb > 0));
+    const bad = included.find(l => !ERIntake.lineApprovable(l));
     if (!included.length || bad) {
       showError('er-review-error', 'Every included line needs a product and a positive expected-lb value.');
       return;
