@@ -5,3 +5,9 @@ python-multipart==0.0.6
 aiofiles==23.2.1
 reportlab==4.1.0
 openpyxl==3.1.5
+# pinned — 1.x vendors httpx2 requiring anyio>=4.10, conflicts with FastAPI 0.104.1 anyio<4; upgrade only together with FastAPI/anyio.
+anthropic==0.69.0
+# explicit pin so prod matches the test venv (anthropic would otherwise float it); used directly for Supabase Storage REST calls.
+httpx==0.27.2
+# PDF page-count validation for purchase-document intake (audit fix 9); pure-python, no transitive deps.
+pypdf==5.1.0
