@@ -265,4 +265,8 @@
     line-height: 1.4;
     color: var(--text-muted, #94a3b8);
   }
+  /* The strip sits inside .header-right, whose white-space: nowrap
+     inherits through display: contents; without this the caption is one
+     long line and widens the document past 390px. */
+  .mini-calendar-caption { white-space: normal; }
 }

@@ -137,7 +137,7 @@
       const selDate = new Date(sel[0], sel[1] - 1, sel[2]);
       caption = TODAY_FMT.format(selDate) + ' — ' + shipPhrase(shipDateCounts[ui.selectedKey] || 0);
     } else {
-      caption = 'A dot marks a day open Sales Orders ship by. Tap a day for its count.';
+      caption = 'Dots mark days with open ship dates. Tap a day for details.';
     }
     root.innerHTML = `
       <button type="button" class="mini-calendar-toggle" aria-expanded="${ui.expanded}" aria-controls="${panelId}">
