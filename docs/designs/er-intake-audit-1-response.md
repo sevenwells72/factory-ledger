@@ -63,6 +63,5 @@ same known pre-existing `tests/test_recent_ledger.py` failure. Cache-busts:
 | 12 | Migration 049 comment claims re-runs are no-ops | Header corrected: re-runs drop/recreate and re-VALIDATE the status CHECK constraint (brief ACCESS EXCLUSIVE lock); only the resulting schema is idempotent. Comment-only, DDL unchanged, still applied to the local test DB only. | `f996dac` | existing `test_reapply_is_noop` (re-run converges, exit 0) unchanged |
 | 10 (optional) | Lock tested only as a primitive | End-to-end race test: two complete approvals of different documents with the same (supplier, reference), each endpoint transaction on its own real connection, provably in flight together (pre-held advisory lock, pg_locks-verified two waiters), then released. | `d254780` | exactly one 201; the loser gets 409 `DUPLICATE_REFERENCE`; exactly one receipt and one approved document exist |
 
-Note: the re-audit report itself was not delivered with the fix order (the
-paste was empty), so `docs/designs/er-intake-audit-2.md` is still pending —
-add it verbatim when the report text is available.
+The re-audit report is preserved verbatim at
+`docs/designs/er-intake-audit-2.md`.
