@@ -279,7 +279,7 @@ body {
   transition: background-color 0.15s ease;
 }
 .btn-refresh:hover { background: var(--primary-hover); }
-.btn-refresh.loading { opacity: 0.6; pointer-events: none; }
+.btn-refresh.loading { opacity: 0.6; pointer-events: none; outline: 1px dashed currentColor; outline-offset: -3px; }
 
 .refresh-ts { font-size: 11px; color: var(--text-muted); }
 
@@ -1147,11 +1147,14 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  transition: background-color 0.15s ease, opacity 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 .note-card:hover { background: var(--surface-hover); }
-.note-card.done { opacity: 0.55; }
-.note-card.done .note-title { text-decoration: line-through; }
+/* A1 / IMP-067: a done card is de-emphasised with the muted token on the
+   text itself, not an opacity on the card — a 0.55 veil took every colour
+   in it (title, body, badges, meta) below AA. The strike-through stays as the
+   non-colour carrier. */
+.note-card.done .note-title { color: var(--text-muted); text-decoration: line-through; }
 
 .note-card.priority-high { border-left: 3px solid var(--danger); }
 .note-card.priority-low { border-left: 3px solid var(--text-dimmed); }
@@ -1353,7 +1356,7 @@ body {
 .notes-empty .notes-empty-icon {
   font-size: 32px;
   margin-bottom: 8px;
-  opacity: 0.5;
+  color: var(--text-dimmed);
 }
 
 /* === Sales Orders === */
@@ -1454,9 +1457,14 @@ body {
 }
 
 .orders-table tr:nth-child(even) td { background: var(--row-alt); }
-.orders-table tr.order-row { cursor: pointer; transition: background-color 0.15s ease, opacity 0.15s ease; }
+.orders-table tr.order-row { cursor: pointer; transition: background-color 0.15s ease; }
 .orders-table tr.order-row:hover td { background: var(--surface-hover); }
-.orders-table tr.order-row.so-ready { opacity: 0.6; }
+/* A1 / IMP-067 / IMP-043: the Factory-Ready row is de-emphasised by colour on
+   its text, not by an opacity on the row. `opacity: 0.6` halved every colour
+   in the row — .so-ready-pill measured 1.16:1 in light — and no token value
+   can pass through a 60% veil. Children that carry their own colour (the SO
+   link, status badges, the readiness chip) keep it and pass on their own. */
+.orders-table tr.order-row.so-ready td { color: var(--text-muted); }
 .orders-table tr.order-row.so-ready td:first-child { border-left: 3px solid #22c55e; }
 .orders-table tr.order-inventory-row.hidden { display: none; }
 .orders-table tr.order-lines-row.hidden { display: none; }
@@ -1725,7 +1733,7 @@ body {
   padding: 2px 7px;
   border: 1px solid rgba(34, 197, 94, 0.55);
   border-radius: 999px;
-  color: #86efac;
+  color: var(--badge-green-text);
   background: rgba(34, 197, 94, 0.12);
   font-size: 10px;
   font-family: var(--mono);
@@ -2243,9 +2251,12 @@ body {
   color: var(--text-muted);
   font-size: 10px;
 }
-.allocation-row.allocation-status-released,
-.allocation-row.allocation-status-superseded,
-.allocation-row.allocation-status-shipped { opacity: 0.65; }
+/* A1 / IMP-067: inactive allocation rows — muted token on the cell text in
+   place of `opacity: 0.65`; the source / status badges keep their own
+   tokens. */
+.allocation-row.allocation-status-released td,
+.allocation-row.allocation-status-superseded td,
+.allocation-row.allocation-status-shipped td { color: var(--text-muted); }
 .allocation-source,
 .allocation-status {
   display: inline-block !important;
@@ -2354,7 +2365,7 @@ body {
 .orders-empty .orders-empty-icon {
   font-size: 32px;
   margin-bottom: 8px;
-  opacity: 0.5;
+  color: var(--text-dimmed);
 }
 
 /* Hidden utility (for detail toggle) */
@@ -2417,7 +2428,8 @@ body {
 .er-notes { font-size: 11px; color: var(--text-muted); max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .er-over { font-size: 11px; color: var(--text-muted); }
 .er-remaining { font-weight: 600; }
-.er-table tr.er-inactive td { opacity: 0.6; }
+/* A1 / IMP-067: closed / cancelled receipts — muted text, no opacity. */
+.er-table tr.er-inactive td { color: var(--text-muted); }
 /* Overdue rows flagged amber */
 .er-table tr.er-overdue td { background: color-mix(in srgb, var(--warning) 14%, transparent) !important; }
 .er-table tr.er-overdue td:first-child { border-left: 3px solid var(--warning); }
@@ -2600,7 +2612,9 @@ body {
 .supply-request-name { font-weight: 600; }
 .supply-request-note { max-width: 300px; white-space: pre-wrap; color: var(--text-secondary); }
 .supply-request-actions { text-align: right; white-space: nowrap; }
-.supply-request-done td { opacity: 0.65; }
+/* A1 / IMP-067: done requests — muted text, no opacity. */
+.supply-request-done td,
+.supply-request-done .supply-request-note { color: var(--text-muted); }
 
 .supply-request-modal { max-width: 560px; }
 #supply-request-unlisted-fields.hidden,
@@ -2623,6 +2637,10 @@ body {
 .supply-quantity-unit { min-width: 54px; color: var(--text-muted); font-size: 12px; }
 .btn-refresh:disabled,
 .btn-sm:disabled { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+/* A1: the disabled dim is kept — it dims the whole control (ACTION-002), not
+   a row of readable text — but white on a 55% fill cannot reach 4.5:1, so the
+   state also carries a non-colour cue: a dashed inset outline (in
+   interaction.css, shared by every page). */
 
 @media (max-width: 768px) {
   .supplies-page-header { align-items: flex-start; }

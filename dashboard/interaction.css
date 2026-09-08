@@ -34,6 +34,12 @@ button:disabled,
   opacity: 0.6;
   transform: none;
   filter: none;
+  /* A non-colour carrier for the state (ACCESS-008 / 07 cluster A1): the
+     opacity dim is kept because it dims the whole control, but the control's
+     own text cannot clear 4.5:1 through a 60% veil, so the state is also
+     drawn as a dashed inset outline. No layout change. */
+  outline: 1px dashed currentColor;
+  outline-offset: -3px;
 }
 
 /* ── Submitting ──
