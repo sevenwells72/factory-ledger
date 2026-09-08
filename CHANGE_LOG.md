@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 20:52 — supplyApiErrorMessage keeps the HTTP status prefix (ERROR-010)
+
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`
+- **What changed:** `supplyApiErrorMessage` unwrapped `HTTP <status>: {"detail":{"message":"…"}}` down to the bare message, dropping the status. It now returns `HTTP <status>: <message>`, so the failure class survives the unwrap. The match is also anchored (`^HTTP (\d+): `) so a message that merely contains the word HTTP is no longer treated as a wrapped API body, and a non-structured body still falls through to the raw message, which already carries the prefix. Cache-bust: `dashboard.js?v=40` → `?v=41`.
+- **Why:** ERROR-010 — the error a user copies out of the supplies surfaces has to say which failure it was; "Lot already allocated" and "HTTP 409: Lot already allocated" are not equally useful in a bug report. `parseApiErrorMessage` (the orders-side equivalent) is deliberately left alone: its callers prepend their own context.
+
+---
+
 ## 2026-09-07 20:41 — Delete the fabricated sample-data fallback; explicit failure state with Retry (IMP-044)
 
 - **File(s) changed:** `dashboard/process-flow.html`, `dashboard/sankey.html`
