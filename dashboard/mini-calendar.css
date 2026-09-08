@@ -145,29 +145,124 @@
   }
 }
 
+/* IMP-069 — below 520px mini-calendar.js renders the compact form instead of
+   the three-month strip: one row carrying today's date and a disclosure, which
+   expands the current month inline with --hit-min day cells that read their
+   ship count into a caption on tap. Every selector in this block styles that
+   markup only; the strip's desktop rules above are untouched. */
 @media (max-width: 520px) {
   .mini-calendar-strip {
-    gap: 6px;
-    padding: 5px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    padding: 0;
+    overflow: visible;
   }
 
+  .mini-calendar-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: var(--hit-min, 44px);
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text, #f1f5f9);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+  .mini-calendar-toggle:hover { background: var(--surface-hover, var(--surface2, rgba(255, 255, 255, 0.08))); }
+  .mini-calendar-today { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-calendar-today-label { color: var(--text-muted, #94a3b8); font-weight: 500; margin-right: 2px; }
+  .mini-calendar-today-count {
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary, #3b82f6) 18%, transparent);
+    color: var(--text, #f1f5f9);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .mini-calendar-chevron {
+    flex: 0 0 auto;
+    color: var(--text-muted, #94a3b8);
+    font-size: 14px;
+    line-height: 1;
+    transition: transform 0.15s ease;
+  }
+  .mini-calendar-toggle[aria-expanded="true"] .mini-calendar-chevron { transform: rotate(180deg); }
+
+  .mini-calendar-panel {
+    padding: 4px 6px 8px;
+    border-top: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  }
+  .mini-calendar-panel[hidden] { display: none; }
+
+  .mini-calendar-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
   .mini-calendar-nav {
     width: var(--hit-min, 44px);
     min-width: var(--hit-min, 44px);
-    font-size: 18px;
+    min-height: var(--hit-min, 44px);
+    font-size: 20px;
   }
-
-  .mini-calendar-months {
-    grid-template-columns: repeat(3, 78px);
-    gap: 6px;
-  }
-
-  .mini-calendar-month {
-    padding-left: 4px;
-    padding-right: 4px;
+  .mini-calendar-title {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text, #f1f5f9);
   }
 
   .mini-calendar-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     column-gap: 2px;
+    row-gap: 2px;
+  }
+  .mini-calendar-dow {
+    height: 22px;
+    font-size: 11px;
+  }
+  .mini-calendar-day {
+    height: auto;
+    min-height: var(--hit-min, 44px);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, var(--text, #cbd5e1));
+    font: inherit;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+  .mini-calendar-day.is-outside { visibility: hidden; opacity: 1; }
+  .mini-calendar-day:hover { background: var(--surface-hover, var(--surface2, rgba(255, 255, 255, 0.08))); }
+  .mini-calendar-day.is-today { outline-width: 2px; }
+  .mini-calendar-day[aria-pressed="true"] {
+    border-color: var(--primary-text, var(--primary, #3b82f6));
+    background: var(--surface-hover, var(--surface2, rgba(255, 255, 255, 0.08)));
+  }
+  .mini-calendar-day.has-shipments::after {
+    width: 5px;
+    height: 5px;
+    bottom: 5px;
+  }
+
+  .mini-calendar-caption {
+    margin: 8px 4px 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-muted, #94a3b8);
   }
 }
