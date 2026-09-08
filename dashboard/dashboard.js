@@ -3593,6 +3593,7 @@
   state.erEditing = null;        // record being edited, or null for create
   state.erSuppliers = [];
   state.erProductTimer = null;
+  state.erIntake = null;         // AI intake session: {documentId, extraction, match, lines, force}
 
   async function refreshExpectedReceipts() {
     hideError('er-error');
@@ -3656,7 +3657,10 @@
     for (const r of rows) {
       const cls = ['er-row', r.is_overdue ? 'er-overdue' : '', r.status !== 'open' ? 'er-inactive' : ''].join(' ');
       html += `<tr class="${cls}" data-er-id="${r.id}">`;
-      html += `<td><div class="er-product">${escHtml(r.product_name)}</div>${r.odoo_code ? `<div class="er-sku">SKU ${escHtml(r.odoo_code)}</div>` : ''}${r.notes ? `<div class="er-notes" title="${escAttr(r.notes)}">${escHtml(r.notes)}</div>` : ''}</td>`;
+      const docLink = r.source_document_id
+        ? ` <button type="button" class="er-doc-link" data-doc-id="${r.source_document_id}" title="View the vendor document this receipt came from">&#128206;</button>`
+        : '';
+      html += `<td><div class="er-product">${escHtml(r.product_name)}${docLink}</div>${r.odoo_code ? `<div class="er-sku">SKU ${escHtml(r.odoo_code)}</div>` : ''}${r.notes ? `<div class="er-notes" title="${escAttr(r.notes)}">${escHtml(r.notes)}</div>` : ''}</td>`;
       html += `<td>${escHtml(r.supplier_name)}</td>`;
       html += `<td class="num">${fmtWt(r.expected_qty)}</td>`;
       html += `<td class="num">${fmtWt(r.received_qty)}${r.over_receipt_qty > 0 ? ` <span class="er-over" title="Over-receipt">(+${fmtWt(r.over_receipt_qty)})</span>` : ''}</td>`;
@@ -3689,6 +3693,19 @@
     });
     container.querySelectorAll('.er-cancel-btn').forEach(btn => {
       btn.addEventListener('click', () => erSetStatus(Number(btn.dataset.erId), 'cancelled', btn));
+    });
+    container.querySelectorAll('.er-doc-link').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try {
+          const data = await fetchSalesAPI(`/purchase-documents/${btn.dataset.docId}/url`);
+          window.open(data.url, '_blank', 'noopener');
+        } catch (e) {
+          showError('er-error', `Could not open the source document: ${e.message}`);
+        } finally {
+          btn.disabled = false;
+        }
+      });
     });
   }
 
@@ -3783,6 +3800,9 @@
     state.erEditing = record || null;
     hideError('er-modal-error');
     document.getElementById('er-modal-title').textContent = record ? `Edit Expected Receipt #${record.id}` : 'New Expected Receipt';
+    erResetIntake();
+    // Dropzone only on create — edit mode changes one existing record.
+    document.getElementById('er-dropzone').classList.toggle('hidden', !!record);
     await loadErSuppliers();
     const productGroup = document.getElementById('er-product-group');
     const supplierSel = document.getElementById('er-supplier');
@@ -3813,6 +3833,7 @@
   function closeErModal() {
     document.getElementById('er-modal-overlay').classList.add('hidden');
     state.erEditing = null;
+    erResetIntake();
   }
 
   async function saveEr() {
@@ -3874,7 +3895,430 @@
     }
   }
 
+  // ── AI intake: dropzone → extract → match → review → approve ──
+  // (migration 049; docs/designs/expected-receipt-intake.md). The model only
+  // reads the document; every value below is reviewed by a human and created
+  // through the same endpoint family as manual entry.
+
+  const ER_INTAKE_MIMES = ['image/png', 'image/jpeg', 'application/pdf'];
+  const ER_INTAKE_MAX_BYTES = 15 * 1024 * 1024;
+
+  function erResetIntake() {
+    state.erIntake = null;
+    const status = document.getElementById('er-extract-status');
+    status.classList.add('hidden');
+    status.innerHTML = '';
+    document.getElementById('er-file-input').value = '';
+    document.getElementById('er-review-body').classList.add('hidden');
+    document.getElementById('er-review-body').innerHTML = '';
+    document.getElementById('er-manual-body').classList.remove('hidden');
+    document.getElementById('er-dropzone').classList.remove('hidden', 'er-dragover');
+    document.querySelector('.er-modal').classList.remove('er-reviewing');
+  }
+
+  function erExtractStatus(html) {
+    const el = document.getElementById('er-extract-status');
+    el.innerHTML = html;
+    el.classList.remove('hidden');
+  }
+
+  async function erHandleFile(file) {
+    if (!file) return;
+    let mime = (file.type || '').toLowerCase();
+    if (mime === 'image/jpg') mime = 'image/jpeg';
+    if (!ER_INTAKE_MIMES.includes(mime)) {
+      erExtractStatus(`<span class="error-msg">"${escHtml(file.name)}" is not a PNG, JPG, or PDF.</span>`);
+      return;
+    }
+    if (file.size > ER_INTAKE_MAX_BYTES) {
+      erExtractStatus(`<span class="error-msg">"${escHtml(file.name)}" is over the 15 MB limit.</span>`);
+      return;
+    }
+    erExtractStatus(`Reading <strong>${escHtml(file.name)}</strong>… (the document goes to the extraction model; nothing is created yet)`);
+    const form = new FormData();
+    form.append('file', file, file.name);
+    try {
+      // No Content-Type header — the browser sets the multipart boundary.
+      const data = await fetchSalesAPI('/expected-receipts/extract', { method: 'POST', body: form });
+      await erStartReview(data);
+    } catch (e) {
+      const detail = apiErrorDetail(e) || {};
+      const d = detail.detail || detail;
+      if (d.error_code === 'EXTRACTION_FAILED' && d.document_id) {
+        erExtractStatus(
+          `<span class="error-msg">${escHtml(d.message || 'Extraction failed.')}</span>` +
+          `<button type="button" class="btn-sm er-retry-btn" data-doc-id="${d.document_id}">Retry extraction</button>`);
+        document.querySelector('#er-extract-status .er-retry-btn').addEventListener('click', (ev) => erRetryExtraction(Number(ev.target.dataset.docId)));
+      } else {
+        erExtractStatus(`<span class="error-msg">Upload failed: ${escHtml((d.message || e.message || '').slice(0, 300))}</span>`);
+      }
+    }
+  }
+
+  async function erRetryExtraction(documentId) {
+    erExtractStatus('Retrying extraction…');
+    try {
+      const data = await fetchSalesAPI(`/purchase-documents/${documentId}/extract`, { method: 'POST' });
+      await erStartReview(data);
+    } catch (e) {
+      const d = (apiErrorDetail(e) || {}).detail || apiErrorDetail(e) || {};
+      erExtractStatus(
+        `<span class="error-msg">${escHtml(d.message || e.message)}</span>` +
+        `<button type="button" class="btn-sm er-retry-btn" data-doc-id="${documentId}">Retry extraction</button>`);
+      document.querySelector('#er-extract-status .er-retry-btn').addEventListener('click', () => erRetryExtraction(documentId));
+    }
+  }
+
+  async function erStartReview(extractResponse) {
+    state.erIntake = {
+      documentId: extractResponse.document_id,
+      storagePath: extractResponse.storage_path,
+      alreadySeen: !!extractResponse.already_seen,
+      extraction: extractResponse.extraction,
+      match: null,
+      lines: [],
+      force: false,
+    };
+    erExtractStatus(`Extracted ${extractResponse.extraction.lines.length} line(s). Matching against the ledger…`);
+    await erRunMatch();
+  }
+
+  async function erRunMatch() {
+    const intake = state.erIntake;
+    if (!intake) return;
+    try {
+      const match = await fetchSalesAPI('/expected-receipts/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extraction: intake.extraction }),
+      });
+      intake.match = match;
+      // Working copies: user edits live here, the raw extraction stays intact.
+      intake.lines = match.lines.map(l => ({
+        ...l,
+        include: true,
+        chosen: l.product || null,
+        qty_lb: l.expected_qty_lb,
+        qty_lb_source: l.expected_qty_lb != null ? l.lb_source : null,
+      }));
+      renderErReview();
+    } catch (e) {
+      erExtractStatus(`<span class="error-msg">Matching failed: ${escHtml(e.message.slice(0, 300))}</span>`);
+    }
+  }
+
+  function erLbSourceLabel(src) {
+    return {
+      alias: 'saved alias', unit_is_lb: 'unit is lb', parsed_description: 'from description',
+      case_size: 'product case wt', kg: 'kg→lb', manual: 'manual', none: '',
+    }[src] || src || '';
+  }
+
+  function erMatchBadge(line) {
+    const cls = { alias: 'er-match-alias', exact: 'er-match-exact', fuzzy: 'er-match-fuzzy', none: 'er-match-none' }[line.match_source] || 'er-match-none';
+    const label = line.match_source === 'alias' ? 'Alias'
+      : line.match_source === 'exact' ? 'Exact'
+      : line.match_source === 'fuzzy' ? `Fuzzy ${Math.round(line.confidence * 100)}%`
+      : 'No match';
+    return `<span class="er-match-badge ${cls}">${label}</span>`;
+  }
+
+  function renderErReview() {
+    const intake = state.erIntake;
+    const body = document.getElementById('er-review-body');
+    document.getElementById('er-manual-body').classList.add('hidden');
+    document.getElementById('er-dropzone').classList.add('hidden');
+    document.querySelector('.er-modal').classList.add('er-reviewing');
+    document.getElementById('er-modal-title').textContent = 'Review Extracted Receipt';
+    document.getElementById('er-extract-status').classList.add('hidden');
+
+    const ex = intake.extraction;
+    const supMatch = intake.match.supplier;
+    const supplierOptions = ['<option value="">— select supplier —</option>']
+      .concat(state.erSuppliers.map(s =>
+        `<option value="${s.id}" ${supMatch.match && supMatch.match.supplier_id === s.id ? 'selected' : ''}>${escHtml(s.name)}</option>`))
+      .join('');
+    const supplierHint = supMatch.match
+      ? ''
+      : `<div class="er-lb-missing">No supplier matches "${escHtml(ex.supplier_name)}".` +
+        (supMatch.candidates.length ? ` Close: ${supMatch.candidates.map(c => escHtml(c.name)).join(', ')}.` : '') +
+        `</div><button type="button" class="btn-sm er-supplier-create-btn" id="er-review-create-supplier">Create supplier "${escHtml(ex.supplier_name)}"</button>`;
+
+    const dup = intake.match.duplicate_warning;
+    const dupBanner = dup ? `
+      <div class="er-dup-banner">&#9888;&#65039; Possible duplicate: this supplier already has
+        ${dup.existing.map(x => `#${x.id} (${escHtml(x.status)}, ${fmtWt(x.expected_qty)} lb)`).join(', ')}
+        with reference "${escHtml(ex.reference_number || '')}". Approving will ask you to confirm.
+      </div>` : '';
+
+    let rows = '';
+    intake.lines.forEach((l, i) => {
+      const prodCell = l.chosen
+        ? `<div>${escHtml(l.chosen.name)}${l.chosen.odoo_code ? ` <span class="er-sku">${escHtml(l.chosen.odoo_code)}</span>` : ''}</div>
+           <button type="button" class="btn-sm er-line-change" data-i="${i}">Change</button>`
+        : `<div class="er-line-picker"><input type="text" class="er-line-search" data-i="${i}"
+             placeholder="Search products…" autocomplete="off"
+             value=""><div class="er-product-results hidden" id="er-line-results-${i}"></div></div>` +
+          (l.candidates.length ? `<div class="er-sku">Suggestions: ${l.candidates.slice(0, 3).map(c =>
+             `<a href="#" class="er-line-suggest" data-i="${i}" data-pid="${c.product_id}" data-name="${escAttr(c.name)}" data-sku="${escAttr(c.odoo_code || '')}">${escHtml(c.name)}</a>`).join(' · ')}</div>` : '');
+      const lbCell = `
+        <input type="number" step="any" min="0" class="er-line-lbper" data-i="${i}" value="${l.lb_per_unit != null ? l.lb_per_unit : ''}" placeholder="?">
+        ${l.lb_source && l.lb_source !== 'none' ? `<span class="er-lb-source" title="Where this conversion came from">${erLbSourceLabel(l.lb_source)}</span>` : ''}`;
+      const qtyLbCell = `
+        <input type="number" step="any" min="0" class="er-line-qtylb" data-i="${i}" value="${l.qty_lb != null ? l.qty_lb : ''}" placeholder="required">
+        ${l.qty_lb != null && l.qty_lb_source ? `<span class="er-lb-source" title="Where this value came from">${erLbSourceLabel(l.qty_lb_source)}</span>`
+          : `<span class="er-lb-missing" title="Set the pounds before approving">needs lb</span>`}`;
+      rows += `<tr class="${l.include ? '' : 'er-line-excluded'}" data-line="${i}">
+        <td><input type="checkbox" class="er-line-include" data-i="${i}" ${l.include ? 'checked' : ''} aria-label="Include this line"></td>
+        <td><div class="er-line-vendor-desc">${escHtml(l.vendor_description)}</div>${erMatchBadge(l)}</td>
+        <td class="num"><input type="number" step="any" min="0" class="er-line-qty" data-i="${i}" value="${l.quantity}"></td>
+        <td><input type="text" class="er-line-unit" data-i="${i}" value="${escAttr(l.unit || '')}" placeholder="unit"></td>
+        <td>${prodCell}</td>
+        <td class="num">${lbCell}</td>
+        <td class="num">${qtyLbCell}</td>
+      </tr>`;
+    });
+
+    const included = intake.lines.filter(l => l.include);
+    const ready = included.length > 0 && included.every(l => l.chosen && l.qty_lb > 0);
+    const totalLb = included.reduce((s, l) => s + (l.qty_lb > 0 ? l.qty_lb : 0), 0);
+
+    body.innerHTML = `
+      <div class="er-review-doc-meta">
+        Document #${intake.documentId}${ex.document_date ? ` · dated ${escHtml(ex.document_date)}` : ''}
+        · <a href="#" id="er-review-view-doc">view file</a>
+        ${intake.alreadySeen ? ' · <strong>this exact file was uploaded before</strong>' : ''}
+      </div>
+      ${dupBanner}
+      <div class="er-review-header">
+        <div class="form-group">
+          <label for="er-review-supplier">Supplier</label>
+          <select id="er-review-supplier">${supplierOptions}</select>
+          ${supplierHint}
+        </div>
+        <div class="form-group">
+          <label for="er-review-reference">Reference #</label>
+          <input type="text" id="er-review-reference" value="${escAttr(ex.reference_number || '')}" placeholder="Supplier order / confirmation #">
+        </div>
+        <div class="form-group">
+          <label for="er-review-date">Expected date</label>
+          <input type="date" id="er-review-date" value="${escAttr(ex.expected_delivery_date || '')}">
+        </div>
+      </div>
+      <div class="er-review-table-wrap">
+        <table class="er-review-table">
+          <thead><tr><th></th><th>Vendor line (verbatim)</th><th class="num">Qty</th><th>Unit</th><th>Our product</th><th class="num">lb / unit</th><th class="num">Expected lb</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div id="er-review-error" class="error-msg hidden"></div>
+      <div class="er-review-footer">
+        <span class="er-review-totals">${included.length} of ${intake.lines.length} line(s) · ${fmtWt(totalLb)} lb total</span>
+        <span>
+          <button type="button" id="er-review-back" class="btn-sm">Start over</button>
+          <button type="button" id="er-review-approve" class="btn-refresh er-approve-btn${intake.force ? ' er-force-armed' : ''}" ${ready ? '' : 'disabled'}>
+            ${intake.force ? `Create anyway — duplicates exist` : `Approve — create ${included.length} expected receipt(s)`}
+          </button>
+        </span>
+      </div>`;
+    body.classList.remove('hidden');
+    erWireReviewEvents();
+  }
+
+  function erWireReviewEvents() {
+    const intake = state.erIntake;
+    const body = document.getElementById('er-review-body');
+
+    body.querySelector('#er-review-view-doc').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const data = await fetchSalesAPI(`/purchase-documents/${intake.documentId}/url`);
+        window.open(data.url, '_blank', 'noopener');
+      } catch (err) {
+        showError('er-review-error', `Could not open the document: ${err.message}`);
+      }
+    });
+
+    body.querySelector('#er-review-supplier').addEventListener('change', async (e) => {
+      const sup = state.erSuppliers.find(s => s.id === Number(e.target.value));
+      if (!sup) return;
+      // Re-match under the corrected supplier: aliases + duplicates re-run.
+      intake.extraction.supplier_name = sup.name;
+      intake.force = false;
+      await erRunMatch();
+    });
+
+    const createBtn = body.querySelector('#er-review-create-supplier');
+    if (createBtn) {
+      createBtn.addEventListener('click', async () => {
+        createBtn.disabled = true;
+        try {
+          await fetchSalesAPI('/suppliers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: intake.extraction.supplier_name }),
+          });
+          await loadErSuppliers();
+          await erRunMatch();
+        } catch (err) {
+          const d = apiErrorDetail(err) || {};
+          showError('er-review-error', (d.detail && d.detail.message) || d.message || err.message);
+          createBtn.disabled = false;
+        }
+      });
+    }
+
+    body.querySelector('#er-review-back').addEventListener('click', () => { erResetIntake(); });
+    body.querySelector('#er-review-approve').addEventListener('click', erApprove);
+
+    body.querySelectorAll('.er-line-include').forEach(cb => cb.addEventListener('change', (e) => {
+      intake.lines[Number(e.target.dataset.i)].include = e.target.checked;
+      renderErReview();
+    }));
+    body.querySelectorAll('.er-line-qty').forEach(inp => inp.addEventListener('change', (e) => {
+      const l = intake.lines[Number(e.target.dataset.i)];
+      l.quantity = Number(e.target.value) || 0;
+      if (l.lb_per_unit > 0 && l.chosen) { l.qty_lb = Math.round(l.quantity * l.lb_per_unit * 100) / 100; l.qty_lb_source = l.lb_source; }
+      renderErReview();
+    }));
+    body.querySelectorAll('.er-line-unit').forEach(inp => inp.addEventListener('change', (e) => {
+      intake.lines[Number(e.target.dataset.i)].unit = e.target.value.trim() || null;
+    }));
+    body.querySelectorAll('.er-line-lbper').forEach(inp => inp.addEventListener('change', (e) => {
+      const l = intake.lines[Number(e.target.dataset.i)];
+      l.lb_per_unit = Number(e.target.value) > 0 ? Number(e.target.value) : null;
+      l.lb_source = l.lb_per_unit != null ? 'manual' : 'none';
+      if (l.lb_per_unit > 0 && l.chosen) { l.qty_lb = Math.round(l.quantity * l.lb_per_unit * 100) / 100; l.qty_lb_source = 'manual'; }
+      renderErReview();
+    }));
+    body.querySelectorAll('.er-line-qtylb').forEach(inp => inp.addEventListener('change', (e) => {
+      const l = intake.lines[Number(e.target.dataset.i)];
+      l.qty_lb = Number(e.target.value) > 0 ? Number(e.target.value) : null;
+      l.qty_lb_source = l.qty_lb != null ? 'manual' : null;
+      renderErReview();
+    }));
+
+    function pickLineProduct(i, pid, name, sku) {
+      const l = intake.lines[i];
+      l.chosen = { product_id: Number(pid), name, odoo_code: sku || null };
+      // Product confirmed by a human — text-derived conversions may now compute.
+      if (l.qty_lb == null && l.lb_per_unit > 0) {
+        l.qty_lb = Math.round(l.quantity * l.lb_per_unit * 100) / 100;
+        l.qty_lb_source = l.lb_source;
+      }
+      renderErReview();
+    }
+
+    body.querySelectorAll('.er-line-change').forEach(btn => btn.addEventListener('click', (e) => {
+      intake.lines[Number(e.target.dataset.i)].chosen = null;
+      renderErReview();
+    }));
+    body.querySelectorAll('.er-line-suggest').forEach(a => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      pickLineProduct(Number(a.dataset.i), a.dataset.pid, a.dataset.name, a.dataset.sku);
+    }));
+    body.querySelectorAll('.er-line-search').forEach(inp => {
+      let timer;
+      inp.addEventListener('input', () => {
+        clearTimeout(timer);
+        const i = Number(inp.dataset.i);
+        const q = inp.value.trim();
+        timer = setTimeout(async () => {
+          const box = document.getElementById(`er-line-results-${i}`);
+          if (!q) { box.classList.add('hidden'); return; }
+          try {
+            const data = await fetchSalesAPI('/products/search?q=' + encodeURIComponent(q));
+            const products = (data.products || []).slice(0, 8);
+            box.innerHTML = products.length
+              ? products.map(p => `<div class="er-product-option" data-pid="${p.id}" data-name="${escAttr(p.name)}" data-sku="${escAttr(p.odoo_code || '')}">${escHtml(p.name)}${p.odoo_code ? ` <span class="er-sku">${escHtml(p.odoo_code)}</span>` : ''}</div>`).join('')
+              : '<div class="er-product-option er-product-none">No products found</div>';
+            box.classList.remove('hidden');
+            box.querySelectorAll('.er-product-option[data-pid]').forEach(opt => {
+              opt.addEventListener('click', () => pickLineProduct(i, opt.dataset.pid, opt.dataset.name, opt.dataset.sku));
+            });
+          } catch (err) {
+            box.innerHTML = `<div class="er-product-option er-product-none">Search failed: ${escHtml(err.message)}</div>`;
+            box.classList.remove('hidden');
+          }
+        }, 250);
+      });
+    });
+  }
+
+  async function erApprove() {
+    const intake = state.erIntake;
+    hideError('er-review-error');
+    const supplierId = Number(document.getElementById('er-review-supplier').value);
+    if (!supplierId) { showError('er-review-error', 'Pick a supplier before approving.'); return; }
+    const included = intake.lines.filter(l => l.include);
+    const bad = included.find(l => !l.chosen || !(l.qty_lb > 0));
+    if (!included.length || bad) {
+      showError('er-review-error', 'Every included line needs a product and a positive expected-lb value.');
+      return;
+    }
+    const btn = document.getElementById('er-review-approve');
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+    try {
+      const data = await fetchSalesAPI('/expected-receipts/extract/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          document_id: intake.documentId,
+          supplier_id: supplierId,
+          reference_number: document.getElementById('er-review-reference').value.trim() || null,
+          expected_date: document.getElementById('er-review-date').value || null,
+          force: intake.force,
+          lines: included.map(l => ({
+            product_id: l.chosen.product_id,
+            expected_qty_lb: l.qty_lb,
+            vendor_description: l.vendor_description,
+            quantity: l.quantity,
+            unit: l.unit,
+            lb_per_unit: l.lb_per_unit,
+            save_alias: true,
+          })),
+        }),
+      });
+      closeErModal();
+      await refreshExpectedReceipts();
+    } catch (e) {
+      const raw = apiErrorDetail(e) || {};
+      const d = raw.detail || raw;
+      if (d.error_code === 'DUPLICATE_REFERENCE') {
+        // Arm force: the button re-renders as an explicit "create anyway".
+        intake.force = true;
+        renderErReview();
+        showError('er-review-error', d.message || 'Duplicate reference — approve again to create anyway.');
+      } else {
+        showError('er-review-error', d.message || e.message);
+        btn.disabled = false;
+        btn.textContent = `Approve — create ${included.length} expected receipt(s)`;
+      }
+    }
+  }
+
+  function initErDropzone() {
+    const zone = document.getElementById('er-dropzone');
+    const input = document.getElementById('er-file-input');
+    document.getElementById('er-file-browse').addEventListener('click', () => input.click());
+    input.addEventListener('change', () => erHandleFile(input.files[0]));
+    ['dragover', 'dragenter'].forEach(ev => zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      zone.classList.add('er-dragover');
+    }));
+    ['dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      zone.classList.remove('er-dragover');
+    }));
+    zone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      erHandleFile(file);
+    });
+  }
+
   function initExpectedReceipts() {
+    initErDropzone();
     document.getElementById('er-status-filter').addEventListener('change', refreshExpectedReceipts);
     document.getElementById('er-refresh-btn').addEventListener('click', refreshExpectedReceipts);
     document.getElementById('er-overdue-only').addEventListener('change', () => { if (state.erLoaded) renderExpectedReceipts(); });

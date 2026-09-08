@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-08 13:25 — ER intake Phase 3: dashboard dropzone + review screen + approve flow (branch feat/er-intake)
+
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Phase 3 of the AI-assisted expected-receipt intake. index.html: dropzone (PNG/JPG/PDF, browse link, hidden file input) at the TOP of the New Expected Receipt modal — the manual form is untouched below it and used as-is for edits (dropzone hidden in edit mode); `#er-review-body` container; cache-busts `dashboard.js?v=43→44`, `dashboard.css?v=30→31`. dashboard.js: upload → `POST /expected-receipts/extract` (multipart; client-side type/size pre-checks; 502 EXTRACTION_FAILED shows a Retry button hitting `POST /purchase-documents/{id}/extract`) → `POST /expected-receipts/match` → review screen (supplier select preselected from the match with candidate hints + create-supplier button, re-matches on supplier change; editable reference/expected-date; duplicate banner; per-line include-checkbox, editable qty/unit/lb-per-unit/expected-lb, match badge Alias/Exact/Fuzzy n%/No match, suggestion links + typeahead product picker; conversion-source tag shown next to every computed lb value, 'manual' when user-typed; fuzzy/none lines compute lb only after a human picks the product) → `POST /expected-receipts/extract/approve` (single atomic call; 409 DUPLICATE_REFERENCE arms an explicit "Create anyway" force button). Paperclip on ER table rows with `source_document_id` → signed-URL fetch → opens the original document. dashboard.css: intake styles (dropzone, review table, badges, source tags, 940px review modal). FACTORY_LEDGER_CHANGELOG row 115 added (NOT deployed; deploy-order guard: migration 049 before app deploy). Browser-verified end-to-end on local uvicorn (:8767, test DB, faked extractor/storage) + sed'd dashboard (:8766): upload → review render (fuzzy badge, needs-lb flags, from-description source tag) → exclude lines → manual lb entry recompute (220.48 lb) → approve → row created with paperclip → signed-URL opens; alias + document approved_at verified in DB; zero console errors; check rows cleaned up. Suite unchanged: 400 passed + known pre-existing failure.
+- **Why:** Owner-approved delivery plan, Phase 3 of 3. Branch complete pending review; deploy still requires prod migration 049 + Railway env vars.
+
+---
+
 ## 2026-09-08 13:02 — /extract writes the DB row BEFORE the Storage upload
 
 - **File(s) changed:** `main.py`, `tests/test_expected_receipt_extract.py`
