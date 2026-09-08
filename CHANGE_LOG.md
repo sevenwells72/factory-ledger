@@ -24,11 +24,21 @@
 
 ---
 
+## 2026-09-07 20:41 — Delete the fabricated sample-data fallback; explicit failure state with Retry (IMP-044)
+
+- **File(s) changed:** `dashboard/process-flow.html`, `dashboard/sankey.html`
+- **What changed:** Removed `getFallbackData()`, `getFallbackProductDetails()`, and the `useFallback` flag from `process-flow.html`, and `getFallbackLinks()` from `sankey.html` — on an API failure with no prior successful load, both pages used to render invented lots (`GH-2026-0316`, `CS-2026-0087`) and invented flows (`Graham Crumb 25lb → DOT Foods, 2,400`) styled identically to real data behind a small warning banner. Both now render an explicit failure state instead: a named heading, a sentence saying the data source failed and that nothing shown is a real number, the verbatim error, and a Retry button. `sankey.html` now tracks `lastSuccessTime`; when a prior successful render exists a failed refresh keeps that chart and says `Refresh failed — showing data from <time>` rather than redrawing anything — this closes the resize path (a window resize triggers a debounced refetch, which previously redrew the chart from the fabricated data). `process-flow.html` keeps its existing `Data may be stale — last updated <time>` banner for the same case, now with the verbatim error and a Retry, and it only fires when a prior success actually exists (it used to print `last updated unknown`).
+- **Why:** IMP-044 (ERROR-002, FEEDBACK-008, CHART-001, OTHER-003 hard rule, OTHER-007). On an operational ledger a plausible number read off a chart that is describing nothing is worse than an error state.
+
+---
+
 ## 2026-09-07 20:26 — IMP-004: shared press state, and the four commit paths disable while in flight
 
 - **File(s) changed:** `dashboard/interaction.css` (new), `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/scheduler/seven-wells-production-board.html`, `dashboard/dashboard.js`
 - **What changed:** Added `dashboard/interaction.css`, a single shared stylesheet linked from all five pages in `dashboard/` (the scheduler links `../interaction.css`), placed after each page's own styles so it wins without `!important`. It defines the product's first `:active` rule — `transform: translateY(1px)` plus `filter: brightness(0.92)` on `button`, `[role="button"]`, `summary`, `.tab` and `a.btn` — along with a `:disabled` appearance and an `.is-submitting` state; existing per-page `:disabled` rules (`dashboard.css:2452`, `traceability.html:126`) are more specific and still win. Added `beginSubmit`/`endSubmit` and `beginRowCommit`/`endRowCommit` to `dashboard.js` and wired the four commit paths the audit lists: **Save a note** (`saveNote`) now guards re-entry, disables `#note-save-btn` and shows "Saving…" with a `finally` restore; **toggle a note done** disables the checkbox and freezes its `.note-card` for the duration; **toggle Factory Ready** guards on both the checkbox and an in-flight flag carried on the order record, which the orders-table markup reads so the control stays disabled across the re-render, and is cleared before the settling render so no extra re-render is introduced; **Close / Cancel an expected receipt** disables the armed button and shows "Closing…" / "Cancelling…", restoring the pre-armed label if the row survives the refresh. All four follow the pattern already used by `submitSupplyRequest`.
 - **Why:** Band 0 of the design audit, IMP-004 (ACTION-002 and FEEDBACK-001, both Critical). No `:active` rule existed in any of the six style sources, so no button in the product showed that a tap had registered, and the four commit paths were never disabled while in flight — a double-tap on Save a note created two notes. The rule names the causal chain directly: nothing visibly changing invites a second tap and a duplicate submission. The Factory Ready fix deliberately adds no re-render, since the existing full-container re-renders are IMP-007, a Band 1 item left untouched.
+
+---
 
 ---
 

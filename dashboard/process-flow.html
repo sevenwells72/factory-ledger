@@ -177,6 +177,35 @@
   }
   .banner-btn:hover { background: rgba(255,255,255,0.08); }
 
+  /* Explicit data-source failure state — replaces the old sample-data fallback */
+  .data-failure {
+    grid-column: 1 / -1;
+    background: var(--card-bg);
+    border: 1px solid #5a2a2a;
+    border-radius: 8px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .data-failure-title { font-size: 15px; font-weight: 600; color: #e05050; }
+  .data-failure-body { font-size: 13px; color: var(--text-muted); max-width: 60ch; line-height: 1.5; }
+  .data-failure .banner-detail { color: var(--text-muted); align-self: stretch; }
+  .data-failure-retry {
+    background: #3b82f6;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 18px;
+    min-height: 36px;
+    cursor: pointer;
+  }
+  .data-failure-retry:disabled { opacity: 0.6; cursor: default; }
+
   /* Footer */
   .footer {
     padding: 12px 24px;
@@ -350,7 +379,6 @@
   let consecutiveFailures = 0;
   let lastSuccessTime = null;
   let lastError = null;
-  let useFallback = false;
 
   function errorDetail(error) {
     if (!error) return '';
@@ -366,10 +394,10 @@
         apiFetch('/transactions/history?transaction_type=pack&limit=100')
       ]);
       consecutiveFailures = 0;
-      useFallback = false;
       lastError = null;
       hideError();
       lastSuccessTime = new Date();
+      hideStale();
       isFetching = false;
       return { make: makeRes.transactions || [], pack: packRes.transactions || [] };
     } catch (e) {
@@ -378,23 +406,23 @@
       consecutiveFailures++;
       if (window.FL && FL.isStall(e)) {
         // A hang is not "offline" and should not wait for three rounds to be
-        // named: explain it now and offer a next step (IMP-005).
-        const el = document.getElementById('error-banner');
-        el.textContent = '';
-        el.classList.add('visible');
-        FL.renderStall(el, refresh, lastSuccessTime
-          ? lastSuccessTime.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true })
-          : null);
-        if (!lastSuccessTime) useFallback = true;
+        // named: explain it now and offer a next step (IMP-005). Only when a
+        // prior good render is on screen — with none, refresh() draws the
+        // explicit failure state and would otherwise overwrite this banner.
+        if (lastSuccessTime) {
+          const el = document.getElementById('error-banner');
+          el.textContent = '';
+          el.classList.add('visible');
+          FL.renderStall(el, refresh, lastSuccessTime.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }));
+        }
         isFetching = false;
         return null;
       }
-      if (consecutiveFailures >= 3) {
-        showStale();
-      }
-      if (!lastSuccessTime) {
-        useFallback = true;
-        showError('API offline — showing sample data', errorDetail(e));
+      // A prior good render is still on screen: say so, and say since when.
+      // With no prior render there is nothing honest to draw — the caller
+      // renders the explicit failure state instead of inventing numbers.
+      if (lastSuccessTime && consecutiveFailures >= 3) {
+        showStale(errorDetail(e));
       }
       isFetching = false;
       return null;
@@ -662,48 +690,6 @@
     return d.innerHTML;
   }
 
-  // --- Fallback data ---
-  function getFallbackData() {
-    return {
-      'Granola Baking': {
-        todayTx: [{
-          id: 0, type: 'make', timestamp: new Date().toISOString(),
-          outputProduct: 'Honey Granola 30lb', outputLot: 'GH-2026-0316',
-          outputLb: 1180, inputLb: 1240, lines: []
-        }],
-        lastRunTimestamp: new Date().toISOString(), lastRunDate: todayET()
-      },
-      'Coconut Sweetened': {
-        todayTx: [{
-          id: 0, type: 'make', timestamp: new Date().toISOString(),
-          outputProduct: 'CQ Coconut 25lb', outputLot: 'CS-2026-0087',
-          outputLb: 960, inputLb: 800, lines: []
-        }],
-        lastRunTimestamp: new Date().toISOString(), lastRunDate: todayET()
-      },
-      'Bulk Packing': {
-        todayTx: [{
-          id: 0, type: 'pack', timestamp: new Date().toISOString(),
-          outputProduct: 'Sprinkles 25lb', outputLot: 'SP-2026-0041',
-          outputLb: 1000, inputLb: 1000, lines: []
-        }],
-        lastRunTimestamp: new Date().toISOString(), lastRunDate: todayET()
-      },
-      'Pouch Line': {
-        todayTx: [],
-        lastRunTimestamp: '2026-03-15T20:00:00', lastRunDate: '2026-03-15'
-      }
-    };
-  }
-
-  function getFallbackProductDetails() {
-    return {
-      'Honey Granola 30lb': { default_case_weight_lb: 10, case_size_lb: 10 },
-      'CQ Coconut 25lb': { default_case_weight_lb: 16, case_size_lb: 16 },
-      'Sprinkles 25lb': { default_case_weight_lb: 25, case_size_lb: 25 }
-    };
-  }
-
   // --- Error/stale UI ---
   function copyText(text, button) {
     if (!button.dataset.label) button.dataset.label = button.textContent;
@@ -728,8 +714,7 @@
 
   // `detail` is the verbatim failure text (status, path, response body).
   // It is rendered as text, selectable, with a one-gesture copy.
-  function showError(msg, detail) {
-    const el = document.getElementById('error-banner');
+  function renderBanner(el, msg, detail, onRetry) {
     el.replaceChildren();
 
     const headline = document.createElement('div');
@@ -746,6 +731,14 @@
       copyBtn.addEventListener('click', () => copyText(detail, copyBtn));
       headline.append(copyBtn);
     }
+    if (onRetry) {
+      const retryBtn = document.createElement('button');
+      retryBtn.type = 'button';
+      retryBtn.className = 'banner-btn';
+      retryBtn.textContent = 'Retry';
+      retryBtn.addEventListener('click', () => { retryBtn.disabled = true; onRetry(); });
+      headline.append(retryBtn);
+    }
     el.append(headline);
 
     if (detail) {
@@ -756,16 +749,69 @@
     }
     el.classList.add('visible');
   }
+  function showError(msg, detail, onRetry) {
+    renderBanner(document.getElementById('error-banner'), msg, detail, onRetry);
+  }
   function hideError() {
     document.getElementById('error-banner').classList.remove('visible');
   }
-  function showStale() {
-    const el = document.getElementById('stale-banner');
+  function hideStale() {
+    document.getElementById('stale-banner').classList.remove('visible');
+  }
+  function showStale(detail) {
     const t = lastSuccessTime
       ? lastSuccessTime.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true })
       : 'unknown';
-    el.textContent = 'Data may be stale \u2014 last updated ' + t;
-    el.classList.add('visible');
+    renderBanner(
+      document.getElementById('stale-banner'),
+      'Data may be stale \u2014 last updated ' + t + '; refreshes are failing',
+      detail,
+      refresh
+    );
+  }
+
+  // No prior successful load: draw nothing rather than something invented.
+  function renderDataSourceFailure(detail) {
+    const grid = document.getElementById('lines-grid');
+    grid.replaceChildren();
+
+    const box = document.createElement('div');
+    box.className = 'data-failure';
+
+    const title = document.createElement('div');
+    title.className = 'data-failure-title';
+    title.textContent = 'Production data unavailable';
+
+    const body = document.createElement('div');
+    body.className = 'data-failure-body';
+    body.textContent = 'The ledger API did not answer, so this page has no data to show. '
+      + 'Nothing below is a real number \u2014 no production figures have been loaded.';
+    box.append(title, body);
+
+    if (detail) {
+      const pre = document.createElement('pre');
+      pre.className = 'banner-detail';
+      pre.textContent = detail;
+      box.append(pre);
+    }
+
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'data-failure-retry';
+    retry.textContent = 'Retry';
+    retry.addEventListener('click', () => {
+      retry.disabled = true;
+      retry.textContent = 'Retrying\u2026';
+      refresh();
+    });
+    box.append(retry);
+    grid.append(box);
+
+    document.getElementById('sum-lines').textContent = '\u2014';
+    document.getElementById('sum-produced').textContent = '\u2014';
+    document.getElementById('sum-produced-sub').textContent = '';
+    document.getElementById('sum-yield').textContent = '\u2014';
+    document.getElementById('last-updated').textContent = 'Not updated \u2014 data source failed';
   }
 
   // --- Main loop ---
@@ -790,11 +836,18 @@
         if (d) productDetails[name] = d;
       });
       await Promise.all(detailPromises);
-    } else if (useFallback) {
-      lineData = getFallbackData();
-      productDetails = getFallbackProductDetails();
+    } else if (!lastSuccessTime && lastError) {
+      // Never loaded successfully: an explicit failure state, not sample data.
+      // (fetchData also returns null while a request is already in flight;
+      // lastError is what distinguishes an actual failure from that.)
+      const stalled = !!(window.FL && FL.isStall(lastError));
+      showError(
+        stalled ? 'Server not responding.' : 'Could not load production data.',
+        errorDetail(lastError), refresh);
+      renderDataSourceFailure(errorDetail(lastError));
+      return;
     } else {
-      return; // Keep showing last good data
+      return; // Keep showing the last good data; the stale banner names its age.
     }
 
     // Check limit warning
