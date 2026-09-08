@@ -1,7 +1,7 @@
-"""Runs the ER-intake review-state JS tests (tests/test_er_intake_logic.js,
-node:test over dashboard/er-intake-logic.js) inside the pytest suite, so the
-audit-fix regression coverage can't be skipped by habit. Skips only when node
-is not installed."""
+"""Runs the intake review-state JS tests (tests/test_er_intake_logic.js,
+node:test over dashboard/intake-logic.js — renamed from er-intake-logic.js,
+SO design ruling 10) inside the pytest suite, so the audit-fix regression
+coverage can't be skipped by habit. Skips only when node is not installed."""
 
 import shutil
 import subprocess

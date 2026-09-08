@@ -1,8 +1,11 @@
-/* === ER intake review-state logic (audit fix, docs/designs/er-intake-audit-1.md) ===
+/* === Intake review-state logic (ER + SO; renamed from er-intake-logic.js
+   per docs/designs/sales-order-intake.md ruling 10) ===
    Pure functions only — no DOM, no fetch — so the review screen's state rules
    are testable under node:test (tests/test_er_intake_logic.js) exactly like
    pallet-calculations.js. dashboard.js owns rendering and wiring; every state
-   transition on a review line goes through here.
+   transition on a review line goes through here. The ER API is unchanged;
+   the sales-order flow reuses the same state machine by normalizing its match
+   lines into the shared field names (so* functions at the bottom).
 
    Audit finding 1 (P1): a fuzzy match is a SUGGESTION, never a selection.
    `chosen` is set only for alias/exact matches or an explicit human pick;
@@ -122,6 +125,14 @@
       name: product.name,
       odoo_code: product.odoo_code || null,
     };
+    // SO intake (rulings 2/3): the private-label first-sale badge needs these
+    // on human picks too. ER picks don't carry them — their chosen shape is
+    // unchanged (the ER test suite pins it).
+    if ('label_type' in product || 'prior_sales' in product) {
+      line.chosen.label_type = product.label_type || null;
+      line.chosen.prior_sales = product.prior_sales === true ? true
+        : product.prior_sales === false ? false : null;
+    }
     line.match_source = 'chosen';
     line.confidence = 1.0;
     if (line.qty_lb == null) recomputeQtyLb(line);
@@ -193,9 +204,10 @@
      carries the new supplier's conversion); otherwise the line goes back to
      unconfirmed. Everything else — match data, conversions — comes from the
      fresh result, which was computed from the CURRENT (edited) qty/unit. */
-  function mergeRematch(prevLines, matchLines) {
+  function mergeRematch(prevLines, matchLines, build) {
+    const buildLine = build || buildReviewLine;
     return matchLines.map((ml, i) => {
-      const fresh = buildReviewLine(ml);
+      const fresh = buildLine(ml);
       const prev = prevLines && prevLines[i];
       if (!prev) return fresh;
       fresh.include = prev.include;
@@ -279,6 +291,88 @@
     return `${supplierId || ''}|${ref}`;
   }
 
+  /* ── Sales-order intake (docs/designs/sales-order-intake.md) ──
+     The SO flow reuses the whole state machine above by mapping its match
+     response into the shared field names: description → vendor_description,
+     case_size_lb → lb_per_unit, case_size_source → lb_source ('product' →
+     'case_size' so product-derived conversions die with a product change),
+     quantity_lb → expected_qty_lb. customer_item_code and unit_price ride
+     along untouched. */
+
+  const SO_LB_UNITS = ['lb', 'lbs', 'lb.', 'lbs.', 'pound', 'pounds', '#'];
+  const SO_CASE_UNITS = ['case', 'cases', 'cs', 'box', 'boxes', 'ctn', 'carton', 'cartons'];
+
+  function soNormalizeMatchLine(ml) {
+    // An lb-unit line converts at 1 lb per unit — exactly how the ER match
+    // response models it — so a product pick (and clearChosen → re-pick)
+    // recomputes its pounds instead of losing them. The conversion survives
+    // product changes (unit_is_lb is not product-dependent).
+    const isLb = SO_LB_UNITS.includes(normalizeUnit(ml.unit) || '');
+    return {
+      ...ml,
+      vendor_description: ml.description,
+      lb_per_unit: ml.case_size_lb != null ? ml.case_size_lb : (isLb ? 1 : null),
+      lb_source: ml.case_size_source === 'product' ? 'case_size' : (ml.case_size_source || 'none'),
+      expected_qty_lb: ml.quantity_lb != null ? ml.quantity_lb : null,
+    };
+  }
+
+  function soBuildReviewLine(ml) {
+    return buildReviewLine(soNormalizeMatchLine(ml));
+  }
+
+  function soMergeRematch(prevLines, matchLines) {
+    return mergeRematch(prevLines, matchLines, soBuildReviewLine);
+  }
+
+  /* Owner ruling 5: a price is stored only when its basis is unambiguous —
+     per-case on a cases line, per-lb on an lb line. Anything else (no unit,
+     'ea', 'pallet', …) renders a "price basis unclear" tag and sends null. */
+  function soPriceBasis(unit) {
+    const u = normalizeUnit(unit) || '';
+    if (SO_LB_UNITS.includes(u)) return 'per_lb';
+    if (SO_CASE_UNITS.includes(u)) return 'per_case';
+    return 'unclear';
+  }
+
+  function applyUnitPriceChange(line, price) {
+    if (line.matching) return line; // locked while a match request is in flight
+    const v = Number(price);
+    line.unit_price = price !== '' && v >= 0 && isFinite(v) ? v : null;
+    return line;
+  }
+
+  /* Ruling 2: warn — never block — when a chosen private-label product has no
+     prior sales to this customer. prior_sales === null (unknown, e.g. an ER
+     pick) never warns. */
+  function soPrivateLabelWarning(line) {
+    return Boolean(line.chosen && line.chosen.label_type === 'private_label'
+      && line.chosen.prior_sales === false);
+  }
+
+  /* The /sales/orders/extract/approve line payload for an included,
+     approvable line. The conversion (case_size_lb) is sent for alias learning
+     only when it explains the approved pounds — same invariant as ER. */
+  function soApproveLinePayload(line) {
+    // An lb line's 1-lb-per-unit conversion is a display device, never a
+    // learnable case size — teaching case_size_lb=1 could corrupt a future
+    // cases line through the alias.
+    const isLb = SO_LB_UNITS.includes(normalizeUnit(line.unit) || '');
+    const sendConversion = Boolean(line.save_alias) && !isLb && aliasConversionConsistent(line);
+    return {
+      product_id: line.chosen.product_id,
+      quantity_lb: line.qty_lb,
+      quantity: line.quantity,
+      unit: line.unit,
+      case_size_lb: sendConversion ? line.lb_per_unit : null,
+      unit_price: soPriceBasis(line.unit) === 'unclear' ? null
+        : (line.unit_price != null ? line.unit_price : null),
+      customer_item_code: line.customer_item_code || null,
+      customer_description: line.vendor_description,
+      save_alias: Boolean(line.save_alias),
+    };
+  }
+
   return {
     buildReviewLine,
     applyQuantityChange,
@@ -300,5 +394,12 @@
     forceKey,
     normalizeUnit,
     roundLb,
+    soNormalizeMatchLine,
+    soBuildReviewLine,
+    soMergeRematch,
+    soPriceBasis,
+    applyUnitPriceChange,
+    soPrivateLabelWarning,
+    soApproveLinePayload,
   };
 }));

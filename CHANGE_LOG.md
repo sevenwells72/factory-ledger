@@ -1,5 +1,58 @@
 # Change Log
 
+## 2026-09-08 19:04 — Record completed integration verification
+- **File(s) changed:** `docs/design/audit-2026-09-08-integration.md`
+- **What changed:** Recorded 59 Node and 245 Python passes, eight ER/SO fixture browser flows, protected-file equality and exact log preservation.
+- **Why:** User requested a reviewable integration report before a separately approved merge/deployment.
+
+---
+
+## 2026-09-08 19:02 — Keep integrated order identity and mobile intake quantities readable
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `tests/visual/run-integrated-intake.mjs`
+- **What changed:** Keep order/document controls adjacent, use order-number sort values, wrap ER quantity cells and source tags at phone widths. Correct fixture selectors and assert no cross-cell overlap.
+- **Why:** Screenshot review found ER source-label overlap at 390px and desktop paperclip wrapping despite initial geometry checks passing.
+
+---
+
+## 2026-09-08 19:01 — Add isolated ER/SO browser integration checks
+- **File(s) changed:** `tests/visual/run-integrated-intake.mjs`
+- **What changed:** Added synthetic upload/extraction/matching, paperclip and grouped-sort checks across desktop/phone and light/dark. Network writes are intercepted.
+- **Why:** Verify the combined integration; local migration 050 applied only to factory_ledger_design_audit_a. First runs: 59 Node and 244 Python tests passed.
+
+---
+
+## 2026-09-08 18:59 — Integrate deployed SO intake into design audit branch
+- **File(s) changed:** Merge changes from origin/main; conflict resolution in dashboard/dashboard.js, dashboard/index.html, CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md; cache references in dashboard/history.html and tests/test_recent_ledger.py
+- **What changed:** Preserved both order and document buttons, shared intake module and SO modal; retained both log histories and renumbered Codex rows 122–124; selected JS 56/CSS 39/intake 9.
+- **Why:** User-authorized isolated integration; no merge to main or deployment.
+
+---
+
+## 2026-09-08 18:35 — SO intake DEPLOYED: migration 050 → prod, merge to main, Railway + Netlify live (FACTORY row 121)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `tests/schema/schema.sql`, merge commit `fea70ba`, schema re-dump `f3bacdf`
+- **What changed:** Owner-approved deploy sequence executed: branch pushed through `6be8694`; local merge of `feat/so-intake` into main on top of Batch A `32b96d2` (conflicts resolved: FACTORY row renumbered 119→121 [119/120 = design-audit session, row-28 precedent], both CHANGE_LOG entry sets kept, Batch A's Factory-Ready aria-label combined with the SO paperclip in `renderOrdersList`, cache-busts renumbered to highest-never-served `dashboard.css?v=37` / `dashboard.js?v=54` since Batch A's Netlify deploy had already served v36/v53); suite on merged tree 580 passed + known test_recent_ledger failure, node 49/49. Migration 050 applied to prod via session pooler 5432 and verified (document_kind + 2 existing rows defaulted 'purchase', customer_product_aliases, sales_orders.customer_po/source_document_id, 5 indexes); `scripts/dump_prod_schema.sh` re-dump (pending `\ir 050` gone, `f3bacdf`); main pushed `32b96d2..f3bacdf` → Railway deployment `dd0ebb2e` SUCCESS 18:28, Netlify serving v37/v54/intake-logic v8. Live-verified: the 3 intake routes 401 without a key; `/sales/orders/match` 200 + correct shape with the dashboard key; `GET /sales/orders` rows carry `customer_po`/`source_document_id`; `POST /sales/orders` still 403 on the dashboard key (ruling 1); ER upload path healthy (422 on missing file, not 500). FACTORY row 121 marked DEPLOYED.
+- **Why:** Owner "Go" on the Phase-3 review — final deploy step of docs/designs/sales-order-intake.md.
+
+---
+
+## 2026-09-08 18:22 — Sales-order intake Phase 3: New Sales Order modal, shared intake-logic.js, paperclip (FACTORY row 119)
+- **File(s) changed:** `dashboard/intake-logic.js` (renamed from `er-intake-logic.js`), `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `main.py`, `tests/test_er_intake_logic.js`, `tests/test_er_intake_logic_js.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** New intake-only "New Sales Order" modal on the Sales Orders tab (ruling 1): dropzone + ⌘V paste → /sales/orders/extract → kind-aware extraction → /sales/orders/match → review screen (customer dropdown re-matches on change, required Customer PO with duplicate banner + force flow, stacked line cards qty×unit → case size → order lb → unit price with a per-case/per-lb/"basis unclear — not stored" tag per ruling 5, full-catalog picker listing prior-sales products first with an amber private-label first-sale warning per rulings 2/3) → /sales/orders/extract/approve → order appears with a 📎 paperclip (signed URL). er-intake-logic.js RENAMED to intake-logic.js (ruling 10, no shim; ER assertions unchanged, 44/44 node tests): SO reuses the whole review state machine via soNormalizeMatchLine/soBuildReviewLine/soMergeRematch/soApproveLinePayload/soPriceBasis/applyUnitPriceChange/soPrivateLabelWarning; lb-unit lines convert at 1 lb/unit so a product change never loses the document pounds, and that 1-lb conversion is never taught as an alias case size. Backend additions: GET /sales/orders rows carry customer_po + source_document_id, /products/search returns label_type, /sales/orders/match returns prior_sales_product_ids. Cache-busts css v36 / js v53 / intake-logic v8. Browser-verified end-to-end (local uvicorn harness, faked extractor/storage: alias auto-convert, fuzzy suggestion pick, PL warning appear/clear, lb-line pounds restored on re-pick, duplicate→force created SO-260908-003, alias learning made all 3 lines auto-match on the second pass; 500px/380px no horizontal scroll; no console errors; harness rows cleaned from the test DB). Suite 573 passed + known pre-existing test_recent_ledger failure.
+- **Why:** Phase 3 (final) of the approved sales-order intake design (docs/designs/sales-order-intake.md).
+
+---
+
+## 2026-09-08 15:55 — Sales-order intake Phase 2: shared upload refactor, core refactor, 3 endpoints
+- **File(s) changed:** `main.py`, `tests/test_sales_order_extract.py`
+- **What changed:** (1) `_upload_intake_document(request, response, file, kind)` factored out of POST /expected-receipts/extract — validation, sniffing, PDF cap, sha256 advisory-lock dedupe/resume (now scoped per document_kind), row-first-then-Storage, upload_failed healing all shared; the ER endpoint delegates with kind='purchase' (byte-identical per owner ruling 9 — tests/test_expected_receipt_extract.py untouched, all green; the purchase path still calls the extractor with the pre-refactor 2-arg signature). (2) `_create_sales_order_core()` factored out of POST /sales/orders (per-line service/case-weight/warning logic verbatim; header INSERT gains order_date/customer_po/source_document_id, COALESCE'd for the manual path). (3) New endpoints on DASHBOARD_KEY_ALLOWLIST: POST /sales/orders/extract (shared upload, kind='sales'), POST /sales/orders/match (customer exact/alias resolution + candidates, alias → exact → restricted-fuzzy line chain with the private-label leak guard at the exact tier, prior-sales pool excludes cancelled orders/lines, cases→lb via alias/product case size only for alias/exact, lb-unit lines converted always), POST /sales/orders/extract/approve (kind + status guards, pg_advisory_xact_lock on so-intake-po:{customer}:{norm po}, 409 DUPLICATE_PO warn+force, PO_REQUIRED, ALIAS_CONVERSION_MISMATCH, ALIAS_KEY_REQUIRED, private-label first-sale warning never block, customer_product_aliases latest-wins upsert, atomic via _create_sales_order_core; quantity_lb always authoritative — cases lines without a case size go through as lb so the core's auto-lookup can never overwrite the reviewed pounds). POST /purchase-documents/{id}/extract is kind-aware. `_tiered_product_search` gained optional restrict_ids + label_type in results (existing callers unchanged). POST /sales/orders itself stays OFF the dashboard allowlist (owner ruling 1). (4) 51 new tests incl. the two-real-connection approve race and readonly-tripwire checks; module 88/88; suite 573 passed + known pre-existing test_recent_ledger failure.
+- **Why:** Phase 2 of the approved sales-order intake design (docs/designs/sales-order-intake.md).
+
+---
+
+## 2026-09-08 15:35 — Sales-order intake: approved design doc + Phase 1 (migration 050, extraction kind, tests)
+- **File(s) changed:** `docs/designs/sales-order-intake.md`, `migrations/050_sales_doc_intake.sql`, `extraction.py`, `tests/test_sales_order_extract.py`, `tests/schema/schema.sql`
+- **What changed:** New branch `feat/so-intake` (cut from main bd974ae). Committed the owner-approved design for customer-PO → sales-order intake (mirrors ER intake; owner rulings 1–10 folded in: intake-only V1, private-label warn-never-block, full-catalog picker with prior-sales first, cancelled orders/lines excluded from the pool, unambiguous-basis price storage, no create-customer, status='confirmed', renumber at merge, ER byte-identical upload refactor, er-intake-logic.js→intake-logic.js rename without shim). Phase 1: migration 050 (purchase_documents.document_kind 'purchase'|'sales', customer_product_aliases with generated alias_key + latest-wins unique, sales_orders.customer_po + source_document_id + warn-only normalized dedupe index) — applied to LOCAL test DB only, NOT prod; extraction.py gained kind='purchase'|'sales' (sales tool schema/prompt: buyer-not-vendor customer_name, customer_item_code, unit_price ≥0-or-null, strict dates; shared _validate_iso_date_value; default kind byte-identical purchase path); tests/test_sales_order_extract.py (37 tests: 050 constraints, exact approve-path alias upsert, PO dedupe lookup shape, idempotent re-apply, faked-client sales extraction incl. unknown-kind + purchase-path guard); schema.sql carries pending `\ir 050` block. Suite 523 passed + known pre-existing test_recent_ledger failure; tests/test_expected_receipt_extract.py untouched and green (owner ruling 9).
+- **Why:** Owner approved the sales-order intake proposal (2026-09-08) — paste/drop a customer PO into a New Sales Order modal → extract → match → review → approve; Phase 1 of 3.
 ## 2026-09-08 18:41 — Reset and clear supplier searches consistently when reopening receipt entry
 - **File(s) changed:** `dashboard/dashboard.js`, `dashboard/design-controls.js`, `dashboard/index.html`
 - **What changed:** Implement approved Batch C presentation and navigation improvements locally.
