@@ -32,6 +32,16 @@
 
 ---
 
+## 2026-09-07 20:24 — Sankey and Process Flow preserve the API response body and show it verbatim (IMP-044 / ERROR-010)
+
+- **File(s) changed:** `dashboard/process-flow.html`, `dashboard/sankey.html`
+- **What changed:** Both `apiFetch` helpers now read the response body on `!res.ok` and throw an error carrying it, in the same shape `dashboard.js`'s `fetchSalesAPI` uses — `HTTP <status> <path>: <body>` as the message plus `error.status`, `error.body`, and a parsed `error.payload`. Previously `process-flow.html` threw `API <status>: <path>` and `sankey.html` threw `HTTP <status>`, discarding the body entirely. The error banners now take a `detail` argument and render it verbatim in a selectable monospace block with a "Copy error" button (`navigator.clipboard` with an `execCommand` fallback, the same pattern as the scheduler's `copyScheduleText`). Banner text is still built with `textContent`/DOM nodes, never `innerHTML`.
+- **Why:** IMP-044 / ERROR-010: the failure reason was thrown away at the fetch boundary, so the banner could only ever say something generic and there was nothing to paste into a bug report. ERROR-010 asks for error text that is selectable and copyable in one gesture.
+
+---
+
+---
+
 ## 2026-09-07 20:10 — Traceability status bar renders API text as text, not markup (IMP-044 / ERROR-010)
 
 - **File(s) changed:** `dashboard/traceability.html`

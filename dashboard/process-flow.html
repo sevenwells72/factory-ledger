@@ -148,6 +148,34 @@
     display: none;
   }
   .error-banner.visible { display:block; }
+  .banner-headline { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .banner-detail {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 160px;
+    overflow: auto;
+    user-select: text;
+  }
+  .banner-btn {
+    background: transparent;
+    border: 1px solid currentColor;
+    color: inherit;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1.2;
+    min-height: 28px;
+    cursor: pointer;
+  }
+  .banner-btn:hover { background: rgba(255,255,255,0.08); }
 
   /* Footer */
   .footer {
@@ -280,11 +308,20 @@
   }
 
   // --- API helpers ---
+  // Keep the response body: it is the only thing that says *why* the call
+  // failed, and the banner shows it verbatim so it can be pasted as-is.
   async function apiFetch(path) {
     const res = await FL.fetchWithTimeout(API_BASE + path, {
       headers: { 'X-Api-Key': API_KEY }
     });
-    if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      const error = new Error(`HTTP ${res.status} ${path}${body ? ': ' + body : ''}`);
+      error.status = res.status;
+      error.body = body;
+      try { error.payload = JSON.parse(body); } catch (_) { error.payload = null; }
+      throw error;
+    }
     return res.json();
   }
 
@@ -312,7 +349,13 @@
   let isFetching = false;
   let consecutiveFailures = 0;
   let lastSuccessTime = null;
+  let lastError = null;
   let useFallback = false;
+
+  function errorDetail(error) {
+    if (!error) return '';
+    return error.message || String(error);
+  }
 
   async function fetchData() {
     if (isFetching) return null;
@@ -324,12 +367,14 @@
       ]);
       consecutiveFailures = 0;
       useFallback = false;
+      lastError = null;
       hideError();
       lastSuccessTime = new Date();
       isFetching = false;
       return { make: makeRes.transactions || [], pack: packRes.transactions || [] };
     } catch (e) {
       console.error('API fetch error:', e);
+      lastError = e;
       consecutiveFailures++;
       if (window.FL && FL.isStall(e)) {
         // A hang is not "offline" and should not wait for three rounds to be
@@ -349,7 +394,7 @@
       }
       if (!lastSuccessTime) {
         useFallback = true;
-        showError('API offline — showing sample data');
+        showError('API offline — showing sample data', errorDetail(e));
       }
       isFetching = false;
       return null;
@@ -660,9 +705,55 @@
   }
 
   // --- Error/stale UI ---
-  function showError(msg) {
+  function copyText(text, button) {
+    if (!button.dataset.label) button.dataset.label = button.textContent;
+    const finish = ok => {
+      button.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(() => { button.textContent = button.dataset.label; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => finish(true), () => finish(false));
+      return;
+    }
+    const scratch = document.createElement('textarea');
+    scratch.value = text;
+    scratch.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(scratch);
+    scratch.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+    document.body.removeChild(scratch);
+    finish(ok);
+  }
+
+  // `detail` is the verbatim failure text (status, path, response body).
+  // It is rendered as text, selectable, with a one-gesture copy.
+  function showError(msg, detail) {
     const el = document.getElementById('error-banner');
-    el.textContent = msg;
+    el.replaceChildren();
+
+    const headline = document.createElement('div');
+    headline.className = 'banner-headline';
+    const label = document.createElement('span');
+    label.textContent = msg;
+    headline.append(label);
+
+    if (detail) {
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'banner-btn';
+      copyBtn.textContent = 'Copy error';
+      copyBtn.addEventListener('click', () => copyText(detail, copyBtn));
+      headline.append(copyBtn);
+    }
+    el.append(headline);
+
+    if (detail) {
+      const pre = document.createElement('pre');
+      pre.className = 'banner-detail';
+      pre.textContent = detail;
+      el.append(pre);
+    }
     el.classList.add('visible');
   }
   function hideError() {
