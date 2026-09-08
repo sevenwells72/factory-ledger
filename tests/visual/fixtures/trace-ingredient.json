@@ -1,0 +1,15 @@
+{
+  "lot_id": 2010,
+  "product_id": 201,
+  "ingredient_lot_code": "OAT-4471",
+  "supplier_lot_code": "NG-22841",
+  "ingredient_name": "Rolled Oats — #1 Thick",
+  "used_in_batches": [
+    { "lot_id": 4110, "product_id": 41, "batch_lot_code": "BCQ-2609-A", "batch_product": "Batch Classic Granola", "quantity_used": 1140.8 },
+    { "lot_id": 4210, "product_id": 42, "batch_lot_code": "BSS-2609-A", "batch_product": "Batch Sunshine Granola", "quantity_used": 570.4 },
+    { "lot_id": 4310, "product_id": 43, "batch_lot_code": "BBS-2608-C", "batch_product": "Batch Blue Stripes Granola", "quantity_used": 285.2 }
+  ],
+  "direct_shipments": [],
+  "total_shipped_lb": 0.0,
+  "on_hand_lb": 11200.0
+}

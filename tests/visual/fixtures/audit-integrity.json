@@ -1,0 +1,10 @@
+{
+  "timestamp": "{{NOW}}",
+  "score": 86,
+  "checks": [
+    { "name": "orphan_transaction_lines", "status": "pass", "severity": "high", "count": 0 },
+    { "name": "negative_lot_balances", "status": "fail", "severity": "medium", "count": 3 },
+    { "name": "unposted_savepoints", "status": "pass", "severity": "low", "count": 0 },
+    { "name": "lot_code_collisions", "status": "fail", "severity": "low", "count": 1 }
+  ]
+}

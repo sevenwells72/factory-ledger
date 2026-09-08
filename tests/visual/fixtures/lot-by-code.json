@@ -1,0 +1,12 @@
+{
+  "id": 4110,
+  "lot_code": "BCQ-2609-A",
+  "product_id": 41,
+  "product_name": "Batch Classic Granola",
+  "product_type": "batch",
+  "entry_source": "api",
+  "supplier_lot_code": null,
+  "quantity_on_hand": 640.0,
+  "unit_count": null,
+  "case_size_lb": null
+}

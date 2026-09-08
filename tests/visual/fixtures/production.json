@@ -1,0 +1,61 @@
+{
+  "days": [
+    {
+      "date": "{{TODAY}}",
+      "day_name": "{{TODAY_NAME}}",
+      "batches": [
+        { "product_name": "Batch Classic Granola", "product_id": 41, "total_lbs": 1840.0, "batch_count": 4, "standard_batch_size_lbs": 460 },
+        { "product_name": "Batch Sunshine Granola", "product_id": 42, "total_lbs": 920.0, "batch_count": 2, "standard_batch_size_lbs": 460 },
+        { "product_name": "Batch Toasted Coconut", "product_id": 51, "total_lbs": 1120.0, "batch_count": 14, "standard_batch_size_lbs": 80 },
+        { "product_name": "Batch Graham Crumb", "product_id": 61, "total_lbs": 300.0, "batch_count": 2, "standard_batch_size_lbs": 150 }
+      ],
+      "finished_goods": [
+        { "product_name": "Classic Granola 10 LB", "sku": "CQ-10", "pack_format": "10lb", "total_lbs": 1280.0, "unit_count": 128, "case_size_lb": 10 },
+        { "product_name": "Classic Granola 25 LB", "sku": "CQ-25", "pack_format": "25lb", "total_lbs": 1600.0, "unit_count": 64, "case_size_lb": 25 },
+        { "product_name": "Sunshine Granola 12/1 LB", "sku": "SS-12", "pack_format": "bagged", "total_lbs": 2520.0, "unit_count": 210, "case_size_lb": 12 },
+        { "product_name": "Toasted Coconut 6/2 LB", "sku": "TC-6", "pack_format": "bagged", "total_lbs": 1152.0, "unit_count": 96, "case_size_lb": 12 },
+        { "product_name": "Graham Crumb 20 LB", "sku": "GR-20", "pack_format": "bagged", "total_lbs": 360.0, "unit_count": 18, "case_size_lb": 20 }
+      ]
+    },
+    {
+      "date": "{{TODAY-1}}",
+      "day_name": "{{TODAY-1_NAME}}",
+      "batches": [
+        { "product_name": "Batch Classic Granola", "product_id": 41, "total_lbs": 2300.0, "batch_count": 5, "standard_batch_size_lbs": 460 },
+        { "product_name": "Batch Toasted Coconut", "product_id": 51, "total_lbs": 880.0, "batch_count": 11, "standard_batch_size_lbs": 80 }
+      ],
+      "finished_goods": [
+        { "product_name": "Classic Granola 10 LB", "sku": "CQ-10", "pack_format": "10lb", "total_lbs": 1900.0, "unit_count": 190, "case_size_lb": 10 },
+        { "product_name": "Toasted Coconut 6/2 LB", "sku": "TC-6", "pack_format": "bagged", "total_lbs": 984.0, "unit_count": 82, "case_size_lb": 12 }
+      ]
+    },
+    {
+      "date": "{{TODAY-2}}",
+      "day_name": "{{TODAY-2_NAME}}",
+      "batches": [
+        { "product_name": "Batch Blue Stripes Granola", "product_id": 43, "total_lbs": 1380.0, "batch_count": 3, "standard_batch_size_lbs": 460 }
+      ],
+      "finished_goods": [
+        { "product_name": "Blue Stripes Granola 6/2 LB", "sku": "BS-6", "pack_format": "bagged", "total_lbs": 1344.0, "unit_count": 112, "case_size_lb": 12 },
+        { "product_name": "Classic Granola 25 LB", "sku": "CQ-25", "pack_format": "25lb", "total_lbs": 800.0, "unit_count": 32, "case_size_lb": 25 }
+      ]
+    },
+    {
+      "date": "{{TODAY-3}}",
+      "day_name": "{{TODAY-3_NAME}}",
+      "batches": [],
+      "finished_goods": []
+    },
+    {
+      "date": "{{TODAY-4}}",
+      "day_name": "{{TODAY-4_NAME}}",
+      "batches": [
+        { "product_name": "Batch Classic Granola", "product_id": 41, "total_lbs": 1380.0, "batch_count": 3, "standard_batch_size_lbs": 460 },
+        { "product_name": "Batch Graham Crumb", "product_id": 61, "total_lbs": 450.0, "batch_count": 3, "standard_batch_size_lbs": 150 }
+      ],
+      "finished_goods": [
+        { "product_name": "Graham Crumb 20 LB", "sku": "GR-20", "pack_format": "bagged", "total_lbs": 440.0, "unit_count": 22, "case_size_lb": 20 }
+      ]
+    }
+  ]
+}

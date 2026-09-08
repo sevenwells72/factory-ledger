@@ -1,0 +1,45 @@
+{
+  "products": [
+    {
+      "product_id": 111,
+      "name": "Classic Granola 25 LB",
+      "type": "finished_good",
+      "on_hand_lbs": 7350.0
+    },
+    {
+      "product_id": 41,
+      "name": "Batch Classic Granola",
+      "type": "batch",
+      "on_hand_lbs": 3220.0
+    }
+  ],
+  "lots": [
+    {
+      "lot_code": "CQ25-2609-A",
+      "product_id": 111,
+      "product_name": "Classic Granola 25 LB",
+      "on_hand_lbs": 4200.0
+    },
+    {
+      "lot_code": "CQ10-2609-A",
+      "product_id": 101,
+      "product_name": "Classic Granola 10 LB",
+      "on_hand_lbs": 2400.0
+    }
+  ],
+  "orders": [
+    {
+      "order_id": 101,
+      "order_number": "SO-1421",
+      "customer": "Wexford Foods",
+      "status": "confirmed"
+    }
+  ],
+  "customers": [
+    {
+      "name": "Greenline Distributors",
+      "contact_name": "Dana Iverson",
+      "email": "dana@greenline.example"
+    }
+  ]
+}

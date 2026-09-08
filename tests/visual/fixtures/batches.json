@@ -1,0 +1,23 @@
+{
+  "missing_skus": ["Batch Maple Pecan Granola"],
+  "batches": [
+    { "product_id": 41, "product_name": "Batch Classic Granola", "production_family": "granola", "on_hand_lbs": 3220.0, "standard_batch_size_lbs": 460, "made_unit_size_lbs": 460, "yield_multiplier": 1.0,
+      "lots": [
+        { "lot_code": "BCQ-2609-A", "product_id": 41, "on_hand_lbs": 1840.0, "batch_count": 4 },
+        { "lot_code": "BCQ-2608-K", "product_id": 41, "on_hand_lbs": 1380.0, "batch_count": 3 }
+      ] },
+    { "product_id": 42, "product_name": "Batch Sunshine Granola", "production_family": "granola", "on_hand_lbs": 920.0, "standard_batch_size_lbs": 460, "made_unit_size_lbs": 460, "yield_multiplier": 1.0,
+      "lots": [ { "lot_code": "BSS-2609-A", "product_id": 42, "on_hand_lbs": 920.0, "batch_count": 2 } ] },
+    { "product_id": 43, "product_name": "Batch Blue Stripes Granola", "production_family": "granola", "on_hand_lbs": 460.0, "standard_batch_size_lbs": 460, "made_unit_size_lbs": 460, "yield_multiplier": 1.0,
+      "lots": [ { "lot_code": "BBS-2608-C", "product_id": 43, "on_hand_lbs": 460.0, "batch_count": 1 } ] },
+    { "product_id": 51, "product_name": "Batch Toasted Coconut", "production_family": "coconut", "on_hand_lbs": 1120.0, "standard_batch_size_lbs": 80, "made_unit_size_lbs": 80, "yield_multiplier": 1.0,
+      "lots": [
+        { "lot_code": "BTC-2609-A", "product_id": 51, "on_hand_lbs": 640.0, "batch_count": 8 },
+        { "lot_code": "BTC-2608-J", "product_id": 51, "on_hand_lbs": 480.0, "batch_count": 6 }
+      ] },
+    { "product_id": 52, "product_name": "Batch Sweetened Coconut", "production_family": "coconut", "on_hand_lbs": 240.0, "standard_batch_size_lbs": 80, "made_unit_size_lbs": 80, "yield_multiplier": 1.0,
+      "lots": [ { "lot_code": "BSC-2609-A", "product_id": 52, "on_hand_lbs": 240.0, "batch_count": 3 } ] },
+    { "product_id": 61, "product_name": "Batch Graham Crumb", "production_family": "graham", "on_hand_lbs": 300.0, "standard_batch_size_lbs": 150, "made_unit_size_lbs": 150, "yield_multiplier": 1.0,
+      "lots": [ { "lot_code": "BGR-2609-A", "product_id": 61, "on_hand_lbs": 300.0, "batch_count": 2 } ] }
+  ]
+}

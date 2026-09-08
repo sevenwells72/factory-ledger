@@ -1,0 +1,20 @@
+{
+  "error": "ambiguous_lot_code",
+  "message": "Lot code 'CQ25-2609-A' matches multiple products",
+  "matches": [
+    {
+      "lot_id": 5501,
+      "product_id": 111,
+      "product_name": "Classic Granola 25 LB",
+      "entry_source": "api",
+      "source": "api"
+    },
+    {
+      "lot_id": 5502,
+      "product_id": 41,
+      "product_name": "Batch Classic Granola",
+      "entry_source": "gpt",
+      "source": "gpt"
+    }
+  ]
+}

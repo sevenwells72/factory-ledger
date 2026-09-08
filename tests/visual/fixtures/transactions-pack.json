@@ -1,0 +1,523 @@
+{
+  "count": 14,
+  "transactions": [
+    {
+      "id": 6520,
+      "type": "pack",
+      "timestamp": "{{TODAY-0}}T09:20:00-04:00",
+      "occurred_at": "{{TODAY-0}}T09:20:00-04:00",
+      "created_at": "{{TODAY-0}}T09:40:00-04:00",
+      "date": "{{TODAY-0}}",
+      "time": "09:20 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "09:40 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 111,
+          "product_name": "Classic Granola 25 LB",
+          "lot_code": "CQ25-2609-A",
+          "lot_id": 11110,
+          "quantity_lb": 500.0,
+          "case_size_lb": 25,
+          "unit_count": 20,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 41,
+          "product_name": "Batch Classic Granola",
+          "lot_code": "BCQ-2609-A",
+          "lot_id": 4110,
+          "quantity_lb": -500.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6521,
+      "type": "pack",
+      "timestamp": "{{TODAY-0}}T10:27:00-04:00",
+      "occurred_at": "{{TODAY-0}}T10:27:00-04:00",
+      "created_at": "{{TODAY-0}}T10:47:00-04:00",
+      "date": "{{TODAY-0}}",
+      "time": "10:27 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "10:47 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 101,
+          "product_name": "Classic Granola 10 LB",
+          "lot_code": "CQ10-2609-A",
+          "lot_id": 10110,
+          "quantity_lb": 230.0,
+          "case_size_lb": 10,
+          "unit_count": 23,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 42,
+          "product_name": "Batch Sunshine Granola",
+          "lot_code": "BSS-2609-A",
+          "lot_id": 4210,
+          "quantity_lb": -230.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6522,
+      "type": "pack",
+      "timestamp": "{{TODAY-0}}T11:34:00-04:00",
+      "occurred_at": "{{TODAY-0}}T11:34:00-04:00",
+      "created_at": "{{TODAY-0}}T11:54:00-04:00",
+      "date": "{{TODAY-0}}",
+      "time": "11:34 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "11:54 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 121,
+          "product_name": "Sunshine Granola 12/1 LB",
+          "lot_code": "SS12-2609-A",
+          "lot_id": 12110,
+          "quantity_lb": 312.0,
+          "case_size_lb": 12,
+          "unit_count": 26,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 43,
+          "product_name": "Batch Blue Stripes Granola",
+          "lot_code": "BBS-2608-C",
+          "lot_id": 4310,
+          "quantity_lb": -312.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6523,
+      "type": "pack",
+      "timestamp": "{{TODAY-0}}T12:41:00-04:00",
+      "occurred_at": "{{TODAY-0}}T12:41:00-04:00",
+      "created_at": "{{TODAY-0}}T12:01:00-04:00",
+      "date": "{{TODAY-0}}",
+      "time": "12:41 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "12:01 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 131,
+          "product_name": "Toasted Coconut 6/2 LB",
+          "lot_code": "TC6-2609-A",
+          "lot_id": 13110,
+          "quantity_lb": 348.0,
+          "case_size_lb": 12,
+          "unit_count": 29,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 51,
+          "product_name": "Batch Toasted Coconut",
+          "lot_code": "BTC-2609-A",
+          "lot_id": 5110,
+          "quantity_lb": -348.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6524,
+      "type": "pack",
+      "timestamp": "{{TODAY-1}}T13:48:00-04:00",
+      "occurred_at": "{{TODAY-1}}T13:48:00-04:00",
+      "created_at": "{{TODAY-1}}T13:08:00-04:00",
+      "date": "{{TODAY-1}}",
+      "time": "13:48 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "13:08 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 122,
+          "product_name": "Blue Stripes Granola 6/2 LB",
+          "lot_code": "BS6-2609-A",
+          "lot_id": 12210,
+          "quantity_lb": 384.0,
+          "case_size_lb": 12,
+          "unit_count": 32,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 52,
+          "product_name": "Batch Sweetened Coconut",
+          "lot_code": "BSC-2609-A",
+          "lot_id": 5210,
+          "quantity_lb": -384.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6525,
+      "type": "pack",
+      "timestamp": "{{TODAY-1}}T14:55:00-04:00",
+      "occurred_at": "{{TODAY-1}}T14:55:00-04:00",
+      "created_at": "{{TODAY-1}}T14:15:00-04:00",
+      "date": "{{TODAY-1}}",
+      "time": "14:55 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "14:15 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 112,
+          "product_name": "Sunshine Granola 25 LB",
+          "lot_code": "SS25-2609-B",
+          "lot_id": 11210,
+          "quantity_lb": 875.0,
+          "case_size_lb": 25,
+          "unit_count": 35,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 61,
+          "product_name": "Batch Graham Crumb",
+          "lot_code": "BGR-2609-A",
+          "lot_id": 6110,
+          "quantity_lb": -875.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6526,
+      "type": "pack",
+      "timestamp": "{{TODAY-1}}T15:02:00-04:00",
+      "occurred_at": "{{TODAY-1}}T15:02:00-04:00",
+      "created_at": "{{TODAY-1}}T15:22:00-04:00",
+      "date": "{{TODAY-1}}",
+      "time": "15:02 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "15:22 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 141,
+          "product_name": "Graham Crumb 20 LB",
+          "lot_code": "GR20-2609-A",
+          "lot_id": 14110,
+          "quantity_lb": 760.0,
+          "case_size_lb": 20,
+          "unit_count": 38,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 41,
+          "product_name": "Batch Classic Granola",
+          "lot_code": "BCQ-2609-A",
+          "lot_id": 4110,
+          "quantity_lb": -760.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6527,
+      "type": "pack",
+      "timestamp": "{{TODAY-1}}T07:09:00-04:00",
+      "occurred_at": "{{TODAY-1}}T07:09:00-04:00",
+      "created_at": "{{TODAY-1}}T07:29:00-04:00",
+      "date": "{{TODAY-1}}",
+      "time": "07:09 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "07:29 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 111,
+          "product_name": "Classic Granola 25 LB",
+          "lot_code": "CQ25-2609-A",
+          "lot_id": 11110,
+          "quantity_lb": 1025.0,
+          "case_size_lb": 25,
+          "unit_count": 41,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 42,
+          "product_name": "Batch Sunshine Granola",
+          "lot_code": "BSS-2609-A",
+          "lot_id": 4210,
+          "quantity_lb": -1025.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6528,
+      "type": "pack",
+      "timestamp": "{{TODAY-2}}T08:16:00-04:00",
+      "occurred_at": "{{TODAY-2}}T08:16:00-04:00",
+      "created_at": "{{TODAY-2}}T08:36:00-04:00",
+      "date": "{{TODAY-2}}",
+      "time": "08:16 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "08:36 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 101,
+          "product_name": "Classic Granola 10 LB",
+          "lot_code": "CQ10-2609-A",
+          "lot_id": 10110,
+          "quantity_lb": 440.0,
+          "case_size_lb": 10,
+          "unit_count": 44,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 43,
+          "product_name": "Batch Blue Stripes Granola",
+          "lot_code": "BBS-2608-C",
+          "lot_id": 4310,
+          "quantity_lb": -440.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6529,
+      "type": "pack",
+      "timestamp": "{{TODAY-2}}T09:23:00-04:00",
+      "occurred_at": "{{TODAY-2}}T09:23:00-04:00",
+      "created_at": "{{TODAY-2}}T09:43:00-04:00",
+      "date": "{{TODAY-2}}",
+      "time": "09:23 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "09:43 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 121,
+          "product_name": "Sunshine Granola 12/1 LB",
+          "lot_code": "SS12-2609-A",
+          "lot_id": 12110,
+          "quantity_lb": 564.0,
+          "case_size_lb": 12,
+          "unit_count": 47,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 51,
+          "product_name": "Batch Toasted Coconut",
+          "lot_code": "BTC-2609-A",
+          "lot_id": 5110,
+          "quantity_lb": -564.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6530,
+      "type": "pack",
+      "timestamp": "{{TODAY-2}}T10:30:00-04:00",
+      "occurred_at": "{{TODAY-2}}T10:30:00-04:00",
+      "created_at": "{{TODAY-2}}T10:50:00-04:00",
+      "date": "{{TODAY-2}}",
+      "time": "10:30 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "10:50 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 131,
+          "product_name": "Toasted Coconut 6/2 LB",
+          "lot_code": "TC6-2609-A",
+          "lot_id": 13110,
+          "quantity_lb": 600.0,
+          "case_size_lb": 12,
+          "unit_count": 50,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 52,
+          "product_name": "Batch Sweetened Coconut",
+          "lot_code": "BSC-2609-A",
+          "lot_id": 5210,
+          "quantity_lb": -600.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6531,
+      "type": "pack",
+      "timestamp": "{{TODAY-2}}T11:37:00-04:00",
+      "occurred_at": "{{TODAY-2}}T11:37:00-04:00",
+      "created_at": "{{TODAY-2}}T11:57:00-04:00",
+      "date": "{{TODAY-2}}",
+      "time": "11:37 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "11:57 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 122,
+          "product_name": "Blue Stripes Granola 6/2 LB",
+          "lot_code": "BS6-2609-A",
+          "lot_id": 12210,
+          "quantity_lb": 636.0,
+          "case_size_lb": 12,
+          "unit_count": 53,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 61,
+          "product_name": "Batch Graham Crumb",
+          "lot_code": "BGR-2609-A",
+          "lot_id": 6110,
+          "quantity_lb": -636.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6532,
+      "type": "pack",
+      "timestamp": "{{TODAY-3}}T12:44:00-04:00",
+      "occurred_at": "{{TODAY-3}}T12:44:00-04:00",
+      "created_at": "{{TODAY-3}}T12:04:00-04:00",
+      "date": "{{TODAY-3}}",
+      "time": "12:44 AM",
+      "created_date": "{{TODAY-3}}",
+      "created_time": "12:04 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 112,
+          "product_name": "Sunshine Granola 25 LB",
+          "lot_code": "SS25-2609-B",
+          "lot_id": 11210,
+          "quantity_lb": 1400.0,
+          "case_size_lb": 25,
+          "unit_count": 56,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 41,
+          "product_name": "Batch Classic Granola",
+          "lot_code": "BCQ-2609-A",
+          "lot_id": 4110,
+          "quantity_lb": -1400.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6533,
+      "type": "pack",
+      "timestamp": "{{TODAY-3}}T13:51:00-04:00",
+      "occurred_at": "{{TODAY-3}}T13:51:00-04:00",
+      "created_at": "{{TODAY-3}}T13:11:00-04:00",
+      "date": "{{TODAY-3}}",
+      "time": "13:51 AM",
+      "created_date": "{{TODAY-3}}",
+      "created_time": "13:11 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 141,
+          "product_name": "Graham Crumb 20 LB",
+          "lot_code": "GR20-2609-A",
+          "lot_id": 14110,
+          "quantity_lb": 1180.0,
+          "case_size_lb": 20,
+          "unit_count": 59,
+          "product_type": "finished_good",
+          "sku": null
+        },
+        {
+          "product_id": 42,
+          "product_name": "Batch Sunshine Granola",
+          "lot_code": "BSS-2609-A",
+          "lot_id": 4210,
+          "quantity_lb": -1180.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        }
+      ]
+    }
+  ]
+}

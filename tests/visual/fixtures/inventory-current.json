@@ -1,0 +1,43 @@
+{
+  "count": 2,
+  "inventory": [
+    {
+      "product_id": 111,
+      "name": "Classic Granola 25 LB",
+      "odoo_code": "CQ-25",
+      "type": "finished_good",
+      "uom": "lb",
+      "case_size_lb": 25,
+      "quantity_on_hand": 7350.0,
+      "lots": [
+        {
+          "lot_code": "CQ25-2609-A",
+          "qty_on_hand": 4200.0
+        },
+        {
+          "lot_code": "CQ25-2607-C",
+          "qty_on_hand": 3150.0
+        }
+      ]
+    },
+    {
+      "product_id": 121,
+      "name": "Sunshine Granola 12/1 LB",
+      "odoo_code": "SS-12",
+      "type": "finished_good",
+      "uom": "lb",
+      "case_size_lb": 12,
+      "quantity_on_hand": 3240.0,
+      "lots": [
+        {
+          "lot_code": "SS12-2609-A",
+          "qty_on_hand": 1800.0
+        },
+        {
+          "lot_code": "SS12-2608-F",
+          "qty_on_hand": 1440.0
+        }
+      ]
+    }
+  ]
+}

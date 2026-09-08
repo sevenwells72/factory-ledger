@@ -1,0 +1,231 @@
+{
+  "count": 8,
+  "events": [
+    {
+      "event_id": "evt-0000",
+      "event_kind": "transaction",
+      "transaction_id": 7100,
+      "transaction_type": "pack",
+      "event_type": null,
+      "business_date": "{{TODAY-0}}",
+      "occurred_at": "{{TODAY-0}}T13:10:00-04:00",
+      "entered_at": "{{TODAY-0}}T20:30:00-04:00",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "effective_status": "posted",
+      "raw_status": "posted",
+      "direction": "Internal",
+      "lines": [
+        {
+          "product_name": "Classic Granola 25 LB",
+          "quantity": 800.0,
+          "unit": "lb",
+          "lot_code": "CQ25-2609-A"
+        },
+        {
+          "product_name": "Batch Classic Granola",
+          "quantity": -800.0,
+          "unit": "lb",
+          "lot_code": "BCQ-2609-A"
+        }
+      ],
+      "correction": null
+    },
+    {
+      "event_id": "evt-0001",
+      "event_kind": "transaction",
+      "transaction_id": 7101,
+      "transaction_type": "ship",
+      "event_type": null,
+      "business_date": "{{TODAY-0}}",
+      "occurred_at": "{{TODAY-3}}T15:40:00-04:00",
+      "entered_at": "{{TODAY}}T09:12:00-04:00",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "effective_status": "posted",
+      "raw_status": "posted",
+      "direction": "Outbound",
+      "lines": [
+        {
+          "product_name": "Classic Granola 25 LB",
+          "quantity": 800.0,
+          "unit": "lb",
+          "lot_code": "CQ25-2609-A"
+        },
+        {
+          "product_name": "Batch Classic Granola",
+          "quantity": -800.0,
+          "unit": "lb",
+          "lot_code": "BCQ-2609-A"
+        }
+      ],
+      "correction": null
+    },
+    {
+      "event_id": "evt-0002",
+      "event_kind": "correction",
+      "transaction_id": 7102,
+      "transaction_type": "amend",
+      "event_type": "amend",
+      "business_date": "{{TODAY-0}}",
+      "occurred_at": "{{TODAY-0}}T13:20:00-04:00",
+      "entered_at": "{{TODAY-0}}T14:36:00-04:00",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "effective_status": "posted",
+      "raw_status": "posted",
+      "direction": "Internal",
+      "lines": [],
+      "correction": {
+        "id": "cor-002",
+        "event_type": "amend",
+        "reason": "Case count corrected after a recount on the dock.",
+        "target_table": "ledger_transactions",
+        "target_id": 7102
+      }
+    },
+    {
+      "event_id": "evt-0003",
+      "event_kind": "transaction",
+      "transaction_id": 7103,
+      "transaction_type": "make",
+      "event_type": null,
+      "business_date": "{{TODAY-1}}",
+      "occurred_at": "{{TODAY-1}}T13:25:00-04:00",
+      "entered_at": "{{TODAY-1}}T20:39:00-04:00",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "effective_status": "posted",
+      "raw_status": "posted",
+      "direction": "Internal",
+      "lines": [
+        {
+          "product_name": "Classic Granola 25 LB",
+          "quantity": 800.0,
+          "unit": "lb",
+          "lot_code": "CQ25-2609-A"
+        },
+        {
+          "product_name": "Batch Classic Granola",
+          "quantity": -800.0,
+          "unit": "lb",
+          "lot_code": "BCQ-2609-A"
+        }
+      ],
+      "correction": null
+    },
+    {
+      "event_id": "evt-0004",
+      "event_kind": "correction",
+      "transaction_id": 7104,
+      "transaction_type": "void",
+      "event_type": "void",
+      "business_date": "{{TODAY-1}}",
+      "occurred_at": "{{TODAY-1}}T13:30:00-04:00",
+      "entered_at": "{{TODAY-1}}T14:42:00-04:00",
+      "created_at_source": "api",
+      "entry_backfilled": true,
+      "effective_status": "voided",
+      "raw_status": "posted",
+      "direction": "Internal",
+      "lines": [],
+      "correction": {
+        "id": "cor-004",
+        "event_type": "void",
+        "reason": "Case count corrected after a recount on the dock.",
+        "target_table": "ledger_transactions",
+        "target_id": 7104
+      }
+    },
+    {
+      "event_id": "evt-0005",
+      "event_kind": "transaction",
+      "transaction_id": 7105,
+      "transaction_type": "receive",
+      "event_type": null,
+      "business_date": "{{TODAY-1}}",
+      "occurred_at": "{{TODAY-1}}T13:35:00-04:00",
+      "entered_at": "{{TODAY-1}}T14:45:00-04:00",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "effective_status": "posted",
+      "raw_status": "posted",
+      "direction": "Inbound",
+      "lines": [
+        {
+          "product_name": "Classic Granola 25 LB",
+          "quantity": 800.0,
+          "unit": "lb",
+          "lot_code": "CQ25-2609-A"
+        },
+        {
+          "product_name": "Batch Classic Granola",
+          "quantity": -800.0,
+          "unit": "lb",
+          "lot_code": "BCQ-2609-A"
+        }
+      ],
+      "correction": null
+    },
+    {
+      "event_id": "evt-0006",
+      "event_kind": "transaction",
+      "transaction_id": 7106,
+      "transaction_type": "pack",
+      "event_type": null,
+      "business_date": "{{TODAY-2}}",
+      "occurred_at": "{{TODAY-2}}T13:40:00-04:00",
+      "entered_at": "{{TODAY-2}}T20:48:00-04:00",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "effective_status": "posted",
+      "raw_status": "posted",
+      "direction": "Internal",
+      "lines": [
+        {
+          "product_name": "Classic Granola 25 LB",
+          "quantity": 800.0,
+          "unit": "lb",
+          "lot_code": "CQ25-2609-A"
+        },
+        {
+          "product_name": "Batch Classic Granola",
+          "quantity": -800.0,
+          "unit": "lb",
+          "lot_code": "BCQ-2609-A"
+        }
+      ],
+      "correction": null
+    },
+    {
+      "event_id": "evt-0007",
+      "event_kind": "transaction",
+      "transaction_id": 7107,
+      "transaction_type": "ship",
+      "event_type": null,
+      "business_date": "{{TODAY-2}}",
+      "occurred_at": "{{TODAY-2}}T13:45:00-04:00",
+      "entered_at": "{{TODAY-2}}T14:51:00-04:00",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "effective_status": "posted",
+      "raw_status": "posted",
+      "direction": "Outbound",
+      "lines": [
+        {
+          "product_name": "Classic Granola 25 LB",
+          "quantity": 800.0,
+          "unit": "lb",
+          "lot_code": "CQ25-2609-A"
+        },
+        {
+          "product_name": "Batch Classic Granola",
+          "quantity": -800.0,
+          "unit": "lb",
+          "lot_code": "BCQ-2609-A"
+        }
+      ],
+      "correction": null
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "factory-ledger-dashboard-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node-side test tooling for the Factory Ledger dashboard (visual/mechanical design audit).",
+  "scripts": {
+    "test:visual": "node tests/visual/run-visual-audit.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  }
+}

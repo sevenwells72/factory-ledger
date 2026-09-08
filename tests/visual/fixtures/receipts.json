@@ -1,0 +1,179 @@
+{
+  "receipts": [
+    {
+      "transaction_id": 8000,
+      "date": "{{TODAY-1}}",
+      "time": "01:05 PM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "01:25 PM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "shipper_name": "Northfield Grain",
+      "bol_reference": "BOL-88200",
+      "total_lbs": 2200.0,
+      "cases_received": 44,
+      "case_size_lb": 50,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 201,
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "lot_code": "OAT-4471",
+          "quantity_lb": 2200.0,
+          "unit_count": null,
+          "product_type": "ingredient"
+        }
+      ]
+    },
+    {
+      "transaction_id": 8001,
+      "date": "{{TODAY-1}}",
+      "time": "02:20 PM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "02:35 PM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "shipper_name": "Vermont Maple Works",
+      "bol_reference": "BOL-88201",
+      "total_lbs": 2615.0,
+      "cases_received": null,
+      "case_size_lb": null,
+      "notes": "Two pallets short \u2014 supplier notified.",
+      "lines": [
+        {
+          "product_id": 211,
+          "product_name": "Grade A Maple Syrup",
+          "lot_code": "MPL-0912",
+          "quantity_lb": 2615.0,
+          "unit_count": null,
+          "product_type": "ingredient"
+        }
+      ]
+    },
+    {
+      "transaction_id": 8002,
+      "date": "{{TODAY-2}}",
+      "time": "03:35 PM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "03:25 PM",
+      "created_at_source": "api",
+      "entry_backfilled": true,
+      "shipper_name": "Pacific Coconut Co.",
+      "bol_reference": "BOL-88202",
+      "total_lbs": 3030.0,
+      "cases_received": null,
+      "case_size_lb": null,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 223,
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "lot_code": "COC-9081",
+          "quantity_lb": 3030.0,
+          "unit_count": null,
+          "product_type": "ingredient"
+        }
+      ]
+    },
+    {
+      "transaction_id": 8003,
+      "date": "{{TODAY-2}}",
+      "time": "04:05 PM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "04:35 PM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "shipper_name": "Midstate Packaging",
+      "bol_reference": "BOL-88203",
+      "total_lbs": 3445.0,
+      "cases_received": 47,
+      "case_size_lb": 50,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 221,
+          "product_name": "Raw Pecan Halves",
+          "lot_code": "PEC-7714",
+          "quantity_lb": 3445.0,
+          "unit_count": null,
+          "product_type": "ingredient"
+        }
+      ]
+    },
+    {
+      "transaction_id": 8004,
+      "date": "{{TODAY-3}}",
+      "time": "01:20 PM",
+      "created_date": "{{TODAY-3}}",
+      "created_time": "01:25 PM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "shipper_name": "Cardinal Nut Supply",
+      "bol_reference": "BOL-88204",
+      "total_lbs": 3860.0,
+      "cases_received": null,
+      "case_size_lb": null,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 222,
+          "product_name": "Pumpkin Seeds",
+          "lot_code": "PMP-5520",
+          "quantity_lb": 3860.0,
+          "unit_count": null,
+          "product_type": "ingredient"
+        }
+      ]
+    },
+    {
+      "transaction_id": 8005,
+      "date": "{{TODAY-3}}",
+      "time": "02:35 PM",
+      "created_date": "{{TODAY-3}}",
+      "created_time": "02:35 PM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "shipper_name": "Northfield Grain",
+      "bol_reference": "BOL-88205",
+      "total_lbs": 4275.0,
+      "cases_received": null,
+      "case_size_lb": null,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 201,
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "lot_code": "OAT-4471",
+          "quantity_lb": 4275.0,
+          "unit_count": null,
+          "product_type": "ingredient"
+        }
+      ]
+    },
+    {
+      "transaction_id": 8006,
+      "date": "{{TODAY-4}}",
+      "time": "03:05 PM",
+      "created_date": "{{TODAY-4}}",
+      "created_time": "03:25 PM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "shipper_name": "Vermont Maple Works",
+      "bol_reference": "BOL-88206",
+      "total_lbs": 4690.0,
+      "cases_received": 50,
+      "case_size_lb": 50,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 211,
+          "product_name": "Grade A Maple Syrup",
+          "lot_code": "MPL-0912",
+          "quantity_lb": 4690.0,
+          "unit_count": null,
+          "product_type": "ingredient"
+        }
+      ]
+    }
+  ]
+}

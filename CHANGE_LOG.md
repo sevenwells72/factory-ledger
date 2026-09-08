@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-08 02:05 — Playwright visual/mechanical design audit; browser check written up
+
+- **File(s) changed:** `package.json`, `.gitignore`, `CONTEXT.md`, `tests/visual/**` (new: `run-visual-audit.mjs`, `README.md`, `lib/screens.mjs`, `lib/checks.mjs`, `lib/stub.mjs`, `lib/server.mjs`, `lib/report.mjs`, `fixtures/*.json`), `docs/design/audit/06-browser-check.md` (new), `docs/design/audit/IMPROVEMENTS-MASTER.md`
+- **What changed:** Added a Playwright harness (`npm run test:visual`) that serves `dashboard/` from a local static server, answers every Railway API call from JSON fixtures, and captures all 91 screens of `docs/design/audit/00-screen-inventory.md` — Mobile Yes/Partial screens at 390px, every screen at 1440px, both in light and dark, plus 1440px at 200% zoom for Operations, Sales Orders, Expected Receipts and Supplies. 384 captures. Each is measured for hit-target size (TOUCH-003), WCAG AA contrast including composited translucent fills and `::placeholder` (ACCESS-008 / INPUT-022), horizontal document overflow (LAYOUT-003 / ACCESS-001), fixed-bar occlusion (LAYOUT-011) and layout shift on the app's own refresh (LAYOUT-020). Results written to `docs/design/audit/06-browser-check.md` as a screen x rule x status matrix. `IMPROVEMENTS-MASTER.md`: the "Unverifiable — needs browser check" section is replaced by "Settled by the browser check" plus "Still unverifiable"; three new improvements added (IMP-065 print views, IMP-066 viewport height at 200% zoom, IMP-067 the opacity dim on inactive rows); eleven existing improvements annotated with measured evidence.
+- **Why:** The audit's "Unverifiable — needs browser check" list recorded findings whose code evidence was necessary but not sufficient. This settles the clauses a rendered page can settle and states precisely which ones still need a device, a person or a printer. **No application file was changed and no finding was fixed** — that is deliberate and out of scope for this branch.
+
+---
+
 ## 2026-09-08 00:20 — Changelog row 112 deploy status corrected
 
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
