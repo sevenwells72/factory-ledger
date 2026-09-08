@@ -18,7 +18,7 @@ Each of the five group files records findings **per rule, per screen**. The same
 **Effort** is a rough implementation size: **S** ≈ under a day, **M** ≈ one to three days, **L** ≈ a week or more.
 **Screens** is the count of inventoried screens the change affects.
 
-Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least one Critical rule; twenty-five are High, thirteen Medium, two Low. Nine are marked **DONE**, two **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
+Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least one Critical rule; twenty-five are High, thirteen Medium, two Low. Nine are marked **DONE**, three **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
 
 ---
 
@@ -26,9 +26,9 @@ Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least on
 
 [07-systemic-clusters.md](07-systemic-clusters.md) decomposes the browser check by **root cause** rather than by
 improvement, so its clusters do not map one-to-one onto the IMP numbers above. Six shipped on branch
-`fix/systemic-tokens-a`; this table is the per-cluster record. No new IMP numbers were minted for them — each
-already sits inside an existing improvement, and duplicating it here would defeat the deduplication this file
-exists to do.
+`fix/systemic-tokens-a` (PR #28) and ten on `fix/systemic-touch-b`; this table is the per-cluster record. No new
+IMP numbers were minted for them — each already sits inside an existing improvement, and duplicating it here
+would defeat the deduplication this file exists to do.
 
 | Cluster | Rule | Change | Cells cleared | Commit | Improvement |
 |---|---|---|---:|---|---|
@@ -39,10 +39,27 @@ exists to do.
 | | | **A2 + A3 + A6 + A9 together** | **80 of 288** | | |
 | **O1** | LAYOUT-003 | `flex-wrap` on `.header` / `.header-right` below 768 px, in the three inline stylesheets | **16 of 28** | `163bd33` | IMP-027 (partly) |
 | **F1** | LAYOUT-011 | `@media (max-height: 600px)` — `.app-header` static, `.tab-bar` re-anchored | **12 of 12** | `70fe9a2` | **IMP-066 (DONE)** |
+| **T1** | TOUCH-003 | `.btn-sm` — `min-height: var(--hit-min)`; the four in-row variants keep their box and take the invisible `::before` region | 112 → 0 cells | `498a530` | IMP-011 (partly) |
+| **T2** | TOUCH-003 | `.btn-refresh` — `min-height` | 74 → 0 | `498a530` | IMP-011 (partly) |
+| **T7** | TOUCH-003 | `.tab`, `.supplies-subtab`, `.notes-filter-btn` — `min-height` (+ `min-width` on the 39 px "All") | 16 → 0 | `498a530` | IMP-011 (partly) |
+| **T8** | TOUCH-003 | `.btn-secondary`, `.btn-back` — `min-height` | 30 → 0 | `498a530` | IMP-011 (partly) |
+| **T3** | TOUCH-003 | one `:where(input, select, textarea)` rule at `min-height: var(--hit-min)`; the two in-table qty / price inputs excluded | 96 → 6 | `6bef15f` | IMP-011 (partly) |
+| **T4** | TOUCH-003 | checkboxes / radios native at 20 px + `accent-color`; the wrapping `<label>` is the 44 px region; the two in-row checkboxes gain a `.check-hit` label | 60 → 0 | `6bef15f` | IMP-011 (partly) |
+| **T6** | TOUCH-003 | `.btn-theme`, `.btn-close` 44 × 44; `.order-expand-toggle`, `.note-action-btn`, `.show-more-btn` via the invisible region | 68 → 0 | `ae29903` | IMP-011 (partly) |
+| **T9** | TOUCH-003 | `.site-nav-link` inline-flex + `min-height`, `.site-nav-toggle` 44 × 44 — in `dashboard.css` and the three inline copies | 14 → 0 | `dcf3b1a` | IMP-011 (partly) |
+| **T10** | TOUCH-003 | `.mini-calendar-nav` width 30 / 26 / 24 → `var(--hit-min, 44px)` | 18 → 0 | `dcf3b1a` | IMP-011 (partly) |
+| **T12** | TOUCH-003 | `.trace-btn`, `.dir-btn`, `.export-btn`, `.graph-ctrl-btn`, `.search-input` — `min-height` (+ `min-width` on the graph controls) | 16 → 0 | `dcf3b1a` | IMP-011 (partly) |
+| | | **T1–T4, T6–T10, T12 together** | **200 of 316** | | |
 
 The four ACCESS-008 clusters are counted together because they co-occur: measured alone they clear 38 + 27 + 3
 + 0 = 68 cells, and together they clear 80. A cell only flips to PASS when its *last* offender goes, which is
-what 07's "clears alone" column is warning about.
+what 07's "clears alone" column is warning about. The ten TOUCH-003 clusters are the same story in the other
+direction: 07 priced the seven-cluster bundle T1–T4 + T6–T8 at 178 cells; with T9, T10 and T12 the ten
+together clear 200, and the 116 still failing all belong to T5 (64 cells, the SYS-3 non-controls — IMP-031), T11 (8), T13 / T14 (the
+scheduler, 58) and T3's two in-table inputs (6). The harness `d60fb08` is what makes the in-row regions
+measurable: it unions an absolutely-positioned `::before` and a wrapping `<label>` into the element's hit region,
+from geometry — 586 targets pass by the pseudo-element and 270 by their label. Run against unmodified `main`
+that harness change moves zero cells on any rule.
 
 Also on that branch, and not a cluster: the twelve-per-capture truncation in `tests/visual/lib/checks.mjs`
 (`:112`, `:256`) was lifted (`e801df3`), so `screenshots/results.json` now stores every failing measurement
@@ -74,7 +91,7 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-008** | Preserve drafts; stop blanking the view on a failed refresh | M | 20 | | |
 | **IMP-009** | Raise operational text above the 12 px floor; add a mobile body size | M | ~50 | | |
 | **IMP-010** | Fix the light-theme contrast failures and `--text-dimmed` | S | ~30 | Partly done | `86ea5a4`, `d9d77b7`, `414f1ea`, `8674c0a` |
-| **IMP-011** | Minimum 44 × 44 pt hit targets and a focus ring on every control | M | ~65 | | |
+| **IMP-011** | Minimum 44 × 44 pt hit targets and a focus ring on every control | M | ~65 | Partly done | `498a530`, `6bef15f`, `ae29903`, `dcf3b1a` |
 | **IMP-012** | Separate the product-family palette from the status palette; tokenise the hard-coded colours | M | ~40 | | |
 | **IMP-013** | Introduce semantic button roles (primary / secondary / danger) | M | ~30 | | |
 | **IMP-014** | Replace the native `confirm()`/`alert()` dialogs | M | 6 | | |
@@ -406,6 +423,38 @@ The first two matter most: in the light theme the **"✓ READY" pill** and the *
 
 **Rules:** TOUCH-003 (Critical, Hard rule) · LAYOUT-012 (Critical) · ACCESS-003 · ACTION-002
 **Screens:** ~65 · **Importance:** Critical · **Effort:** M
+
+**Status: partly done.** Ten of the fourteen TOUCH-003 clusters in [07](07-systemic-clusters.md) shipped on
+branch `fix/systemic-touch-b` behind one token, `--hit-min: 44px` (the SYS-4 change) — **T1, T2, T7, T8**
+`498a530`, **T3, T4** `6bef15f`, **T6** `ae29903`, **T9, T10, T12** `dcf3b1a`, with the harness taught to measure
+the resulting regions in `d60fb08`. TOUCH-003 **316 → 116** failing cells on the 384-capture run, **200 cleared,
+zero regressions** on a per-cell diff of all five rules; ACCESS-008, LAYOUT-003 and LAYOUT-011 are identical cell
+for cell. Two techniques, chosen by where the control sits: standalone controls (buttons, fields, tabs, nav
+links, the calendar arrows, the modal ×) take `min-height` / `min-width` from the token directly; controls that
+are table-row or card-row content (`.er-actions .btn-sm`, `.allocation-release-btn`, `.order-inventory-toggle`,
+`.supply-request-done-btn`, `.order-expand-toggle`, `.note-action-btn`, `.show-more-btn`, and the two in-row
+checkboxes through a wrapping `.check-hit` label) keep their rendered box and carry an invisible
+absolutely-positioned `::before` of at least 44 × 44 — the technique this section's Fix line already named — so
+DATA-003 row density is untouched: a probe of 1,221 rows across every screen at 390 and 1440 finds 1,216 at their
+previous height, and the five that moved are the expanded order panel (its Factory Ready note field is now 44 px)
+and one wrapped search-dropdown line.
+
+What remains of this improvement, in order of size: **T5**, the six SYS-3 non-controls (64 cells) — sizing alone
+would clear the measurement and leave the keyboard defect, so it waits for IMP-031's `role` / `tabindex` / key
+handler; **T13 / T14**, the scheduler (58 cells) — T13 doubles the plan-table height and is a layout decision;
+**T11**, the Sankey / Process Flow banner buttons (8 cells); the order-line qty / price inputs in edit mode
+(6 cells, S-33) — replaced elements cannot carry a `::before`, so growing their region means growing the row; the
+LAYOUT-012 adjacencies, mitigated but not solved — the note Edit / Delete regions are pushed outward so neither
+covers the other's glyph, and the orders row's expand toggle and Factory Ready box need 88 px of region in the
+75.5 px before the SO text, so the checkbox region is pushed right to start at the toggle's edge and ends 2.5 px
+into the row's own click surface; and the shared `:focus-visible` rule, which is not started.
+
+Two consequences of growing the standalone controls are measured and recorded rather than smoothed over: the
+tab bar is 44 px instead of 38, and on a 390 px phone the header's second and third rows each grow to 44 px, so
+the sticky stack there is 368 px instead of 333 (the desktop header is 141 px, set by the mini-calendar strip,
+and does not move) — the phone header is IMP-038 / IMP-069's problem and this makes it 35 px worse until they
+land. The header's right-hand cluster is 12 px wider, which wraps one long customer line in the global-search
+dropdown at 1440.
 
 **Browser check:** measured, and the estimates in the table below hold. `.order-ready-checkbox` **16 × 16**, `.note-checkbox` **18 × 18**, `.note-action-btn` **22.4 × 21**, `.order-expand-toggle` **22 × 22**, `.btn-sm` **≈ 24** tall, `.lot-link` **43.2 × 14**, `.btn-close` **12.9 × 22**. Three classes not in that table also fail and belong in scope: the scheduler's `button.copyday` at **12 × 12**, its `#leftpanel .ctl > input` at **15 × 15**, and its order-book `a.o-action` at **20 × 20**. 314 of 384 captures fail; 70 of the 74 screens that render a control at all. ([06](06-browser-check.md))
 
@@ -1469,7 +1518,9 @@ overflow once the column is full-width).
 
 ### IMP-069 — Collapse the mini-calendar strip on phone
 
-**Status:** New — raised by the phone review of production (2026-09-08).
+**Status:** New — raised by the phone review of production (2026-09-08). Cluster T10 (`dcf3b1a`, IMP-011)
+has since widened the strip's two arrow buttons from 24–30 px to 44 px, which clears their TOUCH-003 measurement
+and adds 40 px to the strip's own horizontal scroll width at 390 px; it does not change the finding below.
 
 **Rules:** NAV-001 · ACCESS-006 · TOUCH-003
 **Screens:** S-02, in the header of all four pages · **Importance:** High · **Effort:** M
