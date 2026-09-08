@@ -13,6 +13,7 @@ bytes → validated-dict function, and matching/approval live elsewhere.
 import base64
 import math
 import os
+import re
 from datetime import datetime
 from typing import List, Optional
 
@@ -56,13 +57,17 @@ class ExtractionResult(BaseModel):
     expected_delivery_date: Optional[str] = None  # YYYY-MM-DD
     lines: List[ExtractedLine]
 
-    # Audit fix 11: a date is exactly YYYY-MM-DD and a real calendar date,
-    # or null — never a free-text string the model happened to emit.
+    # Audit fix 11 (tightened in re-audit): a date is exactly YYYY-MM-DD and a
+    # real calendar date, or null — never a free-text string the model
+    # happened to emit. The format check must run BEFORE strptime, which
+    # accepts unpadded fields ('2026-2-3') that the contract forbids.
     @field_validator("document_date", "expected_delivery_date")
     @classmethod
     def _valid_iso_date(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
+        if not isinstance(v, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
+            raise ValueError("date must be YYYY-MM-DD or null")
         try:
             datetime.strptime(v, "%Y-%m-%d")
         except (ValueError, TypeError):

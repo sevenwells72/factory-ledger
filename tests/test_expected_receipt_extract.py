@@ -408,7 +408,10 @@ class TestExtractPurchaseDocument:
             extract_purchase_document(b"x", "image/png")
 
     @pytest.mark.parametrize("field", ["document_date", "expected_delivery_date"])
-    @pytest.mark.parametrize("value", ["Sept 5 2026", "2026-13-45", "2026-02-30", "tomorrow", "26-09-05"])
+    # Audit-2 fix 11: strptime alone accepts unpadded fields, so the exact
+    # ^\d{4}-\d{2}-\d{2}$ shape is enforced first — '2026-2-3' must fail.
+    @pytest.mark.parametrize("value", ["Sept 5 2026", "2026-13-45", "2026-02-30", "tomorrow", "26-09-05",
+                                       "2026-2-3", "2026-02-3", "2026-2-03", " 2026-02-03", "2026-02-03\n"])
     def test_invalid_date_string_rejected(self, monkeypatch, field, value):
         bad = dict(GOOD_EXTRACTION)
         bad[field] = value
