@@ -3579,7 +3579,8 @@ def search_products(
                 cur.execute(
                     """SELECT id, name, odoo_code, type, uom, active,
                               COALESCE(verification_status, 'verified') as verification_status,
-                              case_size_lb, default_batch_lb
+                              case_size_lb, default_batch_lb,
+                              COALESCE(label_type, 'house') AS label_type
                        FROM products WHERE id = %s""",
                     (r['id'],)
                 )
@@ -5853,7 +5854,10 @@ def match_sales_extraction(cur, extraction_payload: dict) -> dict:
     pool = _so_prior_sales_pool(cur, customer_id) if customer_id else []
     lines = [_match_so_line(cur, customer_id, pool, dict(line))
              for line in extraction_payload.get("lines", [])]
-    return {"customer": customer_block, "duplicate_warning": duplicate_warning, "lines": lines}
+    # prior_sales_product_ids: the review screen's full-catalog picker lists
+    # these first and badges private-label products outside them (rulings 2/3).
+    return {"customer": customer_block, "duplicate_warning": duplicate_warning,
+            "lines": lines, "prior_sales_product_ids": pool}
 
 
 # ── Intake endpoints ────────────────────────────────────────────────────────
@@ -11340,6 +11344,7 @@ def list_sales_orders(
             query = """
                 SELECT so.id, so.order_number, c.name AS customer,
                        so.order_date, so.requested_ship_date, so.status,
+                       so.customer_po, so.source_document_id,
                        COALESCE(sof.ready, false) AS ready,
                        sof.ready_at, sof.ready_by, sof.note AS ready_note,
                        COUNT(sol.id) AS line_count,
@@ -11417,6 +11422,8 @@ def list_sales_orders(
                     "order_date": str(r['order_date']),
                     "requested_ship_date": str(ship_date) if ship_date else None,
                     "status": r['status'],
+                    "customer_po": r['customer_po'],
+                    "source_document_id": r['source_document_id'],
                     "line_count": r['line_count'],
                     "total_lb": total,
                     "shipped_lb": shipped,

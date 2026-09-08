@@ -2524,6 +2524,12 @@ body {
 
 /* Quantity row: qty × unit → lb/unit → expected lb, source tag beneath each. */
 .er-line-qtyrow { display: flex; align-items: flex-start; gap: 6px; }
+/* SO intake (sales-order-intake.md): the quantity row carries a 4th cell
+   (unit price) — let it wrap under the row in the ~500px modal instead of
+   squeezing four inputs onto one line. */
+.so-modal .er-line-qtyrow { flex-wrap: wrap; }
+.so-modal .er-qcell { flex: 1 1 96px; }
+.so-modal .er-qcell-qty { flex: 1.5 1 150px; }
 .er-qcell { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .er-qcell-qty { flex: 1.5 1 0; }
 .er-qcell > label {

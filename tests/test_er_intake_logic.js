@@ -1,10 +1,13 @@
-// ER intake review-state logic — regression tests for the audit fixes
-// (docs/designs/er-intake-audit-1.md). Run: node --test tests/test_er_intake_logic.js
+// Intake review-state logic — regression tests for the ER audit fixes
+// (docs/designs/er-intake-audit-1.md) plus the SO intake config
+// (docs/designs/sales-order-intake.md). The module was renamed
+// er-intake-logic.js → intake-logic.js (SO design ruling 10); every ER
+// assertion below is unchanged. Run: node --test tests/test_er_intake_logic.js
 // (also wrapped by tests/test_er_intake_logic_js.py so pytest runs it).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const ERIntake = require('../dashboard/er-intake-logic.js');
+const ERIntake = require('../dashboard/intake-logic.js');
 
 function matchLine(overrides = {}) {
   return {
@@ -456,4 +459,155 @@ test('forceKey binds the override to the normalized (supplier, reference) pair',
   assert.notEqual(ERIntake.forceKey(3, 'PO-777'), ERIntake.forceKey(4, 'PO-777'));
   assert.notEqual(ERIntake.forceKey(3, 'PO-777'), ERIntake.forceKey(3, 'PO-778'));
   assert.equal(ERIntake.forceKey(3, 'A  B'), ERIntake.forceKey(3, 'a b'));
+});
+
+// ── SO intake config (docs/designs/sales-order-intake.md) ──────────────────
+
+function soMatchLine(overrides = {}) {
+  return {
+    customer_item_code: 'CQ-77',
+    description: 'THEIR GRANOLA 10LB CASE',
+    quantity: 3,
+    unit: 'CASE',
+    unit_price: 32.5,
+    match_source: 'none',
+    confidence: 0,
+    product: null,
+    candidates: [],
+    case_size_lb: null,
+    case_size_source: 'none',
+    quantity_lb: null,
+    ...overrides,
+  };
+}
+
+const SO_PROD = { product_id: 9, name: 'Granola 10 LB', odoo_code: '1614',
+  label_type: 'house', prior_sales: true };
+const SO_PL_PROD = { product_id: 11, name: 'Setton Secret 25 LB', odoo_code: '70056',
+  label_type: 'private_label', prior_sales: false };
+
+test('soNormalizeMatchLine maps sales fields onto the shared shape', () => {
+  const n = ERIntake.soNormalizeMatchLine(soMatchLine({
+    case_size_lb: 10, case_size_source: 'product', quantity_lb: 30 }));
+  assert.equal(n.vendor_description, 'THEIR GRANOLA 10LB CASE');
+  assert.equal(n.lb_per_unit, 10);
+  assert.equal(n.lb_source, 'case_size'); // 'product' → dies with a product change
+  assert.equal(n.expected_qty_lb, 30);
+  assert.equal(n.customer_item_code, 'CQ-77');
+  assert.equal(n.unit_price, 32.5);
+});
+
+test('so alias/exact match arrives chosen with computed lb; fuzzy stays a suggestion', () => {
+  const exact = ERIntake.soBuildReviewLine(soMatchLine({
+    match_source: 'exact', confidence: 1, product: SO_PROD,
+    case_size_lb: 10, case_size_source: 'product', quantity_lb: 30 }));
+  assert.equal(exact.chosen.product_id, 9);
+  assert.equal(exact.qty_lb, 30);
+  assert.equal(exact.qty_lb_source, 'computed');
+  const fuzzy = ERIntake.soBuildReviewLine(soMatchLine({
+    match_source: 'fuzzy', confidence: 0.8, product: SO_PROD }));
+  assert.equal(fuzzy.chosen, null, 'a fuzzy product is a suggestion, never a selection');
+  assert.equal(fuzzy.suggested.product_id, 9);
+  assert.equal(fuzzy.qty_lb, null);
+});
+
+test('so lb-unit line converts at 1 lb/unit; a pick computes and a re-pick restores', () => {
+  const l = ERIntake.soBuildReviewLine(soMatchLine({
+    unit: 'LB', quantity: 500, quantity_lb: 500, case_size_source: 'unit_is_lb' }));
+  assert.equal(l.lb_per_unit, 1);
+  assert.equal(l.lb_source, 'unit_is_lb');
+  assert.equal(l.qty_lb, null, 'pounds wait for a product, exactly like ER lb lines');
+  assert.equal(ERIntake.lineApprovable(l), false);
+  ERIntake.applyProductPick(l, SO_PROD);
+  assert.equal(l.qty_lb, 500, 'pick computes the document pounds');
+  ERIntake.clearChosen(l);
+  assert.equal(l.lb_per_unit, 1, 'unit_is_lb survives a product change');
+  ERIntake.applyProductPick(l, { ...SO_PROD, product_id: 42 });
+  assert.equal(l.qty_lb, 500, 're-pick restores the pounds');
+  // The 1-lb display conversion must never be taught as an alias case size.
+  ERIntake.applySaveAliasToggle(l, true);
+  assert.equal(ERIntake.soApproveLinePayload(l).case_size_lb, null);
+});
+
+test('soMergeRematch preserves exclusions and agreeing picks like the ER merge', () => {
+  const prev = ERIntake.soBuildReviewLine(soMatchLine());
+  prev.include = false;
+  ERIntake.applyProductPick(prev, SO_PROD);
+  const merged = ERIntake.soMergeRematch([prev], [soMatchLine({
+    match_source: 'exact', confidence: 1, product: SO_PROD,
+    case_size_lb: 10, case_size_source: 'product', quantity_lb: 30 })]);
+  assert.equal(merged[0].include, false, 'exclusion survives');
+  assert.equal(merged[0].chosen.product_id, 9, 'agreeing pick survives');
+  const disagree = ERIntake.soMergeRematch([prev], [soMatchLine({
+    match_source: 'exact', confidence: 1, product: { ...SO_PROD, product_id: 99 },
+    case_size_lb: 10, case_size_source: 'product', quantity_lb: 30 })]);
+  assert.equal(disagree[0].chosen, null,
+    'a result disagreeing with the user pick resets the line to unconfirmed');
+  assert.equal(disagree[0].qty_lb, null);
+});
+
+test('soPriceBasis: per-case on cases, per-lb on lb, unclear otherwise (ruling 5)', () => {
+  assert.equal(ERIntake.soPriceBasis('CASE'), 'per_case');
+  assert.equal(ERIntake.soPriceBasis(' cs. '), 'per_case');
+  assert.equal(ERIntake.soPriceBasis('LB'), 'per_lb');
+  assert.equal(ERIntake.soPriceBasis('pounds'), 'per_lb');
+  assert.equal(ERIntake.soPriceBasis('EA'), 'unclear');
+  assert.equal(ERIntake.soPriceBasis(null), 'unclear');
+  assert.equal(ERIntake.soPriceBasis(''), 'unclear');
+});
+
+test('soApproveLinePayload sends the price only when the basis is unambiguous', () => {
+  const cases = ERIntake.soBuildReviewLine(soMatchLine({
+    match_source: 'exact', confidence: 1, product: SO_PROD,
+    case_size_lb: 10, case_size_source: 'product', quantity_lb: 30 }));
+  assert.equal(ERIntake.soApproveLinePayload(cases).unit_price, 32.5);
+  const unclear = ERIntake.soBuildReviewLine(soMatchLine({
+    unit: 'EA', match_source: 'exact', confidence: 1, product: SO_PROD }));
+  ERIntake.applyQtyLbOverride(unclear, 30);
+  assert.equal(ERIntake.soApproveLinePayload(unclear).unit_price, null,
+    'unclear basis → price not stored');
+});
+
+test('soApproveLinePayload teaches the conversion only when it explains the pounds', () => {
+  const l = ERIntake.soBuildReviewLine(soMatchLine({
+    match_source: 'alias', confidence: 1, product: SO_PROD,
+    case_size_lb: 10, case_size_source: 'alias', quantity_lb: 30 }));
+  assert.equal(l.save_alias, true);
+  let p = ERIntake.soApproveLinePayload(l);
+  assert.equal(p.case_size_lb, 10);
+  assert.equal(p.quantity_lb, 30);
+  assert.equal(p.customer_item_code, 'CQ-77');
+  assert.equal(p.customer_description, 'THEIR GRANOLA 10LB CASE');
+  // A direct lb override breaks the conversion → case_size_lb must not teach.
+  ERIntake.applyQtyLbOverride(l, 35);
+  ERIntake.applySaveAliasToggle(l, true);
+  p = ERIntake.soApproveLinePayload(l);
+  assert.equal(p.case_size_lb, null);
+  assert.equal(p.quantity_lb, 35);
+});
+
+test('applyUnitPriceChange edits and clears the price, locked while matching', () => {
+  const l = ERIntake.soBuildReviewLine(soMatchLine());
+  ERIntake.applyUnitPriceChange(l, '40');
+  assert.equal(l.unit_price, 40);
+  ERIntake.applyUnitPriceChange(l, '');
+  assert.equal(l.unit_price, null);
+  ERIntake.applyUnitPriceChange(l, '-3');
+  assert.equal(l.unit_price, null);
+  l.matching = true;
+  ERIntake.applyUnitPriceChange(l, '55');
+  assert.equal(l.unit_price, null, 'locked line refuses edits');
+});
+
+test('soPrivateLabelWarning: warn only on a known first sale (rulings 2/3)', () => {
+  const warn = ERIntake.soBuildReviewLine(soMatchLine());
+  ERIntake.applyProductPick(warn, SO_PL_PROD);
+  assert.equal(ERIntake.soPrivateLabelWarning(warn), true);
+  const ok = ERIntake.soBuildReviewLine(soMatchLine());
+  ERIntake.applyProductPick(ok, { ...SO_PL_PROD, prior_sales: true });
+  assert.equal(ERIntake.soPrivateLabelWarning(ok), false);
+  const unknown = ERIntake.soBuildReviewLine(soMatchLine());
+  ERIntake.applyProductPick(unknown, { product_id: 7, name: 'ER pick' });
+  assert.equal(ERIntake.soPrivateLabelWarning(unknown), false,
+    'unknown label/prior_sales (ER picks) never warns');
 });
