@@ -2475,3 +2475,151 @@ body {
   .supply-lot-detail { padding-left: 16px; }
   .supplies-requests-header { align-items: flex-start; gap: 8px; }
 }
+
+/* ── Needs Attention strip (IMP-030) ──────────────────────────────────────
+   NOTIFY-011 / NAV-001: the seven operational attention counts, promoted to
+   the entry screen and each one a link into the view that resolves it.
+
+   FEEDBACK-011 (Hard rule) is the constraint that shapes this block. Nothing
+   here is signalled by hue alone — in grayscale the three states are still
+   told apart by four independent carriers:
+     · the numeral itself (— / 0 / 3)
+     · the left-edge bar: dotted (unknown), 2px (clear), 5px solid (attention)
+     · the count's font weight: 500 (clear) vs 800 (attention)
+     · the triangular flag glyph, rendered only when the count is non-zero
+   Colour is added on top of those, never instead of them.
+
+   LAYOUT-020 (Critical): the grid tracks are sized from the container, not
+   from chip content, and .att-count reserves its width in `ch`. A count going
+   from 8 to 12 to 0 therefore repaints inside a fixed box — no chip moves, and
+   nothing below the strip shifts under a user who is about to tap. */
+
+.attention-strip-section { overflow: visible; }
+
+.attention-strip {
+  display: grid;
+  /* 200px lands four chips per row in the dashboard's content column, so the
+     seven wrap 4 + 3 rather than 6 + 1. */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  padding: 12px 16px 16px;
+  margin: 0;
+  list-style: none;
+}
+
+.attention-item { min-width: 0; }
+
+.attention-chip {
+  display: grid;
+  /* The count track is a fixed 3.5ch rather than content-sized: a count going
+     from 9 to 10 to 100 must not steal width from the label, because a label
+     that rewraps to a second line changes the row height and shifts every
+     section below the strip (LAYOUT-020). renderAttentionStrip caps the
+     printed value at "999+", and the track is sized to fit that string. */
+  grid-template-columns: auto 4.5ch minmax(0, 1fr) auto;
+  align-items: center;
+  /* Equal height across a row, so a wrapped label cannot leave a ragged row. */
+  height: 100%;
+  gap: 8px;
+  /* TOUCH-001: 44 px minimum target, and the box height is independent of the
+     count's digit run so the row never changes height on refresh. */
+  min-height: 44px;
+  padding: 8px 12px 8px 9px;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.attention-chip:hover { background: var(--surface-hover); }
+
+/* ACCESS-002: an outline, not a colour shift, so focus survives grayscale. */
+.attention-chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.att-icon { width: 17px; height: 17px; flex: none; color: var(--text-muted); }
+
+.att-count {
+  /* Right-aligned inside its fixed track, so the label's left edge is pinned
+     no matter how many digits arrive. */
+  min-width: 0;
+  text-align: right;
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.att-label {
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* The shape carrier. Present in the DOM at every state so toggling it cannot
+   change the chip's width; only its visibility changes. */
+.att-flag {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  visibility: hidden;
+  color: var(--warning);
+}
+
+/* ── State: not loaded (NOTIFY-010 — never fake a zero) ── */
+.attention-chip[data-state="unknown"] {
+  border-left-style: dotted;
+  border-left-color: var(--text-dimmed);
+}
+.attention-chip[data-state="unknown"] .att-count { color: var(--text-dimmed); }
+
+/* ── State: clear ──
+   Neutral, not green and not red: zero overdue receipts is the ordinary case,
+   not an achievement. The chip stays visible and stays a link so the view is
+   still one tap away. */
+.attention-chip[data-state="clear"] {
+  border-left-width: 2px;
+  padding-left: 12px;
+  border-left-color: var(--border);
+}
+.attention-chip[data-state="clear"] .att-count { color: var(--text-muted); }
+
+/* ── State: needs attention ── */
+.attention-chip[data-state="attention"] {
+  border-left-color: var(--warning);
+  background: var(--surface);
+}
+.attention-chip[data-state="attention"] .att-count {
+  font-weight: 800;
+  color: var(--text);
+}
+.attention-chip[data-state="attention"] .att-label { color: var(--text-secondary); }
+.attention-chip[data-state="attention"] .att-icon { color: var(--text-secondary); }
+.attention-chip[data-state="attention"] .att-flag { visibility: visible; }
+
+/* A failed refresh means the other six counts may be stale, so it is the one
+   item that reads as an error rather than as a workload. Still not colour
+   alone — it keeps the flag glyph and the solid 5px bar. */
+.attention-chip[data-attention="refreshFailures"][data-state="attention"] {
+  border-left-color: var(--danger);
+}
+.attention-chip[data-attention="refreshFailures"][data-state="attention"] .att-flag { color: var(--danger); }
+
+@media (max-width: 768px) {
+  .attention-strip {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    padding: 10px 12px 14px;
+  }
+  .att-label { font-size: 11.5px; }
+}
+
+/* OTHER-00x: honour reduced motion for the hover/press transition. */
+@media (prefers-reduced-motion: reduce) {
+  .attention-chip { transition: none; }
+}

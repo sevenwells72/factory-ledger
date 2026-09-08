@@ -4,11 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=28">
+  <link rel="stylesheet" href="dashboard.css?v=29">
   <link rel="stylesheet" href="mini-calendar.css?v=2">
   <link rel="stylesheet" href="interaction.css?v=1">
 </head>
 <body>
+
+  <!-- Attention-strip icons (IMP-030). Inline so the strip needs no network
+       request to render its non-colour carriers; `currentColor` keeps every
+       glyph theme-correct. Decorative: each <use> is aria-hidden and the chip
+       carries the accessible name. -->
+  <svg class="fl-icon-sprite" aria-hidden="true" focusable="false" width="0" height="0">
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+    </symbol>
+    <symbol id="i-truck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 16V6h11v10"/><path d="M14 9h4l3 3v4h-7"/><circle cx="7.5" cy="17.5" r="1.8"/><circle cx="17.5" cy="17.5" r="1.8"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+    </symbol>
+    <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 8l9-4 9 4v8l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v8"/>
+    </symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 13V6a1.5 1.5 0 0 1 3 0v5"/><path d="M10 11V4.5a1.5 1.5 0 0 1 3 0V11"/><path d="M13 11V6a1.5 1.5 0 0 1 3 0v7"/>
+      <path d="M16 10.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-5.2-3L4 13.5a1.6 1.6 0 0 1 2.6-1.8L8 13.5"/>
+    </symbol>
+    <symbol id="i-check-square" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>
+    </symbol>
+    <symbol id="i-cloud-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 17H7a4 4 0 0 1-.6-8A6 6 0 0 1 16 7.2"/><path d="M4 4l16 16"/>
+    </symbol>
+    <!-- Shape-only attention marker: carries "needs attention" without colour. -->
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 3.2 1.6 21.2h20.8L12 3.2Zm0 5.6a1.1 1.1 0 0 1 1.1 1.2l-.3 4.6a.8.8 0 0 1-1.6 0l-.3-4.6A1.1 1.1 0 0 1 12 8.8Zm0 8.1a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3Z"/>
+    </symbol>
+  </svg>
 
   <!-- Top Nav -->
   <nav class="site-nav" id="siteNav">
@@ -57,6 +90,102 @@
 
   <!-- Tab A: Operations -->
   <main id="tab-operations" class="tab-content active">
+
+    <!-- A0: Needs Attention (IMP-030) ──────────────────────────────────────
+         NOTIFY-011 (Hard rule): with no notification channel in this product,
+         entry is the only place an attention item can be discovered. Every
+         count below is derived from data refreshAll() already fetches — the
+         strip adds no request of its own.
+
+         LAYOUT-020: all seven chips are in the static markup with an em-dash
+         placeholder, so the strip occupies its final height on first paint and
+         a refresh only rewrites text inside a fixed grid cell. Chips are never
+         added, removed, hidden, or reordered.
+
+         FEEDBACK-011: state is carried by the numeral, the left-edge bar
+         weight, the count's font weight, and the triangular flag glyph — the
+         colour is the last carrier, not the only one.
+
+         NOTIFY-010: a count is shown only when the underlying list is known to
+         be complete; otherwise the chip reads "—", never a fabricated zero. -->
+    <section class="section attention-strip-section" aria-labelledby="attention-strip-title">
+      <div class="section-header">
+        <h2 id="attention-strip-title">Needs Attention</h2>
+        <p id="attention-strip-note" class="section-hint">Counts of unhandled items. Select one to open the view that resolves it.</p>
+      </div>
+      <ul class="attention-strip" id="attention-strip">
+        <li class="attention-item">
+          <a class="attention-chip" href="#tab-expected" data-attention="erOverdue" data-state="unknown"
+             aria-describedby="attention-strip-note">
+            <svg class="att-icon" aria-hidden="true" focusable="false"><use href="#i-clock"></use></svg>
+            <span class="att-count" data-att-count>&mdash;</span>
+            <span class="att-label">Overdue receipts</span>
+            <svg class="att-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
+            <span class="att-state sr-only" data-att-state>Not loaded yet</span>
+          </a>
+        </li>
+        <li class="attention-item">
+          <a class="attention-chip" href="#tab-orders" data-attention="ordersOverdue" data-state="unknown"
+             aria-describedby="attention-strip-note">
+            <svg class="att-icon" aria-hidden="true" focusable="false"><use href="#i-truck"></use></svg>
+            <span class="att-count" data-att-count>&mdash;</span>
+            <span class="att-label">Overdue orders</span>
+            <svg class="att-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
+            <span class="att-state sr-only" data-att-state>Not loaded yet</span>
+          </a>
+        </li>
+        <li class="attention-item">
+          <a class="attention-chip" href="#tab-orders" data-attention="dispatchBlocked" data-state="unknown"
+             aria-describedby="attention-strip-note">
+            <svg class="att-icon" aria-hidden="true" focusable="false"><use href="#i-lock"></use></svg>
+            <span class="att-count" data-att-count>&mdash;</span>
+            <span class="att-label">Dispatch blocked</span>
+            <svg class="att-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
+            <span class="att-state sr-only" data-att-state>Not loaded yet</span>
+          </a>
+        </li>
+        <li class="attention-item">
+          <a class="attention-chip" href="#tab-supplies" data-attention="lowStock" data-state="unknown"
+             aria-describedby="attention-strip-note">
+            <svg class="att-icon" aria-hidden="true" focusable="false"><use href="#i-box"></use></svg>
+            <span class="att-count" data-att-count>&mdash;</span>
+            <span class="att-label">Low stock</span>
+            <svg class="att-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
+            <span class="att-state sr-only" data-att-state>Not loaded yet</span>
+          </a>
+        </li>
+        <li class="attention-item">
+          <a class="attention-chip" href="#tab-supplies" data-attention="supplyRequests" data-state="unknown"
+             aria-describedby="attention-strip-note">
+            <svg class="att-icon" aria-hidden="true" focusable="false"><use href="#i-hand"></use></svg>
+            <span class="att-count" data-att-count>&mdash;</span>
+            <span class="att-label">Supply requests</span>
+            <svg class="att-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
+            <span class="att-state sr-only" data-att-state>Not loaded yet</span>
+          </a>
+        </li>
+        <li class="attention-item">
+          <a class="attention-chip" href="#tab-notes" data-attention="todosDue" data-state="unknown"
+             aria-describedby="attention-strip-note">
+            <svg class="att-icon" aria-hidden="true" focusable="false"><use href="#i-check-square"></use></svg>
+            <span class="att-count" data-att-count>&mdash;</span>
+            <span class="att-label">To-dos due</span>
+            <svg class="att-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
+            <span class="att-state sr-only" data-att-state>Not loaded yet</span>
+          </a>
+        </li>
+        <li class="attention-item">
+          <a class="attention-chip" href="#tab-operations" data-attention="refreshFailures" data-state="unknown"
+             aria-describedby="attention-strip-note">
+            <svg class="att-icon" aria-hidden="true" focusable="false"><use href="#i-cloud-off"></use></svg>
+            <span class="att-count" data-att-count>&mdash;</span>
+            <span class="att-label">Refresh failures</span>
+            <svg class="att-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
+            <span class="att-state sr-only" data-att-state>Not loaded yet</span>
+          </a>
+        </li>
+      </ul>
+    </section>
 
     <!-- A1: Today So Far -->
     <section class="section today-tile-section" aria-labelledby="today-tile-title">
@@ -519,7 +648,7 @@
   <script src="fetch-timeout.js?v=1"></script>
   <script src="mini-calendar.js?v=4"></script>
   <script src="pallet-calculations.js?v=1"></script>
-  <script src="dashboard.js?v=42"></script>
+  <script src="dashboard.js?v=43"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>
