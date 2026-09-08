@@ -985,6 +985,78 @@ class TestApproveEndpoint:
         assert items[0]["source_document_id"] == doc_id
 
 
+class TestApprovalAdvisoryLock:
+    """Audit fix 10: approve serializes on hash(supplier_id, normalized
+    reference), then re-checks duplicates under the lock."""
+
+    KEY = "er-intake-ref:42:po-777"
+
+    def _try_lock(self, cur, key):
+        cur.execute("SELECT pg_try_advisory_xact_lock(hashtextextended(%s, 0)) AS ok", (key,))
+        return cur.fetchone()["ok"]
+
+    def test_lock_serializes_the_normalized_pair(self):
+        url = os.environ.get("TEST_DATABASE_URL")
+        if not url:
+            pytest.skip("TEST_DATABASE_URL not set")
+        import psycopg2 as pg
+        from psycopg2.extras import RealDictCursor
+        import main as main_mod
+        conn_a, conn_b = pg.connect(url), pg.connect(url)
+        try:
+            with conn_a.cursor(cursor_factory=RealDictCursor) as ca, \
+                 conn_b.cursor(cursor_factory=RealDictCursor) as cb:
+                # Whitespace/case in the reference must land on the same key.
+                main_mod._lock_supplier_reference(ca, 42, "  PO-777 ")
+                assert self._try_lock(cb, self.KEY) is False, "same pair must block"
+                assert self._try_lock(cb, "er-intake-ref:42:po-778") is True
+                assert self._try_lock(cb, "er-intake-ref:43:po-777") is True
+            conn_b.rollback()
+            conn_a.rollback()  # transaction-scoped: rollback releases it
+            with conn_b.cursor(cursor_factory=RealDictCursor) as cb:
+                assert self._try_lock(cb, self.KEY) is True
+            conn_b.rollback()
+        finally:
+            conn_a.close()
+            conn_b.close()
+
+    def test_no_lock_without_reference(self):
+        url = os.environ.get("TEST_DATABASE_URL")
+        if not url:
+            pytest.skip("TEST_DATABASE_URL not set")
+        import psycopg2 as pg
+        from psycopg2.extras import RealDictCursor
+        import main as main_mod
+        conn = pg.connect(url)
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as c:
+                main_mod._lock_supplier_reference(c, 42, None)
+                main_mod._lock_supplier_reference(c, 42, "   ")
+                c.execute("SELECT count(*) AS n FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid()")
+                assert c.fetchone()["n"] == 0
+            conn.rollback()
+        finally:
+            conn.close()
+
+    def test_approve_takes_the_pair_lock(self, client, cur, monkeypatch):
+        sup = _seed_supplier(cur, "Vendor Lock Co 049")
+        pid = _seed_product(cur, "Lock Prod 049")
+        doc = _insert_document(cur, path="x/lock-049.png")
+        calls = []
+        orig = main._lock_supplier_reference
+
+        def _spy(c, supplier_id, reference):
+            calls.append((supplier_id, reference))
+            return orig(c, supplier_id, reference)
+
+        monkeypatch.setattr(main, "_lock_supplier_reference", _spy)
+        r = client.post("/expected-receipts/extract/approve", json={
+            "document_id": doc["id"], "supplier_id": sup, "reference_number": "PO-LOCK",
+            "lines": [{"product_id": pid, "expected_qty_lb": 10, "vendor_description": "x"}]})
+        assert r.status_code == 201, r.text
+        assert calls == [(sup, "PO-LOCK")]
+
+
 class TestSignedUrlEndpoint:
     def test_signed_url(self, client, cur, mock_storage):
         doc = _insert_document(cur, path="x/url-049.png")

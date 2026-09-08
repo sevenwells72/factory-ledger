@@ -5325,6 +5325,22 @@ def _ai_candidate_selection_stub(cur, vendor_description: str, candidates: list)
     return None
 
 
+def _lock_supplier_reference(cur, supplier_id: int, reference_number: Optional[str]) -> None:
+    """Audit fix 10: transaction-scoped advisory lock on the (supplier,
+    normalized reference) pair, so two concurrent approvals of DIFFERENT
+    documents with the same reference serialize — the second one re-runs its
+    duplicate check after the first commits and gets the 409 warning instead
+    of silently creating a duplicate. No-op without a reference (nothing to
+    dedupe on). Released automatically at commit/rollback."""
+    ref = _normalize_vendor_description(reference_number)
+    if not ref:
+        return
+    cur.execute(
+        "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+        (f"er-intake-ref:{supplier_id}:{ref}",),
+    )
+
+
 def _dedupe_existing_receipts(cur, supplier_id: int, reference_number: Optional[str]) -> list:
     """All expected receipts (any status — owner ruling incl. closed/cancelled)
     for (supplier, normalized reference)."""
@@ -5692,6 +5708,10 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
         if not supplier["active"]:
             raise HTTPException(status_code=422, detail={"error_code": "SUPPLIER_INACTIVE", "message": f"Supplier '{supplier['name']}' is inactive."})
 
+        # Audit fix 10: serialize on the (supplier, normalized reference) pair
+        # BEFORE the duplicate check — the per-document FOR UPDATE above can't
+        # see a concurrent approval of a different document with the same ref.
+        _lock_supplier_reference(cur, req.supplier_id, req.reference_number)
         duplicates = _dedupe_existing_receipts(cur, req.supplier_id, req.reference_number)
         if duplicates and not req.force:
             raise HTTPException(
