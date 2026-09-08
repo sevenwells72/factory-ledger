@@ -271,6 +271,37 @@ test('mergeRematch keeps an explicit save_alias choice, resets defaults', () => 
   assert.equal(merged[1].save_alias, true, 'auto-defaults recompute for the fresh line');
 });
 
+// ── Audit-2 fix 4a: a failed re-match resets every line to unconfirmed ─────
+
+test('applyRematchFailure: old product and 200 lb are not approvable after a failed rematch', () => {
+  // Reviewed under the OLD supplier: alias-confirmed product, 4 × 50 = 200 lb.
+  const prev = [ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', confidence: 1, product: PROD,
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }))];
+  assert.equal(ERIntake.lineApprovable(prev[0]), true, 'sanity: approvable before the failure');
+  // Supplier changed → re-match request failed. Everything computed for the
+  // old supplier is stale: the line must drop back to unconfirmed.
+  const reset = ERIntake.applyRematchFailure(prev);
+  assert.equal(reset[0].chosen, null);
+  assert.equal(reset[0].lb_per_unit, null);
+  assert.equal(reset[0].lb_source, 'none');
+  assert.equal(reset[0].qty_lb, null);
+  assert.equal(reset[0].qty_lb_source, null);
+  assert.equal(ERIntake.lineApprovable(reset[0]), false, 'old product + 200 lb must not be approvable');
+});
+
+test('applyRematchFailure keeps exclusions and explicit save_alias choices', () => {
+  const a = ERIntake.buildReviewLine(matchLine({ match_source: 'alias', product: PROD }));
+  a.include = false;
+  const b = ERIntake.buildReviewLine(matchLine({ match_source: 'alias', product: PROD }));
+  ERIntake.applySaveAliasToggle(b, false);
+  const reset = ERIntake.applyRematchFailure([a, b]);
+  assert.equal(reset[0].include, false);
+  assert.equal(reset[1].save_alias, false);
+  assert.equal(reset[1].save_alias_touched, true);
+});
+
 test('forceKey binds the override to the normalized (supplier, reference) pair', () => {
   assert.equal(ERIntake.forceKey(3, ' PO-777 '), ERIntake.forceKey(3, 'po-777'));
   assert.notEqual(ERIntake.forceKey(3, 'PO-777'), ERIntake.forceKey(4, 'PO-777'));

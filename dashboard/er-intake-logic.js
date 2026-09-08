@@ -189,6 +189,23 @@
     });
   }
 
+  /* Audit-2 fix 4a: a FAILED supplier re-match leaves every line's match
+     data computed against the wrong supplier. The newly selected supplier is
+     kept (the user's choice stands), but every line drops back to
+     unconfirmed — chosen product, conversion, and pounds are all stale until
+     a re-match against the new supplier succeeds. Exclusions and explicit
+     save_alias choices survive, same as mergeRematch. */
+  function applyRematchFailure(lines) {
+    return (lines || []).map(l => ({
+      ...l,
+      chosen: null,
+      lb_per_unit: null,
+      lb_source: 'none',
+      qty_lb: null,
+      qty_lb_source: null,
+    }));
+  }
+
   /* Audit fix 4: the duplicate override is bound to the exact reviewed
      (supplier_id, normalized reference) pair — editing either disarms it. */
   function forceKey(supplierId, reference) {
@@ -209,6 +226,7 @@
     approveLinePayload,
     lineApprovable,
     mergeRematch,
+    applyRematchFailure,
     forceKey,
     normalizeUnit,
     roundLb,

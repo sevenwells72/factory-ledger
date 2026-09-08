@@ -3990,6 +3990,9 @@
       // and Approve is disabled while a match request is in flight.
       matchSeq: 0,
       matching: false,
+      // Audit-2 fix 4a: true after a FAILED re-match — the lines were reset
+      // to unconfirmed and Approve stays disabled until a match succeeds.
+      matchStale: false,
     };
     erExtractStatus(`Extracted ${extractResponse.extraction.lines.length} line(s). Matching against the ledger…`);
     await erRunMatch();
@@ -4023,13 +4026,22 @@
       // exclusions and agreeing product picks instead of resetting the review.
       intake.lines = ERIntake.mergeRematch(intake.lines, match.lines);
       intake.matching = false;
+      intake.matchStale = false;
       renderErReview();
     } catch (e) {
       if (state.erIntake !== intake || seq !== intake.matchSeq) return;
       intake.matching = false;
+      // Audit-2 fix 4a: the review on screen was matched against the OLD
+      // supplier/reference. Keep the user's selection, but reset every line
+      // to unconfirmed and hold Approve until a re-match succeeds — even
+      // re-picking products by hand must not approve against stale
+      // match/duplicate data.
+      intake.matchStale = true;
+      intake.lines = ERIntake.applyRematchFailure(intake.lines);
       if (intake.lines.length) {
         renderErReview();
-        showError('er-review-error', `Matching failed: ${(e.message || '').slice(0, 300)}`);
+        showError('er-review-error',
+          `Matching failed: ${(e.message || '').slice(0, 300)} — line matches were reset; fix the connection and re-select the supplier (or press Retry matching) before approving.`);
       } else {
         erExtractStatus(`<span class="error-msg">Matching failed: ${escHtml(e.message.slice(0, 300))}</span>`);
       }
@@ -4161,8 +4173,9 @@
       <div class="er-review-footer">
         <span class="er-review-totals">${included.length} of ${intake.lines.length} line(s) · ${fmtWt(totalLb)} lb total${intake.matching ? ' · matching…' : ''}</span>
         <span>
+          ${intake.matchStale ? '<button type="button" id="er-review-rematch" class="btn-sm">Retry matching</button>' : ''}
           <button type="button" id="er-review-back" class="btn-sm">Start over</button>
-          <button type="button" id="er-review-approve" class="btn-refresh er-approve-btn${forceArmed ? ' er-force-armed' : ''}" ${ready && !intake.matching ? '' : 'disabled'}>
+          <button type="button" id="er-review-approve" class="btn-refresh er-approve-btn${forceArmed ? ' er-force-armed' : ''}" ${ready && !intake.matching && !intake.matchStale ? '' : 'disabled'}>
             ${forceArmed ? `Create anyway — duplicates exist` : `Approve — create ${included.length} expected receipt(s)`}
           </button>
         </span>
@@ -4226,6 +4239,8 @@
       });
     }
 
+    const rematchBtn = body.querySelector('#er-review-rematch');
+    if (rematchBtn) rematchBtn.addEventListener('click', () => { erRunMatch(); });
     body.querySelector('#er-review-back').addEventListener('click', () => { erResetIntake(); });
     body.querySelector('#er-review-approve').addEventListener('click', erApprove);
 
@@ -4299,6 +4314,9 @@
     const intake = state.erIntake;
     hideError('er-review-error');
     if (intake.matching) { showError('er-review-error', 'Matching is still running — one moment.'); return; }
+    // Audit-2 fix 4a: after a failed re-match nothing on screen is trusted
+    // until a match against the current supplier/reference succeeds.
+    if (intake.matchStale) { showError('er-review-error', 'The last matching attempt failed — retry matching before approving.'); return; }
     const supplierId = intake.supplierId;
     if (!supplierId) { showError('er-review-error', 'Pick a supplier before approving.'); return; }
     const included = intake.lines.filter(l => l.include);
