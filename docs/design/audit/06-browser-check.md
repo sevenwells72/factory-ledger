@@ -55,8 +55,8 @@ CLS 0.25, fails above it.
 | ACCESS-008 | 380 | 0 | 0 | 4 | 0 |
 | LAYOUT-003/ACCESS-001 | 372 | 12 | 0 | 0 | 0 |
 | LAYOUT-011 | 384 | 0 | 0 | 0 | 0 |
-| LAYOUT-020 | 234 | 12 | 56 | 82 | 0 |
-| **All** | **1582** | **140** | **56** | **142** | **0** |
+| LAYOUT-020 | 237 | 10 | 55 | 82 | 0 |
+| **All** | **1585** | **138** | **55** | **142** | **0** |
 
 ## Matrix — screen × rule × status
 
@@ -145,7 +145,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-16** Daily Entries + day/mode toolbar | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-16** Daily Entries + day/mode toolbar | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-16** Daily Entries + day/mode toolbar | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
-| **S-16** Daily Entries + day/mode toolbar | LAYOUT-020 | FAIL | FAIL | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-16.png) |
+| **S-16** Daily Entries + day/mode toolbar | LAYOUT-020 | PASS | FAIL | FAIL | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-17** Shipping log | TOUCH-003 | FAIL | FAIL | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-17.png) |
 | **S-17** Shipping log | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-17.png) |
 | **S-17** Shipping log | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-17.png) |
@@ -175,7 +175,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-22** Dialog — Note create/edit modal | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
 | **S-22** Dialog — Note create/edit modal | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
 | **S-22** Dialog — Note create/edit modal | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
-| **S-22** Dialog — Note create/edit modal | LAYOUT-020 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
+| **S-22** Dialog — Note create/edit modal | LAYOUT-020 | PASS | PASS | WARN | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
 | **S-23** Dialog — Delete note confirmation | _all_ | n/a | n/a | n/a | n/a | n/a | n/a | — Browser-native window.confirm — rendered by the browser, not the page. Nothing in the document can be measured. |
 | **S-24** Orders toolbar | TOUCH-003 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-24.png) |
 | **S-24** Orders toolbar | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-24.png) |
@@ -191,7 +191,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-26** Orders list — Dispatch Queue mode | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
 | **S-26** Orders list — Dispatch Queue mode | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
 | **S-26** Orders list — Dispatch Queue mode | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Dispatch Queue mode | LAYOUT-020 | PASS | PASS | WARN | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | LAYOUT-020 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
 | **S-27** Orders list — expandable line rows | TOUCH-003 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
 | **S-27** Orders list — expandable line rows | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
 | **S-27** Orders list — expandable line rows | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
@@ -263,7 +263,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-42** Expected Receipts table | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-42.png) |
 | **S-42** Expected Receipts table | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-42.png) |
 | **S-42** Expected Receipts table | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-42.png) |
-| **S-42** Expected Receipts table | LAYOUT-020 | PASS | PASS | PASS | WARN | PASS | PASS | [png](screenshots/1440-dark/S-42.png) |
+| **S-42** Expected Receipts table | LAYOUT-020 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-42.png) |
 | **S-43** Expected Receipts — row actions | TOUCH-003 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-43.png) |
 | **S-43** Expected Receipts — row actions | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-43.png) |
 | **S-43** Expected Receipts — row actions | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-43.png) |
@@ -523,7 +523,7 @@ the two carry different actions.
 | `a.o-action.o-del` | Delete Coconut Sweetened Fancy UNIPRO 10 LB o… | **20 × 20** | no | S-87, S-88, S-90 | 1440 |
 | `button.more-toggle` | details | **34.8 × 14.8** | yes | S-83, S-84 | 1440 |
 | `button#schedule-close` | Close schedule | **26.7 × 22** | no | S-85 | 1440 |
-| `span.lot-link` | SO-1421 | **43.2 × 14** | no | S-04, S-11, S-12, S-13, S-17, S-18, S-56 | 1440, 390, zoom200 |
+| `span.lot-link` | SO-1421 | **50.4 × 14** | no | S-04, S-11, S-12, S-13, S-17, S-18, S-56 | 1440, 390, zoom200 |
 | `button#schedule-print` | Print | **40.6 × 22** | no | S-85 | 1440 |
 | `button#schedule-copy` | Copy | **43.7 × 22** | no | S-85 | 1440 |
 | `button#ao-save` | Add | **41.4 × 26** | no | S-88 | 1440 |
@@ -554,7 +554,7 @@ the two carry different actions.
 | `details > summary` | Finished goods on hand (0) | **217 × 23** | no | S-76, S-77, S-78, S-79, S-80, S-81, S-82 | 1440 |
 | `button#btn-addorder` | + Add order line | **315 × 26** | no | S-87, S-88, S-90 | 1440 |
 | `tr.product-lot-row` | CQ25-2606-Bgpt0 lb | **349 × 28** | no | S-56 | 1440, 390 |
-| `div.search-item` | Classic Granola 25 LB finished_good \| 7,350 lb | **348 × 32** | no | S-04, S-63, S-64 | 1440, 390 |
+| `div.search-item` | Classic Granola 25 LB finished_good \| 7,350 lb | **364 × 32** | no | S-04, S-63, S-64 | 1440, 390 |
 | `tr.expandable` | Classic Granola 10 LB4,820 lb (482 × 10 lb)48… | **364 × 36.5** | no | S-10, S-11, S-12, S-13 | 1440, 390, zoom200 |
 | `button.disambig-btn` | Classic Granola 25 LB (api) | **349 × 41.5** | no | S-55 | 1440, 390 |
 | `div.collapsible-header` | Granola Bulk — 10 LB (3 SKUs) | **364 × 42** | no | S-10, S-11, S-13, S-16, S-17, S-18 | 1440, 390, zoom200 |
@@ -588,7 +588,7 @@ Every measured text node met its AA target in every capture.
 With every scroll region driven to its end, nothing actionable was found stuck behind a fixed or
 sticky bar in any capture. Bars detected on the dashboard: `nav#siteNav` (top), `html > body > header.app-header` (floating), `html > body > nav.tab-bar` (floating).
 
-For completeness: 106 interactive elements across 62 captures were overlapped by a **top-anchored** sticky bar at maximum scroll. Each was re-probed after being parked at 60% of the viewport and each came clear, so none is a LAYOUT-011 failure — a row passing under a sticky header is what a sticky header does. They are counted here so the pass above is not read as "no bar ever overlaps anything".
+For completeness: 104 interactive elements across 60 captures were overlapped by a **top-anchored** sticky bar at maximum scroll. Each was re-probed after being parked at 60% of the viewport and each came clear, so none is a LAYOUT-011 failure — a row passing under a sticky header is what a sticky header does. They are counted here so the pass above is not read as "no bar ever overlaps anything".
 
 ### LAYOUT-020 — layout shift on refresh
 
@@ -611,53 +611,53 @@ because their ordinal position moved. It is a signal to look, not a finding on i
 
 | Screen | Variant | CLS | Moved | Max Δ | Anchors lost | Trigger | Worst mover |
 |---|---|---:|---:|---:|---:|---|---|
-| **S-16** Daily Entries + day/mode toolbar | `390-dark` | **0.4754** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-17** Shipping log | `390-light` | **0.4754** | 0 | 0px | 17 | #refresh-btn | — |
-| **S-17** Shipping log | `390-dark` | **0.4753** | 0 | 0px | 17 | #refresh-btn | — |
-| **S-16** Daily Entries + day/mode toolbar | `390-light` | **0.4682** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-18** Receiving log | `390-light` | **0.4681** | 0 | 0px | 5 | #refresh-btn | — |
-| **S-18** Receiving log | `390-dark` | **0.4681** | 0 | 0px | 5 | #refresh-btn | — |
-| **S-18** Receiving log | `1440-dark` | **0.3775** | 0 | 0px | 5 | #refresh-btn | — |
-| **S-16** Daily Entries + day/mode toolbar | `1440-light` | **0.3366** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-16** Daily Entries + day/mode toolbar | `1440-dark` | **0.3361** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-17** Shipping log | `1440-light` | **0.3045** | 0 | 0px | 17 | #refresh-btn | — |
-| **S-17** Shipping log | `1440-dark` | **0.3042** | 0 | 0px | 17 | #refresh-btn | — |
-| **S-18** Receiving log | `1440-light` | **0.2882** | 0 | 0px | 5 | #refresh-btn | — |
-| **S-09** Production Calendar — day detail panel | `1440-dark` | **0.2293** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-09** Production Calendar — day detail panel | `1440-light` | **0.1573** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-10** Finished Goods On-Hand — collapsible panels | `1440-light` | **0.1542** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-02** Mini-calendar strip (3-month) | `1440-light` | **0.1541** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-08** Production Calendar (rolling 5-day) | `1440-dark` | **0.1541** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-54** Lot Detail side panel | `1440-light` | **0.1541** | 2 | 3px | 39 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
-| **S-02** Mini-calendar strip (3-month) | `1440-dark` | **0.154** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-06** Today So Far tile | `1440-light` | **0.1336** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-17** Shipping log | `390-dark` | **0.4931** | 0 | 0px | 17 | #refresh-btn | — |
+| **S-18** Receiving log | `390-light` | **0.4931** | 0 | 0px | 5 | #refresh-btn | — |
+| **S-18** Receiving log | `390-dark` | **0.4931** | 0 | 0px | 5 | #refresh-btn | — |
+| **S-16** Daily Entries + day/mode toolbar | `390-dark` | **0.477** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-17** Shipping log | `390-light` | **0.477** | 0 | 0px | 17 | #refresh-btn | — |
+| **S-17** Shipping log | `1440-dark` | **0.353** | 0 | 0px | 17 | #refresh-btn | — |
+| **S-17** Shipping log | `1440-light` | **0.3044** | 0 | 0px | 17 | #refresh-btn | — |
+| **S-18** Receiving log | `1440-dark` | **0.2883** | 0 | 0px | 5 | #refresh-btn | — |
+| **S-16** Daily Entries + day/mode toolbar | `1440-light` | **0.2882** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-18** Receiving log | `1440-light` | **0.2881** | 0 | 0px | 5 | #refresh-btn | — |
+| **S-09** Production Calendar — day detail panel | `1440-dark` | **0.2296** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-09** Production Calendar — day detail panel | `1440-light` | **0.2295** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-01** Site navigation bar | `1440-dark` | **0.1543** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-02** Mini-calendar strip (3-month) | `1440-dark` | **0.1543** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-04** Global search field + results dropdown | `1440-dark` | **0.1543** | 0 | 0px | 77 | #refresh-btn | — |
+| **S-13** On-Hand Ingredients | `1440-dark` | **0.1543** | 0 | 0px | 8 | #refresh-btn | — |
+| **S-55** Lot disambiguation view | `1440-dark` | **0.1543** | 2 | 3px | 41 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
+| **S-56** Product Detail panel (active + depleted lots) | `1440-light` | **0.1543** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-56** Product Detail panel (active + depleted lots) | `1440-dark` | **0.1543** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-04** Global search field + results dropdown | `1440-light` | **0.1542** | 0 | 0px | 77 | #refresh-btn | — |
+| **S-12** Batch Inventory On-Hand | `1440-light` | **0.1542** | 2 | 72px | 22 | #refresh-btn | TH  num On Hand (lb) (Δx 72px, Δy 0px) |
+| **S-13** On-Hand Ingredients | `1440-light` | **0.1542** | 0 | 0px | 8 | #refresh-btn | — |
+| **S-05** Tab bar (7 tabs) | `1440-dark` | **0.1336** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-08** Production Calendar (rolling 5-day) | `1440-dark` | **0.1336** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-10** Finished Goods On-Hand — collapsible panels | `1440-dark` | **0.1336** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-54** Lot Detail side panel | `1440-dark` | **0.1336** | 2 | 3px | 39 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
+| **S-55** Lot disambiguation view | `1440-light` | **0.1336** | 2 | 3px | 41 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
 | **S-01** Site navigation bar | `1440-light` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-03** App header | `1440-light` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-02** Mini-calendar strip (3-month) | `1440-light` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-03** App header | `1440-dark` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
 | **S-05** Tab bar (7 tabs) | `1440-light` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-08** Production Calendar (rolling 5-day) | `1440-light` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-13** On-Hand Ingredients | `1440-light` | **0.1335** | 0 | 0px | 8 | #refresh-btn | — |
-| **S-54** Lot Detail side panel | `1440-dark` | **0.1335** | 2 | 3px | 39 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
-| **S-55** Lot disambiguation view | `1440-light` | **0.1335** | 2 | 3px | 41 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
-| **S-56** Product Detail panel (active + depleted lots) | `1440-dark` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-03** App header | `1440-dark` | **0.1334** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-04** Global search field + results dropdown | `1440-dark` | **0.1334** | 0 | 0px | 77 | #refresh-btn | — |
-| **S-05** Tab bar (7 tabs) | `1440-dark` | **0.1334** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-06** Today So Far tile | `1440-light` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-10** Finished Goods On-Hand — collapsible panels | `1440-light` | **0.1335** | 0 | 0px | 0 | #refresh-btn | — |
 | **S-06** Today So Far tile | `1440-dark` | **0.1334** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-11** Finished Goods — per-product lot breakdown | `1440-dark` | **0.1334** | 2 | 3px | 37 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
-| **S-13** On-Hand Ingredients | `1440-dark` | **0.1334** | 0 | 0px | 8 | #refresh-btn | — |
-| **S-56** Product Detail panel (active + depleted lots) | `1440-light` | **0.1334** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-10** Finished Goods On-Hand — collapsible panels | `1440-dark` | **0.1333** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-07** Today So Far — error/retry state | `1440-light` | **0.1285** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-07** Today So Far — error/retry state | `1440-dark` | **0.1284** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-04** Global search field + results dropdown | `1440-light` | **0.1241** | 0 | 0px | 77 | #refresh-btn | — |
-| **S-01** Site navigation bar | `1440-dark` | **0.124** | 0 | 0px | 0 | #refresh-btn | — |
-| **S-55** Lot disambiguation view | `1440-dark` | **0.1164** | 2 | 3px | 41 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
-| **S-27** Orders list — expandable line rows | `1440-light` | **0.0033** | 12 | 77px | 23 | #refresh-btn | BUTTON  order-expand-toggle ▸ (Δx -1px, Δy -77px) |
-| **S-26** Orders list — Dispatch Queue mode | `1440-light` | **0.0032** | 4 | 3px | 0 | #refresh-btn | BUTTON  mini-calendar-nav Previous month (Δx 3px, Δy 0px) |
-| **S-28** Orders list — Factory Ready toggle + note | `1440-light` | **0.0032** | 10 | 77px | 23 | #refresh-btn | BUTTON  order-expand-toggle ▸ (Δx -1px, Δy -77px) |
-| **S-42** Expected Receipts table | `1440-dark` | **0.0032** | 4 | 4px | 0 | #refresh-btn | BUTTON theme-toggle btn-theme ☼ (Δx 4px, Δy 0px) |
+| **S-54** Lot Detail side panel | `1440-light` | **0.1242** | 2 | 3px | 39 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
+| **S-07** Today So Far — error/retry state | `1440-light` | **0.1129** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-07** Today So Far — error/retry state | `1440-dark` | **0.1128** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-03** App header | `1440-light` | **0.1013** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-08** Production Calendar (rolling 5-day) | `1440-light` | **0.1012** | 0 | 0px | 0 | #refresh-btn | — |
+| **S-12** Batch Inventory On-Hand | `1440-dark` | **0.0031** | 2 | 72px | 22 | #refresh-btn | TH  num On Hand (lb) (Δx 72px, Δy 0px) |
+| **S-28** Orders list — Factory Ready toggle + note | `1440-light` | **0.0031** | 8 | 77px | 23 | #refresh-btn | BUTTON  order-expand-toggle ▸ (Δx -1px, Δy -77px) |
+| **S-11** Finished Goods — per-product lot breakdown | `1440-dark` | **0.003** | 2 | 3px | 37 | #refresh-btn | TH  num On Hand (lb) (Δx 3px, Δy 0px) |
+| **S-27** Orders list — expandable line rows | `1440-light` | **0.003** | 8 | 77px | 23 | #refresh-btn | BUTTON  order-expand-toggle ▸ (Δx -1px, Δy -77px) |
+| **S-27** Orders list — expandable line rows | `1440-dark` | **0.003** | 8 | 77px | 23 | #refresh-btn | BUTTON  order-expand-toggle ▸ (Δx -1px, Δy -77px) |
+| **S-28** Orders list — Factory Ready toggle + note | `1440-dark` | **0.003** | 8 | 77px | 23 | #refresh-btn | BUTTON  order-expand-toggle ▸ (Δx -1px, Δy -77px) |
 
-_23 further shifting captures omitted; the full list is in `screenshots/results.json`._
+_20 further shifting captures omitted; the full list is in `screenshots/results.json`._
 
 ## Surfaces with no light palette
 
