@@ -5676,6 +5676,9 @@ def extract_expected_receipt_document(
         _validate_pdf_page_count(content)  # audit fix 9: ≤ 20 pages, pre-storage
 
     sha256 = hashlib.sha256(content).hexdigest()
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", (file.filename or "document"))[:80]
+    now = get_plant_now()
+    storage_path = f"{now:%Y/%m}/{sha256[:12]}-{uuid.uuid4().hex[:8]}-{safe_name}"
 
     # Audit-2 fix 8: an identical file whose earlier upload is still in
     # flight (uploaded / extracted / extraction_failed / upload_failed)
@@ -5683,7 +5686,20 @@ def extract_expected_receipt_document(
     # browser-side upload timeout would otherwise create one document per
     # retry. 'approved' is excluded: re-ordering the same PO later
     # legitimately starts a fresh document.
+    #
+    # Row FIRST, Storage second (owner ruling 2026-09-08): a readonly-armed
+    # request must 503 on this INSERT before anything is written to Storage —
+    # no orphan objects. The inverse failure (upload fails after the INSERT)
+    # marks the row 'upload_failed' (audit fix 12) so it can't sit around
+    # looking retryable with no object behind it.
     with get_transaction() as cur:
+        # Audit-3 fix 8b: the dedupe SELECT and the INSERT must be one
+        # serialized unit — without the lock, two concurrent identical
+        # uploads both miss the SELECT and mint sibling rows. xact-scoped:
+        # the loser waits here, then sees the winner's committed row and
+        # resumes it. Reentrant on the same backend, so the savepoint-proxy
+        # test client can't self-deadlock.
+        cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (sha256,))
         cur.execute(
             """SELECT id, storage_path, status, file_sha256 FROM purchase_documents
                WHERE file_sha256 = %s
@@ -5692,6 +5708,17 @@ def extract_expected_receipt_document(
             (sha256,),
         )
         existing = cur.fetchone()
+        if not existing:
+            cur.execute("SELECT id FROM purchase_documents WHERE file_sha256 = %s LIMIT 1", (sha256,))
+            already_seen = cur.fetchone() is not None
+            cur.execute(
+                """INSERT INTO purchase_documents
+                       (storage_path, original_filename, mime_type, file_sha256, byte_size, created_by)
+                   VALUES (%s, %s, %s, %s, %s, %s)
+                   RETURNING id""",
+                (storage_path, file.filename, mime, sha256, len(content), caller_source_tag(request)),
+            )
+            document_id = cur.fetchone()["id"]
     if existing:
         # Audit-3 fix 8a: healing overwrites the row's object (x-upsert), so
         # the bytes-match precondition is asserted explicitly even though the
@@ -5725,27 +5752,6 @@ def extract_expected_receipt_document(
                        f"(status '{existing['status']}') — resuming it. "
                        f"Run extraction via POST /purchase-documents/{existing['id']}/extract.",
         }
-
-    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", (file.filename or "document"))[:80]
-    now = get_plant_now()
-    storage_path = f"{now:%Y/%m}/{sha256[:12]}-{uuid.uuid4().hex[:8]}-{safe_name}"
-
-    # Row FIRST, Storage second (owner ruling 2026-09-08): a readonly-armed
-    # request must 503 on this INSERT before anything is written to Storage —
-    # no orphan objects. The inverse failure (upload fails after the INSERT)
-    # marks the row 'upload_failed' (audit fix 12) so it can't sit around
-    # looking retryable with no object behind it.
-    with get_transaction() as cur:
-        cur.execute("SELECT id FROM purchase_documents WHERE file_sha256 = %s LIMIT 1", (sha256,))
-        already_seen = cur.fetchone() is not None
-        cur.execute(
-            """INSERT INTO purchase_documents
-                   (storage_path, original_filename, mime_type, file_sha256, byte_size, created_by)
-               VALUES (%s, %s, %s, %s, %s, %s)
-               RETURNING id""",
-            (storage_path, file.filename, mime, sha256, len(content), caller_source_tag(request)),
-        )
-        document_id = cur.fetchone()["id"]
 
     try:
         storage_upload_purchase_document(storage_path, content, mime)

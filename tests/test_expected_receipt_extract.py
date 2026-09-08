@@ -1415,6 +1415,91 @@ class TestApprovalAdvisoryLock:
         assert calls == [(sup, "PO-LOCK")]
 
 
+class TestConcurrentUploadDedupe:
+    """Audit-3 fix 8b: the upload dedupe SELECT and INSERT are serialized on
+    pg_advisory_xact_lock(hashtext(file_sha256)) — concurrent identical
+    uploads must resolve to ONE row, never siblings."""
+
+    def test_concurrent_identical_uploads_share_one_document(self, monkeypatch):
+        url = os.environ.get("TEST_DATABASE_URL")
+        if not url:
+            pytest.skip("TEST_DATABASE_URL not set")
+        import threading
+        import time
+        from contextlib import contextmanager
+        import psycopg2 as pg
+        from psycopg2.extras import RealDictCursor
+        import main as main_mod
+        from fastapi.testclient import TestClient as TC
+
+        content = PNG_BYTES + b"concurrent-dedupe-049"
+        sha = hashlib.sha256(content).hexdigest()
+
+        @contextmanager
+        def _real_conn():
+            conn = pg.connect(url)
+            try:
+                yield conn
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+
+        monkeypatch.setattr(main_mod, "get_db_connection", _real_conn)
+        monkeypatch.setattr(main_mod, "storage_upload_purchase_document",
+                            lambda *a, **k: None)
+
+        seed = pg.connect(url)
+        seed.autocommit = True
+        holder = pg.connect(url)
+        results = []
+        try:
+            # Pre-hold the file-hash lock so both uploads are provably in
+            # flight together — the exact interleaving that minted siblings.
+            with holder.cursor() as hc:
+                hc.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (sha,))
+
+            with TC(main_mod.app) as tc:
+                tc.headers["X-API-Key"] = main_mod.API_KEY
+
+                def _upload():
+                    results.append(tc.post("/expected-receipts/extract",
+                                           files={"file": ("po.png", content, "image/png")}))
+
+                threads = [threading.Thread(target=_upload) for _ in range(2)]
+                for t in threads:
+                    t.start()
+                deadline = time.time() + 15
+                with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                    while time.time() < deadline:
+                        sc.execute("SELECT count(*) AS n FROM pg_locks WHERE locktype = 'advisory' AND NOT granted")
+                        if sc.fetchone()["n"] >= 2:
+                            break
+                        time.sleep(0.05)
+                    else:
+                        pytest.fail("both uploads never queued on the hash lock")
+                holder.rollback()  # release: the uploads serialize
+                for t in threads:
+                    t.join(timeout=30)
+                assert not any(t.is_alive() for t in threads), "an upload hung"
+
+            assert sorted(r.status_code for r in results) == [200, 201], \
+                [(r.status_code, r.text[:200]) for r in results]
+            ids = {r.json()["document_id"] for r in results}
+            assert len(ids) == 1, "both responses must carry the same document_id"
+            assert next(r for r in results if r.status_code == 200).json()["already_seen"] is True
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT count(*) AS n FROM purchase_documents WHERE file_sha256 = %s", (sha,))
+                assert sc.fetchone()["n"] == 1, "exactly one row — no siblings"
+        finally:
+            holder.close()
+            with seed.cursor() as sc:
+                sc.execute("DELETE FROM purchase_documents WHERE file_sha256 = %s", (sha,))
+            seed.close()
+
+
 class TestSignedUrlEndpoint:
     def test_signed_url(self, client, cur, mock_storage):
         doc = _insert_document(cur, path="x/url-049.png")
