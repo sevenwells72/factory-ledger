@@ -42,6 +42,12 @@
      offsets compose at any width, text size, or zoom level. */
   --site-nav-h: 48px;
   --header-h: 43px;
+  /* Minimum hit region for any control (TOUCH-003, IMP-011 / SYS-4). Standalone
+     controls take it as min-height (and min-width where the glyph is narrow);
+     controls inside a dense row take it through the invisible ::before
+     extension below, so the row does not grow. Not a theme value: declared
+     once here, inherited by [data-theme="light"]. */
+  --hit-min: 44px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
 }
@@ -241,6 +247,7 @@ body {
 .btn-theme:hover { background: var(--surface-hover); color: var(--text); }
 
 .btn-refresh {
+  min-height: var(--hit-min);
   padding: 6px 14px;
   background: var(--primary);
   color: #ffffff;
@@ -270,6 +277,7 @@ body {
 }
 
 .tab {
+  min-height: var(--hit-min);
   padding: 10px 20px;
   background: none;
   border: none;
@@ -384,7 +392,7 @@ body {
 .today-tile-state { grid-column: 1 / -1; display: grid; gap: 7px; padding: 18px; color: var(--text-muted); }
 .today-tile-error { border-color: var(--danger); color: var(--text); }
 .today-tile-error span { overflow-wrap: anywhere; color: var(--text-muted); font-size: 12px; }
-.today-tile-retry { width: fit-content; min-height: 36px; margin-top: 2px; }
+.today-tile-retry { width: fit-content; margin-top: 2px; }
 
 @media (max-width: 480px) {
   .today-tile { grid-template-columns: 1fr; padding: 12px; }
@@ -399,6 +407,7 @@ body {
 }
 
 .btn-sm {
+  min-height: var(--hit-min);
   padding: 4px 10px;
   background: transparent;
   border: 1px solid var(--border);
@@ -409,6 +418,56 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .btn-sm:hover { background: var(--surface-hover); color: var(--text); }
+/* The two arrow buttons are icon-only and 34px wide; every other .btn-sm is a
+   word and already clears 44px on width. */
+#cal-prev, #cal-next { min-width: var(--hit-min); }
+
+/* ── Invisible hit extension for controls inside dense rows (T1, T4, T6) ──
+   A control in a table row or a card row keeps its rendered box and its row
+   keeps its height (DATA-003 density). The 44px region is a generated box:
+   absolutely positioned on the control, centred on it, at least --hit-min in
+   each axis, with no paint. A pointer event on generated content is
+   dispatched to the element that generated it, so this is a real hit region,
+   not a decoration — tests/visual/lib/checks.mjs measures it the same way.
+   Used instead of padding + negative margin because these controls are
+   bordered: padding would grow the visible box. The pseudo carries no
+   z-index, so it never paints over a sibling's own box — in the band where
+   two neighbouring extensions overlap, the later sibling wins, and neither
+   covers the other's glyph as long as the row pitch is ≥ 34px. */
+/* The four .btn-sm variants that sit in a table row are named rather than
+   matched by `td .btn-sm`: the inline order panel is itself rendered inside a
+   colspan cell, and its drawer buttons are toolbar controls, not row
+   content. */
+.er-actions .btn-sm,
+.allocation-release-btn,
+.order-inventory-toggle,
+.supply-request-done-btn,
+.show-more-btn,
+.order-expand-toggle,
+.note-action-btn,
+.check-hit {
+  position: relative;
+}
+.er-actions .btn-sm::before,
+.allocation-release-btn::before,
+.order-inventory-toggle::before,
+.supply-request-done-btn::before,
+.show-more-btn::before,
+.order-expand-toggle::before,
+.note-action-btn::before,
+.check-hit::before {
+  content: "";
+  position: absolute;
+  left: min(0px, calc(50% - var(--hit-min) / 2));
+  top: min(0px, calc(50% - var(--hit-min) / 2));
+  width: max(100%, var(--hit-min));
+  height: max(100%, var(--hit-min));
+}
+/* Inside a row the box itself stays at its rendered height. */
+.er-actions .btn-sm,
+.allocation-release-btn,
+.order-inventory-toggle,
+.supply-request-done-btn { min-height: 0; }
 
 #cal-range-label { font-size: 12px; font-weight: 500; min-width: 160px; text-align: center; color: var(--text-muted); }
 
@@ -982,6 +1041,8 @@ body {
 }
 
 .notes-filter-btn {
+  min-height: var(--hit-min);
+  min-width: var(--hit-min); /* "All" is 39px wide */
   padding: 5px 12px;
   background: transparent;
   border: 1px solid var(--border);
@@ -1741,6 +1802,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-height: var(--hit-min);
   padding: 6px 14px;
   background: transparent;
   border: 1px solid var(--border);
@@ -1849,6 +1911,7 @@ body {
   background: var(--surface-hover);
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
+  min-height: var(--hit-min);
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
@@ -2344,6 +2407,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-height: var(--hit-min);
   padding: 6px 10px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
