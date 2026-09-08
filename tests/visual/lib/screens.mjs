@@ -107,6 +107,11 @@ export const SCREENS = [
     setup: async (page, ctx) => { await ready(page); if (ctx.width < 769) await clickIf(page, '#navToggle'); } },
   { id: 'S-02', name: 'Mini-calendar strip (3-month)', page: 'index', mobile: 'partial', region: '[data-mini-calendar]',
     setup: ready },
+  // IMP-069: below 520px the strip is a collapsed row; this is the expanded
+  // month, the only state that adds width to the header. Above 520px there is
+  // no toggle and the capture is S-02 again.
+  { id: 'S-02b', name: 'Mini-calendar — expanded month (phone)', page: 'index', mobile: 'yes', region: '[data-mini-calendar]',
+    setup: async page => { await ready(page); await clickIf(page, '.mini-calendar-toggle'); } },
 
   // ── B. Factory Dashboard — page chrome ──────────────────────────────────
   { id: 'S-03', name: 'App header', page: 'index', mobile: 'yes', region: '.app-header', setup: ready },

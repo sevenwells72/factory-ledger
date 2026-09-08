@@ -340,6 +340,14 @@
 
 ---
 
+## 2026-09-08 15:39 — Expanded-calendar caption wraps at 390px; harness screen S-02b; IMP-071 toolbar-alignment note
+
+- **File(s) changed:** `dashboard/mini-calendar.css`, `dashboard/mini-calendar.js`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `tests/visual/lib/screens.mjs`, `docs/design/audit/06-browser-check.md`, `docs/design/audit/IMPROVEMENTS-MASTER.md`, `docs/design/audit/pr-screenshots/feat-mobile-entry-screen/after-operations-390-calendar-open.png`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** `.mini-calendar-caption { white-space: normal }` inside the ≤520px block — the strip sits in `.header-right`, whose `white-space: nowrap` inherits through `display: contents`, so the caption was one long line. Default caption reworded to "Dots mark days with open ship dates. Tap a day for details." New harness screen **S-02b** (Mini-calendar — expanded month, phone) taps the toggle after load so LAYOUT-003 measures the expanded state at 390px. One paragraph under IMP-071 recording the phone Orders toolbar's two alignments (`.orders-filters` keeps `align-items: center` as a column; `.orders-toolbar-actions` stays left). Cache-bust `mini-calendar.css?v=4→5`, `mini-calendar.js?v=5→6` on all four pages; matrix regenerated; the expanded-calendar PR screenshot recaptured.
+- **Why:** Review of PR #33. Measured at 390×844 with the month expanded: `document.documentElement.scrollWidth` 390, caption 344px wide, `white-space: normal`. S-02b at 390 light/dark: 33 of 33 targets ≥44pt, 45 of 45 text nodes AA, 0px overflow, 0 occluded. Full re-run: TOUCH-003 / ACCESS-008 / LAYOUT-003 / LAYOUT-011 cell-identical to the previous branch run; LAYOUT-020 ±5 cells in the known-flaky set. Pushed to `feat/mobile-entry-screen`, not merged.
+
+---
+
 ## 2026-09-08 15:36 — Imported Codex design audit and live recheck
 - **File(s) changed:** `docs/design/audit-2026-09-08-codex.md`, `docs/design/audit-2026-09-08-recheck.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Copied both reports verbatim on fix/design-audit-1 from origin/main; implementation is pending owner approval of the three-batch triage. No application code or assets changed.

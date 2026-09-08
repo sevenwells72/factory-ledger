@@ -1649,6 +1649,11 @@ Needs Attention card, where "Needs Attention" sits beside its two-sentence `.sec
 their narrow halves. The Supplies page header already shows the correct treatment: its hint is `display: block`
 under the title (`2323`).
 
+Same family, seen in the `feat/mobile-entry-screen` 390px captures: in the phone Orders toolbar the `<select>`
+and the two checkboxes centre while the Export / Refresh buttons under them sit left — `.orders-filters` keeps
+its desktop `align-items: center` (`dashboard.css:1396-1398`) when the ≤768px block turns it into a column,
+and `.orders-toolbar-actions` stays a left-aligned row — so one toolbar carries two alignments.
+
 **Fix:** `flex-direction: column; align-items: flex-start; gap: 4px` on `.section-header` below 768 px.
 
 ---
