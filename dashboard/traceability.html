@@ -543,21 +543,34 @@ async function runTrace() {
 }
 
 function showDisambiguation(lotCode, matches) {
-  setStatus('error', '');
   const el = document.getElementById('statusBar');
   el.className = 'status-bar';
-  let html = `<div style="padding:8px 0"><strong>Multiple lots found for "${lotCode}"</strong> — select one:</div>`;
-  html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">';
+  el.replaceChildren();
+
+  const heading = document.createElement('div');
+  heading.style.padding = '8px 0';
+  const headingLabel = document.createElement('strong');
+  headingLabel.textContent = `Multiple lots found for "${lotCode}"`;
+  heading.append(headingLabel, ' — select one:');
+
+  const choices = document.createElement('div');
+  choices.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:4px';
   for (const m of matches) {
-    html += `<button onclick="pickDisambiguated('${escAttr(lotCode)}', ${m.product_id})" style="
-      background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;
-      padding:8px 14px;cursor:pointer;text-align:left;font-size:13px;font-family:var(--font)">
-      <strong>${m.product_name}</strong><br>
-      <span style="font-size:11px;color:var(--text-muted)">ID: ${m.product_id} | Source: ${m.entry_source || 'unknown'}</span>
-    </button>`;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.style.cssText = 'background:var(--surface2);border:1px solid var(--border);color:var(--text);'
+      + 'border-radius:6px;padding:8px 14px;cursor:pointer;text-align:left;font-size:13px;font-family:var(--font)';
+    const name = document.createElement('strong');
+    name.textContent = m.product_name || 'Unnamed product';
+    const meta = document.createElement('span');
+    meta.style.cssText = 'font-size:11px;color:var(--text-muted)';
+    meta.textContent = `ID: ${m.product_id} | Source: ${m.entry_source || 'unknown'}`;
+    button.append(name, document.createElement('br'), meta);
+    button.addEventListener('click', () => pickDisambiguated(lotCode, m.product_id));
+    choices.append(button);
   }
-  html += '</div>';
-  el.innerHTML = html;
+
+  el.append(heading, choices);
 }
 
 function pickDisambiguated(lotCode, productId) {
@@ -929,28 +942,41 @@ function addLink(sourceId, targetId, quantity, confidence) {
 // ═══════════════════════════════════════════════════════
 // STATUS
 // ═══════════════════════════════════════════════════════
+// Status and error text is API-controlled: always render it as text, never as
+// markup, so a response body can never become live HTML in the status bar.
 function setStatus(type, msg) {
   const el = document.getElementById('statusBar');
+  el.replaceChildren();
   if (type === 'loading') {
     el.className = 'status-bar';
-    el.innerHTML = `<span class="loading-spinner"></span> ${msg}`;
+    const spinner = document.createElement('span');
+    spinner.className = 'loading-spinner';
+    el.append(spinner, ' ' + (msg || ''));
   } else if (type === 'error') {
     el.className = 'status-bar error';
-    el.innerHTML = msg;
+    if (msg) el.append(String(msg));
   } else {
     el.className = 'status-bar';
-    el.innerHTML = '';
   }
 }
 
 function suggestSimilar(query) {
   const lower = query.toLowerCase();
   const matches = lotIndex.filter(l => l.lot_code.toLowerCase().includes(lower.slice(0, 6))).slice(0, 5);
-  if (matches.length > 0) {
-    const el = document.getElementById('statusBar');
-    el.innerHTML += '<br>Did you mean: ' + matches.map(m =>
-      `<a href="#" onclick="selectLot('${escAttr(m.lot_code)}', ${m.product_id || 'null'});runTrace();return false;" style="margin:0 4px">${m.lot_code}</a>`
-    ).join('');
+  if (matches.length === 0) return;
+  const el = document.getElementById('statusBar');
+  el.append(document.createElement('br'), 'Did you mean: ');
+  for (const m of matches) {
+    const link = document.createElement('a');
+    link.href = '#';
+    link.style.margin = '0 4px';
+    link.textContent = m.lot_code;
+    link.addEventListener('click', event => {
+      event.preventDefault();
+      selectLot(m.lot_code, m.product_id || null);
+      runTrace();
+    });
+    el.append(link);
   }
 }
 

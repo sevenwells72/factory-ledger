@@ -32,6 +32,14 @@
 
 ---
 
+## 2026-09-07 20:10 — Traceability status bar renders API text as text, not markup (IMP-044 / ERROR-010)
+
+- **File(s) changed:** `dashboard/traceability.html`
+- **What changed:** `setStatus`, `suggestSimilar`, and `showDisambiguation` now build DOM nodes and set `textContent` instead of assigning `innerHTML`. `setStatus('error', ...)` receives raw API error bodies (`Trace failed: ${e.message}`) and typed lot codes; those are now appended as text nodes. `suggestSimilar` and `showDisambiguation` write into the same status bar and previously interpolated `lot_code`, `product_name`, `product_id`, and `entry_source` straight into an HTML string — they now build `<a>`/`<button>` elements with `textContent` and real `addEventListener` handlers instead of inline `onclick` attributes. Behaviour and styling are unchanged.
+- **Why:** ERROR-010 / IMP-044: never route API-controlled text through `innerHTML`. `dashboard.js` already does this correctly (`showError` uses `textContent`; other surfaces use `escHtml`); traceability was the only standalone page still assigning API text as markup. Checked the other standalone pages: `process-flow.html` (`showError`/`showStale`) and `sankey.html` (`showBanner`) already use `textContent`, and the scheduler escapes with `esc()` and makes no network calls — no other instances to fix.
+
+---
+
 ## 2026-09-07 20:08 — IMP-006: constrain every quantity input to numeric; no silent parseFloat truncation
 
 - **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/scheduler/seven-wells-production-board.html`
@@ -53,6 +61,8 @@
 - **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`
 - **What changed:** Defined `--bg-card` in both theme blocks in `dashboard.css` (dark `#283548`, light `#ffffff`) — it was referenced but declared nowhere. Replaced the inline styles on the lot-disambiguation choice buttons (`dashboard.js` `renderLotDisambiguation`) with new theme-resolved classes `.disambig-wrap`, `.disambig-intro`, `.disambig-list`, `.disambig-btn`, `.disambig-source`, removing `background: var(--bg-card, #fff)`. Verified by script that no `var(--token)` reference across `dashboard.css`, `mini-calendar.css`, `index.html`, `dashboard.js`, `mini-calendar.js`, `sankey.html`, `process-flow.html`, `traceability.html`, `scheduler/seven-wells-production-board.html` and `pallet-calculations.js` now resolves to an undeclared token.
 - **Why:** Band 0 of the design audit, IMP-001 (ACCESS-008 Critical / Hard rule). The undeclared token meant the `#fff` fallback applied while text inherited `--text: #f1f5f9` from the panel — contrast approximately 1.1:1, near-white on white, on the screen where a lot code matches more than one product and the operator must pick correctly. Audit test: "Does every text/icon element meet the contrast target in light, dark, and high-contrast modes, including over overlays, images, and colored fills?" — the buttons now render `--text` on `--bg-card` in both themes (approximately 12.6:1 dark, 17.9:1 light).
+
+---
 
 ---
 
