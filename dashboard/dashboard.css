@@ -234,6 +234,8 @@ body {
 .health-badge.health-red { background: var(--badge-red-bg); color: var(--badge-red-text); }
 
 .btn-theme {
+  min-width: var(--hit-min);
+  min-height: var(--hit-min);
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -987,6 +989,8 @@ body {
 .panel-header h3 { font-size: 15px; font-weight: 600; color: var(--text); }
 
 .btn-close {
+  min-width: var(--hit-min);
+  min-height: var(--hit-min);
   background: none;
   border: none;
   font-size: 22px;
@@ -1227,6 +1231,14 @@ body {
   color: var(--text-muted);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
+/* Edit and Delete are 22px glyphs 4px apart, so two centred 44px regions
+   would each cover the other's box. Each region is pushed outward instead:
+   Edit's reaches left over the title row (no handler there) and ends 2px into
+   the gap; Delete's starts 2px into the gap and reaches right into the card
+   padding. 44px each, no overlap, no glyph covered, no layout change.
+   LAYOUT-012's real fix — Delete into an overflow — is IMP-011, not done here. */
+.note-action-btn.edit::before { left: calc(100% + 2px - var(--hit-min)); }
+.note-action-btn.delete::before { left: -2px; }
 .note-action-btn:hover { background: var(--surface-hover); color: var(--text); }
 .note-action-btn.delete:hover { color: var(--danger); border-color: var(--danger); }
 
@@ -1447,6 +1459,15 @@ body {
   height: 20px;
   accent-color: #22c55e;
 }
+/* The expand toggle (12-34px from the row's left edge) and this box
+   (43.5-63.5px) need 88px of hit region in the 75.5px before the SO text
+   begins, so 2.5px of overlap is unavoidable. Centred, this region would
+   cover the toggle's own right edge — a tap on the toggle would write
+   Factory Ready. Pushed right instead: it starts exactly at the toggle's
+   edge (34px) and ends 2.5px into the row's own click surface at 78px,
+   which is a 1,100px-wide target. LAYOUT-012's fix — the SO number between
+   the two controls — is IMP-011's and not done here. */
+.order-ready-cell .check-hit::before { left: calc(100% + 14.5px - var(--hit-min)); }
 
 .order-expand-toggle {
   display: inline-flex;
