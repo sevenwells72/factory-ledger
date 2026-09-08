@@ -5,6 +5,7 @@
 **Screens:** [00-screen-inventory.md](00-screen-inventory.md) — 91 screens (S-01…S-91)
 **Source findings:** [01](01-nav-layout.md) · [02](02-actions-input-touch.md) · [03](03-feedback-error-notify.md) · [04](04-search-data-drag-chart.md) · [05](05-access-icon-other.md)
 **Rendered verification:** [06-browser-check.md](06-browser-check.md) — 384 captures across 91 screens, 2026-09-08
+**Systemic clusters:** [07-systemic-clusters.md](07-systemic-clusters.md) — the 648 TOUCH-003 / ACCESS-008 / overflow / fixed-bar failures grouped by root cause, ranked by failures-resolved-per-change
 **Status:** Every FAIL and PARTIAL from the five group files, deduplicated across screens into one improvement each. **No application code was modified.**
 
 ---
@@ -17,7 +18,7 @@ Each of the five group files records findings **per rule, per screen**. The same
 **Effort** is a rough implementation size: **S** ≈ under a day, **M** ≈ one to three days, **L** ≈ a week or more.
 **Screens** is the count of inventoried screens the change affects.
 
-Forty-eight improvements. Twenty-one resolve at least one Critical rule.
+Sixty-seven improvements (IMP-001…IMP-067). Thirty-two resolve at least one Critical rule; twenty-two are High, twelve Medium, one Low. Eight are marked **DONE**.
 
 ---
 
@@ -1327,7 +1328,7 @@ badge). One token change covers all four selectors, and it composes with IMP-010
 
 ## Systemic
 
-Twelve root causes account for the large majority of the 400-plus individual findings. Fixing these twelve resolves most of the improvements above as a side effect; fixing the improvements without them means fixing the same thing repeatedly.
+Twelve root causes account for the large majority of the 400-plus individual findings. [07-systemic-clusters.md](07-systemic-clusters.md) prices four of them against the browser check: how many measured failures each root cause accounts for, and what one token or rule change clears. Fixing these twelve resolves most of the improvements above as a side effect; fixing the improvements without them means fixing the same thing repeatedly.
 
 | # | Root cause | Evidence | Improvements it drives |
 |---|---|---|---|
