@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-08 12:52 — ER intake Phase 2: endpoints + allowlist + core refactor (branch feat/er-intake)
+
+- **File(s) changed:** `main.py`, `requirements.txt`, `tests/test_expected_receipt_extract.py`
+- **What changed:** Phase 2 of the AI-assisted expected-receipt intake. main.py: (1) `_create_expected_receipt_core()` factored out of POST /expected-receipts — the single INSERT path both the manual endpoint and the approve flow now share; ExpectedReceiptCreate + the ER select/serializer gained `source_document_id`. (2) Supabase Storage helpers (httpx, service-role REST; private bucket `purchase-documents` auto-created on first use). (3) Deterministic matching: `find_supplier_alias`/`upsert_supplier_alias` (latest-wins), `_match_line` (alias → exact → strong fuzzy → `_ai_candidate_selection_stub` [V1 no-op, may only return one of ≤5 given candidate IDs or null] → human; lb conversion order alias → unit-is-lb → parsed "50 LB"/"50#" token → product master [alias/exact matches only] → kg; expected_qty_lb stays null for fuzzy/none until the product is confirmed), `match_extraction` with dedupe warning across ALL statuses. (4) Five endpoints, all on DASHBOARD_KEY_ALLOWLIST: POST /expected-receipts/extract (multipart; sha256 + Storage upload + purchase_documents row, vision call OUTSIDE any DB transaction, 502 EXTRACTION_FAILED keeps file+row status extraction_failed), POST /purchase-documents/{id}/extract (retry, no re-upload), POST /expected-receipts/match (pure read), POST /expected-receipts/extract/approve (one transaction: dedupe 409 DUPLICATE_REFERENCE unless force, one ER per line via the shared core, alias upserts, document → approved), GET /purchase-documents/{id}/url (signed URL). All writes ride the standard get_transaction/psycopg2 path → global readonly tripwire + write-response envelope apply. requirements.txt: explicit `httpx==0.27.2` pin (prod parity; used for Storage calls). Tests: +31 endpoint tests incl. approve atomicity (bad line rolls back all), latest-wins via endpoint, duplicate warning incl. closed/cancelled, and readonly-tripwire tests proving /extract and /extract/approve return 503 READONLY_TRANSACTION with envelope error_detail when readonly is armed. Suite: 400 passed + the known pre-existing test_recent_ledger failure.
+- **Why:** Owner-approved delivery plan, Phase 2 of 3; stops here for review before the dashboard (Phase 3). Migration 049 must be applied to prod BEFORE this branch deploys.
+
+---
+
 ## 2026-09-08 12:25 — Pin-rationale comment on anthropic==0.69.0
 
 - **File(s) changed:** `requirements.txt`

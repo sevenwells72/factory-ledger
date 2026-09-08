@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Request, Response
+from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Request, Response, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator
@@ -21,6 +21,12 @@ import math
 import uuid
 import io
 import csv
+import hashlib
+import httpx
+# Vision extraction lives in its own module (vendor-swappable, zero DB
+# imports). Always referenced as `extraction.<name>` so tests can monkeypatch
+# the module attributes and both sides see it.
+import extraction
 from decimal import Decimal, ROUND_HALF_UP
 from openpyxl import Workbook
 from openpyxl.comments import Comment
@@ -2297,6 +2303,12 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("POST", "/expected-receipts"),
     ("GET", "/expected-receipts/{expected_receipt_id}"),
     ("PATCH", "/expected-receipts/{expected_receipt_id}"),
+    # AI-assisted intake (migration 049; dashboard-only, not in any GPT yaml)
+    ("POST", "/expected-receipts/extract"),
+    ("POST", "/expected-receipts/match"),
+    ("POST", "/expected-receipts/extract/approve"),
+    ("POST", "/purchase-documents/{document_id}/extract"),
+    ("GET", "/purchase-documents/{document_id}/url"),
     # Supplies (dashboard-only: packaging/consumables inventory + request queue)
     ("GET", "/supplies/inventory"),
     ("GET", "/supplies/inventory/{product_id}/lots"),
@@ -2565,6 +2577,51 @@ class ExpectedReceiptCreate(BaseModel):
     expected_date: Optional[date] = None
     reference_number: Optional[str] = None
     notes: Optional[str] = None
+    created_by: Optional[str] = None
+    source_document_id: Optional[int] = None  # purchase_documents link (intake flow)
+
+
+class ExtractedLineIn(BaseModel):
+    """One line of a vision extraction, as echoed back by the dashboard to
+    /expected-receipts/match (possibly user-edited)."""
+    vendor_description: str
+    quantity: float
+    unit: Optional[str] = None
+
+
+class ExtractionIn(BaseModel):
+    """The strict extraction shape (extraction.py's ExtractionResult)."""
+    supplier_name: str
+    reference_number: Optional[str] = None
+    document_date: Optional[str] = None
+    expected_delivery_date: Optional[str] = None
+    lines: List[ExtractedLineIn]
+
+
+class ExpectedReceiptMatchRequest(BaseModel):
+    extraction: ExtractionIn
+
+
+class ApproveLineIn(BaseModel):
+    """One reviewed line on /expected-receipts/extract/approve. The vendor
+    wording + unit info ride along so the alias can be written on approval."""
+    product_id: int
+    expected_qty_lb: float
+    expected_date: Optional[date] = None  # falls back to the request-level date
+    vendor_description: str
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    lb_per_unit: Optional[float] = None
+    save_alias: bool = True
+
+
+class ExpectedReceiptApproveRequest(BaseModel):
+    document_id: int
+    supplier_id: int
+    reference_number: Optional[str] = None
+    expected_date: Optional[date] = None
+    lines: List[ApproveLineIn]
+    force: bool = False  # override the DUPLICATE_REFERENCE warning
     created_by: Optional[str] = None
 
 
@@ -4653,7 +4710,7 @@ EXPECTED_RECEIPT_RECEIVED_SQL = """
 EXPECTED_RECEIPT_SELECT_SQL = """
     SELECT er.id, er.product_id, er.supplier_id, er.expected_qty, er.expected_date,
            er.reference_number, er.notes, er.status, er.created_at, er.created_by,
-           er.updated_at,
+           er.updated_at, er.source_document_id,
            p.name AS product_name, p.odoo_code,
            s.name AS supplier_name,
            COALESCE(rcv.received_qty, 0) AS received_qty,
@@ -4704,6 +4761,7 @@ def _serialize_expected_receipt(row: dict, today: Optional[date] = None) -> dict
         "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
         "created_by": row["created_by"],
         "updated_at": row["updated_at"].isoformat() if row.get("updated_at") else None,
+        "source_document_id": row.get("source_document_id"),
     }
 
 
@@ -4844,6 +4902,36 @@ def create_supplier(req: SupplierCreate, _: bool = Depends(verify_api_key)):
 
 # ── Expected receipts ──────────────────────────────────────────
 
+def _create_expected_receipt_core(cur, product_id: int, supplier_id: int, expected_qty,
+                                  expected_date, reference_number, notes, created_by,
+                                  source_document_id: Optional[int] = None) -> dict:
+    """The single INSERT path for expected receipts — used by both the manual
+    POST /expected-receipts endpoint and the intake approve flow, so the two
+    can never drift. Callers resolve/validate product + supplier first; this
+    validates qty and the optional document link, inserts, and returns the
+    full serialized record."""
+    if expected_qty is None or expected_qty <= 0:
+        raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be > 0 (lb)"})
+    if source_document_id is not None:
+        cur.execute("SELECT id FROM purchase_documents WHERE id = %s", (source_document_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {source_document_id} not found"})
+    cur.execute(
+        """INSERT INTO expected_receipts
+               (product_id, supplier_id, expected_qty, expected_date, reference_number, notes, created_by, source_document_id)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+           RETURNING id""",
+        (
+            product_id, supplier_id, expected_qty, expected_date,
+            (reference_number or "").strip() or None,
+            (notes or "").strip() or None,
+            created_by, source_document_id,
+        ),
+    )
+    new_id = cur.fetchone()["id"]
+    return fetch_expected_receipt(cur, new_id)
+
+
 @app.post("/expected-receipts", status_code=201)
 def create_expected_receipt(req: ExpectedReceiptCreate, request: Request, _: bool = Depends(verify_api_key)):
     """Record an expected/incoming delivery (lb). supplier_name must resolve to an
@@ -4866,20 +4954,12 @@ def create_expected_receipt(req: ExpectedReceiptCreate, request: Request, _: boo
 
         supplier = require_supplier(cur, req.supplier_name)
 
-        cur.execute(
-            """INSERT INTO expected_receipts
-                   (product_id, supplier_id, expected_qty, expected_date, reference_number, notes, created_by)
-               VALUES (%s, %s, %s, %s, %s, %s, %s)
-               RETURNING id""",
-            (
-                product_id, supplier["id"], req.expected_qty, req.expected_date,
-                (req.reference_number or "").strip() or None,
-                (req.notes or "").strip() or None,
-                caller_source_tag(request, req.created_by),
-            ),
+        record = _create_expected_receipt_core(
+            cur, product_id, supplier["id"], req.expected_qty, req.expected_date,
+            req.reference_number, req.notes, caller_source_tag(request, req.created_by),
+            source_document_id=req.source_document_id,
         )
-        new_id = cur.fetchone()["id"]
-        record = fetch_expected_receipt(cur, new_id)
+        new_id = record["id"]
 
     logger.info(f"Expected receipt {new_id} created: {record['expected_qty']} lb {record['product_name']} from {record['supplier_name']}")
     return {
@@ -5027,6 +5107,538 @@ def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate
         "changed_fields": changed,
         "message": f"Expected receipt {expected_receipt_id} " + (f"{new_status}" if new_status else "updated"),
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# AI-ASSISTED EXPECTED-RECEIPT INTAKE (migration 049)
+# docs/designs/expected-receipt-intake.md
+#
+# Hard rules enforced here:
+#   * the model NEVER writes to the DB — extraction (extraction.py, no DB
+#     imports) and matching (deterministic SQL below) are separate steps;
+#   * supplier_product_aliases is checked BEFORE any fuzzy match, and is
+#     written on approval with latest-wins upsert semantics;
+#   * dedupe on (supplier, normalized reference) is a warning + `force`
+#     override, never a hard block;
+#   * lb conversion from the product master is allowed only for alias/exact
+#     matches — fuzzy/none lines stay expected_qty_lb=null until a human
+#     confirms the product;
+#   * /extract and /extract/approve ride the standard get_transaction /
+#     psycopg2 handler path, so the global readonly tripwire and the
+#     write-response envelope apply exactly as on every other write.
+# ═══════════════════════════════════════════════════════════════
+
+# ── Supabase Storage (service-role REST calls; bucket auto-created) ─────────
+
+PURCHASE_DOC_BUCKET = "purchase-documents"
+_STORAGE_TIMEOUT = 30.0
+
+
+def _storage_config() -> tuple:
+    url = (os.getenv("SUPABASE_URL") or "").strip().rstrip("/")
+    key = (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not url or not key:
+        raise HTTPException(
+            status_code=503,
+            detail={"error_code": "STORAGE_NOT_CONFIGURED",
+                    "message": "SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not configured"},
+        )
+    return url, {"Authorization": f"Bearer {key}", "apikey": key}
+
+
+def _storage_ensure_bucket(url: str, headers: dict) -> None:
+    resp = httpx.post(
+        f"{url}/storage/v1/bucket",
+        headers=headers,
+        json={"id": PURCHASE_DOC_BUCKET, "name": PURCHASE_DOC_BUCKET, "public": False},
+        timeout=_STORAGE_TIMEOUT,
+    )
+    # 409 / "already exists" is success for our purposes.
+    if resp.status_code not in (200, 201, 409) and "exist" not in resp.text.lower():
+        raise HTTPException(
+            status_code=502,
+            detail={"error_code": "STORAGE_BUCKET_FAILED",
+                    "message": f"Could not create bucket '{PURCHASE_DOC_BUCKET}': {resp.status_code} {resp.text[:200]}"},
+        )
+
+
+def storage_upload_purchase_document(storage_path: str, content: bytes, mime_type: str) -> None:
+    """Upload to the private bucket; creates the bucket on first use."""
+    url, headers = _storage_config()
+    for attempt in (1, 2):
+        resp = httpx.post(
+            f"{url}/storage/v1/object/{PURCHASE_DOC_BUCKET}/{storage_path}",
+            headers={**headers, "Content-Type": mime_type, "x-upsert": "false"},
+            content=content,
+            timeout=_STORAGE_TIMEOUT,
+        )
+        if resp.status_code in (200, 201):
+            return
+        if attempt == 1 and ("bucket" in resp.text.lower() and "not" in resp.text.lower()):
+            _storage_ensure_bucket(url, headers)
+            continue
+        break
+    raise HTTPException(
+        status_code=502,
+        detail={"error_code": "STORAGE_UPLOAD_FAILED",
+                "message": f"Storage upload failed: {resp.status_code} {resp.text[:200]}"},
+    )
+
+
+def storage_download_purchase_document(storage_path: str) -> bytes:
+    url, headers = _storage_config()
+    resp = httpx.get(
+        f"{url}/storage/v1/object/{PURCHASE_DOC_BUCKET}/{storage_path}",
+        headers=headers, timeout=_STORAGE_TIMEOUT,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail={"error_code": "STORAGE_DOWNLOAD_FAILED",
+                    "message": f"Storage download failed: {resp.status_code} {resp.text[:200]}"},
+        )
+    return resp.content
+
+
+def storage_signed_purchase_document_url(storage_path: str, expires_in: int = 600) -> str:
+    url, headers = _storage_config()
+    resp = httpx.post(
+        f"{url}/storage/v1/object/sign/{PURCHASE_DOC_BUCKET}/{storage_path}",
+        headers=headers, json={"expiresIn": expires_in}, timeout=_STORAGE_TIMEOUT,
+    )
+    if resp.status_code != 200 or "signedURL" not in (resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}):
+        raise HTTPException(
+            status_code=502,
+            detail={"error_code": "STORAGE_SIGN_FAILED",
+                    "message": f"Signed URL failed: {resp.status_code} {resp.text[:200]}"},
+        )
+    return url + "/storage/v1" + resp.json()["signedURL"]
+
+
+# ── Deterministic matching ──────────────────────────────────────────────────
+
+LB_PER_KG = 2.20462
+
+# Units that mean "the quantity is already pounds".
+_LB_UNITS = {"lb", "lbs", "lb.", "lbs.", "pound", "pounds", "#"}
+_KG_UNITS = {"kg", "kgs", "kg.", "kilo", "kilos", "kilogram", "kilograms"}
+# Container units where a case/bag weight makes sense.
+_CONTAINER_UNITS = {"case", "cases", "cs", "box", "boxes", "bag", "bags", "sack",
+                    "sacks", "ctn", "carton", "cartons", "pail", "pails", "drum",
+                    "drums", "tote", "totes", "ea", "each", "unit", "units", "pc", "pcs"}
+
+
+def _normalize_vendor_description(text: Optional[str]) -> str:
+    """Python mirror of the supplier_product_aliases_uidx expression
+    (migration 049): btrim → collapse whitespace → lower."""
+    if not text:
+        return ""
+    return re.sub(r"\s+", " ", text.strip()).lower()
+
+
+def find_supplier_alias(cur, supplier_id: int, vendor_description: str) -> Optional[dict]:
+    cur.execute(
+        """SELECT spa.id, spa.product_id, spa.lb_per_unit, spa.unit,
+                  p.name AS product_name, p.odoo_code
+           FROM supplier_product_aliases spa
+           JOIN products p ON p.id = spa.product_id
+           WHERE spa.supplier_id = %s
+             AND lower(regexp_replace(btrim(spa.vendor_description), '\\s+', ' ', 'g')) = %s
+           LIMIT 1""",
+        (supplier_id, _normalize_vendor_description(vendor_description)),
+    )
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+
+def upsert_supplier_alias(cur, supplier_id: int, vendor_description: str, product_id: int,
+                          lb_per_unit, unit, created_by) -> None:
+    """Latest approved correction wins (owner ruling, 2026-09-08)."""
+    cur.execute(
+        """INSERT INTO supplier_product_aliases
+               (supplier_id, vendor_description, product_id, lb_per_unit, unit, created_by)
+           VALUES (%s, %s, %s, %s, %s, %s)
+           ON CONFLICT (supplier_id,
+                        lower(regexp_replace(btrim(vendor_description), '\\s+', ' ', 'g')))
+           DO UPDATE SET product_id = EXCLUDED.product_id,
+                         lb_per_unit = EXCLUDED.lb_per_unit,
+                         unit = EXCLUDED.unit,
+                         created_by = EXCLUDED.created_by,
+                         updated_at = clock_timestamp()""",
+        (supplier_id, vendor_description, product_id, lb_per_unit, unit, created_by),
+    )
+
+
+def _parse_weight_lb_from_description(desc: str) -> Optional[float]:
+    """A weight token printed in the vendor's own wording: '50 LB', '50LB',
+    '50#' (digits BEFORE the #; '#9' is an item number and never matches)."""
+    if not desc:
+        return None
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(?:lbs?|pounds?)\b", desc, re.IGNORECASE)
+    if not m:
+        m = re.search(r"(\d+(?:\.\d+)?)#(?!\d)", desc)
+    if not m:
+        return None
+    value = float(m.group(1))
+    return value if value > 0 else None
+
+
+def _ai_candidate_selection_stub(cur, vendor_description: str, candidates: list) -> Optional[int]:
+    """V1 STUB — deliberately NOT implemented (owner ruling, 2026-09-08).
+    The future hook for AI-assisted candidate selection in the matching chain
+    (alias → exact → strong fuzzy → THIS → human). Contract when implemented:
+    receives ≤5 factory-ledger candidates and may ONLY return the product_id
+    of one of them, or None. It must never introduce a product outside the
+    candidate list, and it never writes to the DB."""
+    return None
+
+
+def _dedupe_existing_receipts(cur, supplier_id: int, reference_number: Optional[str]) -> list:
+    """All expected receipts (any status — owner ruling incl. closed/cancelled)
+    for (supplier, normalized reference)."""
+    ref = _normalize_vendor_description(reference_number)
+    if not ref:
+        return []
+    cur.execute(
+        """SELECT id, status, expected_qty, created_at
+           FROM expected_receipts
+           WHERE supplier_id = %s
+             AND lower(regexp_replace(btrim(reference_number), '\\s+', ' ', 'g')) = %s
+           ORDER BY id""",
+        (supplier_id, ref),
+    )
+    return [
+        {"id": r["id"], "status": r["status"], "expected_qty": float(r["expected_qty"]),
+         "created_at": r["created_at"].isoformat() if r["created_at"] else None}
+        for r in cur.fetchall()
+    ]
+
+
+def _match_line(cur, supplier_id: Optional[int], line: dict) -> dict:
+    """One extraction line → product match + lb conversion. Deterministic.
+
+    Match chain: alias → exact → strong fuzzy → AI stub (V1: no-op) → human.
+    lb rules (owner ruling): product-master case weights only for alias/exact;
+    fuzzy/none lines keep expected_qty_lb null until the product is confirmed
+    (text-derived lb_per_unit still returned so the UI can compute on confirm).
+    """
+    desc = line["vendor_description"]
+    quantity = float(line["quantity"])
+    unit_norm = (line.get("unit") or "").strip().lower().rstrip(".") or None
+
+    product = None
+    candidates = []
+    match_source, confidence = "none", 0.0
+    alias = find_supplier_alias(cur, supplier_id, desc) if supplier_id else None
+    if alias:
+        match_source, confidence = "alias", 1.0
+        product = {"product_id": alias["product_id"], "name": alias["product_name"],
+                   "odoo_code": alias["odoo_code"]}
+    else:
+        results = _tiered_product_search(cur, desc, limit=5)
+        candidates = [
+            {"product_id": r["id"], "name": r["name"], "odoo_code": r["odoo_code"],
+             "similarity": round(float(r["similarity"]), 3)}
+            for r in results
+        ]
+        if results and results[0]["match_tier"] == "exact":
+            match_source, confidence = "exact", 1.0
+            product = candidates[0]
+        elif results and results[0]["match_tier"] == "keyword" and len(results) == 1:
+            match_source, confidence = "fuzzy", 0.8
+            product = candidates[0]
+        elif results and results[0]["match_tier"] == "trigram" and results[0]["similarity"] > 0.4 \
+                and (len(results) == 1 or float(results[0]["similarity"]) - float(results[1]["similarity"]) > 0.15):
+            match_source, confidence = "fuzzy", round(float(results[0]["similarity"]), 3)
+            product = candidates[0]
+        else:
+            stub_pick = _ai_candidate_selection_stub(cur, desc, candidates)
+            if stub_pick is not None and any(c["product_id"] == stub_pick for c in candidates):
+                match_source, confidence = "fuzzy", 0.5
+                product = next(c for c in candidates if c["product_id"] == stub_pick)
+
+    # ── lb conversion ──
+    lb_per_unit, lb_source = None, "none"
+    if alias and alias.get("lb_per_unit") is not None:
+        lb_per_unit, lb_source = float(alias["lb_per_unit"]), "alias"
+    elif unit_norm in _LB_UNITS:
+        lb_per_unit, lb_source = 1.0, "unit_is_lb"
+    elif (parsed := _parse_weight_lb_from_description(desc)) is not None \
+            and (unit_norm is None or unit_norm in _CONTAINER_UNITS):
+        lb_per_unit, lb_source = parsed, "parsed_description"
+    elif match_source in ("alias", "exact") and product and unit_norm in _CONTAINER_UNITS:
+        cur.execute("SELECT case_size_lb, default_case_weight_lb FROM products WHERE id = %s",
+                    (product["product_id"],))
+        prow = cur.fetchone()
+        case_lb = (prow or {}).get("case_size_lb") or (prow or {}).get("default_case_weight_lb")
+        if case_lb:
+            lb_per_unit, lb_source = float(case_lb), "case_size"
+    elif unit_norm in _KG_UNITS:
+        lb_per_unit, lb_source = LB_PER_KG, "kg"
+
+    expected_qty_lb = None
+    if lb_per_unit is not None and match_source in ("alias", "exact"):
+        expected_qty_lb = round(quantity * lb_per_unit, 4)
+
+    return {
+        "vendor_description": desc,
+        "quantity": quantity,
+        "unit": line.get("unit"),
+        "match_source": match_source,
+        "confidence": confidence,
+        "product": product,
+        "candidates": candidates,
+        "lb_per_unit": lb_per_unit,
+        "lb_source": lb_source,
+        "expected_qty_lb": expected_qty_lb,
+    }
+
+
+def match_extraction(cur, extraction_payload: dict) -> dict:
+    """Deterministic matching for a validated extraction. Pure read — no LLM,
+    no writes. The dashboard re-calls this when the user changes the supplier."""
+    supplier_name = extraction_payload.get("supplier_name") or ""
+    supplier = resolve_supplier(cur, supplier_name)
+    if supplier:
+        supplier_block = {
+            "match": {"supplier_id": supplier["id"], "name": supplier["name"], "active": supplier["active"]},
+            "confidence": "exact",
+            "candidates": [],
+        }
+    else:
+        supplier_block = {
+            "match": None,
+            "confidence": "none",
+            "candidates": supplier_candidates(cur, supplier_name, limit=5) if supplier_name.strip() else [],
+        }
+
+    duplicate_warning = None
+    supplier_id = supplier["id"] if supplier else None
+    ref = extraction_payload.get("reference_number")
+    if supplier_id and ref:
+        existing = _dedupe_existing_receipts(cur, supplier_id, ref)
+        if existing:
+            duplicate_warning = {"existing": existing}
+
+    lines = [_match_line(cur, supplier_id, dict(line)) for line in extraction_payload.get("lines", [])]
+    return {"supplier": supplier_block, "duplicate_warning": duplicate_warning, "lines": lines}
+
+
+# ── Intake endpoints ────────────────────────────────────────────────────────
+
+def _serialize_purchase_document(row: dict) -> dict:
+    return {
+        "document_id": row["id"],
+        "storage_path": row["storage_path"],
+        "original_filename": row.get("original_filename"),
+        "mime_type": row["mime_type"],
+        "byte_size": row["byte_size"],
+        "status": row["status"],
+        "extraction": row.get("extraction"),
+        "extraction_model": row.get("extraction_model"),
+        "uploaded_at": row["uploaded_at"].isoformat() if row.get("uploaded_at") else None,
+        "approved_at": row["approved_at"].isoformat() if row.get("approved_at") else None,
+    }
+
+
+def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str) -> dict:
+    """Model call OUTSIDE any DB transaction (a vision call can take tens of
+    seconds — never hold a pooled connection across it), then a short
+    transaction to store the outcome. Raises 502 EXTRACTION_FAILED with the
+    document_id on failure; the file + row are kept so retry needs no
+    re-upload."""
+    try:
+        result = extraction.extract_purchase_document(content, mime_type)
+    except extraction.ExtractionError as exc:
+        with get_transaction() as cur:
+            cur.execute(
+                "UPDATE purchase_documents SET status = 'extraction_failed' WHERE id = %s",
+                (document_id,),
+            )
+        raise HTTPException(
+            status_code=502,
+            detail={"error_code": "EXTRACTION_FAILED", "document_id": document_id,
+                    "message": f"Extraction failed: {exc}. The file is stored — retry via POST /purchase-documents/{document_id}/extract."},
+        )
+    with get_transaction() as cur:
+        cur.execute(
+            """UPDATE purchase_documents
+               SET extraction = %s, extraction_model = %s, status = 'extracted'
+               WHERE id = %s""",
+            (json.dumps(result["extraction"]), result["extraction_model"], document_id),
+        )
+    return result
+
+
+@app.post("/expected-receipts/extract", status_code=201)
+async def extract_expected_receipt_document(
+    request: Request,
+    file: UploadFile = File(...),
+    _: bool = Depends(verify_api_key),
+):
+    """Step 1 of the intake flow: store the vendor PO / order confirmation and
+    run vision extraction. NO expected receipts are created here — matching is
+    POST /expected-receipts/match, creation is POST /expected-receipts/extract/approve."""
+    content = await file.read()
+    mime = (file.content_type or "").strip().lower()
+    if mime == "image/jpg":
+        mime = "image/jpeg"
+    if mime not in extraction.ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=415,
+            detail={"error_code": "UNSUPPORTED_FILE_TYPE",
+                    "message": f"Unsupported file type '{mime or 'unknown'}'. Use PNG, JPEG, or PDF."},
+        )
+    if not content:
+        raise HTTPException(status_code=422, detail={"error_code": "EMPTY_FILE", "message": "The uploaded file is empty"})
+    if len(content) > extraction.MAX_FILE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail={"error_code": "FILE_TOO_LARGE",
+                    "message": f"File is {len(content)} bytes; limit is {extraction.MAX_FILE_BYTES // (1024 * 1024)} MB"},
+        )
+
+    sha256 = hashlib.sha256(content).hexdigest()
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", (file.filename or "document"))[:80]
+    now = get_plant_now()
+    storage_path = f"{now:%Y/%m}/{sha256[:12]}-{uuid.uuid4().hex[:8]}-{safe_name}"
+
+    storage_upload_purchase_document(storage_path, content, mime)
+
+    with get_transaction() as cur:
+        cur.execute("SELECT id FROM purchase_documents WHERE file_sha256 = %s LIMIT 1", (sha256,))
+        already_seen = cur.fetchone() is not None
+        cur.execute(
+            """INSERT INTO purchase_documents
+                   (storage_path, original_filename, mime_type, file_sha256, byte_size, created_by)
+               VALUES (%s, %s, %s, %s, %s, %s)
+               RETURNING id""",
+            (storage_path, file.filename, mime, sha256, len(content), caller_source_tag(request)),
+        )
+        document_id = cur.fetchone()["id"]
+
+    result = _run_extraction_and_store(document_id, content, mime)
+
+    return {
+        "document_id": document_id,
+        "storage_path": storage_path,
+        "already_seen": already_seen,
+        "extraction": result["extraction"],
+        "extraction_model": result["extraction_model"],
+        "message": f"Extracted {len(result['extraction']['lines'])} line(s) from {file.filename or 'document'}"
+                   + (" — this file was uploaded before (matching will surface duplicates)" if already_seen else ""),
+    }
+
+
+@app.post("/purchase-documents/{document_id}/extract")
+def retry_purchase_document_extraction(document_id: int, _: bool = Depends(verify_api_key)):
+    """Re-run extraction on an already-stored document (no re-upload)."""
+    with get_transaction() as cur:
+        cur.execute("SELECT * FROM purchase_documents WHERE id = %s", (document_id,))
+        doc = cur.fetchone()
+    if not doc:
+        raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {document_id} not found"})
+    if doc["status"] == "approved":
+        raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {document_id} is already approved"})
+
+    content = storage_download_purchase_document(doc["storage_path"])
+    result = _run_extraction_and_store(document_id, content, doc["mime_type"])
+    return {
+        "document_id": document_id,
+        "storage_path": doc["storage_path"],
+        "already_seen": False,
+        "extraction": result["extraction"],
+        "extraction_model": result["extraction_model"],
+        "message": f"Re-extracted {len(result['extraction']['lines'])} line(s)",
+    }
+
+
+@app.post("/expected-receipts/match")
+def match_expected_receipt_extraction(req: ExpectedReceiptMatchRequest, _: bool = Depends(verify_api_key)):
+    """Step 2: deterministic matching of a (possibly user-edited) extraction.
+    Pure read — no LLM, no writes."""
+    with get_transaction() as cur:
+        return match_extraction(cur, req.extraction.dict())
+
+
+@app.post("/expected-receipts/extract/approve", status_code=201)
+def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Request, _: bool = Depends(verify_api_key)):
+    """Step 3: create ONE expected receipt per reviewed line — atomically, via
+    the same _create_expected_receipt_core() the manual endpoint uses — and
+    learn supplier_product_aliases (latest-wins) for lines with save_alias."""
+    if not req.lines:
+        raise HTTPException(status_code=422, detail={"error_code": "NO_LINES", "message": "At least one line is required"})
+
+    created_by = caller_source_tag(request, req.created_by)
+    with get_transaction() as cur:
+        cur.execute("SELECT id, status, storage_path FROM purchase_documents WHERE id = %s FOR UPDATE", (req.document_id,))
+        doc = cur.fetchone()
+        if not doc:
+            raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
+        if doc["status"] == "approved":
+            raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
+
+        cur.execute("SELECT id, name, active FROM suppliers WHERE id = %s", (req.supplier_id,))
+        supplier = cur.fetchone()
+        if not supplier:
+            raise HTTPException(status_code=404, detail={"error_code": "SUPPLIER_NOT_FOUND", "message": f"Supplier id {req.supplier_id} not found"})
+        if not supplier["active"]:
+            raise HTTPException(status_code=422, detail={"error_code": "SUPPLIER_INACTIVE", "message": f"Supplier '{supplier['name']}' is inactive."})
+
+        duplicates = _dedupe_existing_receipts(cur, req.supplier_id, req.reference_number)
+        if duplicates and not req.force:
+            raise HTTPException(
+                status_code=409,
+                detail={"error_code": "DUPLICATE_REFERENCE",
+                        "message": f"Supplier '{supplier['name']}' already has expected receipt(s) with reference '{req.reference_number}'. Pass force=true to create anyway.",
+                        "existing": duplicates},
+            )
+
+        created, aliases_saved = [], 0
+        for line in req.lines:
+            cur.execute("SELECT id FROM products WHERE id = %s", (line.product_id,))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {line.product_id} not found"})
+            note = (f"PO {req.reference_number}: " if req.reference_number else "PO: ") + line.vendor_description
+            if line.quantity is not None:
+                note += f" — {line.quantity:g} {line.unit or 'unit(s)'}"
+            record = _create_expected_receipt_core(
+                cur, line.product_id, req.supplier_id, line.expected_qty_lb,
+                line.expected_date or req.expected_date, req.reference_number,
+                note, created_by, source_document_id=req.document_id,
+            )
+            created.append(record)
+            if line.save_alias:
+                upsert_supplier_alias(cur, req.supplier_id, line.vendor_description,
+                                      line.product_id, line.lb_per_unit, line.unit, created_by)
+                aliases_saved += 1
+
+        cur.execute(
+            "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
+            (req.document_id,),
+        )
+
+    logger.info(f"Intake approve: document {req.document_id} → {len(created)} expected receipt(s), {aliases_saved} alias(es)")
+    return {
+        "created": created,
+        "created_count": len(created),
+        "aliases_saved": aliases_saved,
+        "duplicate_overridden": bool(duplicates and req.force),
+        "message": f"Created {len(created)} expected receipt(s) from document {req.document_id}",
+    }
+
+
+@app.get("/purchase-documents/{document_id}/url")
+def purchase_document_signed_url(document_id: int, _: bool = Depends(verify_api_key)):
+    """Short-lived signed URL for viewing the original file."""
+    with get_transaction() as cur:
+        cur.execute("SELECT * FROM purchase_documents WHERE id = %s", (document_id,))
+        doc = cur.fetchone()
+    if not doc:
+        raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {document_id} not found"})
+    signed = storage_signed_purchase_document_url(doc["storage_path"], expires_in=600)
+    return {"document_id": document_id, "url": signed, "expires_in": 600,
+            "document": _serialize_purchase_document(dict(doc))}
 
 
 # ═══════════════════════════════════════════════════════════════

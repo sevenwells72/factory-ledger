@@ -399,3 +399,488 @@ class TestExtractPurchaseDocument:
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         with pytest.raises(ExtractionError, match="ANTHROPIC_API_KEY"):
             extraction._client()
+
+
+# ═════════════════════════════════════════════════════════════════
+# Phase 2 — endpoint coverage (extract / match / approve / retry / url)
+# ═════════════════════════════════════════════════════════════════
+
+from contextlib import contextmanager
+from datetime import date
+
+from fastapi.testclient import TestClient
+
+import main
+
+
+class _ConnProxy:
+    """Savepoint proxy so endpoint 'commits' stay inside the rolled-back outer
+    transaction (same pattern as tests/test_expected_receipts.py)."""
+    def __init__(self, conn, sp_name):
+        self._conn = conn
+        self._sp = sp_name
+        with self._conn.cursor() as c:
+            c.execute(f"SAVEPOINT {self._sp}")
+
+    def cursor(self, *args, **kwargs):
+        return self._conn.cursor(*args, **kwargs)
+
+    def commit(self):
+        with self._conn.cursor() as c:
+            c.execute(f"RELEASE SAVEPOINT {self._sp}")
+            c.execute(f"SAVEPOINT {self._sp}")
+
+    def rollback(self):
+        with self._conn.cursor() as c:
+            c.execute(f"ROLLBACK TO SAVEPOINT {self._sp}")
+            c.execute(f"SAVEPOINT {self._sp}")
+
+
+@pytest.fixture
+def client(_db_connection, monkeypatch):
+    @contextmanager
+    def _fake_get_conn():
+        proxy = _ConnProxy(_db_connection, "intake_inner")
+        try:
+            yield proxy
+            proxy.commit()
+        except Exception:
+            proxy.rollback()
+            raise
+
+    monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
+    with TestClient(main.app) as c:
+        c.headers["X-API-Key"] = main.API_KEY
+        yield c
+    _db_connection.rollback()
+
+
+@pytest.fixture
+def cur(_db_connection):
+    from psycopg2.extras import RealDictCursor
+    c = _db_connection.cursor(cursor_factory=RealDictCursor)
+    yield c
+    c.close()
+
+
+@pytest.fixture
+def mock_storage(monkeypatch):
+    """No real Supabase calls: record uploads, serve downloads, sign URLs."""
+    calls = {"uploads": [], "downloads": [], "signed": []}
+
+    def _upload(path, content, mime):
+        calls["uploads"].append({"path": path, "bytes": len(content), "mime": mime})
+
+    def _download(path):
+        calls["downloads"].append(path)
+        return b"stored-bytes"
+
+    def _sign(path, expires_in=600):
+        calls["signed"].append(path)
+        return f"https://storage.test/signed/{path}"
+
+    monkeypatch.setattr(main, "storage_upload_purchase_document", _upload)
+    monkeypatch.setattr(main, "storage_download_purchase_document", _download)
+    monkeypatch.setattr(main, "storage_signed_purchase_document_url", _sign)
+    return calls
+
+
+@pytest.fixture
+def mock_extractor(monkeypatch):
+    """Deterministic stand-in for the vision model."""
+    state = {"result": {"extraction": dict(GOOD_EXTRACTION), "extraction_model": "claude-sonnet-5"},
+             "error": None, "calls": 0}
+
+    def _extract(content, mime):
+        state["calls"] += 1
+        if state["error"]:
+            raise state["error"]
+        return state["result"]
+
+    monkeypatch.setattr(extraction, "extract_purchase_document", _extract)
+    return state
+
+
+def _doc_row(cur, document_id):
+    cur.execute("SELECT * FROM purchase_documents WHERE id = %s", (document_id,))
+    return cur.fetchone()
+
+
+def _post_file(client, name="po.png", mime="image/png", content=b"png-bytes"):
+    return client.post("/expected-receipts/extract", files={"file": (name, content, mime)})
+
+
+class TestExtractEndpoint:
+    def test_happy_path(self, client, cur, mock_storage, mock_extractor):
+        r = _post_file(client)
+        assert r.status_code == 201, r.text
+        data = r.json()
+        assert data["success"] is True
+        assert data["already_seen"] is False
+        assert data["extraction"] == GOOD_EXTRACTION
+        assert data["extraction_model"] == "claude-sonnet-5"
+        assert len(mock_storage["uploads"]) == 1
+        assert mock_storage["uploads"][0]["path"] == data["storage_path"]
+        row = _doc_row(cur, data["document_id"])
+        assert row["status"] == "extracted"
+        assert row["mime_type"] == "image/png"
+        assert row["extraction"]["supplier_name"] == GOOD_EXTRACTION["supplier_name"]
+        assert row["file_sha256"]
+
+    def test_already_seen_on_same_bytes(self, client, mock_storage, mock_extractor):
+        assert _post_file(client).json()["already_seen"] is False
+        r2 = _post_file(client)
+        assert r2.status_code == 201
+        assert r2.json()["already_seen"] is True
+
+    def test_unsupported_type(self, client, mock_storage, mock_extractor):
+        r = _post_file(client, name="po.gif", mime="image/gif")
+        assert r.status_code == 415
+        assert r.json()["detail"]["error_code"] == "UNSUPPORTED_FILE_TYPE"
+        assert mock_storage["uploads"] == []
+
+    def test_jpg_alias_mime(self, client, cur, mock_storage, mock_extractor):
+        r = _post_file(client, name="po.jpg", mime="image/jpg")
+        assert r.status_code == 201
+        assert _doc_row(cur, r.json()["document_id"])["mime_type"] == "image/jpeg"
+
+    def test_empty_file(self, client, mock_storage, mock_extractor):
+        r = _post_file(client, content=b"")
+        assert r.status_code == 422
+        assert r.json()["detail"]["error_code"] == "EMPTY_FILE"
+
+    def test_too_large(self, client, mock_storage, mock_extractor, monkeypatch):
+        monkeypatch.setattr(extraction, "MAX_FILE_BYTES", 10)
+        r = _post_file(client, content=b"x" * 11)
+        assert r.status_code == 413
+        assert r.json()["detail"]["error_code"] == "FILE_TOO_LARGE"
+
+    def test_extraction_failure_keeps_file_and_row(self, client, cur, mock_storage, mock_extractor):
+        mock_extractor["error"] = ExtractionError("model refused")
+        r = _post_file(client)
+        assert r.status_code == 502
+        detail = r.json()["detail"]
+        assert detail["error_code"] == "EXTRACTION_FAILED"
+        doc_id = detail["document_id"]
+        row = _doc_row(cur, doc_id)
+        assert row["status"] == "extraction_failed"
+        assert len(mock_storage["uploads"]) == 1  # file kept, no re-upload needed
+
+    def test_retry_after_failure(self, client, cur, mock_storage, mock_extractor):
+        mock_extractor["error"] = ExtractionError("model refused")
+        doc_id = _post_file(client).json()["detail"]["document_id"]
+        mock_extractor["error"] = None
+        r = client.post(f"/purchase-documents/{doc_id}/extract")
+        assert r.status_code == 200, r.text
+        assert r.json()["extraction"] == GOOD_EXTRACTION
+        assert mock_storage["downloads"], "retry must download the stored file"
+        assert _doc_row(cur, doc_id)["status"] == "extracted"
+
+    def test_retry_unknown_document(self, client, mock_storage, mock_extractor):
+        r = client.post("/purchase-documents/999999999/extract")
+        assert r.status_code == 404
+        assert r.json()["detail"]["error_code"] == "DOCUMENT_NOT_FOUND"
+
+
+class TestMatchEndpoint:
+    def _seed(self, cur):
+        sup = _seed_supplier(cur, "Vendor Match Co 049")
+        cur.execute(
+            """INSERT INTO products (name, type, uom, active, case_size_lb)
+               VALUES ('Match Oats Rolled 049', 'ingredient', 'lb', true, 25) RETURNING id""")
+        exact_pid = cur.fetchone()["id"]
+        alias_pid = _seed_product(cur, "Match Alias Target 049")
+        cur.execute(
+            """INSERT INTO supplier_product_aliases
+                   (supplier_id, vendor_description, product_id, lb_per_unit, unit)
+               VALUES (%s, 'VNDR OATS SPECIAL 22.68KG', %s, 50, 'BAG')""",
+            (sup, alias_pid))
+        return sup, exact_pid, alias_pid
+
+    def _match(self, client, supplier_name, lines, reference=None):
+        return client.post("/expected-receipts/match", json={"extraction": {
+            "supplier_name": supplier_name, "reference_number": reference,
+            "document_date": None, "expected_delivery_date": None, "lines": lines}})
+
+    def test_alias_beats_fuzzy_and_converts(self, client, cur):
+        sup, exact_pid, alias_pid = self._seed(cur)
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "vndr oats  SPECIAL 22.68kg", "quantity": 4, "unit": "BAG"}])
+        assert r.status_code == 200, r.text
+        line = r.json()["lines"][0]
+        assert line["match_source"] == "alias"
+        assert line["product"]["product_id"] == alias_pid
+        assert line["lb_per_unit"] == 50 and line["lb_source"] == "alias"
+        assert line["expected_qty_lb"] == 200
+
+    def test_exact_match_uses_case_size(self, client, cur):
+        sup, exact_pid, _ = self._seed(cur)
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "Match Oats Rolled 049", "quantity": 3, "unit": "CASE"}])
+        line = r.json()["lines"][0]
+        assert line["match_source"] == "exact"
+        assert line["product"]["product_id"] == exact_pid
+        assert line["lb_source"] == "case_size" and line["lb_per_unit"] == 25
+        assert line["expected_qty_lb"] == 75
+
+    def test_parsed_description_weight(self, client, cur):
+        sup, exact_pid, _ = self._seed(cur)
+        cur.execute("UPDATE products SET name = 'Graham Crumbs Fine 049' WHERE id = %s", (exact_pid,))
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "GRAHAM CRUMBS FINE 049 50 LB", "quantity": 2, "unit": "BAG"}])
+        line = r.json()["lines"][0]
+        assert line["lb_source"] == "parsed_description" and line["lb_per_unit"] == 50
+        # tiered search: keyword-or-weaker on this wording → product-master rule
+        # doesn't apply, but parsed weight is text-derived and allowed…
+        if line["match_source"] in ("alias", "exact"):
+            assert line["expected_qty_lb"] == 100
+        else:
+            assert line["expected_qty_lb"] is None  # …while qty stays null until confirm
+
+    def test_fuzzy_never_computes_lb(self, client, cur):
+        self._seed(cur)
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "Match Oats Roled 049 extra wordage", "quantity": 7, "unit": "lb"}])
+        line = r.json()["lines"][0]
+        assert line["match_source"] in ("fuzzy", "none")
+        assert line["expected_qty_lb"] is None
+        assert line["lb_per_unit"] == 1.0 and line["lb_source"] == "unit_is_lb"
+
+    def test_unknown_supplier_gives_candidates(self, client, cur):
+        self._seed(cur)
+        r = self._match(client, "Vendor Mach Co 049",
+                        [{"vendor_description": "whatever", "quantity": 1, "unit": None}])
+        data = r.json()
+        assert data["supplier"]["match"] is None
+        assert data["supplier"]["confidence"] == "none"
+        assert any("Vendor Match Co 049" == c["name"] for c in data["supplier"]["candidates"])
+
+    def test_duplicate_warning_includes_cancelled(self, client, cur):
+        sup, exact_pid, _ = self._seed(cur)
+        cur.execute(
+            """INSERT INTO expected_receipts (product_id, supplier_id, expected_qty, reference_number, status)
+               VALUES (%s, %s, 500, 'PO-777', 'cancelled')""", (exact_pid, sup))
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "x", "quantity": 1, "unit": None}],
+                        reference="  po-777 ")
+        warn = r.json()["duplicate_warning"]
+        assert warn and warn["existing"][0]["status"] == "cancelled"
+
+    def test_no_writes(self, client, cur):
+        sup, exact_pid, _ = self._seed(cur)
+        cur.execute("SELECT count(*) AS n FROM expected_receipts")
+        before = cur.fetchone()["n"]
+        self._match(client, "Vendor Match Co 049",
+                    [{"vendor_description": "Match Oats Rolled 049", "quantity": 3, "unit": "CASE"}])
+        cur.execute("SELECT count(*) AS n FROM expected_receipts")
+        assert cur.fetchone()["n"] == before
+
+
+class TestApproveEndpoint:
+    def _seed(self, cur):
+        sup = _seed_supplier(cur, "Vendor Approve Co 049")
+        p1 = _seed_product(cur, "Approve Prod A 049")
+        p2 = _seed_product(cur, "Approve Prod B 049")
+        doc = _insert_document(cur, path="x/approve-049.png")
+        return sup, p1, p2, doc["id"]
+
+    def _approve(self, client, doc_id, sup, lines, reference="PO-049", force=False):
+        return client.post("/expected-receipts/extract/approve", json={
+            "document_id": doc_id, "supplier_id": sup, "reference_number": reference,
+            "expected_date": "2026-09-15", "lines": lines, "force": force})
+
+    @staticmethod
+    def _line(pid, qty_lb=100, desc="VNDR THING 50LB", save_alias=True, **kw):
+        return {"product_id": pid, "expected_qty_lb": qty_lb, "vendor_description": desc,
+                "quantity": 2, "unit": "BAG", "lb_per_unit": 50, "save_alias": save_alias, **kw}
+
+    def test_happy_path_two_lines(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        r = self._approve(client, doc_id, sup,
+                          [self._line(p1, desc="VNDR A 50LB"), self._line(p2, qty_lb=60, desc="VNDR B 30LB")])
+        assert r.status_code == 201, r.text
+        data = r.json()
+        assert data["success"] is True and data["created_count"] == 2 and data["aliases_saved"] == 2
+        for rec in data["created"]:
+            assert rec["source_document_id"] == doc_id
+            assert rec["reference_number"] == "PO-049"
+            assert rec["status"] == "open"
+        assert "VNDR A 50LB" in data["created"][0]["notes"]
+        assert data["created"][0]["expected_date"] == "2026-09-15"
+        row = _doc_row(cur, doc_id)
+        assert row["status"] == "approved" and row["approved_at"] is not None
+        cur.execute("SELECT product_id, lb_per_unit FROM supplier_product_aliases WHERE supplier_id = %s ORDER BY id", (sup,))
+        aliases = cur.fetchall()
+        assert [a["product_id"] for a in aliases] == [p1, p2]
+
+    def test_alias_latest_wins_via_endpoint(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        self._approve(client, doc_id, sup, [self._line(p1, desc="SAME WORDING")])
+        doc2 = _insert_document(cur, path="x/approve-049b.png")["id"]
+        r = self._approve(client, doc2, sup, [self._line(p2, desc="  same   wording ")], force=True)
+        assert r.status_code == 201, r.text
+        cur.execute(
+            """SELECT product_id FROM supplier_product_aliases
+               WHERE supplier_id = %s AND lower(regexp_replace(btrim(vendor_description), '\\s+', ' ', 'g')) = 'same wording'""",
+            (sup,))
+        rows = cur.fetchall()
+        assert len(rows) == 1 and rows[0]["product_id"] == p2
+
+    def test_duplicate_blocks_without_force(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        cur.execute(
+            """INSERT INTO expected_receipts (product_id, supplier_id, expected_qty, reference_number, status)
+               VALUES (%s, %s, 10, 'PO-049', 'closed')""", (p1, sup))
+        r = self._approve(client, doc_id, sup, [self._line(p1)])
+        assert r.status_code == 409
+        detail = r.json()["detail"]
+        assert detail["error_code"] == "DUPLICATE_REFERENCE"
+        assert detail["existing"][0]["status"] == "closed"
+        r2 = self._approve(client, doc_id, sup, [self._line(p1)], force=True)
+        assert r2.status_code == 201
+        assert r2.json()["duplicate_overridden"] is True
+
+    def test_atomic_rollback_on_bad_line(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        r = self._approve(client, doc_id, sup, [self._line(p1), self._line(999999999)])
+        assert r.status_code == 404
+        cur.execute("SELECT count(*) AS n FROM expected_receipts WHERE source_document_id = %s", (doc_id,))
+        assert cur.fetchone()["n"] == 0, "first line must roll back with the second"
+        assert _doc_row(cur, doc_id)["status"] != "approved"
+
+    def test_double_approve_rejected(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        assert self._approve(client, doc_id, sup, [self._line(p1)]).status_code == 201
+        r = self._approve(client, doc_id, sup, [self._line(p1)], force=True)
+        assert r.status_code == 409
+        assert r.json()["detail"]["error_code"] == "DOCUMENT_ALREADY_APPROVED"
+
+    def test_qty_must_be_positive(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        r = self._approve(client, doc_id, sup, [self._line(p1, qty_lb=0)])
+        assert r.status_code == 422
+        assert r.json()["detail"]["error_code"] == "INVALID_QUANTITY"
+
+    def test_inactive_supplier_rejected(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        cur.execute("UPDATE suppliers SET active = false WHERE id = %s", (sup,))
+        r = self._approve(client, doc_id, sup, [self._line(p1)])
+        assert r.status_code == 422
+        assert r.json()["detail"]["error_code"] == "SUPPLIER_INACTIVE"
+
+    def test_no_lines_rejected(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        r = self._approve(client, doc_id, sup, [])
+        assert r.status_code == 422
+        assert r.json()["detail"]["error_code"] == "NO_LINES"
+
+    def test_created_receipts_settle_like_manual_ones(self, client, cur):
+        """The core-refactor guarantee: intake-created rows behave identically
+        in the list view (remaining = ledger SUM, floored)."""
+        sup, p1, p2, doc_id = self._seed(cur)
+        self._approve(client, doc_id, sup, [self._line(p1, qty_lb=100)])
+        r = client.get(f"/expected-receipts?supplier_id={sup}")
+        items = r.json()["expected_receipts"]
+        assert len(items) == 1
+        assert items[0]["remaining"] == 100 and items[0]["received_qty"] == 0
+        assert items[0]["source_document_id"] == doc_id
+
+
+class TestSignedUrlEndpoint:
+    def test_signed_url(self, client, cur, mock_storage):
+        doc = _insert_document(cur, path="x/url-049.png")
+        r = client.get(f"/purchase-documents/{doc['id']}/url")
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["url"].endswith("x/url-049.png")
+        assert data["document"]["status"] == "uploaded"
+
+    def test_unknown_document(self, client, mock_storage):
+        r = client.get("/purchase-documents/999999999/url")
+        assert r.status_code == 404
+
+
+class TestAllowlistAndTripwire:
+    INTAKE_ROUTES = [
+        ("POST", "/expected-receipts/extract"),
+        ("POST", "/expected-receipts/match"),
+        ("POST", "/expected-receipts/extract/approve"),
+        ("POST", "/purchase-documents/{document_id}/extract"),
+        ("GET", "/purchase-documents/{document_id}/url"),
+    ]
+
+    def test_routes_on_dashboard_allowlist(self):
+        for pair in self.INTAKE_ROUTES:
+            assert pair in main.DASHBOARD_KEY_ALLOWLIST, pair
+
+    def test_dashboard_key_accepted_on_match(self, client, cur):
+        _seed_supplier(cur, "Dash Key Sup 049")
+        r = client.post("/expected-receipts/match",
+                        headers={"X-API-Key": main.DASHBOARD_API_KEY},
+                        json={"extraction": {"supplier_name": "Dash Key Sup 049",
+                                             "reference_number": None, "document_date": None,
+                                             "expected_delivery_date": None,
+                                             "lines": [{"vendor_description": "x", "quantity": 1, "unit": None}]}})
+        assert r.status_code == 200, r.text
+
+    @pytest.fixture
+    def readonly_client(self, monkeypatch):
+        """Every DB connection raises a real psycopg2 readonly error on first
+        execute — the 'readonly armed' state the global tripwire exists for."""
+        import psycopg2.errors
+
+        exc = psycopg2.errors.ReadOnlySqlTransaction(
+            "cannot execute INSERT in a read-only transaction")
+
+        class _Cur:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def execute(self, *a, **kw):
+                raise exc
+
+        class _Conn:
+            def cursor(self, *a, **kw):
+                return _Cur()
+
+            def commit(self):
+                pass
+
+            def rollback(self):
+                pass
+
+        @contextmanager
+        def _fake_get_conn():
+            yield _Conn()
+
+        monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
+        monkeypatch.setattr(main, "_capture_readonly_diagnostics", lambda: {"stub": True})
+        # storage/extractor must not be the failure here
+        monkeypatch.setattr(main, "storage_upload_purchase_document", lambda *a, **kw: None)
+        monkeypatch.setattr(extraction, "extract_purchase_document",
+                            lambda *a, **kw: {"extraction": dict(GOOD_EXTRACTION), "extraction_model": "m"})
+        with TestClient(main.app, raise_server_exceptions=False) as c:
+            c.headers["X-API-Key"] = main.API_KEY
+            yield c
+
+    def test_extract_trips_readonly_tripwire(self, readonly_client):
+        r = _post_file(readonly_client)
+        assert r.status_code == 503, r.text
+        body = r.json()
+        assert body["error_code"] == "READONLY_TRANSACTION"
+        assert body["success"] is False
+        assert body["retryable"] is True
+        assert "error_detail" in body  # write_response_envelope post-processed it
+
+    def test_approve_trips_readonly_tripwire(self, readonly_client):
+        r = readonly_client.post("/expected-receipts/extract/approve", json={
+            "document_id": 1, "supplier_id": 1, "reference_number": "PO-1",
+            "lines": [{"product_id": 1, "expected_qty_lb": 10, "vendor_description": "x"}]})
+        assert r.status_code == 503, r.text
+        body = r.json()
+        assert body["error_code"] == "READONLY_TRANSACTION"
+        assert body["success"] is False
+        assert "error_detail" in body
