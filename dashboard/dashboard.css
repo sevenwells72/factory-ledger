@@ -419,6 +419,14 @@ body {
   .today-tile-row { gap: 8px; }
 }
 
+/* === Placeholders (A7 / IMP-025 / INPUT-022) ===
+   Without a rule every placeholder is the user agent's rgb(117,117,117),
+   which measures 2.69:1 on --search-bg in dark — nine fields in the three
+   modal forms. --text-muted measures 4.77 on --search-bg dark and 6.1 on
+   the light field. Firefox applies its own opacity to placeholders unless
+   told not to. */
+::placeholder { color: var(--text-muted); opacity: 1; }
+
 /* === Form controls — shared minimums (T3, T4) === */
 /* Every text-like field, select and textarea clears --hit-min. :where() keeps
    specificity at zero so the id- and class-scoped rules that size individual
@@ -1301,6 +1309,7 @@ body {
 .label-hint { font-weight: 400; color: var(--text-dimmed); }
 
 .form-group input[type="text"],
+.form-group input[type="number"],
 .form-group input[type="date"],
 .form-group textarea,
 .form-group select {
