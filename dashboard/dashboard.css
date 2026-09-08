@@ -1999,17 +1999,6 @@ body {
    header. Generalises the wrapper that already existed for the order-detail,
    allocation and supplies tables. The min-widths keep columns readable and
    let the wrapper take the scroll instead. */
-/* IMP-070: identifiers never break at their hyphens — SO numbers, lot codes
-   and PO / reference numbers stay on one line and the .table-scroll wrapper
-   absorbs the width. Scoped to cells so the search dropdown's product and
-   customer names, which reuse .lot-link, can still wrap. */
-td .order-link,
-td .lot-link,
-td .er-reference,
-.order-number,
-.supply-lot-code,
-.supply-reference { white-space: nowrap; }
-
 .table-scroll { overflow-x: auto; }
 .table-scroll > .orders-table { min-width: 1040px; }
 .table-scroll > .er-table { min-width: 860px; }
@@ -2489,6 +2478,20 @@ td .er-reference,
   .refresh-ts { grid-area: updated; min-width: 0; white-space: normal; }
   .header-right > .mini-calendar-strip { grid-area: cal; order: 0; width: auto; }
   .header-center { grid-area: search; order: 0; margin: 0; }
+
+  /* IMP-070: identifiers never break at their hyphens — SO numbers, lot
+     codes and PO / reference numbers stay on one line and the .table-scroll
+     wrapper absorbs the width. Scoped to cells so the search dropdown's
+     product and customer names, which reuse .lot-link, can still wrap.
+     Phone-only for now: at 1440px the Orders table is constrained enough
+     that the SO # column already wraps "SO-" / "1421", and lifting this out
+     of the media query re-flows that table's columns on desktop. */
+  td .order-link,
+  td .lot-link,
+  td .er-reference,
+  .order-number,
+  .supply-lot-code,
+  .supply-reference { white-space: nowrap; }
 
   /* IMP-072 */
   .ship-by-flag {
