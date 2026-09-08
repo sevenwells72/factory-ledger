@@ -23,6 +23,7 @@ import io
 import csv
 import hashlib
 import httpx
+import pypdf
 # Vision extraction lives in its own module (vendor-swappable, zero DB
 # imports). Always referenced as `extraction.<name>` so tests can monkeypatch
 # the module attributes and both sides see it.
@@ -5463,6 +5464,42 @@ def match_extraction(cur, extraction_payload: dict) -> dict:
 
 # ── Intake endpoints ────────────────────────────────────────────────────────
 
+# Audit fix 9: the stored mime type comes from the file's magic bytes, never
+# from the client's Content-Type.
+_MAGIC_MIME_PREFIXES = (
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"%PDF-", "application/pdf"),
+)
+
+
+def _sniff_mime(content: bytes) -> Optional[str]:
+    for prefix, mime in _MAGIC_MIME_PREFIXES:
+        if content.startswith(prefix):
+            return mime
+    return None
+
+
+def _validate_pdf_page_count(content: bytes) -> int:
+    """≤ MAX_PDF_PAGES (owner cap), checked BEFORE storage. 422 on a PDF that
+    pypdf can't parse, 413 on one over the page cap."""
+    try:
+        page_count = len(pypdf.PdfReader(io.BytesIO(content)).pages)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"error_code": "PDF_UNREADABLE",
+                    "message": f"The PDF could not be parsed: {str(exc)[:150]}"},
+        )
+    if page_count > extraction.MAX_PDF_PAGES:
+        raise HTTPException(
+            status_code=413,
+            detail={"error_code": "PDF_TOO_MANY_PAGES",
+                    "message": f"PDF has {page_count} pages; limit is {extraction.MAX_PDF_PAGES}"},
+        )
+    return page_count
+
+
 def _serialize_purchase_document(row: dict) -> dict:
     return {
         "document_id": row["id"],
@@ -5533,24 +5570,28 @@ def extract_expected_receipt_document(
     browser timeout) so a slow vision call can never lose the document id.
     Plain def: FastAPI runs it in the threadpool — the sync DB/Storage calls
     never block the event loop. NO expected receipts are created here."""
-    content = file.file.read()
-    mime = (file.content_type or "").strip().lower()
-    if mime == "image/jpg":
-        mime = "image/jpeg"
-    if mime not in extraction.ALLOWED_MIME_TYPES:
-        raise HTTPException(
-            status_code=415,
-            detail={"error_code": "UNSUPPORTED_FILE_TYPE",
-                    "message": f"Unsupported file type '{mime or 'unknown'}'. Use PNG, JPEG, or PDF."},
-        )
+    # Audit fix 9: bounded read — never hold more than limit+1 bytes.
+    content = file.file.read(extraction.MAX_FILE_BYTES + 1)
     if not content:
         raise HTTPException(status_code=422, detail={"error_code": "EMPTY_FILE", "message": "The uploaded file is empty"})
     if len(content) > extraction.MAX_FILE_BYTES:
         raise HTTPException(
             status_code=413,
             detail={"error_code": "FILE_TOO_LARGE",
-                    "message": f"File is {len(content)} bytes; limit is {extraction.MAX_FILE_BYTES // (1024 * 1024)} MB"},
+                    "message": f"File exceeds the {extraction.MAX_FILE_BYTES // (1024 * 1024)} MB limit"},
         )
+    # Audit fix 9: the client's Content-Type is advisory only — the stored
+    # mime comes from the magic bytes, and unknown magic is rejected.
+    mime = _sniff_mime(content)
+    if mime is None:
+        claimed = (file.content_type or "unknown").strip().lower()
+        raise HTTPException(
+            status_code=415,
+            detail={"error_code": "UNSUPPORTED_FILE_TYPE",
+                    "message": f"File content is not PNG, JPEG, or PDF (client said '{claimed}')."},
+        )
+    if mime == "application/pdf":
+        _validate_pdf_page_count(content)  # audit fix 9: ≤ 20 pages, pre-storage
 
     sha256 = hashlib.sha256(content).hexdigest()
     safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", (file.filename or "document"))[:80]

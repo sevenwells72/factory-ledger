@@ -506,7 +506,22 @@ def _doc_row(cur, document_id):
     return cur.fetchone()
 
 
-def _post_file(client, name="po.png", mime="image/png", content=b"png-bytes"):
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"png-body"
+JPEG_BYTES = b"\xff\xd8\xff\xe0" + b"jpeg-body"
+
+
+def _make_pdf(pages: int) -> bytes:
+    from reportlab.pdfgen import canvas
+    buf = __import__("io").BytesIO()
+    c = canvas.Canvas(buf)
+    for i in range(pages):
+        c.drawString(72, 720, f"page {i + 1}")
+        c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def _post_file(client, name="po.png", mime="image/png", content=PNG_BYTES):
     return client.post("/expected-receipts/extract", files={"file": (name, content, mime)})
 
 
@@ -560,15 +575,49 @@ class TestExtractEndpoint:
         assert r3.json()["already_seen"] is True
 
     def test_unsupported_type(self, client, mock_storage, mock_extractor):
-        r = _post_file(client, name="po.gif", mime="image/gif")
+        r = _post_file(client, name="po.gif", mime="image/gif", content=b"GIF89a-not-supported")
         assert r.status_code == 415
         assert r.json()["detail"]["error_code"] == "UNSUPPORTED_FILE_TYPE"
         assert mock_storage["uploads"] == []
 
     def test_jpg_alias_mime(self, client, cur, mock_storage, mock_extractor):
-        r = _post_file(client, name="po.jpg", mime="image/jpg")
+        r = _post_file(client, name="po.jpg", mime="image/jpg", content=JPEG_BYTES)
         assert r.status_code == 201
         assert _doc_row(cur, r.json()["document_id"])["mime_type"] == "image/jpeg"
+
+    # Audit fix 9: magic bytes are authoritative; PDFs are page-capped
+    # before anything reaches Storage.
+
+    def test_mime_spoof_rejected(self, client, cur, mock_storage, mock_extractor):
+        r = _post_file(client, name="po.png", mime="image/png", content=b"<script>not an image</script>")
+        assert r.status_code == 415
+        assert r.json()["detail"]["error_code"] == "UNSUPPORTED_FILE_TYPE"
+        assert mock_storage["uploads"] == []
+        cur.execute("SELECT count(*) AS n FROM purchase_documents")
+        assert cur.fetchone()["n"] == 0, "no row for rejected content"
+
+    def test_magic_bytes_override_claimed_mime(self, client, cur, mock_storage, mock_extractor):
+        r = _post_file(client, name="po.png", mime="image/png", content=_make_pdf(1))
+        assert r.status_code == 201, r.text
+        assert _doc_row(cur, r.json()["document_id"])["mime_type"] == "application/pdf"
+
+    def test_pdf_within_page_cap_accepted(self, client, mock_storage, mock_extractor):
+        r = _post_file(client, name="po.pdf", mime="application/pdf", content=_make_pdf(2))
+        assert r.status_code == 201, r.text
+
+    def test_pdf_over_page_cap_rejected_before_storage(self, client, cur, mock_storage, mock_extractor):
+        r = _post_file(client, name="po.pdf", mime="application/pdf", content=_make_pdf(21))
+        assert r.status_code == 413
+        assert r.json()["detail"]["error_code"] == "PDF_TOO_MANY_PAGES"
+        assert mock_storage["uploads"] == [], "rejected before storage"
+        cur.execute("SELECT count(*) AS n FROM purchase_documents")
+        assert cur.fetchone()["n"] == 0
+
+    def test_pdf_unreadable_rejected(self, client, mock_storage, mock_extractor):
+        r = _post_file(client, name="po.pdf", mime="application/pdf", content=b"%PDF-1.4 truncated garbage")
+        assert r.status_code == 422
+        assert r.json()["detail"]["error_code"] == "PDF_UNREADABLE"
+        assert mock_storage["uploads"] == []
 
     def test_empty_file(self, client, mock_storage, mock_extractor):
         r = _post_file(client, content=b"")

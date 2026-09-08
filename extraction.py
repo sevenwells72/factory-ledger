@@ -23,6 +23,8 @@ ALLOWED_MIME_TYPES = ("image/png", "image/jpeg", "application/pdf")
 
 MAX_FILE_BYTES = 15 * 1024 * 1024  # 15 MB cap (owner-approved)
 
+MAX_PDF_PAGES = 20  # owner-approved cap; enforced by the upload endpoint
+
 
 class ExtractionError(Exception):
     """Extraction failed: API error, refusal, or output that doesn't fit the
