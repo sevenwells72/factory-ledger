@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-08 11:21 — Six improvements added from a phone review of production at 390 px (IMP-068…IMP-073)
+
+- **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md`
+- **What changed:** Docs only — no application code modified. Added IMP-068…IMP-073 from a phone review of production at 390 px (2026-09-08), with band-table rows and full detail sections: **IMP-068** (Critical) attention-strip labels break mid-word at 390 px via `.att-label`'s `overflow-wrap: anywhere` under the two-column phone grid — regression from PR #26; fix is single column below ~420 px + word-boundary wrapping only. **IMP-069** (High) the three-month mini-calendar dominates the phone first screen with unreadable 8 px untappable digits and pushes the Needs Attention strip below the fold — collapse to one month or a single date row (NAV-001/ACCESS-006/TOUCH-003). **IMP-070** (High) SO identifiers wrap at hyphens to three lines in the Sales Orders table — no-wrap + horizontal scroll, or middle-truncate with full value on tap (DATA-003/DATA-004). **IMP-071** (Medium) `.section-header` title + description render two-column on phone — stack below 768 px (LAYOUT-003/INPUT-005). **IMP-072** (High) the red ship-date weekday is the only overdue signal — add icon/text (FEEDBACK-011; confirms IMP-015's overdue-weekday row in production). **IMP-073** (Low) the bare "80" health badge beside the title has only a `title` tooltip, which doesn't exist on touch — needs a visible label or tap popover (NOTIFY-010). Header counts updated to seventy-three improvements (33 Critical / 25 High / 13 Medium / 2 Low).
+- **Why:** First review of the deployed dashboard on a real phone against live data; the harness's 390 px captures could not observe the attention-strip regression because PR #26 landed after the 00 screen inventory was drawn.
+
+---
+
 ## 2026-09-08 08:08 — Systemic clusters A2, A3, A6, A9, O1, F1; visual-audit truncation lifted
 
 - **File(s) changed:** `dashboard/dashboard.css`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `tests/visual/lib/checks.mjs`, `tests/visual/lib/report.mjs`, `docs/design/audit/07-systemic-clusters.md` (new on this branch), `docs/design/audit/06-browser-check.md`, `docs/design/audit/IMPROVEMENTS-MASTER.md`

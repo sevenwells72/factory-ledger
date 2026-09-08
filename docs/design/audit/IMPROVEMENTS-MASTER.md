@@ -18,7 +18,7 @@ Each of the five group files records findings **per rule, per screen**. The same
 **Effort** is a rough implementation size: **S** ≈ under a day, **M** ≈ one to three days, **L** ≈ a week or more.
 **Screens** is the count of inventoried screens the change affects.
 
-Sixty-seven improvements (IMP-001…IMP-067). Thirty-two resolve at least one Critical rule; twenty-two are High, twelve Medium, one Low. Nine are marked **DONE**, two **Partly done**.
+Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least one Critical rule; twenty-five are High, thirteen Medium, two Low. Nine are marked **DONE**, two **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
 
 ---
 
@@ -95,6 +95,7 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-065** | Make the two print views printable — the recall report prints white-on-white | S | 2 | | |
 | **IMP-066** | Reclaim viewport height at 200 % zoom; the sticky stack strands the last row | M | 6+ | **DONE** | `70fe9a2` |
 | **IMP-067** | Replace the opacity dim on inactive rows with a token that still meets AA | S | 9 | | |
+| **IMP-068** | Stop the attention-strip labels breaking mid-word at 390 px — regression from PR #26 | S | 1 | | |
 
 ### Band 2 — High
 
@@ -118,6 +119,9 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-044** | Stop the fabricated sample-data fallback in Sankey and Process Flow | S | 6 | **DONE** | `c972526` `028c685` `684af02` `a6ae9d3` |
 | **IMP-045** | Give the Sankey a takeaway, an accessible table, and drill-through | M | 1 | | |
 | **IMP-046** | Adopt an accessibility checklist and write down the role → workflow map | S | all | | |
+| **IMP-069** | Collapse the mini-calendar strip on phone — it dominates the first screen | M | 4 | | |
+| **IMP-070** | Keep SO identifiers on one line in the Orders table on phone | S | 4 | | |
+| **IMP-072** | Add a non-colour carrier to the red ship-date weekday | S | 4 | | |
 
 ### Band 3 — Medium and below
 
@@ -141,6 +145,8 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-062** | Add `prefers-reduced-motion` and `prefers-contrast` support | S | all |
 | **IMP-063** | Cap and restructure the two disambiguation choice lists | S | 2 |
 | **IMP-064** | Add a context label to the notes list and the depleted-lots table | S | 3 |
+| **IMP-071** | Stack the card headers (title + description) below 768 px | S | 5 |
+| **IMP-073** | Label the health-score badge — "80" beside the title says nothing on touch | S | 1 |
 
 ---
 
@@ -1431,6 +1437,128 @@ and reads a completed to-do to confirm it was the right one. The audit's group-0
 **Fix:** drop the `opacity` and de-emphasise with a `--text-muted`-class token that is chosen to meet 4.5 : 1 on
 each surface, plus the existing non-colour carriers (strikethrough on a done note, the *Cancelled* / *Released*
 badge). One token change covers all four selectors, and it composes with IMP-010 and IMP-043.
+
+---
+
+The six improvements below were raised by a **phone review of production at 390 px on 2026-09-08** — observed
+on a real device against live data, not in the harness. No application code was modified.
+
+---
+
+### IMP-068 — Stop the attention-strip labels breaking mid-word at 390 px
+
+**Status:** New — raised by the phone review of production (2026-09-08). **Regression from PR #26** (`2efb2fa`, IMP-030).
+
+**Rules:** LAYOUT-003 (Critical) · ACCESS-001
+**Screens:** the Needs Attention strip on the entry screen (added after the 00 inventory was drawn) · **Importance:** Critical · **Effort:** S
+
+At 390 px the strip's phone grid, `repeat(auto-fit, minmax(160px, 1fr))` (`dashboard.css:2633-2637`), still
+fits **two** columns in the content column, and each chip's internal template `auto 4.5ch minmax(0, 1fr) auto`
+(`2537`) leaves the label track only a few characters wide. `.att-label` sets `overflow-wrap: anywhere`
+(`2576-2581`), so on a phone every label breaks mid-word — *"Overdue recei-pts"*, *"Dispatch bloc-ked"* — on the
+one element IMP-030 built specifically to be read at a glance on entry.
+
+`overflow-wrap: anywhere` is the right device for unbounded data strings (lot codes, supplier names); these are
+seven fixed English labels the product controls.
+
+**Fix:** single column below ~420 px (`grid-template-columns: 1fr`), and word-boundary wrapping only on
+`.att-label` (drop `overflow-wrap: anywhere`; the chip template's `minmax(0, 1fr)` track already prevents
+overflow once the column is full-width).
+
+---
+
+### IMP-069 — Collapse the mini-calendar strip on phone
+
+**Status:** New — raised by the phone review of production (2026-09-08).
+
+**Rules:** NAV-001 · ACCESS-006 · TOUCH-003
+**Screens:** S-02, in the header of all four pages · **Importance:** High · **Effort:** M
+
+On a phone the header wraps and `.mini-calendar-strip` becomes a full-width row (`mini-calendar.css:136-143`);
+at ≤520 px the three months compress to 78 px columns (`145-159`) with day digits still at 8 px (`63-74`,
+unchanged by any breakpoint). The result observed on the device: three months of **unreadable, untappable**
+digits (S-02's day cells are display-only) dominating the first screen — and pushing the Needs Attention strip
+(IMP-030), the entry screen's one attention surface, **below the fold**. A display-only widget outranks the
+product's operational signal exactly where NAV-001 says the most important thing must sit.
+
+IMP-009 already proposes "give the mini-calendar legible sizing or replace it with a compact count"; this is
+the structural form of that on phone.
+
+**Fix:** below ~520 px collapse to **one month**, or to a single row of upcoming ship dates — or to a count
+(*"6 SOs ship this week"*) linking to the Orders tab. Keep the three-month strip from tablet width up.
+
+---
+
+### IMP-070 — Keep SO identifiers on one line in the Orders table on phone
+
+**Status:** New — raised by the phone review of production (2026-09-08).
+
+**Rules:** DATA-003 · DATA-004
+**Screens:** S-25, S-26, S-27, S-28 · **Importance:** High · **Effort:** S
+
+In the Sales Orders table on a phone, identifiers like `SO-260813-001` wrap **at their hyphens across three
+lines** — `SO-` / `260813-` / `001`. `.order-link` (`dashboard.css:1551-1559`) sets the mono face but no
+`white-space: nowrap`, so the narrow phone column breaks the code at each hyphen. An identifier read across
+three lines is an identifier misread — the order and its date segment separate visually — and every wrapped
+row triples in height, cutting how many orders fit on screen.
+
+**Fix:** `white-space: nowrap` on identifier cells, letting IMP-003's `.table-scroll` wrapper absorb the width
+with horizontal scroll; or middle-truncate (`SO-2608…-001`) with the full value revealed on tap — a `title`
+attribute is not enough, since tooltips do not exist on touch (same device constraint as IMP-021's lot codes).
+
+---
+
+### IMP-071 — Stack the card headers below 768 px
+
+**Status:** New — raised by the phone review of production (2026-09-08).
+
+**Rules:** LAYOUT-003 · INPUT-005
+**Screens:** the five `.section-header` cards (`index.html:112`, `192`, `203`, `409`, `451`) · **Importance:** Medium · **Effort:** S
+
+`.section-header` is `display: flex; justify-content: space-between` (`dashboard.css:352-359`) with no phone
+override, so a card's title and its description render as **two squeezed columns** on a phone — observed on the
+Needs Attention card, where "Needs Attention" sits beside its two-sentence `.section-hint` and both wrap in
+their narrow halves. The Supplies page header already shows the correct treatment: its hint is `display: block`
+under the title (`2323`).
+
+**Fix:** `flex-direction: column; align-items: flex-start; gap: 4px` on `.section-header` below 768 px.
+
+---
+
+### IMP-072 — Add a non-colour carrier to the red ship-date weekday
+
+**Status:** New — raised by the phone review of production (2026-09-08). Confirms in production the "overdue
+weekday line" row of IMP-015's table; can ship independently of the rest of IMP-015.
+
+**Rules:** FEEDBACK-011
+**Screens:** S-25, S-26, S-27, S-28 · **Importance:** High · **Effort:** S
+
+`.date-overdue .ship-by-weekday` (`dashboard.css:1547-1549`) tints the 11 px weekday line toward `--danger` —
+and that colour shift is the **only** overdue signal the weekday carries. On the phone, in daylight, the
+reviewer could not distinguish an overdue weekday from a normal one without holding the two side by side;
+IMP-015 already scored this cue as surviving greyscale as *"nothing"*. It marks the single fact — this order
+is late — that most changes what Luz does next.
+
+**Fix:** add an icon or text alongside the colour — *"⚠ Mon"* or *"Mon · 3d overdue"* — per IMP-015's
+prescription (`⚠ 3d overdue` instead of a red date).
+
+---
+
+### IMP-073 — Label the health-score badge
+
+**Status:** New — raised by the phone review of production (2026-09-08).
+
+**Rules:** NOTIFY-010
+**Screens:** the app header (S-03) · **Importance:** Low · **Effort:** S
+
+The header shows a bare **"80"** beside the title with nothing to say what it is. The badge's only explanation
+is a `title` tooltip ("System Health", `index.html:73`, enriched with the failing checks by
+`refreshHealthBadge`, `dashboard.js:4386-4410`) — and tooltips do not exist on touch, so on a phone it is an
+unexplained coloured number in the chrome. NOTIFY-010's clause is that a badge must say what it counts; a
+score that could be read as a count, a percentage, or an order number says nothing.
+
+**Fix:** a visible label (*"Health 80"*), or make the badge a tappable control opening a small popover with
+the score and the per-check breakdown that `refreshHealthBadge` already composes into the tooltip string.
 
 ---
 
