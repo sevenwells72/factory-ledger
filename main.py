@@ -5634,6 +5634,7 @@ def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str) 
 @app.post("/expected-receipts/extract", status_code=201)
 def extract_expected_receipt_document(
     request: Request,
+    response: Response,
     file: UploadFile = File(...),
     _: bool = Depends(verify_api_key),
 ):
@@ -5668,6 +5669,44 @@ def extract_expected_receipt_document(
         _validate_pdf_page_count(content)  # audit fix 9: ≤ 20 pages, pre-storage
 
     sha256 = hashlib.sha256(content).hexdigest()
+
+    # Audit-2 fix 8: an identical file whose earlier upload is still in
+    # flight (uploaded / extracted / extraction_failed / upload_failed)
+    # RESUMES that row with a 200 instead of minting a sibling — a
+    # browser-side upload timeout would otherwise create one document per
+    # retry. 'approved' is excluded: re-ordering the same PO later
+    # legitimately starts a fresh document.
+    with get_transaction() as cur:
+        cur.execute(
+            """SELECT id, storage_path, status FROM purchase_documents
+               WHERE file_sha256 = %s
+                 AND status IN ('uploaded','extracted','extraction_failed','upload_failed')
+               ORDER BY id DESC LIMIT 1""",
+            (sha256,),
+        )
+        existing = cur.fetchone()
+    if existing:
+        if existing["status"] == "upload_failed":
+            # No object landed last time, but we are holding the bytes again —
+            # heal the row: re-upload to its path and make it retryable.
+            storage_upload_purchase_document(existing["storage_path"], content, mime)
+            with get_transaction() as cur:
+                cur.execute(
+                    "UPDATE purchase_documents SET status = 'uploaded' WHERE id = %s AND status = 'upload_failed'",
+                    (existing["id"],),
+                )
+            existing["status"] = "uploaded"
+        response.status_code = 200
+        return {
+            "document_id": existing["id"],
+            "storage_path": existing["storage_path"],
+            "already_seen": True,
+            "status": existing["status"],
+            "message": f"This exact file was already uploaded as document {existing['id']} "
+                       f"(status '{existing['status']}') — resuming it. "
+                       f"Run extraction via POST /purchase-documents/{existing['id']}/extract.",
+        }
+
     safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", (file.filename or "document"))[:80]
     now = get_plant_now()
     storage_path = f"{now:%Y/%m}/{sha256[:12]}-{uuid.uuid4().hex[:8]}-{safe_name}"

@@ -18,6 +18,7 @@ Endpoint coverage (extract/match/approve routes) is Phase 2 and will extend
 this module.
 """
 
+import hashlib
 import os
 import subprocess
 from pathlib import Path
@@ -602,10 +603,56 @@ class TestExtractEndpoint:
         assert not inspect.iscoroutinefunction(main.extract_expected_receipt_document)
         assert not inspect.iscoroutinefunction(main.run_purchase_document_extraction)
 
-    def test_already_seen_on_same_bytes(self, client, mock_storage, mock_extractor):
-        assert _post_file(client).json()["already_seen"] is False
+    # Audit-2 fix 8: identical bytes resume the in-flight row (200), so a
+    # browser-side upload timeout never mints one document per retry.
+
+    def test_second_upload_of_identical_bytes_returns_first_document(self, client, cur, mock_storage, mock_extractor):
+        r1 = _post_file(client)
+        assert r1.status_code == 201 and r1.json()["already_seen"] is False
+        first_id = r1.json()["document_id"]
         r2 = _post_file(client)
-        assert r2.status_code == 201
+        assert r2.status_code == 200, r2.text
+        data = r2.json()
+        assert data["document_id"] == first_id
+        assert data["already_seen"] is True
+        assert data["status"] == "uploaded"
+        assert len(mock_storage["uploads"]) == 1, "the resumed row's object is not re-uploaded"
+        cur.execute("SELECT count(*) AS n FROM purchase_documents WHERE file_sha256 = %s",
+                    (hashlib.sha256(PNG_BYTES).hexdigest(),))
+        assert cur.fetchone()["n"] == 1, "no sibling row"
+
+    def test_resume_heals_an_upload_failed_row(self, client, cur, mock_storage, mock_extractor):
+        """The 'Drop the same file again to resume' path: the first upload's
+        Storage write failed (row 'upload_failed'); re-dropping the bytes
+        re-uploads to the same path and makes the row retryable again."""
+        from fastapi import HTTPException as FastHTTPException
+        mock_storage["upload_error"] = FastHTTPException(
+            status_code=502,
+            detail={"error_code": "STORAGE_UPLOAD_FAILED", "message": "Storage upload failed: 500 boom"})
+        r1 = _post_file(client)
+        assert r1.status_code == 502
+        cur.execute("SELECT id, storage_path, status FROM purchase_documents WHERE file_sha256 = %s",
+                    (hashlib.sha256(PNG_BYTES).hexdigest(),))
+        row = cur.fetchone()
+        assert row["status"] == "upload_failed"
+        mock_storage["upload_error"] = None
+        r2 = _post_file(client)
+        assert r2.status_code == 200, r2.text
+        assert r2.json()["document_id"] == row["id"]
+        assert r2.json()["already_seen"] is True
+        assert r2.json()["status"] == "uploaded"
+        assert mock_storage["uploads"][-1]["path"] == row["storage_path"], "healed onto the same path"
+        assert _doc_row(cur, row["id"])["status"] == "uploaded"
+        # And extraction now works on the resumed document.
+        r3 = client.post(f"/purchase-documents/{row['id']}/extract")
+        assert r3.status_code == 200
+
+    def test_approved_document_does_not_block_a_fresh_upload(self, client, cur, mock_storage, mock_extractor):
+        first = _post_file(client).json()["document_id"]
+        cur.execute("UPDATE purchase_documents SET status = 'approved' WHERE id = %s", (first,))
+        r2 = _post_file(client)
+        assert r2.status_code == 201, "re-ordering the same PO later starts a fresh document"
+        assert r2.json()["document_id"] != first
         assert r2.json()["already_seen"] is True
         # The extract call reports it too (server-side, not trusted from the client).
         r3 = client.post(f"/purchase-documents/{r2.json()['document_id']}/extract")
@@ -1227,8 +1274,10 @@ class TestRateLimits:
     def test_extraction_bucket_429_and_logged(self, client, cur, mock_storage, mock_extractor, monkeypatch, caplog):
         import logging
         monkeypatch.setitem(main._RATE_LIMITS, "extraction", (3, 3600))
-        for _ in range(3):
-            assert _post_file(client).status_code == 201
+        # Distinct bytes per upload — identical bytes would resume the same
+        # row with a 200 (audit-2 fix 8) instead of exercising the counter.
+        for i in range(3):
+            assert _post_file(client, content=PNG_BYTES + b"#%d" % i).status_code == 201
         with caplog.at_level(logging.WARNING):
             r = _post_file(client)
         assert r.status_code == 429

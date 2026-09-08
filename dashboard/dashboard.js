@@ -3945,6 +3945,13 @@
       // No Content-Type header — the browser sets the multipart boundary.
       uploaded = await fetchSalesAPI('/expected-receipts/extract', { method: 'POST', body: form, timeoutMs: ER_UPLOAD_TIMEOUT_MS });
     } catch (e) {
+      // Audit-2 fix 8: the server dedupes on the file's sha256, so re-dropping
+      // the same file after a timeout resumes the existing document row
+      // (200 + the original document_id) instead of minting a sibling.
+      if (FL.isStall(e)) {
+        erExtractStatus('<span class="error-msg">Upload timed out. Drop the same file again to resume.</span>');
+        return;
+      }
       const d = (apiErrorDetail(e) || {}).detail || apiErrorDetail(e) || {};
       erExtractStatus(`<span class="error-msg">Upload failed: ${escHtml((d.message || e.message || '').slice(0, 300))}</span>`);
       return;
