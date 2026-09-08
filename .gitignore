@@ -16,3 +16,4 @@ __pycache__/
 
 # floor form exports (local only, never commit)
 data/forms/*.csv
+docs/traceability/sources/
