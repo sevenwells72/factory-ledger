@@ -1,0 +1,34 @@
+{
+  "product_name": "Classic Granola 25 LB",
+  "product_type": "finished_good",
+  "odoo_code": "CQ-25",
+  "case_size_lb": 25,
+  "default_batch_lb": null,
+  "lots": [
+    {
+      "lot_code": "CQ25-2609-A",
+      "on_hand_lbs": 4200.0,
+      "entry_source": "api"
+    },
+    {
+      "lot_code": "CQ25-2607-C",
+      "on_hand_lbs": 3150.0,
+      "entry_source": "api"
+    },
+    {
+      "lot_code": "CQ25-2606-B",
+      "on_hand_lbs": 0.0,
+      "entry_source": "gpt"
+    },
+    {
+      "lot_code": "CQ25-2605-A",
+      "on_hand_lbs": 0.0,
+      "entry_source": "gpt"
+    },
+    {
+      "lot_code": "CQ25-2604-F",
+      "on_hand_lbs": 0.0,
+      "entry_source": "legacy"
+    }
+  ]
+}

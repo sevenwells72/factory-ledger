@@ -1,0 +1,59 @@
+{
+  "categories": [
+    {
+      "id": "oats_grains",
+      "title": "Oats & Grains",
+      "unit": "lb",
+      "total_skus_expected": 6,
+      "missing_skus": ["Rye Flakes"],
+      "items": [
+        { "id": 201, "name": "Rolled Oats — #1 Thick", "uom": "lb", "on_hand": 18400.0,
+          "lots": [
+            { "lot_code": "OAT-4471", "product_id": 201, "on_hand_lbs": 11200.0, "uom": "lb" },
+            { "lot_code": "OAT-4438", "product_id": 201, "on_hand_lbs": 7200.0, "uom": "lb" }
+          ] },
+        { "id": 202, "name": "Quinoa Flakes", "uom": "lb", "on_hand": 640.0,
+          "lots": [ { "lot_code": "QF-1182", "product_id": 202, "on_hand_lbs": 640.0, "uom": "lb" } ] },
+        { "id": 203, "name": "Puffed Millet", "uom": "lb", "on_hand": 0.0, "lots": [] }
+      ]
+    },
+    {
+      "id": "sweeteners",
+      "title": "Sweeteners & Oils",
+      "unit": "lb",
+      "total_skus_expected": 4,
+      "missing_skus": [],
+      "items": [
+        { "id": 211, "name": "Grade A Maple Syrup", "uom": "lb", "on_hand": 2650.0,
+          "lots": [
+            { "lot_code": "MPL-0912", "product_id": 211, "on_hand_lbs": 1650.0, "uom": "lb" },
+            { "lot_code": "MPL-0877", "product_id": 211, "on_hand_lbs": 1000.0, "uom": "lb" }
+          ] },
+        { "id": 212, "name": "Sunflower Oil", "uom": "lb", "on_hand": 1980.0,
+          "lots": [ { "lot_code": "SFO-3310", "product_id": 212, "on_hand_lbs": 1980.0, "uom": "lb" } ] },
+        { "id": 213, "name": "Coconut Sugar", "uom": "lb", "on_hand": 420.0,
+          "lots": [ { "lot_code": "CSG-2201", "product_id": 213, "on_hand_lbs": 420.0, "uom": "lb" } ] }
+      ]
+    },
+    {
+      "id": "nuts_seeds",
+      "title": "Nuts & Seeds",
+      "unit": "lb",
+      "total_skus_expected": 5,
+      "missing_skus": [],
+      "items": [
+        { "id": 221, "name": "Raw Pecan Halves", "uom": "lb", "on_hand": 880.0,
+          "lots": [ { "lot_code": "PEC-7714", "product_id": 221, "on_hand_lbs": 880.0, "uom": "lb" } ] },
+        { "id": 222, "name": "Pumpkin Seeds", "uom": "lb", "on_hand": 1240.0,
+          "lots": [ { "lot_code": "PMP-5520", "product_id": 222, "on_hand_lbs": 1240.0, "uom": "lb" } ] },
+        { "id": 223, "name": "Shredded Coconut — Unsweetened", "uom": "lb", "on_hand": 3600.0,
+          "lots": [
+            { "lot_code": "COC-9081", "product_id": 223, "on_hand_lbs": 2400.0, "uom": "lb" },
+            { "lot_code": "COC-8944", "product_id": 223, "on_hand_lbs": 1200.0, "uom": "lb" }
+          ] },
+        { "id": 224, "name": "Sea Salt — Fine", "uom": "lb", "on_hand": 310.0,
+          "lots": [ { "lot_code": "SLT-1140", "product_id": 224, "on_hand_lbs": 310.0, "uom": "lb" } ] }
+      ]
+    }
+  ]
+}

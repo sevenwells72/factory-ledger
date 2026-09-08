@@ -4,6 +4,7 @@
 **Standard:** [FL-Design-Standards-MASTER.md](../FL-Design-Standards-MASTER.md) — 178 rules
 **Screens:** [00-screen-inventory.md](00-screen-inventory.md) — 91 screens (S-01…S-91)
 **Source findings:** [01](01-nav-layout.md) · [02](02-actions-input-touch.md) · [03](03-feedback-error-notify.md) · [04](04-search-data-drag-chart.md) · [05](05-access-icon-other.md)
+**Rendered verification:** [06-browser-check.md](06-browser-check.md) — 384 captures across 91 screens, 2026-09-08
 **Status:** Every FAIL and PARTIAL from the five group files, deduplicated across screens into one improvement each. **No application code was modified.**
 
 ---
@@ -63,6 +64,9 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-026** | Add a confirmation to the scheduler's order-line delete | S | 1 |
 | **IMP-027** | Give Sankey, Traceability, and the scheduler compact layouts | L | 28 |
 | **IMP-028** | Add authentication and a role model | L | all |
+| **IMP-065** | Make the two print views printable — the recall report prints white-on-white | S | 2 |
+| **IMP-066** | Reclaim viewport height at 200 % zoom; the sticky stack strands the last row | M | 6+ |
+| **IMP-067** | Replace the opacity dim on inactive rows with a token that still meets AA | S | 9 |
 
 ### Band 2 — High
 
@@ -123,6 +127,8 @@ These six resolve Critical rules and are each an hour to a day of work.
 **Rules:** ACCESS-008 (Critical) · LAYOUT-002 · FEEDBACK-012 · OTHER-010 · INPUT-022
 **Screens:** S-55 · **Importance:** Critical · **Effort:** S
 
+**Browser check:** confirmed fixed. S-55 renders correctly in both themes across all captures; no `var(--token)` in the panel resolves to a fallback. ([06](06-browser-check.md))
+
 `dashboard/dashboard.js:1379` — `background: var(--bg-card, #fff)`. The token `--bg-card` is defined nowhere in `dashboard.css`, so the `#fff` fallback applies while the text inherits `--text: #f1f5f9` from the panel. Contrast ≈ **1.1 : 1** — near-white text on a white background.
 
 This is the screen Arturo lands on when a lot code matches more than one product, at the single moment he must choose correctly. A one-line fix.
@@ -138,6 +144,8 @@ This is the screen Arturo lands on when a lot code matches more than one product
 **Rules:** LAYOUT-003 (Critical) · LAYOUT-011 · LAYOUT-015 · ACCESS-001 · TOUCH-001
 **Screens:** S-03, S-05, and the top of every tab pane · **Importance:** Critical · **Effort:** S
 
+**Browser check:** confirmed fixed. In all 384 captures no sticky bar overlaps another — at 390 px, at 1440 px, or at 200 % zoom. The "verified by reading the CSS/JS, not in a browser" caveat above is now discharged. The *height* the three bars consume together is a separate problem: see IMP-066. ([06](06-browser-check.md))
+
 `dashboard/dashboard.css:140-142` sets `.app-header { position: sticky; top: 48px }` and `259-260` sets `.tab-bar { position: sticky; top: 91px }` — 48 px of site nav plus a 43 px single-row header. At ≤768 px the `@media` block at `2182-2184` deliberately wraps the header to three rows (brand, then a full-width `.header-right` containing the three-month mini-calendar, then a full-width search row), taking it well past 150 px. The same block re-states `.tab-bar { top: 91px }` at `2189` without recomputing it.
 
 Result: **the tab bar sits on top of the app header on every phone**, hiding the global search field and the Refresh control. The same failure occurs at 200 % desktop zoom, which reports a sub-768 px viewport.
@@ -152,6 +160,8 @@ Result: **the tab bar sits on top of the app header on every phone**, hiding the
 
 **Rules:** LAYOUT-003 (Critical) · LAYOUT-011 · LAYOUT-013 · DATA-004 · ACCESS-001
 **Screens:** S-10, S-11, S-12, S-13, S-16, S-17, S-18, S-25, S-26, S-27, S-28, S-42, S-43 (13) · **Importance:** Critical · **Effort:** S
+
+**Browser check:** confirmed fixed. No screen on `index.html` overflows the document horizontally at 390 px, 1440 px, or 200 % zoom. Every one of the 28 overflowing captures is on a surface outside `index.html`. ([06](06-browser-check.md))
 
 Six tables have no `overflow-x` container, so a narrow window makes the **page** scroll horizontally, sliding content out from under the fixed nav and sticky header:
 
@@ -227,6 +237,8 @@ If the API accepts a connection and then hangs — the common cold-container fai
 **Rules:** LAYOUT-020 (Critical) · NAV-005 (Hard rule) · FEEDBACK-006 · FEEDBACK-010 · NOTIFY-005
 **Screens:** S-14, S-20, S-25, S-26, S-27, S-28, S-49, S-51, S-61, S-87 (10) · **Importance:** Critical · **Effort:** M
 
+**Browser check:** measured. Running `refreshAll()` scores **CLS 0.62** on Daily Entries at 390 px, 0.469 on the Shipping and Receiving logs, and 0.23 on the calendar day-detail panel — the blank-and-repaint made visible. On the Orders tab it also collapses expanded rows, moving eight expand toggles up 62 px. By contrast every genuine background timer in the product measured CLS 0. ([06](06-browser-check.md))
+
 Six places rebuild an entire list under the user:
 
 | Trigger | What is destroyed | Evidence |
@@ -292,6 +304,8 @@ Plus fourteen selectors at 11 px carrying operational values where the standard 
 **Rules:** ACCESS-008 (Critical, Hard rule) · FEEDBACK-012 · LAYOUT-005 · OTHER-010
 **Screens:** ~30 · **Importance:** Critical · **Effort:** S
 
+**Browser check:** measured. 151 of 190 light-theme captures carry at least one text node below AA; the worst non-print value is **1.16 : 1** (`.so-ready-pill`). 143 of 190 dark captures fail too, so this is not a light-theme-only defect — `span.lot-link` measures 2.32 : 1 on `--surface` in dark, and `.mini-calendar-dow` 1.8 : 1 on both. ([06](06-browser-check.md))
+
 Computed WCAG ratios (full derivation in [05](05-access-icon-other.md)):
 
 | Pair | Ratio | Target | Evidence |
@@ -319,6 +333,8 @@ The first two matter most: in the light theme the **"✓ READY" pill** and the *
 
 **Rules:** TOUCH-003 (Critical, Hard rule) · LAYOUT-012 (Critical) · ACCESS-003 · ACTION-002
 **Screens:** ~65 · **Importance:** Critical · **Effort:** M
+
+**Browser check:** measured, and the estimates in the table below hold. `.order-ready-checkbox` **16 × 16**, `.note-checkbox` **18 × 18**, `.note-action-btn` **22.4 × 21**, `.order-expand-toggle` **22 × 22**, `.btn-sm` **≈ 24** tall, `.lot-link` **43.2 × 14**, `.btn-close` **12.9 × 22**. Three classes not in that table also fail and belong in scope: the scheduler's `button.copyday` at **12 × 12**, its `#leftpanel .ctl > input` at **15 × 15**, and its order-book `a.o-action` at **20 × 20**. 314 of 384 captures fail; 70 of the 74 screens that render a control at all. ([06](06-browser-check.md))
 
 The rule applies *"regardless of input method and on desktop tables too."* Measured heights:
 
@@ -554,6 +570,8 @@ The eventual message is excellent — *"Only 240 lb is coverable. Reduce the req
 **Rules:** INPUT-022 (Critical, Hard rule) · ACCESS-008
 **Screens:** S-22, S-45, S-53 · **Importance:** Critical · **Effort:** S
 
+**Browser check:** measured, and the scope is wider than three forms. With no `::placeholder` rule, the user agent picks `rgb(117, 117, 117)`, which measures **2.69 : 1** against `--search-bg` in dark theme — a fail on all 36 measurements. In light theme the same default passes. Nine fields are affected: `#note-title`, `#note-body`, `#note-entity-id`, `#er-product-search`, `#er-reference`, `#er-notes`, `#supply-request-note`, `.order-ready-note-input` and `.allocation-note-input`. ([06](06-browser-check.md))
+
 `dashboard/dashboard.css:1161-1175` styles `.form-group input / textarea / select` but defines **no `::placeholder` rule**, so every modal field inherits the user agent's default — typically the text colour at ~54 % opacity, which against `--search-bg: #283548` with `--text: #f1f5f9` lands close to `--text-secondary`, the treatment used for real secondary **values**.
 
 The convention exists elsewhere in the same file — `#global-search::placeholder` (`166`), `#orders-customer-search::placeholder` (`1269`), `#supplies-search::placeholder` (`2335`) — and was simply not carried into the forms.
@@ -581,6 +599,8 @@ Two remove-shaped glyphs, adjacent, one recoverable and one not — the exact sh
 
 **Rules:** LAYOUT-003 (Critical, Hard rule) · LAYOUT-011 · LAYOUT-013 · OTHER-005 · CHART-006 · TOUCH-003
 **Screens:** S-57…S-70, S-72…S-91 (28) · **Importance:** Critical · **Effort:** L
+
+**Browser check:** measured. At 390 px, `traceability.html` overflows the document by **81 px** (135 px once the detail panel is open), `sankey.html` by **110–114 px**, and `process-flow.html` by **109–114 px**. The offender is `.header-right` on all three — the 768 px nav breakpoint wraps the links but not the header's own contents. The scheduler's pin modal overflows by **190 px**. All four surfaces also proved to have **no light palette at all**: their tokens sit on a bare `:root`, so the `data-theme` attribute two of them carry in markup does nothing. ([06](06-browser-check.md))
 
 Three surfaces have no responsive rules beyond the shared nav:
 
@@ -891,6 +911,8 @@ The rule caps a list row at two lines. Three rows exceed it structurally:
 **Rules:** LAYOUT-005 (High, Hard rule) · LAYOUT-006 (High) · LAYOUT-004
 **Screens:** S-25, S-26, S-30 (3) · **Importance:** High · **Effort:** S
 
+**Browser check:** measured. `opacity: 0.6` on the Factory-Ready row takes `.so-ready-pill` to **1.16 : 1** in light, `.order-link` to 2.32 : 1 in dark, and the status badge, ship-by weekday, blockers cell and expand caret to 2.21–2.30 : 1 — the whole row below AA. The dim is not only a hierarchy inversion; it is a contrast failure. The same device on genuinely inactive rows fails too — see IMP-067. ([06](06-browser-check.md))
+
 **(a)** `dashboard.css:1320` — `.orders-table tr.order-row.so-ready { opacity: 0.6 }`. Orders that are Factory Ready are dimmed to 60 %. A ready order is not a finished order; it is the one about to ship. This inverts the hierarchy for exactly the rows Luz is scanning for, and compounds the ACCESS-008 contrast margins. (Contrast the correct uses of the same device — `.er-inactive` (`2220`), `.allocation-status-released` (`2063`), `.supply-request-done` (`2402`), `.note-card.done` (`1020`) — all genuinely inactive.)
 
 **(b)** `dashboard.js:3226-3231` **builds** the KPI row (Total Ordered / Shipped Effective / Remaining Effective / Pallets) and `3285` **appends it after** the line-items table closed at `3282`. The four headline numbers of the record sit below a nine-to-ten-column table. The variable is even named `summaryHtml` and constructed before the table.
@@ -1116,6 +1138,8 @@ Worse, the levels do not nest monotonically: `--surface-alt` (#1a2536) and `--ro
 **Rules:** ICON-001 (High, Hard rule) · ICON-002 (Hard rule) · ICON-003 · ICON-005
 **Screens:** S-20, S-21, S-29, S-44, S-51, S-58, S-59, S-87 (8) · **Importance:** High · **Effort:** S
 
+**Browser check:** the point in (b) is confirmed and it defeats the measurement. The three emoji empty-state glyphs do render at `opacity: 0.5`, but a colour-emoji glyph paints its own pixels, so the computed `color` a contrast ratio is derived from never reaches the screen. The browser check records these separately and does not count them as ACCESS-008 failures — which is precisely the asymmetry this improvement describes: the same `opacity` rule that de-emphasises a monochrome glyph leaves a colour bitmap fully saturated. Their legibility needs an eye, not a ratio. ([06](06-browser-check.md))
+
 **(a)** `sankey.html:283` — `<h1><span class="icon">&#9776;</span> Product Flow — Sankey</h1>`. The hamburger `☰` is used as a decorative "flow lines" glyph in the page title, **twenty pixels below the same glyph functioning as the menu button** (`274`). ICON-001 prohibits exactly this, and it collides with a conventional meaning.
 
 **(b)** Four incompatible icon families are mixed, sometimes in one view: dingbat Unicode (`☰ ▶ ▸ × ← → ‹ › ✎ ✕ ✓ ✗ ⚠ ⧉ ⌫ ∅`), **full-colour emoji** (`📝 📦 🚛 🔍 🔎 🖨 💾`), one inline SVG (the process-flow arrow), and CSS-drawn shapes. The Traceability header pairs a colour 🔍 with monochrome ✕ and ⚠; its export row pairs colour 🖨 and 💾 with monochrome text buttons. The emoji are rendered at 32 px with `opacity: 0.5` (`dashboard.css:1214-1218`, `2171-2175`), which does not affect a colour bitmap glyph the way it does monochrome text, so they read as fully saturated illustrations in an otherwise monochrome interface.
@@ -1174,6 +1198,8 @@ Several are explained inline as prose ✓ (`index.html:281`, `293`; `dashboard.j
 **Rules:** ACCESS-008 (Critical) · OTHER-010 (Hard rule) · OTHER-007
 **Screens:** all 91 · **Importance:** Critical *(the increased-contrast clause)* · **Effort:** S
 
+**Browser check:** the ACCESS-001 half is now partly settled — at 200 % zoom no dashboard screen overflows, but six screens strand their last actionable row behind the sticky stack (IMP-066). The `prefers-reduced-motion` and `prefers-contrast` clauses were not exercised: the harness runs with `reducedMotion: 'reduce'` throughout precisely so captures are stable, which tests nothing about honouring it. ([06](06-browser-check.md))
+
 There is no `@media (prefers-contrast: more)`, no `forced-colors` handling, and no `@media (prefers-reduced-motion)` in any of the five style sources (verified by grep). ACCESS-008 requires AA *"in light, dark, and increased-contrast modes"* and OTHER-010 requires all three token variants *"even if only one mode ships today."*
 
 Motion that would need the guard: `scrollIntoView({ behavior: 'smooth' })` at `dashboard.js:887` and `traceability.html:1142`, the D3 zoom transitions (`traceability.html:1201-1211`), and roughly forty CSS transitions.
@@ -1210,6 +1236,95 @@ Motion that would need the guard: `scrollIntoView({ behavior: 'smooth' })` at `d
 
 ---
 
+### IMP-065 — Make the two print views printable
+
+**Status:** New — raised by the rendered check ([06](06-browser-check.md)), not visible from the code.
+
+**Rules:** ACCESS-008 (Critical) · LAYOUT-003 (Critical) · FEEDBACK-011 · OTHER-006
+**Screens:** S-71, S-91 (2) · **Importance:** Critical · **Effort:** S
+
+Both print stylesheets restyle the *page* to white and leave the *text* on its dark-theme colour. Measured
+under `@media print`:
+
+| Screen | Element | Text | Composited ratio | Target |
+|---|---|---|---:|---:|
+| S-71 | `#traceDetail > h3` | the report's own title, *"Forward Trace (Ingredient → Batches → Customers)"* | **1.1 : 1** | 4.5 |
+| S-71 | `#traceDetail … strong` | the traced lot code, `OAT-4471` | **1.1 : 1** | 4.5 |
+| S-91 | `#topbar h1 span` | *"Production Board"* | **1.95 : 1** | 4.5 |
+| S-91 | `#kpi-risk`, `#kpi-late` | Orders at risk, Late days | **2.29 : 1** | 4.5 |
+
+`rgb(241, 245, 249)` on white paper. **The recall/audit report prints without its own heading and without the
+lot code it is about** — the two things an auditor reads first, and the reason the screen exists. The table
+body below them prints correctly, which is why nothing in the code review caught it.
+
+Separately, S-91 lays out to **4,779 px against a 1,440 px page — 3,339 px of horizontal overflow**. The board
+does not fit the paper it is printed on; the right-hand days are cut off.
+
+**Fix:** in both `@media print` blocks, set an explicit ink colour on the elements the block re-grounds rather
+than inheriting the screen token (`traceability.html:240-246`; `scheduler:185-208`), and give the scheduler
+board a print width that fits — landscape `@page`, a scale transform, or column paging.
+
+---
+
+### IMP-066 — Reclaim viewport height at 200 % zoom
+
+**Status:** New — raised by the rendered check ([06](06-browser-check.md)).
+
+**Rules:** LAYOUT-011 (Critical wherever a fixed bar can hide an actionable row) · ACCESS-001 (High, Hard rule) · LAYOUT-015
+**Screens:** S-12, S-30, S-32, S-33, S-39, S-52 measured; every long dashboard screen is exposed · **Importance:** Critical · **Effort:** M
+
+IMP-002 fixed the *overlap* between the three sticky bars, and the browser check confirms that fix holds: at
+390 px and at 200 % zoom the bars now stack correctly and never sit on top of one another. What IMP-002 did not
+change is how much of the viewport they consume together.
+
+At 200 % zoom a 1440 × 900 window exposes a **720 × 450 CSS-px** viewport. `.site-nav` + `.app-header` +
+`.tab-bar` take a large share of those 450 px, and in twelve captures the last actionable element of a scroll
+region could not be brought clear of them at **any** scroll position — verified by re-probing each candidate
+after parking it at 60 % of the viewport:
+
+| Screen | Element stranded | Behind |
+|---|---|---|
+| S-12 | the last row of the Batch Inventory table | `.app-header` |
+| S-30, S-32, S-39 | **Preview all remaining lines** | `.tab-bar` |
+| S-33 | the order notes `<textarea>` in edit mode | `.tab-bar` |
+| S-52 | the Supply Requests **Refresh** button | `.app-header` |
+
+ACCESS-001 requires that at 200 % zoom *"every task is still completable"*. Committing an order note is not.
+
+**Fix:** collapse the header to a single compact row below a height threshold, or make the sticky stack
+`position: static` under `@media (max-height: 560px)`, so vertical space goes to content. Overlaps with IMP-038
+(restructure the tab bar) and IMP-055 (reduce Order-Detail density) — do them together.
+
+---
+
+### IMP-067 — Replace the opacity dim on inactive rows with a token that still meets AA
+
+**Status:** New — raised by the rendered check ([06](06-browser-check.md)).
+
+**Rules:** ACCESS-008 (Critical, Hard rule) · FEEDBACK-011 · LAYOUT-005
+**Screens:** S-20, S-25, S-26, S-27, S-28, S-30, S-31, S-42, S-43 (9) · **Importance:** Critical · **Effort:** S
+
+Four selectors mark "inactive" by dropping the whole row's `opacity`. IMP-043 argues one of them is applied to
+the wrong rows; this is the separate point that **the device itself puts ordinary reading text below AA**, and
+it does so on the rows that are genuinely inactive too. Measured composited ratios:
+
+| Selector | Opacity | Worst measured | Target | Example |
+|---|---:|---:|---:|---|
+| `.note-card.done` (`css:1020`) | 0.55 | **1.55 : 1** light · 1.85 : 1 dark | 4.5 | *"supplier: Midstate Packaging"*, *"Due: 2026-09-04"*, the note body, Edit and Delete |
+| `.orders-table tr.so-ready` (`css:1320`) | 0.6 | **1.16 : 1** light (`.so-ready-pill`) · 2.32 : 1 dark (`.order-link`) | 4.5 | the whole Factory-Ready row |
+| `.er-inactive` (`css:2220`) | 0.6 | **2.21 : 1** light | 4.5 | the *Cancelled* badge, SKU, ship-by weekday |
+| `.allocation-status-released` (`css:2063`) | 0.65 | **2.5 : 1** light | 4.5 | the released reservation's quantity, level, source |
+
+A dimmed row is still a row a user reads — Luz reads the released reservation to decide whether to re-allocate,
+and reads a completed to-do to confirm it was the right one. The audit's group-05 file recorded these as
+*correct* uses of a dim device, which they are in intent; the rendered ratio is the part the code could not show.
+
+**Fix:** drop the `opacity` and de-emphasise with a `--text-muted`-class token that is chosen to meet 4.5 : 1 on
+each surface, plus the existing non-colour carriers (strikethrough on a done note, the *Cancelled* / *Released*
+badge). One token change covers all four selectors, and it composes with IMP-010 and IMP-043.
+
+---
+
 ## Systemic
 
 Twelve root causes account for the large majority of the 400-plus individual findings. Fixing these twelve resolves most of the improvements above as a side effect; fixing the improvements without them means fixing the same thing repeatedly.
@@ -1231,33 +1346,81 @@ Twelve root causes account for the large majority of the 400-plus individual fin
 
 ---
 
-## Unverifiable — needs browser check
+## Settled by the browser check
 
-Findings whose evidence in code is necessary but not sufficient. Each needs a rendered check before it can be closed either way.
+[06-browser-check.md](06-browser-check.md) rendered all 91 screens in Chromium — 384 captures at 390 px and
+1440 px, light and dark, plus 1440 px at 200 % zoom for the four operational tabs — against stubbed API
+fixtures. Five clauses that a rendered page can settle without judgement were measured. Each row below is
+therefore no longer an open question.
 
-| Rule | Screens | What to check |
+| Rule | Verdict | What was measured | Resolves to |
+|---|---|---|---|
+| **TOUCH-003** | **FAIL** | Rendered hit boxes on every visible interactive element. **314 of 384 captures** carry at least one target under 44 pt; of the 74 screens that render an interactive control at all, **70 fail at least once** and four never do (S-14, S-15, S-57, S-91). Smallest measured: `button.copyday` **12 × 12**, the four filter checkboxes **13 × 13**, `.order-ready-checkbox` **16 × 16**, `.btn-close` **12.9 × 22**, `.note-checkbox` **18 × 18**, `.lot-link` **43.2 × 14**. The code review's estimates were accurate to a pixel or two throughout. | **IMP-011**, with the scheduler's `button.copyday`, `#leftpanel .ctl > input` and `a.o-action` now named in scope |
+| **FEEDBACK-012 / ACCESS-008**, composited fills | **FAIL, both themes** | Every text node's computed colour composited over each translucent fill and inherited `opacity` up to the first opaque surface. **294 of 384 captures** fail — 151 light, 143 dark. The specific fills the audit could not settle: `.so-ready-pill` measures **1.16 : 1** in light (the audit estimated 1.27 : 1 from declared values; the row's `opacity: 0.6` accounts for the rest), `.readiness-chip.severity-*` and `.order-edit-message.*` pass. | **IMP-010** (light), **IMP-043** (the `.so-ready` dim), **IMP-067** (new — the dim device itself) |
+| **FEEDBACK-012 / ACCESS-008**, print | **FAIL** | Measured under `@media print`. S-71's own title and the traced lot code render at **1.1 : 1** — light text on white paper. S-91's KPI values at **2.29 : 1**. | **IMP-065** (new) |
+| **FEEDBACK-011**, print output | **FAIL** (partly) | The greyscale question is not settled — this run measures colour, not a greyscale conversion. What it does settle is that both print views are broken before greyscale enters into it: see IMP-065. | **IMP-065** (new); the greyscale clause stays open |
+| **ACCESS-001**, 200 % zoom | **Mixed** | At a 720 × 450 CSS-px viewport: **no dashboard screen overflows horizontally** — IMP-003's scroll wrappers hold, and so does IMP-002's sticky fix. But in **12 captures across 6 screens** the last actionable element of a scroll region cannot be brought clear of the sticky stack at any scroll position. | Overflow clause → **PASS**; occlusion clause → **IMP-066** (new) |
+| **INPUT-022** | **FAIL in dark, PASS in light** | Placeholder colour read from `getComputedStyle(el, '::placeholder')` — the colour the user agent actually chose where no rule exists. **930 measurements, 36 failures, every one in dark theme**, all at **2.69 : 1** (`rgb(117,117,117)` on `--search-bg` `rgb(40,53,72)`) against a 4.5 target. | **IMP-025**, whose scope widens from three modal forms to **nine fields** — the Note, Expected Receipt and Supply Request modals plus the order-ready note and the allocation note |
+
+Two rules outside the original list were measured at the same time, and both are worth recording:
+
+* **LAYOUT-003 / ACCESS-001, horizontal overflow.** 28 of 384 captures overflow, and **not one of them is on
+  `index.html`**. Every failure is on a surface that has no compact layout: `sankey.html`, `process-flow.html`
+  and `traceability.html` overflow by 81–135 px at 390 px (the culprit is `.header-right` in all three), the
+  scheduler's pin modal by 190 px, and the scheduler's print view by 3,339 px. This is measured support for
+  **IMP-027** and **IMP-065**, and a clean confirmation of **IMP-003**.
+* **LAYOUT-020, layout shift.** Every real background timer in the product — the Recent Entries 60-second poll,
+  the allocation-expiry countdown, Process Flow's 60-second auto-refresh — recorded **CLS 0 with nothing moved,
+  in all 74 captures where one fired.** On this evidence the product has no background refresh that moves
+  content under the user. The whole-dashboard `refreshAll()` is a different matter: it reaches **CLS 0.62** on
+  the Activity tab and collapses expanded order rows by 62 px. That path is reached by the Refresh control and
+  at app start, which LAYOUT-020 permits — but it is exactly the behaviour that would violate the rule the
+  moment **IMP-036** puts these lists on a timer, and it is measured support for **IMP-007**.
+
+### What the check confirmed already fixed
+
+Three shipped improvements were verified in a browser rather than by reading the diff:
+
+| Improvement | Verified |
+|---|---|
+| **IMP-001** | The lot-disambiguation panel renders correctly in both themes (S-55). The `#fff` fallback is gone. |
+| **IMP-002** | The three sticky bars stack correctly at 390 px **and** at 200 % zoom; no bar overlaps another in any of the 384 captures. The PR note that this was "verified by reading the CSS/JS, not in a browser" can be closed. |
+| **IMP-003** | No dashboard screen overflows the document horizontally at any width or zoom tested. |
+
+---
+
+## Still unverifiable — what a browser could not settle
+
+Three of the original twenty-one rules are now fully settled — **TOUCH-003**, **FEEDBACK-012 / ACCESS-008**
+and **INPUT-022**. Eighteen survive, two of them (**ACCESS-001**, **FEEDBACK-011**) only in part: their zoom
+and print-colour clauses are closed above, their largest-text and greyscale clauses are not. Grouped below by
+what would actually settle each one — five are within reach of this harness and were simply not attempted;
+the rest need a device, a person, a printer, or an operational window a headless run does not have.
+
+**Could be settled by extending this harness** — the measurement exists, this run simply did not make it:
+
+| Rule | Screens | What to add |
 |---|---|---|
-| **LAYOUT-014** | S-01…S-05, S-10, S-11, S-13, S-24…S-56 (Luz/Arturo, Mobile Yes/Partial) | Whether rotation preserves entered form values and scroll position, and whether either orientation is unusable. No rotation handler and no width-keyed state exist in code. |
-| **ACTION-002** (disabled clause) | Every screen using `.btn-close`, `.note-action-btn`, `.order-expand-toggle`, `.btn-back`, `.btn-secondary`, `.show-more-btn`, `.tab`, `.notes-filter-btn`, `.btn-theme` | These nine classes have no `:disabled` rule. No current code path disables them, so the gap is latent — confirm no state does. |
-| **INPUT-010** | S-22, S-45, S-53, S-63 | Which soft keyboard each field raises on iOS Safari and Android Chrome. The numeric fields declare `inputmode` correctly; the five `type="text"` search fields need confirming. |
-| **INPUT-022** | S-22, S-45, S-53 | The user agent's default placeholder contrast against `--search-bg` in both themes. No `::placeholder` rule exists for `.form-group` fields (IMP-025). |
-| **TOUCH-003** | All screens | Rendered hit-box sizes in CSS pixels at the device pixel ratios in use. The declared paddings are strong evidence; a rendered measurement is definitive. |
-| **FEEDBACK-002** | S-24 (export), S-33, S-39, S-64, S-68, S-80 | Real elapsed time for the multi-request operations against the Railway API — whether the wait is long enough to read as stalled. |
-| **FEEDBACK-003** | All network-bound screens | How often the API hangs rather than failing fast. The absence of any timeout is verified; the failure distribution is operational. |
-| **FEEDBACK-011** | S-71, S-91 (print views) | Rendered greyscale output. Both print stylesheets restyle substantially (`traceability.html:240-246`; `scheduler:185-208`). |
-| **FEEDBACK-012 / ACCESS-008** | All screens, light theme; S-71, S-91 in print | The computed ratios in this audit derive from declared hex values. Measure with a contrast tool, especially the composited translucent fills — `.so-ready-pill`, `.order-edit-message.*`, `.readiness-chip.severity-*` — and the printed output. |
-| **ERROR-002** | S-01…S-05, S-22, S-33, S-45, S-53 | Whether a rotation or app-switch loses form values in practice. |
-| **ERROR-010** | S-10…S-13, S-25…S-27, S-54…S-56 | Whether a click-drag over `.lot-link` / `.order-link` actually fires the click handler and prevents selection in Chrome and Safari. |
-| **DATA-004** | S-63, S-68, S-83, S-87 | The rendered width at which each truncation bites, and whether two real product names in the current catalogue clip to the same string. |
-| **DATA-006** | S-10…S-13 | How each browser recovers the nested-`<tbody>` markup and therefore what `tr:nth-child(even)` actually shades. |
-| **DATA-012** | S-25, S-42 | Whether `getLocalDateFromISO` produces a wrong ship-date weekday in practice — it will for any viewer outside America/New_York. |
-| **SEARCH-007** | S-17, S-18 | That `display: none` rows are genuinely skipped by find-in-page in Chrome and Safari — standard behaviour, but the 96-row consequence warrants confirming. |
-| **CHART-005** | S-58, S-68 | What a screen reader announces for each SVG. The absence of ARIA is verified; default SVG handling is not. |
-| **CHART-006** | S-58, S-68, S-02 | Rendered legibility of the 8–10 px chart labels at real device pixel ratios and after a "Fit" transform. |
-| **ACCESS-001** | All screens | Rendered behaviour at 200 % zoom and at the largest OS text size. |
-| **ICON-002 / ICON-005** | Every screen using an emoji glyph | How `📝 📦 🚛 🔍 🔎 🖨 💾` render on the office machines and floor phones — colour bitmap versus monochrome outline varies by OS and font stack. |
-| **ICON-007** | All 91 | Optical centring of `.btn-close`, `.order-expand-toggle`, and `.supply-row-caret`. |
-| **OTHER-006** | All 91 | Whether these screens were tested on the real floor devices, in floor lighting, at both size extremes, in both appearance modes, and with Spanish labels. Not answerable from the repository. |
+| **ACTION-002** (disabled clause) | screens using the nine classes | Assert that no capture ever renders those classes with `disabled` — the harness already visits every state. |
+| **DATA-006** | S-10…S-13 | Read back the parsed DOM and report what `tr:nth-child(even)` actually shades after the browser recovers the nested `<tbody>`. |
+| **DATA-004** | S-63, S-68, S-83, S-87 | Compare `scrollWidth` against `clientWidth` per cell, and diff the visible strings of the real catalogue for collisions. |
+| **SEARCH-007** | S-17, S-18 | Drive find-in-page through CDP and count matches with rows hidden versus shown. |
+| **ERROR-010** | S-10…S-13, S-25…S-27, S-54…S-56 | Synthesise a mouse-down / move / up over `.lot-link` and assert whether `click` fires. |
+
+**Needs a real device or a real person:**
+
+| Rule | Screens | Why a headless run cannot answer it |
+|---|---|---|
+| **LAYOUT-014** · **ERROR-002** | S-01…S-05, S-10, S-11, S-13, S-24…S-56 | Rotation and app-switch are OS events. A viewport resize is not the same thing: it does not exercise the state loss an actual backgrounding causes. |
+| **INPUT-010** | S-22, S-45, S-53, S-63 | Which soft keyboard iOS Safari and Android Chrome raise is a property of those browsers on those devices. |
+| **FEEDBACK-002** · **FEEDBACK-003** | S-24, S-33, S-39, S-64, S-68, S-80 and every network-bound screen | Real elapsed time and the hang-versus-fail distribution against the Railway API. The stub answers instantly by design. |
+| **FEEDBACK-011** (greyscale) | S-71, S-91 | Needs a greyscale conversion of the printed output, on paper. IMP-065 settles that both views are broken in colour first. |
+| **CHART-005** | S-58, S-68 | What a screen reader announces for an SVG is a property of VoiceOver / NVDA, not of the DOM. |
+| **CHART-006** · **ICON-007** | S-58, S-68, S-02, all | Legibility and optical centring at real device pixel ratios are judgements about a rendered glyph, not measurements. |
+| **ICON-002 / ICON-005** | every screen using an emoji | Emoji render from the OS font stack. Chromium on this machine is one data point and not the floor phones'. |
+| **ACCESS-001** (largest OS text size) | all | The 200 % zoom half is now settled. The OS text-size half needs the OS setting; browser zoom is not equivalent. |
+| **DATA-012** | S-25, S-42 | The harness runs in `America/New_York`, so it cannot see the bug. Running it under a second `timezoneId` would settle it — one line, and worth doing. |
+| **OTHER-006** | all 91 | Whether these screens were tested on the floor, in floor lighting, with Spanish labels. Not answerable from a repository or a browser. |
 
 ---
 

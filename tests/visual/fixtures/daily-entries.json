@@ -1,0 +1,245 @@
+{
+  "date": "{{TODAY}}",
+  "date_mode": "event",
+  "count": 11,
+  "entries": [
+    {
+      "transaction_id": 7000,
+      "type": "make",
+      "created_date": "{{TODAY}}",
+      "created_time": "06:10 PM",
+      "event_date": "{{TODAY-2}}",
+      "late_entry": true,
+      "days_late": 2,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Batch Classic Granola",
+          "sku": "B-CQ",
+          "quantity_lb": 460.0
+        },
+        {
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "sku": "ING-OAT",
+          "quantity_lb": -310.0
+        },
+        {
+          "product_name": "Grade A Maple Syrup",
+          "sku": "ING-MPL",
+          "quantity_lb": -64.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7001,
+      "type": "pack",
+      "created_date": "{{TODAY}}",
+      "created_time": "07:19 AM",
+      "event_date": "{{TODAY}}",
+      "late_entry": false,
+      "days_late": 0,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Classic Granola 25 LB",
+          "sku": "CQ-25",
+          "quantity_lb": 800.0
+        },
+        {
+          "product_name": "Batch Classic Granola",
+          "sku": "B-CQ",
+          "quantity_lb": -800.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7002,
+      "type": "ship",
+      "created_date": "{{TODAY}}",
+      "created_time": "08:28 PM",
+      "event_date": "{{TODAY}}",
+      "late_entry": false,
+      "days_late": 0,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Sunshine Granola 12/1 LB",
+          "sku": "SS-12",
+          "quantity_lb": -624.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7003,
+      "type": "receive",
+      "created_date": "{{TODAY}}",
+      "created_time": "09:37 AM",
+      "event_date": "{{TODAY}}",
+      "late_entry": false,
+      "days_late": 0,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "sku": "ING-COC",
+          "quantity_lb": 2400.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7004,
+      "type": "adjust",
+      "created_date": "{{TODAY}}",
+      "created_time": "10:46 PM",
+      "event_date": "{{TODAY-2}}",
+      "late_entry": true,
+      "days_late": 2,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Toasted Coconut 6/2 LB",
+          "sku": "TC-6",
+          "quantity_lb": -24.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7005,
+      "type": "make",
+      "created_date": "{{TODAY}}",
+      "created_time": "11:10 AM",
+      "event_date": "{{TODAY}}",
+      "late_entry": false,
+      "days_late": 0,
+      "entry_backfilled": true,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Batch Classic Granola",
+          "sku": "B-CQ",
+          "quantity_lb": 460.0
+        },
+        {
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "sku": "ING-OAT",
+          "quantity_lb": -310.0
+        },
+        {
+          "product_name": "Grade A Maple Syrup",
+          "sku": "ING-MPL",
+          "quantity_lb": -64.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7006,
+      "type": "pack",
+      "created_date": "{{TODAY}}",
+      "created_time": "06:19 PM",
+      "event_date": "{{TODAY}}",
+      "late_entry": false,
+      "days_late": 0,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Classic Granola 25 LB",
+          "sku": "CQ-25",
+          "quantity_lb": 800.0
+        },
+        {
+          "product_name": "Batch Classic Granola",
+          "sku": "B-CQ",
+          "quantity_lb": -800.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7007,
+      "type": "ship",
+      "created_date": "{{TODAY}}",
+      "created_time": "07:28 AM",
+      "event_date": "{{TODAY}}",
+      "late_entry": false,
+      "days_late": 0,
+      "entry_backfilled": false,
+      "created_at_source": "legacy_unverified",
+      "lines": [
+        {
+          "product_name": "Sunshine Granola 12/1 LB",
+          "sku": "SS-12",
+          "quantity_lb": -624.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7008,
+      "type": "receive",
+      "created_date": "{{TODAY}}",
+      "created_time": "08:37 PM",
+      "event_date": "{{TODAY-2}}",
+      "late_entry": true,
+      "days_late": 2,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "sku": "ING-COC",
+          "quantity_lb": 2400.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7009,
+      "type": "adjust",
+      "created_date": "{{TODAY}}",
+      "created_time": "09:46 AM",
+      "event_date": "{{TODAY}}",
+      "late_entry": false,
+      "days_late": 0,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Toasted Coconut 6/2 LB",
+          "sku": "TC-6",
+          "quantity_lb": -24.0
+        }
+      ]
+    },
+    {
+      "transaction_id": 7010,
+      "type": "make",
+      "created_date": "{{TODAY}}",
+      "created_time": "10:10 PM",
+      "event_date": "{{TODAY}}",
+      "late_entry": false,
+      "days_late": 0,
+      "entry_backfilled": false,
+      "created_at_source": "api",
+      "lines": [
+        {
+          "product_name": "Batch Classic Granola",
+          "sku": "B-CQ",
+          "quantity_lb": 460.0
+        },
+        {
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "sku": "ING-OAT",
+          "quantity_lb": -310.0
+        },
+        {
+          "product_name": "Grade A Maple Syrup",
+          "sku": "ING-MPL",
+          "quantity_lb": -64.0
+        }
+      ]
+    }
+  ]
+}

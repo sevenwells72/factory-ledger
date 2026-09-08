@@ -1,0 +1,229 @@
+{
+  "shipments": [
+    {
+      "transaction_id": 9000,
+      "date": "{{TODAY-0}}",
+      "time": "08:15 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "08:40 AM",
+      "created_at_source": "legacy_unverified",
+      "entry_backfilled": true,
+      "customer_name": "Wexford Foods",
+      "order_reference": "SO-1420",
+      "total_lbs": 500.0,
+      "total_units": 20,
+      "notes": "Loaded from dock 2.",
+      "lines": [
+        {
+          "product_id": 111,
+          "product_name": "Classic Granola 25 LB",
+          "lot_code": "CQ25-2609-A",
+          "quantity_lb": -500.0,
+          "case_size_lb": 25,
+          "unit_count": 20,
+          "product_type": "finished_good"
+        }
+      ]
+    },
+    {
+      "transaction_id": 9001,
+      "date": "{{TODAY-0}}",
+      "time": "09:25 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "09:45 AM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "customer_name": "Harbor Point Market",
+      "order_reference": "SO-1421",
+      "total_lbs": 637.5,
+      "total_units": 53,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 121,
+          "product_name": "Sunshine Granola 12/1 LB",
+          "lot_code": "SS12-2609-A",
+          "quantity_lb": -637.5,
+          "case_size_lb": 12,
+          "unit_count": 53,
+          "product_type": "finished_good"
+        }
+      ]
+    },
+    {
+      "transaction_id": 9002,
+      "date": "{{TODAY-1}}",
+      "time": "10:35 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "10:40 AM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "customer_name": "Greenline Distributors",
+      "order_reference": "SO-1422",
+      "total_lbs": 775.0,
+      "total_units": 64,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 131,
+          "product_name": "Toasted Coconut 6/2 LB",
+          "lot_code": "TC6-2609-A",
+          "quantity_lb": -775.0,
+          "case_size_lb": 12,
+          "unit_count": 64,
+          "product_type": "finished_good"
+        }
+      ]
+    },
+    {
+      "transaction_id": 9003,
+      "date": "{{TODAY-1}}",
+      "time": "11:15 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "11:45 AM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "customer_name": "Cascade Natural",
+      "order_reference": "SO-1423",
+      "total_lbs": 912.5,
+      "total_units": 91,
+      "notes": "Loaded from dock 2.",
+      "lines": [
+        {
+          "product_id": 101,
+          "product_name": "Classic Granola 10 LB",
+          "lot_code": "CQ10-2609-A",
+          "quantity_lb": -912.5,
+          "case_size_lb": 10,
+          "unit_count": 91,
+          "product_type": "finished_good"
+        }
+      ]
+    },
+    {
+      "transaction_id": 9004,
+      "date": "{{TODAY-2}}",
+      "time": "08:25 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "08:40 AM",
+      "created_at_source": "legacy_unverified",
+      "entry_backfilled": false,
+      "customer_name": "Sun & Stone Co-op",
+      "order_reference": "SO-1424",
+      "total_lbs": 1050.0,
+      "total_units": 87,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 122,
+          "product_name": "Blue Stripes Granola 6/2 LB",
+          "lot_code": "BS6-2609-A",
+          "quantity_lb": -1050.0,
+          "case_size_lb": 12,
+          "unit_count": 87,
+          "product_type": "finished_good"
+        }
+      ]
+    },
+    {
+      "transaction_id": 9005,
+      "date": "{{TODAY-2}}",
+      "time": "09:35 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "09:45 AM",
+      "created_at_source": "api",
+      "entry_backfilled": true,
+      "customer_name": "Rivertown Grocers",
+      "order_reference": "SO-1425",
+      "total_lbs": 1187.5,
+      "total_units": 47,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 112,
+          "product_name": "Sunshine Granola 25 LB",
+          "lot_code": "SS25-2609-B",
+          "quantity_lb": -1187.5,
+          "case_size_lb": 25,
+          "unit_count": 47,
+          "product_type": "finished_good"
+        }
+      ]
+    },
+    {
+      "transaction_id": 9006,
+      "date": "{{TODAY-3}}",
+      "time": "10:15 AM",
+      "created_date": "{{TODAY-3}}",
+      "created_time": "10:40 AM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "customer_name": "Wexford Foods",
+      "order_reference": "SO-1426",
+      "total_lbs": 1325.0,
+      "total_units": 53,
+      "notes": "Loaded from dock 2.",
+      "lines": [
+        {
+          "product_id": 111,
+          "product_name": "Classic Granola 25 LB",
+          "lot_code": "CQ25-2609-A",
+          "quantity_lb": -1325.0,
+          "case_size_lb": 25,
+          "unit_count": 53,
+          "product_type": "finished_good"
+        }
+      ]
+    },
+    {
+      "transaction_id": 9007,
+      "date": "{{TODAY-3}}",
+      "time": "11:25 AM",
+      "created_date": "{{TODAY-3}}",
+      "created_time": "11:45 AM",
+      "created_at_source": "api",
+      "entry_backfilled": false,
+      "customer_name": "Harbor Point Market",
+      "order_reference": "SO-1427",
+      "total_lbs": 1462.5,
+      "total_units": 121,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 121,
+          "product_name": "Sunshine Granola 12/1 LB",
+          "lot_code": "SS12-2609-A",
+          "quantity_lb": -1462.5,
+          "case_size_lb": 12,
+          "unit_count": 121,
+          "product_type": "finished_good"
+        }
+      ]
+    },
+    {
+      "transaction_id": 9008,
+      "date": "{{TODAY-4}}",
+      "time": "08:35 AM",
+      "created_date": "{{TODAY-4}}",
+      "created_time": "08:40 AM",
+      "created_at_source": "legacy_unverified",
+      "entry_backfilled": false,
+      "customer_name": "Greenline Distributors",
+      "order_reference": "SO-1428",
+      "total_lbs": 1600.0,
+      "total_units": 133,
+      "notes": null,
+      "lines": [
+        {
+          "product_id": 131,
+          "product_name": "Toasted Coconut 6/2 LB",
+          "lot_code": "TC6-2609-A",
+          "quantity_lb": -1600.0,
+          "case_size_lb": 12,
+          "unit_count": 133,
+          "product_type": "finished_good"
+        }
+      ]
+    }
+  ]
+}

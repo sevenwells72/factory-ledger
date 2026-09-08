@@ -1,0 +1,21 @@
+{
+  "date": "{{TODAY}}",
+  "made": {
+    "granola_batches": 6,
+    "coconut_pans": 14,
+    "graham_batches": 2,
+    "other_batches": 1,
+    "other_products": [
+      { "product_name": "Batch Pumpkin Spice Granola", "count_available": false, "output_lb": 412.5 }
+    ]
+  },
+  "packed": {
+    "granola_bulk_10lb_cases": 128,
+    "granola_bulk_25lb_cases": 64,
+    "granola_retail_cases": 210,
+    "coconut_cases": 96,
+    "graham_cases": 18,
+    "other_cases": 0,
+    "other_products": []
+  }
+}

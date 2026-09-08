@@ -30,6 +30,13 @@ factory-ledger/
 ├── migrations/
 │   ├── 003_notes_todos_reminders.sql
 │   └── 004_production_scheduling.sql
+├── tests/
+│   ├── test_*.py                 # pytest suite against main.py
+│   └── visual/                   # `npm run test:visual` — renders every dashboard screen in
+│                                 #   Chromium against stubbed API fixtures and checks hit-target
+│                                 #   size, AA contrast, overflow, fixed-bar occlusion and layout
+│                                 #   shift. Writes docs/design/audit/06-browser-check.md.
+│                                 #   See tests/visual/README.md.
 ├── openapi-schema.yaml           # Full OpenAPI 3.0 spec
 ├── openapi-schema-gpt.yaml       # GPT-optimized OpenAPI spec (for ChatGPT custom GPT integration)
 ├── GUIDE.md                      # User workflow guide (21 operations with real-world examples)

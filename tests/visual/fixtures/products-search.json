@@ -1,0 +1,29 @@
+{
+  "count": 3,
+  "products": [
+    {
+      "id": 201,
+      "name": "Rolled Oats \u2014 #1 Thick",
+      "odoo_code": "ING-OAT",
+      "type": "ingredient",
+      "uom": "lb",
+      "case_size_lb": null
+    },
+    {
+      "id": 211,
+      "name": "Grade A Maple Syrup",
+      "odoo_code": "ING-MPL",
+      "type": "ingredient",
+      "uom": "lb",
+      "case_size_lb": null
+    },
+    {
+      "id": 223,
+      "name": "Shredded Coconut \u2014 Unsweetened",
+      "odoo_code": "ING-COC",
+      "type": "ingredient",
+      "uom": "lb",
+      "case_size_lb": null
+    }
+  ]
+}

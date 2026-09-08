@@ -1,0 +1,66 @@
+{
+  "panels": [
+    {
+      "id": "granola_bulk_10",
+      "title": "Granola Bulk — 10 LB",
+      "case_weight_lb": 10,
+      "missing_skus": [],
+      "products": [
+        { "product_id": 101, "product_name": "Classic Granola 10 LB", "case_weight_lb": 10, "on_hand_lbs": 4820.0,
+          "lots": [
+            { "lot_code": "CQ10-2609-A", "product_id": 101, "on_hand_lbs": 2400.0, "unit_count": 240 },
+            { "lot_code": "CQ10-2608-D", "product_id": 101, "on_hand_lbs": 1620.0, "unit_count": 162 },
+            { "lot_code": "CQ10-2608-B", "product_id": 101, "on_hand_lbs": 800.0, "unit_count": 80 }
+          ] },
+        { "product_id": 102, "product_name": "Sunshine Granola 10 LB", "case_weight_lb": 10, "on_hand_lbs": 1130.0,
+          "lots": [ { "lot_code": "SS10-2609-A", "product_id": 102, "on_hand_lbs": 1130.0, "unit_count": 113 } ] },
+        { "product_id": 103, "product_name": "Blue Stripes Granola 10 LB", "case_weight_lb": 10, "on_hand_lbs": 0.0, "lots": [] }
+      ]
+    },
+    {
+      "id": "granola_bulk_25",
+      "title": "Granola Bulk — 25 LB",
+      "case_weight_lb": 25,
+      "missing_skus": ["Maple Pecan Granola 25 LB"],
+      "products": [
+        { "product_id": 111, "product_name": "Classic Granola 25 LB", "case_weight_lb": 25, "on_hand_lbs": 7350.0,
+          "lots": [
+            { "lot_code": "CQ25-2609-A", "product_id": 111, "on_hand_lbs": 4200.0, "unit_count": 168 },
+            { "lot_code": "CQ25-2607-C", "product_id": 111, "on_hand_lbs": 3150.0, "unit_count": 126 }
+          ] },
+        { "product_id": 112, "product_name": "Sunshine Granola 25 LB", "case_weight_lb": 25, "on_hand_lbs": 2075.0,
+          "lots": [ { "lot_code": "SS25-2609-B", "product_id": 112, "on_hand_lbs": 2075.0, "unit_count": 83 } ] }
+      ]
+    },
+    {
+      "id": "granola_retail",
+      "title": "Granola Retail",
+      "case_weight_lb": 12,
+      "missing_skus": [],
+      "products": [
+        { "product_id": 121, "product_name": "Sunshine Granola 12/1 LB", "case_weight_lb": 12, "on_hand_lbs": 3240.0,
+          "lots": [
+            { "lot_code": "SS12-2609-A", "product_id": 121, "on_hand_lbs": 1800.0, "unit_count": 150 },
+            { "lot_code": "SS12-2608-F", "product_id": 121, "on_hand_lbs": 1440.0, "unit_count": 120 }
+          ] },
+        { "product_id": 122, "product_name": "Blue Stripes Granola 6/2 LB", "case_weight_lb": 12, "on_hand_lbs": 1560.0,
+          "lots": [ { "lot_code": "BS6-2609-A", "product_id": 122, "on_hand_lbs": 1560.0, "unit_count": 130 } ] }
+      ]
+    },
+    {
+      "id": "coconut",
+      "title": "Coconut",
+      "case_weight_lb": 12,
+      "missing_skus": [],
+      "products": [
+        { "product_id": 131, "product_name": "Toasted Coconut 6/2 LB", "case_weight_lb": 12, "on_hand_lbs": 2136.0,
+          "lots": [
+            { "lot_code": "TC6-2609-A", "product_id": 131, "on_hand_lbs": 1152.0, "unit_count": 96 },
+            { "lot_code": "TC6-2608-E", "product_id": 131, "on_hand_lbs": 984.0, "unit_count": 82 }
+          ] },
+        { "product_id": 132, "product_name": "Sweetened Coconut 6/2 LB", "case_weight_lb": 12, "on_hand_lbs": 744.0,
+          "lots": [ { "lot_code": "SC6-2609-A", "product_id": 132, "on_hand_lbs": 744.0, "unit_count": 62 } ] }
+      ]
+    }
+  ]
+}

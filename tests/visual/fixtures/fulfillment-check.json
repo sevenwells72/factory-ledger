@@ -1,0 +1,241 @@
+{
+  "summary": {
+    "total_orders_checked": 8,
+    "fulfillable": 7,
+    "blocked": 1,
+    "as_of": "{{TODAY}}"
+  },
+  "orders": [
+    {
+      "order_id": 101,
+      "order_number": "SO-1421",
+      "customer": "Wexford Foods",
+      "status": "confirmed",
+      "requested_ship_date": "{{TODAY-3}}",
+      "fulfillable": false,
+      "lines": [],
+      "total_remaining_lb": 4500.0,
+      "total_on_hand_lb": 5400.0,
+      "total_shortfall_lb": 2250.0,
+      "inventory_ready": false,
+      "dispatch_ready": false,
+      "floor_ready": false,
+      "fulfillment_diverged": false,
+      "shortage_lb": 2250.0,
+      "allocated_lb": 2250.0,
+      "remaining_effective_lb": 4500.0,
+      "blockers": [
+        {
+          "code": "shortage",
+          "severity": "block"
+        },
+        {
+          "code": "partial_allocation",
+          "severity": "warn"
+        },
+        {
+          "code": "not_floor_ready",
+          "severity": "warn"
+        }
+      ],
+      "ordered_lb": 4500.0,
+      "shipped_recorded_lb": 0.0,
+      "shipped_effective_lb": 0.0
+    },
+    {
+      "order_id": 102,
+      "order_number": "SO-1422",
+      "customer": "Harbor Point Market",
+      "status": "in_production",
+      "requested_ship_date": "{{TODAY-2}}",
+      "fulfillable": true,
+      "lines": [],
+      "total_remaining_lb": 2500.0,
+      "total_on_hand_lb": 3000.0,
+      "total_shortfall_lb": 0.0,
+      "inventory_ready": true,
+      "dispatch_ready": true,
+      "floor_ready": true,
+      "fulfillment_diverged": false,
+      "shortage_lb": 0.0,
+      "allocated_lb": 2500.0,
+      "remaining_effective_lb": 2500.0,
+      "blockers": [],
+      "ordered_lb": 2500.0,
+      "shipped_recorded_lb": 0.0,
+      "shipped_effective_lb": 0.0
+    },
+    {
+      "order_id": 103,
+      "order_number": "SO-1423",
+      "customer": "Greenline Distributors",
+      "status": "ready",
+      "requested_ship_date": "{{TODAY-1}}",
+      "fulfillable": true,
+      "lines": [],
+      "total_remaining_lb": 2500.0,
+      "total_on_hand_lb": 3000.0,
+      "total_shortfall_lb": 0.0,
+      "inventory_ready": true,
+      "dispatch_ready": true,
+      "floor_ready": false,
+      "fulfillment_diverged": false,
+      "shortage_lb": 0.0,
+      "allocated_lb": 2500.0,
+      "remaining_effective_lb": 2500.0,
+      "blockers": [
+        {
+          "code": "not_floor_ready",
+          "severity": "warn"
+        }
+      ],
+      "ordered_lb": 2500.0,
+      "shipped_recorded_lb": 0.0,
+      "shipped_effective_lb": 0.0
+    },
+    {
+      "order_id": 104,
+      "order_number": "SO-1424",
+      "customer": "Cascade Natural",
+      "status": "new",
+      "requested_ship_date": "{{TODAY}}",
+      "fulfillable": true,
+      "lines": [],
+      "total_remaining_lb": 4500.0,
+      "total_on_hand_lb": 5400.0,
+      "total_shortfall_lb": 0.0,
+      "inventory_ready": true,
+      "dispatch_ready": true,
+      "floor_ready": true,
+      "fulfillment_diverged": false,
+      "shortage_lb": 0.0,
+      "allocated_lb": 2250.0,
+      "remaining_effective_lb": 4500.0,
+      "blockers": [
+        {
+          "code": "partial_allocation",
+          "severity": "warn"
+        }
+      ],
+      "ordered_lb": 4500.0,
+      "shipped_recorded_lb": 0.0,
+      "shipped_effective_lb": 0.0
+    },
+    {
+      "order_id": 105,
+      "order_number": "SO-1425",
+      "customer": "Sun & Stone Co-op",
+      "status": "partial_ship",
+      "requested_ship_date": "{{TODAY+1}}",
+      "fulfillable": true,
+      "lines": [],
+      "total_remaining_lb": 1500.0,
+      "total_on_hand_lb": 1800.0,
+      "total_shortfall_lb": 0.0,
+      "inventory_ready": true,
+      "dispatch_ready": true,
+      "floor_ready": false,
+      "fulfillment_diverged": false,
+      "shortage_lb": 0.0,
+      "allocated_lb": 1500.0,
+      "remaining_effective_lb": 1500.0,
+      "blockers": [
+        {
+          "code": "not_floor_ready",
+          "severity": "warn"
+        }
+      ],
+      "ordered_lb": 2500.0,
+      "shipped_recorded_lb": 1000.0,
+      "shipped_effective_lb": 1000.0
+    },
+    {
+      "order_id": 106,
+      "order_number": "SO-1426",
+      "customer": "Rivertown Grocers",
+      "status": "confirmed",
+      "requested_ship_date": "{{TODAY+2}}",
+      "fulfillable": true,
+      "lines": [],
+      "total_remaining_lb": 2500.0,
+      "total_on_hand_lb": 3000.0,
+      "total_shortfall_lb": 0.0,
+      "inventory_ready": true,
+      "dispatch_ready": true,
+      "floor_ready": false,
+      "fulfillment_diverged": false,
+      "shortage_lb": 0.0,
+      "allocated_lb": 2500.0,
+      "remaining_effective_lb": 2500.0,
+      "blockers": [
+        {
+          "code": "missing_lot_dates",
+          "severity": "warn"
+        },
+        {
+          "code": "not_floor_ready",
+          "severity": "warn"
+        }
+      ],
+      "ordered_lb": 2500.0,
+      "shipped_recorded_lb": 0.0,
+      "shipped_effective_lb": 0.0
+    },
+    {
+      "order_id": 107,
+      "order_number": "SO-1427",
+      "customer": "Meadowlark Provisions",
+      "status": "ready",
+      "requested_ship_date": "{{TODAY+3}}",
+      "fulfillable": true,
+      "lines": [],
+      "total_remaining_lb": 4500.0,
+      "total_on_hand_lb": 5400.0,
+      "total_shortfall_lb": 0.0,
+      "inventory_ready": true,
+      "dispatch_ready": true,
+      "floor_ready": true,
+      "fulfillment_diverged": false,
+      "shortage_lb": 0.0,
+      "allocated_lb": 2250.0,
+      "remaining_effective_lb": 4500.0,
+      "blockers": [
+        {
+          "code": "partial_allocation",
+          "severity": "warn"
+        }
+      ],
+      "ordered_lb": 4500.0,
+      "shipped_recorded_lb": 0.0,
+      "shipped_effective_lb": 0.0
+    },
+    {
+      "order_id": 108,
+      "order_number": "SO-1428",
+      "customer": "Bayside Wholesale Grocery Company",
+      "status": "confirmed",
+      "requested_ship_date": "{{TODAY+4}}",
+      "fulfillable": true,
+      "lines": [],
+      "total_remaining_lb": 2500.0,
+      "total_on_hand_lb": 3000.0,
+      "total_shortfall_lb": 0.0,
+      "inventory_ready": true,
+      "dispatch_ready": true,
+      "floor_ready": false,
+      "fulfillment_diverged": false,
+      "shortage_lb": 0.0,
+      "allocated_lb": 2500.0,
+      "remaining_effective_lb": 2500.0,
+      "blockers": [
+        {
+          "code": "not_floor_ready",
+          "severity": "warn"
+        }
+      ],
+      "ordered_lb": 2500.0,
+      "shipped_recorded_lb": 0.0,
+      "shipped_effective_lb": 0.0
+    }
+  ]
+}

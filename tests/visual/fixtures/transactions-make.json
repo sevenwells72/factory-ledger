@@ -1,0 +1,831 @@
+{
+  "count": 14,
+  "transactions": [
+    {
+      "id": 6500,
+      "type": "make",
+      "timestamp": "{{TODAY-0}}T07:00:00-04:00",
+      "occurred_at": "{{TODAY-0}}T07:00:00-04:00",
+      "created_at": "{{TODAY-0}}T07:20:00-04:00",
+      "date": "{{TODAY-0}}",
+      "time": "07:00 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "07:20 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 41,
+          "product_name": "Batch Classic Granola",
+          "lot_code": "BCQ-2609-A",
+          "lot_id": 4110,
+          "quantity_lb": 460.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 201,
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "lot_code": "OAT-4471",
+          "lot_id": 2010,
+          "quantity_lb": -285.2,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 211,
+          "product_name": "Grade A Maple Syrup",
+          "lot_code": "MPL-0912",
+          "lot_id": 2110,
+          "quantity_lb": -82.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 212,
+          "product_name": "Sunflower Oil",
+          "lot_code": "SFO-3310",
+          "lot_id": 2120,
+          "quantity_lb": -50.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6501,
+      "type": "make",
+      "timestamp": "{{TODAY-0}}T08:07:00-04:00",
+      "occurred_at": "{{TODAY-0}}T08:07:00-04:00",
+      "created_at": "{{TODAY-0}}T08:27:00-04:00",
+      "date": "{{TODAY-0}}",
+      "time": "08:07 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "08:27 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 42,
+          "product_name": "Batch Sunshine Granola",
+          "lot_code": "BSS-2609-A",
+          "lot_id": 4210,
+          "quantity_lb": 460.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 211,
+          "product_name": "Grade A Maple Syrup",
+          "lot_code": "MPL-0912",
+          "lot_id": 2110,
+          "quantity_lb": -285.2,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 212,
+          "product_name": "Sunflower Oil",
+          "lot_code": "SFO-3310",
+          "lot_id": 2120,
+          "quantity_lb": -82.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 221,
+          "product_name": "Raw Pecan Halves",
+          "lot_code": "PEC-7714",
+          "lot_id": 2210,
+          "quantity_lb": -50.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6502,
+      "type": "make",
+      "timestamp": "{{TODAY-0}}T09:14:00-04:00",
+      "occurred_at": "{{TODAY-0}}T09:14:00-04:00",
+      "created_at": "{{TODAY-0}}T09:34:00-04:00",
+      "date": "{{TODAY-0}}",
+      "time": "09:14 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "09:34 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 43,
+          "product_name": "Batch Blue Stripes Granola",
+          "lot_code": "BBS-2608-C",
+          "lot_id": 4310,
+          "quantity_lb": 460.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 212,
+          "product_name": "Sunflower Oil",
+          "lot_code": "SFO-3310",
+          "lot_id": 2120,
+          "quantity_lb": -285.2,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 221,
+          "product_name": "Raw Pecan Halves",
+          "lot_code": "PEC-7714",
+          "lot_id": 2210,
+          "quantity_lb": -82.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 222,
+          "product_name": "Pumpkin Seeds",
+          "lot_code": "PMP-5520",
+          "lot_id": 2220,
+          "quantity_lb": -50.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6503,
+      "type": "make",
+      "timestamp": "{{TODAY-0}}T10:21:00-04:00",
+      "occurred_at": "{{TODAY-0}}T10:21:00-04:00",
+      "created_at": "{{TODAY-0}}T10:41:00-04:00",
+      "date": "{{TODAY-0}}",
+      "time": "10:21 AM",
+      "created_date": "{{TODAY-0}}",
+      "created_time": "10:41 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 51,
+          "product_name": "Batch Toasted Coconut",
+          "lot_code": "BTC-2609-A",
+          "lot_id": 5110,
+          "quantity_lb": 80.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 221,
+          "product_name": "Raw Pecan Halves",
+          "lot_code": "PEC-7714",
+          "lot_id": 2210,
+          "quantity_lb": -49.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 222,
+          "product_name": "Pumpkin Seeds",
+          "lot_code": "PMP-5520",
+          "lot_id": 2220,
+          "quantity_lb": -14.4,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 223,
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "lot_code": "COC-9081",
+          "lot_id": 2230,
+          "quantity_lb": -8.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6504,
+      "type": "make",
+      "timestamp": "{{TODAY-1}}T11:28:00-04:00",
+      "occurred_at": "{{TODAY-1}}T11:28:00-04:00",
+      "created_at": "{{TODAY-1}}T11:48:00-04:00",
+      "date": "{{TODAY-1}}",
+      "time": "11:28 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "11:48 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 52,
+          "product_name": "Batch Sweetened Coconut",
+          "lot_code": "BSC-2609-A",
+          "lot_id": 5210,
+          "quantity_lb": 80.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 222,
+          "product_name": "Pumpkin Seeds",
+          "lot_code": "PMP-5520",
+          "lot_id": 2220,
+          "quantity_lb": -49.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 223,
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "lot_code": "COC-9081",
+          "lot_id": 2230,
+          "quantity_lb": -14.4,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 213,
+          "product_name": "Coconut Sugar",
+          "lot_code": "CSG-2201",
+          "lot_id": 2130,
+          "quantity_lb": -8.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6505,
+      "type": "make",
+      "timestamp": "{{TODAY-1}}T12:35:00-04:00",
+      "occurred_at": "{{TODAY-1}}T12:35:00-04:00",
+      "created_at": "{{TODAY-1}}T12:55:00-04:00",
+      "date": "{{TODAY-1}}",
+      "time": "12:35 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "12:55 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 61,
+          "product_name": "Batch Graham Crumb",
+          "lot_code": "BGR-2609-A",
+          "lot_id": 6110,
+          "quantity_lb": 150.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 223,
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "lot_code": "COC-9081",
+          "lot_id": 2230,
+          "quantity_lb": -93.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 213,
+          "product_name": "Coconut Sugar",
+          "lot_code": "CSG-2201",
+          "lot_id": 2130,
+          "quantity_lb": -27.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 224,
+          "product_name": "Sea Salt \u2014 Fine",
+          "lot_code": "SLT-1140",
+          "lot_id": 2240,
+          "quantity_lb": -16.5,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6506,
+      "type": "make",
+      "timestamp": "{{TODAY-1}}T13:42:00-04:00",
+      "occurred_at": "{{TODAY-1}}T13:42:00-04:00",
+      "created_at": "{{TODAY-1}}T13:02:00-04:00",
+      "date": "{{TODAY-1}}",
+      "time": "13:42 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "13:02 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 41,
+          "product_name": "Batch Classic Granola",
+          "lot_code": "BCQ-2609-A",
+          "lot_id": 4110,
+          "quantity_lb": 460.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 213,
+          "product_name": "Coconut Sugar",
+          "lot_code": "CSG-2201",
+          "lot_id": 2130,
+          "quantity_lb": -285.2,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 224,
+          "product_name": "Sea Salt \u2014 Fine",
+          "lot_code": "SLT-1140",
+          "lot_id": 2240,
+          "quantity_lb": -82.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 201,
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "lot_code": "OAT-4471",
+          "lot_id": 2010,
+          "quantity_lb": -50.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6507,
+      "type": "make",
+      "timestamp": "{{TODAY-1}}T14:49:00-04:00",
+      "occurred_at": "{{TODAY-1}}T14:49:00-04:00",
+      "created_at": "{{TODAY-1}}T14:09:00-04:00",
+      "date": "{{TODAY-1}}",
+      "time": "14:49 AM",
+      "created_date": "{{TODAY-1}}",
+      "created_time": "14:09 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 42,
+          "product_name": "Batch Sunshine Granola",
+          "lot_code": "BSS-2609-A",
+          "lot_id": 4210,
+          "quantity_lb": 460.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 224,
+          "product_name": "Sea Salt \u2014 Fine",
+          "lot_code": "SLT-1140",
+          "lot_id": 2240,
+          "quantity_lb": -285.2,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 201,
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "lot_code": "OAT-4471",
+          "lot_id": 2010,
+          "quantity_lb": -82.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 211,
+          "product_name": "Grade A Maple Syrup",
+          "lot_code": "MPL-0912",
+          "lot_id": 2110,
+          "quantity_lb": -50.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6508,
+      "type": "make",
+      "timestamp": "{{TODAY-2}}T15:56:00-04:00",
+      "occurred_at": "{{TODAY-2}}T15:56:00-04:00",
+      "created_at": "{{TODAY-2}}T15:16:00-04:00",
+      "date": "{{TODAY-2}}",
+      "time": "15:56 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "15:16 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 43,
+          "product_name": "Batch Blue Stripes Granola",
+          "lot_code": "BBS-2608-C",
+          "lot_id": 4310,
+          "quantity_lb": 460.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 201,
+          "product_name": "Rolled Oats \u2014 #1 Thick",
+          "lot_code": "OAT-4471",
+          "lot_id": 2010,
+          "quantity_lb": -285.2,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 211,
+          "product_name": "Grade A Maple Syrup",
+          "lot_code": "MPL-0912",
+          "lot_id": 2110,
+          "quantity_lb": -82.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 212,
+          "product_name": "Sunflower Oil",
+          "lot_code": "SFO-3310",
+          "lot_id": 2120,
+          "quantity_lb": -50.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6509,
+      "type": "make",
+      "timestamp": "{{TODAY-2}}T07:03:00-04:00",
+      "occurred_at": "{{TODAY-2}}T07:03:00-04:00",
+      "created_at": "{{TODAY-2}}T07:23:00-04:00",
+      "date": "{{TODAY-2}}",
+      "time": "07:03 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "07:23 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 51,
+          "product_name": "Batch Toasted Coconut",
+          "lot_code": "BTC-2609-A",
+          "lot_id": 5110,
+          "quantity_lb": 80.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 211,
+          "product_name": "Grade A Maple Syrup",
+          "lot_code": "MPL-0912",
+          "lot_id": 2110,
+          "quantity_lb": -49.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 212,
+          "product_name": "Sunflower Oil",
+          "lot_code": "SFO-3310",
+          "lot_id": 2120,
+          "quantity_lb": -14.4,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 221,
+          "product_name": "Raw Pecan Halves",
+          "lot_code": "PEC-7714",
+          "lot_id": 2210,
+          "quantity_lb": -8.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6510,
+      "type": "make",
+      "timestamp": "{{TODAY-2}}T08:10:00-04:00",
+      "occurred_at": "{{TODAY-2}}T08:10:00-04:00",
+      "created_at": "{{TODAY-2}}T08:30:00-04:00",
+      "date": "{{TODAY-2}}",
+      "time": "08:10 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "08:30 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 52,
+          "product_name": "Batch Sweetened Coconut",
+          "lot_code": "BSC-2609-A",
+          "lot_id": 5210,
+          "quantity_lb": 80.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 212,
+          "product_name": "Sunflower Oil",
+          "lot_code": "SFO-3310",
+          "lot_id": 2120,
+          "quantity_lb": -49.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 221,
+          "product_name": "Raw Pecan Halves",
+          "lot_code": "PEC-7714",
+          "lot_id": 2210,
+          "quantity_lb": -14.4,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 222,
+          "product_name": "Pumpkin Seeds",
+          "lot_code": "PMP-5520",
+          "lot_id": 2220,
+          "quantity_lb": -8.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6511,
+      "type": "make",
+      "timestamp": "{{TODAY-2}}T09:17:00-04:00",
+      "occurred_at": "{{TODAY-2}}T09:17:00-04:00",
+      "created_at": "{{TODAY-2}}T09:37:00-04:00",
+      "date": "{{TODAY-2}}",
+      "time": "09:17 AM",
+      "created_date": "{{TODAY-2}}",
+      "created_time": "09:37 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 61,
+          "product_name": "Batch Graham Crumb",
+          "lot_code": "BGR-2609-A",
+          "lot_id": 6110,
+          "quantity_lb": 150.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 221,
+          "product_name": "Raw Pecan Halves",
+          "lot_code": "PEC-7714",
+          "lot_id": 2210,
+          "quantity_lb": -93.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 222,
+          "product_name": "Pumpkin Seeds",
+          "lot_code": "PMP-5520",
+          "lot_id": 2220,
+          "quantity_lb": -27.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 223,
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "lot_code": "COC-9081",
+          "lot_id": 2230,
+          "quantity_lb": -16.5,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6512,
+      "type": "make",
+      "timestamp": "{{TODAY-3}}T10:24:00-04:00",
+      "occurred_at": "{{TODAY-3}}T10:24:00-04:00",
+      "created_at": "{{TODAY-3}}T10:44:00-04:00",
+      "date": "{{TODAY-3}}",
+      "time": "10:24 AM",
+      "created_date": "{{TODAY-3}}",
+      "created_time": "10:44 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 41,
+          "product_name": "Batch Classic Granola",
+          "lot_code": "BCQ-2609-A",
+          "lot_id": 4110,
+          "quantity_lb": 460.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 222,
+          "product_name": "Pumpkin Seeds",
+          "lot_code": "PMP-5520",
+          "lot_id": 2220,
+          "quantity_lb": -285.2,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 223,
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "lot_code": "COC-9081",
+          "lot_id": 2230,
+          "quantity_lb": -82.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 213,
+          "product_name": "Coconut Sugar",
+          "lot_code": "CSG-2201",
+          "lot_id": 2130,
+          "quantity_lb": -50.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    },
+    {
+      "id": 6513,
+      "type": "make",
+      "timestamp": "{{TODAY-3}}T11:31:00-04:00",
+      "occurred_at": "{{TODAY-3}}T11:31:00-04:00",
+      "created_at": "{{TODAY-3}}T11:51:00-04:00",
+      "date": "{{TODAY-3}}",
+      "time": "11:31 AM",
+      "created_date": "{{TODAY-3}}",
+      "created_time": "11:51 AM",
+      "created_at_source": "api",
+      "effective_status": "posted",
+      "lines": [
+        {
+          "product_id": 42,
+          "product_name": "Batch Sunshine Granola",
+          "lot_code": "BSS-2609-A",
+          "lot_id": 4210,
+          "quantity_lb": 460.0,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "batch",
+          "sku": null
+        },
+        {
+          "product_id": 223,
+          "product_name": "Shredded Coconut \u2014 Unsweetened",
+          "lot_code": "COC-9081",
+          "lot_id": 2230,
+          "quantity_lb": -285.2,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 213,
+          "product_name": "Coconut Sugar",
+          "lot_code": "CSG-2201",
+          "lot_id": 2130,
+          "quantity_lb": -82.8,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        },
+        {
+          "product_id": 224,
+          "product_name": "Sea Salt \u2014 Fine",
+          "lot_code": "SLT-1140",
+          "lot_id": 2240,
+          "quantity_lb": -50.6,
+          "case_size_lb": null,
+          "unit_count": null,
+          "product_type": "ingredient",
+          "sku": null
+        }
+      ]
+    }
+  ]
+}

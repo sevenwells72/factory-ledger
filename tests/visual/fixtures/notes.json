@@ -1,0 +1,9 @@
+{
+  "notes": [
+    { "id": 1, "category": "todo", "title": "Call Wexford about the 25 LB pallet shortfall", "body": "They short-shipped 4 pallets on BOL 88213. Confirm the replacement date before Friday's run.", "priority": "high", "status": "open", "due_date": "{{TODAY}}", "entity_type": "customer", "entity_id": "Wexford Foods", "created_at": "{{TODAY-3}} 09:14 AM", "updated_at": "{{TODAY-3}} 09:14 AM" },
+    { "id": 2, "category": "reminder", "title": "Oven 2 thermocouple recalibration due", "body": "", "priority": "normal", "status": "open", "due_date": "{{TODAY+4}}", "entity_type": null, "entity_id": null, "created_at": "{{TODAY-6}} 02:40 PM", "updated_at": "{{TODAY-6}} 02:40 PM" },
+    { "id": 3, "category": "note", "title": "Sunshine blend runs slow on the pouch line", "body": "Three days running the pouch line finished under rate on Sunshine. Arturo thinks the bag feed needs adjusting; flagged to maintenance.", "priority": "normal", "status": "open", "due_date": null, "entity_type": "product", "entity_id": "Sunshine Granola 12/1 LB", "created_at": "{{TODAY-1}} 11:02 AM", "updated_at": "{{TODAY-1}} 11:02 AM" },
+    { "id": 4, "category": "todo", "title": "Reconcile October coconut pan counts", "body": "", "priority": "low", "status": "open", "due_date": "{{TODAY-2}}", "entity_type": null, "entity_id": null, "created_at": "{{TODAY-9}} 08:20 AM", "updated_at": "{{TODAY-9}} 08:20 AM" },
+    { "id": 5, "category": "todo", "title": "Order more 25 LB corrugate", "body": "Down to 380 boxes.", "priority": "normal", "status": "done", "due_date": "{{TODAY-4}}", "entity_type": "supplier", "entity_id": "Midstate Packaging", "created_at": "{{TODAY-11}} 03:55 PM", "updated_at": "{{TODAY-4}} 07:31 AM" }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "suppliers": [
+    {
+      "id": 1,
+      "name": "Northfield Grain",
+      "active": true,
+      "created_at": "{{TODAY-90}}T09:00:00-04:00"
+    },
+    {
+      "id": 2,
+      "name": "Vermont Maple Works",
+      "active": true,
+      "created_at": "{{TODAY-90}}T09:00:00-04:00"
+    },
+    {
+      "id": 3,
+      "name": "Pacific Coconut Co.",
+      "active": true,
+      "created_at": "{{TODAY-90}}T09:00:00-04:00"
+    },
+    {
+      "id": 4,
+      "name": "Midstate Packaging",
+      "active": true,
+      "created_at": "{{TODAY-90}}T09:00:00-04:00"
+    },
+    {
+      "id": 5,
+      "name": "Cardinal Nut Supply",
+      "active": true,
+      "created_at": "{{TODAY-90}}T09:00:00-04:00"
+    }
+  ],
+  "count": 5
+}

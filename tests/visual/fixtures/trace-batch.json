@@ -1,0 +1,24 @@
+{
+  "trace_type": "batch",
+  "lot_id": 4110,
+  "product_id": 41,
+  "batch_lot_code": "BCQ-2609-A",
+  "product_name": "Batch Classic Granola",
+  "output_lb": 1840.0,
+  "produced_date": "{{TODAY-2}}",
+  "produced_time": "07:20 AM",
+  "case_size_lb": null,
+  "default_batch_lb": 460,
+  "ingredients": [
+    { "lot_id": 2010, "product_id": 201, "ingredient_name": "Rolled Oats — #1 Thick", "lot_code": "OAT-4471", "supplier_lot_code": "NG-22841", "quantity_lb": 1140.8 },
+    { "lot_id": 2110, "product_id": 211, "ingredient_name": "Grade A Maple Syrup", "lot_code": "MPL-0912", "supplier_lot_code": "VMW-7731", "quantity_lb": 331.2 },
+    { "lot_id": 2120, "product_id": 212, "ingredient_name": "Sunflower Oil", "lot_code": "SFO-3310", "supplier_lot_code": null, "quantity_lb": 202.4 },
+    { "lot_id": 2240, "product_id": 224, "ingredient_name": "Sea Salt — Fine", "lot_code": "SLT-1140", "supplier_lot_code": "CS-0041", "quantity_lb": 18.4 }
+  ],
+  "customer_shipments": [
+    { "transaction_id": 6540, "shipped_at": "{{TODAY-1}}T10:15:00-04:00", "shipped_date": "{{TODAY-1}}", "shipped_time": "10:15 AM", "quantity_lb": 800.0, "customer_name": "Wexford Foods", "order_reference": "SO-1421", "sales_order_id": 101, "order_number": "SO-1421", "shipment_id": 331 },
+    { "transaction_id": 6541, "shipped_at": "{{TODAY}}T08:40:00-04:00", "shipped_date": "{{TODAY}}", "shipped_time": "08:40 AM", "quantity_lb": 400.0, "customer_name": "Greenline Distributors", "order_reference": "SO-1423", "sales_order_id": 103, "order_number": "SO-1423", "shipment_id": 332 }
+  ],
+  "total_shipped_lb": 1200.0,
+  "on_hand_lb": 640.0
+}
