@@ -2313,6 +2313,12 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("POST", "/expected-receipts/extract/approve"),
     ("POST", "/purchase-documents/{document_id}/extract"),
     ("GET", "/purchase-documents/{document_id}/url"),
+    # Sales-order intake (migration 050; dashboard-only, not in any GPT yaml).
+    # POST /sales/orders itself stays master-key only (owner ruling 1: the
+    # dashboard never gets the auto-create-customer creation path).
+    ("POST", "/sales/orders/extract"),
+    ("POST", "/sales/orders/match"),
+    ("POST", "/sales/orders/extract/approve"),
     # Supplies (dashboard-only: packaging/consumables inventory + request queue)
     ("GET", "/supplies/inventory"),
     ("GET", "/supplies/inventory/{product_id}/lots"),
@@ -2630,6 +2636,61 @@ class ExpectedReceiptApproveRequest(BaseModel):
     expected_date: Optional[date] = None
     lines: List[ApproveLineIn]
     force: bool = False  # override the DUPLICATE_REFERENCE warning
+    created_by: Optional[str] = None
+
+
+class SalesExtractedLineIn(BaseModel):
+    """One line of a sales-document extraction, as echoed back by the
+    dashboard to /sales/orders/match (possibly user-edited)."""
+    customer_item_code: Optional[str] = None
+    description: str
+    quantity: float
+    unit: Optional[str] = None
+    unit_price: Optional[float] = None
+
+
+class SalesExtractionIn(BaseModel):
+    """The strict extraction shape (extraction.py's SalesExtractionResult)."""
+    customer_name: str
+    po_number: Optional[str] = None
+    document_date: Optional[str] = None
+    requested_ship_date: Optional[str] = None
+    lines: List[SalesExtractedLineIn]
+
+
+class SalesOrderMatchRequest(BaseModel):
+    extraction: SalesExtractionIn
+
+
+class SalesApproveLineIn(BaseModel):
+    """One reviewed line on /sales/orders/extract/approve. The customer's
+    wording rides along so the alias can be written on approval. quantity_lb
+    is the reviewed pound value and is always authoritative; unit/quantity/
+    case_size_lb describe how it was computed (cases × case size, or lb)."""
+    product_id: int
+    quantity_lb: float
+    quantity: Optional[float] = None
+    unit: Optional[str] = None            # 'cases' | 'lb' (normalized forms accepted)
+    case_size_lb: Optional[float] = None
+    unit_price: Optional[float] = None
+    customer_item_code: Optional[str] = None
+    customer_description: str
+    save_alias: bool = True
+
+    # NaN/±inf are validated in the approve endpoint (not here) — a
+    # pydantic-level rejection makes FastAPI echo the non-finite input into
+    # its 422 JSON, which starlette cannot serialize (500). Same as ER.
+
+
+class SalesOrderApproveRequest(BaseModel):
+    document_id: int
+    customer_id: int
+    customer_po: str                      # required (owner rule) — 422 if blank
+    order_date: Optional[date] = None
+    requested_ship_date: Optional[date] = None
+    notes: Optional[str] = None
+    lines: List[SalesApproveLineIn]
+    force: bool = False                   # override the DUPLICATE_PO warning
     created_by: Optional[str] = None
 
 
@@ -3122,20 +3183,31 @@ _SEARCH_NOISE_WORDS = {'the', 'a', 'an', 'in', 'for', 'lb', 'lbs', 'case', 'case
                        'oz', 'bag', 'bags', 'box', 'boxes', 'of', 'and', 'with', 'per'}
 
 
-def _tiered_product_search(cur, query: str, limit: int = 5) -> list:
+def _tiered_product_search(cur, query: str, limit: int = 5, restrict_ids=None) -> list:
     """3-tier product search: exact → keyword → trigram.
-    Returns list of dicts with keys: id, name, odoo_code, match_tier, similarity."""
+    Returns list of dicts with keys: id, name, odoo_code, label_type,
+    match_tier, similarity.
+
+    restrict_ids (SO intake): when given, every tier only considers those
+    product ids — the caller passes the customer's prior-sales pool so fuzzy
+    suggestions can never surface a product the customer has no history with.
+    An empty list matches nothing. None (default) searches the full catalog."""
     q = query.strip()
     if not q:
         return []
+    if restrict_ids is not None and not restrict_ids:
+        return []
+    restrict_sql = " AND id = ANY(%s)" if restrict_ids is not None else ""
+    restrict_params = (list(restrict_ids),) if restrict_ids is not None else ()
 
     # --- Tier 1: Exact match ---
     # Try odoo_code if input looks numeric
     if q.isdigit():
         cur.execute(
-            """SELECT id, name, odoo_code FROM products
-               WHERE odoo_code = %s AND COALESCE(active, true) = true""",
-            (q,)
+            f"""SELECT id, name, odoo_code, COALESCE(label_type, 'house') AS label_type
+               FROM products
+               WHERE odoo_code = %s AND COALESCE(active, true) = true{restrict_sql}""",
+            (q,) + restrict_params
         )
         rows = cur.fetchall()
         if rows:
@@ -3143,9 +3215,10 @@ def _tiered_product_search(cur, query: str, limit: int = 5) -> list:
 
     # Try exact name match
     cur.execute(
-        """SELECT id, name, odoo_code FROM products
-           WHERE LOWER(name) = LOWER(%s) AND COALESCE(active, true) = true""",
-        (q,)
+        f"""SELECT id, name, odoo_code, COALESCE(label_type, 'house') AS label_type
+           FROM products
+           WHERE LOWER(name) = LOWER(%s) AND COALESCE(active, true) = true{restrict_sql}""",
+        (q,) + restrict_params
     )
     rows = cur.fetchall()
     if rows:
@@ -3156,11 +3229,12 @@ def _tiered_product_search(cur, query: str, limit: int = 5) -> list:
     if words:
         patterns = [f"%{w}%" for w in words]
         cur.execute(
-            """SELECT id, name, odoo_code FROM products
-               WHERE name ILIKE ALL(%s) AND COALESCE(active, true) = true
+            f"""SELECT id, name, odoo_code, COALESCE(label_type, 'house') AS label_type
+               FROM products
+               WHERE name ILIKE ALL(%s) AND COALESCE(active, true) = true{restrict_sql}
                ORDER BY length(name), name
                LIMIT %s""",
-            (patterns, limit)
+            (patterns,) + restrict_params + (limit,)
         )
         rows = cur.fetchall()
         if rows:
@@ -3168,14 +3242,14 @@ def _tiered_product_search(cur, query: str, limit: int = 5) -> list:
 
     # --- Tier 3: Trigram similarity fallback ---
     cur.execute(
-        """SELECT id, name, odoo_code,
+        f"""SELECT id, name, odoo_code, COALESCE(label_type, 'house') AS label_type,
                   similarity(LOWER(name), LOWER(%s)) AS sim
            FROM products
            WHERE similarity(LOWER(name), LOWER(%s)) > 0.25
-             AND COALESCE(active, true) = true
+             AND COALESCE(active, true) = true{restrict_sql}
            ORDER BY sim DESC
            LIMIT %s""",
-        (q, q, limit)
+        (q, q) + restrict_params + (limit,)
     )
     rows = cur.fetchall()
     return [dict(r, match_tier='trigram', similarity=float(r['sim'])) for r in rows]
@@ -3505,7 +3579,8 @@ def search_products(
                 cur.execute(
                     """SELECT id, name, odoo_code, type, uom, active,
                               COALESCE(verification_status, 'verified') as verification_status,
-                              case_size_lb, default_batch_lb
+                              case_size_lb, default_batch_lb,
+                              COALESCE(label_type, 'house') AS label_type
                        FROM products WHERE id = %s""",
                     (r['id'],)
                 )
@@ -5494,6 +5569,297 @@ def match_extraction(cur, extraction_payload: dict) -> dict:
     return {"supplier": supplier_block, "duplicate_warning": duplicate_warning, "lines": lines}
 
 
+# ── Sales-order intake: matching helpers (migration 050) ───────────────────
+# docs/designs/sales-order-intake.md. Same shape as the ER helpers above;
+# the SO-specific rules are the prior-sales restriction and the private-label
+# leak guard (products.customer_id is a legacy uuid, so prior sales_order_lines
+# are the ONLY reliable ownership signal).
+
+def find_customer_alias(cur, customer_id: int, item_code, description) -> Optional[dict]:
+    """customer_product_aliases lookup: normalized item code first, then
+    normalized description; latest updated_at wins (rows keyed by code still
+    carry their description, so tier 2 sees them too)."""
+    for column, value in (("customer_item_code", item_code),
+                          ("customer_description", description)):
+        norm = _normalize_vendor_description(value)
+        if not norm:
+            continue
+        cur.execute(
+            f"""SELECT cpa.product_id, cpa.case_size_lb,
+                       p.name AS product_name, p.odoo_code,
+                       COALESCE(p.label_type, 'house') AS label_type
+                FROM customer_product_aliases cpa
+                JOIN products p ON p.id = cpa.product_id
+                WHERE cpa.customer_id = %s
+                  AND cpa.{column} IS NOT NULL
+                  AND lower(regexp_replace(btrim(cpa.{column}), '\\s+', ' ', 'g')) = %s
+                ORDER BY cpa.updated_at DESC
+                LIMIT 1""",
+            (customer_id, norm),
+        )
+        row = cur.fetchone()
+        if row:
+            return dict(row)
+    return None
+
+
+def upsert_customer_alias(cur, customer_id: int, item_code, description,
+                          product_id: int, case_size_lb, created_by) -> None:
+    """Latest approved correction wins (ON CONFLICT on the generated
+    alias_key = normalized item-code-else-description)."""
+    cur.execute(
+        """INSERT INTO customer_product_aliases
+               (customer_id, customer_item_code, customer_description, product_id, case_size_lb, created_by)
+           VALUES (%s, %s, %s, %s, %s, %s)
+           ON CONFLICT (customer_id, alias_key)
+           DO UPDATE SET customer_item_code = EXCLUDED.customer_item_code,
+                         customer_description = EXCLUDED.customer_description,
+                         product_id = EXCLUDED.product_id,
+                         case_size_lb = EXCLUDED.case_size_lb,
+                         created_by = EXCLUDED.created_by,
+                         updated_at = clock_timestamp()""",
+        (customer_id, (item_code or "").strip() or None,
+         (description or "").strip() or None, product_id, case_size_lb, created_by),
+    )
+
+
+def _so_prior_sales_pool(cur, customer_id: int) -> list:
+    """Product ids this customer has actually been sold (owner ruling 4:
+    cancelled orders AND cancelled lines excluded). The pool restricts fuzzy
+    suggestions and gates private-label products at every tier."""
+    cur.execute(
+        """SELECT DISTINCT sol.product_id
+           FROM sales_order_lines sol
+           JOIN sales_orders so ON so.id = sol.sales_order_id
+           WHERE so.customer_id = %s
+             AND so.status <> 'cancelled'
+             AND sol.line_status <> 'cancelled'""",
+        (customer_id,),
+    )
+    return [r["product_id"] for r in cur.fetchall()]
+
+
+def resolve_customer_for_match(cur, customer_name) -> tuple:
+    """(match_row_or_None, candidates) — exact canonical name, then exact
+    alias, else up to 5 LIKE candidates across names + aliases. Read-only:
+    never creates, never raises (the review screen owns the decision).
+    Owner ruling 6: no create-customer in V1 — pick existing or abort."""
+    name = (customer_name or "").strip()
+    if not name:
+        return None, []
+    cur.execute(
+        "SELECT id, name, active FROM customers WHERE LOWER(name) = LOWER(%s) AND active = true",
+        (name,),
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.execute(
+            """SELECT c.id, c.name, c.active FROM customers c
+               JOIN customer_aliases ca ON ca.customer_id = c.id
+               WHERE LOWER(ca.alias) = LOWER(%s) AND c.active = true
+               LIMIT 1""",
+            (name,),
+        )
+        row = cur.fetchone()
+    if row:
+        return dict(row), []
+    cur.execute(
+        """SELECT DISTINCT c.id, c.name FROM customers c
+           LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
+           WHERE c.active = true
+             AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))
+           ORDER BY c.name LIMIT 5""",
+        (f"%{name}%", f"%{name}%"),
+    )
+    candidates = [{"customer_id": r["id"], "name": r["name"]} for r in cur.fetchall()]
+    return None, candidates
+
+
+def _so_product_public(row: dict, pool: set) -> dict:
+    """Match-response product/candidate shape. prior_sales + label_type ride
+    along so the review screen can render the private-label warning badge
+    (owner rulings 2/3) without another round trip."""
+    return {
+        "product_id": row.get("product_id") or row.get("id"),
+        "name": row.get("product_name") or row.get("name"),
+        "odoo_code": row.get("odoo_code"),
+        "label_type": row.get("label_type") or "house",
+        "prior_sales": (row.get("product_id") or row.get("id")) in pool,
+    }
+
+
+def _match_so_line(cur, customer_id: Optional[int], pool: list, line: dict) -> dict:
+    """One sales extraction line → product match + cases→lb conversion.
+    Deterministic. Chain: alias → exact → restricted fuzzy → human.
+
+    Owner rules: fuzzy tiers (and all candidates) only ever search the
+    customer's prior-sales pool; an EXACT hit on a private-label product
+    outside the pool is demoted to no-match (an exact text collision must
+    not leak another customer's SKU). lb rules: unit lb → quantity is
+    pounds; otherwise cases by default, converted via case_size_lb (alias →
+    product master) only for alias/exact matches — fuzzy/none lines keep
+    quantity_lb null until a human confirms the product (ruling: 'chosen'
+    conversions are computed client-side, as in the ER flow)."""
+    code = line.get("customer_item_code")
+    desc = line["description"]
+    quantity = float(line["quantity"])
+    unit_norm = _normalize_unit(line.get("unit"))
+    pool_set = set(pool)
+
+    product_row = None
+    candidates = []
+    match_source, confidence = "none", 0.0
+    alias = find_customer_alias(cur, customer_id, code, desc) if customer_id else None
+    if alias:
+        match_source, confidence = "alias", 1.0
+        product_row = alias
+    elif customer_id:
+        # Exact tier searches the full catalog (an exact hit on a house
+        # product is safe even with no history), guarded for private label.
+        for q in ([code] if code and str(code).strip() else []) + [desc]:
+            results = _tiered_product_search(cur, str(q), limit=5)
+            if results and results[0]["match_tier"] == "exact":
+                hit = results[0]
+                if hit["label_type"] == "private_label" and hit["id"] not in pool_set:
+                    continue  # leak guard: demote, try the next query / fuzzy
+                product_row = hit
+                match_source, confidence = "exact", 1.0
+                break
+        if product_row is None:
+            # Fuzzy tiers: prior-sales pool ONLY (empty pool → no fuzzy).
+            # An exact tier hit here is a pool product by construction, so
+            # the leak guard is satisfied implicitly.
+            results = _tiered_product_search(cur, desc, limit=5, restrict_ids=pool)
+            candidates = [
+                dict(_so_product_public(r, pool_set), similarity=round(float(r["similarity"]), 3))
+                for r in results
+            ]
+            if results and results[0]["match_tier"] == "exact":
+                match_source, confidence = "exact", 1.0
+                product_row = results[0]
+            elif results and results[0]["match_tier"] == "keyword" and len(results) == 1:
+                match_source, confidence = "fuzzy", 0.8
+                product_row = results[0]
+            elif results and results[0]["match_tier"] == "trigram" and results[0]["similarity"] > 0.4 \
+                    and (len(results) == 1 or float(results[0]["similarity"]) - float(results[1]["similarity"]) > 0.15):
+                match_source, confidence = "fuzzy", round(float(results[0]["similarity"]), 3)
+                product_row = results[0]
+
+    product = _so_product_public(product_row, pool_set) if product_row else None
+
+    # ── cases → lb conversion (owner rules; no kg, no description parsing —
+    # customer POs order finished goods in cases or pounds) ──
+    case_size, case_size_source = None, "none"
+    quantity_lb = None
+    if unit_norm in _LB_UNITS:
+        case_size_source = "unit_is_lb"
+        quantity_lb = round(quantity, 4)
+    else:
+        if alias and alias.get("case_size_lb") is not None:
+            case_size, case_size_source = float(alias["case_size_lb"]), "alias"
+        elif match_source in ("alias", "exact") and product:
+            cur.execute(
+                "SELECT case_size_lb, default_case_weight_lb FROM products WHERE id = %s",
+                (product["product_id"],),
+            )
+            prow = cur.fetchone()
+            case_lb = (prow or {}).get("case_size_lb") or (prow or {}).get("default_case_weight_lb")
+            if case_lb:
+                case_size, case_size_source = float(case_lb), "product"
+        if case_size is not None and match_source in ("alias", "exact"):
+            quantity_lb = round(quantity * case_size, 4)
+
+    return {
+        "customer_item_code": code,
+        "description": desc,
+        "quantity": quantity,
+        "unit": line.get("unit"),
+        "unit_price": line.get("unit_price"),
+        "match_source": match_source,
+        "confidence": confidence,
+        "product": product,
+        "candidates": candidates,
+        "case_size_lb": case_size,
+        "case_size_source": case_size_source,
+        "quantity_lb": quantity_lb,
+    }
+
+
+def _dedupe_existing_sales_orders(cur, customer_id: int, customer_po) -> list:
+    """All sales orders (any status — mirrors the ER owner ruling) for
+    (customer, normalized customer_po)."""
+    norm = _normalize_vendor_description(customer_po)
+    if not norm:
+        return []
+    cur.execute(
+        """SELECT so.id, so.order_number, so.status, so.requested_ship_date, so.created_at,
+                  COALESCE(SUM(sol.quantity_lb), 0) AS total_lb
+           FROM sales_orders so
+           LEFT JOIN sales_order_lines sol ON sol.sales_order_id = so.id
+           WHERE so.customer_id = %s
+             AND so.customer_po IS NOT NULL
+             AND lower(regexp_replace(btrim(so.customer_po), '\\s+', ' ', 'g')) = %s
+           GROUP BY so.id
+           ORDER BY so.id""",
+        (customer_id, norm),
+    )
+    return [
+        {"order_id": r["id"], "order_number": r["order_number"], "status": r["status"],
+         "total_lb": float(r["total_lb"]),
+         "requested_ship_date": r["requested_ship_date"].isoformat() if r["requested_ship_date"] else None,
+         "created_at": r["created_at"].isoformat() if r["created_at"] else None}
+        for r in cur.fetchall()
+    ]
+
+
+def _lock_customer_po(cur, customer_id: int, customer_po) -> None:
+    """Transaction-scoped advisory lock on the (customer, normalized PO)
+    pair — two concurrent approvals of different documents with the same PO
+    serialize, so the loser re-runs its duplicate check and gets the 409
+    warning (same shape as _lock_supplier_reference)."""
+    norm = _normalize_vendor_description(customer_po)
+    if not norm:
+        return
+    cur.execute(
+        "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+        (f"so-intake-po:{customer_id}:{norm}",),
+    )
+
+
+def match_sales_extraction(cur, extraction_payload: dict) -> dict:
+    """Deterministic matching for a validated sales extraction. Pure read —
+    no LLM, no writes. The dashboard re-calls this when the user changes the
+    customer (sending the picked customer's canonical name)."""
+    customer, cust_candidates = resolve_customer_for_match(
+        cur, extraction_payload.get("customer_name") or ""
+    )
+    if customer:
+        customer_block = {
+            "match": {"customer_id": customer["id"], "name": customer["name"],
+                      "active": customer["active"]},
+            "confidence": "exact",
+            "candidates": [],
+        }
+    else:
+        customer_block = {"match": None, "confidence": "none", "candidates": cust_candidates}
+
+    customer_id = customer["id"] if customer else None
+    duplicate_warning = None
+    po = extraction_payload.get("po_number")
+    if customer_id and po:
+        existing = _dedupe_existing_sales_orders(cur, customer_id, po)
+        if existing:
+            duplicate_warning = {"existing": existing}
+
+    pool = _so_prior_sales_pool(cur, customer_id) if customer_id else []
+    lines = [_match_so_line(cur, customer_id, pool, dict(line))
+             for line in extraction_payload.get("lines", [])]
+    # prior_sales_product_ids: the review screen's full-catalog picker lists
+    # these first and badges private-label products outside them (rulings 2/3).
+    return {"customer": customer_block, "duplicate_warning": duplicate_warning,
+            "lines": lines, "prior_sales_product_ids": pool}
+
+
 # ── Intake endpoints ────────────────────────────────────────────────────────
 
 # Audit finding 6 (partial): per-key rate limits on the endpoints that cost
@@ -5595,12 +5961,14 @@ def _serialize_purchase_document(row: dict) -> dict:
     }
 
 
-def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str) -> dict:
+def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str,
+                              kind: str = "purchase") -> dict:
     """Model call OUTSIDE any DB transaction (a vision call can take tens of
     seconds — never hold a pooled connection across it), then a short
     transaction to store the outcome. Raises 502 EXTRACTION_FAILED with the
     document_id on failure; the file + row are kept so retry needs no
-    re-upload."""
+    re-upload. kind selects the extraction schema/prompt (the document row's
+    document_kind)."""
     def _already_approved() -> HTTPException:
         # Audit fix 5: the document was approved while the (slow, lock-free)
         # model call ran. Its status is final — never flip it back to
@@ -5612,7 +5980,13 @@ def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str) 
         )
 
     try:
-        result = extraction.extract_purchase_document(content, mime_type)
+        # Owner ruling 9: the purchase path calls with the exact pre-refactor
+        # two-argument signature so tests/test_expected_receipt_extract.py's
+        # 2-arg monkeypatched extractor keeps working unchanged.
+        if kind == "purchase":
+            result = extraction.extract_purchase_document(content, mime_type)
+        else:
+            result = extraction.extract_purchase_document(content, mime_type, kind)
     except extraction.ExtractionError as exc:
         with get_transaction() as cur:
             cur.execute(
@@ -5638,19 +6012,20 @@ def _run_extraction_and_store(document_id: int, content: bytes, mime_type: str) 
     return result
 
 
-@app.post("/expected-receipts/extract", status_code=201)
-def extract_expected_receipt_document(
-    request: Request,
-    response: Response,
-    file: UploadFile = File(...),
-    _: bool = Depends(verify_api_key),
-):
-    """Step 1 of the intake flow — UPLOAD ONLY (audit fix 8): validate, insert
-    the purchase_documents row, store the file, 201 with the document_id. The
-    dashboard then calls POST /purchase-documents/{id}/extract (its own, longer
-    browser timeout) so a slow vision call can never lose the document id.
-    Plain def: FastAPI runs it in the threadpool — the sync DB/Storage calls
-    never block the event loop. NO expected receipts are created here."""
+def _upload_intake_document(request: Request, response: Response,
+                            file: UploadFile, kind: str):
+    """Shared step-1 upload for BOTH intake flows — UPLOAD ONLY (audit fix 8):
+    validate, insert the purchase_documents row (document_kind = kind), store
+    the file, 201 with the document_id. The dashboard then calls
+    POST /purchase-documents/{id}/extract (its own, longer browser timeout) so
+    a slow vision call can never lose the document id. Callers are plain-def
+    endpoints (threadpool). Nothing downstream is created here.
+
+    Owner ruling 9 (sales-order-intake.md): the ER path through this helper is
+    byte-identical to the pre-refactor handler — the only kind-awareness is
+    the document_kind column and the per-kind sha256 dedupe scope (the same
+    bytes may legitimately exist once as a vendor PO and once as a customer
+    PO)."""
     enforce_rate_limit("extraction", request)
     # Audit fix 9: bounded read — never hold more than limit+1 bytes.
     content = file.file.read(extraction.MAX_FILE_BYTES + 1)
@@ -5702,21 +6077,24 @@ def extract_expected_receipt_document(
         cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (sha256,))
         cur.execute(
             """SELECT id, storage_path, status, file_sha256 FROM purchase_documents
-               WHERE file_sha256 = %s
+               WHERE file_sha256 = %s AND document_kind = %s
                  AND status IN ('uploaded','extracted','extraction_failed','upload_failed')
                ORDER BY id DESC LIMIT 1""",
-            (sha256,),
+            (sha256, kind),
         )
         existing = cur.fetchone()
         if not existing:
-            cur.execute("SELECT id FROM purchase_documents WHERE file_sha256 = %s LIMIT 1", (sha256,))
+            cur.execute(
+                "SELECT id FROM purchase_documents WHERE file_sha256 = %s AND document_kind = %s LIMIT 1",
+                (sha256, kind),
+            )
             already_seen = cur.fetchone() is not None
             cur.execute(
                 """INSERT INTO purchase_documents
-                       (storage_path, original_filename, mime_type, file_sha256, byte_size, created_by)
-                   VALUES (%s, %s, %s, %s, %s, %s)
+                       (storage_path, original_filename, mime_type, file_sha256, byte_size, created_by, document_kind)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)
                    RETURNING id""",
-                (storage_path, file.filename, mime, sha256, len(content), caller_source_tag(request)),
+                (storage_path, file.filename, mime, sha256, len(content), caller_source_tag(request), kind),
             )
             document_id = cur.fetchone()["id"]
     if existing:
@@ -5777,6 +6155,30 @@ def extract_expected_receipt_document(
     }
 
 
+@app.post("/expected-receipts/extract", status_code=201)
+def extract_expected_receipt_document(
+    request: Request,
+    response: Response,
+    file: UploadFile = File(...),
+    _: bool = Depends(verify_api_key),
+):
+    """Step 1 of the ER intake flow — see _upload_intake_document. NO expected
+    receipts are created here."""
+    return _upload_intake_document(request, response, file, kind="purchase")
+
+
+@app.post("/sales/orders/extract", status_code=201)
+def extract_sales_order_document(
+    request: Request,
+    response: Response,
+    file: UploadFile = File(...),
+    _: bool = Depends(verify_api_key),
+):
+    """Step 1 of the SO intake flow (docs/designs/sales-order-intake.md) —
+    see _upload_intake_document. NO sales orders are created here."""
+    return _upload_intake_document(request, response, file, kind="sales")
+
+
 @app.post("/purchase-documents/{document_id}/extract")
 def run_purchase_document_extraction(document_id: int, request: Request, _: bool = Depends(verify_api_key)):
     """Step 1b: run (or re-run) vision extraction on a stored document — the
@@ -5804,7 +6206,8 @@ def run_purchase_document_extraction(document_id: int, request: Request, _: bool
         raise HTTPException(status_code=409, detail={"error_code": "UPLOAD_FAILED", "message": f"Purchase document {document_id} has no stored file (its upload failed) — upload the document again"})
 
     content = storage_download_purchase_document(doc["storage_path"])
-    result = _run_extraction_and_store(document_id, content, doc["mime_type"])
+    result = _run_extraction_and_store(document_id, content, doc["mime_type"],
+                                       doc.get("document_kind") or "purchase")
     return {
         "document_id": document_id,
         "storage_path": doc["storage_path"],
@@ -5943,6 +6346,189 @@ def purchase_document_signed_url(document_id: int, request: Request, _: bool = D
     signed = storage_signed_purchase_document_url(doc["storage_path"], expires_in=600)
     return {"document_id": document_id, "url": signed, "expires_in": 600,
             "document": _serialize_purchase_document(dict(doc))}
+
+
+# ── Sales-order intake endpoints (docs/designs/sales-order-intake.md) ───────
+
+@app.post("/sales/orders/match")
+def match_sales_order_extraction_endpoint(req: SalesOrderMatchRequest, _: bool = Depends(verify_api_key)):
+    """SO intake step 2: deterministic matching of a (possibly user-edited)
+    sales extraction. Pure read — no LLM, no writes."""
+    with get_transaction() as cur:
+        return match_sales_extraction(cur, req.extraction.model_dump())
+
+
+@app.post("/sales/orders/extract/approve", status_code=201)
+def approve_extracted_sales_order(req: SalesOrderApproveRequest, request: Request,
+                                  _: bool = Depends(verify_api_key)):
+    """SO intake step 3: create ONE sales order with its lines — atomically,
+    via the same _create_sales_order_core() the manual endpoint uses — and
+    learn customer_product_aliases (latest-wins) for lines with save_alias."""
+    if not req.lines:
+        raise HTTPException(status_code=422, detail={"error_code": "NO_LINES", "message": "At least one line is required"})
+    customer_po = (req.customer_po or "").strip()
+    if not customer_po:
+        # Owner rule: the customer PO number is required on intake-created orders.
+        raise HTTPException(status_code=422, detail={"error_code": "PO_REQUIRED", "message": "customer_po is required"})
+
+    # NaN/±inf pass pydantic's float type and `<= 0` alike — every number must
+    # be finite before anything is written (ER audit fix 11).
+    for idx, line in enumerate(req.lines, start=1):
+        for field_name, value, minimum in (("quantity_lb", line.quantity_lb, "positive"),
+                                           ("quantity", line.quantity, "positive"),
+                                           ("case_size_lb", line.case_size_lb, "positive"),
+                                           ("unit_price", line.unit_price, "nonnegative")):
+            if value is None:
+                continue
+            bad = (not math.isfinite(value)) or (value <= 0 if minimum == "positive" else value < 0)
+            if bad:
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error_code": "INVALID_QUANTITY",
+                            "message": f"Line {idx}: {field_name} must be a finite number "
+                                       f"{'> 0' if minimum == 'positive' else '>= 0'}"},
+                )
+        if line.quantity_lb is None:
+            raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY",
+                                                         "message": f"Line {idx}: quantity_lb is required"})
+        # Alias-consistency is a SERVER invariant (ER audit-2 fix 3): a cases
+        # conversion may be learned only when it explains the approved pounds.
+        # case_size_lb=null with save_alias teaches only the product mapping.
+        if line.save_alias and line.case_size_lb is not None \
+                and _normalize_unit(line.unit) not in _LB_UNITS:
+            if (line.quantity is None
+                    or abs(line.quantity * line.case_size_lb - line.quantity_lb) > 0.01):
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error_code": "ALIAS_CONVERSION_MISMATCH",
+                            "message": (f"Line {idx}: save_alias would teach case_size_lb={line.case_size_lb:g}, "
+                                        f"but quantity × case_size_lb does not equal quantity_lb. "
+                                        f"Fix the conversion, or send case_size_lb=null to teach only the product mapping.")},
+                )
+        if line.save_alias and not ((line.customer_item_code or "").strip()
+                                    or (line.customer_description or "").strip()):
+            raise HTTPException(
+                status_code=422,
+                detail={"error_code": "ALIAS_KEY_REQUIRED",
+                        "message": f"Line {idx}: save_alias needs a customer_item_code or customer_description"},
+            )
+
+    created_by = caller_source_tag(request, req.created_by)
+    with get_transaction() as cur:
+        cur.execute("SELECT id, status, document_kind FROM purchase_documents WHERE id = %s FOR UPDATE",
+                    (req.document_id,))
+        doc = cur.fetchone()
+        if not doc:
+            raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
+        if (doc.get("document_kind") or "purchase") != "sales":
+            raise HTTPException(
+                status_code=409,
+                detail={"error_code": "DOCUMENT_KIND_MISMATCH",
+                        "message": f"Purchase document {req.document_id} is a '{doc.get('document_kind') or 'purchase'}' document — this endpoint approves customer POs only"},
+            )
+        if doc["status"] == "approved":
+            raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
+        if doc["status"] != "extracted":
+            raise HTTPException(
+                status_code=409,
+                detail={"error_code": "DOCUMENT_NOT_EXTRACTED",
+                        "message": f"Purchase document {req.document_id} has status '{doc['status']}' — approval requires a successful extraction"},
+            )
+
+        cur.execute("SELECT id, name, active FROM customers WHERE id = %s", (req.customer_id,))
+        customer = cur.fetchone()
+        if not customer:
+            raise HTTPException(status_code=404, detail={"error_code": "CUSTOMER_NOT_FOUND", "message": f"Customer id {req.customer_id} not found"})
+        if not customer["active"]:
+            raise HTTPException(status_code=422, detail={"error_code": "CUSTOMER_INACTIVE", "message": f"Customer '{customer['name']}' is inactive."})
+
+        # Serialize on the (customer, normalized PO) pair BEFORE the duplicate
+        # check — the per-document FOR UPDATE can't see a concurrent approval
+        # of a different document with the same PO (ER audit fix 10).
+        _lock_customer_po(cur, req.customer_id, customer_po)
+        duplicates = _dedupe_existing_sales_orders(cur, req.customer_id, customer_po)
+        if duplicates and not req.force:
+            raise HTTPException(
+                status_code=409,
+                detail={"error_code": "DUPLICATE_PO",
+                        "message": f"Customer '{customer['name']}' already has sales order(s) with PO '{customer_po}'. Pass force=true to create anyway.",
+                        "existing": duplicates},
+            )
+
+        # Prior-sales pool BEFORE the new order's own lines exist — it feeds
+        # the private-label first-sale warning (owner ruling 2: warn, never block).
+        pool = set(_so_prior_sales_pool(cur, req.customer_id))
+        warnings = []
+        core_lines = []
+        for idx, line in enumerate(req.lines, start=1):
+            cur.execute(
+                "SELECT id, name, COALESCE(label_type, 'house') AS label_type FROM products WHERE id = %s",
+                (line.product_id,),
+            )
+            prod = cur.fetchone()
+            if not prod:
+                raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {line.product_id} not found"})
+            if prod["label_type"] == "private_label" and prod["id"] not in pool:
+                warnings.append(
+                    f"⚠️ '{prod['name']}' is a private-label SKU with no prior sales to "
+                    f"{customer['name']} — double-check this is their product."
+                )
+            note = f"PO {customer_po}: {line.customer_description}"
+            if line.quantity is not None:
+                note += f" — {line.quantity:g} {line.unit or 'unit(s)'}"
+            # quantity_lb is authoritative. A cases line with its case size
+            # goes through the core as cases (no lookup fires — the weight is
+            # supplied); anything else goes through as lb so the core's
+            # case-weight auto-lookup can never overwrite the reviewed pounds.
+            if _normalize_unit(line.unit) not in _LB_UNITS \
+                    and line.case_size_lb is not None and line.quantity is not None:
+                core_line = {"quantity": line.quantity, "unit": "cases",
+                             "case_weight_lb": line.case_size_lb}
+            else:
+                core_line = {"quantity": line.quantity_lb, "unit": "lb",
+                             "case_weight_lb": None}
+            core_lines.append(dict(
+                core_line,
+                product_id=prod["id"], product_name=prod["name"],
+                quantity_lb=line.quantity_lb, unit_price=line.unit_price,
+                notes=note, notes_es=None,
+            ))
+
+        result = _create_sales_order_core(
+            cur, req.customer_id, customer["name"], req.requested_ship_date,
+            req.notes, None, core_lines,
+            order_date=req.order_date, customer_po=customer_po,
+            source_document_id=req.document_id,
+        )
+        warnings.extend(result["warnings"])
+
+        aliases_saved = 0
+        for line in req.lines:
+            if line.save_alias:
+                upsert_customer_alias(cur, req.customer_id, line.customer_item_code,
+                                      line.customer_description, line.product_id,
+                                      line.case_size_lb, created_by)
+                aliases_saved += 1
+
+        cur.execute(
+            "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
+            (req.document_id,),
+        )
+
+    logger.info(f"SO intake approve: document {req.document_id} → order {result['order_number']} "
+                f"({len(core_lines)} line(s)), {aliases_saved} alias(es)")
+    return {
+        "order_id": result["order_id"],
+        "order_number": result["order_number"],
+        "customer": customer["name"],
+        "customer_po": customer_po,
+        "total_lb": result["total_lb"],
+        "lines": result["line_results"],
+        "aliases_saved": aliases_saved,
+        "duplicate_overridden": bool(duplicates and req.force),
+        "warnings": warnings if warnings else None,
+        "message": f"Created sales order {result['order_number']} from document {req.document_id}",
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -9839,6 +10425,122 @@ MANUAL_TRANSITIONS = {
     'cancelled':      [],
 }
 
+def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_date,
+                             notes, notes_es, lines, *, order_date=None,
+                             customer_po=None, source_document_id=None):
+    """The single INSERT path for sales orders — used by both the manual
+    POST /sales/orders endpoint and the SO intake approve flow, so the two
+    can never drift (docs/designs/sales-order-intake.md). Callers resolve the
+    customer + products first; each line is a dict with product_id /
+    product_name plus the OrderLineInput fields (quantity, unit,
+    case_weight_lb, quantity_lb, unit_price, notes, notes_es). The per-line
+    logic (service items, case-weight auto-lookup, unit + low-quantity
+    warnings) is verbatim from the original handler."""
+    cur.execute(
+        """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number, status,
+                                     order_date, customer_po, source_document_id)
+           VALUES (%s, %s, %s, %s, '', 'confirmed', COALESCE(%s, CURRENT_DATE), %s, %s)
+           RETURNING id, order_number""",
+        (customer_id, requested_ship_date, notes, notes_es,
+         order_date, customer_po, source_document_id)
+    )
+    row = cur.fetchone()
+    order_id, order_number = row['id'], row['order_number']
+
+    line_results = []
+    total_lb = 0
+    warnings = []
+    for line in lines:
+        product_id, prod_name = line["product_id"], line["product_name"]
+        quantity = line.get("quantity")
+        unit = line.get("unit")
+        quantity_lb = line.get("quantity_lb")
+
+        # Detect service items (Pallets, freight, etc.) — zero weight is valid
+        cur.execute(
+            "SELECT case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id = %s",
+            (product_id,)
+        )
+        prod_row = cur.fetchone()
+        is_service = prod_row and prod_row['is_service']
+
+        if is_service:
+            # Service items get zero weight, skip case-weight logic
+            quantity_lb = quantity_lb if quantity_lb else 0
+            effective_case_weight = None
+            used_unit = unit or 'each'
+        else:
+            # Fix #2: Auto-lookup case weight from product if not provided
+            effective_case_weight = line.get("case_weight_lb")
+            used_unit = unit or 'lb'
+            if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
+                if prod_row and prod_row.get('case_size_lb'):
+                    effective_case_weight = float(prod_row['case_size_lb'])
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail={
+                            "error_code": "CASE_WEIGHT_REQUIRED",
+                            "message": f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. No default case weight is set for this product.",
+                            "input": prod_name,
+                            "suggestions": [],
+                        }
+                    )
+                # Recalculate quantity_lb with looked-up weight
+                quantity_lb = quantity * effective_case_weight
+
+            # Fix #1: Warn if unit was not explicitly provided and quantity was given
+            if quantity is not None and unit is None:
+                warnings.append(
+                    f"⚠️ '{prod_name}': No unit specified for quantity {quantity:,.0f} — "
+                    f"defaulting to lb. Did you mean cases?"
+                )
+
+        cur.execute(
+            """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes, notes_es)
+               VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+            (order_id, product_id, quantity_lb, line.get("unit_price"), line.get("notes"), line.get("notes_es"))
+        )
+        line_id = cur.fetchone()['id']
+        total_lb += quantity_lb
+
+        # Fix #3: Quantity sanity check — compare to customer's average order size
+        if not is_service:
+            cur.execute("""
+                SELECT AVG(sol.quantity_lb) as avg_qty
+                FROM sales_order_lines sol
+                JOIN sales_orders so ON so.id = sol.sales_order_id
+                WHERE so.customer_id = %s AND sol.product_id = %s
+                  AND sol.id != %s
+                  AND sol.line_status != 'cancelled'
+            """, (customer_id, product_id, line_id))
+            avg_row = cur.fetchone()
+            if avg_row and avg_row['avg_qty'] and quantity_lb < float(avg_row['avg_qty']) * 0.25:
+                warnings.append(
+                    f"⚠️ '{prod_name}': {quantity_lb:,.0f} lb is unusually low for {customer_name}. "
+                    f"Their average order is {float(avg_row['avg_qty']):,.0f} lb. Double-check the quantity."
+                )
+
+        line_results.append({
+            "line_id": line_id,
+            "product": prod_name,
+            "quantity_lb": quantity_lb,
+            "original_quantity": quantity,
+            "original_unit": used_unit,
+            "case_weight_lb": effective_case_weight,
+            "unit_price": line.get("unit_price")
+        })
+
+    logger.info(f"Created sales order {order_number} for {customer_name} with {len(line_results)} lines")
+    return {
+        "order_id": order_id,
+        "order_number": order_number,
+        "line_results": line_results,
+        "total_lb": total_lb,
+        "warnings": warnings,
+    }
+
+
 @app.post("/sales/orders")
 def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
     validate_bilingual(req.notes, req.notes_es, "notes")
@@ -9851,107 +10553,35 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
                     cur, req.customer_name, address=req.customer_address
                 )
 
-                cur.execute(
-                    """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number, status)
-                       VALUES (%s, %s, %s, %s, '', 'confirmed')
-                       RETURNING id, order_number""",
-                    (customer_id, req.requested_ship_date, req.notes, req.notes_es)
-                )
-                row = cur.fetchone()
-                order_id, order_number = row['id'], row['order_number']
-
-                line_results = []
-                total_lb = 0
-                warnings = []
+                core_lines = []
                 for line in req.lines:
                     product_id, prod_name = resolve_product_id(cur, line.product_name)
-
-                    # Detect service items (Pallets, freight, etc.) — zero weight is valid
-                    cur.execute(
-                        "SELECT case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id = %s",
-                        (product_id,)
-                    )
-                    prod_row = cur.fetchone()
-                    is_service = prod_row and prod_row['is_service']
-
-                    if is_service:
-                        # Service items get zero weight, skip case-weight logic
-                        line.quantity_lb = line.quantity_lb if line.quantity_lb else 0
-                        effective_case_weight = None
-                        used_unit = line.unit or 'each'
-                    else:
-                        # Fix #2: Auto-lookup case weight from product if not provided
-                        effective_case_weight = line.case_weight_lb
-                        used_unit = line.unit or 'lb'
-                        if used_unit in ('cases', 'bags', 'boxes') and effective_case_weight is None:
-                            if prod_row and prod_row.get('case_size_lb'):
-                                effective_case_weight = float(prod_row['case_size_lb'])
-                            else:
-                                raise HTTPException(
-                                    status_code=400,
-                                    detail={
-                                        "error_code": "CASE_WEIGHT_REQUIRED",
-                                        "message": f"case_weight_lb is required for '{prod_name}' when ordering in {used_unit}. No default case weight is set for this product.",
-                                        "input": prod_name,
-                                        "suggestions": [],
-                                    }
-                                )
-                            # Recalculate quantity_lb with looked-up weight
-                            line.quantity_lb = line.quantity * effective_case_weight
-
-                        # Fix #1: Warn if unit was not explicitly provided and quantity was given
-                        if line.quantity is not None and line.unit is None:
-                            warnings.append(
-                                f"⚠️ '{prod_name}': No unit specified for quantity {line.quantity:,.0f} — "
-                                f"defaulting to lb. Did you mean cases?"
-                            )
-
-                    cur.execute(
-                        """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes, notes_es)
-                           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
-                        (order_id, product_id, line.quantity_lb, line.unit_price, line.notes, line.notes_es)
-                    )
-                    line_id = cur.fetchone()['id']
-                    total_lb += line.quantity_lb
-
-                    # Fix #3: Quantity sanity check — compare to customer's average order size
-                    if not is_service:
-                        cur.execute("""
-                            SELECT AVG(sol.quantity_lb) as avg_qty
-                            FROM sales_order_lines sol
-                            JOIN sales_orders so ON so.id = sol.sales_order_id
-                            WHERE so.customer_id = %s AND sol.product_id = %s
-                              AND sol.id != %s
-                              AND sol.line_status != 'cancelled'
-                        """, (customer_id, product_id, line_id))
-                        avg_row = cur.fetchone()
-                        if avg_row and avg_row['avg_qty'] and line.quantity_lb < float(avg_row['avg_qty']) * 0.25:
-                            warnings.append(
-                                f"⚠️ '{prod_name}': {line.quantity_lb:,.0f} lb is unusually low for {customer_name}. "
-                                f"Their average order is {float(avg_row['avg_qty']):,.0f} lb. Double-check the quantity."
-                            )
-
-                    line_results.append({
-                        "line_id": line_id,
-                        "product": prod_name,
+                    core_lines.append({
+                        "product_id": product_id,
+                        "product_name": prod_name,
+                        "quantity": line.quantity,
+                        "unit": line.unit,
+                        "case_weight_lb": line.case_weight_lb,
                         "quantity_lb": line.quantity_lb,
-                        "original_quantity": line.quantity,
-                        "original_unit": used_unit,
-                        "case_weight_lb": effective_case_weight,
-                        "unit_price": line.unit_price
+                        "unit_price": line.unit_price,
+                        "notes": line.notes,
+                        "notes_es": line.notes_es,
                     })
 
-                logger.info(f"Created sales order {order_number} for {customer_name} with {len(line_results)} lines")
+                result = _create_sales_order_core(
+                    cur, customer_id, customer_name, req.requested_ship_date,
+                    req.notes, req.notes_es, core_lines,
+                )
                 return {
-                    "order_id": order_id,
-                    "order_number": order_number,
+                    "order_id": result["order_id"],
+                    "order_number": result["order_number"],
                     "customer": customer_name,
                     "requested_ship_date": req.requested_ship_date,
                     "status": "confirmed",
-                    "total_lb": total_lb,
-                    "lines": line_results,
-                    "warnings": warnings if warnings else None,
-                    "message": f"Order {order_number} created with {len(line_results)} line(s)"
+                    "total_lb": result["total_lb"],
+                    "lines": result["line_results"],
+                    "warnings": result["warnings"] if result["warnings"] else None,
+                    "message": f"Order {result['order_number']} created with {len(result['line_results'])} line(s)"
                 }
     except HTTPException:
         raise
@@ -10727,6 +11357,7 @@ def list_sales_orders(
             query = """
                 SELECT so.id, so.order_number, c.name AS customer,
                        so.order_date, so.requested_ship_date, so.status,
+                       so.customer_po, so.source_document_id,
                        COALESCE(sof.ready, false) AS ready,
                        sof.ready_at, sof.ready_by, sof.note AS ready_note,
                        COUNT(sol.id) AS line_count,
@@ -10804,6 +11435,8 @@ def list_sales_orders(
                     "order_date": str(r['order_date']),
                     "requested_ship_date": str(ship_date) if ship_date else None,
                     "status": r['status'],
+                    "customer_po": r['customer_po'],
+                    "source_document_id": r['source_document_id'],
                     "line_count": r['line_count'],
                     "total_lb": total,
                     "shipped_lb": shipped,

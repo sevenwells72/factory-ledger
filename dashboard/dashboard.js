@@ -2559,7 +2559,12 @@
       // state through the re-render and keep the control disabled (IMP-004).
       const readyBusy = Boolean(o.readyInFlight);
       html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><label class="check-hit"><input type="checkbox" class="order-ready-checkbox" aria-label="Factory Ready: ${escAttr(o.order_number)} — ${escAttr(o.customer)}" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></label></td>`;
-      html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
+      // Orders created from a customer PO document (SO intake) get a
+      // paperclip → signed URL, same pattern as sourced expected receipts.
+      const soDocLink = o.source_document_id
+        ? ` <button type="button" class="er-doc-link so-doc-link" data-doc-id="${o.source_document_id}" title="View the customer PO this order came from${o.customer_po ? ` (PO ${escAttr(o.customer_po)})` : ''}">&#128206;</button>`
+        : '';
+      html += `<td><span class="order-link">${escHtml(o.order_number)}</span>${soDocLink}</td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
       html += `<td class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date)}</td>`;
@@ -2589,6 +2594,23 @@
     // Bind the separate inline expand/collapse controls
     bindOrderExpandToggles(container);
     bindOrderReadyToggles(container);
+
+    // Paperclip → signed URL for the source customer PO. stopPropagation so
+    // the row click doesn't also open the order detail view.
+    container.querySelectorAll('.so-doc-link').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        btn.disabled = true;
+        try {
+          const data = await fetchSalesAPI(`/purchase-documents/${btn.dataset.docId}/url`);
+          window.open(data.url, '_blank', 'noopener');
+        } catch (err) {
+          showError('orders-error', `Could not open the source document: ${err.message}`);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
   }
 
   function renderOrderLinesContent(order) {
@@ -4112,7 +4134,7 @@
   }
 
   // A human pick renders as 'Chosen' — the Fuzzy badge never coexists with an
-  // enabled Approve (the pick sets match_source='chosen' in er-intake-logic).
+  // enabled Approve (the pick sets match_source='chosen' in intake-logic.js).
   function erMatchBadge(line) {
     const cls = { alias: 'er-match-alias', exact: 'er-match-exact', chosen: 'er-match-chosen', fuzzy: 'er-match-fuzzy', none: 'er-match-none' }[line.match_source] || 'er-match-none';
     const label = line.match_source === 'alias' ? 'Alias'
@@ -4135,7 +4157,7 @@
     const ex = intake.extraction;
     // Audit-2 fix 4b: while a match request is in flight every input and
     // picker is disabled — not just Approve. The state-level guards in
-    // er-intake-logic.js enforce the same rule for anything that slips by.
+    // intake-logic.js enforce the same rule for anything that slips by.
     const dis = intake.matching ? 'disabled' : '';
     const supMatch = intake.match.supplier;
     // Audit fix 4: the header renders from state — never from the raw
@@ -4525,6 +4547,533 @@
       clearTimeout(state.erProductTimer);
       const q = e.target.value.trim();
       state.erProductTimer = setTimeout(() => searchErProducts(q), 250);
+    });
+  }
+
+  // ── Sales-order intake: customer PO → extract → match → review → approve ──
+  // (migration 050; docs/designs/sales-order-intake.md). Intake-only V1
+  // (ruling 1: no manual create form — POST /sales/orders stays GPT-only).
+  // Mirrors the ER intake flow above; the review state machine is the shared
+  // intake-logic.js module via its so* config.
+
+  state.soIntake = null;
+  state.soCustomers = [];
+
+  function soResetIntake() {
+    state.soIntake = null;
+    const status = document.getElementById('so-extract-status');
+    status.classList.add('hidden');
+    status.innerHTML = '';
+    document.getElementById('so-file-input').value = '';
+    document.getElementById('so-review-body').classList.add('hidden');
+    document.getElementById('so-review-body').innerHTML = '';
+    document.getElementById('so-dropzone').classList.remove('hidden', 'er-dragover');
+    document.getElementById('so-modal-title').textContent = 'New Sales Order';
+    document.querySelector('.so-modal').classList.remove('er-reviewing');
+  }
+
+  async function openSoModal() {
+    soResetIntake();
+    await loadSoCustomers();
+    document.getElementById('so-modal-overlay').classList.remove('hidden');
+  }
+
+  function closeSoModal() {
+    document.getElementById('so-modal-overlay').classList.add('hidden');
+    soResetIntake();
+  }
+
+  async function loadSoCustomers() {
+    try {
+      const data = await fetchSalesAPI('/customers');
+      state.soCustomers = data.customers || [];
+    } catch (e) {
+      state.soCustomers = [];
+    }
+  }
+
+  function soExtractStatus(html) {
+    const el = document.getElementById('so-extract-status');
+    el.innerHTML = html;
+    el.classList.remove('hidden');
+  }
+
+  async function soHandleFile(file) {
+    if (!file) return;
+    let mime = (file.type || '').toLowerCase();
+    if (mime === 'image/jpg') mime = 'image/jpeg';
+    if (!ER_INTAKE_MIMES.includes(mime)) {
+      soExtractStatus(`<span class="error-msg">"${escHtml(file.name)}" is not a PNG, JPG, or PDF.</span>`);
+      return;
+    }
+    if (file.size > ER_INTAKE_MAX_BYTES) {
+      soExtractStatus(`<span class="error-msg">"${escHtml(file.name)}" is over the 15 MB limit.</span>`);
+      return;
+    }
+    soExtractStatus(`Uploading <strong>${escHtml(file.name)}</strong>… (nothing is created yet)`);
+    const form = new FormData();
+    form.append('file', file, file.name);
+    let uploaded;
+    try {
+      uploaded = await fetchSalesAPI('/sales/orders/extract', { method: 'POST', body: form, timeoutMs: ER_UPLOAD_TIMEOUT_MS });
+    } catch (e) {
+      if (FL.isStall(e)) {
+        soExtractStatus('<span class="error-msg">Upload timed out. Drop the same file again to resume.</span>');
+        return;
+      }
+      const d = (apiErrorDetail(e) || {}).detail || apiErrorDetail(e) || {};
+      soExtractStatus(`<span class="error-msg">Upload failed: ${escHtml((d.message || e.message || '').slice(0, 300))}</span>`);
+      return;
+    }
+    await soRunExtraction(uploaded.document_id, uploaded.already_seen);
+  }
+
+  async function soRunExtraction(documentId, alreadySeen) {
+    soExtractStatus(`Reading document #${documentId} with the extraction model… (can take up to ~90 seconds; nothing is created yet)`);
+    try {
+      const data = await fetchSalesAPI(`/purchase-documents/${documentId}/extract`, { method: 'POST', timeoutMs: ER_EXTRACT_TIMEOUT_MS });
+      if (alreadySeen) data.already_seen = true;
+      await soStartReview(data);
+    } catch (e) {
+      const d = (apiErrorDetail(e) || {}).detail || apiErrorDetail(e) || {};
+      soExtractStatus(
+        `<span class="error-msg">${escHtml((d.message || e.message || 'Extraction failed.').slice(0, 300))}</span>` +
+        `<button type="button" class="btn-sm so-retry-btn" data-doc-id="${documentId}">Retry extraction</button>`);
+      document.querySelector('#so-extract-status .so-retry-btn').addEventListener('click', () => soRunExtraction(documentId, alreadySeen));
+    }
+  }
+
+  async function soStartReview(extractResponse) {
+    state.soIntake = {
+      documentId: extractResponse.document_id,
+      storagePath: extractResponse.storage_path,
+      alreadySeen: !!extractResponse.already_seen,
+      extraction: extractResponse.extraction,
+      match: null,
+      lines: [],
+      customerId: null,
+      customerPo: extractResponse.extraction.po_number || '',
+      orderDate: extractResponse.extraction.document_date || '',
+      shipDate: extractResponse.extraction.requested_ship_date || '',
+      poolIds: new Set(),
+      forceKey: null,
+      matchSeq: 0,
+      matching: false,
+      matchStale: false,
+    };
+    soExtractStatus(`Extracted ${extractResponse.extraction.lines.length} line(s). Matching against the ledger…`);
+    await soRunMatch();
+  }
+
+  async function soRunMatch() {
+    const intake = state.soIntake;
+    if (!intake) return;
+    const seq = ++intake.matchSeq;
+    intake.matching = true;
+    ERIntake.lockLines(intake.lines);
+    if (intake.lines.length) renderSoReview();
+    try {
+      const reqLines = intake.lines.length
+        ? intake.lines.map(l => ({ customer_item_code: l.customer_item_code || null, description: l.vendor_description, quantity: l.quantity, unit: l.unit, unit_price: l.unit_price != null ? l.unit_price : null }))
+        : intake.extraction.lines;
+      const match = await fetchSalesAPI('/sales/orders/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extraction: {
+          ...intake.extraction,
+          po_number: (intake.customerPo || '').trim() || null,
+          lines: reqLines,
+        } }),
+      });
+      if (state.soIntake !== intake || seq !== intake.matchSeq) return; // stale response — discard
+      intake.match = match;
+      intake.customerId = match.customer.match ? match.customer.match.customer_id : null;
+      intake.poolIds = new Set(match.prior_sales_product_ids || []);
+      intake.lines = ERIntake.soMergeRematch(intake.lines, match.lines);
+      intake.matching = false;
+      intake.matchStale = false;
+      renderSoReview();
+    } catch (e) {
+      if (state.soIntake !== intake || seq !== intake.matchSeq) return;
+      intake.matching = false;
+      intake.matchStale = true;
+      intake.lines = ERIntake.applyRematchFailure(intake.lines);
+      if (intake.lines.length) {
+        renderSoReview();
+        showError('so-review-error',
+          `Matching failed: ${(e.message || '').slice(0, 300)} — line matches were reset; fix the connection and re-select the customer (or press Retry matching) before approving.`);
+      } else {
+        soExtractStatus(`<span class="error-msg">Matching failed: ${escHtml(e.message.slice(0, 300))}</span>`);
+      }
+    }
+  }
+
+  function soPriceBasisTag(unit) {
+    const basis = ERIntake.soPriceBasis(unit);
+    if (basis === 'per_case') return '<span class="er-lb-source" title="Stored as the case price">per case</span>';
+    if (basis === 'per_lb') return '<span class="er-lb-source" title="Stored as the per-lb price">per lb</span>';
+    return '<span class="er-lb-missing" title="With this unit the price basis is ambiguous, so the price will NOT be stored">basis unclear — not stored</span>';
+  }
+
+  function renderSoReview() {
+    const intake = state.soIntake;
+    const body = document.getElementById('so-review-body');
+    document.getElementById('so-dropzone').classList.add('hidden');
+    document.querySelector('.so-modal').classList.add('er-reviewing');
+    document.getElementById('so-modal-title').textContent = 'Review Customer PO';
+    document.getElementById('so-extract-status').classList.add('hidden');
+
+    const ex = intake.extraction;
+    const dis = intake.matching ? 'disabled' : '';
+    const custMatch = intake.match.customer;
+    const customerOptions = ['<option value="">— select customer —</option>']
+      .concat(state.soCustomers.map(c =>
+        `<option value="${c.id}" ${intake.customerId === c.id ? 'selected' : ''}>${escHtml(c.name)}</option>`))
+      .join('');
+    // Ruling 6: no create-customer in V1 — pick an existing one or cancel.
+    const customerHint = custMatch.match
+      ? ''
+      : `<div class="er-lb-missing">No customer matches "${escHtml(ex.customer_name)}".` +
+        (custMatch.candidates.length ? ` Close: ${custMatch.candidates.map(c => escHtml(c.name)).join(', ')}.` : '') +
+        ` Pick an existing customer (new customers are created by the office GPT).</div>`;
+
+    const dup = intake.match.duplicate_warning;
+    const dupBanner = dup ? `
+      <div class="er-dup-banner">&#9888;&#65039; Possible duplicate: this customer already has
+        ${dup.existing.map(x => `${escHtml(x.order_number)} (${escHtml(x.status)}, ${fmtWt(x.total_lb)} lb)`).join(', ')}
+        with PO "${escHtml(intake.customerPo || '')}". Approving will ask you to confirm.
+      </div>` : '';
+
+    let rows = '';
+    intake.lines.forEach((l, i) => {
+      const suggestions = (l.suggested && !l.candidates.some(c => c.product_id === l.suggested.product_id)
+        ? [l.suggested, ...l.candidates] : l.candidates).slice(0, 3);
+      // Ruling 2: a chosen private-label product with no prior sales to this
+      // customer gets an amber warning — never a block.
+      const plWarning = ERIntake.soPrivateLabelWarning(l)
+        ? '<div class="er-lb-missing" title="No prior sales of this SKU to this customer">Private label — first sale of this SKU to this customer</div>' : '';
+      const prodRow = l.chosen
+        ? `<div class="er-line-product">
+             <div class="er-line-product-name">${escHtml(l.chosen.name)}${l.chosen.odoo_code ? ` <span class="er-sku">${escHtml(l.chosen.odoo_code)}</span>` : ''}</div>
+             <button type="button" class="btn-sm so-line-change" data-i="${i}" ${dis}>Change</button>
+           </div>${plWarning}`
+        : `<div class="er-line-product">
+             <div class="er-line-picker"><input type="text" class="so-line-search" data-i="${i}" ${dis}
+               placeholder="Search products…" autocomplete="off" aria-label="Product for this line"
+               value=""><div class="er-product-results hidden" id="so-line-results-${i}"></div></div>
+           </div>` +
+          (suggestions.length ? `<div class="er-line-suggestions er-sku">Suggestions: ${suggestions.map(c =>
+             `<a href="#" class="so-line-suggest${l.suggested && l.suggested.product_id === c.product_id ? ' er-line-suggest-primary' : ''}" data-i="${i}" data-pid="${c.product_id}" data-name="${escAttr(c.name)}" data-sku="${escAttr(c.odoo_code || '')}" data-label="${escAttr(c.label_type || '')}" data-prior="${c.prior_sales === true ? '1' : c.prior_sales === false ? '0' : ''}">${escHtml(c.name)}</a>`).join(' · ')}</div>` : '');
+      const needsLb = `<span class="er-lb-missing" title="Set the pounds before approving">needs lb</span>`;
+      const srcTag = (src, title) => src && src !== 'none'
+        ? `<span class="er-lb-source" title="${title}">${erLbSourceLabel(src)}</span>` : needsLb;
+      rows += `<div class="er-line-card${l.include ? '' : ' er-line-excluded'}" data-line="${i}">
+        <div class="er-line-top">
+          <div class="er-line-vendor-desc">${l.customer_item_code ? `<span class="er-sku">${escHtml(l.customer_item_code)}</span> ` : ''}${escHtml(l.vendor_description)}</div>
+          ${erMatchBadge(l)}
+        </div>
+        ${prodRow}
+        <div class="er-line-qtyrow">
+          <div class="er-qcell er-qcell-qty">
+            <label>Qty × unit</label>
+            <div class="er-qcell-inputs">
+              <input type="number" step="any" min="0" class="so-line-qty" data-i="${i}" value="${l.quantity}" ${dis} aria-label="Quantity">
+              <span class="er-qcell-times">×</span>
+              <input type="text" class="so-line-unit" data-i="${i}" value="${escAttr(l.unit || '')}" ${dis} aria-label="Unit">
+            </div>
+            <span class="er-lb-source" title="Where quantity and unit came from">${erLbSourceLabel(l.qty_source || 'document')}</span>
+          </div>
+          <span class="er-qarrow" aria-hidden="true">→</span>
+          <div class="er-qcell">
+            <label>Case size (lb)</label>
+            <input type="number" step="any" min="0" class="so-line-lbper" data-i="${i}" value="${l.lb_per_unit != null ? l.lb_per_unit : ''}" ${dis} aria-label="Pounds per case">
+            ${srcTag(l.lb_source, 'Where this case size came from')}
+          </div>
+          <span class="er-qarrow" aria-hidden="true">→</span>
+          <div class="er-qcell">
+            <label>Order lb</label>
+            <input type="number" step="any" min="0" class="so-line-qtylb" data-i="${i}" value="${l.qty_lb != null ? l.qty_lb : ''}" ${dis} aria-label="Order pounds">
+            ${l.qty_lb != null && l.qty_lb_source ? srcTag(l.qty_lb_source, 'Where this value came from') : needsLb}
+          </div>
+          <div class="er-qcell">
+            <label>Unit price ($)</label>
+            <input type="number" step="any" min="0" class="so-line-price" data-i="${i}" value="${l.unit_price != null ? l.unit_price : ''}" ${dis} aria-label="Price per unit">
+            ${soPriceBasisTag(l.unit)}
+          </div>
+        </div>
+        <div class="er-line-foot">
+          <label class="er-line-toggle"><input type="checkbox" class="so-line-include" data-i="${i}" ${l.include ? 'checked' : ''} ${dis}> Include</label>
+          <label class="er-line-toggle${l.chosen && !intake.matching ? '' : ' er-line-toggle-off'}"
+            title="Remember this customer wording → product (and the case size, when it matches the order lb)">
+            <input type="checkbox" class="so-line-savealias" data-i="${i}"
+              ${l.save_alias ? 'checked' : ''} ${l.chosen && !intake.matching ? '' : 'disabled'}> Save alias</label>
+        </div>
+      </div>`;
+    });
+
+    const included = intake.lines.filter(l => l.include);
+    const ready = included.length > 0 && included.every(ERIntake.lineApprovable)
+      && (intake.customerPo || '').trim();
+    const totalLb = included.reduce((s, l) => s + (l.qty_lb > 0 ? l.qty_lb : 0), 0);
+    const forceArmed = intake.forceKey != null
+      && intake.forceKey === ERIntake.forceKey(intake.customerId, intake.customerPo);
+
+    body.innerHTML = `
+      <div class="er-review-doc-meta">
+        Document #${intake.documentId}${ex.document_date ? ` · dated ${escHtml(ex.document_date)}` : ''}
+        · <a href="#" id="so-review-view-doc">view file</a>
+        ${intake.alreadySeen ? ' · <strong>this exact file was uploaded before</strong>' : ''}
+      </div>
+      ${dupBanner}
+      <div class="er-review-header">
+        <div class="form-group">
+          <label for="so-review-customer">Customer</label>
+          <select id="so-review-customer" ${dis}>${customerOptions}</select>
+          ${customerHint}
+        </div>
+        <div class="form-group">
+          <label for="so-review-po">Customer PO # <span class="label-hint">(required)</span></label>
+          <input type="text" id="so-review-po" value="${escAttr(intake.customerPo || '')}" ${dis}>
+        </div>
+        <div class="form-group">
+          <label for="so-review-order-date">Order date</label>
+          <input type="date" id="so-review-order-date" value="${escAttr(intake.orderDate || '')}" ${dis}>
+        </div>
+        <div class="form-group">
+          <label for="so-review-ship-date">Ship by</label>
+          <input type="date" id="so-review-ship-date" value="${escAttr(intake.shipDate || '')}" ${dis}>
+        </div>
+      </div>
+      <div class="er-line-cards">${rows}</div>
+      <div id="so-review-error" class="error-msg hidden"></div>
+      <div class="er-review-footer">
+        <span class="er-review-totals">${included.length} of ${intake.lines.length} line(s) · ${fmtWt(totalLb)} lb total${intake.matching ? ' · matching…' : ''}${(() => {
+          const blockers = [];
+          const badLines = included.filter(l => !ERIntake.lineApprovable(l)).length;
+          if (badLines && !intake.matching) blockers.push(`${badLines} line(s) need a product or lb`);
+          if (!(intake.customerPo || '').trim() && !intake.matching) blockers.push('customer PO # required');
+          return blockers.length ? ` · <span class="er-review-blockers">${blockers.join(' · ')}</span>` : '';
+        })()}</span>
+        <span>
+          ${intake.matchStale ? '<button type="button" id="so-review-rematch" class="btn-sm">Retry matching</button>' : ''}
+          <button type="button" id="so-review-back" class="btn-sm">Start over</button>
+          <button type="button" id="so-review-approve" class="btn-refresh er-approve-btn${forceArmed ? ' er-force-armed' : ''}" ${ready && !intake.matching && !intake.matchStale ? '' : 'disabled'}>
+            ${forceArmed ? `Create anyway — duplicates exist` : `Approve — create order (${included.length} line(s))`}
+          </button>
+        </span>
+      </div>`;
+    body.classList.remove('hidden');
+    soWireReviewEvents();
+  }
+
+  function soWireReviewEvents() {
+    const intake = state.soIntake;
+    const body = document.getElementById('so-review-body');
+
+    body.querySelector('#so-review-view-doc').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const data = await fetchSalesAPI(`/purchase-documents/${intake.documentId}/url`);
+        window.open(data.url, '_blank', 'noopener');
+      } catch (err) {
+        showError('so-review-error', `Could not open the document: ${err.message}`);
+      }
+    });
+
+    body.querySelector('#so-review-customer').addEventListener('change', async (e) => {
+      const cust = state.soCustomers.find(c => c.id === Number(e.target.value));
+      if (!cust) return;
+      // Re-match under the corrected customer: aliases, the prior-sales pool
+      // and the duplicate warning all re-run. mergeRematch keeps exclusions
+      // and agreeing picks; forceKey binding disarms a stale override.
+      intake.customerId = cust.id;
+      intake.extraction.customer_name = cust.name;
+      await soRunMatch();
+    });
+
+    body.querySelector('#so-review-po').addEventListener('input', (e) => {
+      intake.customerPo = e.target.value;
+    });
+    body.querySelector('#so-review-po').addEventListener('change', () => { soRunMatch(); });
+    body.querySelector('#so-review-order-date').addEventListener('change', (e) => {
+      intake.orderDate = e.target.value;
+    });
+    body.querySelector('#so-review-ship-date').addEventListener('change', (e) => {
+      intake.shipDate = e.target.value;
+    });
+
+    const rematchBtn = body.querySelector('#so-review-rematch');
+    if (rematchBtn) rematchBtn.addEventListener('click', () => { soRunMatch(); });
+    body.querySelector('#so-review-back').addEventListener('click', () => { soResetIntake(); });
+    body.querySelector('#so-review-approve').addEventListener('click', soApprove);
+
+    body.querySelectorAll('.so-line-include').forEach(cb => cb.addEventListener('change', (e) => {
+      intake.lines[Number(e.target.dataset.i)].include = e.target.checked;
+      renderSoReview();
+    }));
+    body.querySelectorAll('.so-line-qty').forEach(inp => inp.addEventListener('change', (e) => {
+      ERIntake.applyQuantityChange(intake.lines[Number(e.target.dataset.i)], e.target.value);
+      renderSoReview();
+    }));
+    body.querySelectorAll('.so-line-unit').forEach(inp => inp.addEventListener('change', (e) => {
+      ERIntake.applyUnitChange(intake.lines[Number(e.target.dataset.i)], e.target.value);
+      renderSoReview();
+    }));
+    body.querySelectorAll('.so-line-savealias').forEach(cb => cb.addEventListener('change', (e) => {
+      ERIntake.applySaveAliasToggle(intake.lines[Number(e.target.dataset.i)], e.target.checked);
+    }));
+    body.querySelectorAll('.so-line-lbper').forEach(inp => inp.addEventListener('change', (e) => {
+      ERIntake.applyLbPerUnitChange(intake.lines[Number(e.target.dataset.i)], e.target.value);
+      renderSoReview();
+    }));
+    body.querySelectorAll('.so-line-qtylb').forEach(inp => inp.addEventListener('change', (e) => {
+      ERIntake.applyQtyLbOverride(intake.lines[Number(e.target.dataset.i)], e.target.value);
+      renderSoReview();
+    }));
+    body.querySelectorAll('.so-line-price').forEach(inp => inp.addEventListener('change', (e) => {
+      ERIntake.applyUnitPriceChange(intake.lines[Number(e.target.dataset.i)], e.target.value);
+      renderSoReview();
+    }));
+
+    function pickLineProduct(i, product) {
+      ERIntake.applyProductPick(intake.lines[i], product);
+      renderSoReview();
+    }
+
+    body.querySelectorAll('.so-line-change').forEach(btn => btn.addEventListener('click', (e) => {
+      ERIntake.clearChosen(intake.lines[Number(e.target.dataset.i)]);
+      renderSoReview();
+    }));
+    body.querySelectorAll('.so-line-suggest').forEach(a => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      pickLineProduct(Number(a.dataset.i), {
+        product_id: a.dataset.pid, name: a.dataset.name, odoo_code: a.dataset.sku,
+        label_type: a.dataset.label || null,
+        prior_sales: a.dataset.prior === '1' ? true : a.dataset.prior === '0' ? false : null,
+      });
+    }));
+    body.querySelectorAll('.so-line-search').forEach(inp => {
+      let timer;
+      inp.addEventListener('input', () => {
+        clearTimeout(timer);
+        const i = Number(inp.dataset.i);
+        const q = inp.value.trim();
+        timer = setTimeout(async () => {
+          const box = document.getElementById(`so-line-results-${i}`);
+          if (!q) { box.classList.add('hidden'); return; }
+          try {
+            const data = await fetchSalesAPI('/products/search?q=' + encodeURIComponent(q));
+            // Ruling 3: full catalog, the customer's prior-sales products
+            // first; private-label products outside the pool carry a warning.
+            const products = (data.products || [])
+              .map(p => ({ ...p, prior_sales: intake.poolIds.has(p.id) }))
+              .sort((a, b) => Number(b.prior_sales) - Number(a.prior_sales))
+              .slice(0, 8);
+            box.innerHTML = products.length
+              ? products.map(p => `<div class="er-product-option" data-pid="${p.id}" data-name="${escAttr(p.name)}" data-sku="${escAttr(p.odoo_code || '')}" data-label="${escAttr(p.label_type || '')}" data-prior="${p.prior_sales ? '1' : '0'}">${escHtml(p.name)}${p.odoo_code ? ` <span class="er-sku">${escHtml(p.odoo_code)}</span>` : ''}${p.label_type === 'private_label' && !p.prior_sales ? ' <span class="er-lb-missing" title="Private label — no prior sales to this customer">&#9888;&#65039; private label</span>' : ''}</div>`).join('')
+              : '<div class="er-product-option er-product-none">No products found</div>';
+            box.classList.remove('hidden');
+            box.querySelectorAll('.er-product-option[data-pid]').forEach(opt => {
+              opt.addEventListener('click', () => pickLineProduct(i, {
+                product_id: opt.dataset.pid, name: opt.dataset.name, odoo_code: opt.dataset.sku,
+                label_type: opt.dataset.label || null,
+                prior_sales: opt.dataset.prior === '1',
+              }));
+            });
+          } catch (err) {
+            box.innerHTML = `<div class="er-product-option er-product-none">Search failed: ${escHtml(err.message)}</div>`;
+            box.classList.remove('hidden');
+          }
+        }, 250);
+      });
+    });
+  }
+
+  async function soApprove() {
+    const intake = state.soIntake;
+    hideError('so-review-error');
+    if (intake.matching) { showError('so-review-error', 'Matching is still running — one moment.'); return; }
+    if (intake.matchStale) { showError('so-review-error', 'The last matching attempt failed — retry matching before approving.'); return; }
+    const customerId = intake.customerId;
+    if (!customerId) { showError('so-review-error', 'Pick a customer before approving.'); return; }
+    const customerPo = (intake.customerPo || '').trim();
+    if (!customerPo) { showError('so-review-error', 'The customer PO number is required.'); return; }
+    const included = intake.lines.filter(l => l.include);
+    const bad = included.find(l => !ERIntake.lineApprovable(l));
+    if (!included.length || bad) {
+      showError('so-review-error', 'Every included line needs a product and a positive order-lb value.');
+      return;
+    }
+    const force = intake.forceKey != null
+      && intake.forceKey === ERIntake.forceKey(customerId, customerPo);
+    const btn = document.getElementById('so-review-approve');
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+    try {
+      const data = await fetchSalesAPI('/sales/orders/extract/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          document_id: intake.documentId,
+          customer_id: customerId,
+          customer_po: customerPo,
+          order_date: intake.orderDate || null,
+          requested_ship_date: intake.shipDate || null,
+          force,
+          lines: included.map(ERIntake.soApproveLinePayload),
+        }),
+      });
+      closeSoModal();
+      await refreshOrders();
+      if (data.warnings && data.warnings.length) {
+        showError('orders-error', `${data.order_number} created. ${data.warnings.join(' ')}`);
+      }
+    } catch (e) {
+      const raw = apiErrorDetail(e) || {};
+      const d = raw.detail || raw;
+      if (d.error_code === 'DUPLICATE_PO') {
+        intake.forceKey = ERIntake.forceKey(customerId, customerPo);
+        renderSoReview();
+        showError('so-review-error', d.message || 'Duplicate PO — approve again to create anyway.');
+      } else {
+        showError('so-review-error', d.message || e.message);
+        btn.disabled = false;
+        btn.textContent = `Approve — create order (${included.length} line(s))`;
+      }
+    }
+  }
+
+  function initSalesOrderIntake() {
+    const zone = document.getElementById('so-dropzone');
+    const input = document.getElementById('so-file-input');
+    document.getElementById('so-new-btn').addEventListener('click', openSoModal);
+    document.getElementById('so-modal-close').addEventListener('click', closeSoModal);
+    document.getElementById('so-modal-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeSoModal();
+    });
+    document.getElementById('so-file-browse').addEventListener('click', () => input.click());
+    input.addEventListener('change', () => soHandleFile(input.files[0]));
+    ['dragover', 'dragenter'].forEach(ev => zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      zone.classList.add('er-dragover');
+    }));
+    ['dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      zone.classList.remove('er-dragover');
+    }));
+    zone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      soHandleFile(file);
+    });
+    // Clipboard paste (⌘V) while the SO modal shows its dropzone — same
+    // stamped-name upload path as the ER modal.
+    document.addEventListener('paste', (e) => {
+      if (document.getElementById('so-modal-overlay').classList.contains('hidden')) return;
+      if (zone.classList.contains('hidden')) return;
+      const img = ERIntake.clipboardImageFile(e.clipboardData && e.clipboardData.files);
+      if (!img) return;
+      e.preventDefault();
+      soHandleFile(new File([img], ERIntake.clipboardFilename(new Date(), img.type), { type: img.type }));
     });
   }
 
@@ -5337,6 +5886,7 @@
     initNotes();
     initOrders();
     initExpectedReceipts();
+    initSalesOrderIntake();
     initSupplies();
     initAttentionStrip();
     initHealthDetails();
