@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-08 15:36 — Imported Codex design audit and live recheck
+- **File(s) changed:** `docs/design/audit-2026-09-08-codex.md`, `docs/design/audit-2026-09-08-recheck.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Copied both reports verbatim on fix/design-audit-1 from origin/main; implementation is pending owner approval of the three-batch triage. No application code or assets changed.
+- **Why:** Preserve the 34 findings and follow-up evidence before approved remediation.
+
+---
+
 ## 2026-09-08 15:15 — ER-intake review screen: stacked-card layout + match/lb-source honesty (live-smoke fixes)
 - **File(s) changed:** `dashboard/er-intake-logic.js`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/test_er_intake_logic.js`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Behavior — an explicit product pick sets `match_source='chosen'` (badge "Chosen", green) so the Fuzzy badge never coexists with an enabled Approve; "Change" (and a failed re-match) restores the server verdict via new `server_match_source`/`server_confidence`; `qty_lb_source` is now only `computed`/`manual` — editing lb/unit no longer labels the untouched expected-lb field "manual"; qty/unit get a `qty_source` tag (from document / edited); lb inputs lost their "?"/"required" placeholders and show an amber "needs lb" flag when empty; footer totals name the blockers while Approve is disabled. Verified against the live smoke case ("tote of honey", Dutch Gold Honey, fuzzy 43% → Honey 11030): an untouched fuzzy line cannot enable Approve — node regression test pins the exact prod /match payload. Layout — the 8-column line table (and the 940px modal widening) replaced by one stacked card per line: vendor text + badge, product row with Change, a single qty × unit → lb/unit → expected lb row with source tags beneath, Include + Save alias footer; compact 2-column header grid; totals + Start over/Approve sticky at the panel bottom. No horizontal scrolling verified in Chrome at 500px and 380px (local uvicorn harness with faked extractor/storage; end-to-end approve exercised, check rows cleaned from the test DB). Cache-busts css v35 / logic v7 / js v52. FACTORY row 118. 35/35 node logic tests; suite 485 passed + known pre-existing test_recent_ledger failure.
