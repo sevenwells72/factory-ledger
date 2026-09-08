@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-08 12:25 — Pin-rationale comment on anthropic==0.69.0
+
+- **File(s) changed:** `requirements.txt`
+- **What changed:** Comment above the anthropic pin: 1.x vendors httpx2 requiring anyio>=4.10, conflicts with FastAPI 0.104.1 anyio<4; upgrade only together with FastAPI/anyio.
+- **Why:** Owner-requested during Phase 1 review, so the pin isn't "helpfully" bumped later.
+
+---
+
 ## 2026-09-08 12:14 — ER intake Phase 1: migration 049 + extraction.py + tests (branch feat/er-intake)
 
 - **File(s) changed:** `migrations/049_purchase_doc_intake.sql`, `extraction.py`, `tests/test_expected_receipt_extract.py`, `requirements.txt`, `tests/schema/schema.sql`

@@ -5,4 +5,5 @@ python-multipart==0.0.6
 aiofiles==23.2.1
 reportlab==4.1.0
 openpyxl==3.1.5
+# pinned — 1.x vendors httpx2 requiring anyio>=4.10, conflicts with FastAPI 0.104.1 anyio<4; upgrade only together with FastAPI/anyio.
 anthropic==0.69.0
