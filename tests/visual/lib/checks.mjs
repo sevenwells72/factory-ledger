@@ -109,7 +109,11 @@ export const CHECK_SOURCE = `
       checked: els.length,
       failures: items.length,
       failuresNotNested: items.filter(i => !i.nested).length,
-      worst: items.slice(0, 12),
+      // Every failing measurement, not the twelve worst. The cap that used to
+      // sit here dropped 2,910 of 4,968 TOUCH-003 measurements, which made any
+      // arithmetic over results.json — cluster footprints, cells-cleared,
+      // before/after counts — wrong. report.mjs already caps its own tables.
+      worst: items,
     };
   }
 
@@ -253,7 +257,9 @@ export const CHECK_SOURCE = `
       placeholderFailures: failures.filter(f => f.placeholder).length,
       failures: failures.length,
       indeterminate: indeterminate.length,
-      worst: failures.slice(0, 12),
+      // Every failing measurement — see the note in touchTargets(). The cap
+      // here dropped 1,483 of 3,418 ACCESS-008 measurements.
+      worst: failures,
     };
   }
 

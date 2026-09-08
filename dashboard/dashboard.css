@@ -11,14 +11,14 @@
   --text: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
-  --text-dimmed: #64748b;
+  --text-dimmed: #909daf;
   --primary: #3b82f6;
   --primary-hover: #60a5fa;
   --category-coconut: #60a5fa;
   --category-granola: #fbbf24;
   --category-graham: #4ade80;
   --accent: #10b981;
-  --danger: #ef4444;
+  --danger: #f16161;
   --warning: #f59e0b;
   --badge-bg: #1e3a5f;
   --badge-text: #93c5fd;
@@ -54,13 +54,13 @@
   --border: #cbd5e1;
   --text: #0f172a;
   --text-secondary: #334155;
-  --text-muted: #64748b;
-  --text-dimmed: #94a3b8;
+  --text-muted: #5b697e;
+  --text-dimmed: #5b697e;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --category-coconut: #2563eb;
-  --category-granola: #a16207;
-  --category-graham: #15803d;
+  --category-granola: #955b06;
+  --category-graham: #147839;
   --accent: #059669;
   --danger: #dc2626;
   --warning: #d97706;
@@ -2247,6 +2247,24 @@ body {
   .allocation-lot-field,
   .allocation-note-field,
   .allocation-form-actions { grid-column: 1; }
+}
+
+/* Short viewports. Every other media query in this file keys on width alone,
+   so at 200% zoom — a 720x450 CSS-px viewport — the <=768px block above fires
+   and .app-header wraps to three rows. Right for a phone held in the hand,
+   wrong for a 450px-tall window: .site-nav + .app-header + .tab-bar then
+   measure 335px of 450 (74%), and the last actionable row of six screens
+   cannot be brought clear of them at any scroll position (LAYOUT-011,
+   cluster F1 / IMP-066).
+
+   Dropping .app-header out of the sticky stack leaves nav + tab-bar at 86px
+   (19%). .tab-bar re-anchors directly under .site-nav: its default offset is
+   calc(--site-nav-h + --header-h), and --header-h is published from a
+   ResizeObserver in dashboard.js that still measures the (now static) header,
+   so the offset has to be restated here or the bar would stick 249px low. */
+@media (max-height: 600px) {
+  .app-header { position: static; }
+  .tab-bar { top: var(--site-nav-h); }
 }
 
 /* === Expected Receipts (FR-2) === */
