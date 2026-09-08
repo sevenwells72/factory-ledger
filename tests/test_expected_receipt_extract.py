@@ -507,11 +507,21 @@ def mock_storage(monkeypatch):
     calls = {"uploads": [], "downloads": [], "signed": []}
 
     calls["upload_error"] = None  # set to an exception to fail the next upload
+    calls["exists"] = set()       # object paths already in the bucket — a
+                                  # non-upsert upload onto one fails like
+                                  # Supabase's "already exists" (audit-3 8a)
 
-    def _upload(path, content, mime):
+    def _upload(path, content, mime, upsert=False):
         if calls["upload_error"] is not None:
             raise calls["upload_error"]
-        calls["uploads"].append({"path": path, "bytes": len(content), "mime": mime})
+        if path in calls["exists"] and not upsert:
+            from fastapi import HTTPException as FastHTTPException
+            raise FastHTTPException(
+                status_code=502,
+                detail={"error_code": "STORAGE_UPLOAD_FAILED",
+                        "message": 'Storage upload failed: 400 {"error":"Duplicate","message":"The resource already exists"}'})
+        calls["exists"].add(path)
+        calls["uploads"].append({"path": path, "bytes": len(content), "mime": mime, "upsert": upsert})
 
     def _download(path):
         calls["downloads"].append(path)
@@ -649,6 +659,40 @@ class TestExtractEndpoint:
         # And extraction now works on the resumed document.
         r3 = client.post(f"/purchase-documents/{row['id']}/extract")
         assert r3.status_code == 200
+
+    def test_resume_heals_when_object_already_exists(self, client, cur, mock_storage, mock_extractor):
+        """Audit-3 fix 8a: the object landed but the success response was
+        lost, so the row says upload_failed while Storage says 'already
+        exists'. Healing uploads with x-upsert and treats that as success —
+        the row heals to 'uploaded', 200, existing document_id."""
+        r1 = _post_file(client)
+        doc_id = r1.json()["document_id"]
+        # Simulate the lost response: the object is in the bucket (recorded by
+        # the mock), but the row was marked upload_failed.
+        cur.execute("UPDATE purchase_documents SET status = 'upload_failed' WHERE id = %s", (doc_id,))
+        r2 = _post_file(client)
+        assert r2.status_code == 200, r2.text
+        assert r2.json()["document_id"] == doc_id
+        assert r2.json()["status"] == "uploaded"
+        assert _doc_row(cur, doc_id)["status"] == "uploaded"
+        assert mock_storage["uploads"][-1]["upsert"] is True, "heal must send x-upsert"
+        # And the resumed document extracts normally.
+        assert client.post(f"/purchase-documents/{doc_id}/extract").status_code == 200
+
+    def test_upsert_flag_reaches_the_storage_header(self, monkeypatch):
+        """The real helper sends x-upsert: true only when asked."""
+        captured = []
+
+        def fake_post(url, headers=None, content=None, timeout=None):
+            captured.append(headers)
+            return SimpleNamespace(status_code=200, text="")
+
+        monkeypatch.setattr(main.httpx, "post", fake_post)
+        monkeypatch.setattr(main, "_storage_config", lambda: ("https://storage.test", {}))
+        main.storage_upload_purchase_document("p.png", b"x", "image/png")
+        main.storage_upload_purchase_document("p.png", b"x", "image/png", upsert=True)
+        assert captured[0]["x-upsert"] == "false"
+        assert captured[1]["x-upsert"] == "true"
 
     def test_approved_document_does_not_block_a_fresh_upload(self, client, cur, mock_storage, mock_extractor):
         first = _post_file(client).json()["document_id"]

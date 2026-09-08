@@ -5172,13 +5172,20 @@ def _storage_ensure_bucket(url: str, headers: dict) -> None:
         )
 
 
-def storage_upload_purchase_document(storage_path: str, content: bytes, mime_type: str) -> None:
-    """Upload to the private bucket; creates the bucket on first use."""
+def storage_upload_purchase_document(storage_path: str, content: bytes, mime_type: str,
+                                     upsert: bool = False) -> None:
+    """Upload to the private bucket; creates the bucket on first use.
+
+    Audit-3 fix 8a: upsert=True is used ONLY by the upload_failed heal path,
+    where the object may in fact have landed while the success response was
+    lost — Storage's "already exists" must read as success there (the caller
+    has already proven the bytes match via file_sha256). Fresh uploads keep
+    x-upsert: false: their uuid-suffixed path never legitimately exists."""
     url, headers = _storage_config()
     for attempt in (1, 2):
         resp = httpx.post(
             f"{url}/storage/v1/object/{PURCHASE_DOC_BUCKET}/{storage_path}",
-            headers={**headers, "Content-Type": mime_type, "x-upsert": "false"},
+            headers={**headers, "Content-Type": mime_type, "x-upsert": "true" if upsert else "false"},
             content=content,
             timeout=_STORAGE_TIMEOUT,
         )
@@ -5678,7 +5685,7 @@ def extract_expected_receipt_document(
     # legitimately starts a fresh document.
     with get_transaction() as cur:
         cur.execute(
-            """SELECT id, storage_path, status FROM purchase_documents
+            """SELECT id, storage_path, status, file_sha256 FROM purchase_documents
                WHERE file_sha256 = %s
                  AND status IN ('uploaded','extracted','extraction_failed','upload_failed')
                ORDER BY id DESC LIMIT 1""",
@@ -5686,10 +5693,22 @@ def extract_expected_receipt_document(
         )
         existing = cur.fetchone()
     if existing:
+        # Audit-3 fix 8a: healing overwrites the row's object (x-upsert), so
+        # the bytes-match precondition is asserted explicitly even though the
+        # dedupe SELECT above already filtered on it — unreachable by
+        # construction, never by accident.
+        if existing["file_sha256"] != sha256:
+            raise HTTPException(
+                status_code=409,
+                detail={"error_code": "SHA_MISMATCH",
+                        "message": f"Purchase document {existing['id']} does not match the uploaded file's sha256"},
+            )
         if existing["status"] == "upload_failed":
-            # No object landed last time, but we are holding the bytes again —
-            # heal the row: re-upload to its path and make it retryable.
-            storage_upload_purchase_document(existing["storage_path"], content, mime)
+            # We are holding the bytes again — heal the row: re-upload to its
+            # path and make it retryable. upsert: the object may already be
+            # there (a landed upload whose success response was lost is what
+            # marked the row upload_failed in the first place).
+            storage_upload_purchase_document(existing["storage_path"], content, mime, upsert=True)
             with get_transaction() as cur:
                 cur.execute(
                     "UPDATE purchase_documents SET status = 'uploaded' WHERE id = %s AND status = 'upload_failed'",
