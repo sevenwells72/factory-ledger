@@ -4405,6 +4405,20 @@
       const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
       erHandleFile(file);
     });
+    // Clipboard paste (⌘V) while the modal is open in create mode: a pasted
+    // PNG/JPEG screenshot goes through the same upload path as a dropped
+    // file, under a stamped name (a clipboard file is just "image.png").
+    // Text pastes into the modal's fields are untouched (no image → no-op),
+    // and the dropzone is hidden in edit mode and during review, which
+    // gates this off there too.
+    document.addEventListener('paste', (e) => {
+      if (document.getElementById('er-modal-overlay').classList.contains('hidden')) return;
+      if (zone.classList.contains('hidden')) return;
+      const img = ERIntake.clipboardImageFile(e.clipboardData && e.clipboardData.files);
+      if (!img) return;
+      e.preventDefault();
+      erHandleFile(new File([img], ERIntake.clipboardFilename(new Date(), img.type), { type: img.type }));
+    });
   }
 
   function initExpectedReceipts() {

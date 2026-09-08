@@ -231,6 +231,26 @@
     }));
   }
 
+  /* Clipboard paste support: pick the first PNG/JPEG file from a paste
+     event's clipboardData.files. Only images — text stays pasteable into the
+     modal's fields, and clipboard PDFs (rare, unreliable across browsers)
+     keep going through drop/browse. */
+  function clipboardImageFile(files) {
+    for (const f of Array.from(files || [])) {
+      if (f && (f.type === 'image/png' || f.type === 'image/jpeg')) return f;
+    }
+    return null;
+  }
+
+  /* Pasted images have no useful name ("image.png") — stamp one so the stored
+     original_filename says where and when it came from. */
+  function clipboardFilename(date, mimeType) {
+    const p = n => String(n).padStart(2, '0');
+    const stamp = `${date.getFullYear()}${p(date.getMonth() + 1)}${p(date.getDate())}`
+      + `-${p(date.getHours())}${p(date.getMinutes())}${p(date.getSeconds())}`;
+    return `clipboard-${stamp}.${mimeType === 'image/jpeg' ? 'jpg' : 'png'}`;
+  }
+
   /* Audit fix 4: the duplicate override is bound to the exact reviewed
      (supplier_id, normalized reference) pair — editing either disarms it. */
   function forceKey(supplierId, reference) {
@@ -254,6 +274,8 @@
     applyRematchFailure,
     lockLines,
     unlockLines,
+    clipboardImageFile,
+    clipboardFilename,
     forceKey,
     normalizeUnit,
     roundLb,

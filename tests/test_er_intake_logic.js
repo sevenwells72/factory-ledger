@@ -342,6 +342,28 @@ test('unlockLines re-enables edits; applyRematchFailure also unlocks', () => {
   assert.equal(reset[0].quantity, 7, 'a failed rematch must not leave lines locked');
 });
 
+// ── Clipboard paste support ────────────────────────────────────────────────
+
+test('clipboardImageFile picks the first PNG/JPEG and ignores everything else', () => {
+  const png = { type: 'image/png' };
+  const jpg = { type: 'image/jpeg' };
+  assert.equal(ERIntake.clipboardImageFile([{ type: 'text/plain' }, png, jpg]), png);
+  assert.equal(ERIntake.clipboardImageFile([jpg]), jpg);
+  assert.equal(ERIntake.clipboardImageFile([{ type: 'text/plain' }, { type: 'application/pdf' }]), null,
+    'text and clipboard PDFs are not hijacked');
+  assert.equal(ERIntake.clipboardImageFile([]), null);
+  assert.equal(ERIntake.clipboardImageFile(null), null);
+  assert.equal(ERIntake.clipboardImageFile(undefined), null);
+});
+
+test('clipboardFilename stamps clipboard-YYYYMMDD-HHMMSS with the right extension', () => {
+  const d = new Date(2026, 8, 8, 14, 55, 7); // 2026-09-08 14:55:07 local
+  assert.equal(ERIntake.clipboardFilename(d, 'image/png'), 'clipboard-20260908-145507.png');
+  assert.equal(ERIntake.clipboardFilename(d, 'image/jpeg'), 'clipboard-20260908-145507.jpg');
+  const early = new Date(2026, 0, 3, 4, 5, 6); // zero-padding on every field
+  assert.equal(ERIntake.clipboardFilename(early, 'image/png'), 'clipboard-20260103-040506.png');
+});
+
 test('forceKey binds the override to the normalized (supplier, reference) pair', () => {
   assert.equal(ERIntake.forceKey(3, ' PO-777 '), ERIntake.forceKey(3, 'po-777'));
   assert.notEqual(ERIntake.forceKey(3, 'PO-777'), ERIntake.forceKey(4, 'PO-777'));
