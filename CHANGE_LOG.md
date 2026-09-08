@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 21:05 — Bookkeeping: IMP-044 marked DONE; regression changelog row 112
+
+- **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added Status/Commit columns to the Band 2 table and marked **IMP-044 DONE** against commits `cb366e5`, `5409d02`, `4ba0b8d`, `c3e42e7`, with a Status paragraph on the IMP-044 section recording what each commit did. Recorded two things the section did not previously say: that IMP-035 (*"Stop showing raw API bodies"*) is not done and is in partial tension with the verbatim-body decision on the two chart pages, with the intended resolution; and which ERROR-010 findings are still open (native dialogs, click-drag selection on `.lot-link`/`.order-link`, the `pointer-events: none` tooltip, no copy affordance on lot codes). Added `FACTORY_LEDGER_CHANGELOG.md` row 112 with the Breaks If Reverted analysis the Regression Guard requires. Numbered 112 rather than 111 because the unmerged `fix/ux-band-0` branch already claims 111 (row-28 / row-100 renumbering precedent).
+- **Why:** CLAUDE.md Regression Guard step 4 and the audit's own bookkeeping. A commit cannot contain its own hash, so the four work commits are one per item and this one records them.
+
+---
+
 ## 2026-09-07 20:52 — supplyApiErrorMessage keeps the HTTP status prefix (ERROR-010)
 
 - **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`
