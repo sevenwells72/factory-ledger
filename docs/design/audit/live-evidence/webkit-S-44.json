@@ -1,0 +1,1025 @@
+{
+  "harnessRevision": 2,
+  "id": "S-44",
+  "name": "Expected Receipts — empty state",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:33:55.120Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-44.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#er-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Expected Receipts",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 67.234375,
+            "h": 45,
+            "x": 29,
+            "y": 654.296875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.section-hint",
+            "text": "Incoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "lines": 4,
+            "brokenWords": [],
+            "w": 264.765625,
+            "h": 72,
+            "x": 96.234375,
+            "y": 640.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "width": 364
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-44.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#er-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Expected Receipts",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 67.234375,
+            "h": 45,
+            "x": 29,
+            "y": 654.296875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.section-hint",
+            "text": "Incoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "lines": 4,
+            "brokenWords": [],
+            "w": 264.765625,
+            "h": 72,
+            "x": 96.234375,
+            "y": 640.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "width": 364
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-44.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#er-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Expected Receipts",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 106.9375,
+            "h": 45,
+            "x": 37,
+            "y": 346.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.section-hint",
+            "text": "Incoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 655.0625,
+            "h": 36,
+            "x": 143.9375,
+            "y": 351.296875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "width": 794
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-44.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#er-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Expected Receipts",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 106.9375,
+            "h": 45,
+            "x": 37,
+            "y": 346.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.section-hint",
+            "text": "Incoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 655.0625,
+            "h": 36,
+            "x": 143.9375,
+            "y": 351.296875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "width": 794
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-44.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#er-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Expected Receipts",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 99.640625,
+            "h": 45,
+            "x": 29,
+            "y": 634.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.section-hint",
+            "text": "Incoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 610.359375,
+            "h": 36,
+            "x": 128.640625,
+            "y": 639.296875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "width": 742
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-44.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#er-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Expected Receipts",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 99.640625,
+            "h": 45,
+            "x": 29,
+            "y": 634.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.section-hint",
+            "text": "Incoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 610.359375,
+            "h": 36,
+            "x": 128.640625,
+            "y": 639.296875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "width": 742
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-44.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#er-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Expected Receipts",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 133.234375,
+            "h": 22.5,
+            "x": 77,
+            "y": 347,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.section-hint",
+            "text": "Incoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 816.140625,
+            "h": 18,
+            "x": 386.859375,
+            "y": 349.25,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "width": 1158
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-44.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#er-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Expected Receipts",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 133.234375,
+            "h": 22.5,
+            "x": 77,
+            "y": 347,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.section-hint",
+            "text": "Incoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 816.140625,
+            "h": 18,
+            "x": 386.859375,
+            "y": 349.25,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.",
+            "width": 1158
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Expected Receipts\nIncoming deliveries. Remaining = expected − posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    }
+  ],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:34:03.030Z"
+}

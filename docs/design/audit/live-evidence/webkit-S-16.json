@@ -1,0 +1,1200 @@
+{
+  "harnessRevision": 2,
+  "id": "S-16",
+  "name": "Daily Entries + day/mode toolbar",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:30:05.847Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-16.png",
+      "touch": {
+        "checked": 4,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#daily-entries-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          },
+          {
+            "path": "select#daily-entries-mode",
+            "label": "By event date By entry date",
+            "w": 115,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-16.png",
+      "touch": {
+        "checked": 4,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#daily-entries-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          },
+          {
+            "path": "select#daily-entries-mode",
+            "label": "By event date By entry date",
+            "w": 115,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-16.png",
+      "touch": {
+        "checked": 4,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#daily-entries-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          },
+          {
+            "path": "select#daily-entries-mode",
+            "label": "By event date By entry date",
+            "w": 115,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Daily Entries\nDay:\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-16.png",
+      "touch": {
+        "checked": 4,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#daily-entries-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          },
+          {
+            "path": "select#daily-entries-mode",
+            "label": "By event date By entry date",
+            "w": 115,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Daily Entries\nDay:\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-16.png",
+      "touch": {
+        "checked": 4,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#daily-entries-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          },
+          {
+            "path": "select#daily-entries-mode",
+            "label": "By event date By entry date",
+            "w": 115,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-16.png",
+      "touch": {
+        "checked": 4,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#daily-entries-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          },
+          {
+            "path": "select#daily-entries-mode",
+            "label": "By event date By entry date",
+            "w": 115,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-16.png",
+      "touch": {
+        "checked": 4,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#daily-entries-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          },
+          {
+            "path": "select#daily-entries-mode",
+            "label": "By event date By entry date",
+            "w": 115,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-16.png",
+      "touch": {
+        "checked": 4,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#daily-entries-error > button.fl-stall-retry",
+            "label": "Retry",
+            "w": 58.2,
+            "h": 31.5,
+            "nested": false,
+            "tag": "button",
+            "cls": "fl-stall-retry"
+          },
+          {
+            "path": "select#daily-entries-mode",
+            "label": "By event date By entry date",
+            "w": 115,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nServer not responding after 15 seconds.Retry"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:30:13.308Z"
+}

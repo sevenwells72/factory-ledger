@@ -1,0 +1,4 @@
+# Keep reproducible dependency resolution despite the root's global ignore.
+!package-lock.json
+live/*.log
+live/probe.mjs

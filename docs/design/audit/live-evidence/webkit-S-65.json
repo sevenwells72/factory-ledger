@@ -1,0 +1,1919 @@
+{
+  "harnessRevision": 2,
+  "id": "S-65",
+  "name": "Recent lots strip",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/traceability.html",
+  "started": "2026-09-08T17:37:34.235Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-65.png",
+      "touch": {
+        "checked": 20,
+        "failures": 20,
+        "failuresNotNested": 20,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "25120",
+            "w": 55.1,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "BB083127",
+            "w": 75,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 24 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 04 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 01 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-02-CREA-002",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-24-REFR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-03-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-04-27-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-28-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-25-CBSF-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-24-STAR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-17-ABAK-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-04-NATI-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-10-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-05-05-KADO-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 96,
+        "regionText": "Recent:\n26-06-02-CREA-002\nAUG 24 2026\nSEP 04 2026\n26-07-24-REFR-001\n25120\n26-09-03-DUTC-001\n26-04-27-QUAL-001\n26-08-28-QUAL-001\n26-08-25-CBSF-001\n26-06-24-STAR-001\n26-08-17-ABAK-001\nBB083127\nSEP 03 2026\n26-09-04-NATI-001\nAUG 31 2026\nSEP 01 2026\nAUG 3"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-65.png",
+      "touch": {
+        "checked": 20,
+        "failures": 20,
+        "failuresNotNested": 20,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "25120",
+            "w": 55.1,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "BB083127",
+            "w": 75,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 24 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 04 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 01 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-02-CREA-002",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-24-REFR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-03-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-04-27-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-28-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-25-CBSF-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-24-STAR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-17-ABAK-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-04-NATI-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-10-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-05-05-KADO-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 96,
+        "regionText": "Recent:\n26-06-02-CREA-002\nAUG 24 2026\nSEP 04 2026\n26-07-24-REFR-001\n25120\n26-09-03-DUTC-001\n26-04-27-QUAL-001\n26-08-28-QUAL-001\n26-08-25-CBSF-001\n26-06-24-STAR-001\n26-08-17-ABAK-001\nBB083127\nSEP 03 2026\n26-09-04-NATI-001\nAUG 31 2026\nSEP 01 2026\nAUG 3"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-65.png",
+      "touch": {
+        "checked": 20,
+        "failures": 20,
+        "failuresNotNested": 20,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "25120",
+            "w": 55.1,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "BB083127",
+            "w": 75,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 24 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 04 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 01 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-02-CREA-002",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-24-REFR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-03-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-04-27-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-28-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-25-CBSF-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-24-STAR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-17-ABAK-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-04-NATI-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-10-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-05-05-KADO-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Recent:\n26-06-02-CREA-002\nAUG 24 2026\nSEP 04 2026\n26-07-24-REFR-001\n25120\n26-09-03-DUTC-001\n26-04-27-QUAL-001\n26-08-28-QUAL-001\n26-08-25-CBSF-001\n26-06-24-STAR-001\n26-08-17-ABAK-001\nBB083127\nSEP 03 2026\n26-09-04-NATI-001\nAUG 31 2026\nSEP 01 2026\nAUG 3"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 20
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-65.png",
+      "touch": {
+        "checked": 20,
+        "failures": 20,
+        "failuresNotNested": 20,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "25120",
+            "w": 55.1,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "BB083127",
+            "w": 75,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 24 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 04 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 01 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-02-CREA-002",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-24-REFR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-03-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-04-27-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-28-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-25-CBSF-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-24-STAR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-17-ABAK-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-04-NATI-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-10-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-05-05-KADO-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Recent:\n26-06-02-CREA-002\nAUG 24 2026\nSEP 04 2026\n26-07-24-REFR-001\n25120\n26-09-03-DUTC-001\n26-04-27-QUAL-001\n26-08-28-QUAL-001\n26-08-25-CBSF-001\n26-06-24-STAR-001\n26-08-17-ABAK-001\nBB083127\nSEP 03 2026\n26-09-04-NATI-001\nAUG 31 2026\nSEP 01 2026\nAUG 3"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 20
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-65.png",
+      "touch": {
+        "checked": 20,
+        "failures": 20,
+        "failuresNotNested": 20,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "25120",
+            "w": 55.1,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "BB083127",
+            "w": 75,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 24 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 04 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 01 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-02-CREA-002",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-24-REFR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-03-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-04-27-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-28-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-25-CBSF-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-24-STAR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-17-ABAK-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-04-NATI-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-10-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-05-05-KADO-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Recent:\n26-06-02-CREA-002\nAUG 24 2026\nSEP 04 2026\n26-07-24-REFR-001\n25120\n26-09-03-DUTC-001\n26-04-27-QUAL-001\n26-08-28-QUAL-001\n26-08-25-CBSF-001\n26-06-24-STAR-001\n26-08-17-ABAK-001\nBB083127\nSEP 03 2026\n26-09-04-NATI-001\nAUG 31 2026\nSEP 01 2026\nAUG 3"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-65.png",
+      "touch": {
+        "checked": 20,
+        "failures": 20,
+        "failuresNotNested": 20,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "25120",
+            "w": 55.1,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "BB083127",
+            "w": 75,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 24 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 04 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 01 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-02-CREA-002",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-24-REFR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-03-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-04-27-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-28-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-25-CBSF-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-24-STAR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-17-ABAK-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-04-NATI-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-10-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-05-05-KADO-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Recent:\n26-06-02-CREA-002\nAUG 24 2026\nSEP 04 2026\n26-07-24-REFR-001\n25120\n26-09-03-DUTC-001\n26-04-27-QUAL-001\n26-08-28-QUAL-001\n26-08-25-CBSF-001\n26-06-24-STAR-001\n26-08-17-ABAK-001\nBB083127\nSEP 03 2026\n26-09-04-NATI-001\nAUG 31 2026\nSEP 01 2026\nAUG 3"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-65.png",
+      "touch": {
+        "checked": 20,
+        "failures": 20,
+        "failuresNotNested": 20,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "25120",
+            "w": 55.1,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "BB083127",
+            "w": 75,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 24 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 04 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 01 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-02-CREA-002",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-24-REFR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-03-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-04-27-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-28-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-25-CBSF-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-24-STAR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-17-ABAK-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-04-NATI-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-10-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-05-05-KADO-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Recent:\n26-06-02-CREA-002\nAUG 24 2026\nSEP 04 2026\n26-07-24-REFR-001\n25120\n26-09-03-DUTC-001\n26-04-27-QUAL-001\n26-08-28-QUAL-001\n26-08-25-CBSF-001\n26-06-24-STAR-001\n26-08-17-ABAK-001\nBB083127\nSEP 03 2026\n26-09-04-NATI-001\nAUG 31 2026\nSEP 01 2026\nAUG 3"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 21
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-65.png",
+      "touch": {
+        "checked": 20,
+        "failures": 20,
+        "failuresNotNested": 20,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "25120",
+            "w": 55.1,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "BB083127",
+            "w": 75,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 24 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 04 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 01 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "AUG 31 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "SEP 03 2026",
+            "w": 94.9,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-02-CREA-002",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-24-REFR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-03-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-04-27-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-28-QUAL-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-25-CBSF-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-06-24-STAR-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-08-17-ABAK-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-09-04-NATI-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-07-10-DUTC-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          },
+          {
+            "path": "div#recentLots > span.lot-pill",
+            "label": "26-05-05-KADO-001",
+            "w": 134.6,
+            "h": 21,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-pill"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Recent:\n26-06-02-CREA-002\nAUG 24 2026\nSEP 04 2026\n26-07-24-REFR-001\n25120\n26-09-03-DUTC-001\n26-04-27-QUAL-001\n26-08-28-QUAL-001\n26-08-25-CBSF-001\n26-06-24-STAR-001\n26-08-17-ABAK-001\nBB083127\nSEP 03 2026\n26-09-04-NATI-001\nAUG 31 2026\nSEP 01 2026\nAUG 3"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 21
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:37:40.155Z"
+}

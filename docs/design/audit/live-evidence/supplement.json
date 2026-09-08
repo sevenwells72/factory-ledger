@@ -1,0 +1,576 @@
+{
+  "started": "2026-09-08T17:30:19.113Z",
+  "timezones": [
+    {
+      "timezoneId": "America/New_York",
+      "actual": "America/New_York",
+      "dates": [
+        {
+          "id": "238",
+          "date": "07/10/26\nFri"
+        },
+        {
+          "id": "257",
+          "date": "07/15/26\nWed"
+        },
+        {
+          "id": "273",
+          "date": "07/24/26\nFri"
+        },
+        {
+          "id": "296",
+          "date": "08/26/26\nWed"
+        },
+        {
+          "id": "297",
+          "date": "08/28/26\nFri"
+        },
+        {
+          "id": "298",
+          "date": "08/28/26\nFri"
+        },
+        {
+          "id": "299",
+          "date": "08/31/26\nMon"
+        },
+        {
+          "id": "302",
+          "date": "09/01/26\nTue"
+        },
+        {
+          "id": "313",
+          "date": "09/04/26\nFri"
+        },
+        {
+          "id": "308",
+          "date": "09/09/26\nWed"
+        },
+        {
+          "id": "319",
+          "date": "09/09/26\nWed"
+        },
+        {
+          "id": "325",
+          "date": "09/10/26\nThu"
+        },
+        {
+          "id": "315",
+          "date": "09/10/26\nThu"
+        },
+        {
+          "id": "321",
+          "date": "09/11/26\nFri"
+        },
+        {
+          "id": "314",
+          "date": "09/14/26\nMon"
+        },
+        {
+          "id": "309",
+          "date": "09/15/26\nTue"
+        },
+        {
+          "id": "323",
+          "date": "09/22/26\nTue"
+        },
+        {
+          "id": "322",
+          "date": "09/24/26\nThu"
+        },
+        {
+          "id": "324",
+          "date": "09/24/26\nThu"
+        },
+        {
+          "id": "316",
+          "date": "09/24/26\nThu"
+        },
+        {
+          "id": "318",
+          "date": "09/24/26\nThu"
+        },
+        {
+          "id": "326",
+          "date": "—"
+        }
+      ],
+      "screenshot": "supplement-America-New_York.png",
+      "requests": [
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/dashboard.css",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/mini-calendar.css",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/interaction.css",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/fetch-timeout.js",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/mini-calendar.js",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/pallet-calculations.js",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/dashboard.js",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/sales/orders",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/production/today-tile",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/production",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/inventory/finished-goods",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/inventory/batches",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/inventory/ingredients",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/activity/shipments",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/activity/receipts",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/activity/daily-entries",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/notes",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/sales/orders",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/audit/integrity",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/expected-receipts",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/supplies/inventory",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/expected-receipts",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/supply-requests",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/suppliers",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/lot/AUG%2021%202026",
+          "blocked": false
+        }
+      ],
+      "guards": []
+    },
+    {
+      "timezoneId": "Pacific/Kiritimati",
+      "actual": "Pacific/Kiritimati",
+      "dates": [
+        {
+          "id": "238",
+          "date": "07/10/26\nFri"
+        },
+        {
+          "id": "257",
+          "date": "07/15/26\nWed"
+        },
+        {
+          "id": "273",
+          "date": "07/24/26\nFri"
+        },
+        {
+          "id": "296",
+          "date": "08/26/26\nWed"
+        },
+        {
+          "id": "297",
+          "date": "08/28/26\nFri"
+        },
+        {
+          "id": "298",
+          "date": "08/28/26\nFri"
+        },
+        {
+          "id": "299",
+          "date": "08/31/26\nMon"
+        },
+        {
+          "id": "302",
+          "date": "09/01/26\nTue"
+        },
+        {
+          "id": "313",
+          "date": "09/04/26\nFri"
+        },
+        {
+          "id": "308",
+          "date": "09/09/26\nWed"
+        },
+        {
+          "id": "319",
+          "date": "09/09/26\nWed"
+        },
+        {
+          "id": "325",
+          "date": "09/10/26\nThu"
+        },
+        {
+          "id": "315",
+          "date": "09/10/26\nThu"
+        },
+        {
+          "id": "321",
+          "date": "09/11/26\nFri"
+        },
+        {
+          "id": "314",
+          "date": "09/14/26\nMon"
+        },
+        {
+          "id": "309",
+          "date": "09/15/26\nTue"
+        },
+        {
+          "id": "323",
+          "date": "09/22/26\nTue"
+        },
+        {
+          "id": "322",
+          "date": "09/24/26\nThu"
+        },
+        {
+          "id": "324",
+          "date": "09/24/26\nThu"
+        },
+        {
+          "id": "316",
+          "date": "09/24/26\nThu"
+        },
+        {
+          "id": "318",
+          "date": "09/24/26\nThu"
+        },
+        {
+          "id": "326",
+          "date": "—"
+        }
+      ],
+      "screenshot": "supplement-Pacific-Kiritimati.png",
+      "requests": [
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/dashboard.css",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/mini-calendar.css",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/interaction.css",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/fetch-timeout.js",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/mini-calendar.js",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/pallet-calculations.js",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "cns-factory-ledger.netlify.app",
+          "path": "/dashboard.js",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/sales/orders",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/production/today-tile",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/production",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/inventory/finished-goods",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/inventory/batches",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/inventory/ingredients",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/activity/shipments",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/activity/receipts",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/activity/daily-entries",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/dashboard/api/notes",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/audit/integrity",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/sales/orders",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/expected-receipts",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/supplies/inventory",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/expected-receipts",
+          "blocked": false
+        },
+        {
+          "method": "GET",
+          "host": "fastapi-production-b73a.up.railway.app",
+          "path": "/supply-requests",
+          "blocked": false
+        }
+      ],
+      "guards": []
+    }
+  ],
+  "forms": [
+    {
+      "tab": "notes",
+      "modal": "#note-modal-overlay",
+      "contrast": {
+        "checked": 20,
+        "placeholdersChecked": 3,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "enter": {
+        "field": "#note-title",
+        "modalStillOpen": true,
+        "textChanged": false,
+        "guarded": false
+      },
+      "rotation": {
+        "portrait": "Visual audit draft — not saved",
+        "landscape": "Visual audit draft — not saved",
+        "preserved": true
+      },
+      "screenshot": "supplement-notes-dark.png"
+    },
+    {
+      "tab": "expected",
+      "modal": "#er-modal-overlay",
+      "contrast": {
+        "checked": 17,
+        "placeholdersChecked": 4,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "enter": {
+        "field": "#er-qty",
+        "modalStillOpen": true,
+        "textChanged": false,
+        "guarded": false
+      },
+      "rotation": {
+        "portrait": "12.5",
+        "landscape": "12.5",
+        "preserved": true
+      },
+      "screenshot": "supplement-expected-dark.png"
+    },
+    {
+      "tab": "supplies",
+      "modal": "#supply-request-modal-overlay",
+      "contrast": {
+        "checked": 11,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "enter": null,
+      "rotation": null,
+      "screenshot": "supplement-supplies-dark.png"
+    }
+  ],
+  "drag": {
+    "clicks": 1,
+    "selection": "AUG 21 2026",
+    "panelOpen": true,
+    "screenshot": "supplement-drag.png"
+  },
+  "find": null,
+  "dateDifferences": [],
+  "comparedDates": 22,
+  "finished": "2026-09-08T17:30:50.755Z"
+}

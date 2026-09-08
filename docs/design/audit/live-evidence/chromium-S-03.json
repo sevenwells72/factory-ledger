@@ -1,0 +1,1188 @@
+{
+  "harnessRevision": 2,
+  "id": "S-03",
+  "name": "App header",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:28:22.608Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-03.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#global-search",
+            "id": "global-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search SKU, lot, SO, customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 37.71875,
+            "h": 27.5,
+            "x": 20,
+            "y": 122.25,
+            "font": "13px",
+            "whiteSpace": "nowrap",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "title": "Health: 80/100 — ship_missing_shipment_lines (major), lots_missing_received_at (major), lots_missing_supplier_lot_code (major), finished_goods_missing_case_size (major)",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Factory Dashboard\n‹\nAug 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nSep 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nOct 2026\nS\nM\nT\nW\nT\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 120
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "theme-toggle",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "refresh-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "global-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-03.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#global-search",
+            "id": "global-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search SKU, lot, SO, customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 37.71875,
+            "h": 27.5,
+            "x": 20,
+            "y": 122.25,
+            "font": "13px",
+            "whiteSpace": "nowrap",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "title": "Health: 80/100 — ship_missing_shipment_lines (major), lots_missing_received_at (major), lots_missing_supplier_lot_code (major), finished_goods_missing_case_size (major)",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Factory Dashboard\n‹\nAug 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nSep 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nOct 2026\nS\nM\nT\nW\nT\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 120
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "theme-toggle",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "refresh-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "global-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-03.png",
+      "touch": {
+        "checked": 6,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "input#global-search",
+            "label": "",
+            "w": 26,
+            "h": 44,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#global-search",
+            "id": "global-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search SKU, lot, SO, customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 37.71875,
+            "h": 27.5,
+            "x": 693.703125,
+            "y": 121.140625,
+            "font": "13px",
+            "whiteSpace": "nowrap",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "title": "Health: 80/100 — ship_missing_shipment_lines (major), lots_missing_received_at (major), lots_missing_supplier_lot_code (major), finished_goods_missing_case_size (major)",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Factory Dashboard\n‹\nAug 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nSep 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nOct 2026\nS\nM\nT\nW\nT\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 120
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "theme-toggle",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "refresh-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "global-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-03.png",
+      "touch": {
+        "checked": 6,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "input#global-search",
+            "label": "",
+            "w": 26,
+            "h": 44,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#global-search",
+            "id": "global-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search SKU, lot, SO, customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 37.71875,
+            "h": 27.5,
+            "x": 693.703125,
+            "y": 121.140625,
+            "font": "13px",
+            "whiteSpace": "nowrap",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "title": "Health: 80/100 — ship_missing_shipment_lines (major), lots_missing_received_at (major), lots_missing_supplier_lot_code (major), finished_goods_missing_case_size (major)",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Factory Dashboard\n‹\nAug 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nSep 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nOct 2026\nS\nM\nT\nW\nT\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 120
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "theme-toggle",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "refresh-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "global-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-03.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#global-search",
+            "id": "global-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search SKU, lot, SO, customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 37.71875,
+            "h": 27.5,
+            "x": 20,
+            "y": 122.25,
+            "font": "13px",
+            "whiteSpace": "nowrap",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "title": "Health: 80/100 — ship_missing_shipment_lines (major), lots_missing_received_at (major), lots_missing_supplier_lot_code (major), finished_goods_missing_case_size (major)",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Factory Dashboard\n‹\nAug 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nSep 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nOct 2026\nS\nM\nT\nW\nT\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 120
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "theme-toggle",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "refresh-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "global-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-03.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#global-search",
+            "id": "global-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search SKU, lot, SO, customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 37.71875,
+            "h": 27.5,
+            "x": 20,
+            "y": 122.25,
+            "font": "13px",
+            "whiteSpace": "nowrap",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "title": "Health: 80/100 — ship_missing_shipment_lines (major), lots_missing_received_at (major), lots_missing_supplier_lot_code (major), finished_goods_missing_case_size (major)",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Factory Dashboard\n‹\nAug 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nSep 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nOct 2026\nS\nM\nT\nW\nT\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 120
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "theme-toggle",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "refresh-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "global-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-03.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#global-search",
+            "id": "global-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search SKU, lot, SO, customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 37.71875,
+            "h": 27.5,
+            "x": 946.765625,
+            "y": 125.25,
+            "font": "13px",
+            "whiteSpace": "nowrap",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "title": "Health: 80/100 — ship_missing_shipment_lines (major), lots_missing_received_at (major), lots_missing_supplier_lot_code (major), finished_goods_missing_case_size (major)",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Factory Dashboard\n‹\nAug 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nSep 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nOct 2026\nS\nM\nT\nW\nT\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 121
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "theme-toggle",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "refresh-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "global-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-03.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#global-search",
+            "id": "global-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search SKU, lot, SO, customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 37.71875,
+            "h": 27.5,
+            "x": 946.765625,
+            "y": 125.25,
+            "font": "13px",
+            "whiteSpace": "nowrap",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [
+          {
+            "path": "#health-badge",
+            "text": "80",
+            "title": "Health: 80/100 — ship_missing_shipment_lines (major), lots_missing_received_at (major), lots_missing_supplier_lot_code (major), finished_goods_missing_case_size (major)",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Factory Dashboard\n‹\nAug 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nSep 2026\nS\nM\nT\nW\nT\nF\nS\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\nOct 2026\nS\nM\nT\nW\nT\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 121
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "theme-toggle",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "refresh-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "global-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:28:29.982Z"
+}

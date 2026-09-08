@@ -1,0 +1,1032 @@
+{
+  "harnessRevision": 2,
+  "id": "S-64",
+  "name": "Trace direction switch + Trace button",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/traceability.html",
+  "started": "2026-09-08T17:36:25.801Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-64.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#lotSearch",
+            "id": "lotSearch",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search by lot code, supplier lot, or product name...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [
+          {
+            "path": "span.lot-code",
+            "text": "26-06-02-CREA-002",
+            "lines": 5,
+            "brokenWords": [],
+            "w": 39,
+            "h": 75,
+            "x": 37,
+            "y": 231.796875,
+            "font": "13px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.search-item",
+            "text": "26-06-02-CREA-002\nKookies & Kreme – 25 LB"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "🔎\nSHIPPED LOTS\n26-06-02-CREA-002\nKookies & Kreme – 25 LB\nForward →\n← Backward\nTrace"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "lotSearch",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "searchDropdown",
+            "tag": "DIV",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-forward",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "btn-backward",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "traceBtn",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "lotSearch",
+            "type": "text",
+            "guarded": false,
+            "textChanged": true,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-64.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#lotSearch",
+            "id": "lotSearch",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search by lot code, supplier lot, or product name...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "🔎\nForward →\n← Backward\nTrace"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "lotSearch",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "btn-forward",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "btn-backward",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "traceBtn",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "lotSearch",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-64.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#lotSearch",
+            "id": "lotSearch",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search by lot code, supplier lot, or product name...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "🔎\nForward →\n← Backward\nTrace"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "lotSearch",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "btn-forward",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "btn-backward",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "traceBtn",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "lotSearch",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-64.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#lotSearch",
+            "id": "lotSearch",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search by lot code, supplier lot, or product name...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "🔎\nForward →\n← Backward\nTrace"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "lotSearch",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "btn-forward",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "btn-backward",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "traceBtn",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "lotSearch",
+            "type": "text",
+            "guarded": false,
+            "textChanged": true,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-64.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#lotSearch",
+            "id": "lotSearch",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search by lot code, supplier lot, or product name...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "🔎\nForward →\n← Backward\nTrace"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "lotSearch",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "btn-forward",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "btn-backward",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "traceBtn",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "lotSearch",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-64.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#lotSearch",
+            "id": "lotSearch",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search by lot code, supplier lot, or product name...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "🔎\nForward →\n← Backward\nTrace"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "lotSearch",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "btn-forward",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "btn-backward",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "traceBtn",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "lotSearch",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-64.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#lotSearch",
+            "id": "lotSearch",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search by lot code, supplier lot, or product name...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "🔎\nForward →\n← Backward\nTrace"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "lotSearch",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "btn-forward",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "btn-backward",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "traceBtn",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "lotSearch",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-64.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#lotSearch",
+            "id": "lotSearch",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Search by lot code, supplier lot, or product name...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "🔎\nForward →\n← Backward\nTrace"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "lotSearch",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "btn-forward",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "btn-backward",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "traceBtn",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "lotSearch",
+            "type": "text",
+            "guarded": false,
+            "textChanged": true,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06",
+      "status": 404
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06",
+      "status": 404
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:36:31.803Z"
+}

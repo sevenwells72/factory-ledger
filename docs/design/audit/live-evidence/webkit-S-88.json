@@ -1,0 +1,2111 @@
+{
+  "harnessRevision": 2,
+  "id": "S-88",
+  "name": "Form — Add order line",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/scheduler/seven-wells-production-board.html",
+  "started": "2026-09-08T17:46:24.000Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-88.png",
+      "touch": {
+        "checked": 7,
+        "failures": 7,
+        "failuresNotNested": 7,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#ao-save",
+            "label": "Add",
+            "w": 42.5,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "select#ao-sku",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 68,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-id",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-cust",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-qty",
+            "label": "",
+            "w": 80,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-due",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#ao-id",
+            "id": "ao-id",
+            "label": "Order ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-cust",
+            "id": "ao-cust",
+            "label": "Customer",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-sku",
+            "id": "ao-sku",
+            "label": "SKU",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-qty",
+            "id": "ao-qty",
+            "label": "Qty",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-due",
+            "id": "ao-due",
+            "label": "Due",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nOrder ID\nCustomer\nSKU\nQty\nDue\nAdd\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "btn-addorder",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "ao-id",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "ao-cust",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "ao-sku",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "ao-qty",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "ao-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-cust",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-88.png",
+      "touch": {
+        "checked": 7,
+        "failures": 7,
+        "failuresNotNested": 7,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#ao-save",
+            "label": "Add",
+            "w": 42.5,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "select#ao-sku",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 68,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-id",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-cust",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-qty",
+            "label": "",
+            "w": 80,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-due",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#ao-id",
+            "id": "ao-id",
+            "label": "Order ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-cust",
+            "id": "ao-cust",
+            "label": "Customer",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-sku",
+            "id": "ao-sku",
+            "label": "SKU",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-qty",
+            "id": "ao-qty",
+            "label": "Qty",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-due",
+            "id": "ao-due",
+            "label": "Due",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nOrder ID\nCustomer\nSKU\nQty\nDue\nAdd\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "btn-addorder",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "ao-id",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "ao-cust",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "ao-sku",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "ao-qty",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "ao-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-cust",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-88.png",
+      "touch": {
+        "checked": 7,
+        "failures": 7,
+        "failuresNotNested": 7,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#ao-save",
+            "label": "Add",
+            "w": 42.5,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "select#ao-sku",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 68,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-id",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-cust",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-qty",
+            "label": "",
+            "w": 80,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-due",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#ao-id",
+            "id": "ao-id",
+            "label": "Order ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-cust",
+            "id": "ao-cust",
+            "label": "Customer",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-sku",
+            "id": "ao-sku",
+            "label": "SKU",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-qty",
+            "id": "ao-qty",
+            "label": "Qty",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-due",
+            "id": "ao-due",
+            "label": "Due",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nOrder ID\nCustomer\nSKU\nQty\nDue\nAdd\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "btn-addorder",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "ao-id",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "ao-cust",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "ao-sku",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "ao-qty",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "ao-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-cust",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-88.png",
+      "touch": {
+        "checked": 7,
+        "failures": 7,
+        "failuresNotNested": 7,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#ao-save",
+            "label": "Add",
+            "w": 42.5,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "select#ao-sku",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 68,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-id",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-cust",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-qty",
+            "label": "",
+            "w": 80,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-due",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#ao-id",
+            "id": "ao-id",
+            "label": "Order ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-cust",
+            "id": "ao-cust",
+            "label": "Customer",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-sku",
+            "id": "ao-sku",
+            "label": "SKU",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-qty",
+            "id": "ao-qty",
+            "label": "Qty",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-due",
+            "id": "ao-due",
+            "label": "Due",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nOrder ID\nCustomer\nSKU\nQty\nDue\nAdd\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 12
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "btn-addorder",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "ao-id",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "ao-cust",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "ao-sku",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "ao-qty",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "ao-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-cust",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-88.png",
+      "touch": {
+        "checked": 7,
+        "failures": 7,
+        "failuresNotNested": 7,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#ao-save",
+            "label": "Add",
+            "w": 42.5,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "select#ao-sku",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 68,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-id",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-cust",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-qty",
+            "label": "",
+            "w": 80,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-due",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#ao-id",
+            "id": "ao-id",
+            "label": "Order ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-cust",
+            "id": "ao-cust",
+            "label": "Customer",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-sku",
+            "id": "ao-sku",
+            "label": "SKU",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-qty",
+            "id": "ao-qty",
+            "label": "Qty",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-due",
+            "id": "ao-due",
+            "label": "Due",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nOrder ID\nCustomer\nSKU\nQty\nDue\nAdd\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "btn-addorder",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "ao-id",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "ao-cust",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "ao-sku",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "ao-qty",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "ao-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-cust",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-88.png",
+      "touch": {
+        "checked": 7,
+        "failures": 7,
+        "failuresNotNested": 7,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#ao-save",
+            "label": "Add",
+            "w": 42.5,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "select#ao-sku",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 68,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-id",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-cust",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-qty",
+            "label": "",
+            "w": 80,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-due",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#ao-id",
+            "id": "ao-id",
+            "label": "Order ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-cust",
+            "id": "ao-cust",
+            "label": "Customer",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-sku",
+            "id": "ao-sku",
+            "label": "SKU",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-qty",
+            "id": "ao-qty",
+            "label": "Qty",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-due",
+            "id": "ao-due",
+            "label": "Due",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nOrder ID\nCustomer\nSKU\nQty\nDue\nAdd\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "btn-addorder",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "ao-id",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "ao-cust",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "ao-sku",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "ao-qty",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "ao-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-cust",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-88.png",
+      "touch": {
+        "checked": 7,
+        "failures": 7,
+        "failuresNotNested": 7,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#ao-save",
+            "label": "Add",
+            "w": 42.5,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "select#ao-sku",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 68,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-id",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-cust",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-qty",
+            "label": "",
+            "w": 80,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-due",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#ao-id",
+            "id": "ao-id",
+            "label": "Order ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-cust",
+            "id": "ao-cust",
+            "label": "Customer",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-sku",
+            "id": "ao-sku",
+            "label": "SKU",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-qty",
+            "id": "ao-qty",
+            "label": "Qty",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-due",
+            "id": "ao-due",
+            "label": "Due",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nOrder ID\nCustomer\nSKU\nQty\nDue\nAdd\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "btn-addorder",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "ao-id",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "ao-cust",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "ao-sku",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "ao-qty",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "ao-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-cust",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-88.png",
+      "touch": {
+        "checked": 7,
+        "failures": 7,
+        "failuresNotNested": 7,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#ao-save",
+            "label": "Add",
+            "w": 42.5,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "select#ao-sku",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 68,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-id",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-cust",
+            "label": "",
+            "w": 110,
+            "h": 17,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-qty",
+            "label": "",
+            "w": 80,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "input#ao-due",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#ao-id",
+            "id": "ao-id",
+            "label": "Order ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-cust",
+            "id": "ao-cust",
+            "label": "Customer",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-sku",
+            "id": "ao-sku",
+            "label": "SKU",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-qty",
+            "id": "ao-qty",
+            "label": "Qty",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#ao-due",
+            "id": "ao-due",
+            "label": "Due",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nOrder ID\nCustomer\nSKU\nQty\nDue\nAdd\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "btn-addorder",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "ao-id",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "ao-cust",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "ao-sku",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "ao-qty",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "ao-due",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "ao-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-cust",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "ao-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:46:33.731Z"
+}

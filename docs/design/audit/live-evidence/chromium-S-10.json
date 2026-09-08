@@ -1,0 +1,3386 @@
+{
+  "harnessRevision": 2,
+  "id": "S-10",
+  "name": "Finished Goods On-Hand — collapsible panels",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:29:09.248Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-10.png",
+      "touch": {
+        "checked": 19,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header.expanded",
+            "label": "25 LB Bulk Cases (13 SKUs) 60/pallet",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "10 LB Cases (3 SKUs) 140/pallet",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x8 OZ Retail Cases (BS Line) (4 SKUs)",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "Coconut Finished Goods (11 SKUs)",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.stock-low",
+            "text": "58 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          },
+          {
+            "path": "span.badge.stock-low",
+            "text": "40 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "25 LB Bulk Cases (13 SKUs) 60/pallet"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Chocolate Chip 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cinnamon Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cocoa Vibes 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Fruit Nut 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Crisp 25 LB (French Vanilla)\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Wheat Free 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Good Ol 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cinnamon Spice Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cocoa Crunch 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton French Vanilla 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "10 LB Cases (3 SKUs) 140/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x8 OZ Retail Cases (BS Line) (4 SKUs)"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Finished Goods (11 SKUs)"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "Finished Goods On-Hand\n25 LB Bulk Cases (13 SKUs) 60/pallet\nPRODUCT\tON HAND (LB)\tCASES\tPALLETS\nGranola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0\nGranola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7\nGranola Chocolate Chip 25 LB\t0 lb (0 × "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 73
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-10.png",
+      "touch": {
+        "checked": 19,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header.expanded",
+            "label": "25 LB Bulk Cases (13 SKUs) 60/pallet",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "10 LB Cases (3 SKUs) 140/pallet",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x8 OZ Retail Cases (BS Line) (4 SKUs)",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "Coconut Finished Goods (11 SKUs)",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.stock-low",
+            "text": "58 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          },
+          {
+            "path": "span.badge.stock-low",
+            "text": "40 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "25 LB Bulk Cases (13 SKUs) 60/pallet"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Chocolate Chip 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cinnamon Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cocoa Vibes 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Fruit Nut 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Crisp 25 LB (French Vanilla)\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Wheat Free 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Good Ol 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cinnamon Spice Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cocoa Crunch 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton French Vanilla 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "10 LB Cases (3 SKUs) 140/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x8 OZ Retail Cases (BS Line) (4 SKUs)"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Finished Goods (11 SKUs)"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "Finished Goods On-Hand\n25 LB Bulk Cases (13 SKUs) 60/pallet\nPRODUCT\tON HAND (LB)\tCASES\tPALLETS\nGranola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0\nGranola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7\nGranola Chocolate Chip 25 LB\t0 lb (0 × "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 73
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-10.png",
+      "touch": {
+        "checked": 19,
+        "failures": 19,
+        "failuresNotNested": 19,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Classic 25 LB1,450 lb (58 × 25 lb)58 …",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Honey Nut 25 LB1,000 lb (40 × 25 lb)4…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Chocolate Chip 25 LB0 lb (0 × 25 lb)0…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cinnamon Almond 25 LB0 lb (0 × 25 lb)…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cocoa Vibes 25 LB0 lb (0 × 25 lb)0 ca…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Fruit Nut 25 LB0 lb (0 × 25 lb)0 case…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Almond 25 LB0 lb (0 × 25 lb)0…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Crisp 25 LB (French Vanilla)0…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Wheat Free 25 LB0 lb (0 × 25 lb)0 cas…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Good Ol 25 LB0 lb (0 × 25 lb)0…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cinnamon Spice Almond 25 LB0 l…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cocoa Crunch 25 LB0 lb (0 × 25…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton French Vanilla 25 LB0 lb (0 × …",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header.expanded",
+            "label": "25 LB Bulk Cases (13 SKUs) 60/pallet",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "10 LB Cases (3 SKUs) 140/pallet",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/…",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pa…",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x8 OZ Retail Cases (BS Line) (4 SKUs)",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "Coconut Finished Goods (11 SKUs)",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.stock-low",
+            "text": "58 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          },
+          {
+            "path": "span.badge.stock-low",
+            "text": "40 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "25 LB Bulk Cases (13 SKUs) 60/pallet"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Chocolate Chip 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cinnamon Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cocoa Vibes 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Fruit Nut 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Crisp 25 LB (French Vanilla)\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Wheat Free 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Good Ol 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cinnamon Spice Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cocoa Crunch 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton French Vanilla 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "10 LB Cases (3 SKUs) 140/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x8 OZ Retail Cases (BS Line) (4 SKUs)"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Finished Goods (11 SKUs)"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 163,
+        "regionText": "Finished Goods On-Hand\n25 LB Bulk Cases (13 SKUs) 60/pallet\nPRODUCT\tON HAND (LB)\tCASES\tPALLETS\nGranola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0\nGranola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7\nGranola Chocolate Chip 25 LB\t0 lb (0 × "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 73
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-10.png",
+      "touch": {
+        "checked": 19,
+        "failures": 19,
+        "failuresNotNested": 19,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Classic 25 LB1,450 lb (58 × 25 lb)58 …",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Honey Nut 25 LB1,000 lb (40 × 25 lb)4…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Chocolate Chip 25 LB0 lb (0 × 25 lb)0…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cinnamon Almond 25 LB0 lb (0 × 25 lb)…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cocoa Vibes 25 LB0 lb (0 × 25 lb)0 ca…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Fruit Nut 25 LB0 lb (0 × 25 lb)0 case…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Almond 25 LB0 lb (0 × 25 lb)0…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Crisp 25 LB (French Vanilla)0…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Wheat Free 25 LB0 lb (0 × 25 lb)0 cas…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Good Ol 25 LB0 lb (0 × 25 lb)0…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cinnamon Spice Almond 25 LB0 l…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cocoa Crunch 25 LB0 lb (0 × 25…",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton French Vanilla 25 LB0 lb (0 × …",
+            "w": 802,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header.expanded",
+            "label": "25 LB Bulk Cases (13 SKUs) 60/pallet",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "10 LB Cases (3 SKUs) 140/pallet",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/…",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pa…",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x8 OZ Retail Cases (BS Line) (4 SKUs)",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "Coconut Finished Goods (11 SKUs)",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.stock-low",
+            "text": "58 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          },
+          {
+            "path": "span.badge.stock-low",
+            "text": "40 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "25 LB Bulk Cases (13 SKUs) 60/pallet"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Chocolate Chip 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cinnamon Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cocoa Vibes 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Fruit Nut 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Crisp 25 LB (French Vanilla)\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Wheat Free 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Good Ol 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cinnamon Spice Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cocoa Crunch 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton French Vanilla 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "10 LB Cases (3 SKUs) 140/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x8 OZ Retail Cases (BS Line) (4 SKUs)"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Finished Goods (11 SKUs)"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 163,
+        "regionText": "Finished Goods On-Hand\n25 LB Bulk Cases (13 SKUs) 60/pallet\nPRODUCT\tON HAND (LB)\tCASES\tPALLETS\nGranola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0\nGranola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7\nGranola Chocolate Chip 25 LB\t0 lb (0 × "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 73
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-10.png",
+      "touch": {
+        "checked": 19,
+        "failures": 19,
+        "failuresNotNested": 19,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Classic 25 LB1,450 lb (58 × 25 lb)58 …",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Honey Nut 25 LB1,000 lb (40 × 25 lb)4…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Chocolate Chip 25 LB0 lb (0 × 25 lb)0…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cinnamon Almond 25 LB0 lb (0 × 25 lb)…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cocoa Vibes 25 LB0 lb (0 × 25 lb)0 ca…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Fruit Nut 25 LB0 lb (0 × 25 lb)0 case…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Almond 25 LB0 lb (0 × 25 lb)0…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Crisp 25 LB (French Vanilla)0…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Wheat Free 25 LB0 lb (0 × 25 lb)0 cas…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Good Ol 25 LB0 lb (0 × 25 lb)0…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cinnamon Spice Almond 25 LB0 l…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cocoa Crunch 25 LB0 lb (0 × 25…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton French Vanilla 25 LB0 lb (0 × …",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header.expanded",
+            "label": "25 LB Bulk Cases (13 SKUs) 60/pallet",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "10 LB Cases (3 SKUs) 140/pallet",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/…",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pa…",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x8 OZ Retail Cases (BS Line) (4 SKUs)",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "Coconut Finished Goods (11 SKUs)",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.stock-low",
+            "text": "58 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          },
+          {
+            "path": "span.badge.stock-low",
+            "text": "40 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "25 LB Bulk Cases (13 SKUs) 60/pallet"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Chocolate Chip 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cinnamon Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cocoa Vibes 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Fruit Nut 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Crisp 25 LB (French Vanilla)\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Wheat Free 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Good Ol 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cinnamon Spice Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cocoa Crunch 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton French Vanilla 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "10 LB Cases (3 SKUs) 140/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x8 OZ Retail Cases (BS Line) (4 SKUs)"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Finished Goods (11 SKUs)"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "Finished Goods On-Hand\n25 LB Bulk Cases (13 SKUs) 60/pallet\nPRODUCT\tON HAND (LB)\tCASES\tPALLETS\nGranola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0\nGranola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7\nGranola Chocolate Chip 25 LB\t0 lb (0 × "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 73
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-10.png",
+      "touch": {
+        "checked": 19,
+        "failures": 19,
+        "failuresNotNested": 19,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Classic 25 LB1,450 lb (58 × 25 lb)58 …",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Honey Nut 25 LB1,000 lb (40 × 25 lb)4…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Chocolate Chip 25 LB0 lb (0 × 25 lb)0…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cinnamon Almond 25 LB0 lb (0 × 25 lb)…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cocoa Vibes 25 LB0 lb (0 × 25 lb)0 ca…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Fruit Nut 25 LB0 lb (0 × 25 lb)0 case…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Almond 25 LB0 lb (0 × 25 lb)0…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Crisp 25 LB (French Vanilla)0…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Wheat Free 25 LB0 lb (0 × 25 lb)0 cas…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Good Ol 25 LB0 lb (0 × 25 lb)0…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cinnamon Spice Almond 25 LB0 l…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cocoa Crunch 25 LB0 lb (0 × 25…",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton French Vanilla 25 LB0 lb (0 × …",
+            "w": 742,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header.expanded",
+            "label": "25 LB Bulk Cases (13 SKUs) 60/pallet",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "10 LB Cases (3 SKUs) 140/pallet",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/…",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pa…",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x8 OZ Retail Cases (BS Line) (4 SKUs)",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "Coconut Finished Goods (11 SKUs)",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.stock-low",
+            "text": "58 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          },
+          {
+            "path": "span.badge.stock-low",
+            "text": "40 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "25 LB Bulk Cases (13 SKUs) 60/pallet"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Chocolate Chip 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cinnamon Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cocoa Vibes 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Fruit Nut 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Crisp 25 LB (French Vanilla)\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Wheat Free 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Good Ol 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cinnamon Spice Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cocoa Crunch 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton French Vanilla 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "10 LB Cases (3 SKUs) 140/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x8 OZ Retail Cases (BS Line) (4 SKUs)"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Finished Goods (11 SKUs)"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "Finished Goods On-Hand\n25 LB Bulk Cases (13 SKUs) 60/pallet\nPRODUCT\tON HAND (LB)\tCASES\tPALLETS\nGranola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0\nGranola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7\nGranola Chocolate Chip 25 LB\t0 lb (0 × "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 73
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-10.png",
+      "touch": {
+        "checked": 19,
+        "failures": 19,
+        "failuresNotNested": 19,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Classic 25 LB1,450 lb (58 × 25 lb)58 …",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Honey Nut 25 LB1,000 lb (40 × 25 lb)4…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Chocolate Chip 25 LB0 lb (0 × 25 lb)0…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cinnamon Almond 25 LB0 lb (0 × 25 lb)…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cocoa Vibes 25 LB0 lb (0 × 25 lb)0 ca…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Fruit Nut 25 LB0 lb (0 × 25 lb)0 case…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Almond 25 LB0 lb (0 × 25 lb)0…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Crisp 25 LB (French Vanilla)0…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Wheat Free 25 LB0 lb (0 × 25 lb)0 cas…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Good Ol 25 LB0 lb (0 × 25 lb)0…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cinnamon Spice Almond 25 LB0 l…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cocoa Crunch 25 LB0 lb (0 × 25…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton French Vanilla 25 LB0 lb (0 × …",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header.expanded",
+            "label": "25 LB Bulk Cases (13 SKUs) 60/pallet",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "10 LB Cases (3 SKUs) 140/pallet",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/…",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pa…",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x8 OZ Retail Cases (BS Line) (4 SKUs)",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "Coconut Finished Goods (11 SKUs)",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.stock-low",
+            "text": "58 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          },
+          {
+            "path": "span.badge.stock-low",
+            "text": "40 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(146, 64, 14)",
+            "bg": "rgb(254, 243, 199)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "rgb(254, 226, 226)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "25 LB Bulk Cases (13 SKUs) 60/pallet"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Chocolate Chip 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cinnamon Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cocoa Vibes 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Fruit Nut 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Crisp 25 LB (French Vanilla)\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Wheat Free 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Good Ol 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cinnamon Spice Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cocoa Crunch 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton French Vanilla 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "10 LB Cases (3 SKUs) 140/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x8 OZ Retail Cases (BS Line) (4 SKUs)"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Finished Goods (11 SKUs)"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "Finished Goods On-Hand\n25 LB Bulk Cases (13 SKUs) 60/pallet\nPRODUCT\tON HAND (LB)\tCASES\tPALLETS\nGranola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0\nGranola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7\nGranola Chocolate Chip 25 LB\t0 lb (0 × "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 73
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-10.png",
+      "touch": {
+        "checked": 19,
+        "failures": 19,
+        "failuresNotNested": 19,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Classic 25 LB1,450 lb (58 × 25 lb)58 …",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Honey Nut 25 LB1,000 lb (40 × 25 lb)4…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Chocolate Chip 25 LB0 lb (0 × 25 lb)0…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cinnamon Almond 25 LB0 lb (0 × 25 lb)…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Cocoa Vibes 25 LB0 lb (0 × 25 lb)0 ca…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Fruit Nut 25 LB0 lb (0 × 25 lb)0 case…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Almond 25 LB0 lb (0 × 25 lb)0…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Vanilla Crisp 25 LB (French Vanilla)0…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Wheat Free 25 LB0 lb (0 × 25 lb)0 cas…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Good Ol 25 LB0 lb (0 × 25 lb)0…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cinnamon Spice Almond 25 LB0 l…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton Cocoa Crunch 25 LB0 lb (0 × 25…",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Granola Setton French Vanilla 25 LB0 lb (0 × …",
+            "w": 1158,
+            "h": 38.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header.expanded",
+            "label": "25 LB Bulk Cases (13 SKUs) 60/pallet",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "10 LB Cases (3 SKUs) 140/pallet",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/…",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pa…",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "6x8 OZ Retail Cases (BS Line) (4 SKUs)",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#finished-goods-panels > div.collapsible-header",
+            "label": "Coconut Finished Goods (11 SKUs)",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.stock-low",
+            "text": "58 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          },
+          {
+            "path": "span.badge.stock-low",
+            "text": "40 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(251, 191, 36)",
+            "bg": "rgb(120, 53, 15)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          },
+          {
+            "path": "span.badge.stock-critical",
+            "text": "0 cases",
+            "title": "",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "rgb(127, 29, 29)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "25 LB Bulk Cases (13 SKUs) 60/pallet"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Chocolate Chip 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cinnamon Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Cocoa Vibes 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Fruit Nut 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Vanilla Crisp 25 LB (French Vanilla)\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Wheat Free 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Good Ol 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cinnamon Spice Almond 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton Cocoa Crunch 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Granola Setton French Vanilla 25 LB\t0 lb (0 × 25 lb)\t0 cases\t0.0"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "10 LB Cases (3 SKUs) 140/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "12x10 OZ Retail Cases (SS Line) (5 SKUs) 115/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x7 OZ Retail Cases (BS Line) (4 SKUs) 144/pallet"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "6x8 OZ Retail Cases (BS Line) (4 SKUs)"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Finished Goods (11 SKUs)"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "Finished Goods On-Hand\n25 LB Bulk Cases (13 SKUs) 60/pallet\nPRODUCT\tON HAND (LB)\tCASES\tPALLETS\nGranola Classic 25 LB\t1,450 lb (58 × 25 lb)\t58 cases\t1.0\nGranola Honey Nut 25 LB\t1,000 lb (40 × 25 lb)\t40 cases\t0.7\nGranola Chocolate Chip 25 LB\t0 lb (0 × "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 73
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:29:16.776Z"
+}

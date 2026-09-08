@@ -1,0 +1,769 @@
+{
+  "harnessRevision": 2,
+  "id": "S-58",
+  "name": "Material-flow Sankey chart + legend",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/sankey.html",
+  "started": "2026-09-08T17:36:43.859Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-58.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Ingredients",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Production Lines",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customers",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 866,
+        "regionText": "Ingredients\nProduction Lines\nFinished Goods\nCustomers\nINGREDIENTS\nPRODUCTION LINES\nFINISHED GOODS\nCUSTOMERS\nOther Ingredients (13,329 lb)\nGranola Baking (87,561 lb)\nCoconut Macaroon Desiccated (4,046 lb)\nHoney (4,017 lb)\nOat Bran (2,234 lb)\nOats (53,"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 30
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 7
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-58.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Ingredients",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Production Lines",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customers",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 866,
+        "regionText": "Ingredients\nProduction Lines\nFinished Goods\nCustomers\nINGREDIENTS\nPRODUCTION LINES\nFINISHED GOODS\nCUSTOMERS\nOther Ingredients (13,329 lb)\nGranola Baking (87,561 lb)\nCoconut Macaroon Desiccated (4,046 lb)\nHoney (4,017 lb)\nOat Bran (2,234 lb)\nOats (53,"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 37
+          }
+        ],
+        "passes": []
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-58.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Ingredients",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Production Lines",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customers",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Ingredients\nProduction Lines\nFinished Goods\nCustomers\nINGREDIENTS\nPRODUCTION LINES\nFINISHED GOODS\nCUSTOMERS\nOther Ingredients (13,329 lb)\nGranola Baking (87,561 lb)\nCoconut Macaroon Desiccated (4,046 lb)\nHoney (4,017 lb)\nOat Bran (2,234 lb)\nOats (53,"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 29
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-58.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Ingredients",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Production Lines",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customers",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Ingredients\nProduction Lines\nFinished Goods\nCustomers\nINGREDIENTS\nPRODUCTION LINES\nFINISHED GOODS\nCUSTOMERS\nOther Ingredients (13,329 lb)\nGranola Baking (87,561 lb)\nCoconut Macaroon Desiccated (4,046 lb)\nHoney (4,017 lb)\nOat Bran (2,234 lb)\nOats (53,"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 37
+          }
+        ],
+        "passes": []
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-58.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Ingredients",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Production Lines",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customers",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Ingredients\nProduction Lines\nFinished Goods\nCustomers\nINGREDIENTS\nPRODUCTION LINES\nFINISHED GOODS\nCUSTOMERS\nOther Ingredients (13,329 lb)\nGranola Baking (87,561 lb)\nCoconut Macaroon Desiccated (4,046 lb)\nHoney (4,017 lb)\nOat Bran (2,234 lb)\nOats (53,"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 29
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-58.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Ingredients",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Production Lines",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customers",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Ingredients\nProduction Lines\nFinished Goods\nCustomers\nINGREDIENTS\nPRODUCTION LINES\nFINISHED GOODS\nCUSTOMERS\nOther Ingredients (13,329 lb)\nGranola Baking (87,561 lb)\nCoconut Macaroon Desiccated (4,046 lb)\nHoney (4,017 lb)\nOat Bran (2,234 lb)\nOats (53,"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 37
+          }
+        ],
+        "passes": []
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-58.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Ingredients",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Production Lines",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customers",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Ingredients\nProduction Lines\nFinished Goods\nCustomers\nINGREDIENTS\nPRODUCTION LINES\nFINISHED GOODS\nCUSTOMERS\nOther Ingredients (13,329 lb)\nGranola Baking (87,561 lb)\nCoconut Macaroon Desiccated (4,046 lb)\nHoney (4,017 lb)\nOat Bran (2,234 lb)\nOats (53,"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 29
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-58.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Ingredients",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Production Lines",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customers",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Ingredients\nProduction Lines\nFinished Goods\nCustomers\nINGREDIENTS\nPRODUCTION LINES\nFINISHED GOODS\nCUSTOMERS\nOther Ingredients (13,329 lb)\nGranola Baking (87,561 lb)\nCoconut Macaroon Desiccated (4,046 lb)\nHoney (4,017 lb)\nOat Bran (2,234 lb)\nOats (53,"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 37
+          }
+        ],
+        "passes": []
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:36:49.651Z"
+}

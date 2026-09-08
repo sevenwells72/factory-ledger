@@ -1,0 +1,434 @@
+{
+  "harnessRevision": 2,
+  "id": "S-71",
+  "name": "Print audit report view",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/traceability.html",
+  "started": "2026-09-08T17:37:07.807Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(255, 255, 255)",
+        "light": "rgb(255, 255, 255)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-71.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 85,
+        "regionText": "Forward Trace (Ingredient → Batches → Customers)\nTraced: Sep 8, 2026, 1:37 PM ET\nStart: 26-06-02-CREA-002\nProduct: Kookies & Kreme – 25 LB\nTYPE\tLOT / NAME\tPRODUCT\tQUANTITY\tLINK\tDETAIL\nSupplier\tCreative Foods\tBOL: 605192\t-\t✓ Confirmed\t2026-06-02 09:47"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 20
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(255, 255, 255)",
+        "light": "rgb(255, 255, 255)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-71.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 85,
+        "regionText": "Forward Trace (Ingredient → Batches → Customers)\nTraced: Sep 8, 2026, 1:37 PM ET\nStart: 26-06-02-CREA-002\nProduct: Kookies & Kreme – 25 LB\nTYPE\tLOT / NAME\tPRODUCT\tQUANTITY\tLINK\tDETAIL\nSupplier\tCreative Foods\tBOL: 605192\t-\t✓ Confirmed\t2026-06-02 09:47"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 20
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(255, 255, 255)",
+        "light": "rgb(255, 255, 255)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-71.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Forward Trace (Ingredient → Batches → Customers)\nTraced: Sep 8, 2026, 1:37 PM ET\nStart: 26-06-02-CREA-002\nProduct: Kookies & Kreme – 25 LB\nTYPE\tLOT / NAME\tPRODUCT\tQUANTITY\tLINK\tDETAIL\nSupplier\tCreative Foods\tBOL: 605192\t-\t✓ Confirmed\t2026-06-02 09:47"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 22
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(255, 255, 255)",
+        "light": "rgb(255, 255, 255)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-71.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Forward Trace (Ingredient → Batches → Customers)\nTraced: Sep 8, 2026, 1:37 PM ET\nStart: 26-06-02-CREA-002\nProduct: Kookies & Kreme – 25 LB\nTYPE\tLOT / NAME\tPRODUCT\tQUANTITY\tLINK\tDETAIL\nSupplier\tCreative Foods\tBOL: 605192\t-\t✓ Confirmed\t2026-06-02 09:47"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 22
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(255, 255, 255)",
+        "light": "rgb(255, 255, 255)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-71.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Forward Trace (Ingredient → Batches → Customers)\nTraced: Sep 8, 2026, 1:37 PM ET\nStart: 26-06-02-CREA-002\nProduct: Kookies & Kreme – 25 LB\nTYPE\tLOT / NAME\tPRODUCT\tQUANTITY\tLINK\tDETAIL\nSupplier\tCreative Foods\tBOL: 605192\t-\t✓ Confirmed\t2026-06-02 09:47"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 22
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(255, 255, 255)",
+        "light": "rgb(255, 255, 255)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-71.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Forward Trace (Ingredient → Batches → Customers)\nTraced: Sep 8, 2026, 1:37 PM ET\nStart: 26-06-02-CREA-002\nProduct: Kookies & Kreme – 25 LB\nTYPE\tLOT / NAME\tPRODUCT\tQUANTITY\tLINK\tDETAIL\nSupplier\tCreative Foods\tBOL: 605192\t-\t✓ Confirmed\t2026-06-02 09:47"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 22
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(255, 255, 255)",
+        "light": "rgb(255, 255, 255)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-71.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Forward Trace (Ingredient → Batches → Customers)\nTraced: Sep 8, 2026, 1:37 PM ET\nStart: 26-06-02-CREA-002\nProduct: Kookies & Kreme – 25 LB\nTYPE\tLOT / NAME\tPRODUCT\tQUANTITY\tLINK\tDETAIL\nSupplier\tCreative Foods\tBOL: 605192\t-\t✓ Confirmed\t2026-06-02 09:47"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 22
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(255, 255, 255)",
+        "light": "rgb(255, 255, 255)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-71.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Forward Trace (Ingredient → Batches → Customers)\nTraced: Sep 8, 2026, 1:37 PM ET\nStart: 26-06-02-CREA-002\nProduct: Kookies & Kreme – 25 LB\nTYPE\tLOT / NAME\tPRODUCT\tQUANTITY\tLINK\tDETAIL\nSupplier\tCreative Foods\tBOL: 605192\t-\t✓ Confirmed\t2026-06-02 09:47"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 22
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/trace/ingredient/26-06-02-CREA-002",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:37:14.408Z"
+}

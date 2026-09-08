@@ -1,0 +1,520 @@
+{
+  "harnessRevision": 2,
+  "id": "S-46",
+  "name": "Supplies page header + Request Supply",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:47:19.355Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-46.png",
+      "touch": {
+        "checked": 1,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "p.section-hint",
+            "text": "Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 259.875,
+            "h": 36,
+            "x": 12,
+            "y": 427.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplies\n\nIngredients, packaging, and consumables with FIFO lot detail and low-stock alerts.\n\nRequest Supply"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-46.png",
+      "touch": {
+        "checked": 1,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "p.section-hint",
+            "text": "Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 259.875,
+            "h": 36,
+            "x": 12,
+            "y": 427.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplies\n\nIngredients, packaging, and consumables with FIFO lot detail and low-stock alerts.\n\nRequest Supply"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-46.png",
+      "touch": {
+        "checked": 1,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "p.section-hint",
+            "text": "Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 465.671875,
+            "h": 18,
+            "x": 20,
+            "y": 143.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 172,
+        "regionText": "Supplies\n\nIngredients, packaging, and consumables with FIFO lot detail and low-stock alerts.\n\nRequest Supply"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-46.png",
+      "touch": {
+        "checked": 1,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "p.section-hint",
+            "text": "Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 465.671875,
+            "h": 18,
+            "x": 20,
+            "y": 143.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 172,
+        "regionText": "Supplies\n\nIngredients, packaging, and consumables with FIFO lot detail and low-stock alerts.\n\nRequest Supply"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-46.png",
+      "touch": {
+        "checked": 1,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "p.section-hint",
+            "text": "Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 465.671875,
+            "h": 18,
+            "x": 12,
+            "y": 421.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplies\n\nIngredients, packaging, and consumables with FIFO lot detail and low-stock alerts.\n\nRequest Supply"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-46.png",
+      "touch": {
+        "checked": 1,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "p.section-hint",
+            "text": "Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 465.671875,
+            "h": 18,
+            "x": 12,
+            "y": 421.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplies\n\nIngredients, packaging, and consumables with FIFO lot detail and low-stock alerts.\n\nRequest Supply"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-46.png",
+      "touch": {
+        "checked": 1,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "p.section-hint",
+            "text": "Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 465.671875,
+            "h": 18,
+            "x": 56,
+            "y": 277,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplies\n\nIngredients, packaging, and consumables with FIFO lot detail and low-stock alerts.\n\nRequest Supply"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-46.png",
+      "touch": {
+        "checked": 1,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "p.section-hint",
+            "text": "Ingredients, packaging, and consumables with FIFO lot detail and low-stock alerts.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 465.671875,
+            "h": 18,
+            "x": 56,
+            "y": 277,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplies\n\nIngredients, packaging, and consumables with FIFO lot detail and low-stock alerts.\n\nRequest Supply"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:47:28.970Z"
+}

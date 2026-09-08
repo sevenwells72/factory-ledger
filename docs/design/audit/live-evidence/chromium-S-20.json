@@ -1,0 +1,5868 @@
+{
+  "harnessRevision": 2,
+  "id": "S-20",
+  "name": "Notes list (cards)",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:42:20.366Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-20.png",
+      "touch": {
+        "checked": 39,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#notes-list > div.note-card.priority-high > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card.priority-high > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card.priority-high > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Check coconut flake moisture levels\nTODO\nHIGH\nproduct: BS Coconut Flake\nCreated: 2026-02-19 01:35 PM ET\n✎\n✕\nBatch granola inventory cleanup adjustments - June 8, 2026\nNOTE\nOn June 8, 2026, batch granola inventory was cleaned up based on Arturo's phys"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 26
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 65
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "24",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "25",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "26",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "27",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "28",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "29",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "30",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "31",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "32",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "33",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "34",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "35",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "36",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "37",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "38",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-20.png",
+      "touch": {
+        "checked": 39,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#notes-list > div.note-card.priority-high > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card.priority-high > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card.priority-high > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Check coconut flake moisture levels\nTODO\nHIGH\nproduct: BS Coconut Flake\nCreated: 2026-02-19 01:35 PM ET\n✎\n✕\nBatch granola inventory cleanup adjustments - June 8, 2026\nNOTE\nOn June 8, 2026, batch granola inventory was cleaned up based on Arturo's phys"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 26
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 65
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "24",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "25",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "26",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "27",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "28",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "29",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "30",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "31",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "32",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "33",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "34",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "35",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "36",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "37",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "38",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-20.png",
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#notes-list > div.note-card.priority-high > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Check coconut flake moisture levels\nTODO\nHIGH\nproduct: BS Coconut Flake\nCreated: 2026-02-19 01:35 PM ET\n✎\n✕\nBatch granola inventory cleanup adjustments - June 8, 2026\nNOTE\nOn June 8, 2026, batch granola inventory was cleaned up based on Arturo's phys"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 65
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "24",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "25",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "26",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "27",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "28",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "29",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "30",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "31",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "32",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "33",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "34",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "35",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "36",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "37",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "38",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-20.png",
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#notes-list > div.note-card.priority-high > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Check coconut flake moisture levels\nTODO\nHIGH\nproduct: BS Coconut Flake\nCreated: 2026-02-19 01:35 PM ET\n✎\n✕\nBatch granola inventory cleanup adjustments - June 8, 2026\nNOTE\nOn June 8, 2026, batch granola inventory was cleaned up based on Arturo's phys"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 65
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "24",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "25",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "26",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "27",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "28",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "29",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "30",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "31",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "32",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "33",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "34",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "35",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "36",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "37",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "38",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-20.png",
+      "touch": {
+        "checked": 39,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#notes-list > div.note-card.priority-high > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card.priority-high > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card.priority-high > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Check coconut flake moisture levels\nTODO\nHIGH\nproduct: BS Coconut Flake\nCreated: 2026-02-19 01:35 PM ET\n✎\n✕\nBatch granola inventory cleanup adjustments - June 8, 2026\nNOTE\nOn June 8, 2026, batch granola inventory was cleaned up based on Arturo's phys"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 27
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 64
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "24",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "25",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "26",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "27",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "28",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "29",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "30",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "31",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "32",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "33",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "34",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "35",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "36",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "37",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "38",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-20.png",
+      "touch": {
+        "checked": 39,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#notes-list > div.note-card.priority-high > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card.priority-high > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card.priority-high > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.edit",
+            "label": "✎",
+            "boxW": 22.7,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          },
+          {
+            "path": "div#notes-list > div.note-card > div.note-actions > button.note-action-btn.delete",
+            "label": "✕",
+            "boxW": 22.4,
+            "boxH": 21,
+            "w": 44,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Check coconut flake moisture levels\nTODO\nHIGH\nproduct: BS Coconut Flake\nCreated: 2026-02-19 01:35 PM ET\n✎\n✕\nBatch granola inventory cleanup adjustments - June 8, 2026\nNOTE\nOn June 8, 2026, batch granola inventory was cleaned up based on Arturo's phys"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 27
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 64
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "24",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "25",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "26",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "27",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "28",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "29",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "30",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "31",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "32",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "33",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "34",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "35",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "36",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "37",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "38",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-20.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#notes-list > div.note-card.priority-high > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Check coconut flake moisture levels\nTODO\nHIGH\nproduct: BS Coconut Flake\nCreated: 2026-02-19 01:35 PM ET\n✎\n✕\nBatch granola inventory cleanup adjustments - June 8, 2026\nNOTE\nOn June 8, 2026, batch granola inventory was cleaned up based on Arturo's phys"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 65
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "24",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "25",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "26",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "27",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "28",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "29",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "30",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "31",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "32",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "33",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "34",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "35",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "36",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "37",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "38",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-20.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#notes-list > div.note-card.priority-high > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#notes-list > div.note-card > label.check-hit > input.note-checkbox",
+            "label": "Mark done",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 44,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.note-checkbox",
+            "id": "",
+            "label": "Mark done",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Check coconut flake moisture levels\nTODO\nHIGH\nproduct: BS Coconut Flake\nCreated: 2026-02-19 01:35 PM ET\n✎\n✕\nBatch granola inventory cleanup adjustments - June 8, 2026\nNOTE\nOn June 8, 2026, batch granola inventory was cleaned up based on Arturo's phys"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 65
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "24",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "25",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "26",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "27",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "28",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "29",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "30",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "31",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "32",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "33",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "34",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "35",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "36",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "37",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "38",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/index.html",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/interaction.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/fetch-timeout.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/pallet-calculations.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/production/today-tile",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/production",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/finished-goods",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/batches",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/ingredients",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/shipments",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/daily-entries",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/notes",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/audit/integrity",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supplies/inventory",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supply-requests",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/index.html",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/interaction.css",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.css",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.css",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.js",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/pallet-calculations.js",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/fetch-timeout.js",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.js",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/production/today-tile",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/production",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/finished-goods",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/batches",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/ingredients",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/shipments",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/receipts",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/daily-entries",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/notes",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/audit/integrity",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supplies/inventory",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supply-requests",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:42:39.280Z"
+}

@@ -1,0 +1,313 @@
+{
+  "harnessRevision": 2,
+  "id": "S-35",
+  "name": "Dialog — Order status change confirmation",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:32:37.235Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": "Status confirmation requires saving a status change; prohibited.",
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-35.png"
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": "Status confirmation requires saving a status change; prohibited.",
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-35.png"
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": "Status confirmation requires saving a status change; prohibited.",
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-35.png"
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": "Status confirmation requires saving a status change; prohibited.",
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-35.png"
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": "Status confirmation requires saving a status change; prohibited.",
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-35.png"
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": "Status confirmation requires saving a status change; prohibited.",
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-35.png"
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": "Status confirmation requires saving a status change; prohibited.",
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-35.png"
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": "Status confirmation requires saving a status change; prohibited.",
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-35.png"
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    }
+  ],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:32:40.969Z"
+}

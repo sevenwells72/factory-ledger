@@ -1,0 +1,760 @@
+{
+  "harnessRevision": 2,
+  "id": "S-77",
+  "name": "Left panel — Finished goods on hand",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/scheduler/seven-wells-production-board.html",
+  "started": "2026-09-08T17:47:12.693Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-77.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#fgadd",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 346,
+            "h": 19,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#fgadd",
+            "id": "fgadd",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "Deducted from demand before scheduling (earliest-due orders first).\nSKU\tON HAND\t\n+ add SKU…\n10001 — Coconut Sweetened Flake CNS 10 LB\n10002 — Coconut Sweetened Medium CNS 10 LB\n10006 — Coconut Sweetened Fancy CNS 10 LB\n10007 — Coconut Sweetened Fancy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "fgadd",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-77.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#fgadd",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 346,
+            "h": 19,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#fgadd",
+            "id": "fgadd",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "Deducted from demand before scheduling (earliest-due orders first).\nSKU\tON HAND\t\n+ add SKU…\n10001 — Coconut Sweetened Flake CNS 10 LB\n10002 — Coconut Sweetened Medium CNS 10 LB\n10006 — Coconut Sweetened Fancy CNS 10 LB\n10007 — Coconut Sweetened Fancy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "fgadd",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-77.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#fgadd",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 346,
+            "h": 19,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#fgadd",
+            "id": "fgadd",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Deducted from demand before scheduling (earliest-due orders first).\nSKU\tON HAND\t\n+ add SKU…\n10001 — Coconut Sweetened Flake CNS 10 LB\n10002 — Coconut Sweetened Medium CNS 10 LB\n10006 — Coconut Sweetened Fancy CNS 10 LB\n10007 — Coconut Sweetened Fancy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "fgadd",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-77.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#fgadd",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 346,
+            "h": 19,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#fgadd",
+            "id": "fgadd",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Deducted from demand before scheduling (earliest-due orders first).\nSKU\tON HAND\t\n+ add SKU…\n10001 — Coconut Sweetened Flake CNS 10 LB\n10002 — Coconut Sweetened Medium CNS 10 LB\n10006 — Coconut Sweetened Fancy CNS 10 LB\n10007 — Coconut Sweetened Fancy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "fgadd",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-77.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#fgadd",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 346,
+            "h": 19,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#fgadd",
+            "id": "fgadd",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Deducted from demand before scheduling (earliest-due orders first).\nSKU\tON HAND\t\n+ add SKU…\n10001 — Coconut Sweetened Flake CNS 10 LB\n10002 — Coconut Sweetened Medium CNS 10 LB\n10006 — Coconut Sweetened Fancy CNS 10 LB\n10007 — Coconut Sweetened Fancy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "fgadd",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-77.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#fgadd",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 346,
+            "h": 19,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#fgadd",
+            "id": "fgadd",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Deducted from demand before scheduling (earliest-due orders first).\nSKU\tON HAND\t\n+ add SKU…\n10001 — Coconut Sweetened Flake CNS 10 LB\n10002 — Coconut Sweetened Medium CNS 10 LB\n10006 — Coconut Sweetened Fancy CNS 10 LB\n10007 — Coconut Sweetened Fancy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "fgadd",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-77.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#fgadd",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 346,
+            "h": 19,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#fgadd",
+            "id": "fgadd",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Deducted from demand before scheduling (earliest-due orders first).\nSKU\tON HAND\t\n+ add SKU…\n10001 — Coconut Sweetened Flake CNS 10 LB\n10002 — Coconut Sweetened Medium CNS 10 LB\n10006 — Coconut Sweetened Fancy CNS 10 LB\n10007 — Coconut Sweetened Fancy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "fgadd",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-77.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#fgadd",
+            "label": "+ add SKU…10001 — Coconut Sweetened Flake CNS…",
+            "w": 346,
+            "h": 19,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#fgadd",
+            "id": "fgadd",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Deducted from demand before scheduling (earliest-due orders first).\nSKU\tON HAND\t\n+ add SKU…\n10001 — Coconut Sweetened Flake CNS 10 LB\n10002 — Coconut Sweetened Medium CNS 10 LB\n10006 — Coconut Sweetened Fancy CNS 10 LB\n10007 — Coconut Sweetened Fancy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "fgadd",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:47:19.785Z"
+}

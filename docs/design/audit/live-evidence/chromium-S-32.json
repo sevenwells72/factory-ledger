@@ -1,0 +1,2007 @@
+{
+  "harnessRevision": 2,
+  "id": "S-32",
+  "name": "Order Detail — per-line inventory expander",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:32:05.550Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-32.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "tr > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SO-260629-003\nConfirmed\nBlue Stripes\nOrder Date: 06/29/26\nShip By: 07/10/26\nEdit Order\nBLOCKED\nComputed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.\n0 lb allocated\n10,368 lb shortage\nStock shortage"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 53
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-32.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "tr > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SO-260629-003\nConfirmed\nBlue Stripes\nOrder Date: 06/29/26\nShip By: 07/10/26\nEdit Order\nBLOCKED\nComputed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.\n0 lb allocated\n10,368 lb shortage\nStock shortage"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 53
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-32.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "tr > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "SO-260629-003\nConfirmed\nBlue Stripes\nOrder Date: 06/29/26\nShip By: 07/10/26\nEdit Order\nBLOCKEDComputed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.\n0 lb allocated\n10,368 lb shortage\nStock shortage\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 65
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-32.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "tr > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "SO-260629-003\nConfirmed\nBlue Stripes\nOrder Date: 06/29/26\nShip By: 07/10/26\nEdit Order\nBLOCKEDComputed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.\n0 lb allocated\n10,368 lb shortage\nStock shortage\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 65
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-32.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "tr > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SO-260629-003\nConfirmed\nBlue Stripes\nOrder Date: 06/29/26\nShip By: 07/10/26\nEdit Order\nBLOCKED\nComputed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.\n0 lb allocated\n10,368 lb shortage\nStock shortage"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 61
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-32.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "tr > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SO-260629-003\nConfirmed\nBlue Stripes\nOrder Date: 06/29/26\nShip By: 07/10/26\nEdit Order\nBLOCKED\nComputed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.\n0 lb allocated\n10,368 lb shortage\nStock shortage"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 61
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-32.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "tr > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SO-260629-003\nConfirmed\nBlue Stripes\nOrder Date: 06/29/26\nShip By: 07/10/26\nEdit Order\nBLOCKEDComputed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.\n0 lb allocated\n10,368 lb shortage\nStock shortage\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 70
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-32.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "tr > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SO-260629-003\nConfirmed\nBlue Stripes\nOrder Date: 06/29/26\nShip By: 07/10/26\nEdit Order\nBLOCKEDComputed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.\n0 lb allocated\n10,368 lb shortage\nStock shortage\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 70
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/finished-goods",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/finished-goods",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:32:17.796Z"
+}

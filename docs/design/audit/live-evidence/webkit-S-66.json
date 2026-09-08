@@ -1,0 +1,920 @@
+{
+  "harnessRevision": 2,
+  "id": "S-66",
+  "name": "Trace legend",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/traceability.html",
+  "started": "2026-09-08T17:37:40.156Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-66.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Supplier",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Ingredient Lot",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Batch",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customer",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Data Gap",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Confirmed",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Legacy",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 110,
+        "regionText": "Supplier\nIngredient Lot\nBatch\nFinished Goods\nCustomer\nData Gap\nConfirmed\nLegacy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-66.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Supplier",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Ingredient Lot",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Batch",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customer",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Data Gap",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Confirmed",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Legacy",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 110,
+        "regionText": "Supplier\nIngredient Lot\nBatch\nFinished Goods\nCustomer\nData Gap\nConfirmed\nLegacy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-66.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Supplier",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Ingredient Lot",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Batch",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customer",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Data Gap",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Confirmed",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Legacy",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplier\nIngredient Lot\nBatch\nFinished Goods\nCustomer\nData Gap\nConfirmed\nLegacy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-66.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Supplier",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Ingredient Lot",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Batch",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customer",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Data Gap",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Confirmed",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Legacy",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplier\nIngredient Lot\nBatch\nFinished Goods\nCustomer\nData Gap\nConfirmed\nLegacy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-66.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Supplier",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Ingredient Lot",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Batch",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customer",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Data Gap",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Confirmed",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Legacy",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplier\nIngredient Lot\nBatch\nFinished Goods\nCustomer\nData Gap\nConfirmed\nLegacy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-66.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Supplier",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Ingredient Lot",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Batch",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customer",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Data Gap",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Confirmed",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Legacy",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplier\nIngredient Lot\nBatch\nFinished Goods\nCustomer\nData Gap\nConfirmed\nLegacy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-66.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Supplier",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Ingredient Lot",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Batch",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customer",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Data Gap",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Confirmed",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Legacy",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplier\nIngredient Lot\nBatch\nFinished Goods\nCustomer\nData Gap\nConfirmed\nLegacy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-66.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "div.legend-item",
+            "text": "Supplier",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Ingredient Lot",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Batch",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Finished Goods",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Customer",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Data Gap",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Confirmed",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "path": "div.legend-item",
+            "text": "Legacy",
+            "title": "",
+            "aria": null,
+            "color": "rgb(148, 163, 184)",
+            "bg": "rgba(0, 0, 0, 0)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Supplier\nIngredient Lot\nBatch\nFinished Goods\nCustomer\nData Gap\nConfirmed\nLegacy"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:37:45.881Z"
+}

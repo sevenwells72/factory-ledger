@@ -1,0 +1,2562 @@
+{
+  "harnessRevision": 2,
+  "id": "S-22",
+  "name": "Dialog — Note create/edit modal",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:30:37.280Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-22.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 51.1,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 59,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 77.7,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Note",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "To-Do",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Reminder",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-title",
+            "id": "note-title",
+            "label": "Title",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "What needs to be done?",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-body",
+            "id": "note-body",
+            "label": "Details (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Additional details...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-priority",
+            "id": "note-priority",
+            "label": "Priority",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-due",
+            "id": "note-due",
+            "label": "Due Date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-type",
+            "id": "note-entity-type",
+            "label": "Pin to (optional)",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-id",
+            "id": "note-entity-id",
+            "label": "Entity Name / ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "e.g. Granola Classic 25 LB",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Item\n×\nCategory\nNote\nTo-Do\nReminder\nTitle\nDetails (optional)\nPriority\nLow\nNormal\nHigh\nDue Date (optional)\nPin to (optional)\nNone\nProduct\nLot\nCustomer\nSupplier\nEntity Name / ID\nSave\nCancel"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 23
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          },
+          {
+            "key": "3",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          }
+        ],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "note-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "note-title",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "note-body",
+            "tag": "TEXTAREA",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "note-priority",
+            "tag": "SELECT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-entity-type",
+            "tag": "SELECT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "note-entity-id",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "note-save-btn",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "note-cancel-btn",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "note-title",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-body",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          },
+          {
+            "id": "note-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-entity-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-22.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 51.1,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 59,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 77.7,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Note",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "To-Do",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Reminder",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-title",
+            "id": "note-title",
+            "label": "Title",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "What needs to be done?",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-body",
+            "id": "note-body",
+            "label": "Details (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Additional details...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-priority",
+            "id": "note-priority",
+            "label": "Priority",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-due",
+            "id": "note-due",
+            "label": "Due Date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-type",
+            "id": "note-entity-type",
+            "label": "Pin to (optional)",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-id",
+            "id": "note-entity-id",
+            "label": "Entity Name / ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "e.g. Granola Classic 25 LB",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Item\n×\nCategory\nNote\nTo-Do\nReminder\nTitle\nDetails (optional)\nPriority\nLow\nNormal\nHigh\nDue Date (optional)\nPin to (optional)\nNone\nProduct\nLot\nCustomer\nSupplier\nEntity Name / ID\nSave\nCancel"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 23
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          },
+          {
+            "key": "3",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          }
+        ],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "note-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "note-title",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "note-body",
+            "tag": "TEXTAREA",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "note-priority",
+            "tag": "SELECT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-entity-type",
+            "tag": "SELECT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "note-entity-id",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "note-save-btn",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "note-cancel-btn",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "note-title",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-body",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          },
+          {
+            "id": "note-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-entity-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-22.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 51.1,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 59,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 77.7,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Note",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "To-Do",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Reminder",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-title",
+            "id": "note-title",
+            "label": "Title",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "What needs to be done?",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-body",
+            "id": "note-body",
+            "label": "Details (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Additional details...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-priority",
+            "id": "note-priority",
+            "label": "Priority",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-due",
+            "id": "note-due",
+            "label": "Due Date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-type",
+            "id": "note-entity-type",
+            "label": "Pin to (optional)",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-id",
+            "id": "note-entity-id",
+            "label": "Entity Name / ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "e.g. Granola Classic 25 LB",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "New Item\n×\nCategory\nNote\nTo-Do\nReminder\nTitle\nDetails (optional)\nPriority\nLow\nNormal\nHigh\nDue Date (optional)\nPin to (optional)\nNone\nProduct\nLot\nCustomer\nSupplier\nEntity Name / ID\nSave\nCancel"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          },
+          {
+            "key": "3",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          }
+        ],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "note-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "note-title",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "note-body",
+            "tag": "TEXTAREA",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "note-priority",
+            "tag": "SELECT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-entity-type",
+            "tag": "SELECT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "note-entity-id",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "note-save-btn",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "note-cancel-btn",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "note-title",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-body",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          },
+          {
+            "id": "note-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-entity-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-22.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 51.1,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 59,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 77.7,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Note",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "To-Do",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Reminder",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-title",
+            "id": "note-title",
+            "label": "Title",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "What needs to be done?",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-body",
+            "id": "note-body",
+            "label": "Details (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Additional details...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-priority",
+            "id": "note-priority",
+            "label": "Priority",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-due",
+            "id": "note-due",
+            "label": "Due Date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-type",
+            "id": "note-entity-type",
+            "label": "Pin to (optional)",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-id",
+            "id": "note-entity-id",
+            "label": "Entity Name / ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "e.g. Granola Classic 25 LB",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "New Item\n×\nCategory\nNote\nTo-Do\nReminder\nTitle\nDetails (optional)\nPriority\nLow\nNormal\nHigh\nDue Date (optional)\nPin to (optional)\nNone\nProduct\nLot\nCustomer\nSupplier\nEntity Name / ID\nSave\nCancel"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          },
+          {
+            "key": "3",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          }
+        ],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "note-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "note-title",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "note-body",
+            "tag": "TEXTAREA",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "note-priority",
+            "tag": "SELECT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-entity-type",
+            "tag": "SELECT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "note-entity-id",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "note-save-btn",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "note-cancel-btn",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "note-title",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-body",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          },
+          {
+            "id": "note-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-entity-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-22.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 51.1,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 59,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 77.7,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Note",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "To-Do",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Reminder",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-title",
+            "id": "note-title",
+            "label": "Title",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "What needs to be done?",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-body",
+            "id": "note-body",
+            "label": "Details (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Additional details...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-priority",
+            "id": "note-priority",
+            "label": "Priority",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-due",
+            "id": "note-due",
+            "label": "Due Date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-type",
+            "id": "note-entity-type",
+            "label": "Pin to (optional)",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-id",
+            "id": "note-entity-id",
+            "label": "Entity Name / ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "e.g. Granola Classic 25 LB",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Item\n×\nCategory\nNote\nTo-Do\nReminder\nTitle\nDetails (optional)\nPriority\nLow\nNormal\nHigh\nDue Date (optional)\nPin to (optional)\nNone\nProduct\nLot\nCustomer\nSupplier\nEntity Name / ID\nSave\nCancel"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 23
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          },
+          {
+            "key": "3",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          }
+        ],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "note-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "note-title",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "note-body",
+            "tag": "TEXTAREA",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "note-priority",
+            "tag": "SELECT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-entity-type",
+            "tag": "SELECT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "note-entity-id",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "note-save-btn",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "note-cancel-btn",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "note-title",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-body",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          },
+          {
+            "id": "note-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-entity-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-22.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 51.1,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 59,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 77.7,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Note",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "To-Do",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Reminder",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-title",
+            "id": "note-title",
+            "label": "Title",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "What needs to be done?",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-body",
+            "id": "note-body",
+            "label": "Details (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Additional details...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-priority",
+            "id": "note-priority",
+            "label": "Priority",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-due",
+            "id": "note-due",
+            "label": "Due Date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-type",
+            "id": "note-entity-type",
+            "label": "Pin to (optional)",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-id",
+            "id": "note-entity-id",
+            "label": "Entity Name / ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "e.g. Granola Classic 25 LB",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Item\n×\nCategory\nNote\nTo-Do\nReminder\nTitle\nDetails (optional)\nPriority\nLow\nNormal\nHigh\nDue Date (optional)\nPin to (optional)\nNone\nProduct\nLot\nCustomer\nSupplier\nEntity Name / ID\nSave\nCancel"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 23
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          },
+          {
+            "key": "3",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          }
+        ],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "note-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "note-title",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "note-body",
+            "tag": "TEXTAREA",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "note-priority",
+            "tag": "SELECT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-entity-type",
+            "tag": "SELECT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "note-entity-id",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "note-save-btn",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "note-cancel-btn",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "note-title",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-body",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          },
+          {
+            "id": "note-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-entity-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-22.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 51.1,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 59,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 77.7,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Note",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "To-Do",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Reminder",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-title",
+            "id": "note-title",
+            "label": "Title",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "What needs to be done?",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-body",
+            "id": "note-body",
+            "label": "Details (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Additional details...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-priority",
+            "id": "note-priority",
+            "label": "Priority",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-due",
+            "id": "note-due",
+            "label": "Due Date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-type",
+            "id": "note-entity-type",
+            "label": "Pin to (optional)",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-id",
+            "id": "note-entity-id",
+            "label": "Entity Name / ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "e.g. Granola Classic 25 LB",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Item\n×\nCategory\nNote\nTo-Do\nReminder\nTitle\nDetails (optional)\nPriority\nLow\nNormal\nHigh\nDue Date (optional)\nPin to (optional)\nNone\nProduct\nLot\nCustomer\nSupplier\nEntity Name / ID\nSave\nCancel"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 23
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          },
+          {
+            "key": "3",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          }
+        ],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "note-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "note-title",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "note-body",
+            "tag": "TEXTAREA",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "note-priority",
+            "tag": "SELECT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-entity-type",
+            "tag": "SELECT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "note-entity-id",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "note-save-btn",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "note-cancel-btn",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "note-title",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-body",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          },
+          {
+            "id": "note-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-entity-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-22.png",
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 51.1,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 59,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "div#note-cat-group > label > input",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 77.7,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Note",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "To-Do",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Reminder",
+            "type": "radio",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-title",
+            "id": "note-title",
+            "label": "Title",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "What needs to be done?",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-body",
+            "id": "note-body",
+            "label": "Details (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Additional details...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-priority",
+            "id": "note-priority",
+            "label": "Priority",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-due",
+            "id": "note-due",
+            "label": "Due Date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-type",
+            "id": "note-entity-type",
+            "label": "Pin to (optional)",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#note-entity-id",
+            "id": "note-entity-id",
+            "label": "Entity Name / ID",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "e.g. Granola Classic 25 LB",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Item\n×\nCategory\nNote\nTo-Do\nReminder\nTitle\nDetails (optional)\nPriority\nLow\nNormal\nHigh\nDue Date (optional)\nPin to (optional)\nNone\nProduct\nLot\nCustomer\nSupplier\nEntity Name / ID\nSave\nCancel"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 23
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          },
+          {
+            "key": "3",
+            "id": "",
+            "tag": "INPUT",
+            "type": "radio",
+            "tab": 0
+          }
+        ],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "note-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "note-title",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "note-body",
+            "tag": "TEXTAREA",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "note-priority",
+            "tag": "SELECT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-due",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "note-entity-type",
+            "tag": "SELECT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "note-entity-id",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "note-save-btn",
+            "tag": "BUTTON",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "note-cancel-btn",
+            "tag": "BUTTON",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "note-title",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-body",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          },
+          {
+            "id": "note-due",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "note-entity-id",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:30:46.659Z"
+}

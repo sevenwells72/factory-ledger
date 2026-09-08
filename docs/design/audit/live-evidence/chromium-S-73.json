@@ -1,0 +1,624 @@
+{
+  "harnessRevision": 2,
+  "id": "S-73",
+  "name": "Topbar actions",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/scheduler/seven-wells-production-board.html",
+  "started": "2026-09-08T17:37:26.442Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-73.png",
+      "touch": {
+        "checked": 3,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-print",
+            "label": "Print",
+            "w": 46.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-copyweek",
+            "label": "Copy week",
+            "w": 81.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-baseline",
+            "label": "Set as baseline",
+            "w": 108.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "primary"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "SEVEN WELLS PRODUCTION BOARD\nEVERYTHING DONE BY\nI\nTue 9/8\nall open orders 100% packed\nORDERS AT RISK\nI\n0\nnothing late or tight\nDOMINANT BOTTLENECK\nI\nDemand-limited\nmost-binding constraint across the plan\nLABOR UTILIZATION\nI\n0%\nof 10 workers, avg per "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 25
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-73.png",
+      "touch": {
+        "checked": 3,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-print",
+            "label": "Print",
+            "w": 46.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-copyweek",
+            "label": "Copy week",
+            "w": 81.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-baseline",
+            "label": "Set as baseline",
+            "w": 108.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "primary"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "SEVEN WELLS PRODUCTION BOARD\nEVERYTHING DONE BY\nI\nTue 9/8\nall open orders 100% packed\nORDERS AT RISK\nI\n0\nnothing late or tight\nDOMINANT BOTTLENECK\nI\nDemand-limited\nmost-binding constraint across the plan\nLABOR UTILIZATION\nI\n0%\nof 10 workers, avg per "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 25
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-73.png",
+      "touch": {
+        "checked": 3,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-print",
+            "label": "Print",
+            "w": 46.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-copyweek",
+            "label": "Copy week",
+            "w": 81.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-baseline",
+            "label": "Set as baseline",
+            "w": 108.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "primary"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SEVEN WELLS PRODUCTION BOARD\nEVERYTHING DONE BY\nI\nTue 9/8\nall open orders 100% packed\nORDERS AT RISK\nI\n0\nnothing late or tight\nDOMINANT BOTTLENECK\nI\nDemand-limited\nmost-binding constraint across the plan\nLABOR UTILIZATION\nI\n0%\nof 10 workers, avg per "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 25
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-73.png",
+      "touch": {
+        "checked": 3,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-print",
+            "label": "Print",
+            "w": 46.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-copyweek",
+            "label": "Copy week",
+            "w": 81.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-baseline",
+            "label": "Set as baseline",
+            "w": 108.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "primary"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SEVEN WELLS PRODUCTION BOARD\nEVERYTHING DONE BY\nI\nTue 9/8\nall open orders 100% packed\nORDERS AT RISK\nI\n0\nnothing late or tight\nDOMINANT BOTTLENECK\nI\nDemand-limited\nmost-binding constraint across the plan\nLABOR UTILIZATION\nI\n0%\nof 10 workers, avg per "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 25
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-73.png",
+      "touch": {
+        "checked": 3,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-print",
+            "label": "Print",
+            "w": 46.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-copyweek",
+            "label": "Copy week",
+            "w": 81.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-baseline",
+            "label": "Set as baseline",
+            "w": 108.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "primary"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SEVEN WELLS PRODUCTION BOARD\nEVERYTHING DONE BY\nI\nTue 9/8\nall open orders 100% packed\nORDERS AT RISK\nI\n0\nnothing late or tight\nDOMINANT BOTTLENECK\nI\nDemand-limited\nmost-binding constraint across the plan\nLABOR UTILIZATION\nI\n0%\nof 10 workers, avg per "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 25
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-73.png",
+      "touch": {
+        "checked": 3,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-print",
+            "label": "Print",
+            "w": 46.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-copyweek",
+            "label": "Copy week",
+            "w": 81.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-baseline",
+            "label": "Set as baseline",
+            "w": 108.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "primary"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SEVEN WELLS PRODUCTION BOARD\nEVERYTHING DONE BY\nI\nTue 9/8\nall open orders 100% packed\nORDERS AT RISK\nI\n0\nnothing late or tight\nDOMINANT BOTTLENECK\nI\nDemand-limited\nmost-binding constraint across the plan\nLABOR UTILIZATION\nI\n0%\nof 10 workers, avg per "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 25
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-73.png",
+      "touch": {
+        "checked": 3,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-print",
+            "label": "Print",
+            "w": 46.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-copyweek",
+            "label": "Copy week",
+            "w": 81.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-baseline",
+            "label": "Set as baseline",
+            "w": 108.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "primary"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SEVEN WELLS PRODUCTION BOARD\nEVERYTHING DONE BY\nI\nTue 9/8\nall open orders 100% packed\nORDERS AT RISK\nI\n0\nnothing late or tight\nDOMINANT BOTTLENECK\nI\nDemand-limited\nmost-binding constraint across the plan\nLABOR UTILIZATION\nI\n0%\nof 10 workers, avg per "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 25
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-73.png",
+      "touch": {
+        "checked": 3,
+        "failures": 3,
+        "failuresNotNested": 3,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-print",
+            "label": "Print",
+            "w": 46.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-copyweek",
+            "label": "Copy week",
+            "w": 81.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-baseline",
+            "label": "Set as baseline",
+            "w": 108.7,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "primary"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "SEVEN WELLS PRODUCTION BOARD\nEVERYTHING DONE BY\nI\nTue 9/8\nall open orders 100% packed\nORDERS AT RISK\nI\n0\nnothing late or tight\nDOMINANT BOTTLENECK\nI\nDemand-limited\nmost-binding constraint across the plan\nLABOR UTILIZATION\nI\n0%\nof 10 workers, avg per "
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 25
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:37:31.913Z"
+}

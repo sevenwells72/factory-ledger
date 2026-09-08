@@ -1,0 +1,952 @@
+{
+  "harnessRevision": 2,
+  "id": "S-17",
+  "name": "Shipping log",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:30:03.433Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-17.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#ship-2206 > td > span.lot-link",
+            "label": "26-06-02-CREA-002",
+            "w": 122.4,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-shipments > div.collapsible-header.expanded",
+            "label": "Shipping",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.421875,
+            "h": 14,
+            "x": 37,
+            "y": 540.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Shipping"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb ·"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tGranola Crunchy CNS 10 LB Case\t100"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Medium UNIPRO 10"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Flake UNIPRO 10 "
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Shipping\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tCUSTOMER\tREF\n\n2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb · 120 units\tDavid Rosen Bakery Supply\t—\nLots:\n26-06-02-CREA-002 — Kookies & Kreme – 25 LB: 3,000 lb"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 20
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-17.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#ship-2206 > td > span.lot-link",
+            "label": "26-06-02-CREA-002",
+            "w": 122.4,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-shipments > div.collapsible-header.expanded",
+            "label": "Shipping",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.421875,
+            "h": 14,
+            "x": 37,
+            "y": 540.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Shipping"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb ·"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tGranola Crunchy CNS 10 LB Case\t100"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Medium UNIPRO 10"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Flake UNIPRO 10 "
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Shipping\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tCUSTOMER\tREF\n\n2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb · 120 units\tDavid Rosen Bakery Supply\t—\nLots:\n26-06-02-CREA-002 — Kookies & Kreme – 25 LB: 3,000 lb"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 20
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-17.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#ship-2206 > td > span.lot-link",
+            "label": "26-06-02-CREA-002",
+            "w": 122.4,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-shipments > div.collapsible-header.expanded",
+            "label": "Shipping",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.421875,
+            "h": 14,
+            "x": 45,
+            "y": 264.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Shipping"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb ·"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tGranola Crunchy CNS 10 LB Case\t100"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Medium UNIPRO 10"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Flake UNIPRO 10 "
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Shipping\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tCUSTOMER\tREF\n\n2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb · 120 units\tDavid Rosen Bakery Supply\t—\nLots:\n26-06-02-CREA-002 — Kookies & Kreme – 25 LB: 3,000 lb"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 31
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-17.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#ship-2206 > td > span.lot-link",
+            "label": "26-06-02-CREA-002",
+            "w": 122.4,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-shipments > div.collapsible-header.expanded",
+            "label": "Shipping",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.421875,
+            "h": 14,
+            "x": 45,
+            "y": 264.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Shipping"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb ·"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tGranola Crunchy CNS 10 LB Case\t100"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Medium UNIPRO 10"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Flake UNIPRO 10 "
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Shipping\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tCUSTOMER\tREF\n\n2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb · 120 units\tDavid Rosen Bakery Supply\t—\nLots:\n26-06-02-CREA-002 — Kookies & Kreme – 25 LB: 3,000 lb"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 31
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-17.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#ship-2206 > td > span.lot-link",
+            "label": "26-06-02-CREA-002",
+            "w": 122.4,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-shipments > div.collapsible-header.expanded",
+            "label": "Shipping",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.421875,
+            "h": 14,
+            "x": 37,
+            "y": 752.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Shipping"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb ·"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tGranola Crunchy CNS 10 LB Case\t100"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Medium UNIPRO 10"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Flake UNIPRO 10 "
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Shipping\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tCUSTOMER\tREF\n\n2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb · 120 units\tDavid Rosen Bakery Supply\t—\nLots:\n26-06-02-CREA-002 — Kookies & Kreme – 25 LB: 3,000 lb"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 31
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-17.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#ship-2206 > td > span.lot-link",
+            "label": "26-06-02-CREA-002",
+            "w": 122.4,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-shipments > div.collapsible-header.expanded",
+            "label": "Shipping",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.421875,
+            "h": 14,
+            "x": 37,
+            "y": 752.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Shipping"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb ·"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tGranola Crunchy CNS 10 LB Case\t100"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Medium UNIPRO 10"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Flake UNIPRO 10 "
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Shipping\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tCUSTOMER\tREF\n\n2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb · 120 units\tDavid Rosen Bakery Supply\t—\nLots:\n26-06-02-CREA-002 — Kookies & Kreme – 25 LB: 3,000 lb"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 31
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-17.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#ship-2206 > td > span.lot-link",
+            "label": "26-06-02-CREA-002",
+            "w": 122.4,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-shipments > div.collapsible-header.expanded",
+            "label": "Shipping",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.421875,
+            "h": 14,
+            "x": 85,
+            "y": 406.25,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Shipping"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb ·"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tGranola Crunchy CNS 10 LB Case\t100"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Medium UNIPRO 10"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Flake UNIPRO 10 "
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Shipping\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tCUSTOMER\tREF\n\n2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb · 120 units\tDavid Rosen Bakery Supply\t—\nLots:\n26-06-02-CREA-002 — Kookies & Kreme – 25 LB: 3,000 lb"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 31
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-17.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#ship-2206 > td > span.lot-link",
+            "label": "26-06-02-CREA-002",
+            "w": 122.4,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-shipments > div.collapsible-header.expanded",
+            "label": "Shipping",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.421875,
+            "h": 14,
+            "x": 85,
+            "y": 406.25,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Shipping"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb ·"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-06-02-CREA-002"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tGranola Crunchy CNS 10 LB Case\t100"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Medium UNIPRO 10"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 01:35 PM ET\nEntered: 2026-09-03 01:35 PM ET\n\tCoconut Sweetened Flake UNIPRO 10 "
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Shipping\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tCUSTOMER\tREF\n\n2026-09-08 01:05 PM ET\nEntered: 2026-09-08 01:05 PM ET\n\tKookies & Kreme – 25 LB\t3,000 lb · 120 units\tDavid Rosen Bakery Supply\t—\nLots:\n26-06-02-CREA-002 — Kookies & Kreme – 25 LB: 3,000 lb"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 31
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:30:10.948Z"
+}

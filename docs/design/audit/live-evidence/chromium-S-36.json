@@ -1,0 +1,1572 @@
+{
+  "harnessRevision": 2,
+  "id": "S-36",
+  "name": "Form — Reservations / allocation section",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:32:40.970Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated\nMethod\nManual · SKU level\nManual · spec"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated\nMethod\nManual · SKU level\nManual · spec"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated\nMethod\nManual · SKU level\nManual · spec"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated\nMethod\nManual · SKU level\nManual · spec"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated\nMethod\nManual · SKU level\nManual · spec"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated\nMethod\nManual · SKU level\nManual · spec"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated\nMethod\nManual · SKU level\nManual · spec"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated\nMethod\nManual · SKU level\nManual · spec"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:32:52.422Z"
+}

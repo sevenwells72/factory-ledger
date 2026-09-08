@@ -1,0 +1,64 @@
+{
+  "counts": {
+    "Confirmed-issue": 4,
+    "Still-unverifiable": 15,
+    "Verified-OK": 2
+  },
+  "phoneItems": {
+    "Confirmed-issue": 6
+  },
+  "newProposed": 2,
+  "records": 1472,
+  "screenshotPaths": 1472,
+  "reached": 1172,
+  "ruleCounts": {
+    "ACCESS-008": {
+      "PASS": 36,
+      "FAIL": 2,
+      "U": 52,
+      "NA": 1
+    },
+    "TOUCH-003": {
+      "PASS": 21,
+      "FAIL": 38,
+      "U": 20,
+      "NA": 12
+    },
+    "INPUT-010": {
+      "PASS": 30,
+      "FAIL": 0,
+      "U": 20,
+      "NA": 41
+    },
+    "INPUT-006 / ACCESS-003": {
+      "PASS": 11,
+      "FAIL": 25,
+      "U": 20,
+      "NA": 35
+    },
+    "ACTION-007 / ACTION-008": {
+      "PASS": 0,
+      "FAIL": 1,
+      "U": 29,
+      "NA": 61
+    },
+    "LAYOUT-013 / LAYOUT-014": {
+      "PASS": 4,
+      "FAIL": 69,
+      "U": 18,
+      "NA": 0
+    },
+    "DATA-003/004 · LAYOUT-003": {
+      "PASS": 15,
+      "FAIL": 4,
+      "U": 20,
+      "NA": 52
+    },
+    "FEEDBACK-011": {
+      "PASS": 10,
+      "FAIL": 4,
+      "U": 24,
+      "NA": 53
+    }
+  }
+}

@@ -1,0 +1,1724 @@
+{
+  "harnessRevision": 2,
+  "id": "S-36",
+  "name": "Form — Reservations / allocation section",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:32:50.126Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-line-select",
+            "label": "70073 · BS Granola – Peanut Butter Banana – 6…",
+            "w": 298,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-line-select"
+          },
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-mode-select",
+            "label": "Manual · SKU levelManual · specific lotAuto F…",
+            "w": 298,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-mode-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\nMethod\nQuantity (lb)\nNote (optional)\nAllocate\nAuto FIFO expires after 48 hours unless the API returns a different expir"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-line-select",
+            "label": "70073 · BS Granola – Peanut Butter Banana – 6…",
+            "w": 298,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-line-select"
+          },
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-mode-select",
+            "label": "Manual · SKU levelManual · specific lotAuto F…",
+            "w": 298,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-mode-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\nMethod\nQuantity (lb)\nNote (optional)\nAllocate\nAuto FIFO expires after 48 hours unless the API returns a different expir"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-mode-select",
+            "label": "Manual · SKU levelManual · specific lotAuto F…",
+            "w": 180,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-mode-select"
+          },
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-line-select",
+            "label": "70073 · BS Granola – Peanut Butter Banana – 6…",
+            "w": 220,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-line-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\nMethod\nQuantity (lb)\nNote (optional)\nAllocate\nAuto FIFO expires after 48 hours unless the API returns a different expir"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-mode-select",
+            "label": "Manual · SKU levelManual · specific lotAuto F…",
+            "w": 180,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-mode-select"
+          },
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-line-select",
+            "label": "70073 · BS Granola – Peanut Butter Banana – 6…",
+            "w": 220,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-line-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\nMethod\nQuantity (lb)\nNote (optional)\nAllocate\nAuto FIFO expires after 48 hours unless the API returns a different expir"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-line-select",
+            "label": "70073 · BS Granola – Peanut Butter Banana – 6…",
+            "w": 676,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-line-select"
+          },
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-mode-select",
+            "label": "Manual · SKU levelManual · specific lotAuto F…",
+            "w": 676,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-mode-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\nMethod\nQuantity (lb)\nNote (optional)\nAllocate\nAuto FIFO expires after 48 hours unless the API returns a different expir"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-line-select",
+            "label": "70073 · BS Granola – Peanut Butter Banana – 6…",
+            "w": 676,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-line-select"
+          },
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-mode-select",
+            "label": "Manual · SKU levelManual · specific lotAuto F…",
+            "w": 676,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-mode-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\nMethod\nQuantity (lb)\nNote (optional)\nAllocate\nAuto FIFO expires after 48 hours unless the API returns a different expir"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-mode-select",
+            "label": "Manual · SKU levelManual · specific lotAuto F…",
+            "w": 261,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-mode-select"
+          },
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-line-select",
+            "label": "70073 · BS Granola – Peanut Butter Banana – 6…",
+            "w": 391.5,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-line-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\nMethod\nQuantity (lb)\nNote (optional)\nAllocate\nAuto FIFO expires after 48 hours unless the API returns a different expir"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-36.png",
+      "touch": {
+        "checked": 5,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-mode-select",
+            "label": "Manual · SKU levelManual · specific lotAuto F…",
+            "w": 261,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-mode-select"
+          },
+          {
+            "path": "section.order-allocation-card > form.allocation-form > label > select.allocation-line-select",
+            "label": "70073 · BS Granola – Peanut Butter Banana – 6…",
+            "w": 391.5,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "allocation-line-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Reservations\n\nAllocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.\n\nOrder line\nMethod\nQuantity (lb)\nNote (optional)\nAllocate\nAuto FIFO expires after 48 hours unless the API returns a different expir"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 14
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:33:00.861Z"
+}

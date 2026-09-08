@@ -1,0 +1,1786 @@
+{
+  "harnessRevision": 2,
+  "id": "S-84",
+  "name": "Board cell — day copy control + \"more\" toggle",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/scheduler/seven-wells-production-board.html",
+  "started": "2026-09-08T17:40:45.680Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-84.png",
+      "touch": {
+        "checked": 74,
+        "failures": 18,
+        "failuresNotNested": 18,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/8",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/9",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/10",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/11",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/12",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/13",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/14",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/15",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/16",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/17",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/18",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/19",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/20",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/21",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.dot",
+            "text": "",
+            "title": "Demand-limited (capacity idle)",
+            "aria": null,
+            "color": "rgb(27, 36, 49)",
+            "bg": "rgb(45, 122, 77)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "Station\t9/8 TUE ⧉\t9/9 WED ⧉\t9/10 THU ⧉\t9/11 FRI ⧉\n75%\t9/12 SAT ⧉\n+ OT\t9/13 SUN ⧉\n+ OT\t9/14 MON ⧉\t9/15 TUE ⧉\t9/16 WED ⧉\t9/17 THU ⧉\t9/18 FRI ⧉\n75%\t9/19 SAT ⧉\n+ OT\t9/20 SUN ⧉\n+ OT\t9/21 MON ⧉\nGranola Bake\npans/day · WIP to bins\n\t\n\t\n\t\n\t\n\t\t\t\n\t\n\t\n\t\n\t\n\t\t\t\n\nP"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 60
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-84.png",
+      "touch": {
+        "checked": 74,
+        "failures": 18,
+        "failuresNotNested": 18,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/8",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/9",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/10",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/11",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/12",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/13",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/14",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/15",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/16",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/17",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/18",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/19",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/20",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/21",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.dot",
+            "text": "",
+            "title": "Demand-limited (capacity idle)",
+            "aria": null,
+            "color": "rgb(27, 36, 49)",
+            "bg": "rgb(45, 122, 77)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "Station\t9/8 TUE ⧉\t9/9 WED ⧉\t9/10 THU ⧉\t9/11 FRI ⧉\n75%\t9/12 SAT ⧉\n+ OT\t9/13 SUN ⧉\n+ OT\t9/14 MON ⧉\t9/15 TUE ⧉\t9/16 WED ⧉\t9/17 THU ⧉\t9/18 FRI ⧉\n75%\t9/19 SAT ⧉\n+ OT\t9/20 SUN ⧉\n+ OT\t9/21 MON ⧉\nGranola Bake\npans/day · WIP to bins\n\t\n\t\n\t\n\t\n\t\t\t\n\t\n\t\n\t\n\t\n\t\t\t\n\nP"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 60
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-84.png",
+      "touch": {
+        "checked": 74,
+        "failures": 18,
+        "failuresNotNested": 18,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/8",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/9",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/10",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/11",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/12",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/13",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/14",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/15",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/16",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/17",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/18",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/19",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/20",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/21",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.dot",
+            "text": "",
+            "title": "Demand-limited (capacity idle)",
+            "aria": null,
+            "color": "rgb(27, 36, 49)",
+            "bg": "rgb(45, 122, 77)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Station\t9/8 TUE ⧉\t9/9 WED ⧉\t9/10 THU ⧉\t9/11 FRI ⧉\n75%\t9/12 SAT ⧉\n+ OT\t9/13 SUN ⧉\n+ OT\t9/14 MON ⧉\t9/15 TUE ⧉\t9/16 WED ⧉\t9/17 THU ⧉\t9/18 FRI ⧉\n75%\t9/19 SAT ⧉\n+ OT\t9/20 SUN ⧉\n+ OT\t9/21 MON ⧉\nGranola Bake\npans/day · WIP to bins\n\t\n\t\n\t\n\t\n\t\t\t\n\t\n\t\n\t\n\t\n\t\t\t\n\nP"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 63
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-84.png",
+      "touch": {
+        "checked": 74,
+        "failures": 18,
+        "failuresNotNested": 18,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/8",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/9",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/10",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/11",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/12",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/13",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/14",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/15",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/16",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/17",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/18",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/19",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/20",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/21",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.dot",
+            "text": "",
+            "title": "Demand-limited (capacity idle)",
+            "aria": null,
+            "color": "rgb(27, 36, 49)",
+            "bg": "rgb(45, 122, 77)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Station\t9/8 TUE ⧉\t9/9 WED ⧉\t9/10 THU ⧉\t9/11 FRI ⧉\n75%\t9/12 SAT ⧉\n+ OT\t9/13 SUN ⧉\n+ OT\t9/14 MON ⧉\t9/15 TUE ⧉\t9/16 WED ⧉\t9/17 THU ⧉\t9/18 FRI ⧉\n75%\t9/19 SAT ⧉\n+ OT\t9/20 SUN ⧉\n+ OT\t9/21 MON ⧉\nGranola Bake\npans/day · WIP to bins\n\t\n\t\n\t\n\t\n\t\t\t\n\t\n\t\n\t\n\t\n\t\t\t\n\nP"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 63
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-84.png",
+      "touch": {
+        "checked": 74,
+        "failures": 18,
+        "failuresNotNested": 18,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/8",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/9",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/10",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/11",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/12",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/13",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/14",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/15",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/16",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/17",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/18",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/19",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/20",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/21",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.dot",
+            "text": "",
+            "title": "Demand-limited (capacity idle)",
+            "aria": null,
+            "color": "rgb(27, 36, 49)",
+            "bg": "rgb(45, 122, 77)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Station\t9/8 TUE ⧉\t9/9 WED ⧉\t9/10 THU ⧉\t9/11 FRI ⧉\n75%\t9/12 SAT ⧉\n+ OT\t9/13 SUN ⧉\n+ OT\t9/14 MON ⧉\t9/15 TUE ⧉\t9/16 WED ⧉\t9/17 THU ⧉\t9/18 FRI ⧉\n75%\t9/19 SAT ⧉\n+ OT\t9/20 SUN ⧉\n+ OT\t9/21 MON ⧉\nGranola Bake\npans/day · WIP to bins\n\t\n\t\n\t\n\t\n\t\t\t\n\t\n\t\n\t\n\t\n\t\t\t\n\nP"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 63
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-84.png",
+      "touch": {
+        "checked": 74,
+        "failures": 18,
+        "failuresNotNested": 18,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/8",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/9",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/10",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/11",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/12",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/13",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/14",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/15",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/16",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/17",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/18",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/19",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/20",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/21",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.dot",
+            "text": "",
+            "title": "Demand-limited (capacity idle)",
+            "aria": null,
+            "color": "rgb(27, 36, 49)",
+            "bg": "rgb(45, 122, 77)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Station\t9/8 TUE ⧉\t9/9 WED ⧉\t9/10 THU ⧉\t9/11 FRI ⧉\n75%\t9/12 SAT ⧉\n+ OT\t9/13 SUN ⧉\n+ OT\t9/14 MON ⧉\t9/15 TUE ⧉\t9/16 WED ⧉\t9/17 THU ⧉\t9/18 FRI ⧉\n75%\t9/19 SAT ⧉\n+ OT\t9/20 SUN ⧉\n+ OT\t9/21 MON ⧉\nGranola Bake\npans/day · WIP to bins\n\t\n\t\n\t\n\t\n\t\t\t\n\t\n\t\n\t\n\t\n\t\t\t\n\nP"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 63
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-84.png",
+      "touch": {
+        "checked": 74,
+        "failures": 18,
+        "failuresNotNested": 18,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/8",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/9",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/10",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/11",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/12",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/13",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/14",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/15",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/16",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/17",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/18",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/19",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/20",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/21",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.dot",
+            "text": "",
+            "title": "Demand-limited (capacity idle)",
+            "aria": null,
+            "color": "rgb(27, 36, 49)",
+            "bg": "rgb(45, 122, 77)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Station\t9/8 TUE ⧉\t9/9 WED ⧉\t9/10 THU ⧉\t9/11 FRI ⧉\n75%\t9/12 SAT ⧉\n+ OT\t9/13 SUN ⧉\n+ OT\t9/14 MON ⧉\t9/15 TUE ⧉\t9/16 WED ⧉\t9/17 THU ⧉\t9/18 FRI ⧉\n75%\t9/19 SAT ⧉\n+ OT\t9/20 SUN ⧉\n+ OT\t9/21 MON ⧉\nGranola Bake\npans/day · WIP to bins\n\t\n\t\n\t\n\t\n\t\t\t\n\t\n\t\n\t\n\t\n\t\t\t\n\nP"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 63
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-84.png",
+      "touch": {
+        "checked": 74,
+        "failures": 18,
+        "failuresNotNested": 18,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/8",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/9",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/10",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/11",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/12",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/13",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/14",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Tue 9/15",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Wed 9/16",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Thu 9/17",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.fri > button.copyday",
+            "label": "Copy schedule for Fri 9/18",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sat 9/19",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > button.copyday",
+            "label": "Copy schedule for Sun 9/20",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day > button.copyday",
+            "label": "Copy schedule for Mon 9/21",
+            "w": 12,
+            "h": 12,
+            "nested": false,
+            "tag": "button",
+            "cls": "copyday"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          },
+          {
+            "path": "thead > tr > th.day.wkend > span.otbtn",
+            "label": "+ OT",
+            "w": 21.5,
+            "h": 11,
+            "nested": false,
+            "tag": "span",
+            "cls": "otbtn"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.dot",
+            "text": "",
+            "title": "Demand-limited (capacity idle)",
+            "aria": null,
+            "color": "rgb(27, 36, 49)",
+            "bg": "rgb(45, 122, 77)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Station\t9/8 TUE ⧉\t9/9 WED ⧉\t9/10 THU ⧉\t9/11 FRI ⧉\n75%\t9/12 SAT ⧉\n+ OT\t9/13 SUN ⧉\n+ OT\t9/14 MON ⧉\t9/15 TUE ⧉\t9/16 WED ⧉\t9/17 THU ⧉\t9/18 FRI ⧉\n75%\t9/19 SAT ⧉\n+ OT\t9/20 SUN ⧉\n+ OT\t9/21 MON ⧉\nGranola Bake\npans/day · WIP to bins\n\t\n\t\n\t\n\t\n\t\t\t\n\t\n\t\n\t\n\t\n\t\t\t\n\nP"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 63
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:40:51.314Z"
+}

@@ -1,0 +1,3512 @@
+{
+  "harnessRevision": 2,
+  "id": "S-13",
+  "name": "On-Hand Ingredients",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:29:41.047Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-13.png",
+      "touch": {
+        "checked": 23,
+        "failures": 23,
+        "failuresNotNested": 23,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "tbody#ing-bs_ingredients-BS_Almond_Butter > tr.lot-row > td > span.lot-link",
+            "label": "26-01-30-FOUND-001",
+            "w": 130,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almond Butter1,963.6",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almonds – Sliced – Raw4,407.9",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Banana Bites – Small578.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Fruit Sugar0",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Nibs718.4",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Shell Flour0",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Chia Seeds1,324.2",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cocoa Liquor – Chips9,799.6",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Coconut Sugar6,672.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnut Butter1,098.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnuts – Diced10,000",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oats GF9,964.6",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oil – Almond2,737.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Peanut Butter Chips65.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Pumpkin Seeds387.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Salt0",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Sunflower Seeds12,824.4",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header.expanded",
+            "label": "BS Ingredients Total SKUs: 17",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "BS Materials (Packaging) Total SKUs: 4",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Coconut Core Ingredients Total SKUs: 7",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Granola General Ingredients Total SKUs: 31",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Bulk Crumbs Total SKUs: 1",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 130.04296875,
+            "h": 13.96875,
+            "x": 45,
+            "y": 566.9375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "BS Ingredients Total SKUs: 17"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almond Butter\t1,963.6"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almonds – Sliced – Raw\t4,407.9"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Banana Bites – Small\t578.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Fruit Sugar\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Nibs\t718.4"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Shell Flour\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Chia Seeds\t1,324.2"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cocoa Liquor – Chips\t9,799.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Coconut Sugar\t6,672.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnut Butter\t1,098.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnuts – Diced\t10,000"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oats GF\t9,964.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oil – Almond\t2,737.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Peanut Butter Chips\t65.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Pumpkin Seeds\t387.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Salt\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Sunflower Seeds\t12,824.4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "BS Materials (Packaging) Total SKUs: 4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Core Ingredients Total SKUs: 7"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Granola General Ingredients Total SKUs: 31"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Bulk Crumbs Total SKUs: 1"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "On-Hand Ingredients\nBS Ingredients Total SKUs: 17\nINGREDIENT\tON HAND (LB)\nBS Almond Butter\t1,963.6\n26-01-30-FOUND-001\t1,963.6\nBS Almonds – Sliced – Raw\t4,407.9\nBS Banana Bites – Small\t578.8\nBS Cacao Fruit Sugar\t0\nBS Cacao Nibs\t718.4\nBS Cacao Shell Fl"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 49
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-13.png",
+      "touch": {
+        "checked": 23,
+        "failures": 23,
+        "failuresNotNested": 23,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "tbody#ing-bs_ingredients-BS_Almond_Butter > tr.lot-row > td > span.lot-link",
+            "label": "26-01-30-FOUND-001",
+            "w": 130,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almond Butter1,963.6",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almonds – Sliced – Raw4,407.9",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Banana Bites – Small578.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Fruit Sugar0",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Nibs718.4",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Shell Flour0",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Chia Seeds1,324.2",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cocoa Liquor – Chips9,799.6",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Coconut Sugar6,672.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnut Butter1,098.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnuts – Diced10,000",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oats GF9,964.6",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oil – Almond2,737.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Peanut Butter Chips65.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Pumpkin Seeds387.8",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Salt0",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Sunflower Seeds12,824.4",
+            "w": 360,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header.expanded",
+            "label": "BS Ingredients Total SKUs: 17",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "BS Materials (Packaging) Total SKUs: 4",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Coconut Core Ingredients Total SKUs: 7",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Granola General Ingredients Total SKUs: 31",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Bulk Crumbs Total SKUs: 1",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 130.04296875,
+            "h": 13.96875,
+            "x": 45,
+            "y": 566.9375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "BS Ingredients Total SKUs: 17"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almond Butter\t1,963.6"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almonds – Sliced – Raw\t4,407.9"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Banana Bites – Small\t578.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Fruit Sugar\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Nibs\t718.4"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Shell Flour\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Chia Seeds\t1,324.2"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cocoa Liquor – Chips\t9,799.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Coconut Sugar\t6,672.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnut Butter\t1,098.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnuts – Diced\t10,000"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oats GF\t9,964.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oil – Almond\t2,737.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Peanut Butter Chips\t65.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Pumpkin Seeds\t387.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Salt\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Sunflower Seeds\t12,824.4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "BS Materials (Packaging) Total SKUs: 4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Core Ingredients Total SKUs: 7"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Granola General Ingredients Total SKUs: 31"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Bulk Crumbs Total SKUs: 1"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "On-Hand Ingredients\nBS Ingredients Total SKUs: 17\nINGREDIENT\tON HAND (LB)\nBS Almond Butter\t1,963.6\n26-01-30-FOUND-001\t1,963.6\nBS Almonds – Sliced – Raw\t4,407.9\nBS Banana Bites – Small\t578.8\nBS Cacao Fruit Sugar\t0\nBS Cacao Nibs\t718.4\nBS Cacao Shell Fl"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 49
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-13.png",
+      "touch": {
+        "checked": 23,
+        "failures": 23,
+        "failuresNotNested": 23,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "tbody#ing-bs_ingredients-BS_Almond_Butter > tr.lot-row > td > span.lot-link",
+            "label": "26-01-30-FOUND-001",
+            "w": 130,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almond Butter1,963.6",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almonds – Sliced – Raw4,407.9",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Banana Bites – Small578.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Fruit Sugar0",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Nibs718.4",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Shell Flour0",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Chia Seeds1,324.2",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cocoa Liquor – Chips9,799.6",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Coconut Sugar6,672.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnut Butter1,098.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnuts – Diced10,000",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oats GF9,964.6",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oil – Almond2,737.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Peanut Butter Chips65.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Pumpkin Seeds387.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Salt0",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Sunflower Seeds12,824.4",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header.expanded",
+            "label": "BS Ingredients Total SKUs: 17",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "BS Materials (Packaging) Total SKUs: 4",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Coconut Core Ingredients Total SKUs: 7",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Granola General Ingredients Total SKUs: 31",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Bulk Crumbs Total SKUs: 1",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 130.04296875,
+            "h": 13.96875,
+            "x": 53,
+            "y": 283.09375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "BS Ingredients Total SKUs: 17"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almond Butter\t1,963.6"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almonds – Sliced – Raw\t4,407.9"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Banana Bites – Small\t578.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Fruit Sugar\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Nibs\t718.4"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Shell Flour\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Chia Seeds\t1,324.2"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cocoa Liquor – Chips\t9,799.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Coconut Sugar\t6,672.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnut Butter\t1,098.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnuts – Diced\t10,000"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oats GF\t9,964.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oil – Almond\t2,737.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Peanut Butter Chips\t65.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Pumpkin Seeds\t387.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Salt\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Sunflower Seeds\t12,824.4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "BS Materials (Packaging) Total SKUs: 4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Core Ingredients Total SKUs: 7"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Granola General Ingredients Total SKUs: 31"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Bulk Crumbs Total SKUs: 1"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 169,
+        "regionText": "On-Hand Ingredients\nBS Ingredients Total SKUs: 17\nINGREDIENT\tON HAND (LB)\nBS Almond Butter\t1,963.6\n26-01-30-FOUND-001\t1,963.6\nBS Almonds – Sliced – Raw\t4,407.9\nBS Banana Bites – Small\t578.8\nBS Cacao Fruit Sugar\t0\nBS Cacao Nibs\t718.4\nBS Cacao Shell Fl"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 49
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-13.png",
+      "touch": {
+        "checked": 23,
+        "failures": 23,
+        "failuresNotNested": 23,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "tbody#ing-bs_ingredients-BS_Almond_Butter > tr.lot-row > td > span.lot-link",
+            "label": "26-01-30-FOUND-001",
+            "w": 130,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almond Butter1,963.6",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almonds – Sliced – Raw4,407.9",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Banana Bites – Small578.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Fruit Sugar0",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Nibs718.4",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Shell Flour0",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Chia Seeds1,324.2",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cocoa Liquor – Chips9,799.6",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Coconut Sugar6,672.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnut Butter1,098.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnuts – Diced10,000",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oats GF9,964.6",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oil – Almond2,737.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Peanut Butter Chips65.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Pumpkin Seeds387.8",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Salt0",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Sunflower Seeds12,824.4",
+            "w": 794,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header.expanded",
+            "label": "BS Ingredients Total SKUs: 17",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "BS Materials (Packaging) Total SKUs: 4",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Coconut Core Ingredients Total SKUs: 7",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Granola General Ingredients Total SKUs: 31",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Bulk Crumbs Total SKUs: 1",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 130.04296875,
+            "h": 13.96875,
+            "x": 53,
+            "y": 283.09375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "BS Ingredients Total SKUs: 17"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almond Butter\t1,963.6"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almonds – Sliced – Raw\t4,407.9"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Banana Bites – Small\t578.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Fruit Sugar\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Nibs\t718.4"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Shell Flour\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Chia Seeds\t1,324.2"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cocoa Liquor – Chips\t9,799.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Coconut Sugar\t6,672.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnut Butter\t1,098.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnuts – Diced\t10,000"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oats GF\t9,964.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oil – Almond\t2,737.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Peanut Butter Chips\t65.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Pumpkin Seeds\t387.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Salt\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Sunflower Seeds\t12,824.4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "BS Materials (Packaging) Total SKUs: 4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Core Ingredients Total SKUs: 7"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Granola General Ingredients Total SKUs: 31"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Bulk Crumbs Total SKUs: 1"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 169,
+        "regionText": "On-Hand Ingredients\nBS Ingredients Total SKUs: 17\nINGREDIENT\tON HAND (LB)\nBS Almond Butter\t1,963.6\n26-01-30-FOUND-001\t1,963.6\nBS Almonds – Sliced – Raw\t4,407.9\nBS Banana Bites – Small\t578.8\nBS Cacao Fruit Sugar\t0\nBS Cacao Nibs\t718.4\nBS Cacao Shell Fl"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 49
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-13.png",
+      "touch": {
+        "checked": 23,
+        "failures": 23,
+        "failuresNotNested": 23,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "tbody#ing-bs_ingredients-BS_Almond_Butter > tr.lot-row > td > span.lot-link",
+            "label": "26-01-30-FOUND-001",
+            "w": 130,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almond Butter1,963.6",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almonds – Sliced – Raw4,407.9",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Banana Bites – Small578.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Fruit Sugar0",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Nibs718.4",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Shell Flour0",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Chia Seeds1,324.2",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cocoa Liquor – Chips9,799.6",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Coconut Sugar6,672.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnut Butter1,098.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnuts – Diced10,000",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oats GF9,964.6",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oil – Almond2,737.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Peanut Butter Chips65.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Pumpkin Seeds387.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Salt0",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Sunflower Seeds12,824.4",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header.expanded",
+            "label": "BS Ingredients Total SKUs: 17",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "BS Materials (Packaging) Total SKUs: 4",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Coconut Core Ingredients Total SKUs: 7",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Granola General Ingredients Total SKUs: 31",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Bulk Crumbs Total SKUs: 1",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 130.04296875,
+            "h": 13.96875,
+            "x": 45,
+            "y": 602.59375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "BS Ingredients Total SKUs: 17"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almond Butter\t1,963.6"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almonds – Sliced – Raw\t4,407.9"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Banana Bites – Small\t578.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Fruit Sugar\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Nibs\t718.4"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Shell Flour\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Chia Seeds\t1,324.2"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cocoa Liquor – Chips\t9,799.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Coconut Sugar\t6,672.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnut Butter\t1,098.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnuts – Diced\t10,000"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oats GF\t9,964.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oil – Almond\t2,737.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Peanut Butter Chips\t65.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Pumpkin Seeds\t387.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Salt\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Sunflower Seeds\t12,824.4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "BS Materials (Packaging) Total SKUs: 4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Core Ingredients Total SKUs: 7"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Granola General Ingredients Total SKUs: 31"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Bulk Crumbs Total SKUs: 1"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "On-Hand Ingredients\nBS Ingredients Total SKUs: 17\nINGREDIENT\tON HAND (LB)\nBS Almond Butter\t1,963.6\n26-01-30-FOUND-001\t1,963.6\nBS Almonds – Sliced – Raw\t4,407.9\nBS Banana Bites – Small\t578.8\nBS Cacao Fruit Sugar\t0\nBS Cacao Nibs\t718.4\nBS Cacao Shell Fl"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 49
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-13.png",
+      "touch": {
+        "checked": 23,
+        "failures": 23,
+        "failuresNotNested": 23,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "tbody#ing-bs_ingredients-BS_Almond_Butter > tr.lot-row > td > span.lot-link",
+            "label": "26-01-30-FOUND-001",
+            "w": 130,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almond Butter1,963.6",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almonds – Sliced – Raw4,407.9",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Banana Bites – Small578.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Fruit Sugar0",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Nibs718.4",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Shell Flour0",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Chia Seeds1,324.2",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cocoa Liquor – Chips9,799.6",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Coconut Sugar6,672.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnut Butter1,098.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnuts – Diced10,000",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oats GF9,964.6",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oil – Almond2,737.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Peanut Butter Chips65.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Pumpkin Seeds387.8",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Salt0",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Sunflower Seeds12,824.4",
+            "w": 734,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header.expanded",
+            "label": "BS Ingredients Total SKUs: 17",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "BS Materials (Packaging) Total SKUs: 4",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Coconut Core Ingredients Total SKUs: 7",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Granola General Ingredients Total SKUs: 31",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Bulk Crumbs Total SKUs: 1",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 130.04296875,
+            "h": 13.96875,
+            "x": 45,
+            "y": 602.59375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "BS Ingredients Total SKUs: 17"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almond Butter\t1,963.6"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almonds – Sliced – Raw\t4,407.9"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Banana Bites – Small\t578.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Fruit Sugar\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Nibs\t718.4"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Shell Flour\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Chia Seeds\t1,324.2"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cocoa Liquor – Chips\t9,799.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Coconut Sugar\t6,672.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnut Butter\t1,098.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnuts – Diced\t10,000"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oats GF\t9,964.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oil – Almond\t2,737.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Peanut Butter Chips\t65.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Pumpkin Seeds\t387.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Salt\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Sunflower Seeds\t12,824.4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "BS Materials (Packaging) Total SKUs: 4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Core Ingredients Total SKUs: 7"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Granola General Ingredients Total SKUs: 31"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Bulk Crumbs Total SKUs: 1"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "On-Hand Ingredients\nBS Ingredients Total SKUs: 17\nINGREDIENT\tON HAND (LB)\nBS Almond Butter\t1,963.6\n26-01-30-FOUND-001\t1,963.6\nBS Almonds – Sliced – Raw\t4,407.9\nBS Banana Bites – Small\t578.8\nBS Cacao Fruit Sugar\t0\nBS Cacao Nibs\t718.4\nBS Cacao Shell Fl"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 49
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-13.png",
+      "touch": {
+        "checked": 23,
+        "failures": 23,
+        "failuresNotNested": 23,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "tbody#ing-bs_ingredients-BS_Almond_Butter > tr.lot-row > td > span.lot-link",
+            "label": "26-01-30-FOUND-001",
+            "w": 130,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almond Butter1,963.6",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almonds – Sliced – Raw4,407.9",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Banana Bites – Small578.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Fruit Sugar0",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Nibs718.4",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Shell Flour0",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Chia Seeds1,324.2",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cocoa Liquor – Chips9,799.6",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Coconut Sugar6,672.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnut Butter1,098.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnuts – Diced10,000",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oats GF9,964.6",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oil – Almond2,737.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Peanut Butter Chips65.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Pumpkin Seeds387.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Salt0",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Sunflower Seeds12,824.4",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header.expanded",
+            "label": "BS Ingredients Total SKUs: 17",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "BS Materials (Packaging) Total SKUs: 4",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Coconut Core Ingredients Total SKUs: 7",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Granola General Ingredients Total SKUs: 31",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Bulk Crumbs Total SKUs: 1",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 130.04296875,
+            "h": 13.96875,
+            "x": 89,
+            "y": 416.296875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "BS Ingredients Total SKUs: 17"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almond Butter\t1,963.6"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almonds – Sliced – Raw\t4,407.9"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Banana Bites – Small\t578.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Fruit Sugar\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Nibs\t718.4"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Shell Flour\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Chia Seeds\t1,324.2"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cocoa Liquor – Chips\t9,799.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Coconut Sugar\t6,672.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnut Butter\t1,098.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnuts – Diced\t10,000"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oats GF\t9,964.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oil – Almond\t2,737.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Peanut Butter Chips\t65.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Pumpkin Seeds\t387.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Salt\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Sunflower Seeds\t12,824.4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "BS Materials (Packaging) Total SKUs: 4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Core Ingredients Total SKUs: 7"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Granola General Ingredients Total SKUs: 31"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Bulk Crumbs Total SKUs: 1"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "On-Hand Ingredients\nBS Ingredients Total SKUs: 17\nINGREDIENT\tON HAND (LB)\nBS Almond Butter\t1,963.6\n26-01-30-FOUND-001\t1,963.6\nBS Almonds – Sliced – Raw\t4,407.9\nBS Banana Bites – Small\t578.8\nBS Cacao Fruit Sugar\t0\nBS Cacao Nibs\t718.4\nBS Cacao Shell Fl"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 49
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-13.png",
+      "touch": {
+        "checked": 23,
+        "failures": 23,
+        "failuresNotNested": 23,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "tbody#ing-bs_ingredients-BS_Almond_Butter > tr.lot-row > td > span.lot-link",
+            "label": "26-01-30-FOUND-001",
+            "w": 130,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almond Butter1,963.6",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Almonds – Sliced – Raw4,407.9",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Banana Bites – Small578.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Fruit Sugar0",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Nibs718.4",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cacao Shell Flour0",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Chia Seeds1,324.2",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Cocoa Liquor – Chips9,799.6",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Coconut Sugar6,672.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnut Butter1,098.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Hazelnuts – Diced10,000",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oats GF9,964.6",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Oil – Almond2,737.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Peanut Butter Chips65.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Pumpkin Seeds387.8",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "BS Salt0",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div.table-scroll > table.inv-table > tbody > tr.expandable",
+            "label": "Sunflower Seeds12,824.4",
+            "w": 1158,
+            "h": 36.5,
+            "nested": false,
+            "tag": "tr",
+            "cls": "expandable"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header.expanded",
+            "label": "BS Ingredients Total SKUs: 17",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "BS Materials (Packaging) Total SKUs: 4",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Coconut Core Ingredients Total SKUs: 7",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Granola General Ingredients Total SKUs: 31",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          },
+          {
+            "path": "div#ingredients-panels > div.collapsible-header",
+            "label": "Bulk Crumbs Total SKUs: 1",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 130.04296875,
+            "h": 13.96875,
+            "x": 89,
+            "y": 416.296875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "BS Ingredients Total SKUs: 17"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almond Butter\t1,963.6"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-01-30-FOUND-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Almonds – Sliced – Raw\t4,407.9"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Banana Bites – Small\t578.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Fruit Sugar\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Nibs\t718.4"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cacao Shell Flour\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Chia Seeds\t1,324.2"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Cocoa Liquor – Chips\t9,799.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Coconut Sugar\t6,672.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnut Butter\t1,098.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Hazelnuts – Diced\t10,000"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oats GF\t9,964.6"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Oil – Almond\t2,737.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Peanut Butter Chips\t65.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Pumpkin Seeds\t387.8"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "BS Salt\t0"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "Sunflower Seeds\t12,824.4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "BS Materials (Packaging) Total SKUs: 4"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Coconut Core Ingredients Total SKUs: 7"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Granola General Ingredients Total SKUs: 31"
+          },
+          {
+            "path": "div.collapsible-header",
+            "text": "Bulk Crumbs Total SKUs: 1"
+          }
+        ],
+        "disabled": [],
+        "stripes": [
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          },
+          {
+            "rows": 1,
+            "even": []
+          }
+        ],
+        "overflow": 0,
+        "regionText": "On-Hand Ingredients\nBS Ingredients Total SKUs: 17\nINGREDIENT\tON HAND (LB)\nBS Almond Butter\t1,963.6\n26-01-30-FOUND-001\t1,963.6\nBS Almonds – Sliced – Raw\t4,407.9\nBS Banana Bites – Small\t578.8\nBS Cacao Fruit Sugar\t0\nBS Cacao Nibs\t718.4\nBS Cacao Shell Fl"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 49
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:29:49.050Z"
+}

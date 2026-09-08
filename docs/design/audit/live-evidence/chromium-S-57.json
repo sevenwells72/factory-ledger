@@ -1,0 +1,1603 @@
+{
+  "harnessRevision": 2,
+  "id": "S-57",
+  "name": "Sankey controls bar",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/sankey.html",
+  "started": "2026-09-08T17:35:31.738Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-57.png",
+      "touch": {
+        "checked": 4,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#top-i-select",
+            "label": "5 8 12 15",
+            "w": 56,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-c-select",
+            "label": "4 6 10 15",
+            "w": 57,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-n-select",
+            "label": "5 10 15 20",
+            "w": 58,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#period-select",
+            "label": "Last 7 days Last 30 days Last 90 days Year to…",
+            "w": 128,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#period-select",
+            "id": "period-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-n-select",
+            "id": "top-n-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-c-select",
+            "id": "top-c-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-i-select",
+            "id": "top-i-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 866,
+        "regionText": "PERIOD\nLast 7 days\nLast 30 days\nLast 90 days\nYear to date\nCustom range\nTOP PRODUCTS\n5\n10\n15\n20\nTOP CUSTOMERS\n4\n6\n10\n15\nTOP INGREDIENTS\n5\n8\n12\n15"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "period-select",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "top-n-select",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "top-c-select",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "top-i-select",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-57.png",
+      "touch": {
+        "checked": 4,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#top-i-select",
+            "label": "5 8 12 15",
+            "w": 56,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-c-select",
+            "label": "4 6 10 15",
+            "w": 57,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-n-select",
+            "label": "5 10 15 20",
+            "w": 58,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#period-select",
+            "label": "Last 7 days Last 30 days Last 90 days Year to…",
+            "w": 128,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#period-select",
+            "id": "period-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-n-select",
+            "id": "top-n-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-c-select",
+            "id": "top-c-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-i-select",
+            "id": "top-i-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 866,
+        "regionText": "PERIOD\nLast 7 days\nLast 30 days\nLast 90 days\nYear to date\nCustom range\nTOP PRODUCTS\n5\n10\n15\n20\nTOP CUSTOMERS\n4\n6\n10\n15\nTOP INGREDIENTS\n5\n8\n12\n15"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "period-select",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "top-n-select",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "top-c-select",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "top-i-select",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-57.png",
+      "touch": {
+        "checked": 4,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#top-i-select",
+            "label": "5 8 12 15",
+            "w": 56,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-c-select",
+            "label": "4 6 10 15",
+            "w": 57,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-n-select",
+            "label": "5 10 15 20",
+            "w": 58,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#period-select",
+            "label": "Last 7 days Last 30 days Last 90 days Year to…",
+            "w": 128,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#period-select",
+            "id": "period-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-n-select",
+            "id": "top-n-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-c-select",
+            "id": "top-c-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-i-select",
+            "id": "top-i-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PERIOD\nLast 7 days\nLast 30 days\nLast 90 days\nYear to date\nCustom range\nTOP PRODUCTS\n5\n10\n15\n20\nTOP CUSTOMERS\n4\n6\n10\n15\nTOP INGREDIENTS\n5\n8\n12\n15"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "period-select",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "top-n-select",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "top-c-select",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "top-i-select",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-57.png",
+      "touch": {
+        "checked": 4,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#top-i-select",
+            "label": "5 8 12 15",
+            "w": 56,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-c-select",
+            "label": "4 6 10 15",
+            "w": 57,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-n-select",
+            "label": "5 10 15 20",
+            "w": 58,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#period-select",
+            "label": "Last 7 days Last 30 days Last 90 days Year to…",
+            "w": 128,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#period-select",
+            "id": "period-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-n-select",
+            "id": "top-n-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-c-select",
+            "id": "top-c-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-i-select",
+            "id": "top-i-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PERIOD\nLast 7 days\nLast 30 days\nLast 90 days\nYear to date\nCustom range\nTOP PRODUCTS\n5\n10\n15\n20\nTOP CUSTOMERS\n4\n6\n10\n15\nTOP INGREDIENTS\n5\n8\n12\n15"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "period-select",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "top-n-select",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "top-c-select",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "top-i-select",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-57.png",
+      "touch": {
+        "checked": 4,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#top-i-select",
+            "label": "5 8 12 15",
+            "w": 56,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-c-select",
+            "label": "4 6 10 15",
+            "w": 57,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-n-select",
+            "label": "5 10 15 20",
+            "w": 58,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#period-select",
+            "label": "Last 7 days Last 30 days Last 90 days Year to…",
+            "w": 128,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#period-select",
+            "id": "period-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-n-select",
+            "id": "top-n-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-c-select",
+            "id": "top-c-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-i-select",
+            "id": "top-i-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PERIOD\nLast 7 days\nLast 30 days\nLast 90 days\nYear to date\nCustom range\nTOP PRODUCTS\n5\n10\n15\n20\nTOP CUSTOMERS\n4\n6\n10\n15\nTOP INGREDIENTS\n5\n8\n12\n15"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "period-select",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "top-n-select",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "top-c-select",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "top-i-select",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-57.png",
+      "touch": {
+        "checked": 4,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#top-i-select",
+            "label": "5 8 12 15",
+            "w": 56,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-c-select",
+            "label": "4 6 10 15",
+            "w": 57,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-n-select",
+            "label": "5 10 15 20",
+            "w": 58,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#period-select",
+            "label": "Last 7 days Last 30 days Last 90 days Year to…",
+            "w": 128,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#period-select",
+            "id": "period-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-n-select",
+            "id": "top-n-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-c-select",
+            "id": "top-c-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-i-select",
+            "id": "top-i-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PERIOD\nLast 7 days\nLast 30 days\nLast 90 days\nYear to date\nCustom range\nTOP PRODUCTS\n5\n10\n15\n20\nTOP CUSTOMERS\n4\n6\n10\n15\nTOP INGREDIENTS\n5\n8\n12\n15"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "period-select",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "top-n-select",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "top-c-select",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "top-i-select",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "navToggle",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-57.png",
+      "touch": {
+        "checked": 4,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#top-i-select",
+            "label": "5 8 12 15",
+            "w": 56,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-c-select",
+            "label": "4 6 10 15",
+            "w": 57,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-n-select",
+            "label": "5 10 15 20",
+            "w": 58,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#period-select",
+            "label": "Last 7 days Last 30 days Last 90 days Year to…",
+            "w": 128,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#period-select",
+            "id": "period-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-n-select",
+            "id": "top-n-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-c-select",
+            "id": "top-c-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-i-select",
+            "id": "top-i-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PERIOD\nLast 7 days\nLast 30 days\nLast 90 days\nYear to date\nCustom range\nTOP PRODUCTS\n5\n10\n15\n20\nTOP CUSTOMERS\n4\n6\n10\n15\nTOP INGREDIENTS\n5\n8\n12\n15"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "period-select",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "top-n-select",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "top-c-select",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "top-i-select",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-57.png",
+      "touch": {
+        "checked": 4,
+        "failures": 4,
+        "failuresNotNested": 4,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#top-i-select",
+            "label": "5 8 12 15",
+            "w": 56,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-c-select",
+            "label": "4 6 10 15",
+            "w": 57,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#top-n-select",
+            "label": "5 10 15 20",
+            "w": 58,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#period-select",
+            "label": "Last 7 days Last 30 days Last 90 days Year to…",
+            "w": 128,
+            "h": 32,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#period-select",
+            "id": "period-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-n-select",
+            "id": "top-n-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-c-select",
+            "id": "top-c-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#top-i-select",
+            "id": "top-i-select",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PERIOD\nLast 7 days\nLast 30 days\nLast 90 days\nYear to date\nCustom range\nTOP PRODUCTS\n5\n10\n15\n20\nTOP CUSTOMERS\n4\n6\n10\n15\nTOP INGREDIENTS\n5\n8\n12\n15"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "period-select",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "top-n-select",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "top-c-select",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "top-i-select",
+            "tag": "SELECT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "A",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/sankey.html",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/fetch-timeout.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cdnjs.cloudflare.com",
+      "path": "/ajax/libs/d3/7.8.5/d3.min.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cdnjs.cloudflare.com",
+      "path": "/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/interaction.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/sankey.html",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.css",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/interaction.css",
+      "status": 200
+    },
+    {
+      "host": "cdnjs.cloudflare.com",
+      "path": "/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js",
+      "status": 200
+    },
+    {
+      "host": "cdnjs.cloudflare.com",
+      "path": "/ajax/libs/d3/7.8.5/d3.min.js",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.js",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/fetch-timeout.js",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/transactions/history",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:35:43.896Z"
+}

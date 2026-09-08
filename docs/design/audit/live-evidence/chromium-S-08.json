@@ -1,0 +1,630 @@
+{
+  "harnessRevision": 2,
+  "id": "S-08",
+  "name": "Production Calendar (rolling 5-day)",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:28:55.722Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-08.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Production Calendar",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 78.71875,
+            "h": 45,
+            "x": 29,
+            "y": 392.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "#section-production",
+            "width": 364,
+            "scrollWidth": 422,
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · C"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View",
+            "width": 364
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · CASES\nGranola bagged\n286\nView details\nSaturday — 2026-09-05\nNo production\nSunday — 2026-09-06\nNo production\nMonday — 2026-09-07\nNo production\nTuesday —"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 23
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-08.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Production Calendar",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 78.71875,
+            "h": 45,
+            "x": 29,
+            "y": 392.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "#section-production",
+            "width": 364,
+            "scrollWidth": 422,
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · C"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View",
+            "width": 364
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · CASES\nGranola bagged\n286\nView details\nSaturday — 2026-09-05\nNo production\nSunday — 2026-09-06\nNo production\nMonday — 2026-09-07\nNo production\nTuesday —"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 23
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-08.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Production Calendar",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 147.015625,
+            "h": 22.5,
+            "x": 37,
+            "y": 127.546875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View",
+            "width": 802
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · CASES\nGranola bagged\n286\nView details\nSaturday — 2026-09-05\nNo production\nSunday — 2026-09-06\nNo production\nMonday — 2026-09-07\nNo production\nTuesday —"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 24
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-08.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Production Calendar",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 147.015625,
+            "h": 22.5,
+            "x": 37,
+            "y": 127.546875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View",
+            "width": 802
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · CASES\nGranola bagged\n286\nView details\nSaturday — 2026-09-05\nNo production\nSunday — 2026-09-06\nNo production\nMonday — 2026-09-07\nNo production\nTuesday —"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 24
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-08.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Production Calendar",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 147.015625,
+            "h": 22.5,
+            "x": 29,
+            "y": 406.046875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View",
+            "width": 742
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · CASES\nGranola bagged\n286\nView details\nSaturday — 2026-09-05\nNo production\nSunday — 2026-09-06\nNo production\nMonday — 2026-09-07\nNo production\nTuesday —"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 24
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-08.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Production Calendar",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 147.015625,
+            "h": 22.5,
+            "x": 29,
+            "y": 406.046875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View",
+            "width": 742
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · CASES\nGranola bagged\n286\nView details\nSaturday — 2026-09-05\nNo production\nSunday — 2026-09-06\nNo production\nMonday — 2026-09-07\nNo production\nTuesday —"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 24
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-08.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Production Calendar",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 147.015625,
+            "h": 22.5,
+            "x": 77,
+            "y": 268.75,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View",
+            "width": 1158
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · CASES\nGranola bagged\n286\nView details\nSaturday — 2026-09-05\nNo production\nSunday — 2026-09-06\nNo production\nMonday — 2026-09-07\nNo production\nTuesday —"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 24
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-08.png",
+      "touch": {
+        "checked": 4,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "h2.",
+            "text": "Production Calendar",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 147.015625,
+            "h": 22.5,
+            "x": 77,
+            "y": 268.75,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Production Calendar\n←\nLast 5 Days\n→\nMonth View",
+            "width": 1158
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Production Calendar\n←\nLast 5 Days\n→\nMonth View\nFriday — 2026-09-04\nMADE\nGranola batches\n8\nPACKED · CASES\nGranola bagged\n286\nView details\nSaturday — 2026-09-05\nNo production\nSunday — 2026-09-06\nNo production\nMonday — 2026-09-07\nNo production\nTuesday —"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 24
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:29:02.223Z"
+}

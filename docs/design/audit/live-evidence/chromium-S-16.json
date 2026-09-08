@@ -1,0 +1,1072 @@
+{
+  "harnessRevision": 2,
+  "id": "S-16",
+  "name": "Daily Entries + day/mode toolbar",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:29:56.063Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-16.png",
+      "touch": {
+        "checked": 3,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nBy event date\nBy entry date\nENTERED\tTYPE\tPRODUCT\tSKU\tQTY (LB)\n\n2026-09-08 01:05 PM ET\n\tship\tGranola Crunchy CNS 10 LB Case\t10300\t-100\n\n2026-09-08 01:05 PM ET\n\tship\tKookies & Kreme – 25 LB\t10304\t-3,000"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 13
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "1",
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "type": "select-one",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-16.png",
+      "touch": {
+        "checked": 3,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 364,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nBy event date\nBy entry date\nENTERED\tTYPE\tPRODUCT\tSKU\tQTY (LB)\n\n2026-09-08 01:05 PM ET\n\tship\tGranola Crunchy CNS 10 LB Case\t10300\t-100\n\n2026-09-08 01:05 PM ET\n\tship\tKookies & Kreme – 25 LB\t10304\t-3,000"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 13
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "1",
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "type": "select-one",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-16.png",
+      "touch": {
+        "checked": 3,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Daily Entries\nDay:\nBy event date\nBy entry date\nENTERED\tTYPE\tPRODUCT\tSKU\tQTY (LB)\n\n2026-09-08 01:05 PM ET\n\tship\tGranola Crunchy CNS 10 LB Case\t10300\t-100\n\n2026-09-08 01:05 PM ET\n\tship\tKookies & Kreme – 25 LB\t10304\t-3,000"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "1",
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "type": "select-one",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-16.png",
+      "touch": {
+        "checked": 3,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 802,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Daily Entries\nDay:\nBy event date\nBy entry date\nENTERED\tTYPE\tPRODUCT\tSKU\tQTY (LB)\n\n2026-09-08 01:05 PM ET\n\tship\tGranola Crunchy CNS 10 LB Case\t10300\t-100\n\n2026-09-08 01:05 PM ET\n\tship\tKookies & Kreme – 25 LB\t10304\t-3,000"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "1",
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "type": "select-one",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-16.png",
+      "touch": {
+        "checked": 3,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nBy event date\nBy entry date\nENTERED\tTYPE\tPRODUCT\tSKU\tQTY (LB)\n\n2026-09-08 01:05 PM ET\n\tship\tGranola Crunchy CNS 10 LB Case\t10300\t-100\n\n2026-09-08 01:05 PM ET\n\tship\tKookies & Kreme – 25 LB\t10304\t-3,000"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "1",
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "type": "select-one",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-16.png",
+      "touch": {
+        "checked": 3,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 742,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nBy event date\nBy entry date\nENTERED\tTYPE\tPRODUCT\tSKU\tQTY (LB)\n\n2026-09-08 01:05 PM ET\n\tship\tGranola Crunchy CNS 10 LB Case\t10300\t-100\n\n2026-09-08 01:05 PM ET\n\tship\tKookies & Kreme – 25 LB\t10304\t-3,000"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "1",
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "type": "select-one",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-16.png",
+      "touch": {
+        "checked": 3,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nBy event date\nBy entry date\nENTERED\tTYPE\tPRODUCT\tSKU\tQTY (LB)\n\n2026-09-08 01:05 PM ET\n\tship\tGranola Crunchy CNS 10 LB Case\t10300\t-100\n\n2026-09-08 01:05 PM ET\n\tship\tKookies & Kreme – 25 LB\t10304\t-3,000"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "1",
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "type": "select-one",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-16.png",
+      "touch": {
+        "checked": 3,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "section#section-daily-entries > div.collapsible-header.expanded",
+            "label": "Daily Entries",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#daily-entries-date",
+            "id": "daily-entries-date",
+            "label": "Day:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#daily-entries-mode",
+            "id": "daily-entries-mode",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Daily Entries"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Daily Entries\nDay:\nBy event date\nBy entry date\nENTERED\tTYPE\tPRODUCT\tSKU\tQTY (LB)\n\n2026-09-08 01:05 PM ET\n\tship\tGranola Crunchy CNS 10 LB Case\t10300\t-100\n\n2026-09-08 01:05 PM ET\n\tship\tKookies & Kreme – 25 LB\t10304\t-3,000"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "1",
+            "id": "daily-entries-mode",
+            "tag": "SELECT",
+            "type": "select-one",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "daily-entries-date",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "daily-entries-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:30:03.433Z"
+}

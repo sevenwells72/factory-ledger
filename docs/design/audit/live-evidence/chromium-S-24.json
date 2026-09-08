@@ -1,0 +1,1485 @@
+{
+  "harnessRevision": 2,
+  "id": "S-24",
+  "name": "Orders toolbar",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:30:50.366Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-24.png",
+      "touch": {
+        "checked": 7,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#orders-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "input#orders-hide-ready",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 135.3,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#orders-status-filter",
+            "id": "orders-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-customer-search",
+            "id": "orders-customer-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-overdue-only",
+            "id": "orders-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-hide-ready",
+            "id": "orders-hide-ready",
+            "label": "Hide Factory Ready",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Dispatch Queue\nAll Open Orders\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nAll Orders\nOverdue only\nHide Factory Ready\nExport CSV\nExport Matrix (xlsx)\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "orders-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "orders-customer-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "orders-overdue-only",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "orders-hide-ready",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "orders-export-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "orders-matrix-export-btn",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "orders-refresh-btn",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "orders-customer-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-24.png",
+      "touch": {
+        "checked": 7,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#orders-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "input#orders-hide-ready",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 135.3,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#orders-status-filter",
+            "id": "orders-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-customer-search",
+            "id": "orders-customer-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-overdue-only",
+            "id": "orders-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-hide-ready",
+            "id": "orders-hide-ready",
+            "label": "Hide Factory Ready",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Dispatch Queue\nAll Open Orders\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nAll Orders\nOverdue only\nHide Factory Ready\nExport CSV\nExport Matrix (xlsx)\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "orders-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "orders-customer-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "orders-overdue-only",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "orders-hide-ready",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "orders-export-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "orders-matrix-export-btn",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "orders-refresh-btn",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "orders-customer-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-24.png",
+      "touch": {
+        "checked": 7,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#orders-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "input#orders-hide-ready",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 135.3,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#orders-status-filter",
+            "id": "orders-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-customer-search",
+            "id": "orders-customer-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-overdue-only",
+            "id": "orders-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-hide-ready",
+            "id": "orders-hide-ready",
+            "label": "Hide Factory Ready",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Dispatch Queue\nAll Open Orders\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nAll Orders\nOverdue only\nHide Factory Ready\nExport CSV\nExport Matrix (xlsx)\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "orders-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "orders-customer-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "orders-overdue-only",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "orders-hide-ready",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "orders-export-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "orders-matrix-export-btn",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "orders-refresh-btn",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "orders-customer-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-24.png",
+      "touch": {
+        "checked": 7,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#orders-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "input#orders-hide-ready",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 135.3,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#orders-status-filter",
+            "id": "orders-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-customer-search",
+            "id": "orders-customer-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-overdue-only",
+            "id": "orders-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-hide-ready",
+            "id": "orders-hide-ready",
+            "label": "Hide Factory Ready",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Dispatch Queue\nAll Open Orders\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nAll Orders\nOverdue only\nHide Factory Ready\nExport CSV\nExport Matrix (xlsx)\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "orders-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "orders-customer-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "orders-overdue-only",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "orders-hide-ready",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "orders-export-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "orders-matrix-export-btn",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "orders-refresh-btn",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "orders-customer-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-24.png",
+      "touch": {
+        "checked": 7,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#orders-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "input#orders-hide-ready",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 135.3,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#orders-status-filter",
+            "id": "orders-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-customer-search",
+            "id": "orders-customer-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-overdue-only",
+            "id": "orders-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-hide-ready",
+            "id": "orders-hide-ready",
+            "label": "Hide Factory Ready",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Dispatch Queue\nAll Open Orders\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nAll Orders\nOverdue only\nHide Factory Ready\nExport CSV\nExport Matrix (xlsx)\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "orders-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "orders-customer-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "orders-overdue-only",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "orders-hide-ready",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "orders-export-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "orders-matrix-export-btn",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "orders-refresh-btn",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "orders-customer-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-24.png",
+      "touch": {
+        "checked": 7,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#orders-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "input#orders-hide-ready",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 135.3,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#orders-status-filter",
+            "id": "orders-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-customer-search",
+            "id": "orders-customer-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-overdue-only",
+            "id": "orders-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-hide-ready",
+            "id": "orders-hide-ready",
+            "label": "Hide Factory Ready",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Dispatch Queue\nAll Open Orders\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nAll Orders\nOverdue only\nHide Factory Ready\nExport CSV\nExport Matrix (xlsx)\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "orders-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "orders-customer-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "orders-overdue-only",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "orders-hide-ready",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "orders-export-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "orders-matrix-export-btn",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "orders-refresh-btn",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "orders-customer-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-24.png",
+      "touch": {
+        "checked": 7,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#orders-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "input#orders-hide-ready",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 135.3,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#orders-status-filter",
+            "id": "orders-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-customer-search",
+            "id": "orders-customer-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-overdue-only",
+            "id": "orders-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-hide-ready",
+            "id": "orders-hide-ready",
+            "label": "Hide Factory Ready",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Dispatch Queue\nAll Open Orders\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nAll Orders\nOverdue only\nHide Factory Ready\nExport CSV\nExport Matrix (xlsx)\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "orders-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "orders-customer-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "orders-overdue-only",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "orders-hide-ready",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "orders-export-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "orders-matrix-export-btn",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "orders-refresh-btn",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "orders-customer-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-24.png",
+      "touch": {
+        "checked": 7,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#orders-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          },
+          {
+            "path": "input#orders-hide-ready",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 135.3,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#orders-status-filter",
+            "id": "orders-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-customer-search",
+            "id": "orders-customer-search",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by customer...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-overdue-only",
+            "id": "orders-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#orders-hide-ready",
+            "id": "orders-hide-ready",
+            "label": "Hide Factory Ready",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Dispatch Queue\nAll Open Orders\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nAll Orders\nOverdue only\nHide Factory Ready\nExport CSV\nExport Matrix (xlsx)\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 8
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "orders-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "orders-customer-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "orders-overdue-only",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "orders-hide-ready",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "orders-export-btn",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "orders-matrix-export-btn",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "orders-refresh-btn",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "orders-customer-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:30:57.723Z"
+}

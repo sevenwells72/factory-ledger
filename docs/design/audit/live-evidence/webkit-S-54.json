@@ -1,0 +1,476 @@
+{
+  "harnessRevision": 2,
+  "id": "S-54",
+  "name": "Lot Detail side panel",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:48:54.855Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-54.png",
+      "touch": {
+        "checked": 2,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Lot: AUG 21 2026\n×\nLot Code\nAUG 21 2026\nProduct\nGranola Classic 25 LB\nSource\npack_output\nOriginal Qty\n350 lb · 14 units\nOn Hand\n200 lb · 8 units\nTransaction Timeline\nOccurred: 2026-08-24 04:10 PM ET\nEntered: 2026-08-24 04:10 PM ET\nPACK 350 lb · 14 un"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 29
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-54.png",
+      "touch": {
+        "checked": 2,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Lot: AUG 21 2026\n×\nLot Code\nAUG 21 2026\nProduct\nGranola Classic 25 LB\nSource\npack_output\nOriginal Qty\n350 lb · 14 units\nOn Hand\n200 lb · 8 units\nTransaction Timeline\nOccurred: 2026-08-24 04:10 PM ET\nEntered: 2026-08-24 04:10 PM ET\nPACK 350 lb · 14 un"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 29
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-54.png",
+      "touch": {
+        "checked": 2,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 172,
+        "regionText": "Lot: AUG 21 2026\n×\nLot Code\nAUG 21 2026\nProduct\nGranola Classic 25 LB\nSource\npack_output\nOriginal Qty\n350 lb · 14 units\nOn Hand\n200 lb · 8 units\nTransaction Timeline\nOccurred: 2026-08-24 04:10 PM ET\nEntered: 2026-08-24 04:10 PM ET\nPACK 350 lb · 14 un"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-54.png",
+      "touch": {
+        "checked": 2,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 172,
+        "regionText": "Lot: AUG 21 2026\n×\nLot Code\nAUG 21 2026\nProduct\nGranola Classic 25 LB\nSource\npack_output\nOriginal Qty\n350 lb · 14 units\nOn Hand\n200 lb · 8 units\nTransaction Timeline\nOccurred: 2026-08-24 04:10 PM ET\nEntered: 2026-08-24 04:10 PM ET\nPACK 350 lb · 14 un"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-54.png",
+      "touch": {
+        "checked": 2,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Lot: AUG 21 2026\n×\nLot Code\nAUG 21 2026\nProduct\nGranola Classic 25 LB\nSource\npack_output\nOriginal Qty\n350 lb · 14 units\nOn Hand\n200 lb · 8 units\nTransaction Timeline\nOccurred: 2026-08-24 04:10 PM ET\nEntered: 2026-08-24 04:10 PM ET\nPACK 350 lb · 14 un"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 33
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-54.png",
+      "touch": {
+        "checked": 2,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Lot: AUG 21 2026\n×\nLot Code\nAUG 21 2026\nProduct\nGranola Classic 25 LB\nSource\npack_output\nOriginal Qty\n350 lb · 14 units\nOn Hand\n200 lb · 8 units\nTransaction Timeline\nOccurred: 2026-08-24 04:10 PM ET\nEntered: 2026-08-24 04:10 PM ET\nPACK 350 lb · 14 un"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 33
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-54.png",
+      "touch": {
+        "checked": 2,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Lot: AUG 21 2026\n×\nLot Code\nAUG 21 2026\nProduct\nGranola Classic 25 LB\nSource\npack_output\nOriginal Qty\n350 lb · 14 units\nOn Hand\n200 lb · 8 units\nTransaction Timeline\nOccurred: 2026-08-24 04:10 PM ET\nEntered: 2026-08-24 04:10 PM ET\nPACK 350 lb · 14 un"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 30
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-54.png",
+      "touch": {
+        "checked": 2,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Lot: AUG 21 2026\n×\nLot Code\nAUG 21 2026\nProduct\nGranola Classic 25 LB\nSource\npack_output\nOriginal Qty\n350 lb · 14 units\nOn Hand\n200 lb · 8 units\nTransaction Timeline\nOccurred: 2026-08-24 04:10 PM ET\nEntered: 2026-08-24 04:10 PM ET\nPACK 350 lb · 14 un"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 30
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/lot/AUG%2021%202026",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/lot/AUG%2021%202026",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:49:05.639Z"
+}

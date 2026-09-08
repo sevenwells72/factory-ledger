@@ -1,0 +1,13 @@
+import fs from 'node:fs/promises';import path from 'node:path';import {chromium} from 'playwright';import {protect,ORIGIN} from './safety.mjs';
+const out=path.resolve(import.meta.dirname,'../../../docs/design/audit/live-evidence');const b=await chromium.launch(),c=await b.newContext({viewport:{width:1280,height:800},serviceWorkers:'block'}),requests=[];await protect(c,requests);const p=await c.newPage();p.on('dialog',d=>d.dismiss());const results=[];
+try{
+ await p.goto(ORIGIN,{waitUntil:'domcontentloaded'});await p.waitForFunction(()=>document.querySelector('#last-refreshed')?.textContent.trim(),null,{timeout:40000});await p.locator('.tab[data-tab=activity]').click();await p.waitForTimeout(1000);
+ for(const [id,section] of [['S-17','#section-shipments'],['S-18','#section-receipts']]){
+  const h=p.locator(section+' .collapsible-header').first();if(!(await h.evaluate(e=>e.classList.contains('expanded'))))await h.click();await p.locator(section+' tbody tr').first().waitFor({state:'visible',timeout:12000});
+  const query=await p.locator(section+' tbody tr').first().locator('td').evaluateAll(cells=>cells.map(c=>c.innerText.trim()).reverse().find(t=>t.length>2&&!t.includes('\n'))||cells[0].innerText.trim().split('\n')[0]);
+  const count=()=>p.evaluate(({query,section})=>{getSelection().removeAllRanges();const seen=new Set();let matches=0;for(let i=0;i<500;i++){if(!window.find(query,false,false,true))break;const sel=getSelection();let e=sel.anchorNode?.parentElement;if(!e)break;const all=[...document.querySelectorAll('*')],key=all.indexOf(e)+':'+sel.anchorOffset+':'+sel.focusOffset;if(seen.has(key))break;seen.add(key);if(e.closest(section))matches++;}return {matches,allMatches:seen.size};},{query,section});
+  const expanded=await count();const initial=await h.getAttribute('class');await h.click();const firstClick=await h.getAttribute('class');const firstClickMatches=await count();if(await h.evaluate(e=>e.classList.contains('expanded')))await h.click();const collapsed=await count();const screenshot=`find-${id}-collapsed.png`;await p.screenshot({path:path.join(out,screenshot)});await h.click();const expandedAgain=await count();const shown=`find-${id}-expanded.png`;await p.screenshot({path:path.join(out,shown)});
+  results.push({id,section,query,initial,firstClick,firstClickMatches,expanded,collapsed,expandedAgain,screenshot,shown,method:'Browser window.find; matches are counted only when the selection belongs to the target section. Native toolbar UI was not exercised.'});
+ }
+ await fs.writeFile(path.join(out,'find.json'),JSON.stringify({at:new Date().toISOString(),results,requests},null,2));console.log(results);
+}finally{await c.close();await b.close();}

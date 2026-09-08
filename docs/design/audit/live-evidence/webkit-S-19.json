@@ -1,0 +1,1064 @@
+{
+  "harnessRevision": 2,
+  "id": "S-19",
+  "name": "Notes toolbar",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:30:28.955Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-19.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#notes-show-done",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 119.2,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#notes-show-done",
+            "id": "notes-show-done",
+            "label": "Show completed",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "All\nNotes\nTo-Dos\nReminders\nShow completed\n+ New"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "4",
+            "id": "notes-show-done",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-19.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#notes-show-done",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 119.2,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#notes-show-done",
+            "id": "notes-show-done",
+            "label": "Show completed",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "All\nNotes\nTo-Dos\nReminders\nShow completed\n+ New"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "4",
+            "id": "notes-show-done",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-19.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#notes-show-done",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 119.2,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#notes-show-done",
+            "id": "notes-show-done",
+            "label": "Show completed",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "All\nNotes\nTo-Dos\nReminders\nShow completed\n+ New"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "4",
+            "id": "notes-show-done",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-19.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#notes-show-done",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 119.2,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#notes-show-done",
+            "id": "notes-show-done",
+            "label": "Show completed",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "All\nNotes\nTo-Dos\nReminders\nShow completed\n+ New"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "4",
+            "id": "notes-show-done",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-19.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#notes-show-done",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 119.2,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#notes-show-done",
+            "id": "notes-show-done",
+            "label": "Show completed",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "All\nNotes\nTo-Dos\nReminders\nShow completed\n+ New"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "4",
+            "id": "notes-show-done",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-19.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#notes-show-done",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 119.2,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#notes-show-done",
+            "id": "notes-show-done",
+            "label": "Show completed",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "All\nNotes\nTo-Dos\nReminders\nShow completed\n+ New"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "4",
+            "id": "notes-show-done",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-19.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#notes-show-done",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 119.2,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#notes-show-done",
+            "id": "notes-show-done",
+            "label": "Show completed",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "All\nNotes\nTo-Dos\nReminders\nShow completed\n+ New"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "4",
+            "id": "notes-show-done",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-19.png",
+      "touch": {
+        "checked": 6,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "input#notes-show-done",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 119.2,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#notes-show-done",
+            "id": "notes-show-done",
+            "label": "Show completed",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "All\nNotes\nTo-Dos\nReminders\nShow completed\n+ New"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 6
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "4",
+            "id": "notes-show-done",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:30:36.224Z"
+}

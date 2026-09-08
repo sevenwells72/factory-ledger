@@ -1,0 +1,952 @@
+{
+  "harnessRevision": 2,
+  "id": "S-18",
+  "name": "Receiving log",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:30:21.105Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-18.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#recv-2201 > td > span.lot-link",
+            "label": "26-09-04-NATI-001",
+            "w": 122.8,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-receipts > div.collapsible-header.expanded",
+            "label": "Receiving",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.818359375,
+            "h": 13.96875,
+            "x": 37,
+            "y": 913.568359375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Receiving"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 unit"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 12:57 PM ET\nEntered: 2026-09-03 12:57 PM ET\nHoney\t6,000 lb · 2 units\tDutch Gold"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-28 09:08 AM ET\nEntered: 2026-08-28 09:08 AM ET\nOats\t43,750 lb · 875 units\tQUALI PA"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-26 01:30 PM ET\nEntered: 2026-08-26 01:30 PM ET\nDesiccated Macaroon Bakers 25 LB\t11"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Receiving\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tSUPPLIER\tBOL\n2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 units\tNation Harvest\t232435\nLots:\n26-09-04-NATI-001 — Sunflower Seeds: 5,500 lb\n\nCases: 110 x 50 lb\n20"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 20
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-18.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#recv-2201 > td > span.lot-link",
+            "label": "26-09-04-NATI-001",
+            "w": 122.8,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-receipts > div.collapsible-header.expanded",
+            "label": "Receiving",
+            "w": 356,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.818359375,
+            "h": 13.96875,
+            "x": 37,
+            "y": 913.568359375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Receiving"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 unit"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 12:57 PM ET\nEntered: 2026-09-03 12:57 PM ET\nHoney\t6,000 lb · 2 units\tDutch Gold"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-28 09:08 AM ET\nEntered: 2026-08-28 09:08 AM ET\nOats\t43,750 lb · 875 units\tQUALI PA"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-26 01:30 PM ET\nEntered: 2026-08-26 01:30 PM ET\nDesiccated Macaroon Bakers 25 LB\t11"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Receiving\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tSUPPLIER\tBOL\n2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 units\tNation Harvest\t232435\nLots:\n26-09-04-NATI-001 — Sunflower Seeds: 5,500 lb\n\nCases: 110 x 50 lb\n20"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 20
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-18.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#recv-2201 > td > span.lot-link",
+            "label": "26-09-04-NATI-001",
+            "w": 122.8,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-receipts > div.collapsible-header.expanded",
+            "label": "Receiving",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.818359375,
+            "h": 13.96875,
+            "x": 45,
+            "y": 268.818359375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Receiving"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 unit"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 12:57 PM ET\nEntered: 2026-09-03 12:57 PM ET\nHoney\t6,000 lb · 2 units\tDutch Gold"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-28 09:08 AM ET\nEntered: 2026-08-28 09:08 AM ET\nOats\t43,750 lb · 875 units\tQUALI PA"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-26 01:30 PM ET\nEntered: 2026-08-26 01:30 PM ET\nDesiccated Macaroon Bakers 25 LB\t11"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Receiving\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tSUPPLIER\tBOL\n2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 units\tNation Harvest\t232435\nLots:\n26-09-04-NATI-001 — Sunflower Seeds: 5,500 lb\n\nCases: 110 x 50 lb\n20"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 35
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-18.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#recv-2201 > td > span.lot-link",
+            "label": "26-09-04-NATI-001",
+            "w": 122.8,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-receipts > div.collapsible-header.expanded",
+            "label": "Receiving",
+            "w": 794,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.818359375,
+            "h": 13.96875,
+            "x": 45,
+            "y": 268.818359375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Receiving"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 unit"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 12:57 PM ET\nEntered: 2026-09-03 12:57 PM ET\nHoney\t6,000 lb · 2 units\tDutch Gold"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-28 09:08 AM ET\nEntered: 2026-08-28 09:08 AM ET\nOats\t43,750 lb · 875 units\tQUALI PA"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-26 01:30 PM ET\nEntered: 2026-08-26 01:30 PM ET\nDesiccated Macaroon Bakers 25 LB\t11"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Receiving\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tSUPPLIER\tBOL\n2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 units\tNation Harvest\t232435\nLots:\n26-09-04-NATI-001 — Sunflower Seeds: 5,500 lb\n\nCases: 110 x 50 lb\n20"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 35
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-18.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#recv-2201 > td > span.lot-link",
+            "label": "26-09-04-NATI-001",
+            "w": 122.8,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-receipts > div.collapsible-header.expanded",
+            "label": "Receiving",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.818359375,
+            "h": 13.96875,
+            "x": 37,
+            "y": 1119.568359375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Receiving"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 unit"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 12:57 PM ET\nEntered: 2026-09-03 12:57 PM ET\nHoney\t6,000 lb · 2 units\tDutch Gold"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-28 09:08 AM ET\nEntered: 2026-08-28 09:08 AM ET\nOats\t43,750 lb · 875 units\tQUALI PA"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-26 01:30 PM ET\nEntered: 2026-08-26 01:30 PM ET\nDesiccated Macaroon Bakers 25 LB\t11"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Receiving\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tSUPPLIER\tBOL\n2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 units\tNation Harvest\t232435\nLots:\n26-09-04-NATI-001 — Sunflower Seeds: 5,500 lb\n\nCases: 110 x 50 lb\n20"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 35
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-18.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#recv-2201 > td > span.lot-link",
+            "label": "26-09-04-NATI-001",
+            "w": 122.8,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-receipts > div.collapsible-header.expanded",
+            "label": "Receiving",
+            "w": 734,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.818359375,
+            "h": 13.96875,
+            "x": 37,
+            "y": 1119.568359375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Receiving"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 unit"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 12:57 PM ET\nEntered: 2026-09-03 12:57 PM ET\nHoney\t6,000 lb · 2 units\tDutch Gold"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-28 09:08 AM ET\nEntered: 2026-08-28 09:08 AM ET\nOats\t43,750 lb · 875 units\tQUALI PA"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-26 01:30 PM ET\nEntered: 2026-08-26 01:30 PM ET\nDesiccated Macaroon Bakers 25 LB\t11"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Receiving\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tSUPPLIER\tBOL\n2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 units\tNation Harvest\t232435\nLots:\n26-09-04-NATI-001 — Sunflower Seeds: 5,500 lb\n\nCases: 110 x 50 lb\n20"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 35
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-18.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#recv-2201 > td > span.lot-link",
+            "label": "26-09-04-NATI-001",
+            "w": 122.8,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-receipts > div.collapsible-header.expanded",
+            "label": "Receiving",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.818359375,
+            "h": 13.96875,
+            "x": 81,
+            "y": 750.021484375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Receiving"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 unit"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 12:57 PM ET\nEntered: 2026-09-03 12:57 PM ET\nHoney\t6,000 lb · 2 units\tDutch Gold"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-28 09:08 AM ET\nEntered: 2026-08-28 09:08 AM ET\nOats\t43,750 lb · 875 units\tQUALI PA"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-26 01:30 PM ET\nEntered: 2026-08-26 01:30 PM ET\nDesiccated Macaroon Bakers 25 LB\t11"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Receiving\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tSUPPLIER\tBOL\n2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 units\tNation Harvest\t232435\nLots:\n26-09-04-NATI-001 — Sunflower Seeds: 5,500 lb\n\nCases: 110 x 50 lb\n20"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 35
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-18.png",
+      "touch": {
+        "checked": 7,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+            "label": "Show all (96 more)",
+            "boxW": 111.7,
+            "boxH": 15,
+            "w": 111.7,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tr#recv-2201 > td > span.lot-link",
+            "label": "26-09-04-NATI-001",
+            "w": 122.8,
+            "h": 14,
+            "nested": false,
+            "tag": "span",
+            "cls": "lot-link"
+          },
+          {
+            "path": "section#section-receipts > div.collapsible-header.expanded",
+            "label": "Receiving",
+            "w": 1158,
+            "h": 42,
+            "nested": false,
+            "tag": "div",
+            "cls": "collapsible-header expanded"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 122.818359375,
+            "h": 13.96875,
+            "x": 81,
+            "y": 750.021484375,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [
+          {
+            "path": "div.collapsible-header.expanded",
+            "text": "Receiving"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 unit"
+          },
+          {
+            "path": "span.lot-link",
+            "text": "26-09-04-NATI-001"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-09-03 12:57 PM ET\nEntered: 2026-09-03 12:57 PM ET\nHoney\t6,000 lb · 2 units\tDutch Gold"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-28 09:08 AM ET\nEntered: 2026-08-28 09:08 AM ET\nOats\t43,750 lb · 875 units\tQUALI PA"
+          },
+          {
+            "path": "tr.expandable",
+            "text": "2026-08-26 01:30 PM ET\nEntered: 2026-08-26 01:30 PM ET\nDesiccated Macaroon Bakers 25 LB\t11"
+          }
+        ],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Receiving\nOCCURRED / ENTERED\tPRODUCT(S)\tQTY (LB)\tSUPPLIER\tBOL\n2026-09-04 11:18 AM ET\nEntered: 2026-09-04 11:18 AM ET\nSunflower Seeds\t5,500 lb · 110 units\tNation Harvest\t232435\nLots:\n26-09-04-NATI-001 — Sunflower Seeds: 5,500 lb\n\nCases: 110 x 50 lb\n20"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 35
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:30:28.955Z"
+}

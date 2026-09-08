@@ -1,0 +1,674 @@
+{
+  "harnessRevision": 2,
+  "id": "S-61",
+  "name": "Production lines grid",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/process-flow.html",
+  "started": "2026-09-08T17:37:05.426Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(26, 26, 46)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-61.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Granola Baking\nLast run: Sep 4\nIDLE\nWEIGH & MIX\n—\nlb in\nBAKE\n—\nbatches\nCOOL & BREAK\n—\nlb out\nPACK\n—\ncases\nCoconut Sweetened\nLast run: Sep 2\nIDLE\nHYDRATE\n—\nlb dry in\nSWEETEN & COAT\n—\nbatches\nDRY\n—\nlb out\nPACK\n—\ncases\nBulk Packing\nLast run: Sep 1\nIDLE\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 38
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(26, 26, 46)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-61.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Granola Baking\nLast run: Sep 4\nIDLE\nWEIGH & MIX\n—\nlb in\nBAKE\n—\nbatches\nCOOL & BREAK\n—\nlb out\nPACK\n—\ncases\nCoconut Sweetened\nLast run: Sep 2\nIDLE\nHYDRATE\n—\nlb dry in\nSWEETEN & COAT\n—\nbatches\nDRY\n—\nlb out\nPACK\n—\ncases\nBulk Packing\nLast run: Sep 1\nIDLE\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 2
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 38
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(26, 26, 46)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-61.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Granola Baking\nLast run: Sep 4\nIDLE\nWEIGH & MIX\n—\nlb in\nBAKE\n—\nbatches\nCOOL & BREAK\n—\nlb out\nPACK\n—\ncases\nCoconut Sweetened\nLast run: Sep 2\nIDLE\nHYDRATE\n—\nlb dry in\nSWEETEN & COAT\n—\nbatches\nDRY\n—\nlb out\nPACK\n—\ncases\nBulk Packing\nLast run: Sep 1\nIDLE\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 40
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(26, 26, 46)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-61.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Granola Baking\nLast run: Sep 4\nIDLE\nWEIGH & MIX\n—\nlb in\nBAKE\n—\nbatches\nCOOL & BREAK\n—\nlb out\nPACK\n—\ncases\nCoconut Sweetened\nLast run: Sep 2\nIDLE\nHYDRATE\n—\nlb dry in\nSWEETEN & COAT\n—\nbatches\nDRY\n—\nlb out\nPACK\n—\ncases\nBulk Packing\nLast run: Sep 1\nIDLE\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 40
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(26, 26, 46)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-61.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Granola Baking\nLast run: Sep 4\nIDLE\nWEIGH & MIX\n—\nlb in\nBAKE\n—\nbatches\nCOOL & BREAK\n—\nlb out\nPACK\n—\ncases\nCoconut Sweetened\nLast run: Sep 2\nIDLE\nHYDRATE\n—\nlb dry in\nSWEETEN & COAT\n—\nbatches\nDRY\n—\nlb out\nPACK\n—\ncases\nBulk Packing\nLast run: Sep 1\nIDLE\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 40
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(26, 26, 46)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-61.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Granola Baking\nLast run: Sep 4\nIDLE\nWEIGH & MIX\n—\nlb in\nBAKE\n—\nbatches\nCOOL & BREAK\n—\nlb out\nPACK\n—\ncases\nCoconut Sweetened\nLast run: Sep 2\nIDLE\nHYDRATE\n—\nlb dry in\nSWEETEN & COAT\n—\nbatches\nDRY\n—\nlb out\nPACK\n—\ncases\nBulk Packing\nLast run: Sep 1\nIDLE\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 40
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(26, 26, 46)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-61.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(91, 105, 126)",
+            "bg": "rgb(226, 232, 240)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Granola Baking\nLast run: Sep 4\nIDLE\nWEIGH & MIX\n—\nlb in\nBAKE\n—\nbatches\nCOOL & BREAK\n—\nlb out\nPACK\n—\ncases\nCoconut Sweetened\nLast run: Sep 2\nIDLE\nHYDRATE\n—\nlb dry in\nSWEETEN & COAT\n—\nbatches\nDRY\n—\nlb out\nPACK\n—\ncases\nBulk Packing\nLast run: Sep 1\nIDLE\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 40
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": true,
+        "dark": "rgb(26, 26, 46)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-61.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          },
+          {
+            "path": "span.badge.badge-idle",
+            "text": "IDLE",
+            "title": "",
+            "aria": null,
+            "color": "rgb(167, 167, 167)",
+            "bg": "rgb(58, 58, 78)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Granola Baking\nLast run: Sep 4\nIDLE\nWEIGH & MIX\n—\nlb in\nBAKE\n—\nbatches\nCOOL & BREAK\n—\nlb out\nPACK\n—\ncases\nCoconut Sweetened\nLast run: Sep 2\nIDLE\nHYDRATE\n—\nlb dry in\nSWEETEN & COAT\n—\nbatches\nDRY\n—\nlb out\nPACK\n—\ncases\nBulk Packing\nLast run: Sep 1\nIDLE\n"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 40
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:37:11.190Z"
+}

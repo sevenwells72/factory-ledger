@@ -1,0 +1,576 @@
+{
+  "harnessRevision": 2,
+  "id": "S-06",
+  "name": "Today So Far tile",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:28:44.566Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-06.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#today-tile-title",
+            "text": "Today So Far",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 253,
+            "h": 22.5,
+            "x": 29,
+            "y": 392.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)",
+            "width": 364
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)\n\nMADE\nGranola\n0 batches\nCoconut\n0 pans\nPACKED\n\nNo packing posted yet today."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 9
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-06.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#today-tile-title",
+            "text": "Today So Far",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 253,
+            "h": 22.5,
+            "x": 29,
+            "y": 392.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)",
+            "width": 364
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)\n\nMADE\nGranola\n0 batches\nCoconut\n0 pans\nPACKED\n\nNo packing posted yet today."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 9
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-06.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#today-tile-title",
+            "text": "Today So Far",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 253,
+            "h": 22.5,
+            "x": 37,
+            "y": 117.296875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)",
+            "width": 802
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)\n\nMADE\nGranola\n0 batches\nCoconut\n0 pans\nPACKED\n\nNo packing posted yet today."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 9
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-06.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#today-tile-title",
+            "text": "Today So Far",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 253,
+            "h": 22.5,
+            "x": 37,
+            "y": 117.296875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)",
+            "width": 802
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)\n\nMADE\nGranola\n0 batches\nCoconut\n0 pans\nPACKED\n\nNo packing posted yet today."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 9
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-06.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#today-tile-title",
+            "text": "Today So Far",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 253,
+            "h": 22.5,
+            "x": 29,
+            "y": 394.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)",
+            "width": 742
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)\n\nMADE\nGranola\n0 batches\nCoconut\n0 pans\nPACKED\n\nNo packing posted yet today."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 9
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-06.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#today-tile-title",
+            "text": "Today So Far",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 253,
+            "h": 22.5,
+            "x": 29,
+            "y": 394.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)",
+            "width": 742
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)\n\nMADE\nGranola\n0 batches\nCoconut\n0 pans\nPACKED\n\nNo packing posted yet today."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 9
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-06.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#today-tile-title",
+            "text": "Today So Far",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 253,
+            "h": 22.5,
+            "x": 77,
+            "y": 257.5,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)",
+            "width": 1158
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)\n\nMADE\nGranola\n0 batches\nCoconut\n0 pans\nPACKED\n\nNo packing posted yet today."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 9
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-06.png",
+      "touch": {
+        "checked": 0,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#today-tile-title",
+            "text": "Today So Far",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 253,
+            "h": 22.5,
+            "x": 77,
+            "y": 257.5,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)",
+            "width": 1158
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Today So Far\n\nPlant date: 2026-09-08 (America/New_York)\n\nMADE\nGranola\n0 batches\nCoconut\n0 pans\nPACKED\n\nNo packing posted yet today."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 9
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:28:51.042Z"
+}

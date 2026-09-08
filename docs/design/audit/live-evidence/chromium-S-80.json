@@ -1,0 +1,7528 @@
+{
+  "harnessRevision": 2,
+  "id": "S-80",
+  "name": "Left panel — Orders in / plans out",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/scheduler/seven-wells-production-board.html",
+  "started": "2026-09-08T17:48:04.973Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-80.png",
+      "touch": {
+        "checked": 32,
+        "failures": 32,
+        "failuresNotNested": 32,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 15,
+            "h": 15,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-loadjson",
+            "label": "Load scenario",
+            "w": 95.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-reset",
+            "label": "Reset everything",
+            "w": 110,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-csv",
+            "label": "Import orders CSV",
+            "w": 119.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "button#btn-sample",
+            "label": "Load sample orders",
+            "w": 126.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-exportcsv",
+            "label": "Export schedule CSV",
+            "w": 134.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-savejson",
+            "label": "Save scenario (JSON)",
+            "w": 139.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Finished goods on hand (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Bulk-bin WIP, baked lbs (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "How this works",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Product catalog (58 SKUs, 8 ⚠ flagged)",
+            "w": 217,
+            "h": 40,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Start date\ni",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Total workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Productive min/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Friday factor %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Changeover min/extra SKU\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 3 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day slow tier\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 4 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Allow 4th bake worker\ni",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Same-day WIP %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pan pool (shared)\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Sweetened cycles/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Min pans per run\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Coconut crew\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch bags/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack cases/day\n⚠\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "PLAN HORIZON\nStart date\ni\nLABOR\nTotal workers\ni\nProductive min/day\ni\nFriday factor %\ni\nChangeover min/extra SKU\ni\nGRANOLA BAKE\nPans/day @ 3 workers\ni\nPans/day slow tier\ni\nPans/day @ 4 workers\ni\nAllow 4th bake worker\ni\nSame-day WIP %\ni\nCOCONUT LINE\nPa"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 22
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 178
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-csv",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "btn-sample",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-80.png",
+      "touch": {
+        "checked": 32,
+        "failures": 32,
+        "failuresNotNested": 32,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 15,
+            "h": 15,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-loadjson",
+            "label": "Load scenario",
+            "w": 95.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-reset",
+            "label": "Reset everything",
+            "w": 110,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-csv",
+            "label": "Import orders CSV",
+            "w": 119.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "button#btn-sample",
+            "label": "Load sample orders",
+            "w": 126.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-exportcsv",
+            "label": "Export schedule CSV",
+            "w": 134.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-savejson",
+            "label": "Save scenario (JSON)",
+            "w": 139.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Finished goods on hand (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Bulk-bin WIP, baked lbs (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "How this works",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Product catalog (58 SKUs, 8 ⚠ flagged)",
+            "w": 217,
+            "h": 40,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Start date\ni",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Total workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Productive min/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Friday factor %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Changeover min/extra SKU\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 3 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day slow tier\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 4 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Allow 4th bake worker\ni",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Same-day WIP %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pan pool (shared)\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Sweetened cycles/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Min pans per run\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Coconut crew\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch bags/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack cases/day\n⚠\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "PLAN HORIZON\nStart date\ni\nLABOR\nTotal workers\ni\nProductive min/day\ni\nFriday factor %\ni\nChangeover min/extra SKU\ni\nGRANOLA BAKE\nPans/day @ 3 workers\ni\nPans/day slow tier\ni\nPans/day @ 4 workers\ni\nAllow 4th bake worker\ni\nSame-day WIP %\ni\nCOCONUT LINE\nPa"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 11
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 189
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-csv",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "btn-sample",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-80.png",
+      "touch": {
+        "checked": 32,
+        "failures": 32,
+        "failuresNotNested": 32,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 15,
+            "h": 15,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-loadjson",
+            "label": "Load scenario",
+            "w": 95.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-reset",
+            "label": "Reset everything",
+            "w": 110,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-csv",
+            "label": "Import orders CSV",
+            "w": 119.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "button#btn-sample",
+            "label": "Load sample orders",
+            "w": 126.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-exportcsv",
+            "label": "Export schedule CSV",
+            "w": 134.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-savejson",
+            "label": "Save scenario (JSON)",
+            "w": 139.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Finished goods on hand (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Bulk-bin WIP, baked lbs (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "How this works",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Product catalog (58 SKUs, 8 ⚠ flagged)",
+            "w": 217,
+            "h": 40,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Start date\ni",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Total workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Productive min/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Friday factor %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Changeover min/extra SKU\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 3 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day slow tier\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 4 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Allow 4th bake worker\ni",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Same-day WIP %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pan pool (shared)\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Sweetened cycles/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Min pans per run\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Coconut crew\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch bags/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack cases/day\n⚠\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PLAN HORIZON\nStart date\ni\nLABOR\nTotal workers\ni\nProductive min/day\ni\nFriday factor %\ni\nChangeover min/extra SKU\ni\nGRANOLA BAKE\nPans/day @ 3 workers\ni\nPans/day slow tier\ni\nPans/day @ 4 workers\ni\nAllow 4th bake worker\ni\nSame-day WIP %\ni\nCOCONUT LINE\nPa"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 11
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 189
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-csv",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "btn-sample",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-80.png",
+      "touch": {
+        "checked": 32,
+        "failures": 32,
+        "failuresNotNested": 32,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 15,
+            "h": 15,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-loadjson",
+            "label": "Load scenario",
+            "w": 95.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-reset",
+            "label": "Reset everything",
+            "w": 110,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-csv",
+            "label": "Import orders CSV",
+            "w": 119.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "button#btn-sample",
+            "label": "Load sample orders",
+            "w": 126.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-exportcsv",
+            "label": "Export schedule CSV",
+            "w": 134.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-savejson",
+            "label": "Save scenario (JSON)",
+            "w": 139.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Finished goods on hand (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Bulk-bin WIP, baked lbs (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "How this works",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Product catalog (58 SKUs, 8 ⚠ flagged)",
+            "w": 217,
+            "h": 40,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Start date\ni",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Total workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Productive min/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Friday factor %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Changeover min/extra SKU\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 3 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day slow tier\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 4 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Allow 4th bake worker\ni",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Same-day WIP %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pan pool (shared)\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Sweetened cycles/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Min pans per run\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Coconut crew\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch bags/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack cases/day\n⚠\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PLAN HORIZON\nStart date\ni\nLABOR\nTotal workers\ni\nProductive min/day\ni\nFriday factor %\ni\nChangeover min/extra SKU\ni\nGRANOLA BAKE\nPans/day @ 3 workers\ni\nPans/day slow tier\ni\nPans/day @ 4 workers\ni\nAllow 4th bake worker\ni\nSame-day WIP %\ni\nCOCONUT LINE\nPa"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 26
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 174
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-csv",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "btn-sample",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-80.png",
+      "touch": {
+        "checked": 32,
+        "failures": 32,
+        "failuresNotNested": 32,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 15,
+            "h": 15,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-loadjson",
+            "label": "Load scenario",
+            "w": 95.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-reset",
+            "label": "Reset everything",
+            "w": 110,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-csv",
+            "label": "Import orders CSV",
+            "w": 119.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "button#btn-sample",
+            "label": "Load sample orders",
+            "w": 126.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-exportcsv",
+            "label": "Export schedule CSV",
+            "w": 134.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-savejson",
+            "label": "Save scenario (JSON)",
+            "w": 139.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Finished goods on hand (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Bulk-bin WIP, baked lbs (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "How this works",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Product catalog (58 SKUs, 8 ⚠ flagged)",
+            "w": 217,
+            "h": 40,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Start date\ni",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Total workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Productive min/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Friday factor %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Changeover min/extra SKU\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 3 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day slow tier\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 4 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Allow 4th bake worker\ni",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Same-day WIP %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pan pool (shared)\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Sweetened cycles/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Min pans per run\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Coconut crew\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch bags/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack cases/day\n⚠\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PLAN HORIZON\nStart date\ni\nLABOR\nTotal workers\ni\nProductive min/day\ni\nFriday factor %\ni\nChangeover min/extra SKU\ni\nGRANOLA BAKE\nPans/day @ 3 workers\ni\nPans/day slow tier\ni\nPans/day @ 4 workers\ni\nAllow 4th bake worker\ni\nSame-day WIP %\ni\nCOCONUT LINE\nPa"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 181
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-csv",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "btn-sample",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-80.png",
+      "touch": {
+        "checked": 32,
+        "failures": 32,
+        "failuresNotNested": 32,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 15,
+            "h": 15,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-loadjson",
+            "label": "Load scenario",
+            "w": 95.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-reset",
+            "label": "Reset everything",
+            "w": 110,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-csv",
+            "label": "Import orders CSV",
+            "w": 119.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "button#btn-sample",
+            "label": "Load sample orders",
+            "w": 126.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-exportcsv",
+            "label": "Export schedule CSV",
+            "w": 134.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-savejson",
+            "label": "Save scenario (JSON)",
+            "w": 139.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Finished goods on hand (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Bulk-bin WIP, baked lbs (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "How this works",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Product catalog (58 SKUs, 8 ⚠ flagged)",
+            "w": 217,
+            "h": 40,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Start date\ni",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Total workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Productive min/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Friday factor %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Changeover min/extra SKU\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 3 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day slow tier\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 4 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Allow 4th bake worker\ni",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Same-day WIP %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pan pool (shared)\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Sweetened cycles/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Min pans per run\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Coconut crew\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch bags/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack cases/day\n⚠\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PLAN HORIZON\nStart date\ni\nLABOR\nTotal workers\ni\nProductive min/day\ni\nFriday factor %\ni\nChangeover min/extra SKU\ni\nGRANOLA BAKE\nPans/day @ 3 workers\ni\nPans/day slow tier\ni\nPans/day @ 4 workers\ni\nAllow 4th bake worker\ni\nSame-day WIP %\ni\nCOCONUT LINE\nPa"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 185
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-csv",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "btn-sample",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-80.png",
+      "touch": {
+        "checked": 32,
+        "failures": 32,
+        "failuresNotNested": 32,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 15,
+            "h": 15,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-loadjson",
+            "label": "Load scenario",
+            "w": 95.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-reset",
+            "label": "Reset everything",
+            "w": 110,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-csv",
+            "label": "Import orders CSV",
+            "w": 119.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "button#btn-sample",
+            "label": "Load sample orders",
+            "w": 126.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-exportcsv",
+            "label": "Export schedule CSV",
+            "w": 134.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-savejson",
+            "label": "Save scenario (JSON)",
+            "w": 139.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Finished goods on hand (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Bulk-bin WIP, baked lbs (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "How this works",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Product catalog (58 SKUs, 8 ⚠ flagged)",
+            "w": 217,
+            "h": 40,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Start date\ni",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Total workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Productive min/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Friday factor %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Changeover min/extra SKU\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 3 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day slow tier\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 4 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Allow 4th bake worker\ni",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Same-day WIP %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pan pool (shared)\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Sweetened cycles/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Min pans per run\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Coconut crew\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch bags/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack cases/day\n⚠\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PLAN HORIZON\nStart date\ni\nLABOR\nTotal workers\ni\nProductive min/day\ni\nFriday factor %\ni\nChangeover min/extra SKU\ni\nGRANOLA BAKE\nPans/day @ 3 workers\ni\nPans/day slow tier\ni\nPans/day @ 4 workers\ni\nAllow 4th bake worker\ni\nSame-day WIP %\ni\nCOCONUT LINE\nPa"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 185
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-csv",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "btn-sample",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-80.png",
+      "touch": {
+        "checked": 32,
+        "failures": 32,
+        "failuresNotNested": 32,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 15,
+            "h": 15,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 68,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-loadjson",
+            "label": "Load scenario",
+            "w": 95.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-reset",
+            "label": "Reset everything",
+            "w": 110,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > div.ctl > input",
+            "label": "",
+            "w": 116,
+            "h": 25,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          },
+          {
+            "path": "button#btn-csv",
+            "label": "Import orders CSV",
+            "w": 119.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "button#btn-sample",
+            "label": "Load sample orders",
+            "w": 126.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-exportcsv",
+            "label": "Export schedule CSV",
+            "w": 134.1,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#btn-savejson",
+            "label": "Save scenario (JSON)",
+            "w": 139.4,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Finished goods on hand (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Bulk-bin WIP, baked lbs (0)",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "How this works",
+            "w": 217,
+            "h": 23,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          },
+          {
+            "path": "div#leftpanel > details > summary",
+            "label": "Product catalog (58 SKUs, 8 ⚠ flagged)",
+            "w": 217,
+            "h": 40,
+            "nested": false,
+            "tag": "summary",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Start date\ni",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Total workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Productive min/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Friday factor %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Changeover min/extra SKU\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 3 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day slow tier\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pans/day @ 4 workers\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Allow 4th bake worker\ni",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Same-day WIP %\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pan pool (shared)\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Sweetened cycles/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Min pans per run\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Coconut crew\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch bags/day\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Pouch crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "10-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb boxes/day",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "25-lb crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack cases/day\n⚠\ni",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.",
+            "id": "",
+            "label": "Repack crew",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "PLAN HORIZON\nStart date\ni\nLABOR\nTotal workers\ni\nProductive min/day\ni\nFriday factor %\ni\nChangeover min/extra SKU\ni\nGRANOLA BAKE\nPans/day @ 3 workers\ni\nPans/day slow tier\ni\nPans/day @ 4 workers\ni\nAllow 4th bake worker\ni\nSame-day WIP %\ni\nCOCONUT LINE\nPa"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 12
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 188
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "14",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "15",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "16",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "17",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "18",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "19",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "20",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "21",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SUMMARY",
+            "key": null,
+            "inside": true
+          },
+          {
+            "id": "btn-csv",
+            "tag": "BUTTON",
+            "key": "22",
+            "inside": true
+          },
+          {
+            "id": "btn-sample",
+            "tag": "BUTTON",
+            "key": "23",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:48:19.186Z"
+}

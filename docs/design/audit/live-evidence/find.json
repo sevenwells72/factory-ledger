@@ -1,0 +1,203 @@
+{
+  "at": "2026-09-08T17:48:36.401Z",
+  "results": [
+    {
+      "id": "S-17",
+      "section": "#section-shipments",
+      "query": "David Rosen Bakery Supply",
+      "initial": "collapsible-header expanded",
+      "firstClick": "collapsible-header expanded",
+      "firstClickMatches": {
+        "matches": 2,
+        "allMatches": 2
+      },
+      "expanded": {
+        "matches": 2,
+        "allMatches": 2
+      },
+      "collapsed": {
+        "matches": 0,
+        "allMatches": 0
+      },
+      "expandedAgain": {
+        "matches": 2,
+        "allMatches": 2
+      },
+      "screenshot": "find-S-17-collapsed.png",
+      "shown": "find-S-17-expanded.png",
+      "method": "Browser window.find; matches are counted only when the selection belongs to the target section. Native toolbar UI was not exercised."
+    },
+    {
+      "id": "S-18",
+      "section": "#section-receipts",
+      "query": "232435",
+      "initial": "collapsible-header expanded",
+      "firstClick": "collapsible-header expanded",
+      "firstClickMatches": {
+        "matches": 1,
+        "allMatches": 1
+      },
+      "expanded": {
+        "matches": 1,
+        "allMatches": 1
+      },
+      "collapsed": {
+        "matches": 0,
+        "allMatches": 0
+      },
+      "expandedAgain": {
+        "matches": 1,
+        "allMatches": 1
+      },
+      "screenshot": "find-S-18-collapsed.png",
+      "shown": "find-S-18-expanded.png",
+      "method": "Browser window.find; matches are counted only when the selection belongs to the target section. Native toolbar UI was not exercised."
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/interaction.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/fetch-timeout.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/pallet-calculations.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/production/today-tile",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/production",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/finished-goods",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/batches",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/ingredients",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/shipments",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/daily-entries",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/notes",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/audit/integrity",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supplies/inventory",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supply-requests",
+      "blocked": false
+    }
+  ]
+}

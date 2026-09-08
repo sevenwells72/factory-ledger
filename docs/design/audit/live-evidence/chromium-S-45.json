@@ -1,0 +1,2107 @@
+{
+  "harnessRevision": 2,
+  "id": "S-45",
+  "name": "Dialog / Form — Expected Receipt create/edit modal",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:33:52.700Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-45.png",
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-product-search",
+            "id": "er-product-search",
+            "label": "Product",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Type to search products...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-supplier",
+            "id": "er-supplier",
+            "label": "Supplier",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-qty",
+            "id": "er-qty",
+            "label": "Expected qty (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "e.g. 2000",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-date",
+            "id": "er-date",
+            "label": "Expected date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-reference",
+            "id": "er-reference",
+            "label": "Reference # (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Supplier order / confirmation #",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-notes",
+            "id": "er-notes",
+            "label": "Notes (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the receiver should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Expected Receipt\n×\nProduct\nSupplier\n— select supplier —\nA1 Baker\nA1 Bakery\nA1 Bakery Supply\nAcme Foods\nBarry Callebaut\nBlender Warehouse\nBlue Stripes\nCBS Food\nCreative Foods\nDavid Rosen\nDUTC Valley\nDutch Gold\nDutch Gold Honey\nDutch Valley\nDutch V"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-product-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "er-supplier",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "er-qty",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-reference",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "er-notes",
+            "tag": "TEXTAREA",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "er-save-btn",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-product-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-reference",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-notes",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-45.png",
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-product-search",
+            "id": "er-product-search",
+            "label": "Product",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Type to search products...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-supplier",
+            "id": "er-supplier",
+            "label": "Supplier",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-qty",
+            "id": "er-qty",
+            "label": "Expected qty (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "e.g. 2000",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-date",
+            "id": "er-date",
+            "label": "Expected date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-reference",
+            "id": "er-reference",
+            "label": "Reference # (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Supplier order / confirmation #",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-notes",
+            "id": "er-notes",
+            "label": "Notes (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the receiver should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Expected Receipt\n×\nProduct\nSupplier\n— select supplier —\nA1 Baker\nA1 Bakery\nA1 Bakery Supply\nAcme Foods\nBarry Callebaut\nBlender Warehouse\nBlue Stripes\nCBS Food\nCreative Foods\nDavid Rosen\nDUTC Valley\nDutch Gold\nDutch Gold Honey\nDutch Valley\nDutch V"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-product-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "er-supplier",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "er-qty",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-reference",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "er-notes",
+            "tag": "TEXTAREA",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "er-save-btn",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-product-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-reference",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-notes",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-45.png",
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-product-search",
+            "id": "er-product-search",
+            "label": "Product",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Type to search products...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-supplier",
+            "id": "er-supplier",
+            "label": "Supplier",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-qty",
+            "id": "er-qty",
+            "label": "Expected qty (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "e.g. 2000",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-date",
+            "id": "er-date",
+            "label": "Expected date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-reference",
+            "id": "er-reference",
+            "label": "Reference # (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Supplier order / confirmation #",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-notes",
+            "id": "er-notes",
+            "label": "Notes (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the receiver should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "New Expected Receipt\n×\nProduct\nSupplier\n— select supplier —\nA1 Baker\nA1 Bakery\nA1 Bakery Supply\nAcme Foods\nBarry Callebaut\nBlender Warehouse\nBlue Stripes\nCBS Food\nCreative Foods\nDavid Rosen\nDUTC Valley\nDutch Gold\nDutch Gold Honey\nDutch Valley\nDutch V"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-product-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "er-supplier",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "er-qty",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-reference",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "er-notes",
+            "tag": "TEXTAREA",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "er-save-btn",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-product-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-reference",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-notes",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-45.png",
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-product-search",
+            "id": "er-product-search",
+            "label": "Product",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Type to search products...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-supplier",
+            "id": "er-supplier",
+            "label": "Supplier",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-qty",
+            "id": "er-qty",
+            "label": "Expected qty (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "e.g. 2000",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-date",
+            "id": "er-date",
+            "label": "Expected date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-reference",
+            "id": "er-reference",
+            "label": "Reference # (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Supplier order / confirmation #",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-notes",
+            "id": "er-notes",
+            "label": "Notes (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the receiver should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "New Expected Receipt\n×\nProduct\nSupplier\n— select supplier —\nA1 Baker\nA1 Bakery\nA1 Bakery Supply\nAcme Foods\nBarry Callebaut\nBlender Warehouse\nBlue Stripes\nCBS Food\nCreative Foods\nDavid Rosen\nDUTC Valley\nDutch Gold\nDutch Gold Honey\nDutch Valley\nDutch V"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 18
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-product-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "er-supplier",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "er-qty",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-reference",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "er-notes",
+            "tag": "TEXTAREA",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "er-save-btn",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-product-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-reference",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-notes",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-45.png",
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-product-search",
+            "id": "er-product-search",
+            "label": "Product",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Type to search products...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-supplier",
+            "id": "er-supplier",
+            "label": "Supplier",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-qty",
+            "id": "er-qty",
+            "label": "Expected qty (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "e.g. 2000",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-date",
+            "id": "er-date",
+            "label": "Expected date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-reference",
+            "id": "er-reference",
+            "label": "Reference # (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Supplier order / confirmation #",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-notes",
+            "id": "er-notes",
+            "label": "Notes (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the receiver should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Expected Receipt\n×\nProduct\nSupplier\n— select supplier —\nA1 Baker\nA1 Bakery\nA1 Bakery Supply\nAcme Foods\nBarry Callebaut\nBlender Warehouse\nBlue Stripes\nCBS Food\nCreative Foods\nDavid Rosen\nDUTC Valley\nDutch Gold\nDutch Gold Honey\nDutch Valley\nDutch V"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-product-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "er-supplier",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "er-qty",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-reference",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "er-notes",
+            "tag": "TEXTAREA",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "er-save-btn",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-product-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-reference",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-notes",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-45.png",
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-product-search",
+            "id": "er-product-search",
+            "label": "Product",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Type to search products...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-supplier",
+            "id": "er-supplier",
+            "label": "Supplier",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-qty",
+            "id": "er-qty",
+            "label": "Expected qty (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "e.g. 2000",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-date",
+            "id": "er-date",
+            "label": "Expected date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-reference",
+            "id": "er-reference",
+            "label": "Reference # (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Supplier order / confirmation #",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-notes",
+            "id": "er-notes",
+            "label": "Notes (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the receiver should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Expected Receipt\n×\nProduct\nSupplier\n— select supplier —\nA1 Baker\nA1 Bakery\nA1 Bakery Supply\nAcme Foods\nBarry Callebaut\nBlender Warehouse\nBlue Stripes\nCBS Food\nCreative Foods\nDavid Rosen\nDUTC Valley\nDutch Gold\nDutch Gold Honey\nDutch Valley\nDutch V"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-product-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "er-supplier",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "er-qty",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-reference",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "er-notes",
+            "tag": "TEXTAREA",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "er-save-btn",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-product-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-reference",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-notes",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-45.png",
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-product-search",
+            "id": "er-product-search",
+            "label": "Product",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Type to search products...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-supplier",
+            "id": "er-supplier",
+            "label": "Supplier",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-qty",
+            "id": "er-qty",
+            "label": "Expected qty (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "e.g. 2000",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-date",
+            "id": "er-date",
+            "label": "Expected date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-reference",
+            "id": "er-reference",
+            "label": "Reference # (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Supplier order / confirmation #",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-notes",
+            "id": "er-notes",
+            "label": "Notes (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the receiver should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Expected Receipt\n×\nProduct\nSupplier\n— select supplier —\nA1 Baker\nA1 Bakery\nA1 Bakery Supply\nAcme Foods\nBarry Callebaut\nBlender Warehouse\nBlue Stripes\nCBS Food\nCreative Foods\nDavid Rosen\nDUTC Valley\nDutch Gold\nDutch Gold Honey\nDutch Valley\nDutch V"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-product-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "er-supplier",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "er-qty",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-reference",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "er-notes",
+            "tag": "TEXTAREA",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "er-save-btn",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-product-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-reference",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-notes",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-45.png",
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-product-search",
+            "id": "er-product-search",
+            "label": "Product",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Type to search products...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-supplier",
+            "id": "er-supplier",
+            "label": "Supplier",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-qty",
+            "id": "er-qty",
+            "label": "Expected qty (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "e.g. 2000",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-date",
+            "id": "er-date",
+            "label": "Expected date (optional)",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-reference",
+            "id": "er-reference",
+            "label": "Reference # (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Supplier order / confirmation #",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-notes",
+            "id": "er-notes",
+            "label": "Notes (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the receiver should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "New Expected Receipt\n×\nProduct\nSupplier\n— select supplier —\nA1 Baker\nA1 Bakery\nA1 Bakery Supply\nAcme Foods\nBarry Callebaut\nBlender Warehouse\nBlue Stripes\nCBS Food\nCreative Foods\nDavid Rosen\nDUTC Valley\nDutch Gold\nDutch Gold Honey\nDutch Valley\nDutch V"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 19
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "PASS",
+        "missing": [],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-product-search",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "er-supplier",
+            "tag": "SELECT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "er-qty",
+            "tag": "INPUT",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-date",
+            "tag": "INPUT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "er-reference",
+            "tag": "INPUT",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "er-notes",
+            "tag": "TEXTAREA",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "er-save-btn",
+            "tag": "BUTTON",
+            "key": "7",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-product-search",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-date",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-reference",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "er-notes",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/suppliers",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/suppliers",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:34:02.471Z"
+}

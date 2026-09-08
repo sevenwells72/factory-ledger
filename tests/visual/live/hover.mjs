@@ -1,0 +1,9 @@
+import fs from 'node:fs/promises';import path from 'node:path';import {chromium} from 'playwright';import AxeBuilder from '@axe-core/playwright';import {protect,ORIGIN} from './safety.mjs';import {SCREENS,setup} from './screens.mjs';import {CHECK_SOURCE} from '../lib/checks.mjs';
+const out=path.resolve(import.meta.dirname,'../../../docs/design/audit/live-evidence');const browser=await chromium.launch();const context=await browser.newContext({viewport:{width:1280,height:800},colorScheme:'dark',serviceWorkers:'block'});const requests=[];await protect(context,requests);const page=await context.newPage();page.on('dialog',d=>d.dismiss());
+try{
+ await page.goto(ORIGIN,{waitUntil:'domcontentloaded'});await setup(page,SCREENS.find(s=>s.id==='S-33'));await page.evaluate(()=>document.documentElement.dataset.theme='dark');
+ const button=page.locator('.order-save-header-btn');await button.scrollIntoViewIfNeeded();await button.hover();await page.waitForTimeout(600);
+ const colors=await button.evaluate(e=>({text:getComputedStyle(e).color,background:getComputedStyle(e).backgroundColor,font:getComputedStyle(e).fontSize,hover:e.matches(':hover')}));
+ await page.screenshot({path:path.join(out,'hover-S-33-dark.png')});const a=await new AxeBuilder({page}).include('.order-save-header-btn').withRules(['color-contrast']).analyze();await page.addScriptTag({content:CHECK_SOURCE});const contrast=await page.evaluate(()=>window.__FL_AUDIT.contrast('#order-detail-view'));
+ await fs.writeFile(path.join(out,'hover.json'),JSON.stringify({at:new Date().toISOString(),colors,axe:a.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary,checks:n.any.map(c=>c.data)}))})),contrast,requests,guards:await page.evaluate(()=>window.__auditGuard),screenshot:'hover-S-33-dark.png'},null,2));console.log(colors,a.violations.map(x=>x.id));
+}finally{await context.close();await browser.close();}

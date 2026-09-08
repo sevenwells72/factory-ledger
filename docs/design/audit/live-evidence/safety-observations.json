@@ -1,0 +1,21 @@
+{
+  "discoveryBlockedRequests": [
+    {
+      "method": "POST",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/ship/preview",
+      "blocked": true,
+      "engine": "chromium",
+      "screen": "S-39"
+    },
+    {
+      "method": "POST",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/ship/preview",
+      "blocked": true,
+      "engine": "webkit",
+      "screen": "S-39"
+    }
+  ],
+  "explanation": "The shipping-capacity preview control calls a POST read-preview endpoint. The route guard aborted it before transmission in both engines. S-39 is subsequently recaptured as unavailable under the GET-only audit policy. Enter can synthesize an Allocate click; capture-phase guards cancel that before application handlers. No business write was transmitted."
+}

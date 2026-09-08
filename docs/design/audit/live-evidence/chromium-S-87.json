@@ -1,0 +1,490 @@
+{
+  "harnessRevision": 2,
+  "id": "S-87",
+  "name": "Right panel — Order book",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/scheduler/seven-wells-production-board.html",
+  "started": "2026-09-08T17:41:01.947Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-87.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-87.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 3
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-87.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-87.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-87.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-87.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-87.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-87.png",
+      "touch": {
+        "checked": 1,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#btn-addorder",
+            "label": "+ Add order line",
+            "w": 315,
+            "h": 26,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "ORDER BOOK (0)\nI\n+ Add order line\nNo open orders yet. Import a CSV or load the sample orders from the left panel to see the board come alive."
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 4
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:41:07.392Z"
+}

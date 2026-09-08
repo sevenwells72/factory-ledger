@@ -1,0 +1,1609 @@
+{
+  "harnessRevision": 2,
+  "id": "S-41",
+  "name": "Expected Receipts toolbar",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:33:32.312Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-41.png",
+      "touch": {
+        "checked": 5,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [
+          {
+            "path": "input#er-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": [
+          {
+            "path": "select#er-status-filter",
+            "label": "Open Closed Cancelled All",
+            "w": 93,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "orders-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-status-filter",
+            "id": "er-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-text-filter",
+            "id": "er-text-filter",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by product / supplier / reference...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-overdue-only",
+            "id": "er-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Overdue only\n+ New Expected Receipt\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 5
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "er-overdue-only",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-text-filter",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-41.png",
+      "touch": {
+        "checked": 5,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [
+          {
+            "path": "input#er-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": [
+          {
+            "path": "select#er-status-filter",
+            "label": "Open Closed Cancelled All",
+            "w": 93,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "orders-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-status-filter",
+            "id": "er-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-text-filter",
+            "id": "er-text-filter",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by product / supplier / reference...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-overdue-only",
+            "id": "er-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Overdue only\n+ New Expected Receipt\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 5
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "er-overdue-only",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-text-filter",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-41.png",
+      "touch": {
+        "checked": 5,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [
+          {
+            "path": "input#er-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": [
+          {
+            "path": "select#er-status-filter",
+            "label": "Open Closed Cancelled All",
+            "w": 93,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "orders-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-status-filter",
+            "id": "er-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-text-filter",
+            "id": "er-text-filter",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by product / supplier / reference...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-overdue-only",
+            "id": "er-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Overdue only\n+ New Expected Receipt\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 5
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "er-overdue-only",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-text-filter",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-41.png",
+      "touch": {
+        "checked": 5,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [
+          {
+            "path": "input#er-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": [
+          {
+            "path": "select#er-status-filter",
+            "label": "Open Closed Cancelled All",
+            "w": 93,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "orders-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-status-filter",
+            "id": "er-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-text-filter",
+            "id": "er-text-filter",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by product / supplier / reference...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-overdue-only",
+            "id": "er-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 169,
+        "regionText": "Overdue only\n+ New Expected Receipt\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 5
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "er-overdue-only",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-text-filter",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-41.png",
+      "touch": {
+        "checked": 5,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [
+          {
+            "path": "input#er-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": [
+          {
+            "path": "select#er-status-filter",
+            "label": "Open Closed Cancelled All",
+            "w": 93,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "orders-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-status-filter",
+            "id": "er-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-text-filter",
+            "id": "er-text-filter",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by product / supplier / reference...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-overdue-only",
+            "id": "er-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Overdue only\n+ New Expected Receipt\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 5
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "er-overdue-only",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-text-filter",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-41.png",
+      "touch": {
+        "checked": 5,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [
+          {
+            "path": "input#er-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": [
+          {
+            "path": "select#er-status-filter",
+            "label": "Open Closed Cancelled All",
+            "w": 93,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "orders-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-status-filter",
+            "id": "er-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-text-filter",
+            "id": "er-text-filter",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by product / supplier / reference...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-overdue-only",
+            "id": "er-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Overdue only\n+ New Expected Receipt\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 5
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "er-overdue-only",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-text-filter",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-41.png",
+      "touch": {
+        "checked": 5,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [
+          {
+            "path": "input#er-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": [
+          {
+            "path": "select#er-status-filter",
+            "label": "Open Closed Cancelled All",
+            "w": 93,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "orders-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-status-filter",
+            "id": "er-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-text-filter",
+            "id": "er-text-filter",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by product / supplier / reference...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-overdue-only",
+            "id": "er-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Overdue only\n+ New Expected Receipt\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 5
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "er-overdue-only",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-text-filter",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-41.png",
+      "touch": {
+        "checked": 5,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [
+          {
+            "path": "input#er-overdue-only",
+            "label": "",
+            "boxW": 20,
+            "boxH": 20,
+            "w": 100,
+            "h": 44,
+            "hitVia": "label"
+          }
+        ],
+        "worst": [
+          {
+            "path": "select#er-status-filter",
+            "label": "Open Closed Cancelled All",
+            "w": 93,
+            "h": 21,
+            "nested": false,
+            "tag": "select",
+            "cls": "orders-select"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#er-status-filter",
+            "id": "er-status-filter",
+            "label": "",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-text-filter",
+            "id": "er-text-filter",
+            "label": "",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Filter by product / supplier / reference...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#er-overdue-only",
+            "id": "er-overdue-only",
+            "label": "Overdue only",
+            "type": "checkbox",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Overdue only\n+ New Expected Receipt\nRefresh"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 5
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "2",
+            "id": "er-overdue-only",
+            "tag": "INPUT",
+            "type": "checkbox",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "er-status-filter",
+            "tag": "SELECT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "er-text-filter",
+            "tag": "INPUT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "er-text-filter",
+            "type": "text",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    }
+  ],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:33:40.173Z"
+}

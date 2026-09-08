@@ -1,0 +1,15 @@
+{
+  "name": "factory-ledger-live-visual-audit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "audit:live": "node live/run.mjs",
+    "browsers": "playwright install chromium webkit",
+    "test": "node --test live/*.test.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "playwright": "1.63.0"
+  }
+}

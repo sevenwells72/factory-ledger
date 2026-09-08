@@ -1,0 +1,1410 @@
+{
+  "harnessRevision": 2,
+  "id": "S-86",
+  "name": "Dialog / Form — Pin modal",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/scheduler/seven-wells-production-board.html",
+  "started": "2026-09-08T17:46:06.643Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-86.png",
+      "touch": {
+        "checked": 5,
+        "failures": 5,
+        "failuresNotNested": 5,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#pin-cancel",
+            "label": "Cancel",
+            "w": 58.8,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "select#pin-crew",
+            "label": "auto0 workers3 workers4 workers",
+            "w": 110,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "button#pin-clear",
+            "label": "Clear pins",
+            "w": 76.6,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#pin-save",
+            "label": "Pin & replan",
+            "w": 88.1,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "input#pin-qty",
+            "label": "",
+            "w": 110,
+            "h": 23,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#pin-qty",
+            "id": "pin-qty",
+            "label": "Force quantity (pans) i",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "auto",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#pin-crew",
+            "id": "pin-crew",
+            "label": "Crew for granola bake this day",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "Pin — Granola Bake\nTue 9/8 · planned: nothing · day bottleneck: Demand-limited (capacity idle)\nForce quantity (pans) i\nCrew for granola bake this day\nNo quantity pin — the optimizer decides. You can still pin the crew.\nClear pins\nCancel\nPin & replan"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 11
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "pin-qty",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "pin-crew",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "pin-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-86.png",
+      "touch": {
+        "checked": 5,
+        "failures": 5,
+        "failuresNotNested": 5,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#pin-cancel",
+            "label": "Cancel",
+            "w": 58.8,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "select#pin-crew",
+            "label": "auto0 workers3 workers4 workers",
+            "w": 110,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "button#pin-clear",
+            "label": "Clear pins",
+            "w": 76.6,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#pin-save",
+            "label": "Pin & replan",
+            "w": 88.1,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "input#pin-qty",
+            "label": "",
+            "w": 110,
+            "h": 23,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#pin-qty",
+            "id": "pin-qty",
+            "label": "Force quantity (pans) i",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "auto",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#pin-crew",
+            "id": "pin-crew",
+            "label": "Crew for granola bake this day",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 190,
+        "regionText": "Pin — Granola Bake\nTue 9/8 · planned: nothing · day bottleneck: Demand-limited (capacity idle)\nForce quantity (pans) i\nCrew for granola bake this day\nNo quantity pin — the optimizer decides. You can still pin the crew.\nClear pins\nCancel\nPin & replan"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 11
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "pin-qty",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "pin-crew",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "pin-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-86.png",
+      "touch": {
+        "checked": 5,
+        "failures": 5,
+        "failuresNotNested": 5,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#pin-cancel",
+            "label": "Cancel",
+            "w": 58.8,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "select#pin-crew",
+            "label": "auto0 workers3 workers4 workers",
+            "w": 110,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "button#pin-clear",
+            "label": "Clear pins",
+            "w": 76.6,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#pin-save",
+            "label": "Pin & replan",
+            "w": 88.1,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "input#pin-qty",
+            "label": "",
+            "w": 110,
+            "h": 23,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#pin-qty",
+            "id": "pin-qty",
+            "label": "Force quantity (pans) i",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "auto",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#pin-crew",
+            "id": "pin-crew",
+            "label": "Crew for granola bake this day",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Pin — Granola Bake\nTue 9/8 · planned: nothing · day bottleneck: Demand-limited (capacity idle)\nForce quantity (pans) i\nCrew for granola bake this day\nNo quantity pin — the optimizer decides. You can still pin the crew.\nClear pins\nCancel\nPin & replan"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 11
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "pin-qty",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "pin-crew",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "pin-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-86.png",
+      "touch": {
+        "checked": 5,
+        "failures": 5,
+        "failuresNotNested": 5,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#pin-cancel",
+            "label": "Cancel",
+            "w": 58.8,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "select#pin-crew",
+            "label": "auto0 workers3 workers4 workers",
+            "w": 110,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "button#pin-clear",
+            "label": "Clear pins",
+            "w": 76.6,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#pin-save",
+            "label": "Pin & replan",
+            "w": 88.1,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "input#pin-qty",
+            "label": "",
+            "w": 110,
+            "h": 23,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#pin-qty",
+            "id": "pin-qty",
+            "label": "Force quantity (pans) i",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "auto",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#pin-crew",
+            "id": "pin-crew",
+            "label": "Crew for granola bake this day",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Pin — Granola Bake\nTue 9/8 · planned: nothing · day bottleneck: Demand-limited (capacity idle)\nForce quantity (pans) i\nCrew for granola bake this day\nNo quantity pin — the optimizer decides. You can still pin the crew.\nClear pins\nCancel\nPin & replan"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 11
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "pin-qty",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "pin-crew",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "pin-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-86.png",
+      "touch": {
+        "checked": 5,
+        "failures": 5,
+        "failuresNotNested": 5,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#pin-cancel",
+            "label": "Cancel",
+            "w": 58.8,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "select#pin-crew",
+            "label": "auto0 workers3 workers4 workers",
+            "w": 110,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "button#pin-clear",
+            "label": "Clear pins",
+            "w": 76.6,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#pin-save",
+            "label": "Pin & replan",
+            "w": 88.1,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "input#pin-qty",
+            "label": "",
+            "w": 110,
+            "h": 23,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#pin-qty",
+            "id": "pin-qty",
+            "label": "Force quantity (pans) i",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "auto",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#pin-crew",
+            "id": "pin-crew",
+            "label": "Crew for granola bake this day",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Pin — Granola Bake\nTue 9/8 · planned: nothing · day bottleneck: Demand-limited (capacity idle)\nForce quantity (pans) i\nCrew for granola bake this day\nNo quantity pin — the optimizer decides. You can still pin the crew.\nClear pins\nCancel\nPin & replan"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "pin-qty",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "pin-crew",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "pin-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-86.png",
+      "touch": {
+        "checked": 5,
+        "failures": 5,
+        "failuresNotNested": 5,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#pin-cancel",
+            "label": "Cancel",
+            "w": 58.8,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "select#pin-crew",
+            "label": "auto0 workers3 workers4 workers",
+            "w": 110,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "button#pin-clear",
+            "label": "Clear pins",
+            "w": 76.6,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#pin-save",
+            "label": "Pin & replan",
+            "w": 88.1,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "input#pin-qty",
+            "label": "",
+            "w": 110,
+            "h": 23,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#pin-qty",
+            "id": "pin-qty",
+            "label": "Force quantity (pans) i",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "auto",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#pin-crew",
+            "id": "pin-crew",
+            "label": "Crew for granola bake this day",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Pin — Granola Bake\nTue 9/8 · planned: nothing · day bottleneck: Demand-limited (capacity idle)\nForce quantity (pans) i\nCrew for granola bake this day\nNo quantity pin — the optimizer decides. You can still pin the crew.\nClear pins\nCancel\nPin & replan"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 10
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "pin-qty",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "pin-crew",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "pin-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-86.png",
+      "touch": {
+        "checked": 5,
+        "failures": 5,
+        "failuresNotNested": 5,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#pin-cancel",
+            "label": "Cancel",
+            "w": 58.8,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "select#pin-crew",
+            "label": "auto0 workers3 workers4 workers",
+            "w": 110,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "button#pin-clear",
+            "label": "Clear pins",
+            "w": 76.6,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#pin-save",
+            "label": "Pin & replan",
+            "w": 88.1,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "input#pin-qty",
+            "label": "",
+            "w": 110,
+            "h": 23,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#pin-qty",
+            "id": "pin-qty",
+            "label": "Force quantity (pans) i",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "auto",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#pin-crew",
+            "id": "pin-crew",
+            "label": "Crew for granola bake this day",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Pin — Granola Bake\nTue 9/8 · planned: nothing · day bottleneck: Demand-limited (capacity idle)\nForce quantity (pans) i\nCrew for granola bake this day\nNo quantity pin — the optimizer decides. You can still pin the crew.\nClear pins\nCancel\nPin & replan"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 11
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "pin-qty",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "pin-crew",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "pin-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(244, 243, 238)",
+        "light": "rgb(244, 243, 238)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-86.png",
+      "touch": {
+        "checked": 5,
+        "failures": 5,
+        "failuresNotNested": 5,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#pin-cancel",
+            "label": "Cancel",
+            "w": 58.8,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "select#pin-crew",
+            "label": "auto0 workers3 workers4 workers",
+            "w": 110,
+            "h": 18,
+            "nested": false,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "button#pin-clear",
+            "label": "Clear pins",
+            "w": 76.6,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act sec"
+          },
+          {
+            "path": "button#pin-save",
+            "label": "Pin & replan",
+            "w": 88.1,
+            "h": 27,
+            "nested": false,
+            "tag": "button",
+            "cls": "act"
+          },
+          {
+            "path": "input#pin-qty",
+            "label": "",
+            "w": 110,
+            "h": 23,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#pin-qty",
+            "id": "pin-qty",
+            "label": "Force quantity (pans) i",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "auto",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#pin-crew",
+            "id": "pin-crew",
+            "label": "Crew for granola bake this day",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Pin — Granola Bake\nTue 9/8 · planned: nothing · day bottleneck: Demand-limited (capacity idle)\nForce quantity (pans) i\nCrew for granola bake this day\nNo quantity pin — the optimizer decides. You can still pin the crew.\nClear pins\nCancel\nPin & replan"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 11
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "pin-qty",
+            "tag": "INPUT",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "pin-crew",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "pin-qty",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:46:16.083Z"
+}

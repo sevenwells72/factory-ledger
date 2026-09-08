@@ -1,0 +1,1566 @@
+{
+  "harnessRevision": 2,
+  "id": "S-53",
+  "name": "Dialog / Form — Request Supply modal",
+  "engine": "webkit",
+  "browserVersion": "26.6",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:48:43.013Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/390x844-light/S-53.png",
+      "touch": {
+        "checked": 8,
+        "failures": 2,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#supply-request-product",
+            "label": "Select a product...AlluloseAlmonds – DicedAlm…",
+            "w": 340,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#supply-request-requested-by",
+            "label": "Select a person... Arturo Luz MG Other",
+            "w": 340,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#supply-request-product",
+            "id": "supply-request-product",
+            "label": "Product",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-qty",
+            "id": "supply-request-qty",
+            "label": "Quantity (optional)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-note",
+            "id": "supply-request-note",
+            "label": "Note (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the office should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-requested-by",
+            "id": "supply-request-requested-by",
+            "label": "Requested by",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Request Supply\n×\nProduct\nSelect a product...\nAllulose\nAlmonds – Diced\nAlmonds – Sliced\nAlmonds – Slivered\nBag – Printed – BS Almond Butter 7 oz\nBag – Printed – BS Dark Chocolate 7 oz\nBag – Printed – BS Hazelnut Butter 7 oz\nBag – Printed – BS Peanut B"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "supply-request-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "supply-request-product",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "supply-request-qty",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "supply-request-note",
+            "tag": "TEXTAREA",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "supply-request-requested-by",
+            "tag": "SELECT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "supplies-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "TR",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "supply-request-qty",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "supply-request-note",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/390x844-dark/S-53.png",
+      "touch": {
+        "checked": 8,
+        "failures": 2,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#supply-request-product",
+            "label": "Select a product...AlluloseAlmonds – DicedAlm…",
+            "w": 340,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#supply-request-requested-by",
+            "label": "Select a person... Arturo Luz MG Other",
+            "w": 340,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#supply-request-product",
+            "id": "supply-request-product",
+            "label": "Product",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-qty",
+            "id": "supply-request-qty",
+            "label": "Quantity (optional)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-note",
+            "id": "supply-request-note",
+            "label": "Note (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the office should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-requested-by",
+            "id": "supply-request-requested-by",
+            "label": "Requested by",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Request Supply\n×\nProduct\nSelect a product...\nAllulose\nAlmonds – Diced\nAlmonds – Sliced\nAlmonds – Slivered\nBag – Printed – BS Almond Butter 7 oz\nBag – Printed – BS Dark Chocolate 7 oz\nBag – Printed – BS Hazelnut Butter 7 oz\nBag – Printed – BS Peanut B"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "supply-request-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "supply-request-product",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "supply-request-qty",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "supply-request-note",
+            "tag": "TEXTAREA",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "supply-request-requested-by",
+            "tag": "SELECT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "supplies-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "TR",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "supply-request-qty",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "supply-request-note",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/844x390-light/S-53.png",
+      "touch": {
+        "checked": 8,
+        "failures": 2,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#supply-request-requested-by",
+            "label": "Select a person... Arturo Luz MG Other",
+            "w": 229,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#supply-request-product",
+            "label": "Select a product...AlluloseAlmonds – DicedAlm…",
+            "w": 470,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#supply-request-product",
+            "id": "supply-request-product",
+            "label": "Product",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-qty",
+            "id": "supply-request-qty",
+            "label": "Quantity (optional)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-note",
+            "id": "supply-request-note",
+            "label": "Note (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the office should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-requested-by",
+            "id": "supply-request-requested-by",
+            "label": "Requested by",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 172,
+        "regionText": "Request Supply\n×\nProduct\nSelect a product...\nAllulose\nAlmonds – Diced\nAlmonds – Sliced\nAlmonds – Slivered\nBag – Printed – BS Almond Butter 7 oz\nBag – Printed – BS Dark Chocolate 7 oz\nBag – Printed – BS Hazelnut Butter 7 oz\nBag – Printed – BS Peanut B"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "supply-request-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "supply-request-product",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "supply-request-qty",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "supply-request-note",
+            "tag": "TEXTAREA",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "supply-request-requested-by",
+            "tag": "SELECT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "supplies-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "TR",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "supply-request-qty",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "supply-request-note",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/844x390-dark/S-53.png",
+      "touch": {
+        "checked": 8,
+        "failures": 2,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#supply-request-requested-by",
+            "label": "Select a person... Arturo Luz MG Other",
+            "w": 229,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#supply-request-product",
+            "label": "Select a product...AlluloseAlmonds – DicedAlm…",
+            "w": 470,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#supply-request-product",
+            "id": "supply-request-product",
+            "label": "Product",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-qty",
+            "id": "supply-request-qty",
+            "label": "Quantity (optional)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-note",
+            "id": "supply-request-note",
+            "label": "Note (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the office should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-requested-by",
+            "id": "supply-request-requested-by",
+            "label": "Requested by",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 172,
+        "regionText": "Request Supply\n×\nProduct\nSelect a product...\nAllulose\nAlmonds – Diced\nAlmonds – Sliced\nAlmonds – Slivered\nBag – Printed – BS Almond Butter 7 oz\nBag – Printed – BS Dark Chocolate 7 oz\nBag – Printed – BS Hazelnut Butter 7 oz\nBag – Printed – BS Peanut B"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "count": 1
+          }
+        ],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 16
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "supply-request-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "supply-request-product",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "supply-request-qty",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "supply-request-note",
+            "tag": "TEXTAREA",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "supply-request-requested-by",
+            "tag": "SELECT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "supplies-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "TR",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "supply-request-qty",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "supply-request-note",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-light/S-53.png",
+      "touch": {
+        "checked": 8,
+        "failures": 2,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#supply-request-product",
+            "label": "Select a product...AlluloseAlmonds – DicedAlm…",
+            "w": 518,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#supply-request-requested-by",
+            "label": "Select a person... Arturo Luz MG Other",
+            "w": 518,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#supply-request-product",
+            "id": "supply-request-product",
+            "label": "Product",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-qty",
+            "id": "supply-request-qty",
+            "label": "Quantity (optional)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-note",
+            "id": "supply-request-note",
+            "label": "Note (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the office should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-requested-by",
+            "id": "supply-request-requested-by",
+            "label": "Requested by",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Request Supply\n×\nProduct\nSelect a product...\nAllulose\nAlmonds – Diced\nAlmonds – Sliced\nAlmonds – Slivered\nBag – Printed – BS Almond Butter 7 oz\nBag – Printed – BS Dark Chocolate 7 oz\nBag – Printed – BS Hazelnut Butter 7 oz\nBag – Printed – BS Peanut B"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "supply-request-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "supply-request-product",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "supply-request-qty",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "supply-request-note",
+            "tag": "TEXTAREA",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "supply-request-requested-by",
+            "tag": "SELECT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "supplies-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "TR",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "supply-request-qty",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "supply-request-note",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/768x1024-dark/S-53.png",
+      "touch": {
+        "checked": 8,
+        "failures": 2,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#supply-request-product",
+            "label": "Select a product...AlluloseAlmonds – DicedAlm…",
+            "w": 518,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#supply-request-requested-by",
+            "label": "Select a person... Arturo Luz MG Other",
+            "w": 518,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#supply-request-product",
+            "id": "supply-request-product",
+            "label": "Product",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-qty",
+            "id": "supply-request-qty",
+            "label": "Quantity (optional)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-note",
+            "id": "supply-request-note",
+            "label": "Note (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the office should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-requested-by",
+            "id": "supply-request-requested-by",
+            "label": "Requested by",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Request Supply\n×\nProduct\nSelect a product...\nAllulose\nAlmonds – Diced\nAlmonds – Sliced\nAlmonds – Slivered\nBag – Printed – BS Almond Butter 7 oz\nBag – Printed – BS Dark Chocolate 7 oz\nBag – Printed – BS Hazelnut Butter 7 oz\nBag – Printed – BS Peanut B"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "supply-request-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "supply-request-product",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "supply-request-qty",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "supply-request-note",
+            "tag": "TEXTAREA",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "supply-request-requested-by",
+            "tag": "SELECT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "supplies-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "TR",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "supply-request-qty",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "supply-request-note",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-light/S-53.png",
+      "touch": {
+        "checked": 8,
+        "failures": 2,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#supply-request-requested-by",
+            "label": "Select a person... Arturo Luz MG Other",
+            "w": 233,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#supply-request-product",
+            "label": "Select a product...AlluloseAlmonds – DicedAlm…",
+            "w": 478,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#supply-request-product",
+            "id": "supply-request-product",
+            "label": "Product",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-qty",
+            "id": "supply-request-qty",
+            "label": "Quantity (optional)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-note",
+            "id": "supply-request-note",
+            "label": "Note (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the office should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-requested-by",
+            "id": "supply-request-requested-by",
+            "label": "Requested by",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Request Supply\n×\nProduct\nSelect a product...\nAllulose\nAlmonds – Diced\nAlmonds – Sliced\nAlmonds – Slivered\nBag – Printed – BS Almond Butter 7 oz\nBag – Printed – BS Dark Chocolate 7 oz\nBag – Printed – BS Hazelnut Butter 7 oz\nBag – Printed – BS Peanut B"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "supply-request-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "supply-request-product",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "supply-request-qty",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "supply-request-note",
+            "tag": "TEXTAREA",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "supply-request-requested-by",
+            "tag": "SELECT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "supplies-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "TR",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "supply-request-qty",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "supply-request-note",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/webkit/1280x800-dark/S-53.png",
+      "touch": {
+        "checked": 8,
+        "failures": 2,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "select#supply-request-requested-by",
+            "label": "Select a person... Arturo Luz MG Other",
+            "w": 233,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          },
+          {
+            "path": "select#supply-request-product",
+            "label": "Select a product...AlluloseAlmonds – DicedAlm…",
+            "w": 478,
+            "h": 21,
+            "nested": true,
+            "tag": "select",
+            "cls": ""
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "#supply-request-product",
+            "id": "supply-request-product",
+            "label": "Product",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-qty",
+            "id": "supply-request-qty",
+            "label": "Quantity (optional)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-note",
+            "id": "supply-request-note",
+            "label": "Note (optional)",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "Anything the office should know...",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "#supply-request-requested-by",
+            "id": "supply-request-requested-by",
+            "label": "Requested by",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Request Supply\n×\nProduct\nSelect a product...\nAllulose\nAlmonds – Diced\nAlmonds – Sliced\nAlmonds – Slivered\nBag – Printed – BS Almond Butter 7 oz\nBag – Printed – BS Dark Chocolate 7 oz\nBag – Printed – BS Hazelnut Butter 7 oz\nBag – Printed – BS Peanut B"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 17
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [],
+        "escaped": true,
+        "sequence": [
+          {
+            "id": "supply-request-modal-close",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "supply-request-product",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "supply-request-qty",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "supply-request-note",
+            "tag": "TEXTAREA",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "supply-request-requested-by",
+            "tag": "SELECT",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BODY",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "global-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "supplies-search",
+            "tag": "INPUT",
+            "key": null,
+            "inside": false
+          },
+          {
+            "id": "",
+            "tag": "TR",
+            "key": null,
+            "inside": false
+          }
+        ],
+        "enter": [
+          {
+            "id": "supply-request-qty",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "supply-request-note",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "supply-request-submit-btn"
+    }
+  ],
+  "requests": [],
+  "responses": [],
+  "dialogs": [],
+  "finished": "2026-09-08T17:48:54.853Z"
+}

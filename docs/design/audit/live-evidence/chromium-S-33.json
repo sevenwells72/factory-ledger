@@ -1,0 +1,3401 @@
+{
+  "harnessRevision": 2,
+  "id": "S-33",
+  "name": "Form — Order Detail edit mode",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:32:17.797Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-33.png",
+      "touch": {
+        "checked": 16,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tr.order-line-edit-row > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-qty-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-qty-input"
+          },
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-price-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-price-input"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.order-status-select",
+            "id": "",
+            "label": "Order status",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-edit-ship-date",
+            "id": "",
+            "label": "Ship By:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-qty-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-price-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "textarea.order-edit-input.order-edit-notes",
+            "id": "",
+            "label": "",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "← Back to Orders\nSO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue Stripes\nOrder Date: 06/29/26\nShip By:\nSave Header\nSave Lines\nDone\nBLOCKED\nComputed from effective shipments, posted inventory, alloc"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 56
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "15",
+            "id": "",
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "order-back-btn",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-33.png",
+      "touch": {
+        "checked": 16,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tr.order-line-edit-row > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-qty-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-qty-input"
+          },
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-price-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-price-input"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.order-status-select",
+            "id": "",
+            "label": "Order status",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-edit-ship-date",
+            "id": "",
+            "label": "Ship By:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-qty-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-price-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "textarea.order-edit-input.order-edit-notes",
+            "id": "",
+            "label": "",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "← Back to Orders\nSO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue Stripes\nOrder Date: 06/29/26\nShip By:\nSave Header\nSave Lines\nDone\nBLOCKED\nComputed from effective shipments, posted inventory, alloc"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 56
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "15",
+            "id": "",
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "order-back-btn",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-33.png",
+      "touch": {
+        "checked": 16,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tr.order-line-edit-row > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-qty-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-qty-input"
+          },
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-price-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-price-input"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.order-status-select",
+            "id": "",
+            "label": "Order status",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-edit-ship-date",
+            "id": "",
+            "label": "Ship By:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-qty-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-price-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "textarea.order-edit-input.order-edit-notes",
+            "id": "",
+            "label": "",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "#section-order-detail",
+            "width": 802,
+            "scrollWidth": 809,
+            "text": "SO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue"
+          }
+        ],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "← Back to Orders\nSO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue Stripes\nOrder Date: 06/29/26\nShip By:\nSave Header\nSave Lines\nDone\nBLOCKEDComputed from effective shipments, posted inventory, alloca"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 69
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "15",
+            "id": "",
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "order-back-btn",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-33.png",
+      "touch": {
+        "checked": 16,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tr.order-line-edit-row > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-qty-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-qty-input"
+          },
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-price-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-price-input"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.order-status-select",
+            "id": "",
+            "label": "Order status",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-edit-ship-date",
+            "id": "",
+            "label": "Ship By:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-qty-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-price-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "textarea.order-edit-input.order-edit-notes",
+            "id": "",
+            "label": "",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "#section-order-detail",
+            "width": 802,
+            "scrollWidth": 809,
+            "text": "SO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue"
+          }
+        ],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 163,
+        "regionText": "← Back to Orders\nSO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue Stripes\nOrder Date: 06/29/26\nShip By:\nSave Header\nSave Lines\nDone\nBLOCKEDComputed from effective shipments, posted inventory, alloca"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 69
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "15",
+            "id": "",
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "order-back-btn",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-33.png",
+      "touch": {
+        "checked": 16,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tr.order-line-edit-row > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-qty-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-qty-input"
+          },
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-price-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-price-input"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.order-status-select",
+            "id": "",
+            "label": "Order status",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-edit-ship-date",
+            "id": "",
+            "label": "Ship By:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-qty-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-price-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "textarea.order-edit-input.order-edit-notes",
+            "id": "",
+            "label": "",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "← Back to Orders\nSO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue Stripes\nOrder Date: 06/29/26\nShip By:\nSave Header\nSave Lines\nDone\nBLOCKED\nComputed from effective shipments, posted inventory, alloc"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 64
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "15",
+            "id": "",
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "order-back-btn",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-33.png",
+      "touch": {
+        "checked": 16,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tr.order-line-edit-row > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-qty-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-qty-input"
+          },
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-price-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-price-input"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.order-status-select",
+            "id": "",
+            "label": "Order status",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-edit-ship-date",
+            "id": "",
+            "label": "Ship By:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-qty-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-price-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "textarea.order-edit-input.order-edit-notes",
+            "id": "",
+            "label": "",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "← Back to Orders\nSO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue Stripes\nOrder Date: 06/29/26\nShip By:\nSave Header\nSave Lines\nDone\nBLOCKED\nComputed from effective shipments, posted inventory, alloc"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 64
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "15",
+            "id": "",
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "order-back-btn",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-33.png",
+      "touch": {
+        "checked": 16,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tr.order-line-edit-row > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-qty-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-qty-input"
+          },
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-price-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-price-input"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.order-status-select",
+            "id": "",
+            "label": "Order status",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-edit-ship-date",
+            "id": "",
+            "label": "Ship By:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-qty-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-price-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "textarea.order-edit-input.order-edit-notes",
+            "id": "",
+            "label": "",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(153, 27, 27)",
+            "bg": "color(srgb 0.862745 0.14902 0.14902 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "← Back to Orders\nSO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue Stripes\nOrder Date: 06/29/26\nShip By:\nSave Header\nSave Lines\nDone\nBLOCKEDComputed from effective shipments, posted inventory, alloca"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 71
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "15",
+            "id": "",
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "order-back-btn",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-33.png",
+      "touch": {
+        "checked": 16,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [
+          {
+            "path": "tr.order-line-edit-row > td > div.order-product-cell > button.btn-sm.order-inventory-toggle",
+            "label": "Inventory",
+            "boxW": 71.4,
+            "boxH": 24,
+            "w": 71.4,
+            "h": 44,
+            "hitVia": "pseudo"
+          }
+        ],
+        "worst": [
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-qty-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-qty-input"
+          },
+          {
+            "path": "tbody > tr.order-line-edit-row > td.num.order-edit-num-cell > input.order-edit-input.order-line-price-input",
+            "label": "",
+            "w": 110,
+            "h": 33.5,
+            "nested": false,
+            "tag": "input",
+            "cls": "order-edit-input order-line-price-input"
+          }
+        ]
+      },
+      "dom": {
+        "inputs": [
+          {
+            "path": "select.order-status-select",
+            "id": "",
+            "label": "Order status",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-edit-ship-date",
+            "id": "",
+            "label": "Ship By:",
+            "type": "date",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "date",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-qty-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.order-edit-input.order-line-price-input",
+            "id": "",
+            "label": "",
+            "type": "number",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-line-select",
+            "id": "",
+            "label": "Order line\n70073 · BS Granola – Peanut Butter Banana – 6x7 OZ Case · 10,368 lb unallocated",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "select.allocation-mode-select",
+            "id": "",
+            "label": "Method\nManual · SKU level\nManual · specific lot\nAuto FIFO · 48h TTL",
+            "type": "select-one",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-quantity-input",
+            "id": "",
+            "label": "Quantity (lb)",
+            "type": "number",
+            "inputmode": "decimal",
+            "placeholder": "",
+            "expected": "numeric/decimal",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "input.allocation-note-input",
+            "id": "",
+            "label": "Note (optional)",
+            "type": "text",
+            "inputmode": "",
+            "placeholder": "Why this stock is reserved",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          },
+          {
+            "path": "textarea.order-edit-input.order-edit-notes",
+            "id": "",
+            "label": "",
+            "type": "textarea",
+            "inputmode": "",
+            "placeholder": "",
+            "expected": "text/selection",
+            "mismatch": false,
+            "disabled": false,
+            "tabindex": 0
+          }
+        ],
+        "wrap": [],
+        "statuses": [
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage",
+            "title": "Stock shortage",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated",
+            "title": "Not allocated",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Factory Ready not set",
+            "title": "Factory Ready not set",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Stock shortage\nShort 10368.0000 lb of posted cover",
+            "title": "Short 10368.0000 lb of posted cover",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          },
+          {
+            "path": "span.readiness-chip.severity-block",
+            "text": "Not allocated\n10368.0000 lb remains with no allocation",
+            "title": "10368.0000 lb remains with no allocation",
+            "aria": null,
+            "color": "rgb(252, 165, 165)",
+            "bg": "color(srgb 0.945098 0.380392 0.380392 / 0.14)"
+          }
+        ],
+        "colorOnly": [],
+        "clipping": [],
+        "headers": [],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "← Back to Orders\nSO-260629-003\nNew\nConfirmed\nIn Production\nReady to Ship\nPartial Ship\nShipped\nInvoiced\nCancelled\nBlue Stripes\nOrder Date: 06/29/26\nShip By:\nSave Header\nSave Lines\nDone\nBLOCKEDComputed from effective shipments, posted inventory, alloca"
+      },
+      "axe": {
+        "violations": [
+          {
+            "id": "color-contrast",
+            "nodes": [
+              {
+                "target": [
+                  ".order-save-header-btn"
+                ],
+                "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.54 (foreground color: #ffffff, background color: #60a5fa, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1",
+                "checks": [
+                  {
+                    "fgColor": "#ffffff",
+                    "bgColor": "#60a5fa",
+                    "contrastRatio": 2.54,
+                    "fontSize": "9.8pt (13px)",
+                    "fontWeight": "normal",
+                    "messageKey": null,
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 70
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "FAIL",
+        "missing": [
+          {
+            "key": "15",
+            "id": "",
+            "tag": "TEXTAREA",
+            "type": "textarea",
+            "tab": 0
+          }
+        ],
+        "escaped": false,
+        "sequence": [
+          {
+            "id": "order-back-btn",
+            "tag": "BUTTON",
+            "key": "0",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "1",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "2",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "3",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "4",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "5",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "6",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "7",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "8",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "9",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "SELECT",
+            "key": "10",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "11",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "INPUT",
+            "key": "12",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "13",
+            "inside": true
+          },
+          {
+            "id": "",
+            "tag": "BUTTON",
+            "key": "14",
+            "inside": true
+          }
+        ],
+        "enter": [
+          {
+            "id": "",
+            "type": "date",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": false,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "number",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "text",
+            "guarded": true,
+            "textChanged": false,
+            "newline": false
+          },
+          {
+            "id": "",
+            "type": "textarea",
+            "guarded": false,
+            "textChanged": false,
+            "newline": true
+          }
+        ],
+        "scope": "Tab reachability in rendered state; business sequence and committing completion are not certified"
+      }
+    }
+  ],
+  "guards": [
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    },
+    {
+      "kind": "blocked-click",
+      "target": "Allocate"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:32:32.023Z"
+}

@@ -1,0 +1,219 @@
+{
+  "at": "2026-09-08T17:38:02.573Z",
+  "colors": {
+    "text": "rgb(255, 255, 255)",
+    "background": "rgb(96, 165, 250)",
+    "font": "13px",
+    "hover": true
+  },
+  "axe": [
+    {
+      "id": "color-contrast",
+      "nodes": [
+        {
+          "target": [
+            ".order-save-header-btn"
+          ],
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.54 (foreground color: #ffffff, background color: #60a5fa, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1",
+          "checks": [
+            {
+              "fgColor": "#ffffff",
+              "bgColor": "#60a5fa",
+              "contrastRatio": 2.54,
+              "fontSize": "9.8pt (13px)",
+              "fontWeight": "normal",
+              "messageKey": null,
+              "expectedContrastRatio": "4.5:1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "contrast": {
+    "checked": 65,
+    "placeholdersChecked": 1,
+    "placeholderFailures": 0,
+    "failures": 1,
+    "indeterminate": 0,
+    "worst": [
+      {
+        "path": "div#order-detail-container > div.order-detail-header > div.order-detail-actions > button.btn-refresh.order-save-header-btn",
+        "text": "Save Header",
+        "ratio": 2.54,
+        "target": 4.5,
+        "fontPx": 13,
+        "weight": 500,
+        "fg": "rgb(255, 255, 255)",
+        "bg": "rgb(96, 165, 250)",
+        "opacity": 1
+      }
+    ]
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/interaction.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/fetch-timeout.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/pallet-calculations.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/production/today-tile",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/production",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/finished-goods",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/batches",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/ingredients",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/shipments",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/daily-entries",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/notes",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/audit/integrity",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supplies/inventory",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supply-requests",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders/238/allocations",
+      "blocked": false
+    }
+  ],
+  "guards": [],
+  "screenshot": "hover-S-33-dark.png"
+}

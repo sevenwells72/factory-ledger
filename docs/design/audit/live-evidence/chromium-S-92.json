@@ -1,0 +1,2082 @@
+{
+  "harnessRevision": 2,
+  "id": "S-92",
+  "name": "Needs Attention strip (post-inventory; IMP-068/071)",
+  "engine": "chromium",
+  "browserVersion": "153.0.8010.12",
+  "url": "https://cns-factory-ledger.netlify.app/index.html",
+  "started": "2026-09-08T17:41:31.087Z",
+  "records": [
+    {
+      "variant": "390x844-light",
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/390x844-light/S-92.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#attention-strip-title",
+            "text": "Needs Attention",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 73.75,
+            "h": 45,
+            "x": 29,
+            "y": 392.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "#attention-strip-note",
+            "text": "Counts of unhandled items. Select one to open the view that resolves it.",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 258.25,
+            "h": 36,
+            "x": 102.75,
+            "y": 397.296875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue receipts",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 475.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue orders",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 527.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Dispatch blocked",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 579.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Low stock",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 631.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Supply requests",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 683.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "To-dos due",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 735.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Refresh failures",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 787.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 184,
+            "text": "0 overdue expected receipts"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 147,
+            "text": "9 overdue sales orders"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 92,
+            "text": "not loaded yet"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 162,
+            "text": "0 low-stock supply items"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 151,
+            "text": "0 open supply requests"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 197,
+            "text": "0 to-do due today or overdues"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 185,
+            "text": "0 failed background refreshs"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.",
+            "width": 364
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.\n\n0\nOverdue receipts\n0 overdue expected receipts\n9\nOverdue orders\n9 overdue sales orders\n—\nDispatch blocked\nnot loaded yet\n0\nLow stock\n0 low-stock supply items\n0"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "390x844-dark",
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/390x844-dark/S-92.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#attention-strip-title",
+            "text": "Needs Attention",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 73.75,
+            "h": 45,
+            "x": 29,
+            "y": 392.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "#attention-strip-note",
+            "text": "Counts of unhandled items. Select one to open the view that resolves it.",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 258.25,
+            "h": 36,
+            "x": 102.75,
+            "y": 397.296875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue receipts",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 475.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue orders",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 527.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Dispatch blocked",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 579.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Low stock",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 631.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Supply requests",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 683.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "To-dos due",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 735.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Refresh failures",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 218.328125,
+            "h": 14.375,
+            "x": 111.671875,
+            "y": 787.609375,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 184,
+            "text": "0 overdue expected receipts"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 147,
+            "text": "9 overdue sales orders"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 92,
+            "text": "not loaded yet"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 162,
+            "text": "0 low-stock supply items"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 151,
+            "text": "0 open supply requests"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 197,
+            "text": "0 to-do due today or overdues"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 185,
+            "text": "0 failed background refreshs"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.",
+            "width": 364
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.\n\n0\nOverdue receipts\n0 overdue expected receipts\n9\nOverdue orders\n9 overdue sales orders\n—\nDispatch blocked\nnot loaded yet\n0\nLow stock\n0 low-stock supply items\n0"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-light",
+      "width": 844,
+      "height": 390,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/844x390-light/S-92.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#attention-strip-title",
+            "text": "Needs Attention",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 116.015625,
+            "h": 22.5,
+            "x": 37,
+            "y": 116.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "#attention-strip-note",
+            "text": "Counts of unhandled items. Select one to open the view that resolves it.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 406.25,
+            "h": 18,
+            "x": 400.75,
+            "y": 119.046875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue receipts",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 123.671875,
+            "y": 178.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue orders",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 383,
+            "y": 178.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Dispatch blocked",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 642.328125,
+            "y": 178.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Low stock",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 123.671875,
+            "y": 230.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Supply requests",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 383,
+            "y": 230.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "To-dos due",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 642.328125,
+            "y": 230.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Refresh failures",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 123.671875,
+            "y": 282.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 184,
+            "text": "0 overdue expected receipts"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 147,
+            "text": "9 overdue sales orders"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 92,
+            "text": "not loaded yet"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 162,
+            "text": "0 low-stock supply items"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 151,
+            "text": "0 open supply requests"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 197,
+            "text": "0 to-do due today or overdues"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 185,
+            "text": "0 failed background refreshs"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.",
+            "width": 802
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 159,
+        "regionText": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.\n\n0\nOverdue receipts\n0 overdue expected receipts\n9\nOverdue orders\n9 overdue sales orders\n—\nDispatch blocked\nnot loaded yet\n0\nLow stock\n0 low-stock supply items\n0"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "844x390-dark",
+      "width": 844,
+      "height": 390,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/844x390-dark/S-92.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#attention-strip-title",
+            "text": "Needs Attention",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 116.015625,
+            "h": 22.5,
+            "x": 37,
+            "y": 116.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "#attention-strip-note",
+            "text": "Counts of unhandled items. Select one to open the view that resolves it.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 406.25,
+            "h": 18,
+            "x": 400.75,
+            "y": 119.046875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue receipts",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 123.671875,
+            "y": 178.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue orders",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 383,
+            "y": 178.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Dispatch blocked",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 642.328125,
+            "y": 178.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Low stock",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 123.671875,
+            "y": 230.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Supply requests",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 383,
+            "y": 230.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "To-dos due",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 642.328125,
+            "y": 230.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Refresh failures",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 129.65625,
+            "h": 15,
+            "x": 123.671875,
+            "y": 282.796875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 184,
+            "text": "0 overdue expected receipts"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 147,
+            "text": "9 overdue sales orders"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 92,
+            "text": "not loaded yet"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 162,
+            "text": "0 low-stock supply items"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 151,
+            "text": "0 open supply requests"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 197,
+            "text": "0 to-do due today or overdues"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 185,
+            "text": "0 failed background refreshs"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.",
+            "width": 802
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 159,
+        "regionText": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.\n\n0\nOverdue receipts\n0 overdue expected receipts\n9\nOverdue orders\n9 overdue sales orders\n—\nDispatch blocked\nnot loaded yet\n0\nLow stock\n0 low-stock supply items\n0"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-light",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-light/S-92.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#attention-strip-title",
+            "text": "Needs Attention",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 116.015625,
+            "h": 22.5,
+            "x": 29,
+            "y": 394.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "#attention-strip-note",
+            "text": "Counts of unhandled items. Select one to open the view that resolves it.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 406.25,
+            "h": 18,
+            "x": 332.75,
+            "y": 397.046875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue receipts",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 111.671875,
+            "y": 449.296875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue orders",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 293.171875,
+            "y": 449.296875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Dispatch blocked",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 474.671875,
+            "y": 449.296875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Low stock",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 656.171875,
+            "y": 449.296875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Supply requests",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 111.671875,
+            "y": 504.046875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "To-dos due",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 293.171875,
+            "y": 504.046875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Refresh failures",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 474.671875,
+            "y": 504.046875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 184,
+            "text": "0 overdue expected receipts"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 147,
+            "text": "9 overdue sales orders"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 92,
+            "text": "not loaded yet"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 162,
+            "text": "0 low-stock supply items"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 151,
+            "text": "0 open supply requests"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 197,
+            "text": "0 to-do due today or overdues"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 185,
+            "text": "0 failed background refreshs"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.",
+            "width": 742
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.\n\n0\nOverdue receipts\n0 overdue expected receipts\n9\nOverdue orders\n9 overdue sales orders\n—\nDispatch blocked\nnot loaded yet\n0\nLow stock\n0 low-stock supply items\n0"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "768x1024-dark",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/768x1024-dark/S-92.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#attention-strip-title",
+            "text": "Needs Attention",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 116.015625,
+            "h": 22.5,
+            "x": 29,
+            "y": 394.796875,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "#attention-strip-note",
+            "text": "Counts of unhandled items. Select one to open the view that resolves it.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 406.25,
+            "h": 18,
+            "x": 332.75,
+            "y": 397.046875,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue receipts",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 111.671875,
+            "y": 449.296875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue orders",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 293.171875,
+            "y": 449.296875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Dispatch blocked",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 474.671875,
+            "y": 449.296875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Low stock",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 656.171875,
+            "y": 449.296875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Supply requests",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 111.671875,
+            "y": 504.046875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "To-dos due",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 293.171875,
+            "y": 504.046875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Refresh failures",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 51.828125,
+            "h": 28.75,
+            "x": 474.671875,
+            "y": 504.046875,
+            "font": "11.5px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 184,
+            "text": "0 overdue expected receipts"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 147,
+            "text": "9 overdue sales orders"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 92,
+            "text": "not loaded yet"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 162,
+            "text": "0 low-stock supply items"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 151,
+            "text": "0 open supply requests"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 197,
+            "text": "0 to-do due today or overdues"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 185,
+            "text": "0 failed background refreshs"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.",
+            "width": 742
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.\n\n0\nOverdue receipts\n0 overdue expected receipts\n9\nOverdue orders\n9 overdue sales orders\n—\nDispatch blocked\nnot loaded yet\n0\nLow stock\n0 low-stock supply items\n0"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-light",
+      "width": 1280,
+      "height": 800,
+      "theme": "light",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(15, 23, 42)",
+        "light": "rgb(15, 23, 42)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-light/S-92.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#attention-strip-title",
+            "text": "Needs Attention",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 116.015625,
+            "h": 22.5,
+            "x": 77,
+            "y": 258,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "#attention-strip-note",
+            "text": "Counts of unhandled items. Select one to open the view that resolves it.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 406.25,
+            "h": 18,
+            "x": 796.75,
+            "y": 260.25,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue receipts",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 163.671875,
+            "y": 322,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue orders",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 390.46875,
+            "y": 322,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Dispatch blocked",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 30,
+            "x": 617.265625,
+            "y": 314.5,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Low stock",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 844.0625,
+            "y": 322,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Supply requests",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.140625,
+            "h": 15,
+            "x": 1070.859375,
+            "y": 322,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "To-dos due",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 163.671875,
+            "y": 376,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Refresh failures",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 390.46875,
+            "y": 376,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 184,
+            "text": "0 overdue expected receipts"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 147,
+            "text": "9 overdue sales orders"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 92,
+            "text": "not loaded yet"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 162,
+            "text": "0 low-stock supply items"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 151,
+            "text": "0 open supply requests"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 197,
+            "text": "0 to-do due today or overdues"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 185,
+            "text": "0 failed background refreshs"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.",
+            "width": 1158
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.\n\n0\nOverdue receipts\n0 overdue expected receipts\n9\nOverdue orders\n9 overdue sales orders\n—\nDispatch blocked\nnot loaded yet\n0\nLow stock\n0 low-stock supply items\n0"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    },
+    {
+      "variant": "1280x800-dark",
+      "width": 1280,
+      "height": 800,
+      "theme": "dark",
+      "gap": null,
+      "palette": {
+        "responded": false,
+        "dark": "rgb(241, 245, 249)",
+        "light": "rgb(241, 245, 249)"
+      },
+      "screenshot": "screenshots/chromium/1280x800-dark/S-92.png",
+      "touch": {
+        "checked": 8,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "dom": {
+        "inputs": [],
+        "wrap": [
+          {
+            "path": "#attention-strip-title",
+            "text": "Needs Attention",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 116.015625,
+            "h": 22.5,
+            "x": 77,
+            "y": 258,
+            "font": "15px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "#attention-strip-note",
+            "text": "Counts of unhandled items. Select one to open the view that resolves it.",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 406.25,
+            "h": 18,
+            "x": 796.75,
+            "y": 260.25,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue receipts",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 163.671875,
+            "y": 322,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Overdue orders",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 390.46875,
+            "y": 322,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Dispatch blocked",
+            "lines": 2,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 30,
+            "x": 617.265625,
+            "y": 314.5,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Low stock",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 844.0625,
+            "y": 322,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Supply requests",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.140625,
+            "h": 15,
+            "x": 1070.859375,
+            "y": 322,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "To-dos due",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 163.671875,
+            "y": 376,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          },
+          {
+            "path": "span.att-label",
+            "text": "Refresh failures",
+            "lines": 1,
+            "brokenWords": [],
+            "w": 97.125,
+            "h": 15,
+            "x": 390.46875,
+            "y": 376,
+            "font": "12px",
+            "whiteSpace": "normal",
+            "overflowWrap": "normal",
+            "clipped": false
+          }
+        ],
+        "statuses": [],
+        "colorOnly": [],
+        "clipping": [
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 184,
+            "text": "0 overdue expected receipts"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 147,
+            "text": "9 overdue sales orders"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 92,
+            "text": "not loaded yet"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 162,
+            "text": "0 low-stock supply items"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 151,
+            "text": "0 open supply requests"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 197,
+            "text": "0 to-do due today or overdues"
+          },
+          {
+            "path": "span.att-state.sr-only",
+            "width": 1,
+            "scrollWidth": 185,
+            "text": "0 failed background refreshs"
+          }
+        ],
+        "headers": [
+          {
+            "path": "div.section-header",
+            "direction": "row",
+            "text": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.",
+            "width": 1158
+          }
+        ],
+        "inaccessible": [],
+        "disabled": [],
+        "stripes": [],
+        "overflow": 0,
+        "regionText": "Needs Attention\n\nCounts of unhandled items. Select one to open the view that resolves it.\n\n0\nOverdue receipts\n0 overdue expected receipts\n9\nOverdue orders\n9 overdue sales orders\n—\nDispatch blocked\nnot loaded yet\n0\nLow stock\n0 low-stock supply items\n0"
+      },
+      "axe": {
+        "violations": [],
+        "incomplete": [],
+        "passes": [
+          {
+            "id": "color-contrast",
+            "count": 15
+          }
+        ]
+      },
+      "keyboard": {
+        "status": "NA",
+        "sequence": [],
+        "enter": []
+      }
+    }
+  ],
+  "guards": [],
+  "requests": [
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/index.html",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/interaction.css",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/fetch-timeout.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/pallet-calculations.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.js",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/production/today-tile",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/production",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/finished-goods",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/batches",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/ingredients",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/shipments",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/daily-entries",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/notes",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/audit/integrity",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supplies/inventory",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "blocked": false
+    },
+    {
+      "method": "GET",
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supply-requests",
+      "blocked": false
+    }
+  ],
+  "responses": [
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/index.html",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.css",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/mini-calendar.js",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/fetch-timeout.js",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/pallet-calculations.js",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/interaction.css",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.css",
+      "status": 200
+    },
+    {
+      "host": "cns-factory-ledger.netlify.app",
+      "path": "/dashboard.js",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/production/today-tile",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/production",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/finished-goods",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/batches",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/inventory/ingredients",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/shipments",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/receipts",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/activity/daily-entries",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/dashboard/api/notes",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/sales/orders",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/audit/integrity",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supplies/inventory",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/expected-receipts",
+      "status": 200
+    },
+    {
+      "host": "fastapi-production-b73a.up.railway.app",
+      "path": "/supply-requests",
+      "status": 200
+    }
+  ],
+  "dialogs": [],
+  "finished": "2026-09-08T17:41:48.150Z"
+}
