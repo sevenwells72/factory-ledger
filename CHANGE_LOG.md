@@ -1,5 +1,61 @@
 # Change Log
 
+## 2026-09-08 18:20 — Complete Batch B implementation and local validation
+- **File(s) changed:** `docs/design/audit-2026-09-08-batch-b.md`, `FACTORY_LEDGER_CHANGELOG.md`; user report `outputs/factory-ledger-batch-b-results.md`.
+- **What changed:** Recorded all 11 scoped findings, four-width browser measurements, keyboard/search/form checks and collision-free chart result. 15 Python and 40 Node tests passed; syntax and diff checks passed.
+- **Why:** Provide a reviewable local Batch B commit. No push or deployment; Batch C remains deferred.
+
+---
+
+## 2026-09-08 18:18 — Batch B final scope and field-width refinements
+- **File(s) changed:** shared shell JS/CSS and four page includes.
+- **What changed:** Clearly scoped the local trace search alongside global search and bounded the existing readiness-note edit field using its actual class. Normalized shared asset include formatting.
+- **Why:** Complete findings 16 and 22 without changing their record or shipping semantics.
+
+---
+
+## 2026-09-08 18:17 — Batch B keyboard edge cases and cache assertions
+- **File(s) changed:** `dashboard/shell.js`, `tests/test_recent_ledger.py`.
+- **What changed:** Arrow Up from an unselected list starts at the last result; clearing a search announces the minimum input requirement. Updated cache-version assertions for Batch B.
+- **Why:** Complete search keyboard behavior and retain the existing version regression guard.
+
+---
+
+## 2026-09-08 18:16 — Batch B chart collision corrections
+- **File(s) changed:** `dashboard/sankey.html`, `dashboard/shell-layout.css`.
+- **What changed:** Aligned Sankey layout to explicit semantic columns before computing y positions; reserved top/bottom label space, aligned column headings, and revealed selected flow details in view. Hid mobile navigation behind open dialogs.
+- **Why:** Browser geometry found two collisions/clipped labels caused by repositioning nodes from different computed columns; form navigation must not cover dialog content.
+
+---
+
+## 2026-09-08 18:15 — Batch B narrow-width browser fixes
+- **File(s) changed:** `dashboard/shell-layout.css`, `dashboard/shell.js`, `dashboard/dashboard.js`.
+- **What changed:** Removed the inherited 1040 px table minimum from order cards, extended cards to tablet widths, prioritized due/dispatch/remaining fields, put quick actions before today’s totals, aligned DOM order with mobile visual order, and moved keyboard focus into search-opened lot dialogs.
+- **Why:** Browser measurements exposed remaining internal card overflow and below-fold quick actions.
+
+---
+
+## 2026-09-08 18:14 — Verify Batch A deployment and prepare Batch B browser checks
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`; scratch `work/audit-preview-b.mjs`.
+- **What changed:** Confirmed live A frontend versions and backend request_unit field after approved merge; started isolated B fixture preview on localhost:8880 with writes rejected.
+- **Why:** Record deployed predecessor and safely test responsive changes.
+
+---
+
+## 2026-09-08 18:14 — Batch B Material Flow layout and shell integration
+- **File(s) changed:** `dashboard/sankey.html`, `dashboard/shell-layout.css`, `dashboard/shell.js`, `dashboard/dashboard.js`; scratch `work/fl_batch_b_edit.py`.
+- **What changed:** Allocated independent label columns and vertical space, full-name selection, and mobile source-to-destination flow cards. Connected quick actions to actual existing controls and the customer filter; anchored intake approval on phones.
+- **Why:** Fix overlapping labels and preserve existing entry/search workflows within Batch B.
+
+---
+
+## 2026-09-08 18:13 — Batch B shared shell and responsive controls (local, in progress)
+- **File(s) changed:** `dashboard/shell.js`, `dashboard/shell-layout.css`, `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`.
+- **What changed:** Shared search with keyboard choices, compact reference calendars, five mobile destinations with More, existing quick actions, mobile order cards, real 44 px controls, contextual trace shortcuts, and sticky receipt Save. Cache versions advanced.
+- **Why:** User requested the next batch after merging A; work is isolated on fix/design-audit-2 and remains local.
+
+---
+
 ## 2026-09-08 15:49 — Completed and verified approved design audit Batch A locally
 - **File(s) changed:** `dashboard/dashboard.js`, `docs/design/audit-2026-09-08-batch-a.md`, `FACTORY_LEDGER_CHANGELOG.md`; user report `outputs/factory-ledger-batch-a-results.md`.
 - **What changed:** Recorded all eight approved findings, DB unit evidence, cache versions and validation: 63 Python and 40 Node tests passed, syntax/diff checks passed, browser success/idle/outage checks passed. Health balances explicitly identify missing source units.

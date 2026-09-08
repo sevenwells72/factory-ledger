@@ -690,6 +690,7 @@
   // Recent Entries polling start/stop, which a hand-rolled switch would miss.
   function activateTab(target) {
     state.currentTab = target;
+    window.dispatchEvent(new CustomEvent('fl-tab-change', { detail: target }));
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === target));
     document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + target));
     if (target === 'recent') {
@@ -1719,113 +1720,15 @@
     }
   }
 
-  // ── Search ──
-  async function performSearch(query) {
-    const dropdown = document.getElementById('search-results');
-    if (!query || query.length < 2) {
-      dropdown.classList.add('hidden');
-      return;
+  function openSearchRecord(record) {
+    if (record.type === 'product') { openProductPanel(record.id, record.name); document.getElementById('lot-panel-close').focus(); }
+    else if (record.type === 'lot') { openLotPanel(record.name, record.id); document.getElementById('lot-panel-close').focus(); }
+    else if (record.type === 'order') { activateTab('orders'); openOrderDetail(Number(record.id)); }
+    else if (record.type === 'customer') {
+      activateTab('orders');
+      document.getElementById('orders-customer-search').value = record.name;
+      renderOrdersList();
     }
-    try {
-      const data = await fetchAPI('/search?q=' + encodeURIComponent(query));
-      renderSearchResults(data, dropdown);
-    } catch (e) {
-      dropdown.innerHTML = '<div class="search-item">Search failed</div>';
-      dropdown.classList.remove('hidden');
-    }
-  }
-
-  function renderSearchResults(data, dropdown) {
-    let html = '';
-    let hasResults = false;
-
-    if (data.products && data.products.length > 0) {
-      hasResults = true;
-      html += '<div class="search-category">Products</div>';
-      for (const p of data.products) {
-        html += `<div class="search-item" data-search-product-id="${p.product_id}" data-search-product-name="${escHtml(p.name)}"><span class="lot-link">${escHtml(p.name)}</span> <span class="si-sub">${escHtml(operationalLabel(p.type))} | ${fmt(p.on_hand_lbs)} lb</span></div>`;
-      }
-    }
-    if (data.lots && data.lots.length > 0) {
-      hasResults = true;
-      html += '<div class="search-category">Lots</div>';
-      for (const l of data.lots) {
-        html += `<div class="search-item" data-search-lot="${escHtml(l.lot_code)}" data-search-lot-product-id="${l.product_id || ''}"><span class="lot-link">${escHtml(l.lot_code)}</span> <span class="si-sub">${escHtml(l.product_name)} | ${fmt(l.on_hand_lbs)} lb</span></div>`;
-      }
-    }
-    if (data.orders && data.orders.length > 0) {
-      hasResults = true;
-      html += '<div class="search-category">Sales Orders</div>';
-      for (const o of data.orders) {
-        html += `<div class="search-item" data-search-order="${o.order_id}"><span class="lot-link">${escHtml(o.order_number)}</span> <span class="si-sub">${escHtml(o.customer)} | ${escHtml(o.status)}</span></div>`;
-      }
-    }
-    if (data.customers && data.customers.length > 0) {
-      hasResults = true;
-      html += '<div class="search-category">Customers</div>';
-      for (const c of data.customers) {
-        html += `<div class="search-item" data-search-customer="${escHtml(c.name)}"><span class="lot-link">${escHtml(c.name)}</span> <span class="si-sub">${escHtml(c.contact_name || '')} ${escHtml(c.email || '')}</span></div>`;
-      }
-    }
-
-    if (!hasResults) {
-      html = '<div class="search-item">No results found</div>';
-    }
-
-    dropdown.innerHTML = html;
-    dropdown.classList.remove('hidden');
-
-    // Bind lot clicks in search results
-    dropdown.querySelectorAll('[data-search-lot]').forEach(el => {
-      el.addEventListener('click', () => {
-        openLotPanel(el.dataset.searchLot, el.dataset.searchLotProductId);
-        dropdown.classList.add('hidden');
-      });
-    });
-
-    // Bind product clicks – open product detail panel
-    dropdown.querySelectorAll('[data-search-product-id]').forEach(el => {
-      el.addEventListener('click', () => {
-        const productId = el.dataset.searchProductId;
-        const productName = el.dataset.searchProductName;
-        dropdown.classList.add('hidden');
-        document.getElementById('global-search').value = '';
-        openProductPanel(productId, productName);
-      });
-    });
-
-    // Bind order clicks – switch to orders tab and open detail
-    dropdown.querySelectorAll('[data-search-order]').forEach(el => {
-      el.addEventListener('click', () => {
-        const orderId = el.dataset.searchOrder;
-        dropdown.classList.add('hidden');
-        document.getElementById('global-search').value = '';
-        // Switch to orders tab
-        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'orders'));
-        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-orders'));
-        state.currentTab = 'orders';
-        openOrderDetail(Number(orderId));
-      });
-    });
-
-    // Bind customer clicks – switch to orders tab and search by customer
-    dropdown.querySelectorAll('[data-search-customer]').forEach(el => {
-      el.addEventListener('click', () => {
-        const name = el.dataset.searchCustomer;
-        dropdown.classList.add('hidden');
-        document.getElementById('global-search').value = '';
-        // Switch to orders tab
-        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'orders'));
-        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-orders'));
-        state.currentTab = 'orders';
-        // If there's a customer filter on the orders tab, use it; otherwise just switch
-        const custFilter = document.getElementById('orders-customer-filter');
-        if (custFilter) {
-          custFilter.value = name;
-          custFilter.dispatchEvent(new Event('change'));
-        }
-      });
-    });
   }
 
   // ── Binding Helpers ──
@@ -2554,12 +2457,12 @@
       const overdue = isOrderOverdue(o);
       const readyReadOnly = Boolean(o.is_dispatch_queue);
       html += `<tr class="order-row ${o.ready ? 'so-ready' : ''}" data-order-id="${o.order_id}">`;
-      html += `<td class="order-expand-cell"><button type="button" class="order-expand-toggle" data-order-id="${o.order_id}" aria-expanded="false" aria-controls="order-lines-${o.order_id}" title="Show line items"><span class="order-expand-caret">&#9656;</span></button></td>`;
+      html += `<td class="order-expand-cell"><button type="button" class="order-expand-toggle" data-order-id="${o.order_id}" aria-expanded="false" aria-controls="order-lines-${o.order_id}" aria-label="Show line items for ${escAttr(o.order_number)}" title="Show line items"><span class="order-expand-caret">&#9656;</span></button></td>`;
       // A Factory Ready write re-renders this table, so carry the in-flight
       // state through the re-render and keep the control disabled (IMP-004).
       const readyBusy = Boolean(o.readyInFlight);
       html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><label class="check-hit"><input type="checkbox" class="order-ready-checkbox" aria-label="Factory Ready: ${escAttr(o.order_number)} — ${escAttr(o.customer)}" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></label></td>`;
-      html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
+      html += `<td><button type="button" class="order-link">${escHtml(o.order_number)}</button></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
       html += `<td class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date)}</td>`;
@@ -2575,6 +2478,11 @@
 
     html += '</tbody></table></div>';
     container.innerHTML = html;
+
+    container.querySelectorAll('.order-row').forEach(row => {
+      const labels = ['Line items','Factory Ready','Order','Customer','Order date','Ship by','Status','Dispatch checks','Issues','Pallets','Left to ship'];
+      Array.from(row.children).forEach((cell, i) => cell.dataset.label = labels[i]);
+    });
 
     // Bind row clicks — clicking the row (incl. the SO number) opens the full detail page
     container.querySelectorAll('.order-row').forEach(row => {
@@ -5374,18 +5282,13 @@
       refreshProductionCalendar();
     });
 
-    // Search
-    const searchInput = document.getElementById('global-search');
-    searchInput.addEventListener('input', () => {
-      clearTimeout(state.searchTimeout);
-      state.searchTimeout = setTimeout(() => performSearch(searchInput.value.trim()), 300);
-    });
-    // Close search on outside click
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.search-wrapper')) {
-        document.getElementById('search-results').classList.add('hidden');
-      }
-    });
+    window.addEventListener('fl-search-select', event => openSearchRecord(event.detail));
+    const params = new URLSearchParams(location.search);
+    const section = params.get('section');
+    if (section && document.querySelector('.tab[data-tab="' + CSS.escape(section) + '"]')) activateTab(section);
+    if (params.has('searchRecord')) {
+      try { openSearchRecord(JSON.parse(params.get('searchRecord'))); } catch (_) { /* Ignore invalid incoming selections. */ }
+    }
 
     // Daily Entries controls
     document.getElementById('daily-entries-date').addEventListener('change', refreshDailyEntries);

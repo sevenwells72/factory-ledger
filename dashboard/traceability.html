@@ -320,6 +320,7 @@ svg text { font-family: var(--font); }
 }
 </style>
 <link rel="stylesheet" href="interaction.css?v=2">
+  <link rel="stylesheet" href="shell-layout.css?v=1">
 </head>
 <body>
 
@@ -329,9 +330,9 @@ svg text { font-family: var(--font); }
   <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
   <div class="site-nav-links" id="navLinks">
     <a href="/" class="site-nav-link">Dashboard</a>
-    <a href="/sankey.html" class="site-nav-link">Material Flow</a>
-    <a href="/process-flow.html?v=2" class="site-nav-link">Production Lines</a>
-    <a href="/traceability.html?v=2" class="site-nav-link active">Traceability</a>
+    <a href="/sankey.html?v=2" class="site-nav-link">Material Flow</a>
+    <a href="/process-flow.html?v=3" class="site-nav-link">Production Lines</a>
+    <a href="/traceability.html?v=3" class="site-nav-link active">Traceability</a>
   </div>
 </nav>
 
@@ -483,11 +484,16 @@ let selectedProductId = null;
 function renderRecentLots() {
   const el = document.getElementById('recentLots');
   el.innerHTML = '<span class="recent-label">Recent:</span>';
-  const recent = lotIndex.slice(0, 20);
+  const recent = lotIndex;
+  const extra = document.createElement('details');
+  const summary = document.createElement('summary');
+  summary.textContent = 'Show ' + Math.max(0, recent.length - 6) + ' more recent lots';
+  extra.append(summary);
   for (const lot of recent) {
-    const pill = document.createElement('span');
+    const pill = document.createElement('button');
+    pill.type = 'button';
     pill.className = 'lot-pill';
-    pill.textContent = lot.lot_code;
+    pill.textContent = lot.lot_code + ' — ' + lot.product_name;
     pill.title = lot.product_name;
     pill.dataset.productId = lot.product_id || '';
     pill.onclick = () => {
@@ -497,8 +503,9 @@ function renderRecentLots() {
       document.getElementById('traceBtn').disabled = false;
       closeDropdown();
     };
-    el.appendChild(pill);
+    (recent.indexOf(lot) < 6 ? el : extra).appendChild(pill);
   }
+  if (recent.length > 6) el.append(extra);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1509,5 +1516,6 @@ function loadFromURL() {
 </script>
 <script src="mini-calendar.js?v=4"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
+  <script src="shell.js?v=1"></script>
 </body>
 </html>

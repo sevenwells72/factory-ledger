@@ -230,8 +230,8 @@ def test_dashboard_activity_renders_occurred_entered_lag_and_backfill_badge():
     assert "if (record.entry_backfilled === true) provenance = ' · backfilled';" in dashboard
     assert "migration_backfill_039" not in dashboard
     assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
-    assert 'dashboard.css?v=36' in index
-    assert 'dashboard.js?v=53' in index
+    assert 'dashboard.css?v=37' in index
+    assert 'dashboard.js?v=54' in index
 
 
 @pytest.mark.db
