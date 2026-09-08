@@ -160,6 +160,42 @@
     return Boolean(line.chosen && line.chosen.product_id && line.qty_lb > 0);
   }
 
+  /* Audit fix 4: a supplier re-match must not throw the review away. Lines
+     correspond by index (same extraction). Per line: keep the exclusion flag
+     and any explicit save_alias choice; keep a user-chosen product only when
+     the new alias/exact result names the same product (the fresh line then
+     carries the new supplier's conversion); otherwise the line goes back to
+     unconfirmed. Everything else — match data, conversions — comes from the
+     fresh result, which was computed from the CURRENT (edited) qty/unit. */
+  function mergeRematch(prevLines, matchLines) {
+    return matchLines.map((ml, i) => {
+      const fresh = buildReviewLine(ml);
+      const prev = prevLines && prevLines[i];
+      if (!prev) return fresh;
+      fresh.include = prev.include;
+      if (prev.save_alias_touched) {
+        fresh.save_alias = prev.save_alias;
+        fresh.save_alias_touched = true;
+      }
+      if (prev.chosen) {
+        const agrees = fresh.chosen && fresh.chosen.product_id === prev.chosen.product_id;
+        if (!agrees) {
+          fresh.chosen = null;
+          fresh.qty_lb = null;
+          fresh.qty_lb_source = null;
+        }
+      }
+      return fresh;
+    });
+  }
+
+  /* Audit fix 4: the duplicate override is bound to the exact reviewed
+     (supplier_id, normalized reference) pair — editing either disarms it. */
+  function forceKey(supplierId, reference) {
+    const ref = (reference == null ? '' : String(reference)).trim().replace(/\s+/g, ' ').toLowerCase();
+    return `${supplierId || ''}|${ref}`;
+  }
+
   return {
     buildReviewLine,
     applyQuantityChange,
@@ -172,6 +208,8 @@
     aliasConversionConsistent,
     approveLinePayload,
     lineApprovable,
+    mergeRematch,
+    forceKey,
     normalizeUnit,
     roundLb,
   };

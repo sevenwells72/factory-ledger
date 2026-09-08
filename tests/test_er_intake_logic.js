@@ -214,3 +214,66 @@ test('no-match line starts fully unconfirmed', () => {
   assert.equal(l.include, true);
   assert.equal(ERIntake.lineApprovable(l), false);
 });
+
+// ── Audit fix 4: supplier re-match preserves the review; force is keyed ────
+
+test('mergeRematch preserves exclusions', () => {
+  const prev = [ERIntake.buildReviewLine(matchLine())];
+  prev[0].include = false;
+  const merged = ERIntake.mergeRematch(prev, [matchLine()]);
+  assert.equal(merged[0].include, false);
+});
+
+test('mergeRematch keeps a user pick the new alias/exact result agrees with', () => {
+  const prev = [ERIntake.buildReviewLine(matchLine({ match_source: 'fuzzy', product: PROD }))];
+  ERIntake.applyProductPick(prev[0], PROD); // human confirmed product 7
+  const merged = ERIntake.mergeRematch(prev, [matchLine({
+    match_source: 'alias', product: PROD,
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  })]);
+  assert.equal(merged[0].chosen.product_id, PROD.product_id);
+  assert.equal(merged[0].qty_lb, 200, 'the new supplier’s conversion applies');
+});
+
+test('mergeRematch resets a pick the new result does not confirm', () => {
+  const prev = [ERIntake.buildReviewLine(matchLine({ match_source: 'fuzzy', product: PROD }))];
+  ERIntake.applyProductPick(prev[0], PROD);
+  ERIntake.applyQtyLbOverride(prev[0], 500);
+  // New supplier: only a fuzzy suggestion of the same product — not confirmation.
+  const merged = ERIntake.mergeRematch(prev, [matchLine({ match_source: 'fuzzy', product: PROD })]);
+  assert.equal(merged[0].chosen, null, 'stale pick must go back to unconfirmed');
+  assert.equal(merged[0].qty_lb, null);
+  assert.equal(ERIntake.lineApprovable(merged[0]), false);
+});
+
+test('mergeRematch resets a pick when the new result names a different product', () => {
+  const other = { product_id: 8, name: 'Other Thing', odoo_code: null };
+  const prev = [ERIntake.buildReviewLine(matchLine({ match_source: 'exact', product: PROD, expected_qty_lb: 100, lb_per_unit: 25, lb_source: 'case_size' }))];
+  const merged = ERIntake.mergeRematch(prev, [matchLine({
+    match_source: 'alias', product: other,
+    lb_per_unit: 30, lb_source: 'alias', expected_qty_lb: 120,
+  })]);
+  assert.equal(merged[0].chosen, null);
+  assert.equal(merged[0].qty_lb, null);
+  assert.deepEqual(merged[0].candidates, []);
+});
+
+test('mergeRematch keeps an explicit save_alias choice, resets defaults', () => {
+  const prevTouched = ERIntake.buildReviewLine(matchLine({ match_source: 'alias', product: PROD }));
+  ERIntake.applySaveAliasToggle(prevTouched, false);
+  const prevDefault = ERIntake.buildReviewLine(matchLine({ match_source: 'alias', product: PROD }));
+  ERIntake.applyQtyLbOverride(prevDefault, 10); // auto-off, not user-chosen
+  const merged = ERIntake.mergeRematch(
+    [prevTouched, prevDefault],
+    [matchLine({ match_source: 'alias', product: PROD }), matchLine({ match_source: 'alias', product: PROD })]
+  );
+  assert.equal(merged[0].save_alias, false, 'explicit unchecking survives');
+  assert.equal(merged[1].save_alias, true, 'auto-defaults recompute for the fresh line');
+});
+
+test('forceKey binds the override to the normalized (supplier, reference) pair', () => {
+  assert.equal(ERIntake.forceKey(3, ' PO-777 '), ERIntake.forceKey(3, 'po-777'));
+  assert.notEqual(ERIntake.forceKey(3, 'PO-777'), ERIntake.forceKey(4, 'PO-777'));
+  assert.notEqual(ERIntake.forceKey(3, 'PO-777'), ERIntake.forceKey(3, 'PO-778'));
+  assert.equal(ERIntake.forceKey(3, 'A  B'), ERIntake.forceKey(3, 'a b'));
+});

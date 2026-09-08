@@ -3977,7 +3977,18 @@
       extraction: extractResponse.extraction,
       match: null,
       lines: [],
-      force: false,
+      // Audit fix 4: header edits live in state (not just DOM inputs) so
+      // rerenders can never restore the extracted values over a correction.
+      supplierId: null,
+      reference: extractResponse.extraction.reference_number || '',
+      expectedDate: extractResponse.extraction.expected_delivery_date || '',
+      // Audit fix 4: the duplicate override is armed for one exact
+      // (supplier, reference) pair; editing either disarms it.
+      forceKey: null,
+      // Audit fix 4: stale /match responses are discarded by sequence number,
+      // and Approve is disabled while a match request is in flight.
+      matchSeq: 0,
+      matching: false,
     };
     erExtractStatus(`Extracted ${extractResponse.extraction.lines.length} line(s). Matching against the ledger…`);
     await erRunMatch();
@@ -3986,20 +3997,41 @@
   async function erRunMatch() {
     const intake = state.erIntake;
     if (!intake) return;
+    const seq = ++intake.matchSeq;
+    intake.matching = true;
+    if (intake.lines.length) renderErReview(); // re-match: grey out Approve
     try {
+      // The match request reflects the CURRENT review state (edited reference,
+      // edited qty/unit) so conversions and the duplicate warning stay honest.
+      const reqLines = intake.lines.length
+        ? intake.lines.map(l => ({ vendor_description: l.vendor_description, quantity: l.quantity, unit: l.unit }))
+        : intake.extraction.lines;
       const match = await fetchSalesAPI('/expected-receipts/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ extraction: intake.extraction }),
+        body: JSON.stringify({ extraction: {
+          ...intake.extraction,
+          reference_number: (intake.reference || '').trim() || null,
+          lines: reqLines,
+        } }),
       });
+      if (state.erIntake !== intake || seq !== intake.matchSeq) return; // stale response — discard
       intake.match = match;
-      // Working copies: user edits live here, the raw extraction stays intact.
-      // Audit fix 1: fuzzy matches arrive as suggestions, never selections —
-      // ERIntake.buildReviewLine sets `chosen` only for alias/exact.
-      intake.lines = match.lines.map(ERIntake.buildReviewLine);
+      intake.supplierId = match.supplier.match ? match.supplier.match.supplier_id : null;
+      // Audit fixes 1+4: fuzzy stays a suggestion; a re-match preserves
+      // exclusions and agreeing product picks instead of resetting the review.
+      intake.lines = ERIntake.mergeRematch(intake.lines, match.lines);
+      intake.matching = false;
       renderErReview();
     } catch (e) {
-      erExtractStatus(`<span class="error-msg">Matching failed: ${escHtml(e.message.slice(0, 300))}</span>`);
+      if (state.erIntake !== intake || seq !== intake.matchSeq) return;
+      intake.matching = false;
+      if (intake.lines.length) {
+        renderErReview();
+        showError('er-review-error', `Matching failed: ${(e.message || '').slice(0, 300)}`);
+      } else {
+        erExtractStatus(`<span class="error-msg">Matching failed: ${escHtml(e.message.slice(0, 300))}</span>`);
+      }
     }
   }
 
@@ -4030,9 +4062,11 @@
 
     const ex = intake.extraction;
     const supMatch = intake.match.supplier;
+    // Audit fix 4: the header renders from state — never from the raw
+    // extraction — so a rerender can't undo the user's corrections.
     const supplierOptions = ['<option value="">— select supplier —</option>']
       .concat(state.erSuppliers.map(s =>
-        `<option value="${s.id}" ${supMatch.match && supMatch.match.supplier_id === s.id ? 'selected' : ''}>${escHtml(s.name)}</option>`))
+        `<option value="${s.id}" ${intake.supplierId === s.id ? 'selected' : ''}>${escHtml(s.name)}</option>`))
       .join('');
     const supplierHint = supMatch.match
       ? ''
@@ -4044,7 +4078,7 @@
     const dupBanner = dup ? `
       <div class="er-dup-banner">&#9888;&#65039; Possible duplicate: this supplier already has
         ${dup.existing.map(x => `#${x.id} (${escHtml(x.status)}, ${fmtWt(x.expected_qty)} lb)`).join(', ')}
-        with reference "${escHtml(ex.reference_number || '')}". Approving will ask you to confirm.
+        with reference "${escHtml(intake.reference || '')}". Approving will ask you to confirm.
       </div>` : '';
 
     let rows = '';
@@ -4090,6 +4124,9 @@
     const included = intake.lines.filter(l => l.include);
     const ready = included.length > 0 && included.every(ERIntake.lineApprovable);
     const totalLb = included.reduce((s, l) => s + (l.qty_lb > 0 ? l.qty_lb : 0), 0);
+    // Audit fix 4: force stays armed only for the exact reviewed pair.
+    const forceArmed = intake.forceKey != null
+      && intake.forceKey === ERIntake.forceKey(intake.supplierId, intake.reference);
 
     body.innerHTML = `
       <div class="er-review-doc-meta">
@@ -4106,11 +4143,11 @@
         </div>
         <div class="form-group">
           <label for="er-review-reference">Reference #</label>
-          <input type="text" id="er-review-reference" value="${escAttr(ex.reference_number || '')}" placeholder="Supplier order / confirmation #">
+          <input type="text" id="er-review-reference" value="${escAttr(intake.reference || '')}" placeholder="Supplier order / confirmation #">
         </div>
         <div class="form-group">
           <label for="er-review-date">Expected date</label>
-          <input type="date" id="er-review-date" value="${escAttr(ex.expected_delivery_date || '')}">
+          <input type="date" id="er-review-date" value="${escAttr(intake.expectedDate || '')}">
         </div>
       </div>
       <div class="er-review-table-wrap">
@@ -4121,11 +4158,11 @@
       </div>
       <div id="er-review-error" class="error-msg hidden"></div>
       <div class="er-review-footer">
-        <span class="er-review-totals">${included.length} of ${intake.lines.length} line(s) · ${fmtWt(totalLb)} lb total</span>
+        <span class="er-review-totals">${included.length} of ${intake.lines.length} line(s) · ${fmtWt(totalLb)} lb total${intake.matching ? ' · matching…' : ''}</span>
         <span>
           <button type="button" id="er-review-back" class="btn-sm">Start over</button>
-          <button type="button" id="er-review-approve" class="btn-refresh er-approve-btn${intake.force ? ' er-force-armed' : ''}" ${ready ? '' : 'disabled'}>
-            ${intake.force ? `Create anyway — duplicates exist` : `Approve — create ${included.length} expected receipt(s)`}
+          <button type="button" id="er-review-approve" class="btn-refresh er-approve-btn${forceArmed ? ' er-force-armed' : ''}" ${ready && !intake.matching ? '' : 'disabled'}>
+            ${forceArmed ? `Create anyway — duplicates exist` : `Approve — create ${included.length} expected receipt(s)`}
           </button>
         </span>
       </div>`;
@@ -4151,9 +4188,21 @@
       const sup = state.erSuppliers.find(s => s.id === Number(e.target.value));
       if (!sup) return;
       // Re-match under the corrected supplier: aliases + duplicates re-run.
+      // mergeRematch keeps exclusions and agreeing picks; forceKey binding
+      // disarms any duplicate override for the old supplier automatically.
+      intake.supplierId = sup.id;
       intake.extraction.supplier_name = sup.name;
-      intake.force = false;
       await erRunMatch();
+    });
+
+    // Audit fix 4: header edits persist in state immediately; a reference
+    // change re-runs matching so the duplicate warning tracks the real pair.
+    body.querySelector('#er-review-reference').addEventListener('input', (e) => {
+      intake.reference = e.target.value;
+    });
+    body.querySelector('#er-review-reference').addEventListener('change', () => { erRunMatch(); });
+    body.querySelector('#er-review-date').addEventListener('change', (e) => {
+      intake.expectedDate = e.target.value;
     });
 
     const createBtn = body.querySelector('#er-review-create-supplier');
@@ -4248,7 +4297,8 @@
   async function erApprove() {
     const intake = state.erIntake;
     hideError('er-review-error');
-    const supplierId = Number(document.getElementById('er-review-supplier').value);
+    if (intake.matching) { showError('er-review-error', 'Matching is still running — one moment.'); return; }
+    const supplierId = intake.supplierId;
     if (!supplierId) { showError('er-review-error', 'Pick a supplier before approving.'); return; }
     const included = intake.lines.filter(l => l.include);
     const bad = included.find(l => !ERIntake.lineApprovable(l));
@@ -4256,6 +4306,10 @@
       showError('er-review-error', 'Every included line needs a product and a positive expected-lb value.');
       return;
     }
+    const reference = (intake.reference || '').trim() || null;
+    // Audit fix 4: force only for the exact pair the 409 was reviewed under.
+    const force = intake.forceKey != null
+      && intake.forceKey === ERIntake.forceKey(supplierId, reference);
     const btn = document.getElementById('er-review-approve');
     btn.disabled = true;
     btn.textContent = 'Creating…';
@@ -4266,9 +4320,9 @@
         body: JSON.stringify({
           document_id: intake.documentId,
           supplier_id: supplierId,
-          reference_number: document.getElementById('er-review-reference').value.trim() || null,
-          expected_date: document.getElementById('er-review-date').value || null,
-          force: intake.force,
+          reference_number: reference,
+          expected_date: intake.expectedDate || null,
+          force,
           // Audit fix 3: save_alias comes from the per-line checkbox, and the
           // conversion rides along only when it explains the approved pounds.
           lines: included.map(ERIntake.approveLinePayload),
@@ -4280,8 +4334,9 @@
       const raw = apiErrorDetail(e) || {};
       const d = raw.detail || raw;
       if (d.error_code === 'DUPLICATE_REFERENCE') {
-        // Arm force: the button re-renders as an explicit "create anyway".
-        intake.force = true;
+        // Arm force for THIS pair: the button re-renders as "create anyway"
+        // and disarms itself if the supplier or reference changes.
+        intake.forceKey = ERIntake.forceKey(supplierId, reference);
         renderErReview();
         showError('er-review-error', d.message || 'Duplicate reference — approve again to create anyway.');
       } else {
