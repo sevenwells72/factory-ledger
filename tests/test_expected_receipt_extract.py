@@ -963,7 +963,7 @@ class TestApproveEndpoint:
     def test_happy_path_two_lines(self, client, cur):
         sup, p1, p2, doc_id = self._seed(cur)
         r = self._approve(client, doc_id, sup,
-                          [self._line(p1, desc="VNDR A 50LB"), self._line(p2, qty_lb=60, desc="VNDR B 30LB")])
+                          [self._line(p1, desc="VNDR A 50LB"), self._line(p2, qty_lb=60, lb_per_unit=30, desc="VNDR B 30LB")])
         assert r.status_code == 201, r.text
         data = r.json()
         assert data["success"] is True and data["created_count"] == 2 and data["aliases_saved"] == 2
@@ -1069,6 +1069,45 @@ class TestApproveEndpoint:
         line["lb_per_unit"] = float("nan")
         r = self._approve(client, doc_id, sup, [line])
         assert r.status_code == 422, r.text
+
+    # Audit-2 fix 3: alias consistency is a server invariant, not a client
+    # courtesy — the auditor's reproduction posts the mismatch directly.
+
+    def test_save_alias_conversion_mismatch_rejected(self, client, cur):
+        """qty 4 × 50 lb/BAG = 200 ≠ expected 175: approving with save_alias
+        would teach a conversion that does not explain the approved pounds."""
+        sup, p1, p2, doc_id = self._seed(cur)
+        r = self._approve(client, doc_id, sup, [self._line(
+            p1, qty_lb=175, quantity=4, lb_per_unit=50, unit="BAG", save_alias=True)])
+        assert r.status_code == 422, r.text
+        assert r.json()["detail"]["error_code"] == "ALIAS_CONVERSION_MISMATCH"
+        assert _doc_row(cur, doc_id)["status"] == "extracted", "whole request must be rejected"
+        cur.execute("SELECT count(*) AS n FROM expected_receipts WHERE source_document_id = %s", (doc_id,))
+        assert cur.fetchone()["n"] == 0
+
+    def test_mismatched_conversion_ok_without_save_alias(self, client, cur):
+        """The same line with save_alias=false is a plain override: 201, and
+        nothing is written to supplier_product_aliases."""
+        sup, p1, p2, doc_id = self._seed(cur)
+        r = self._approve(client, doc_id, sup, [self._line(
+            p1, qty_lb=175, quantity=4, lb_per_unit=50, unit="BAG", save_alias=False)])
+        assert r.status_code == 201, r.text
+        assert r.json()["aliases_saved"] == 0
+        cur.execute("SELECT count(*) AS n FROM supplier_product_aliases WHERE supplier_id = %s", (sup,))
+        assert cur.fetchone()["n"] == 0
+        cur.execute("SELECT expected_qty FROM expected_receipts WHERE source_document_id = %s", (doc_id,))
+        assert float(cur.fetchone()["expected_qty"]) == 175
+
+    def test_save_alias_without_conversion_still_allowed(self, client, cur):
+        """lb_per_unit=null with save_alias teaches only the product mapping —
+        the audit-fix-3 dashboard behavior stays legal."""
+        sup, p1, p2, doc_id = self._seed(cur)
+        r = self._approve(client, doc_id, sup, [self._line(
+            p1, qty_lb=175, quantity=4, lb_per_unit=None, unit="BAG", save_alias=True)])
+        assert r.status_code == 201, r.text
+        cur.execute("SELECT lb_per_unit FROM supplier_product_aliases WHERE supplier_id = %s", (sup,))
+        rows = cur.fetchall()
+        assert len(rows) == 1 and rows[0]["lb_per_unit"] is None
 
     def test_manual_endpoint_rejects_nan_expected_qty(self, client, cur):
         """The core-level finite check covers the pre-existing manual gap:

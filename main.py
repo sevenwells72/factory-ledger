@@ -5778,6 +5778,22 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
                     detail={"error_code": "INVALID_QUANTITY",
                             "message": f"Line {idx}: {field_name} must be a finite number > 0"},
                 )
+    # Audit-2 fix 3: the alias-consistency rule is a SERVER invariant, not a
+    # client courtesy — a conversion may be learned only when it explains the
+    # approved pounds. The dashboard already nulls inconsistent conversions
+    # (audit fix 3), but any client holding the key can call this endpoint.
+    # lb_per_unit=null with save_alias teaches only the product mapping.
+    for idx, line in enumerate(req.lines, start=1):
+        if line.save_alias and line.lb_per_unit is not None:
+            if (line.quantity is None
+                    or abs(line.quantity * line.lb_per_unit - line.expected_qty_lb) > 0.01):
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error_code": "ALIAS_CONVERSION_MISMATCH",
+                            "message": (f"Line {idx}: save_alias would teach lb_per_unit={line.lb_per_unit:g}, "
+                                        f"but quantity × lb_per_unit does not equal expected_qty_lb. "
+                                        f"Fix the conversion, or send lb_per_unit=null to teach only the product mapping.")},
+                )
 
     created_by = caller_source_tag(request, req.created_by)
     with get_transaction() as cur:
