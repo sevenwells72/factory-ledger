@@ -4264,3 +4264,10 @@ ALTER TABLE ONLY public.transactions
 
 \unrestrict BMvW69gFV81rjDXYju1VclnebzPRIUwLBFecl9SZVnPHNeoc86tE1hcTwlstN5c
 
+
+-- ── PENDING MIGRATION 049 (purchase-doc intake) ────────────────────────────
+-- Not yet applied to production. Local test databases need it for
+-- tests/test_expected_receipt_extract.py. Remove this block after the prod
+-- apply + scripts/dump_prod_schema.sh re-dump (the dump overwrites this file,
+-- so the block disappears on its own).
+\ir ../../migrations/049_purchase_doc_intake.sql

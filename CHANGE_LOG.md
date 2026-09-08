@@ -1,5 +1,21 @@
 # Change Log
 
+## 2026-09-08 12:14 — ER intake Phase 1: migration 049 + extraction.py + tests (branch feat/er-intake)
+
+- **File(s) changed:** `migrations/049_purchase_doc_intake.sql`, `extraction.py`, `tests/test_expected_receipt_extract.py`, `requirements.txt`, `tests/schema/schema.sql`
+- **What changed:** Phase 1 of the AI-assisted expected-receipt intake (docs/designs/expected-receipt-intake.md). Migration 049 (idempotent, applied to the LOCAL test DB only — NOT prod): `purchase_documents` (Storage object + audit extraction JSON, status uploaded/extracted/extraction_failed/approved, approved_at), `supplier_product_aliases` (normalized (supplier, vendor_description) unique index for latest-wins upserts, lb_per_unit > 0), `expected_receipts.source_document_id` FK, and a warn-only dedupe index on (supplier_id, normalized reference_number). New `extraction.py`: `extract_purchase_document(file_bytes, mime_type)` — Anthropic forced tool-use with a strict schema (nullable reference/date/unit fields, never-guess + verbatim-description prompt rules), model `claude-sonnet-5` overridable via EXTRACTION_MODEL, Pydantic-validated, raises ExtractionError on any failure; NO DB imports (model-never-writes rule is structural). requirements.txt pins `anthropic==0.69.0` — the 1.x SDK line vendors httpx2 (needs anyio≥4.10) and conflicts with fastapi 0.104.1's anyio<4; 0.69.0 rides the existing httpx 0.27.2/anyio 3.7.1 stack cleanly. tests/schema/schema.sql got the pending `\ir 049` block (auto-removed by the post-prod-apply re-dump). 26 new tests (schema constraints incl. the exact approve-path upsert, migration idempotence via psql re-run, extraction unit tests with a faked client); suite 369 passed + 1 pre-existing failure (test_recent_ledger occurred/entered badge — fails identically on clean main, unrelated).
+- **Why:** Owner-approved delivery plan, Phase 1 of 3; stops here for review before endpoints (Phase 2).
+
+---
+
+## 2026-09-08 12:01 — Saved approved design doc for AI-assisted expected-receipt intake
+
+- **File(s) changed:** `docs/designs/expected-receipt-intake.md`
+- **What changed:** New design doc (docs only, no application code): AI-assisted creation of expected receipts from a PNG/JPG/PDF vendor PO — Supabase Storage upload, Claude vision extraction behind `extract_purchase_document()` in a new `extraction.py`, deterministic supplier/line matching (alias → exact → fuzzy → V1-stubbed AI candidate pick → human), review screen with per-line product picker and lb-conversion sources, atomic batch approve via a shared `_create_expected_receipt_core()`. Includes migration 049 DDL (`purchase_documents` with status/approved_at, `supplier_product_aliases` latest-wins upsert, `expected_receipts.source_document_id`, dedupe index), endpoint contracts, and owner amendments from the 2026-09-08 approval (nullable extraction fields / never guess, product-master lb conversion only for alias/exact matches, warn+force dedupe incl. closed/cancelled, readonly-tripwire coverage).
+- **Why:** Michael approved the proposal with amendments and asked for it on record before implementation starts on branch `feat/er-intake` (three phases: migration+extraction+tests, endpoints, dashboard).
+
+---
+
 ## 2026-09-08 11:21 — Six improvements added from a phone review of production at 390 px (IMP-068…IMP-073)
 
 - **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md`
