@@ -1894,7 +1894,9 @@
       html += `<div class="${classes.join(' ')}" data-id="${n.id}">`;
 
       // Checkbox
-      html += `<input type="checkbox" class="note-checkbox" data-id="${n.id}" ${isDone ? 'checked' : ''}>`;
+      // Wrapped in a label so the 44px hit region (T4) is the label, not a
+      // grown checkbox; the label carries the invisible ::before extension.
+      html += `<label class="check-hit"><input type="checkbox" class="note-checkbox" data-id="${n.id}" aria-label="Mark done" ${isDone ? 'checked' : ''}></label>`;
 
       // Content
       html += '<div class="note-content">';
@@ -2534,7 +2536,7 @@
       // A Factory Ready write re-renders this table, so carry the in-flight
       // state through the re-render and keep the control disabled (IMP-004).
       const readyBusy = Boolean(o.readyInFlight);
-      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></td>`;
+      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><label class="check-hit"><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></label></td>`;
       html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
@@ -2667,7 +2669,11 @@
 
   function bindOrderReadyToggles(container) {
     container.querySelectorAll('.order-ready-checkbox').forEach(cb => {
-      cb.addEventListener('click', ev => ev.stopPropagation());
+      // The row opens the order detail on click. The guard sits on the
+      // wrapping .check-hit label, not the checkbox alone: a click anywhere in
+      // the label's 44px hit region bubbles to the row before the label's
+      // activation behaviour dispatches the synthetic click on the input.
+      (cb.closest('.check-hit') || cb).addEventListener('click', ev => ev.stopPropagation());
       cb.addEventListener('change', async (ev) => {
         ev.stopPropagation();
         if (cb.disabled) return;

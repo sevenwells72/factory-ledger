@@ -42,6 +42,12 @@
      offsets compose at any width, text size, or zoom level. */
   --site-nav-h: 48px;
   --header-h: 43px;
+  /* Minimum hit region for any control (TOUCH-003, IMP-011 / SYS-4). Standalone
+     controls take it as min-height (and min-width where the glyph is narrow);
+     controls inside a dense row take it through the invisible ::before
+     extension below, so the row does not grow. Not a theme value: declared
+     once here, inherited by [data-theme="light"]. */
+  --hit-min: 44px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
 }
@@ -114,6 +120,7 @@ body {
   display: flex; gap: 4px; align-items: center;
 }
 .site-nav-link {
+  display: inline-flex; align-items: center; min-height: var(--hit-min);
   padding: 5px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
   color: #94a3b8; text-decoration: none; transition: all 0.15s;
   white-space: nowrap;
@@ -123,6 +130,7 @@ body {
 .site-nav-toggle {
   display: none; background: none; border: 1px solid rgba(255,255,255,0.12);
   border-radius: 6px; color: #94a3b8; font-size: 18px; padding: 4px 10px;
+  min-width: var(--hit-min); min-height: var(--hit-min);
   cursor: pointer; line-height: 1;
 }
 @media (max-width: 768px) {
@@ -228,6 +236,8 @@ body {
 .health-badge.health-red { background: var(--badge-red-bg); color: var(--badge-red-text); }
 
 .btn-theme {
+  min-width: var(--hit-min);
+  min-height: var(--hit-min);
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -241,6 +251,7 @@ body {
 .btn-theme:hover { background: var(--surface-hover); color: var(--text); }
 
 .btn-refresh {
+  min-height: var(--hit-min);
   padding: 6px 14px;
   background: var(--primary);
   color: #ffffff;
@@ -270,6 +281,7 @@ body {
 }
 
 .tab {
+  min-height: var(--hit-min);
   padding: 10px 20px;
   background: none;
   border: none;
@@ -384,11 +396,54 @@ body {
 .today-tile-state { grid-column: 1 / -1; display: grid; gap: 7px; padding: 18px; color: var(--text-muted); }
 .today-tile-error { border-color: var(--danger); color: var(--text); }
 .today-tile-error span { overflow-wrap: anywhere; color: var(--text-muted); font-size: 12px; }
-.today-tile-retry { width: fit-content; min-height: 36px; margin-top: 2px; }
+.today-tile-retry { width: fit-content; margin-top: 2px; }
 
 @media (max-width: 480px) {
   .today-tile { grid-template-columns: 1fr; padding: 12px; }
   .today-tile-row { gap: 8px; }
+}
+
+/* === Form controls — shared minimums (T3, T4) === */
+/* Every text-like field, select and textarea clears --hit-min. :where() keeps
+   specificity at zero so the id- and class-scoped rules that size individual
+   fields still win on everything else; none of them sets a height. The two
+   fields that are table-row content are left out: a replaced element cannot
+   carry the ::before extension, so the only way to grow their hit region is
+   to grow the row (the order-line qty / price inputs in edit mode) — deferred
+   with T5 / T13 as a layout decision. */
+:where(input:not([type="checkbox"], [type="radio"], [type="hidden"]), select, textarea) {
+  min-height: var(--hit-min);
+}
+.order-edit-num-cell .order-edit-input { min-height: 0; }
+
+/* Checkboxes and radios stay native. The box is sized to 20px and coloured
+   with accent-color; the 44px hit region is the wrapping <label>, which
+   activates the control (T4 — "the wrapping label is what actually carries
+   the hit region"). Toolbar labels take min-height; in-row checkboxes are
+   wrapped in a .check-hit label that carries the invisible extension. */
+:where(input[type="checkbox"], input[type="radio"]) {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+:where(label:has(> input[type="checkbox"]), label:has(> input[type="radio"])) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--hit-min);
+  cursor: pointer;
+}
+/* Wrapper for a checkbox inside a dense row: no min-height, hit region via
+   ::before (see the invisible hit extension rule). Tight to the box so the
+   row and the cell keep their width. */
+.check-hit {
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+  line-height: 0;
 }
 
 /* === Calendar === */
@@ -399,6 +454,7 @@ body {
 }
 
 .btn-sm {
+  min-height: var(--hit-min);
   padding: 4px 10px;
   background: transparent;
   border: 1px solid var(--border);
@@ -409,6 +465,56 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .btn-sm:hover { background: var(--surface-hover); color: var(--text); }
+/* The two arrow buttons are icon-only and 34px wide; every other .btn-sm is a
+   word and already clears 44px on width. */
+#cal-prev, #cal-next { min-width: var(--hit-min); }
+
+/* ── Invisible hit extension for controls inside dense rows (T1, T4, T6) ──
+   A control in a table row or a card row keeps its rendered box and its row
+   keeps its height (DATA-003 density). The 44px region is a generated box:
+   absolutely positioned on the control, centred on it, at least --hit-min in
+   each axis, with no paint. A pointer event on generated content is
+   dispatched to the element that generated it, so this is a real hit region,
+   not a decoration — tests/visual/lib/checks.mjs measures it the same way.
+   Used instead of padding + negative margin because these controls are
+   bordered: padding would grow the visible box. The pseudo carries no
+   z-index, so it never paints over a sibling's own box — in the band where
+   two neighbouring extensions overlap, the later sibling wins, and neither
+   covers the other's glyph as long as the row pitch is ≥ 34px. */
+/* The four .btn-sm variants that sit in a table row are named rather than
+   matched by `td .btn-sm`: the inline order panel is itself rendered inside a
+   colspan cell, and its drawer buttons are toolbar controls, not row
+   content. */
+.er-actions .btn-sm,
+.allocation-release-btn,
+.order-inventory-toggle,
+.supply-request-done-btn,
+.show-more-btn,
+.order-expand-toggle,
+.note-action-btn,
+.check-hit {
+  position: relative;
+}
+.er-actions .btn-sm::before,
+.allocation-release-btn::before,
+.order-inventory-toggle::before,
+.supply-request-done-btn::before,
+.show-more-btn::before,
+.order-expand-toggle::before,
+.note-action-btn::before,
+.check-hit::before {
+  content: "";
+  position: absolute;
+  left: min(0px, calc(50% - var(--hit-min) / 2));
+  top: min(0px, calc(50% - var(--hit-min) / 2));
+  width: max(100%, var(--hit-min));
+  height: max(100%, var(--hit-min));
+}
+/* Inside a row the box itself stays at its rendered height. */
+.er-actions .btn-sm,
+.allocation-release-btn,
+.order-inventory-toggle,
+.supply-request-done-btn { min-height: 0; }
 
 #cal-range-label { font-size: 12px; font-weight: 500; min-width: 160px; text-align: center; color: var(--text-muted); }
 
@@ -885,6 +991,8 @@ body {
 .panel-header h3 { font-size: 15px; font-weight: 600; color: var(--text); }
 
 .btn-close {
+  min-width: var(--hit-min);
+  min-height: var(--hit-min);
   background: none;
   border: none;
   font-size: 22px;
@@ -982,6 +1090,8 @@ body {
 }
 
 .notes-filter-btn {
+  min-height: var(--hit-min);
+  min-width: var(--hit-min); /* "All" is 39px wide */
   padding: 5px 12px;
   background: transparent;
   border: 1px solid var(--border);
@@ -1031,13 +1141,11 @@ body {
 .note-card.priority-low { border-left: 3px solid var(--text-dimmed); }
 
 .note-checkbox {
-  flex-shrink: 0;
-  margin-top: 2px;
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--primary);
+  width: 20px;
+  height: 20px;
 }
+/* The wrapper is the flex item the checkbox used to be. */
+.note-card > .check-hit { flex-shrink: 0; margin-top: 2px; }
 
 .note-content { flex: 1; min-width: 0; }
 
@@ -1125,6 +1233,14 @@ body {
   color: var(--text-muted);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
+/* Edit and Delete are 22px glyphs 4px apart, so two centred 44px regions
+   would each cover the other's box. Each region is pushed outward instead:
+   Edit's reaches left over the title row (no handler there) and ends 2px into
+   the gap; Delete's starts 2px into the gap and reaches right into the card
+   padding. 44px each, no overlap, no glyph covered, no layout change.
+   LAYOUT-012's real fix — Delete into an overflow — is IMP-011, not done here. */
+.note-action-btn.edit::before { left: calc(100% + 2px - var(--hit-min)); }
+.note-action-btn.delete::before { left: -2px; }
 .note-action-btn:hover { background: var(--surface-hover); color: var(--text); }
 .note-action-btn.delete:hover { color: var(--danger); border-color: var(--danger); }
 
@@ -1341,12 +1457,19 @@ body {
 .orders-table td.order-ready-cell { width: 34px; padding-left: 8px; padding-right: 0; }
 
 .order-ready-checkbox {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  cursor: pointer;
+  width: 20px;
+  height: 20px;
   accent-color: #22c55e;
 }
+/* The expand toggle (12-34px from the row's left edge) and this box
+   (43.5-63.5px) need 88px of hit region in the 75.5px before the SO text
+   begins, so 2.5px of overlap is unavoidable. Centred, this region would
+   cover the toggle's own right edge — a tap on the toggle would write
+   Factory Ready. Pushed right instead: it starts exactly at the toggle's
+   edge (34px) and ends 2.5px into the row's own click surface at 78px,
+   which is a 1,100px-wide target. LAYOUT-012's fix — the SO number between
+   the two controls — is IMP-011's and not done here. */
+.order-ready-cell .check-hit::before { left: calc(100% + 14.5px - var(--hit-min)); }
 
 .order-expand-toggle {
   display: inline-flex;
@@ -1741,6 +1864,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-height: var(--hit-min);
   padding: 6px 14px;
   background: transparent;
   border: 1px solid var(--border);
@@ -1849,6 +1973,7 @@ body {
   background: var(--surface-hover);
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
+  min-height: var(--hit-min);
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
@@ -1998,7 +2123,7 @@ body {
 .allocation-form select,
 .allocation-form input {
   width: 100%;
-  min-height: 34px;
+  min-height: var(--hit-min);
   padding: 6px 8px;
   border: 1px solid var(--search-border);
   border-radius: var(--radius-sm);
@@ -2344,6 +2469,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  min-height: var(--hit-min);
   padding: 6px 10px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
