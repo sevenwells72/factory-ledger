@@ -16,8 +16,12 @@
 -- query. The stored `extraction` JSON is audit-only — matching and approval
 -- always run against live products/suppliers/aliases, never the stored blob.
 --
--- Forward-safe / idempotent: every statement guards on IF NOT EXISTS, so a
--- re-run is a no-op.
+-- Forward-safe: the CREATE/ALTER statements guard on IF NOT EXISTS and the
+-- resulting schema is identical on every run (idempotent end state). A
+-- re-run is NOT a pure no-op, though: the status CHECK constraint below is
+-- dropped and re-added by name on every run, which re-VALIDATES it against
+-- all existing purchase_documents rows and briefly takes an ACCESS
+-- EXCLUSIVE lock on the table.
 
 BEGIN;
 
