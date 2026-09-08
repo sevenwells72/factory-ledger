@@ -13,6 +13,15 @@
   --text-muted: #94a3b8;
   --text-dimmed: #909daf;
   --primary: #3b82f6;
+  /* --primary is a fill (white text on it); --primary-text is the same hue
+     used as text and as a line on a surface — links, the selected-tab
+     indicator, focus rings. The two pull in opposite directions on a dark
+     surface (A4 needs the fill darker, A5 needs the text lighter), which is
+     why one token cannot serve both (07-systemic-clusters A4/A5). Nearest
+     value to the fill, hue and saturation held, clearing 4.6:1 on every
+     surface it was measured rendering on: --surface 5.44, --surface-alt
+     5.74, --surface-hover 4.61, --row-header 6.07. */
+  --primary-text: #669ef8;
   --primary-hover: #60a5fa;
   --category-coconut: #60a5fa;
   --category-granola: #fbbf24;
@@ -63,6 +72,9 @@
   --text-muted: #5b697e;
   --text-dimmed: #5b697e;
   --primary: #2563eb;
+  /* 4.61 on --surface-hover, 5.44 on --surface-alt, 5.19 on --bg /
+     --row-header, 5.69 on --surface. #2563eb measured 4.19 on --surface-hover. */
+  --primary-text: #195aea;
   --primary-hover: #1d4ed8;
   --category-coconut: #2563eb;
   --category-granola: #955b06;
@@ -179,7 +191,7 @@ body {
   transition: border-color 0.15s ease;
 }
 #global-search::placeholder { color: var(--text-muted); }
-#global-search:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+#global-search:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
 .search-dropdown {
   position: absolute;
@@ -295,7 +307,7 @@ body {
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab.active { color: var(--primary-text); border-bottom-color: var(--primary-text); }
 .tab:hover { color: var(--text); }
 
 .tab-content { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
@@ -556,7 +568,7 @@ body {
   position: relative;
   z-index: 1;
   background: var(--surface-hover);
-  box-shadow: inset 0 0 0 2px var(--primary);
+  box-shadow: inset 0 0 0 2px var(--primary-text);
 }
 
 /* Today: tinted header + subtle glow */
@@ -944,14 +956,14 @@ body {
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--primary-text);
   cursor: pointer;
   transition: color 0.15s ease;
 }
 .show-more-btn:hover { color: var(--primary-hover); text-decoration: underline; }
 
 .lot-link {
-  color: var(--primary);
+  color: var(--primary-text);
   text-decoration: underline;
   cursor: pointer;
   font-family: var(--mono);
@@ -1300,7 +1312,7 @@ body {
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: var(--primary);
+  border-color: var(--primary-text);
   box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 
@@ -1376,7 +1388,7 @@ body {
   cursor: pointer;
   transition: border-color 0.15s ease;
 }
-.orders-select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+.orders-select:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
 #orders-customer-search, #er-text-filter {
   padding: 7px 10px;
@@ -1390,7 +1402,7 @@ body {
   transition: border-color 0.15s ease;
 }
 #orders-customer-search::placeholder, #er-text-filter::placeholder { color: var(--text-muted); }
-#orders-customer-search:focus, #er-text-filter:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+#orders-customer-search:focus, #er-text-filter:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
 .orders-overdue-toggle {
   display: flex;
@@ -1624,7 +1636,7 @@ body {
 }
 
 .order-ready-note-input:focus {
-  border-color: var(--primary);
+  border-color: var(--primary-text);
   box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
   outline: none;
 }
@@ -1672,7 +1684,7 @@ body {
 }
 
 .order-link {
-  color: var(--primary);
+  color: var(--primary-text);
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 500;
@@ -2136,7 +2148,7 @@ body {
 }
 .allocation-form select:focus,
 .allocation-form input:focus {
-  border-color: var(--primary);
+  border-color: var(--primary-text);
   box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 .allocation-lot-field,
@@ -2516,7 +2528,7 @@ body {
   font-size: 13px;
   outline: none;
 }
-#supplies-search:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+#supplies-search:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 #supplies-search::placeholder { color: var(--text-muted); }
 
 .supplies-table-scroll { overflow-x: auto; }
@@ -2603,7 +2615,7 @@ body {
   font-size: 13px;
   outline: none;
 }
-.supply-quantity-row input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+.supply-quantity-row input:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 .supply-quantity-unit { min-width: 54px; color: var(--text-muted); font-size: 12px; }
 .btn-refresh:disabled,
 .btn-sm:disabled { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
@@ -2682,7 +2694,7 @@ body {
 
 /* ACCESS-002: an outline, not a colour shift, so focus survives grayscale. */
 .attention-chip:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }
 
