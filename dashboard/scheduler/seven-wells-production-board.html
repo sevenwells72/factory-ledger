@@ -7,15 +7,30 @@
 <style>
 :root{
   --paper:#f4f3ee; --card:#ffffff; --ink:#1b2431; --ink2:#4a5568; --line:#dcd9cf;
-  --ok:#2e7d4f; --okbg:#e8f3ec;
-  --amber:#b46a00; --amberbg:#fdf1de;
+  /* --ink3: the .dtl-breakdown grey, formerly a #687386 literal that measured
+     4.13–4.29:1 on the tinted cells (07 cluster A8). Nearest value clearing
+     4.6 on every cell tint it was measured on: --okbg 4.72, --amberbg 4.81,
+     the pans tint 4.69, --wipbg 4.63, --card 5.37. */
+  --ink3:#616b7d;
+  /* --ok: #2e7d4f measured 4.44 on --okbg by declared value (.chip.early /
+     .d-better, not present in the fixtures); nearest clearing 4.6 is #2d7a4d. */
+  --ok:#2d7a4d; --okbg:#e8f3ec;
+  /* --amber: #b46a00 measured 4.02 on the details surface and 4.20 on --card
+     (.flagged); #9f5e00 is the nearest value, hue/saturation held, clearing 4.6
+     there (4.94 / 5.15) and on --amberbg (4.62), where .chip.tight puts it. */
+  --amber:#9f5e00; --amberbg:#fdf1de;
   --late:#bf2f24; --latebg:#fbe9e7;
   --pin:#1f5fbf; --pinbg:#e7effb;
   --wip:#7b5ea7; --wipbg:#f1ecf8;
-  --idle:#98a0aa; --idlebg:#f0f1f3;
+  /* --idle is text only (.d-same); #98a0aa measured 2.55 on the delta panel.
+     #697380 is the nearest grey-blue, hue/saturation held, clearing 4.6 (4.63). */
+  --idle:#697380; --idlebg:#f0f1f3;
   --coco:#8a6d3b;
   font-size:14px;
 }
+/* Placeholders were the user agent's #757575, 4.48:1 on --card (the 400+
+   floor-name fields) — INPUT-022 / 07 cluster A7. */
+::placeholder{color:var(--ink2); opacity:1;}
 *{box-sizing:border-box; margin:0; padding:0;}
 html,body{height:100%;}
 body{
@@ -119,7 +134,7 @@ td.cell .u{font-size:11px; color:var(--ink2); margin-left:2px;}
 td.cell .dtl{font-size:11px; color:var(--ink2); line-height:1.35; margin-top:2px;}
 td.cell .dtl-item.extra{display:none;}
 td.cell.expanded .dtl-item.extra{display:block;}
-.dtl-breakdown{display:none; margin:1px 0 2px 8px; color:#687386; font-size:10px; line-height:1.3;}
+.dtl-breakdown{display:none; margin:1px 0 2px 8px; color:var(--ink3); font-size:10px; line-height:1.3;}
 td.cell.expanded .dtl-breakdown{display:block;}
 .more-toggle{border:0; background:none; color:var(--pin); cursor:pointer; font:inherit; font-weight:700; padding:0; margin-left:3px; text-decoration:underline;}
 td.cell.off{background:var(--idlebg);}
@@ -189,6 +204,9 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
   #center{overflow:visible;}
   body{background:#fff;}
   #topbar{background:#fff; color:#000; border-bottom:2px solid #000;}
+  /* The topbar's dark-surface accents measured 1.95 (h1 span) and 2.29 (risk
+     KPIs) on the white print sheet. */
+  #topbar h1 span,.k-val.risk,.k-val.good,.k-val.warn{color:#000;}
   .kpi .k-label{color:#555;} .kpi .k-sub{color:#555;}
   #board thead th{position:static;} #board tbody th.stn{position:static;}
   td.cell,td.cell .cwrap{height:auto !important; min-height:0 !important;}
@@ -229,7 +247,7 @@ tr.laborrow td b{color:var(--ink); font-size:11px;}
     <span class="lg"><span class="sw" style="background:var(--coco)"></span>Pan-bound (coconut pool)</span>
     <span class="lg"><span class="sw" style="background:var(--late)"></span>Infeasible pin / late</span>
     <span class="lg"><span class="sw" style="border:2px solid var(--pin); background:#fff;"></span>Pinned by you</span>
-    <span class="lg" style="margin-left:auto; color:#8a8878;">Click any cell to pin a quantity or crew · click a weekend header to add overtime</span>
+    <span class="lg" style="margin-left:auto; color:var(--ink2);">Click any cell to pin a quantity or crew · click a weekend header to add overtime</span>
   </div>
   <div id="deltapanel"></div>
   <div id="main">
@@ -1638,7 +1656,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     e.stopPropagation();
   },true);
   const ver=document.createElement("span");
-  ver.style.cssText="color:#8a8878;font-weight:700;"; ver.textContent=APP_VER;
+  ver.style.cssText="color:var(--ink2);font-weight:700;"; ver.textContent=APP_VER;
   $("#legendbar").appendChild(ver);
   computeSchedule(); renderLeft(); renderAll();
 });

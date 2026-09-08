@@ -7,6 +7,10 @@
 <link rel="stylesheet" href="mini-calendar.css?v=3">
 <script src="fetch-timeout.js?v=1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+  // Same preference dashboard.js writes (initTheme); applied before first paint.
+  try { document.documentElement.setAttribute('data-theme', localStorage.getItem('dashboard-theme') || 'dark'); } catch (e) {}
+</script>
 <style>
 :root {
   --hit-min: 44px; /* minimum hit region, TOUCH-003 — same token as dashboard.css */
@@ -16,14 +20,23 @@
   --text: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
-  --text-dimmed: #64748b;
+  /* #64748b measured 3.07–3.75:1 on this page's three surfaces (07 cluster
+     A8); #8392a6 is the nearest value, hue/saturation held, clearing 4.6 on
+     all of them (--surface 4.62, --card-bg 5.02, --bg 5.63). */
+  --text-dimmed: #8392a6;
   --border: #334155;
+  --card-bg: #16213e;
+  --card-border: rgba(255,255,255,0.08);
+  --row-border: rgba(255,255,255,0.04);
   --primary: #1b6df5;      /* fill under white text, 4.61:1 — see dashboard.css */
   --primary-text: #669ef8; /* links / text on a surface — see dashboard.css --primary-text */
   --primary-hover: #60a5fa;
   --accent: #10b981;
-  --danger: #ef4444;
+  --danger: #f16161;       /* dashboard.css's dark --danger; #ef4444 measures 3.89 as text on --surface */
   --warning: #f59e0b;
+  --badge-green-text: #6ee7b7;
+  --badge-amber-text: #fbbf24;
+  --badge-red-text: #fca5a5;
   --radius: 8px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
@@ -34,6 +47,44 @@
   --col-finished: #D85A30;
   --col-customer: #BA7517;
   --col-gap: #E24B4A;
+}
+/* Light palette (07 cluster A8 / IMP-027) — dashboard.css's light token
+   values, so the page follows the shared `dashboard-theme` preference. The
+   node colours are darkened, hue/saturation held, to clear 4.6:1 as text on
+   --surface / --bg (they label nodes, the legend and .legacy-tag); the graph
+   nodes take the same values through var(--col-*). --accent is text here
+   (.confirmed-tag) and dashboard.css's #059669 measures 3.77 on white, so it
+   is #047552 (5.72). The print block below applies this palette too: a
+   printed page is a light surface, and the old print rules left
+   .detail-card h3 at #f1f5f9 on white (1.10:1). */
+[data-theme="light"] {
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface2: #e2e8f0;
+  --text: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #5b697e;
+  --text-dimmed: #5b697e;
+  --border: #cbd5e1;
+  --card-bg: #ffffff;
+  --card-border: #cbd5e1;
+  --row-border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-text: #195aea;
+  --primary-hover: #1d4ed8;
+  --accent: #047552;
+  --danger: #c82020;
+  --warning: #d97706;
+  --badge-green-text: #065f46;
+  --badge-amber-text: #92400e;
+  --badge-red-text: #991b1b;
+
+  --col-supplier: #177d5d;
+  --col-ingredient: #2170c0;
+  --col-batch: #685ed7;
+  --col-finished: #bd4a24;
+  --col-customer: #9c6213;
+  --col-gap: #d72423;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -96,7 +147,7 @@ a:hover { text-decoration: underline; }
   background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
   color: var(--text); font-size: 14px; font-family: var(--mono); outline: none;
 }
-.search-input:focus { border-color: var(--primary); }
+.search-input:focus { border-color: var(--primary-text); }
 .search-input::placeholder { color: var(--text-muted); opacity: 1; }
 .search-icon {
   position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
@@ -115,7 +166,7 @@ a:hover { text-decoration: underline; }
 }
 .search-item {
   padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between;
-  align-items: center; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03);
+  align-items: center; font-size: 13px; border-bottom: 1px solid var(--row-border);
 }
 .search-item:hover { background: var(--surface2); }
 .search-item .lot-code { font-family: var(--mono); color: var(--text); }
@@ -156,9 +207,9 @@ a:hover { text-decoration: underline; }
   display: inline-flex; align-items: center; gap: 6px;
   padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
 }
-.badge-complete { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
-.badge-partial { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
-.badge-incomplete { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+.badge-complete { background: rgba(16,185,129,0.15); color: var(--badge-green-text); border: 1px solid rgba(16,185,129,0.3); }
+.badge-partial { background: rgba(245,158,11,0.15); color: var(--badge-amber-text); border: 1px solid rgba(245,158,11,0.3); }
+.badge-incomplete { background: rgba(239,68,68,0.15); color: var(--badge-red-text); border: 1px solid rgba(239,68,68,0.3); }
 
 /* Graph area */
 .graph-container {
@@ -199,7 +250,7 @@ svg text { font-family: var(--font); }
   max-width: 1000px; margin: 16px auto; padding: 0 24px; display: none;
 }
 .detail-card {
-  background: #16213e; border: 1px solid rgba(255,255,255,0.08);
+  background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
 }
 .detail-card h3 { font-size: 15px; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
@@ -209,7 +260,7 @@ svg text { font-family: var(--font); }
   border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
 }
 .detail-table td {
-  padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  padding: 6px 10px; border-bottom: 1px solid var(--row-border);
   color: var(--text-secondary); font-family: var(--mono); font-size: 12px;
 }
 .detail-table td.name-col { font-family: var(--font); }
@@ -252,11 +303,20 @@ svg text { font-family: var(--font); }
 
 /* Print styles */
 @media print {
+  /* The light palette, whichever theme is on screen (see the token block). */
+  :root {
+    --bg: #ffffff; --surface: #ffffff; --surface2: #e2e8f0;
+    --text: #0f172a; --text-secondary: #334155; --text-muted: #5b697e; --text-dimmed: #5b697e;
+    --border: #cbd5e1; --card-bg: #ffffff; --card-border: #cbd5e1; --row-border: #e2e8f0;
+    --primary: #2563eb; --primary-text: #195aea; --primary-hover: #1d4ed8;
+    --accent: #047552; --danger: #c82020; --warning: #d97706;
+    --badge-green-text: #065f46; --badge-amber-text: #92400e; --badge-red-text: #991b1b;
+    --col-supplier: #177d5d; --col-ingredient: #2170c0; --col-batch: #685ed7;
+    --col-finished: #bd4a24; --col-customer: #9c6213; --col-gap: #d72423;
+  }
   .site-nav, .header, .search-area, .graph-container, .legend, .graph-controls, .export-btns, .recent-lots { display: none !important; }
   .detail-panel { display: block !important; max-width: 100%; padding: 0; }
-  .detail-card { background: #fff; color: #000; border: 1px solid #ccc; }
-  .detail-table th, .detail-table td { color: #333; border-bottom-color: #ccc; }
-  body { background: #fff; color: #000; }
+  body { background: #fff; }
 }
 </style>
 <link rel="stylesheet" href="interaction.css?v=1">
@@ -489,7 +549,7 @@ function filterLots(q) {
 function highlight(text, q) {
   const idx = text.toLowerCase().indexOf(q.toLowerCase());
   if (idx < 0) return text;
-  return text.slice(0, idx) + '<strong style="color:var(--primary)">' + text.slice(idx, idx + q.length) + '</strong>' + text.slice(idx + q.length);
+  return text.slice(0, idx) + '<strong style="color:var(--primary-text)">' + text.slice(idx, idx + q.length) + '</strong>' + text.slice(idx + q.length);
 }
 
 function selectLot(code, productId) {
@@ -1001,10 +1061,12 @@ const colorMap = {
   batch: 'var(--col-batch)', finished: 'var(--col-finished)',
   customer: 'var(--col-customer)', gap: 'var(--col-gap)'
 };
-const colorHex = {
-  supplier: '#1D9E75', ingredient: '#378ADD', batch: '#7F77DD',
-  finished: '#D85A30', customer: '#BA7517', gap: '#E24B4A'
-};
+// Read from the --col-* tokens so the graph follows the theme (the light
+// palette darkens them); the hex is needed for the '1F' alpha suffix below.
+const colorHex = new Proxy({}, { get: (_, type) => {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--col-' + type).trim();
+  return /^#[0-9a-fA-F]{6}$/.test(v) ? v : '#666';
+} });
 
 function renderGraph() {
   const container = document.getElementById('graphContainer');
@@ -1076,7 +1138,7 @@ function renderGraph() {
 
     const isLegacy = link.confidence === 'legacy';
     const strokeW = isLegacy ? 1.5 : Math.max(1.5, Math.min(6, (link.quantity || 0) / 200));
-    const color = isLegacy ? '#E24B4A' : (colorHex[src.type] || '#666');
+    const color = isLegacy ? colorHex.gap : (colorHex[src.type] || '#666');
 
     const path = linkGroup.append('path')
       .attr('d', `M ${x1},${y1} C ${cpx},${y1} ${cpx},${y2} ${x2},${y2}`)
@@ -1107,7 +1169,7 @@ function renderGraph() {
         .attr('y', (y1 + y2) / 2 + 8)
         .attr('text-anchor', 'middle')
         .attr('font-size', 9)
-        .attr('fill', '#10b981')
+        .attr('fill', 'var(--accent)')
         .text('\u2713');
     }
     if (isLegacy) {
@@ -1116,7 +1178,7 @@ function renderGraph() {
         .attr('y', (y1 + y2) / 2 + 8)
         .attr('text-anchor', 'middle')
         .attr('font-size', 10)
-        .attr('fill', '#E24B4A')
+        .attr('fill', 'var(--col-gap)')
         .text('\u26A0');
     }
   }
@@ -1148,7 +1210,7 @@ function renderGraph() {
         .attr('x', nodeW - 16)
         .attr('y', 16)
         .attr('font-size', 13)
-        .attr('fill', '#E24B4A')
+        .attr('fill', 'var(--col-gap)')
         .text('\u26A0');
     }
 
@@ -1206,7 +1268,7 @@ function showTooltip(event, node) {
     <div class="tt-value tt-mono" style="font-weight:600">${node.label}</div>
     ${node.sublabel ? `<div class="tt-value">${node.sublabel}</div>` : ''}
     ${node.detail ? `<div class="tt-value" style="color:var(--text-muted);font-size:11px">${node.detail}</div>` : ''}
-    ${node.isLegacy ? '<div style="color:#E24B4A;font-size:11px;margin-top:4px">\u26A0 Legacy record — ingredient lot not tracked</div>' : ''}
+    ${node.isLegacy ? '<div style="color:var(--col-gap);font-size:11px;margin-top:4px">\u26A0 Legacy record — ingredient lot not tracked</div>' : ''}
     ${node.txnId ? `<div class="tt-label" style="margin-top:4px">Transaction #${node.txnId}</div>` : ''}
   `;
   tt.style.display = 'block';
