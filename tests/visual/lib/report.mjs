@@ -65,7 +65,11 @@ export function writeReport({ results, screens, variants, rules, verdict, zoomSc
   out.push('');
   out.push(`**Date:** ${fmtDate(now)} · **Harness:** \`tests/visual/run-visual-audit.mjs\` (Playwright + Chromium, headless)`);
   out.push('**Standard:** [FL-Design-Standards-MASTER.md](../FL-Design-Standards-MASTER.md) · **Inventory:** [00-screen-inventory.md](00-screen-inventory.md)');
-  out.push('**Status:** Findings only. **No application file was changed by this work, and no finding here is fixed in this PR.**');
+  // Deliberately says nothing about what the surrounding branch did. The line
+  // this replaces read "Findings only. No application file was changed by this
+  // work" — true when the harness landed, false the moment a fix branch re-ran
+  // it, and silently wrong in between.
+  out.push('**Status:** Generated output. `npm run test:visual` overwrites this file on every run; it records what the working tree rendered at the date above, not a fixed baseline.');
   out.push('');
   out.push('## What this run did');
   out.push('');
