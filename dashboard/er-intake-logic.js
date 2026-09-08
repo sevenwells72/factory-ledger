@@ -58,11 +58,13 @@
   }
 
   function applyQuantityChange(line, quantity) {
+    if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     line.quantity = Number(quantity) > 0 ? Number(quantity) : 0;
     return recomputeQtyLb(line, line.lb_source);
   }
 
   function applyLbPerUnitChange(line, lbPerUnit) {
+    if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     const v = Number(lbPerUnit);
     line.lb_per_unit = v > 0 ? v : null;
     line.lb_source = line.lb_per_unit != null ? 'manual' : 'none';
@@ -70,6 +72,7 @@
   }
 
   function applyQtyLbOverride(line, qtyLb) {
+    if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     const v = Number(qtyLb);
     line.qty_lb = v > 0 ? v : null;
     line.qty_lb_source = line.qty_lb != null ? 'manual' : null;
@@ -83,6 +86,7 @@
      computed from it — every lb_source is per-unit. A cosmetic edit that
      normalizes to the same unit ("BAG" → "bag.") keeps the values. */
   function applyUnitChange(line, unit) {
+    if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     const next = (unit == null ? '' : String(unit).trim()) || null;
     const changed = normalizeUnit(next) !== normalizeUnit(line.unit);
     line.unit = next;
@@ -99,6 +103,7 @@
      human pick (suggestion click, typeahead pick). Text-derived conversions
      may compute pounds now that a human has confirmed the product. */
   function applyProductPick(line, product) {
+    if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     line.chosen = {
       product_id: Number(product.product_id),
       name: product.name,
@@ -114,6 +119,7 @@
      Text/unit-derived and manual conversions survive; the next pick recomputes
      pounds from them. */
   function clearChosen(line) {
+    if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     line.chosen = null;
     if (PRODUCT_DEPENDENT_LB_SOURCES.includes(line.lb_source)) {
       line.lb_per_unit = null;
@@ -125,6 +131,7 @@
   }
 
   function applySaveAliasToggle(line, checked) {
+    if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     line.save_alias = Boolean(checked);
     line.save_alias_touched = true;
     return line;
@@ -189,6 +196,23 @@
     });
   }
 
+  /* Audit-2 fix 4b: while a /match request is in flight the whole review is
+     about to be replaced — an edit made now would either be lost to the
+     merge or silently applied against stale data. dashboard.js locks the
+     lines when a match starts (and disables the rendered inputs); every
+     mutator above refuses edits on a locked line. A successful match
+     replaces the lines (fresh, unlocked); a failed one goes through
+     applyRematchFailure, which unlocks. */
+  function lockLines(lines) {
+    (lines || []).forEach(l => { l.matching = true; });
+    return lines;
+  }
+
+  function unlockLines(lines) {
+    (lines || []).forEach(l => { l.matching = false; });
+    return lines;
+  }
+
   /* Audit-2 fix 4a: a FAILED supplier re-match leaves every line's match
      data computed against the wrong supplier. The newly selected supplier is
      kept (the user's choice stands), but every line drops back to
@@ -198,6 +222,7 @@
   function applyRematchFailure(lines) {
     return (lines || []).map(l => ({
       ...l,
+      matching: false,
       chosen: null,
       lb_per_unit: null,
       lb_source: 'none',
@@ -227,6 +252,8 @@
     lineApprovable,
     mergeRematch,
     applyRematchFailure,
+    lockLines,
+    unlockLines,
     forceKey,
     normalizeUnit,
     roundLb,

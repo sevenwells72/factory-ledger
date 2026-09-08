@@ -4003,7 +4003,10 @@
     if (!intake) return;
     const seq = ++intake.matchSeq;
     intake.matching = true;
-    if (intake.lines.length) renderErReview(); // re-match: grey out Approve
+    // Audit-2 fix 4b: the in-flight lines are about to be replaced — lock
+    // them (mutators refuse edits) and render every line input disabled.
+    ERIntake.lockLines(intake.lines);
+    if (intake.lines.length) renderErReview();
     try {
       // The match request reflects the CURRENT review state (edited reference,
       // edited qty/unit) so conversions and the duplicate warning stay honest.
@@ -4074,6 +4077,10 @@
     document.getElementById('er-extract-status').classList.add('hidden');
 
     const ex = intake.extraction;
+    // Audit-2 fix 4b: while a match request is in flight every input and
+    // picker is disabled — not just Approve. The state-level guards in
+    // er-intake-logic.js enforce the same rule for anything that slips by.
+    const dis = intake.matching ? 'disabled' : '';
     const supMatch = intake.match.supplier;
     // Audit fix 4: the header renders from state — never from the raw
     // extraction — so a rerender can't undo the user's corrections.
@@ -4103,30 +4110,30 @@
         ? [l.suggested, ...l.candidates] : l.candidates).slice(0, 3);
       const prodCell = l.chosen
         ? `<div>${escHtml(l.chosen.name)}${l.chosen.odoo_code ? ` <span class="er-sku">${escHtml(l.chosen.odoo_code)}</span>` : ''}</div>
-           <button type="button" class="btn-sm er-line-change" data-i="${i}">Change</button>`
-        : `<div class="er-line-picker"><input type="text" class="er-line-search" data-i="${i}"
+           <button type="button" class="btn-sm er-line-change" data-i="${i}" ${dis}>Change</button>`
+        : `<div class="er-line-picker"><input type="text" class="er-line-search" data-i="${i}" ${dis}
              placeholder="Search products…" autocomplete="off"
              value=""><div class="er-product-results hidden" id="er-line-results-${i}"></div></div>` +
           (suggestions.length ? `<div class="er-sku">Suggestions: ${suggestions.map(c =>
              `<a href="#" class="er-line-suggest${l.suggested && l.suggested.product_id === c.product_id ? ' er-line-suggest-primary' : ''}" data-i="${i}" data-pid="${c.product_id}" data-name="${escAttr(c.name)}" data-sku="${escAttr(c.odoo_code || '')}">${escHtml(c.name)}</a>`).join(' · ')}</div>` : '');
       const lbCell = `
-        <input type="number" step="any" min="0" class="er-line-lbper" data-i="${i}" value="${l.lb_per_unit != null ? l.lb_per_unit : ''}" placeholder="?">
+        <input type="number" step="any" min="0" class="er-line-lbper" data-i="${i}" value="${l.lb_per_unit != null ? l.lb_per_unit : ''}" placeholder="?" ${dis}>
         ${l.lb_source && l.lb_source !== 'none' ? `<span class="er-lb-source" title="Where this conversion came from">${erLbSourceLabel(l.lb_source)}</span>` : ''}`;
       const qtyLbCell = `
-        <input type="number" step="any" min="0" class="er-line-qtylb" data-i="${i}" value="${l.qty_lb != null ? l.qty_lb : ''}" placeholder="required">
+        <input type="number" step="any" min="0" class="er-line-qtylb" data-i="${i}" value="${l.qty_lb != null ? l.qty_lb : ''}" placeholder="required" ${dis}>
         ${l.qty_lb != null && l.qty_lb_source ? `<span class="er-lb-source" title="Where this value came from">${erLbSourceLabel(l.qty_lb_source)}</span>`
           : `<span class="er-lb-missing" title="Set the pounds before approving">needs lb</span>`}`;
       // Audit fix 3: per-line alias learning is visible and opt-out; disabled
       // until a product is chosen (there is nothing to teach without one).
       const saveAliasCell = `<input type="checkbox" class="er-line-savealias" data-i="${i}"
-        ${l.save_alias ? 'checked' : ''} ${l.chosen ? '' : 'disabled'}
+        ${l.save_alias ? 'checked' : ''} ${l.chosen && !intake.matching ? '' : 'disabled'}
         aria-label="Save alias for this line"
         title="Remember this supplier wording → product (and the conversion, when it matches the expected lb)">`;
       rows += `<tr class="${l.include ? '' : 'er-line-excluded'}" data-line="${i}">
-        <td><input type="checkbox" class="er-line-include" data-i="${i}" ${l.include ? 'checked' : ''} aria-label="Include this line"></td>
+        <td><input type="checkbox" class="er-line-include" data-i="${i}" ${l.include ? 'checked' : ''} ${dis} aria-label="Include this line"></td>
         <td><div class="er-line-vendor-desc">${escHtml(l.vendor_description)}</div>${erMatchBadge(l)}</td>
-        <td class="num"><input type="number" step="any" min="0" class="er-line-qty" data-i="${i}" value="${l.quantity}"></td>
-        <td><input type="text" class="er-line-unit" data-i="${i}" value="${escAttr(l.unit || '')}" placeholder="unit"></td>
+        <td class="num"><input type="number" step="any" min="0" class="er-line-qty" data-i="${i}" value="${l.quantity}" ${dis}></td>
+        <td><input type="text" class="er-line-unit" data-i="${i}" value="${escAttr(l.unit || '')}" placeholder="unit" ${dis}></td>
         <td>${prodCell}</td>
         <td class="num">${lbCell}</td>
         <td class="num">${qtyLbCell}</td>
@@ -4151,16 +4158,16 @@
       <div class="er-review-header">
         <div class="form-group">
           <label for="er-review-supplier">Supplier</label>
-          <select id="er-review-supplier">${supplierOptions}</select>
+          <select id="er-review-supplier" ${dis}>${supplierOptions}</select>
           ${supplierHint}
         </div>
         <div class="form-group">
           <label for="er-review-reference">Reference #</label>
-          <input type="text" id="er-review-reference" value="${escAttr(intake.reference || '')}" placeholder="Supplier order / confirmation #">
+          <input type="text" id="er-review-reference" value="${escAttr(intake.reference || '')}" placeholder="Supplier order / confirmation #" ${dis}>
         </div>
         <div class="form-group">
           <label for="er-review-date">Expected date</label>
-          <input type="date" id="er-review-date" value="${escAttr(intake.expectedDate || '')}">
+          <input type="date" id="er-review-date" value="${escAttr(intake.expectedDate || '')}" ${dis}>
         </div>
       </div>
       <div class="er-review-table-wrap">

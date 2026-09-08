@@ -302,6 +302,46 @@ test('applyRematchFailure keeps exclusions and explicit save_alias choices', () 
   assert.equal(reset[1].save_alias_touched, true);
 });
 
+// ── Audit-2 fix 4b: edits are rejected while a match request is in flight ──
+
+test('edits are rejected while matching=true', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', confidence: 1, product: PROD,
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }));
+  ERIntake.lockLines([l]);
+  const before = JSON.stringify(l);
+
+  ERIntake.applyQuantityChange(l, 99);
+  ERIntake.applyUnitChange(l, 'CASE');
+  ERIntake.applyLbPerUnitChange(l, 1);
+  ERIntake.applyQtyLbOverride(l, 1);
+  ERIntake.applySaveAliasToggle(l, false);
+  ERIntake.applyProductPick(l, { product_id: 8, name: 'Other' });
+  ERIntake.clearChosen(l);
+
+  assert.equal(JSON.stringify(l), before, 'no mutator may change a locked line');
+  assert.equal(l.quantity, 4);
+  assert.equal(l.chosen.product_id, PROD.product_id);
+  assert.equal(l.qty_lb, 200);
+});
+
+test('unlockLines re-enables edits; applyRematchFailure also unlocks', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', product: PROD, lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }));
+  ERIntake.lockLines([l]);
+  ERIntake.unlockLines([l]);
+  ERIntake.applyQuantityChange(l, 3);
+  assert.equal(l.quantity, 3, 'unlocked line accepts edits again');
+
+  const locked = ERIntake.lockLines([ERIntake.buildReviewLine(matchLine())]);
+  const reset = ERIntake.applyRematchFailure(locked);
+  assert.equal(reset[0].matching, false);
+  ERIntake.applyQuantityChange(reset[0], 7);
+  assert.equal(reset[0].quantity, 7, 'a failed rematch must not leave lines locked');
+});
+
 test('forceKey binds the override to the normalized (supplier, reference) pair', () => {
   assert.equal(ERIntake.forceKey(3, ' PO-777 '), ERIntake.forceKey(3, 'po-777'));
   assert.notEqual(ERIntake.forceKey(3, 'PO-777'), ERIntake.forceKey(4, 'PO-777'));
