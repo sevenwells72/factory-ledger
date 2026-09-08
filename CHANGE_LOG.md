@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-08 14:52 — Intake dropzone accepts clipboard paste (⌘V); FACTORY row 117 marked DEPLOYED
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/er-intake-logic.js`, `dashboard/index.html`, `tests/test_er_intake_logic.js`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** While the New Expected Receipt modal is open in create mode, pasting a PNG/JPEG from the clipboard feeds the same upload path as a dropped file under a stamped name (`clipboard-YYYYMMDD-HHMMSS.png|.jpg`); pure helpers `clipboardImageFile` / `clipboardFilename` in er-intake-logic.js with node:test coverage (mixed clipboard types, text/PDF not hijacked, zero-padded stamps); dropzone copy now "Drop, paste (⌘V), or browse". Cache-busts `dashboard.js?v=51`, `er-intake-logic.js?v=6`. FACTORY_LEDGER_CHANGELOG row 117 (ER intake) marked DEPLOYED 2026-09-08 (migration applied pre-merge, Railway route live at 14:43, Netlify serving the merged bundle, owner smoke passed). Suite 485 passed + known pre-existing failure; 29/29 JS logic tests.
+- **Why:** Owner's post-smoke follow-up — screenshots of vendor POs land on the clipboard, not the filesystem; and deploy checklist step 6.
+
+---
+
 ## 2026-09-08 14:42 — Merged feat/er-intake into main (merge commit 1c795a9, pushed)
 - **File(s) changed:** merge of the whole ER-intake branch; conflict resolutions in `dashboard/index.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** `--no-ff` merge (audit trail preserved per owner) onto main `b216d6f`, which had gained the hit-target/contrast dashboard sessions since the branch was cut. Resolutions: index.html cache-busts take each file's highest never-served version (`dashboard.css?v=34`, `dashboard.js?v=50`, `er-intake-logic.js?v=5`, `mini-calendar.css?v=3`, `interaction.css?v=2`); CHANGE_LOG keeps both sessions' entries; FACTORY_LEDGER_CHANGELOG ER-intake row renumbered 115→117 (row-28 precedent — 115/116 belong to the hit-target/contrast sessions). Merged tree verified before commit: suite 485 passed + known failure, 27/27 JS logic tests, both dashboard JS files parse.
