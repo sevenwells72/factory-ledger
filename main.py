@@ -5968,6 +5968,16 @@ SUPPLIES_INVENTORY_SQL = f"""
 """
 
 
+def ledger_quantity_unit(uom):
+    """Weight-labelled cases/bags store pounds; count-based supplies keep counts.
+
+    Do not infer that every quantity_lb column value is a weight: legacy
+    packaging and count-based WIP products use unit/each/container quantities.
+    """
+    unit = (uom or "lb").strip() or "lb"
+    return "lb" if re.search(r"(?<![a-z])(?:lbs?|pounds?)(?![a-z])", unit, re.I) else unit
+
+
 def _serialize_supplies_item(row: dict) -> dict:
     on_hand = float(row["on_hand"] or 0)
     threshold = float(row["low_stock_threshold"]) if row.get("low_stock_threshold") is not None else None
@@ -5976,7 +5986,8 @@ def _serialize_supplies_item(row: dict) -> dict:
         "name": row["name"],
         "sku": row.get("odoo_code"),
         "category": row["category"],
-        "unit": row.get("uom") or "lb",
+        "unit": ledger_quantity_unit(row.get("uom")),
+        "request_unit": row.get("uom") or "lb",  # Requests use purchasing units, not on-hand ledger units.
         "active": bool(row["active"]) if row.get("active") is not None else True,
         "case_size_lb": float(row["case_size_lb"]) if row.get("case_size_lb") is not None else None,
         "on_hand": round(on_hand, 4),
@@ -6047,7 +6058,7 @@ def supplies_product_lots(
         if not prod:
             raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {product_id} not found"})
         lots = fifo_lot_balances(cur, product_id, include_empty=include_empty)
-    unit = prod["uom"] or "lb"
+    unit = ledger_quantity_unit(prod["uom"])
     out_lots = []
     for rank, l in enumerate(lots, start=1):
         out_lots.append({
@@ -8992,6 +9003,8 @@ def get_recent_ledger_events(
                     "target_table": row["correction_target_table"],
                     "target_id": row["correction_target_id"],
                 }
+            for line in event["lines"]:
+                line["unit"] = ledger_quantity_unit(line.get("unit"))
             events.append(event)
         return {"count": len(events), "events": events}
     except Exception as e:
@@ -13426,7 +13439,7 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
             for item_name in cat.get("items", []):
                 pdata = product_map.get(item_name.lower())
                 if pdata:
-                    uom = pdata["uom"] or cat.get("unit") or "lb"
+                    uom = ledger_quantity_unit(pdata["uom"] or cat.get("unit"))
                     lots = lot_map.get(pdata["id"], [])
                     for lot in lots:
                         lot["uom"] = uom

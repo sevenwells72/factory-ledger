@@ -230,5 +230,22 @@ def test_dashboard_activity_renders_occurred_entered_lag_and_backfill_badge():
     assert "if (record.entry_backfilled === true) provenance = ' · backfilled';" in dashboard
     assert "migration_backfill_039" not in dashboard
     assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
-    assert 'dashboard.css?v=27' in index
-    assert 'dashboard.js?v=40' in index
+    assert 'dashboard.css?v=36' in index
+    assert 'dashboard.js?v=53' in index
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("uom,qty,expected_unit,txn_type", [
+    ("25 lb case", -1000, "lb", "ship"),
+    ("10 lb case", -100, "lb", "ship"),
+    ("50 lb bag", -950, "lb", "pack"),
+    ("25 lb case", 1000, "lb", "pack"),
+    ("unit", 40, "unit", "receive"),
+    ("container", 1, "container", "adjust"),
+])
+def test_recent_quantity_unit_matches_storage(client, cur, uom, qty, expected_unit, txn_type):
+    tid = _seed_transaction(cur, "RECENT-UNIT", txn_type=txn_type, quantity=qty)
+    cur.execute("UPDATE products SET uom=%s WHERE name='RECENT-UNIT'", (uom,))
+    event = next(e for e in _recent(client)["events"] if e["transaction_id"] == tid)
+    assert event["lines"][0]["quantity"] == qty
+    assert event["lines"][0]["unit"] == expected_unit

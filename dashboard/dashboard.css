@@ -2953,3 +2953,13 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .attention-chip { transition: none; }
 }
+
+/* Batch A: readable health details and the visible preparation column label. */
+button.health-badge { font-family: inherit; border: 1px solid var(--border); cursor: pointer; }
+.health-dialog { margin: auto; width: min(620px, 95vw); max-height: 85vh; padding: 0; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); }
+.health-dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+.health-dialog section { margin-block: 16px; }
+.health-dialog li { margin-block: 8px; overflow-wrap: anywhere; }
+.orders-table th.order-ready-col { min-width: 72px; white-space: normal; }
+
+.health-dialog ul { padding-left: 20px; }

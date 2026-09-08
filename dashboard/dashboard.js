@@ -752,6 +752,25 @@
     return '<span class="recent-entry-backfilled">Backfilled</span>';
   }
 
+  // Presentation only: API enum values and ledger directions remain unchanged.
+  function ledgerUnit(unit) {
+    const label = String(unit || 'lb').trim() || 'lb';
+    return /(^|[^a-z])(lbs?|pounds?)([^a-z]|$)/i.test(label) ? 'lb' : label;
+  }
+
+  function operationalLabel(value) {
+    const labels = {
+      adjusted_in: 'Stock added', adjusted_out: 'Stock removed',
+      pack_output: 'Packed output', pack_input: 'Packing consumption',
+      finished: 'Finished goods', make: 'Production', pack: 'Packing',
+      ship: 'Shipment', receive: 'Receipt', adjust: 'Adjustment',
+      received: 'Received', produced: 'Produced', packed: 'Packed', shipped: 'Shipped',
+      ingredient: 'Ingredient', batch: 'Production batch', service: 'Service',
+    };
+    const text = String(value || 'Unknown').replaceAll('_', ' ');
+    return labels[value] || text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
   function recentStatus(event) {
     if (event.event_kind === 'correction') {
       const type = String(event.event_type || '').toLowerCase();
@@ -775,18 +794,18 @@
       const isCorrection = event.event_kind === 'correction';
       const title = isCorrection
         ? `${status.label} of TX-${event.transaction_id}`
-        : String(event.transaction_type || 'Ledger entry');
+        : operationalLabel(event.transaction_type || 'Ledger entry');
       const lines = Array.isArray(event.lines) ? event.lines : [];
       const correctionDetail = correction
         ? `<div class="recent-entry-correction">${escHtml(status.label)} of TX-${escHtml(String(event.transaction_id))}${correction.reason ? ': ' + escHtml(correction.reason) : ''}</div>`
         : '';
       const linesHtml = lines.length
-        ? `<ul class="recent-entry-lines">${lines.map(line => `<li><span class="recent-line-product">${escHtml(line.product_name || 'Unknown product')}</span><span class="recent-line-quantity">${escHtml(fmt(line.quantity))} ${escHtml(line.unit || '—')}</span>${line.lot_code ? `<span class="recent-line-lot">Lot: ${escHtml(line.lot_code)}</span>` : ''}</li>`).join('')}</ul>`
+        ? `<ul class="recent-entry-lines">${lines.map(line => `<li><span class="recent-line-product">${escHtml(line.product_name || 'Unknown product')}</span><span class="recent-line-quantity">${escHtml(fmt(line.quantity))} ${escHtml(ledgerUnit(line.unit))}</span>${line.lot_code ? `<span class="recent-line-lot">Lot: ${escHtml(line.lot_code)}</span>` : ''}</li>`).join('')}</ul>`
         : (isCorrection ? '<p class="recent-entry-no-lines">This correction references the original transaction; no separate ledger lines were created.</p>' : '');
       const timingFlags = recentEntryLagChip(event) + recentEntryBackfillBadge(event);
       return `<article class="recent-entry-card" data-event-id="${escAttr(event.event_id || '')}">
         <div class="recent-entry-topline">
-          <div><h3>${escHtml(title)}</h3><p class="recent-entry-direction">${escHtml(event.direction || '—')}</p></div>
+          <div><h3>${escHtml(title)}</h3><p class="recent-entry-direction">${escHtml(operationalLabel(event.direction))}</p></div>
           <span class="recent-status-badge ${escAttr(status.className)}">${escHtml(status.label)}</span>
         </div>
         ${correctionDetail}
@@ -1525,7 +1544,7 @@
             html += `<div class="late-lag" title="Event date ${escAttr(t.event_date)}">${escHtml(lateLagText(t))}</div>`;
           }
           html += `</td>`;
-          html += `<td rowspan="${lines.length}">${escHtml(t.type)}</td>`;
+          html += `<td rowspan="${lines.length}">${escHtml(operationalLabel(t.type))}</td>`;
         }
         html += `<td>${escHtml(l.product_name || '—')}</td>`;
         html += `<td>${escHtml(l.sku || '—')}</td>`;
@@ -1574,7 +1593,7 @@
     for (const m of matches) {
       html += `<button class="disambig-btn" data-product-id="${m.product_id}">`;
       html += `<strong>${escHtml(m.product_name)}</strong>`;
-      if (m.source) html += ` <span class="disambig-source">(${escHtml(m.source)})</span>`;
+      if (m.source) html += ` <span class="disambig-source">(${escHtml(operationalLabel(m.source))})</span>`;
       html += '</button>';
     }
     html += '</div></div>';
@@ -1596,7 +1615,7 @@
     let html = '<dl class="lot-info-grid">';
     html += `<dt>Lot Code</dt><dd>${escHtml(data.lot_code)}</dd>`;
     html += `<dt>Product</dt><dd>${escHtml(data.product_name)}</dd>`;
-    html += `<dt>Source</dt><dd>${escHtml(data.entry_source)}</dd>`;
+    html += `<dt>Source</dt><dd>${escHtml(operationalLabel(data.entry_source))}</dd>`;
     html += `<dt>Original Qty</dt><dd>${fmtQtyCases(data.original_quantity_lbs, data.original_cases)}</dd>`;
     html += `<dt>On Hand</dt><dd>${fmtQtyCases(data.on_hand_lbs, data.on_hand_cases)}</dd>`;
     html += '</dl>';
@@ -1608,7 +1627,7 @@
         html += `<li class="txn-${t.type}">`;
         html += `<div class="tl-date">Occurred: ${escHtml(t.date)} ${escHtml(t.time)}</div>`;
         html += createdAtMeta(t);
-        html += `<div><span class="tl-type">${escHtml(t.type)}</span> <span class="tl-qty">${fmtQtyCases(t.quantity_lb, t.cases)}</span></div>`;
+        html += `<div><span class="tl-type">${escHtml(operationalLabel(t.type))}</span> <span class="tl-qty">${fmtQtyCases(t.quantity_lb, t.cases)}</span></div>`;
         let ctx = '';
         if (t.customer_name) ctx += 'Customer: ' + t.customer_name;
         if (t.shipper_name) ctx += 'Supplier: ' + t.shipper_name;
@@ -1641,7 +1660,7 @@
       const data = await fetchAPI('/product/' + productId + '/lots');
       let html = '<dl class="lot-info-grid">';
       html += `<dt>Product</dt><dd>${escHtml(data.product_name)}</dd>`;
-      html += `<dt>Type</dt><dd>${escHtml(data.product_type)}</dd>`;
+      html += `<dt>Type</dt><dd>${escHtml(operationalLabel(data.product_type))}</dd>`;
       if (data.odoo_code) html += `<dt>SKU</dt><dd>${escHtml(data.odoo_code)}</dd>`;
       const totalOnHand = data.lots.reduce((sum, l) => sum + l.on_hand_lbs, 0);
       html += `<dt>Total On Hand</dt><dd>${fmt(totalOnHand)} lb</dd>`;
@@ -1659,7 +1678,7 @@
           for (const l of activeLots) {
             html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" data-product-id="${productId}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
             html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;
-            html += `<td style="padding:4px 8px;">${escHtml(l.entry_source || '')}</td>`;
+            html += `<td style="padding:4px 8px;">${escHtml(operationalLabel(l.entry_source))}</td>`;
             html += `<td style="text-align:right;padding:4px 8px;">${fmt(l.on_hand_lbs)} lb</td>`;
             html += '</tr>';
           }
@@ -1674,7 +1693,7 @@
           for (const l of zeroLots.slice(0, 10)) {
             html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" data-product-id="${productId}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
             html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;
-            html += `<td style="padding:4px 8px;">${escHtml(l.entry_source || '')}</td>`;
+            html += `<td style="padding:4px 8px;">${escHtml(operationalLabel(l.entry_source))}</td>`;
             html += `<td style="text-align:right;padding:4px 8px;">0 lb</td>`;
             html += '</tr>';
           }
@@ -1724,7 +1743,7 @@
       hasResults = true;
       html += '<div class="search-category">Products</div>';
       for (const p of data.products) {
-        html += `<div class="search-item" data-search-product-id="${p.product_id}" data-search-product-name="${escHtml(p.name)}"><span class="lot-link">${escHtml(p.name)}</span> <span class="si-sub">${escHtml(p.type)} | ${fmt(p.on_hand_lbs)} lb</span></div>`;
+        html += `<div class="search-item" data-search-product-id="${p.product_id}" data-search-product-name="${escHtml(p.name)}"><span class="lot-link">${escHtml(p.name)}</span> <span class="si-sub">${escHtml(operationalLabel(p.type))} | ${fmt(p.on_hand_lbs)} lb</span></div>`;
       }
     }
     if (data.lots && data.lots.length > 0) {
@@ -1898,7 +1917,7 @@
       // Checkbox
       // Wrapped in a label so the 44px hit region (T4) is the label, not a
       // grown checkbox; the label carries the invisible ::before extension.
-      html += `<label class="check-hit"><input type="checkbox" class="note-checkbox" data-id="${n.id}" aria-label="Mark done" ${isDone ? 'checked' : ''}></label>`;
+      html += `<label class="check-hit"><input type="checkbox" class="note-checkbox" data-id="${n.id}" aria-label="Mark ${escAttr(n.title)} ${isDone ? 'not done' : 'done'}" ${isDone ? 'checked' : ''}></label>`;
 
       // Content
       html += '<div class="note-content">';
@@ -1920,7 +1939,7 @@
         meta.push(`<span class="note-due ${overdue ? 'overdue' : ''}">Due: ${n.due_date}</span>`);
       }
       if (n.entity_type && n.entity_id) {
-        meta.push(`<span class="note-entity">${escHtml(n.entity_type)}: ${escHtml(n.entity_id)}</span>`);
+        meta.push(`<span class="note-entity">${escHtml(operationalLabel(n.entity_type))}: ${escHtml(n.entity_id)}</span>`);
       }
       if (n.created_at) {
         meta.push(`<span>Created: ${escHtml(n.created_at)}</span>`);
@@ -1932,8 +1951,8 @@
 
       // Actions
       html += '<div class="note-actions">';
-      html += `<button class="note-action-btn edit" data-id="${n.id}" title="Edit">&#9998;</button>`;
-      html += `<button class="note-action-btn delete" data-id="${n.id}" title="Delete">&#10005;</button>`;
+      html += `<button class="note-action-btn edit" data-id="${n.id}" title="Edit note" aria-label="Edit note: ${escAttr(n.title)}">&#9998;</button>`;
+      html += `<button class="note-action-btn delete" data-id="${n.id}" title="Delete note" aria-label="Delete note: ${escAttr(n.title)}">&#10005;</button>`;
       html += '</div>';
 
       html += '</div>'; // .note-card
@@ -2160,14 +2179,15 @@
   }
 
   function renderDispatchState(order) {
-    if (SALES_ORDER_CLOSED_STATUSES.includes(order.status)) return '&mdash;';
+    if (SALES_ORDER_CLOSED_STATUSES.includes(order.status) && !order.fulfillment_diverged) return 'Not applicable';
+    if (typeof order.dispatch_ready !== 'boolean') return 'Not checked';
     return order.dispatch_ready
-      ? '<span class="dispatch-pill dispatch-ready">Dispatch Ready</span>'
-      : '<span class="dispatch-pill dispatch-blocked">Blocked</span>';
+      ? '<span class="dispatch-pill dispatch-ready">Checks passed</span>'
+      : '<span class="dispatch-pill dispatch-blocked">Needs review</span>';
   }
 
   function renderOrderBlockers(order, showDetail = false) {
-    if (SALES_ORDER_CLOSED_STATUSES.includes(order.status)) return '&mdash;';
+    if (SALES_ORDER_CLOSED_STATUSES.includes(order.status) && !order.fulfillment_diverged) return 'Not applicable';
     return renderBlockerChips(order.blockers, showDetail);
   }
 
@@ -2442,7 +2462,7 @@
 
   function orderReadyPill(order) {
     if (!order.ready) return '';
-    const parts = ['&#10003; READY'];
+    const parts = ['&#10003; Factory Ready'];
     if (order.ready_by) parts.push(escHtml(order.ready_by));
     if (order.ready_at) parts.push(escHtml(formatReadyTime(order.ready_at)));
     return `<span class="so-ready-pill">${parts.join(' &middot; ')}</span>`;
@@ -2502,7 +2522,7 @@
     }
     const total = summary ? Number(summary.total_orders_checked || 0) : state.ordersData.length;
     const ready = state.ordersData.filter(order => order.dispatch_ready).length;
-    summaryEl.textContent = `${ready} ready · ${Math.max(0, total - ready)} blocked`;
+    summaryEl.textContent = `${ready} checks passed · ${Math.max(0, total - ready)} need review (advisory)`;
   }
 
   function updateShipByCalendarIndicators() {
@@ -2527,7 +2547,7 @@
     }
 
     let html = '<div class="table-scroll"><table class="orders-table"><thead><tr>';
-    html += '<th class="order-expand-col" aria-label="Expand"></th><th class="order-ready-col" aria-label="Factory Ready"></th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th>Dispatch</th><th>Blockers / Warnings</th><th class="num">Pallets</th><th class="num">Effective Remaining</th>';
+    html += '<th class="order-expand-col" aria-label="Expand"></th><th class="order-ready-col" aria-label="Factory Ready">Factory<br>Ready</th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th>Dispatch checks</th><th>Blockers / Warnings</th><th class="num">Pallets</th><th class="num">Left to ship</th>';
     html += '</tr></thead><tbody>';
 
     for (const o of orders) {
@@ -2538,7 +2558,7 @@
       // A Factory Ready write re-renders this table, so carry the in-flight
       // state through the re-render and keep the control disabled (IMP-004).
       const readyBusy = Boolean(o.readyInFlight);
-      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><label class="check-hit"><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></label></td>`;
+      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><label class="check-hit"><input type="checkbox" class="order-ready-checkbox" aria-label="Factory Ready: ${escAttr(o.order_number)} — ${escAttr(o.customer)}" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></label></td>`;
       html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
@@ -2584,7 +2604,7 @@
     if (readyNote) html += `<div class="order-ready-note-text">${escHtml(readyNote)}</div>`;
     html += '</div>';
     html += '<div class="order-inline-readiness">';
-    html += `<div><strong>${renderDispatchState(order)}</strong><span class="readiness-caption">Computed view only; shipping is not gated by this status.</span></div>`;
+    html += `<div><strong>${renderDispatchState(order)}</strong><span class="readiness-caption">Factory Ready is the team’s preparation mark. Dispatch checks are advisory; they do not prevent shipping.</span></div>`;
     html += renderOrderBlockers(order);
     html += '</div>';
 
@@ -2595,7 +2615,7 @@
     const totalPallets = calculateOrderPallets(lines, 'unit_count');
     html += `<div class="order-pallet-summary"><span>Order pallets</span><strong>${escHtml(totalPallets.display)}</strong></div>`;
     html += '<table class="order-lines-table"><thead><tr>';
-    html += '<th>SKU</th><th>Product</th><th class="num">Ordered</th><th class="num">Pallets</th><th>UoM</th><th class="num">Effective Remaining</th><th>Readiness</th>';
+    html += '<th>SKU</th><th>Product</th><th class="num">Ordered</th><th class="num">Pallets</th><th>UoM</th><th class="num">Left to ship</th><th>Readiness</th>';
     html += '</tr></thead><tbody>';
     for (const l of lines) {
       const nonWeight = l.is_non_weight;
@@ -3130,7 +3150,7 @@
   function renderOrderReadinessSummary(order) {
     return '<section class="order-readiness-card" aria-label="Computed dispatch readiness">' +
       '<div class="order-readiness-heading"><div>' + renderDispatchState(order) +
-      `<span class="readiness-caption">Computed from effective shipments, posted inventory, allocations, and blockers. It is not a shipping gate.</span></div>` +
+      `<span class="readiness-caption">Factory Ready is the team’s preparation mark. Dispatch checks review shipments, stock and reservations; they do not prevent shipping.</span></div>` +
       `<div class="readiness-metrics"><span><strong>${fmtLbs(order.allocated_lb || 0)}</strong> allocated</span><span><strong>${fmtLbs(order.shortage_lb || 0)}</strong> shortage</span></div></div>` +
       renderOrderBlockers(order, true) +
       '</section>';
@@ -3197,7 +3217,7 @@
 
   function renderShippingPreviewSection(order) {
     if (!SALES_ORDER_ALLOCATABLE_STATUSES.includes(order.status)) return '';
-    return '<section class="order-preview-card"><div class="order-section-heading"><div><h3>Shipping capacity preview</h3><p>Read-only preview of what is takeable now. Previewing does not ship inventory, and Dispatch Ready is not a commit gate.</p></div><button type="button" class="btn-secondary order-preview-btn">Preview all remaining lines</button></div><div class="order-ship-preview-results" aria-live="polite"></div></section>';
+    return '<section class="order-preview-card"><div class="order-section-heading"><div><h3>Shipping capacity preview</h3><p>Read-only preview of what is takeable now. Previewing does not ship inventory, and dispatch checks are advisory.</p></div><button type="button" class="btn-secondary order-preview-btn">Preview all remaining lines</button></div><div class="order-ship-preview-results" aria-live="polite"></div></section>';
   }
 
   function setAllocationFeedback(container, message, kind = 'error') {
@@ -3776,6 +3796,7 @@
     const chosen = document.getElementById('er-product-chosen');
     chosen.innerHTML = id ? `Selected: <strong>${escHtml(name)}</strong>${sku ? ` <span class="er-sku">SKU ${escHtml(sku)}</span>` : ''}` : '';
     document.getElementById('er-product-results').classList.add('hidden');
+    updateErSaveState();
   }
 
   async function searchErProducts(q) {
@@ -3834,6 +3855,7 @@
       document.getElementById('er-reference').value = '';
       document.getElementById('er-notes').value = '';
     }
+    updateErSaveState();
     document.getElementById('er-modal-overlay').classList.remove('hidden');
     (record ? document.getElementById('er-qty') : document.getElementById('er-product-search')).focus();
   }
@@ -3844,7 +3866,20 @@
     erResetIntake();
   }
 
+  function updateErSaveState() {
+    const missing = [];
+    if (!state.erEditing && !document.getElementById('er-product-id').value) missing.push('select a product');
+    if (!state.erEditing && !document.getElementById('er-supplier').value) missing.push('select a supplier');
+    const qty = readNumericInput(document.getElementById('er-qty'));
+    if (!qty.valid || !(qty.value > 0)) missing.push('enter a quantity greater than zero in pounds');
+    document.getElementById('er-save-help').textContent = missing.length
+      ? 'To save: ' + missing.join('; ') + '.' : 'Ready to save.';
+    document.getElementById('er-save-btn').disabled = !!state.erSaving || missing.length > 0;
+    return missing.length === 0;
+  }
+
   async function saveEr() {
+    if (state.erSaving || !updateErSaveState()) return;
     hideError('er-modal-error');
     const qtyField = document.getElementById('er-qty');
     const qtyRead = readNumericInput(qtyField);
@@ -3861,6 +3896,7 @@
     const reference = document.getElementById('er-reference').value.trim() || null;
     const notes = document.getElementById('er-notes').value.trim() || null;
     const btn = document.getElementById('er-save-btn');
+    state.erSaving = true;
     btn.disabled = true;
     try {
       if (state.erEditing) {
@@ -3899,7 +3935,8 @@
       }
       showError('er-modal-error', msg);
     } finally {
-      btn.disabled = false;
+      state.erSaving = false;
+      updateErSaveState();
     }
   }
 
@@ -4470,6 +4507,10 @@
       if (e.target === e.currentTarget) closeErModal();
     });
     document.getElementById('er-save-btn').addEventListener('click', saveEr);
+    ['er-qty', 'er-supplier'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateErSaveState);
+      document.getElementById(id).addEventListener('change', updateErSaveState);
+    });
     // Surface a bad quantity on blur rather than at commit (IMP-006).
     document.getElementById('er-qty').addEventListener('blur', (e) => {
       const read = readNumericInput(e.target);
@@ -4836,7 +4877,7 @@
       unitEl.textContent = unit;
     } else {
       const product = state.supplies.inventory.find(item => String(item.product_id) === value);
-      unitEl.textContent = product?.unit || '';
+      unitEl.textContent = product?.request_unit || product?.unit || '';
     }
   }
 
@@ -4962,39 +5003,74 @@
     });
   }
 
-  // ── System Health Badge ──
+  // ── System Health: score plus keyboard-accessible, actionable details ──
+  const HEALTH_CHECK_HELP = {
+    negative_lot_balances: ['Negative lot balances', 'Review the lot timeline for missing receipts or excess consumption.'],
+    production_missing_ilc: ['Production missing ingredient usage', 'Ask the ledger administrator to review ingredient consumption for the listed transactions.'],
+    ship_missing_shipment_lines: ['Shipments missing line details', 'Ask the ledger administrator to reconcile the listed shipment transactions.'],
+    lots_missing_received_at: ['Lots missing received dates', 'Review receipt dates with the receiving team. This check supplies a count only; ask the ledger administrator for the affected lots.'],
+    lots_missing_supplier_lot_code: ['Lots missing supplier lot codes', 'Compare the listed lots with supplier delivery documents.'],
+    finished_goods_missing_case_size: ['Packed products missing case weight', 'Ask the ledger administrator to set the correct case weight for the listed products.'],
+    floating_point_dust: ['Very small residual lot balances', 'Review the listed lot balances with the ledger administrator before making any correction.'],
+  };
+
   async function refreshHealthBadge() {
     const badge = document.getElementById('health-badge');
+    const body = document.getElementById('health-details');
+    const retry = document.getElementById('health-retry');
+    retry.disabled = true;
     try {
       const res = await FL.fetchWithTimeout('https://fastapi-production-b73a.up.railway.app/audit/integrity');
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
+      if (!Number.isFinite(data.score) || !Array.isArray(data.checks)) throw new Error('Incomplete health check');
       const score = data.score;
-      badge.textContent = score;
+      const failures = data.checks.filter(c => c.status === 'fail');
+      badge.textContent = `Health: ${score}/100`;
+      badge.className = 'health-badge ' + (score >= 90 ? 'health-green' : score >= 70 ? 'health-yellow' : 'health-red');
+      badge.title = `${failures.length} checks need review. Open health details.`;
+      badge.setAttribute('aria-label', `Health score ${score} out of 100. ${failures.length} checks need review. Open details.`);
+      body.innerHTML = `<p>Health score: <strong>${score}/100</strong>. ${failures.length ? failures.length + ' checks need review.' : 'All checks passed.'}</p>` +
+        failures.map(check => {
+          const [label, help] = HEALTH_CHECK_HELP[check.name] || [operationalLabel(check.name), 'Ask the ledger administrator to review this check.'];
+          const records = (Array.isArray(check.details) ? check.details : []).map(record => {
+            const parts = [];
+            if (record.lot_code) parts.push(`Lot ${record.lot_code}`);
+            else if (record.lot_id != null) parts.push(`Lot ID ${record.lot_id}`);
+            if (record.transaction_id != null) parts.push(`TX-${record.transaction_id}`);
+            if (record.product_id != null) parts.push(`Product ID ${record.product_id}`);
+            if (record.product || record.name) parts.push(record.product || record.name);
+            if (record.customer) parts.push(record.customer);
+            if (record.count != null) parts.push(`${record.count} affected records (record IDs not supplied)`);
+            if (record.balance != null) parts.push(`Balance: ${record.balance}${record.unit ? ' ' + ledgerUnit(record.unit) : ' (unit not supplied)'}`);
+            return '<li>' + escHtml(parts.join(' · ') || 'Record details not supplied') + '</li>';
+          }).join('');
+          return `<section><h4>${escHtml(label)} (${escHtml(operationalLabel(check.severity))})</h4><p>${escHtml(help)}</p>` +
+            (records ? `<ul>${records}</ul>` : '<p>Affected record details were not supplied by this check.</p>') + '</section>';
+        }).join('');
+    } catch (_) {
+      badge.textContent = 'Health: unavailable';
       badge.className = 'health-badge';
-      if (score >= 90) badge.classList.add('health-green');
-      else if (score >= 70) badge.classList.add('health-yellow');
-      else badge.classList.add('health-red');
-
-      const failChecks = data.checks.filter(c => c.status === 'fail');
-      if (failChecks.length) {
-        badge.title = 'Health: ' + score + '/100 — ' + failChecks.map(c => c.name + ' (' + c.severity + ')').join(', ');
-      } else {
-        badge.title = 'System Health: ' + score + '/100 — All checks pass';
-      }
-    } catch {
-      badge.textContent = '?';
-      badge.className = 'health-badge';
-      badge.title = 'Health check unavailable';
+      badge.title = 'Open health details to retry';
+      badge.setAttribute('aria-label', 'Health check unavailable. Open details to retry.');
+      body.textContent = 'Health checks could not be loaded. Retry to check the ledger; no score is available.';
+    } finally {
+      retry.disabled = false;
     }
+  }
+
+  function initHealthDetails() {
+    const dialog = document.getElementById('health-dialog');
+    document.getElementById('health-badge').addEventListener('click', () => dialog.showModal());
+    document.getElementById('health-close').addEventListener('click', () => dialog.close());
+    document.getElementById('health-retry').addEventListener('click', refreshHealthBadge);
   }
 
   // ── Refresh All ──
   // ── Needs Attention strip (IMP-030) ───────────────────────────────────────
   // NOTIFY-011 (Hard rule) + NAV-001. There is no notification channel in this
   // product, so app entry is the only place an attention item can be found.
-  // All seven counts are derived from data refreshAll() already fetches; this
-  // module issues no request of its own.
+  // Dispatch checks load independently; other counts use complete loaded views.
   //
   // NOTIFY-010: a badge must count unhandled items and must never be faked.
   // Each metric therefore returns a number only when the data in hand provably
@@ -5024,14 +5100,24 @@
     return state.ordersData.filter(isOrderOverdue).length;
   }
 
-  // Dispatch-blocked orders. `dispatch_ready` only exists on the
-  // /sales/orders/fulfillment-check payload, which the dashboard fetches only
-  // while the Dispatch Queue filter is selected — never on entry. Rather than
-  // add a request (or invent a zero), the chip reads "—" until the user has
-  // opened the dispatch queue once, and reports the real figure thereafter.
+  // Independent of list filters: always count the complete fulfillment-check set.
+  async function refreshDispatchAttention() {
+    try {
+      const data = await fetchSalesAPI('/sales/orders/fulfillment-check');
+      if (!Array.isArray(data.orders) || data.orders.some(o => typeof o.dispatch_ready !== 'boolean')) {
+        throw new Error('Dispatch checks missing');
+      }
+      state.dispatchAttention = data.orders.filter(o => !o.dispatch_ready).length;
+      state.attention.failures.delete('dispatchAttention');
+    } catch (_) {
+      state.dispatchAttention = null;
+      state.attention.failures.add('dispatchAttention');
+    }
+    renderAttentionStrip();
+  }
+
   function attnDispatchBlocked() {
-    if (!state.ordersLoaded || !isDispatchQueueMode()) return null;
-    return state.ordersData.filter(order => !order.dispatch_ready).length;
+    return state.dispatchAttention ?? null;
   }
 
   // Low-stock supplies across every category, de-duplicated — the same
@@ -5063,7 +5149,7 @@
   const ATTENTION_METRICS = [
     { key: 'erOverdue',       compute: attnOverdueReceipts, noun: 'overdue expected receipt' },
     { key: 'ordersOverdue',   compute: attnOverdueOrders,   noun: 'overdue sales order' },
-    { key: 'dispatchBlocked', compute: attnDispatchBlocked, noun: 'dispatch-blocked order' },
+    { key: 'dispatchBlocked', compute: attnDispatchBlocked, noun: 'order needing dispatch review' },
     { key: 'lowStock',        compute: attnLowStock,        noun: 'low-stock supply item' },
     { key: 'supplyRequests',  compute: attnSupplyRequests,  noun: 'open supply request' },
     { key: 'todosDue',        compute: attnTodosDue,        noun: 'to-do due today or overdue' },
@@ -5100,11 +5186,11 @@
 
       if (value === null) {
         chip.dataset.state = 'unknown';
-        countEl.innerHTML = '&mdash;';
-        stateEl.textContent = 'not loaded yet';
+        countEl.textContent = metric.key === 'dispatchBlocked' ? 'Check' : '—';
+        stateEl.textContent = metric.key === 'dispatchBlocked' ? 'Open dispatch checks to load or retry' : 'not loaded yet';
         // ACCESS-010: the chip is icon-and-number, so it states its own purpose.
-        chip.setAttribute('aria-label', `${label}: not loaded yet. Open the view to check.`);
-        chip.title = `${label} — not loaded yet. Open the view to check.`;
+        chip.setAttribute('aria-label', `${label}: count unavailable. Open the view to load or retry.`);
+        chip.title = `${label} — count unavailable. Open the view to load or retry.`;
         continue;
       }
 
@@ -5150,6 +5236,7 @@
       status.value = 'dispatch_queue';
       document.getElementById('orders-overdue-only').checked = false;
       document.getElementById('orders-dispatch-filter').value = 'blocked';
+      refreshDispatchAttention();
       if (needsLoad || !state.ordersLoaded) refreshOrders();
       else renderOrdersList();
       return 'section-orders';
@@ -5227,6 +5314,7 @@
     ops.push(refreshSupplyRequests());
     if (state.currentTab === 'recent') ops.push(refreshRecentEntries());
     ops.push(refreshHealthBadge());
+    ops.push(refreshDispatchAttention());
 
     await Promise.allSettled(ops);
 
@@ -5251,6 +5339,7 @@
     initExpectedReceipts();
     initSupplies();
     initAttentionStrip();
+    initHealthDetails();
 
     document.getElementById('recent-entries-refresh').addEventListener('click', refreshRecentEntries);
     document.addEventListener('visibilitychange', () => {

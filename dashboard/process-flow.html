@@ -289,8 +289,8 @@
   <div class="site-nav-links" id="navLinks">
     <a href="/" class="site-nav-link">Dashboard</a>
     <a href="/sankey.html" class="site-nav-link">Material Flow</a>
-    <a href="/process-flow.html" class="site-nav-link active">Production Lines</a>
-    <a href="/traceability.html" class="site-nav-link">Traceability</a>
+    <a href="/process-flow.html?v=2" class="site-nav-link active">Production Lines</a>
+    <a href="/traceability.html?v=2" class="site-nav-link">Traceability</a>
   </div>
 </nav>
 
@@ -661,7 +661,7 @@
         const st = stages[i];
         const stClass = isActive ? 'stage-active' : 'stage-idle';
 
-        let valStr = '\u2014';
+        let valStr = isActive ? 'Unavailable' : '0';
         let unitStr = st.unit;
         if (isActive && stageVals) {
           if (st.key === 'input' && stageVals.input !== null) {
@@ -698,7 +698,7 @@
             html += ` <span class="hydration-note">(incl. hydration)</span>`;
           }
         } else {
-          html += '\u2014';
+          html += 'Unavailable (input not recorded)';
         }
         html += `</span></span>`;
         if (currentLot) {
@@ -723,15 +723,18 @@
       }
       document.getElementById('sum-produced').textContent = producedStr;
     } else {
-      document.getElementById('sum-produced').textContent = '\u2014';
+      document.getElementById('sum-produced').textContent = '0 lb';
     }
 
     if (totalInputLb > 0) {
       const avgYield = (totalOutputLb / totalInputLb * 100);
       document.getElementById('sum-yield').textContent = fmtNum(avgYield) + '%';
     } else {
-      document.getElementById('sum-yield').textContent = '\u2014';
+      document.getElementById('sum-yield').textContent = totalActiveLines > 0 ? 'Unavailable' : 'Not applicable';
     }
+
+    document.getElementById('sum-produced-sub').textContent = totalActiveLines === 0
+      ? 'No production recorded today.' : 'Recorded output today.';
 
     // Update time
     const now = new Date();
@@ -862,10 +865,10 @@
     box.append(retry);
     grid.append(box);
 
-    document.getElementById('sum-lines').textContent = '\u2014';
-    document.getElementById('sum-produced').textContent = '\u2014';
+    document.getElementById('sum-lines').textContent = 'Unavailable';
+    document.getElementById('sum-produced').textContent = 'Unavailable';
     document.getElementById('sum-produced-sub').textContent = '';
-    document.getElementById('sum-yield').textContent = '\u2014';
+    document.getElementById('sum-yield').textContent = 'Unavailable';
     document.getElementById('last-updated').textContent = 'Not updated \u2014 data source failed';
   }
 

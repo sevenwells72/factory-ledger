@@ -330,8 +330,8 @@ svg text { font-family: var(--font); }
   <div class="site-nav-links" id="navLinks">
     <a href="/" class="site-nav-link">Dashboard</a>
     <a href="/sankey.html" class="site-nav-link">Material Flow</a>
-    <a href="/process-flow.html" class="site-nav-link">Production Lines</a>
-    <a href="/traceability.html" class="site-nav-link active">Traceability</a>
+    <a href="/process-flow.html?v=2" class="site-nav-link">Production Lines</a>
+    <a href="/traceability.html?v=2" class="site-nav-link active">Traceability</a>
   </div>
 </nav>
 
@@ -382,8 +382,8 @@ svg text { font-family: var(--font); }
   <div class="trace-info" id="traceInfo"></div>
   <div class="graph-controls" id="graphControls" style="display:none;">
     <button class="graph-ctrl-btn" onclick="fitToScreen()">Fit</button>
-    <button class="graph-ctrl-btn" onclick="zoomIn()">+</button>
-    <button class="graph-ctrl-btn" onclick="zoomOut()">&minus;</button>
+    <button class="graph-ctrl-btn" onclick="zoomIn()" aria-label="Zoom in" title="Zoom in">+</button>
+    <button class="graph-ctrl-btn" onclick="zoomOut()" aria-label="Zoom out" title="Zoom out">&minus;</button>
     <button class="graph-ctrl-btn" id="expandBtn" onclick="toggleFullChain()" style="display:none;">Show full chain</button>
   </div>
   <svg id="graphSvg" width="100%" height="500"></svg>
@@ -405,6 +405,10 @@ svg text { font-family: var(--font); }
 // ═══════════════════════════════════════════════════════
 // CONFIG & STATE
 // ═══════════════════════════════════════════════════════
+function displaySource(value) {
+  const labels = { pack_output: 'Packed output', make_output: 'Produced output', received: 'Receipt' };
+  return labels[value] || String(value || 'Unknown').replaceAll('_', ' ');
+}
 const API_BASE = 'https://fastapi-production-b73a.up.railway.app';
 const API_KEY  = 'dashboard-key-2026';
 
@@ -637,7 +641,7 @@ function showDisambiguation(lotCode, matches) {
     name.textContent = m.product_name || 'Unnamed product';
     const meta = document.createElement('span');
     meta.style.cssText = 'font-size:11px;color:var(--text-muted)';
-    meta.textContent = `ID: ${m.product_id} | Source: ${m.entry_source || 'unknown'}`;
+    meta.textContent = `ID: ${m.product_id} | Source: ${displaySource(m.entry_source)}`;
     button.append(name, document.createElement('br'), meta);
     button.addEventListener('click', () => pickDisambiguated(lotCode, m.product_id));
     choices.append(button);
@@ -736,7 +740,7 @@ async function traceBackwardIngredient(data) {
     id: 'ing-' + data.lot_id,
     type: 'ingredient', label: data.lot_code,
     sublabel: data.product_name,
-    detail: data.supplier_lot_code ? `Supplier lot: ${data.supplier_lot_code}` : `Source: ${data.entry_source || 'received'}`,
+    detail: data.supplier_lot_code ? `Supplier lot: ${data.supplier_lot_code}` : `Source: ${displaySource(data.entry_source || 'received')}`,
     lotCode: data.lot_code, layer: 1
   });
 

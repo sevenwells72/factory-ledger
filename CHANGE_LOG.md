@@ -1,5 +1,61 @@
 # Change Log
 
+## 2026-09-08 15:49 — Completed and verified approved design audit Batch A locally
+- **File(s) changed:** `dashboard/dashboard.js`, `docs/design/audit-2026-09-08-batch-a.md`, `FACTORY_LEDGER_CHANGELOG.md`; user report `outputs/factory-ledger-batch-a-results.md`.
+- **What changed:** Recorded all eight approved findings, DB unit evidence, cache versions and validation: 63 Python and 40 Node tests passed, syntax/diff checks passed, browser success/idle/outage checks passed. Health balances explicitly identify missing source units.
+- **Why:** Preserve a reviewable implementation record before the local commit. Batches B/C are deferred. No push, deployment, migration or production write.
+
+---
+
+## 2026-09-08 15:48 — Preserve dispatch review for divergent closed shipments
+- **File(s) changed:** `dashboard/dashboard.js`, `tests/test_batch_a_ui.js`.
+- **What changed:** Closed orders with API-reported shipment divergence retain advisory status and blocker details; only non-divergent closed orders show Not applicable. Added a regression case alongside Factory Ready plus unresolved checks.
+- **Why:** Batch A status wording must preserve the readiness endpoint’s explicit closed-order reconciliation exception (regression guard row 83).
+
+---
+
+## 2026-09-08 15:48 — Batch A semantic state regression checks
+- **File(s) changed:** `dashboard/process-flow.html`, `tests/test_batch_a_ui.js`.
+- **What changed:** An active run with missing input now reports yield unavailable; idle yield remains not applicable. Added tests exercising actual form-gate, dispatch-count, unit-label and production-render functions.
+- **Why:** Preserve the distinction between no run and a run with incomplete data, and guard the approved UI semantics.
+
+---
+
+## 2026-09-08 15:46 — Batch A browser review refinements
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `dashboard/traceability.html`, `tests/test_supplies.py`; scratch harness moved to `work/audit-preview.mjs`.
+- **What changed:** Kept supply-request purchasing units separate from on-hand pound labels through additive `request_unit`; extended test to verify 500 lb inventory versus a 10-bag request. Centered health dialog, made advisory explanation visible in order list, and translated trace source values.
+- **Why:** Final review prevents inventory display correction from relabeling request quantities and makes Batch A status explanations accessible before expansion.
+
+---
+
+## 2026-09-08 15:44 — Batch A isolated validation setup
+- **File(s) changed:** `tests/test_supplies.py`; workspace scratch `audit-preview.mjs`.
+- **What changed:** Corrected regression test route to `/supplies/inventory/{id}/lots`; created read-only localhost fixture preview with all operational API calls intercepted and writes rejected. Created isolated local schema database `factory_ledger_design_audit_a` for tests.
+- **Why:** Verify UI success/idle/failure states without production writes or shared test-database interference.
+
+---
+
+## 2026-09-08 15:43 — Batch A unit cross-check and regression coverage
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_recent_ledger.py`, `tests/test_supplies.py`.
+- **What changed:** Normalize weight-labelled units across recent feed, Supplies inventory/lots and ingredient panels; retain native unit/each/container counts. Added signed shipment/packing/count regression cases and bag-unit checks; refreshed stale cache-version assertions. Clarified dispatch filter and unavailable count text.
+- **Why:** Read-only production trace found ingredient 75 stores pound deltas under a 50 lb bag UoM; ingredient 291 uses a single container count. No data correction performed.
+
+---
+
+## 2026-09-08 15:42 — Batch A health details and asset versions
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/sankey.html`.
+- **What changed:** Added accessible health dialog with operational check names, available record IDs and review steps; mapped lot source wording. Bumped dashboard JS to v53, CSS to v36, and inline page navigation URLs to v2.
+- **Why:** Approved findings 8, 12 and 28; keep returning browsers on the updated assets. Still local, not deployed.
+
+---
+
+## 2026-09-08 15:41 — Batch A semantics and form gating (in progress, local only)
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/traceability.html`, `dashboard/process-flow.html`
+- **What changed:** Corrected recent-ledger unit to pounds, clarified preparation versus advisory checks, labeled controls and operational terms, gated manual receipt Save, independently loaded dispatch attention, distinguished idle from unavailable production.
+- **Why:** User approved Batch A; production SELECT confirmed raw/effective pound values agree. No ledger data or shipping policy changes.
+
+---
+
 ## 2026-09-08 15:36 — Imported Codex design audit and live recheck
 - **File(s) changed:** `docs/design/audit-2026-09-08-codex.md`, `docs/design/audit-2026-09-08-recheck.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Copied both reports verbatim on fix/design-audit-1 from origin/main; implementation is pending owner approval of the three-batch triage. No application code or assets changed.

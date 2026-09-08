@@ -436,3 +436,21 @@ def test_supply_requests_never_touch_inventory(client, cur):
     sr = _create_sr(client, product_id=pid, qty=100, requested_by="Q")
     client.patch(f"/supply-requests/{sr['id']}", json={"status": "done"})
     assert _inv_item(client, pid)["on_hand"] == before == 12
+
+
+@pytest.mark.db
+def test_weight_labelled_bag_supplies_and_lots_report_pounds(client, cur):
+    pid = _seed_product(cur, "SUP Weight Bag", ptype="ingredient", uom="50 lb bag")
+    lot = _seed_lot(cur, pid, "SUP-WEIGHT-BAG-LOT")
+    _post_line(cur, pid, lot, 500)
+    item = _inv_item(client, pid)
+    assert item["unit"] == "lb"
+    assert item["on_hand"] == 500
+    assert item["request_unit"] == "50 lb bag"
+    request = _create_sr(client, product_id=pid, qty=10, requested_by="Arturo")
+    assert request["qty"] == 10 and request["unit"] == "50 lb bag"
+    response = client.get(f"/supplies/inventory/{pid}/lots")
+    assert response.status_code == 200, response.text
+    assert response.json()["unit"] == "lb"
+    assert response.json()["lots"][0]["unit"] == "lb"
+    assert response.json()["lots"][0]["remaining"] == 500

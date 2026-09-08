@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=35">
+  <link rel="stylesheet" href="dashboard.css?v=36">
   <link rel="stylesheet" href="mini-calendar.css?v=3">
   <link rel="stylesheet" href="interaction.css?v=2">
 </head>
@@ -52,8 +52,8 @@
     <div class="site-nav-links" id="navLinks">
       <a href="/" class="site-nav-link active">Dashboard</a>
       <a href="/sankey.html" class="site-nav-link">Material Flow</a>
-      <a href="/process-flow.html" class="site-nav-link">Production Lines</a>
-      <a href="/traceability.html" class="site-nav-link">Traceability</a>
+      <a href="/process-flow.html?v=2" class="site-nav-link">Production Lines</a>
+      <a href="/traceability.html?v=2" class="site-nav-link">Traceability</a>
     </div>
   </nav>
 
@@ -70,7 +70,7 @@
     </div>
     <div class="header-right">
       <div data-mini-calendar aria-label="Calendar"></div>
-      <span id="health-badge" class="health-badge" title="System Health">--</span>
+      <button type="button" id="health-badge" class="health-badge" aria-haspopup="dialog" aria-controls="health-dialog">Health: loading</button>
       <button id="theme-toggle" class="btn-theme" title="Toggle light/dark mode">&#9790;</button>
       <button id="refresh-btn" class="btn-refresh" title="Refresh all data">Refresh</button>
       <span id="last-refreshed" class="refresh-ts"></span>
@@ -139,7 +139,7 @@
              aria-describedby="attention-strip-note">
             <svg class="att-icon" aria-hidden="true" focusable="false"><use href="#i-lock"></use></svg>
             <span class="att-count" data-att-count>&mdash;</span>
-            <span class="att-label">Dispatch blocked</span>
+            <span class="att-label">Dispatch review</span>
             <svg class="att-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>
             <span class="att-state sr-only" data-att-state>Not loaded yet</span>
           </a>
@@ -330,6 +330,7 @@
 
     <!-- Orders List View -->
     <div id="orders-list-view">
+      <p class="readiness-caption">Factory Ready is the team’s preparation mark. Dispatch checks are advisory; they do not prevent shipping.</p>
       <div class="orders-toolbar">
         <div class="orders-filters">
           <select id="orders-status-filter" class="orders-select">
@@ -347,8 +348,8 @@
           </select>
           <select id="orders-dispatch-filter" class="orders-select hidden" aria-label="Dispatch readiness filter">
             <option value="all">All Dispatch States</option>
-            <option value="ready">Dispatch Ready</option>
-            <option value="blocked">Blocked</option>
+            <option value="ready">Checks passed</option>
+            <option value="blocked">Needs review</option>
           </select>
           <input type="text" id="orders-customer-search" placeholder="Filter by customer..." autocomplete="off">
           <label class="orders-overdue-toggle">
@@ -408,7 +409,7 @@
     <section class="section" id="section-expected">
       <div class="section-header">
         <h2>Expected Receipts</h2>
-        <span class="section-hint">Incoming deliveries. Remaining = expected &minus; posted receipts (never stored). Receipts auto-link by product + supplier, oldest expected date first.</span>
+        <span class="section-hint">Incoming deliveries. Remaining = expected quantity &minus; received quantity. Receipts auto-link by product + supplier, oldest expected date first.</span>
       </div>
       <div id="er-table-container"></div>
       <div id="er-error" class="error-msg hidden"></div>
@@ -524,6 +525,11 @@
     </div>
   </div>
 
+  <dialog id="health-dialog" class="health-dialog" aria-labelledby="health-title">
+    <div class="panel-header"><h3 id="health-title">Ledger health checks</h3><button type="button" id="health-close" class="btn-close" aria-label="Close health checks">&times;</button></div>
+    <div class="note-modal-body"><div id="health-details" aria-live="polite">Loading health checks…</div><button type="button" id="health-retry" class="btn-refresh">Retry health checks</button></div>
+  </dialog>
+
   <!-- Expected Receipt Create / Edit Modal -->
   <div id="er-modal-overlay" class="panel-overlay hidden" role="dialog" aria-label="Expected receipt editor">
     <div class="note-modal er-modal">
@@ -546,7 +552,7 @@
         </div>
         <div id="er-manual-body">
         <div class="form-group" id="er-product-group">
-          <label for="er-product-search">Product</label>
+          <label for="er-product-search">Product <span class="label-hint">(required)</span></label>
           <input type="text" id="er-product-search" placeholder="Type to search products..." autocomplete="off">
           <input type="hidden" id="er-product-id">
           <div id="er-product-results" class="er-product-results hidden"></div>
@@ -554,11 +560,11 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="er-supplier">Supplier</label>
+            <label for="er-supplier">Supplier <span class="label-hint">(required)</span></label>
             <select id="er-supplier"></select>
           </div>
           <div class="form-group">
-            <label for="er-qty">Expected qty (lb)</label>
+            <label for="er-qty">Expected qty (lb) <span class="label-hint">(required)</span></label>
             <input type="number" id="er-qty" min="0" step="any" inputmode="decimal" placeholder="e.g. 2000" autocomplete="off">
           </div>
         </div>
@@ -576,9 +582,10 @@
           <label for="er-notes">Notes <span class="label-hint">(optional)</span></label>
           <textarea id="er-notes" rows="2" placeholder="Anything the receiver should know..."></textarea>
         </div>
+        <p id="er-save-help" role="status">Select a product, supplier, and positive quantity to save.</p>
         <div id="er-modal-error" class="error-msg hidden"></div>
         <div class="form-actions">
-          <button id="er-save-btn" class="btn-refresh">Save</button>
+          <button id="er-save-btn" class="btn-refresh" aria-describedby="er-save-help" disabled>Save</button>
           <button id="er-cancel-btn" class="btn-sm">Cancel</button>
         </div>
         </div><!-- /er-manual-body -->
@@ -638,7 +645,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="note-entity-id">Entity Name / ID</label>
+            <label for="note-entity-id">Related record name or number</label>
             <input type="text" id="note-entity-id" placeholder="e.g. Granola Classic 25 LB" autocomplete="off">
           </div>
         </div>
@@ -665,7 +672,7 @@
   <script src="mini-calendar.js?v=4"></script>
   <script src="pallet-calculations.js?v=1"></script>
   <script src="er-intake-logic.js?v=7"></script>
-  <script src="dashboard.js?v=52"></script>
+  <script src="dashboard.js?v=53"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>
