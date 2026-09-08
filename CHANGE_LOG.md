@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-08 13:50 — ER intake audit #3 fixes: finding 8 closed (8a heal-with-upsert, 8b serialized dedupe)
+- **File(s) changed:** `main.py`, `tests/test_expected_receipt_extract.py`, `docs/designs/er-intake-audit-3.md` (new), `docs/designs/er-intake-audit-1-response.md`
+- **What changed:** (8a) the upload_failed heal path uploads with `x-upsert: true` so a landed object whose success response was lost reads as success (bytes-match via file_sha256 asserted explicitly — 409 SHA_MISMATCH, unreachable by construction); fresh uploads keep x-upsert: false. (8b) the dedupe SELECT and INSERT now run in one transaction under `pg_advisory_xact_lock(hashtext(file_sha256))`, so concurrent identical uploads resolve to one row (loser gets 200 with the winner's document_id) — verified by a two-connection race test with pg_locks-confirmed simultaneous waiters. Audit #3 report saved verbatim; round-3 table appended to the response doc. Suite 485 passed + known pre-existing `test_recent_ledger` failure.
+- **Why:** Round-3 independent audit confirmed 3/4/11/12 fixed and left only finding 8 open (two sub-items); owner ordered the two fixes with regression tests.
+
+---
+
 ## 2026-09-08 13:37 — Saved ER intake re-audit report #2 verbatim
 - **File(s) changed:** `docs/designs/er-intake-audit-2.md` (new), `docs/designs/er-intake-audit-1-response.md`
 - **What changed:** Added the round-2 independent audit report (on 3c19d93..c7f724c) verbatim; replaced the response doc's "audit-2.md still pending" note with a pointer to the saved file.

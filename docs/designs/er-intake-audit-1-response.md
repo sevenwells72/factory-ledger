@@ -65,3 +65,15 @@ same known pre-existing `tests/test_recent_ledger.py` failure. Cache-busts:
 
 The re-audit report is preserved verbatim at
 `docs/designs/er-intake-audit-2.md`.
+
+## Round 3 — response to audit #3 (2026-09-08)
+
+Audit #3 (verbatim at `docs/designs/er-intake-audit-3.md`) confirms 3, 4, 11,
+12 and the retry-matching flow fixed, leaving only finding **8** open, in two
+sub-items. Suite after fixes: **485 passed** + the same known pre-existing
+`tests/test_recent_ledger.py` failure.
+
+| # | Remaining gap | Fix | Commit | Regression tests |
+|---|---------------|-----|--------|------------------|
+| 8a | A landed object whose success response was lost leaves the row `upload_failed`; healing retried with `x-upsert: false`, hit "already exists", and stayed stuck | The heal path uploads with `x-upsert: true`, so an object that is already there reads as success — legitimate because the bytes-match is proven via `file_sha256`, now also asserted explicitly (409 `SHA_MISMATCH`, unreachable by construction). Fresh uploads keep `x-upsert: false` (uuid-suffixed paths never legitimately exist). | `69614be` | mock Storage rejects non-upsert uploads onto an existing path with "already exists": re-dropping the bytes heals the row to `uploaded`, 200, existing document_id, and extraction then succeeds; header unit test — the helper sends `x-upsert: true` only when asked |
+| 8b | Dedupe SELECT and INSERT not serialized — concurrent identical uploads mint siblings | Both now run in ONE transaction that first takes `pg_advisory_xact_lock(hashtext(file_sha256))` and holds it through the INSERT; the loser waits, sees the winner's committed row, and resumes it. Row-first/Storage-second ordering unchanged. | `50f6bf7` | two connections upload identical bytes provably in flight together (pre-held hash lock, pg_locks-verified two waiters): exactly one row, one 201 + one 200, both responses carry the same document_id |
