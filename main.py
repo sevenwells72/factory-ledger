@@ -24,6 +24,9 @@ import csv
 import hashlib
 import httpx
 import pypdf
+import threading
+import time
+from collections import defaultdict, deque
 # Vision extraction lives in its own module (vendor-swappable, zero DB
 # imports). Always referenced as `extraction.<name>` so tests can monkeypatch
 # the module attributes and both sides see it.
@@ -5486,6 +5489,54 @@ def match_extraction(cur, extraction_payload: dict) -> dict:
 
 # ── Intake endpoints ────────────────────────────────────────────────────────
 
+# Audit finding 6 (partial): per-key rate limits on the endpoints that cost
+# real money (vision extraction) or mint capability URLs (signed links).
+# In-process sliding window — one Railway instance, two known API keys.
+# The full fix (per-user sessions instead of a browser-shipped key) is
+# deferred to the key-rotation work; see the design doc's Deferred section.
+_RATE_LIMITS = {
+    "extraction": (30, 3600),   # uploads + model runs, per key per hour
+    "signed_url": (120, 3600),  # signed-URL mints, per key per hour
+}
+_rate_buckets: dict = defaultdict(deque)
+_rate_lock = threading.Lock()
+
+
+def _rate_limit_key_label(provided_key: str) -> str:
+    if API_KEY and secrets.compare_digest(provided_key, API_KEY):
+        return "master"
+    if DASHBOARD_API_KEY and secrets.compare_digest(provided_key, DASHBOARD_API_KEY):
+        return "dashboard"
+    return "other"
+
+
+def enforce_rate_limit(bucket: str, request: Request) -> None:
+    """429 with a log line once a key exceeds the bucket's window. Called
+    AFTER verify_api_key, so the key on the request is a valid one."""
+    limit, window_s = _RATE_LIMITS[bucket]
+    provided_key = request.headers.get("X-API-Key") or ""
+    label = _rate_limit_key_label(provided_key)
+    key_id = hashlib.sha256(provided_key.encode()).hexdigest()[:16]
+    now = time.monotonic()
+    with _rate_lock:
+        dq = _rate_buckets[(bucket, key_id)]
+        while dq and now - dq[0] >= window_s:
+            dq.popleft()
+        if len(dq) >= limit:
+            retry_after = max(1, int(window_s - (now - dq[0])) + 1)
+            logger.warning(
+                f"Rate limit hit: bucket={bucket} key={label} limit={limit}/{window_s}s retry_after={retry_after}s"
+            )
+            raise HTTPException(
+                status_code=429,
+                detail={"error_code": "RATE_LIMITED",
+                        "message": f"Rate limit for {bucket} is {limit} per hour per API key — try again in ~{retry_after} s",
+                        "retry_after_seconds": retry_after},
+                headers={"Retry-After": str(retry_after)},
+            )
+        dq.append(now)
+
+
 # Audit fix 9: the stored mime type comes from the file's magic bytes, never
 # from the client's Content-Type.
 _MAGIC_MIME_PREFIXES = (
@@ -5592,6 +5643,7 @@ def extract_expected_receipt_document(
     browser timeout) so a slow vision call can never lose the document id.
     Plain def: FastAPI runs it in the threadpool — the sync DB/Storage calls
     never block the event loop. NO expected receipts are created here."""
+    enforce_rate_limit("extraction", request)
     # Audit fix 9: bounded read — never hold more than limit+1 bytes.
     content = file.file.read(extraction.MAX_FILE_BYTES + 1)
     if not content:
@@ -5662,11 +5714,12 @@ def extract_expected_receipt_document(
 
 
 @app.post("/purchase-documents/{document_id}/extract")
-def run_purchase_document_extraction(document_id: int, _: bool = Depends(verify_api_key)):
+def run_purchase_document_extraction(document_id: int, request: Request, _: bool = Depends(verify_api_key)):
     """Step 1b: run (or re-run) vision extraction on a stored document — the
     dashboard calls this right after the upload, and again for retries (no
     re-upload). Plain def (threadpool): the model call can take tens of
     seconds and must not block the event loop."""
+    enforce_rate_limit("extraction", request)
     with get_transaction() as cur:
         cur.execute("SELECT * FROM purchase_documents WHERE id = %s", (document_id,))
         doc = cur.fetchone()
@@ -5799,8 +5852,9 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
 
 
 @app.get("/purchase-documents/{document_id}/url")
-def purchase_document_signed_url(document_id: int, _: bool = Depends(verify_api_key)):
+def purchase_document_signed_url(document_id: int, request: Request, _: bool = Depends(verify_api_key)):
     """Short-lived signed URL for viewing the original file."""
+    enforce_rate_limit("signed_url", request)
     with get_transaction() as cur:
         cur.execute("SELECT * FROM purchase_documents WHERE id = %s", (document_id,))
         doc = cur.fetchone()

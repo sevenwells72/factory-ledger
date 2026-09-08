@@ -481,6 +481,14 @@ def client(_db_connection, monkeypatch):
     _db_connection.rollback()
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """The intake rate limiter is module-global state — isolate every test."""
+    main._rate_buckets.clear()
+    yield
+    main._rate_buckets.clear()
+
+
 @pytest.fixture
 def cur(_db_connection):
     from psycopg2.extras import RealDictCursor
@@ -1171,6 +1179,52 @@ class TestSignedUrlEndpoint:
     def test_unknown_document(self, client, mock_storage):
         r = client.get("/purchase-documents/999999999/url")
         assert r.status_code == 404
+
+
+class TestRateLimits:
+    """Audit finding 6 (partial): per-key limits on extraction (30/h) and
+    signed URLs (120/h), logged 429s. Limits are shrunk via monkeypatch."""
+
+    def test_extraction_bucket_429_and_logged(self, client, cur, mock_storage, mock_extractor, monkeypatch, caplog):
+        import logging
+        monkeypatch.setitem(main._RATE_LIMITS, "extraction", (3, 3600))
+        for _ in range(3):
+            assert _post_file(client).status_code == 201
+        with caplog.at_level(logging.WARNING):
+            r = _post_file(client)
+        assert r.status_code == 429
+        detail = r.json()["detail"]
+        assert detail["error_code"] == "RATE_LIMITED"
+        assert r.headers.get("retry-after")
+        assert any("Rate limit hit" in rec.message for rec in caplog.records)
+        cur.execute("SELECT count(*) AS n FROM purchase_documents")
+        assert cur.fetchone()["n"] == 3, "the 429'd upload must not create a row"
+
+    def test_upload_and_extract_share_the_extraction_bucket(self, client, mock_storage, mock_extractor, monkeypatch):
+        monkeypatch.setitem(main._RATE_LIMITS, "extraction", (2, 3600))
+        doc_id = _post_file(client).json()["document_id"]
+        assert client.post(f"/purchase-documents/{doc_id}/extract").status_code == 200
+        r = client.post(f"/purchase-documents/{doc_id}/extract")
+        assert r.status_code == 429
+
+    def test_signed_url_bucket_is_separate(self, client, cur, mock_storage, monkeypatch):
+        monkeypatch.setitem(main._RATE_LIMITS, "signed_url", (2, 3600))
+        doc = _insert_document(cur, path="x/rate-url-049.png")
+        for _ in range(2):
+            assert client.get(f"/purchase-documents/{doc['id']}/url").status_code == 200
+        r = client.get(f"/purchase-documents/{doc['id']}/url")
+        assert r.status_code == 429
+        assert r.json()["detail"]["error_code"] == "RATE_LIMITED"
+
+    def test_limits_are_per_key(self, client, cur, mock_storage, monkeypatch):
+        monkeypatch.setitem(main._RATE_LIMITS, "signed_url", (1, 3600))
+        doc = _insert_document(cur, path="x/rate-key-049.png")
+        assert client.get(f"/purchase-documents/{doc['id']}/url").status_code == 200
+        assert client.get(f"/purchase-documents/{doc['id']}/url").status_code == 429
+        # The dashboard key has its own bucket.
+        r = client.get(f"/purchase-documents/{doc['id']}/url",
+                       headers={"X-API-Key": main.DASHBOARD_API_KEY})
+        assert r.status_code == 200
 
 
 class TestAllowlistAndTripwire:

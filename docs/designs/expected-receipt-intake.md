@@ -234,6 +234,17 @@ Replaces the modal body after extraction succeeds; manual entry stays as-is
 
 `openapi-gpt-v3.yaml` untouched — dashboard-only, 30-op cap unaffected.
 
+## Deferred
+
+* **Session-based auth for the intake endpoints** (audit #1, finding 6). The
+  dashboard key ships in the browser bundle, so any holder can upload
+  documents, invoke/retry paid extraction, and mint signed URLs. Interim
+  mitigation on this branch: per-key rate limits — extraction (upload + model
+  runs) 30/hour, signed URLs 120/hour — returning a logged 429. Replacing the
+  browser-distributed key with per-user sessions is deliberately NOT part of
+  this branch; it belongs with the planned key-rotation work, where every
+  dashboard endpoint moves off the shared key at once.
+
 ## Delivery plan
 
 Branch `feat/er-intake`, three phases, owner review after each:
