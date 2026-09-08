@@ -1,12 +1,47 @@
 # Factory Ledger Traceability & Data Architecture Rulebook
 
-Version: **0.1 — Batch 001**, 2026-09-07. Status: **Cumulative working standard; source collection remains open.**
+Version: **1.0 — Final reconciliation**, 2026-09-08. Status: **Final for the complete SRC-001 corpus; source collection closed.**
 
 This rulebook translates the supplied material into design rules for a food-manufacturing operational system. It describes desired behavior, not observed Factory Ledger capabilities. No codebase or database audit has been performed. Examples are hypothetical. Physical implementation choices remain open where equivalent designs preserve the required facts and relationships.
 
+## Final Reconciliation
+
+Completed **2026-09-08** after rereading the rulebook end to end against SOURCE_REGISTER.md and BATCH-001.md. **SRC-001 (GS1 Global Traceability Standard 2.0) is the complete corpus.** No new source, application audit, schema inspection, or assertion of Factory Ledger capabilities is part of this reconciliation.
+
+**Final inventory: 79 active rules, 80 preserved permanent IDs, 1 merged alias, 17 categories (A–Q).** Each active rule has an explicit Rule ID, Rule, Why, Factory Ledger application, Priority, Source strength, Source, Applicability, and Audit question; examples are included where useful. The retained alias carries the same fields and resolves to its canonical obligation. Counts below exclude that alias from active rules and priorities.
+
+| Category | Active rules | Critical | High | Medium | Contextual | Alias IDs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| A. Traceability fundamentals | 4 | 4 | 0 | 0 | 0 | 0 |
+| B. Identification and unique IDs | 8 | 3 | 5 | 0 | 0 | 0 |
+| C. Lots and batches | 4 | 3 | 1 | 0 | 0 | 1 |
+| D. Critical Tracking Events | 4 | 3 | 1 | 0 | 0 | 0 |
+| E. Event data and KDEs | 5 | 2 | 3 | 0 | 0 | 0 |
+| F. Receiving and supplier traceability | 3 | 2 | 1 | 0 | 0 | 0 |
+| G. Production and transformation | 5 | 3 | 2 | 0 | 0 | 0 |
+| H. Packing and aggregation | 5 | 3 | 2 | 0 | 0 | 0 |
+| I. Inventory and location | 4 | 2 | 2 | 0 | 0 | 0 |
+| J. Shipping and customer traceability | 4 | 2 | 2 | 0 | 0 | 0 |
+| K. Master data | 4 | 1 | 3 | 0 | 0 | 0 |
+| L. Data integrity and auditability | 5 | 4 | 1 | 0 | 0 | 0 |
+| M. Barcode, QR, and automatic identification | 5 | 1 | 4 | 0 | 0 | 0 |
+| N. Recall and traceability queries | 5 | 3 | 2 | 0 | 0 | 0 |
+| O. Data quality and validation | 4 | 2 | 2 | 0 | 0 | 0 |
+| P. Interoperability and external data exchange | 6 | 0 | 3 | 1 | 2 | 0 |
+| Q. Additional architectural and operational principles | 4 | 0 | 3 | 0 | 1 | 0 |
+| **Total** | **79** | **38** | **37** | **1** | **3** | **1** |
+
+**Merge:** LOT-005 → PROD-002. Mixing/pooling contributor preservation now belongs to the same derived allocation obligation as other transformations; carryover, conservative attribution and evidenced boundaries are retained. LOT-005 remains in category C as a permanent alias, so historical references still resolve. No ID was removed, renumbered or reused. Other overlaps were reconciled by responsibility: TRACE-003/004 govern precision and gaps; RECALL-003 governs incident decisions; PROD-001 retains direct R24 strength while PROD-002 supplies derived mechanics. Event minima, workflow capture, consistency validation and query outcomes remain separately testable obligations. General historical-data rules and their process-specific applications remain distinct checks, not additional copies of the same rule.
+
+**Source-strength counts (active):** 17 GS1 requirement; 5 GS1 recommendation; 55 Derived architectural principle; 2 Optional enhancement. All 18 numbered source requirements retain their direct anchors from the source register. R10/R11 remain recommendations; R21 remains applied separately to receipt and dispatch. No derived engineering choice was upgraded to a GS1 mandate.
+
+**Coverage conclusion:** Both trace-back and trace-forward are specified across raw-material receipts, all transformation generations, intermediates/rework, packing, historical containment, dispatch and recipient sites. The two mandatory recall scenario contracts below define exact expected product, lot, supplier and customer sets, along with evidence, quantities and ambiguity handling. They establish testable rulebook coverage, **not successful execution against Factory Ledger**. Full external-chain answers still depend on available partner evidence; a gap must prevent an unsupported completeness claim.
+
+**Source limits remain explicit:** R21/R23 precision tension, intermediate-ID exceptions, conditional GS1 exchange, historical technical versions, and absent universal retention periods, deadlines and process limits are not resolved by inventing requirements. Collection closure does not turn unsupplied referenced standards into evidence. The source register and Batch 001 are preserved as historical records; this section supersedes their provisional collection status and counts.
+
 ## Reading and maintaining the rules
 
-Every rule has a permanent ID. “Must” expresses the proposed Factory Ledger design obligation **within the rule's applicability**; it does not by itself mean GS1 mandates that engineering implementation. Conditional capabilities activate only when their stated business context applies. No source in this batch establishes a regulatory compliance profile for Factory Ledger.
+Every rule has a permanent ID. “Must” expresses the proposed Factory Ledger design obligation **within the rule's applicability**; it does not by itself mean GS1 mandates that engineering implementation. Conditional capabilities activate only when their stated business context applies. The complete corpus does not establish a regulatory compliance profile for Factory Ledger.
 
 **Source strength:** GS1 requirement = direct requirement in this source's interoperability framework; GS1 recommendation = guidance, not a mandate; Derived architectural principle = an engineering consequence or extension of cited guidance; Optional enhancement = a useful capability whose need depends on scope. Applications and examples are Factory Ledger interpretations unless explicitly stated otherwise. A citation on a derived rule identifies its conceptual basis, not an assertion that GS1 specifies every detail.
 
@@ -14,13 +49,19 @@ Every rule has a permanent ID. “Must” expresses the proposed Factory Ledger 
 
 **Priority:** Critical = failure can break genealogy, omit affected product/customers, or destroy evidence; High = material operational, identification, or response risk; Medium = improves maintainability or assurance; Contextual = activated by a particular operation or exchange need. Priority is independent of source strength.
 
-**Evidence:** SRC-001 is *GS1 Global Traceability Standard*, Release 2.0, ratified August 2017, supplied as a 59-page website-print PDF. Page references below are **PDF pages**, not pagination of a different GS1 edition. Section and R-number references are included for stability. See [source register](/Users/michaelgross/Documents/factory-ledger/docs/traceability/SOURCE_REGISTER.md) for provenance, coverage, exclusions, and unresolved interpretations. This batch does not claim to verify current versions of the standards referenced by the 2017 document.
+**Evidence:** SRC-001 is *GS1 Global Traceability Standard*, Release 2.0, ratified August 2017, supplied as a 59-page website-print PDF. Page references below are **PDF pages**, not pagination of a different GS1 edition. Section and R-number references are included for stability. See [source register](/Users/michaelgross/Documents/factory-ledger/docs/traceability/SOURCE_REGISTER.md) for provenance, coverage, exclusions, and unresolved interpretations. This rulebook does not claim to verify current versions of the standards referenced by the 2017 document.
 
-New batches extend this file. Retain IDs when wording changes; never reuse retired IDs. Record merges as aliases to a surviving rule. Keep source strength attached to the exact supported obligation, preserve qualifications, and log substantive changes in the batch history. Final reconciliation begins only when the user declares the collection complete.
+SRC-001 is the complete source corpus. No further batches are expected. The source register and BATCH-001 remain historical provenance records; their open-collection and reconciliation-pending statements are superseded by this final version. Standards cited by SRC-001 but not supplied are outside the corpus. They cannot supply missing requirements or resolve source ambiguities by implication. Retain all permanent IDs, including merge aliases; never reuse them.
+
+**Testability and applicability:** The Rule, Factory Ledger application, and Audit question together define each active obligation. “Relevant,” “required,” “where appropriate,” and conditional features must resolve to a documented scope/profile decision under TRACE-001, with an owner and rationale; they are not permission to silently omit data. Before assessing a conditional rule, establish whether its trigger applies. For time targets, retention, review cadence, measurement tolerances, release criteria, supported encodings, and access permissions, require an explicit policy value or decision and evidence of its application. SRC-001 does not supply universal values. An absent required policy or unavailable evidence yields unknown/incomplete, not a pass. Examples illustrate the obligation without prescribing a storage technology or asserting existing functionality.
 
 ## A. Traceability fundamentals
 
+<a id="trace-001"></a>
+
 ### TRACE-001 — Define the traceability boundary and required precision
+
+**Rule ID:** TRACE-001.
 
 **Rule:** Maintain an explicit scope covering traceable objects, materials, packaging, locations, parties, lifecycle steps, upstream/downstream tiers, and required identification precision.
 
@@ -34,7 +75,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Is every in-scope material and workflow assigned an explicit traceability level and boundary, with exclusions justified?
 
+<a id="trace-002"></a>
+
 ### TRACE-002 — Preserve one connected, bidirectionally traversable history
+
+**Rule ID:** TRACE-002.
 
 **Rule:** Preserve links across internal processing and external handoffs so each in-scope output can be traced upstream and each input can be tracked downstream.
 
@@ -48,7 +93,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can every link in a finished-lot-to-supplier path also be traversed from the supplier lot toward affected shipments?
 
+<a id="trace-003"></a>
+
 ### TRACE-003 — Make traceability claims match recorded precision
+
+**Rule ID:** TRACE-003.
 
 **Rule:** Report no finer identity, route, or location certainty than the identification and event evidence support.
 
@@ -64,7 +113,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Do queries expose ambiguous identities and multiple possible paths instead of choosing an unsupported unique answer?
 
+<a id="trace-004"></a>
+
 ### TRACE-004 — Distinguish known endpoints from missing traceability
+
+**Rule ID:** TRACE-004.
 
 **Rule:** Represent unknown identity, missing events, unavailable partner data, and intentional scope boundaries explicitly.
 
@@ -80,7 +133,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## B. Identification and unique IDs
 
+<a id="id-001"></a>
+
 ### ID-001 — Give entities durable, typed identities
+
+**Rule ID:** ID-001.
 
 **Rule:** Give each entity a stable internal identity and distinguish its type from its names, labels, and external identifiers.
 
@@ -94,7 +151,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can two unrelated objects share a displayed code without being merged, and do references survive a name change?
 
+<a id="id-002"></a>
+
 ### ID-002 — Support globally unique identifiers for in-scope traceable objects
+
+**Rule ID:** ID-002.
 
 **Rule:** For the GS1 interoperability profile, identify each created or managed traceable object globally and maintain its associated master data; intermediate products may use internal identifiers.
 
@@ -108,7 +169,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** What percentage of in-scope objects meets R01, and are intermediate exceptions and other deviations distinguished?
 
+<a id="id-003"></a>
+
 ### ID-003 — Retain identifiers assigned by other parties
+
+**Rule ID:** ID-003.
 
 **Rule:** Record externally assigned object identifiers in captured traceability data and retrieve relevant associated master data where appropriate.
 
@@ -122,7 +187,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a supplier's original product/lot or SSCC locate all associated receipts and downstream uses?
 
+<a id="id-004"></a>
+
 ### ID-004 — Select identification granularity to meet traceability needs
+
+**Rule ID:** ID-004.
 
 **Rule:** Identify produced, managed, or sold objects at the level needed by relevant parties across the supply chain.
 
@@ -136,7 +205,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Does every object meet its documented precision requirement through every relevant handoff?
 
+<a id="id-005"></a>
+
 ### ID-005 — Identify parties independently of their roles
+
+**Rule ID:** ID-005.
 
 **Rule:** For GS1 interoperability, assign or retain globally unique party identifiers and associated master data.
 
@@ -150,7 +223,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can the same party be a supplier and customer without duplicate identities, and can distinct participants in one shipment be identified?
 
+<a id="id-006"></a>
+
 ### ID-006 — Identify physical locations independently of parties
+
+**Rule ID:** ID-006.
 
 **Rule:** For GS1 interoperability, use globally unique identifiers for managed physical locations and maintain their master data.
 
@@ -164,7 +241,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Do event locations resolve to an identified physical area rather than only an organization or free-text address?
 
+<a id="id-007"></a>
+
 ### ID-007 — Make shared document and transaction references unambiguous
+
+**Rule ID:** ID-007.
 
 **Rule:** Use globally unique identifiers for documents or transactions created and shared with other parties, and retain the associated data.
 
@@ -178,13 +259,17 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a recipient resolve a shared reference to exactly one issuing party's document and its retained data?
 
+<a id="id-008"></a>
+
 ### ID-008 — Govern identifier issuance and lifecycle
+
+**Rule ID:** ID-008.
 
 **Rule:** Define who may issue, associate, replace, or retire each identifier scheme, and preserve historical assignments.
 
 **Why:** Uncontrolled issuance creates collisions and can overwrite identity history.
 
-**Factory Ledger application:** Distinguish brand-owner GTIN responsibility, logistic-unit builder/brand-owner SSCC responsibility, and asset-owner identifier responsibility. Record issuer and assignment evidence. Verify detailed allocation, reuse, and product-change rules against the relevant supplied standard before implementing them; this source does not provide their full algorithms or reuse periods.
+**Factory Ledger application:** Distinguish brand-owner GTIN responsibility, logistic-unit builder/brand-owner SSCC responsibility, and asset-owner identifier responsibility. Record issuer and assignment evidence. Verify detailed allocation, reuse, and product-change rules against an explicitly adopted specification before implementing them; its detailed algorithms and reuse periods are outside this corpus.
 
 **Priority:** High. **Source strength:** Derived architectural principle. **Applicability:** A/C.
 
@@ -194,7 +279,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## C. Lots and batches
 
+<a id="lot-001"></a>
+
 ### LOT-001 — Define lot boundaries and distinguish them from runs and receipts
+
+**Rule ID:** LOT-001.
 
 **Rule:** Define the conditions that create and close a lot; do not treat a production run, delivery, or date as inherently equivalent to a lot.
 
@@ -208,7 +297,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Are lot boundaries defined independently of receipt and run IDs, including multiple-lot and repeated-delivery cases?
 
+<a id="lot-002"></a>
+
 ### LOT-002 — Resolve lots and serials within their proper product namespace
+
+**Rule ID:** LOT-002.
 
 **Rule:** Never identify a lot by bare lot text alone; resolve lot and serial identifiers with the product and applicable issuer namespace.
 
@@ -224,7 +317,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Does importing two identical lot strings for different products or issuers preserve distinct identities?
 
+<a id="lot-003"></a>
+
 ### LOT-003 — Preserve lot identity across quantity splits and repeated receipts
+
+**Rule ID:** LOT-003.
 
 **Rule:** Represent separate holdings and receipt contributions without silently creating or merging lot identities.
 
@@ -238,7 +335,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can one lot span receipts, bins, and runs without either duplicate stock or falsely precise receipt attribution?
 
+<a id="lot-004"></a>
+
 ### LOT-004 — Preserve date meaning and lot-specific attributes
+
+**Rule ID:** LOT-004.
 
 **Rule:** Store production, receipt, expiry, and best-before dates as distinct concepts, retaining their source and applicable lot or instance.
 
@@ -252,23 +353,33 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can the system distinguish the lot's original expiry from receipt time and any later authorized change?
 
+<a id="lot-005"></a>
+
 ### LOT-005 — Retain every contributor when material is mixed or pooled
 
-**Rule:** Mixing, blending, or pooling traceable materials must preserve all contributing lot relationships at the attainable precision.
+**Rule ID:** LOT-005. **Status:** Merged alias of [PROD-002](#prod-002). No independent obligation or separate compliance score.
 
-**Why:** A merged balance with one surviving lot code can conceal contamination routes.
+**Rule:** Apply PROD-002 to mixing, blending, pooling, and carryover; its complete allocation and contributor-preservation rule is authoritative.
 
-**Factory Ledger application:** Create an identified output or pooling context linked to its contributors. If carryover in a tank or continuous process prevents exact attribution, retain the conservative candidate input set and time interval. Do not assume empty-to-empty batch boundaries without evidence.
+**Why:** Pooling is the same contributor-preservation problem as production allocation; separate requirements risk divergent treatment.
 
-**Priority:** Critical. **Source strength:** Derived architectural principle. **Applicability:** A; continuous-process detail conditional.
+**Factory Ledger application:** Follow PROD-002 for identified pooling contexts, all contributor links, conservative candidate sets, and evidenced boundaries. Existing LOT-005 references resolve to that rule.
 
-**Source:** SRC-001 §2.3 transformation, §3.3.2, R24; pp. 7, 13–14, 37.
+**Example:** A partially refilled tank must retain its prior and new contributors; see the acceptance check in PROD-002.
 
-**Audit question:** Does a partially refilled vessel preserve previous and new contributors rather than assigning all contents to the newest lot?
+**Priority:** Critical. **Source strength:** Derived architectural principle. **Applicability:** A; continuous-process detail conditional. These classifications are inherited from the surviving obligation, not counted twice.
+
+**Source:** SRC-001 §2.3 transformation, §3.3.2, R24; pp. 7, 13–14, 37; consolidated with PROD-002.
+
+**Audit question:** Does the PROD-002 assessment include partially refilled or pooled material wherever that workflow is in scope?
 
 ## D. Critical Tracking Events
 
+<a id="cte-001"></a>
+
 ### CTE-001 — Record every in-scope traceability-relevant occurrence durably
+
+**Rule ID:** CTE-001.
 
 **Rule:** Every completed in-scope physical step or traceability-relevant state transition must produce durable evidence of what occurred.
 
@@ -282,7 +393,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can every relevant change in stock, identity, containment, or disposition be explained by retained occurrence records?
 
+<a id="cte-002"></a>
+
 ### CTE-002 — Record the initial creation of traceable objects
+
+**Rule ID:** CTE-002.
 
 **Rule:** Record every CTE in which a traceable object is initially created.
 
@@ -296,7 +411,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Does every created physical object have an origin event distinguishable from a planned database record?
 
+<a id="cte-003"></a>
+
 ### CTE-003 — Distinguish observation, transformation, and containment events
+
+**Rule ID:** CTE-003.
 
 **Rule:** Model an event according to its physical meaning; do not collapse all operations into an undifferentiated inventory adjustment.
 
@@ -310,7 +429,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can queries tell whether materials were transformed, merely moved, or placed inside a parent?
 
+<a id="cte-004"></a>
+
 ### CTE-004 — Include relevant exceptions and end-of-life steps
+
+**Rule ID:** CTE-004.
 
 **Rule:** Record additional CTEs wherever they affect in-scope traceability, including applicable disposal or destruction.
 
@@ -326,7 +449,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## E. Event data and KDEs
 
+<a id="event-001"></a>
+
 ### EVENT-001 — Capture the minimum business context for each CTE
+
+**Rule ID:** EVENT-001.
 
 **Rule:** Record event date/time including time zone and UTC offset; object identity at lot or instance level; event location; business step and disposition; and responsible party when different from the location manager.
 
@@ -340,7 +467,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can every CTE resolve all R23 fields at its event time, including the responsible-party exception?
 
+<a id="event-002"></a>
+
 ### EVENT-002 — Separate physical occurrence time from record-entry time
+
+**Rule ID:** EVENT-002.
 
 **Rule:** Preserve both when an event physically occurred and when it was recorded, including corrections or late submissions.
 
@@ -354,7 +485,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Does a receiving event entered the next day retain both timestamps without silently rewriting the physical timeline?
 
+<a id="event-003"></a>
+
 ### EVENT-003 — Preserve event participants and their roles
+
+**Rule ID:** EVENT-003.
 
 **Rule:** Associate each event with its relevant parties and role-specific responsibilities, and record the operator or originating system where applicable.
 
@@ -368,7 +503,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can an event identify the carrier, responsible site operator, owner when relevant, and data-entry actor without substituting one for another?
 
+<a id="event-004"></a>
+
 ### EVENT-004 — Qualify every quantity by object, role, and unit
+
+**Rule ID:** EVENT-004.
 
 **Rule:** Quantity-bearing event lines must identify the object, quantity, unit of measure, and business role of the amount.
 
@@ -382,7 +521,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can every inventory-affecting amount be interpreted and reconciled in compatible units without relying on a mutable default?
 
+<a id="event-005"></a>
+
 ### EVENT-005 — Link events to transactions without confusing intent and execution
+
+**Rule ID:** EVENT-005.
 
 **Rule:** Preserve references between events and business documents while keeping planned or commercial activity distinct from physical completion.
 
@@ -398,7 +541,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## F. Receiving and supplier traceability
 
+<a id="rec-001"></a>
+
 ### REC-001 — Record each actual receipt and its source
+
+**Rule ID:** REC-001.
 
 **Rule:** Record every in-scope receipt CTE with traceable object identity, source party and source location, and receipt date.
 
@@ -412,7 +559,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can each received lot quantity be linked to its actual receipt, supplying party, source site, and receipt date?
 
+<a id="rec-002"></a>
+
 ### REC-002 — Reconcile received goods against expectations before release
+
+**Rule ID:** REC-002.
 
 **Rule:** Compare physical receipt evidence with expected identity and quantity; preserve discrepancies and the acceptance decision.
 
@@ -428,7 +579,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can an incorrect advance notice be reconciled without overwriting actual observations or releasing unresolved stock?
 
+<a id="rec-003"></a>
+
 ### REC-003 — Preserve relevant origin and third-party custody information
+
+**Rule ID:** REC-003.
 
 **Rule:** Distinguish the commercial supplier from the physical source, manufacturer, carrier, or third-party handler when they differ and are relevant.
 
@@ -444,7 +599,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## G. Production and transformation
 
+<a id="prod-001"></a>
+
 ### PROD-001 — Preserve transformation input/output relationships
+
+**Rule ID:** PROD-001.
 
 **Rule:** Record the relationship between inputs and outputs for every transformation CTE.
 
@@ -460,21 +619,29 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** For every finished production lot, can Factory Ledger identify every ingredient lot actually consumed in producing it?
 
+<a id="prod-002"></a>
+
 ### PROD-002 — Record actual many-to-many consumption and production allocations
 
-**Rule:** Preserve individual consumption/output allocations with quantity and unit; do not constrain lot-to-run or run-to-output relationships to one-to-one.
+**Rule ID:** PROD-002.
+
+**Rule:** Preserve every actual input contributor and output relationship, with individual consumption/output quantities and units, for transformations including mixing, blending, and pooling. Permit many lots per process and many processes per lot; retain uncertainty where exact allocations are not evidenced.
 
 **Why:** One ingredient lot commonly feeds several runs, while a run draws from several lots of the same ingredient.
 
-**Factory Ledger application:** Retain repeated additions as distinguishable consumption facts linked to their run/process step. Record partial withdrawals and outputs over time. Where an output-specific allocation is known, preserve it; otherwise use the shared transformation context conservatively, without inventing precise proportions.
+**Factory Ledger application:** Retain repeated additions as distinguishable consumption facts linked to an identified run/process or pooling context and its output. Record partial withdrawals and outputs over time. Where output-specific allocation is known, preserve it; otherwise retain the conservative candidate contributor set and applicable time interval. Carryover in tanks or continuous processes must preserve prior and new contributors until an evidenced boundary excludes them. Do not assume empty-to-empty boundaries or infer exact contaminated fractions from proportional bookkeeping. This rule incorporates former LOT-005; PROD-001 remains the direct R24 relationship requirement, while these allocation mechanics are derived.
 
 **Priority:** Critical. **Source strength:** Derived architectural principle. **Applicability:** A.
 
-**Source:** SRC-001 R24; §3.5 Figure 3-8; §3.3.2; pp. 13–14, 18, 37.
+**Source:** SRC-001 §2.3 transformation, §3.3.2, R24; §3.5 Figure 3-8; pp. 7, 13–14, 18, 37.
 
-**Audit question:** Can a test consume two lots of one ingredient in a run and reuse either lot in another run without losing quantities or links?
+**Audit question:** Can two lots feed one run, either lot feed another run, and a partially refilled vessel retain both prior and new contributors, with quantities and uncertain output attribution preserved?
+
+<a id="prod-003"></a>
 
 ### PROD-003 — Carry genealogy through intermediates and rework
+
+**Rule ID:** PROD-003.
 
 **Rule:** Preserve identifiable intermediate and reworked material across every subsequent transformation.
 
@@ -488,7 +655,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a recalled input be followed through an intermediate, a finished lot reused as rework, and every later output?
 
+<a id="prod-004"></a>
+
 ### PROD-004 — Preserve the process specification used by each run
+
+**Rule ID:** PROD-004.
 
 **Rule:** Associate production with the historical formula/recipe and relevant process specification actually used, independently of actual consumption evidence.
 
@@ -502,7 +673,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** After a recipe changes, can an old run still show the specification it used and its actual substitutions and consumed lots?
 
+<a id="prod-005"></a>
+
 ### PROD-005 — Reconcile transformation quantities with justified process effects
+
+**Rule ID:** PROD-005.
 
 **Rule:** Reconcile input, output, loss, waste, samples, and retained work-in-process using compatible measurement bases and documented tolerances.
 
@@ -518,7 +693,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## H. Packing and aggregation
 
+<a id="pack-001"></a>
+
 ### PACK-001 — Preserve each parent/child containment level
+
+**Rule ID:** PACK-001.
 
 **Rule:** Record parent/child relationships for every aggregation and disaggregation CTE at each containment level.
 
@@ -532,7 +711,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a shipped pallet's contents be traced down through every recorded containment level, including prior disaggregation?
 
+<a id="pack-002"></a>
+
 ### PACK-002 — Make containment historical and enforce physical consistency
+
+**Rule ID:** PACK-002.
 
 **Rule:** Preserve when containment starts and ends, and prevent physically impossible active relationships at the represented precision.
 
@@ -546,7 +729,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** After repalletizing a case, can the system reconstruct its old and new parents at the correct times without simultaneous contradictory membership?
 
+<a id="pack-003"></a>
+
 ### PACK-003 — Represent serialized cases or lot-count contents honestly
+
+**Rule ID:** PACK-003.
 
 **Rule:** Choose and preserve the actual case-identification level; never represent a batch count as individually observed case identities.
 
@@ -560,7 +747,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can mixed-lot and partially unpacked pallets be represented without losing lot quantities or inventing case-level precision?
 
+<a id="pack-004"></a>
+
 ### PACK-004 — Distinguish packaging product definitions from actual packed contents
+
+**Rule ID:** PACK-004.
 
 **Rule:** Keep packaging-level trade-item definitions and conversion relationships separate from actual packing events and their material genealogy.
 
@@ -574,7 +765,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can an actual packing record identify both the filled product lot and applicable packaging lots, independently of today's case definition?
 
+<a id="pack-005"></a>
+
 ### PACK-005 — Separate reusable assets from their changing contents
+
+**Rule ID:** PACK-005.
 
 **Rule:** Keep a reusable pallet, tote, crate, tank, or transport asset's identity separate from the product/logistic-unit contents associated with it over time.
 
@@ -590,7 +785,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## I. Inventory and location
 
+<a id="inv-001"></a>
+
 ### INV-001 — Derive current inventory from retained physical evidence
+
+**Rule ID:** INV-001.
 
 **Rule:** Current inventory must be explainable from retained receipts, transformations, movements, shipments, and authorized corrections.
 
@@ -604,7 +803,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can present and historical inventory be reconciled to physical evidence without double-counting containment levels?
 
+<a id="inv-002"></a>
+
 ### INV-002 — Record locations at useful physical granularity
+
+**Rule ID:** INV-002.
 
 **Rule:** Represent the facility and subordinate physical areas needed to answer traceability and intervention questions.
 
@@ -618,7 +821,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can an affected lot be located at the physical level required to find and isolate it, rather than only at company level?
 
+<a id="inv-003"></a>
+
 ### INV-003 — Preserve movements, staging, and relevant in-transit intervals
+
+**Rule ID:** INV-003.
 
 **Rule:** Record the origin, destination, moved identity/quantity, and timing of relevant movements, including transit when departure and arrival are separate facts.
 
@@ -632,7 +839,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can stock in transit or moved within a facility be distinguished from confirmed stock at its destination?
 
+<a id="inv-004"></a>
+
 ### INV-004 — Preserve hold and release decisions separately from physical location
+
+**Rule ID:** INV-004.
 
 **Rule:** Record quarantine, hold, release, and other relevant disposition changes with scope, reason, time, and authorized responsibility; enforce the resulting use restrictions.
 
@@ -648,7 +859,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## J. Shipping and customer traceability
 
+<a id="ship-001"></a>
+
 ### SHIP-001 — Record each actual shipment and destination
+
+**Rule ID:** SHIP-001.
 
 **Rule:** Record every in-scope shipment/despatch CTE with object identity, destination party and location, and despatch date.
 
@@ -662,7 +877,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** For an affected finished lot, can every actual shipment and receiving customer site be identified?
 
+<a id="ship-002"></a>
+
 ### SHIP-002 — Preserve the contents actually dispatched
+
+**Rule ID:** SHIP-002.
 
 **Rule:** Reconstruct shipment contents as they were at dispatch, independently of later container, order, or master-data changes.
 
@@ -676,7 +895,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** After a pallet is unpacked or rebuilt, does an earlier shipment still return the original dispatched lot composition?
 
+<a id="ship-003"></a>
+
 ### SHIP-003 — Distinguish custody, ownership, shipment, and transport groupings
+
+**Rule ID:** SHIP-003.
 
 **Rule:** Preserve physical custody transfers independently of commercial ownership and of shipment/consignment groupings.
 
@@ -690,7 +913,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a third-party carrier transport several shipments without being recorded as their customer or owner?
 
+<a id="ship-004"></a>
+
 ### SHIP-004 — Treat returns and redirections as new occurrences
+
+**Rule ID:** SHIP-004.
 
 **Rule:** Record returns, refusals, and redirections without deleting or negating the historical fact of the original dispatch.
 
@@ -706,7 +933,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## K. Master data
 
+<a id="master-001"></a>
+
 ### MASTER-001 — Separate master, relation, transaction, and visibility data
+
+**Rule ID:** MASTER-001.
 
 **Rule:** Preserve distinct meanings and ownership for descriptive master data, partner relations, business transactions, and actual event evidence.
 
@@ -720,7 +951,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Are actual lot genealogy and fulfillment facts stored independently of mutable product definitions, supplier lists, and orders?
 
+<a id="master-002"></a>
+
 ### MASTER-002 — Maintain time-bounded partner/product/location relationships
+
+**Rule ID:** MASTER-002.
 
 **Rule:** Keep supply-chain partner relation records by trade item/category or class, source/destination party, source/destination location, and validity period.
 
@@ -734,7 +969,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can partner/product/site relationships be retrieved for a historical date without using today's list as proof of an actual delivery?
 
+<a id="master-003"></a>
+
 ### MASTER-003 — Preserve historical master-data meaning
+
+**Rule ID:** MASTER-003.
 
 **Rule:** Historical traceability records must retain the master-data meaning relevant at the time, despite subsequent edits, merges, or deactivation.
 
@@ -748,7 +987,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Do old events remain correctly interpretable after a product conversion, customer name, or location operator changes?
 
+<a id="master-004"></a>
+
 ### MASTER-004 — Link supporting evidence to its subject and validity
+
+**Rule ID:** MASTER-004.
 
 **Rule:** Retain relevant certificates, inspection/lab records, and other supporting evidence with their identified subject, issuer/source, date, and applicable validity or scope.
 
@@ -764,7 +1007,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## L. Data integrity and auditability
 
+<a id="data-001"></a>
+
 ### DATA-001 — Correct recorded facts without silently erasing history
+
+**Rule ID:** DATA-001.
 
 **Rule:** Corrections to confirmed traceability facts must preserve the original assertion, its correction, responsible actor, time, reason, and resulting effective interpretation.
 
@@ -778,7 +1025,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a wrong lot consumption be corrected while showing both what was originally asserted and what is now considered correct?
 
+<a id="data-002"></a>
+
 ### DATA-002 — Prevent duplicate facts from retries and repeated capture
+
+**Rule ID:** DATA-002.
 
 **Rule:** Distinguish a duplicate submission from a separate physical occurrence and prevent unintended duplicate effects.
 
@@ -792,7 +1043,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Does replaying a receipt submission leave one physical receipt, while two genuine partial receipts remain distinct?
 
+<a id="data-003"></a>
+
 ### DATA-003 — Keep inventory effects and traceability links consistent
+
+**Rule ID:** DATA-003.
 
 **Rule:** A confirmed operation must not leave durable stock effects without their corresponding identities, event evidence, and required relationships, or vice versa.
 
@@ -806,7 +1061,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** If processing fails between stock updates and genealogy recording, can the system recover without a falsely complete operation or orphaned material?
 
+<a id="data-004"></a>
+
 ### DATA-004 — Retain usable traceability data for the required period
+
+**Rule ID:** DATA-004.
 
 **Rule:** Retain traceability data and keep it accessible to authorized parties for the period needed to meet relevant supply-chain requirements.
 
@@ -820,7 +1079,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can an authorized user retrieve and interpret a trace chain near the end of its required retention period within the required response time?
 
+<a id="data-005"></a>
+
 ### DATA-005 — Preserve provenance and restrict changes to accountable actors
+
+**Rule ID:** DATA-005.
 
 **Rule:** Record where traceability assertions came from and restrict creation, correction, and sensitive access according to defined responsibilities.
 
@@ -836,7 +1099,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## M. Barcode, QR, and automatic identification
 
+<a id="scan-001"></a>
+
 ### SCAN-001 — Use open AIDC standards at the required precision
+
+**Rule ID:** SCAN-001.
 
 **Rule:** Where automatic identification is required, use open standards for objects marked internally and for handling objects marked by other parties.
 
@@ -850,13 +1117,17 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can each required workflow capture the necessary identity precision from both Factory Ledger and supported supplier labels?
 
+<a id="scan-002"></a>
+
 ### SCAN-002 — Decode identity and attributes with explicit carrier semantics
+
+**Rule ID:** SCAN-002.
 
 **Rule:** Parse scans according to their declared scheme and supported encoding, preserving meaningful identifier and attribute boundaries.
 
 **Why:** A GTIN, lot code, serial, and expiry date are different fields; an arbitrary QR payload is not automatically GS1 data.
 
-**Factory Ledger application:** Retain the raw scan where useful for diagnosis plus normalized, validated fields. Preserve leading zeros and lot text. Validate checks/structure under the selected specification. Do not manufacture lot precision from a GTIN-only scan or treat a URL as proof of a physical event. Detailed Application Identifier and Digital Link rules await their own sources.
+**Factory Ledger application:** Retain the raw scan where useful for diagnosis plus normalized, validated fields. Preserve leading zeros and lot text. Validate checks/structure under the selected specification. Do not manufacture lot precision from a GTIN-only scan or treat a URL as proof of a physical event. Detailed Application Identifier and Digital Link encodings are outside this corpus; an implementation must name and validate its adopted specification before claiming support.
 
 **Priority:** High. **Source strength:** Derived architectural principle. **Applicability:** A/B/C.
 
@@ -864,7 +1135,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Do supported scans produce the correct typed fields, while GTIN-only and unsupported payloads remain visibly limited?
 
+<a id="scan-003"></a>
+
 ### SCAN-003 — Bind issued labels to the correct physical objects
+
+**Rule ID:** SCAN-003.
 
 **Rule:** Preserve and verify the association between a printed/applied label or tag and the actual object and traceability data it represents.
 
@@ -878,7 +1153,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a label reprint or swapped label be detected without creating another physical case or silently assigning the wrong lot?
 
+<a id="scan-004"></a>
+
 ### SCAN-004 — Preserve complete capture during label or connectivity failures
+
+**Rule ID:** SCAN-004.
 
 **Rule:** Provide controlled exception capture for unreadable labels, unavailable devices, or delayed synchronization, preserving required KDEs and uncertainty.
 
@@ -892,7 +1171,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can receiving continue under an approved exception process without losing KDEs or releasing material with guessed identity?
 
+<a id="scan-005"></a>
+
 ### SCAN-005 — Convert scans into contextual business evidence
+
+**Rule ID:** SCAN-005.
 
 **Rule:** An identification read must create an operational effect only through a defined business action with the necessary context.
 
@@ -908,37 +1191,49 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## N. Recall and traceability queries
 
+<a id="recall-001"></a>
+
 ### RECALL-001 — Support evidence-linked traceback from a customer complaint
+
+**Rule ID:** RECALL-001.
 
 **Rule:** Given a supported finished-product identifier, return its upstream production, material, receipt, supplier, and relevant processing/custody history with supporting evidence and limitations.
 
 **Why:** A complaint must resolve to actual potential origins, not merely the ingredients normally in the product.
 
-**Factory Ledger application:** Accept the identifiers customers actually possess: product/lot, serial, case, pallet, or shipment reference. Resolve the narrowest supported scope, traverse packing and transformations, and include relevant packaging, intermediates, rework, dates, sites, and quality evidence. If only lot identity is available, explain why individual-case routing may be unresolved.
+**Factory Ledger application:** Accept supported product/lot, serial, case, pallet, or shipment references together with the customer's identity and any available delivery context. Resolve every matching candidate at the narrowest evidenced precision. Traverse dispatch-time contents, packing, every transformation generation, intermediates and rework to all contributing raw-material and relevant packaging lots; then return all supported receipts, direct suppliers and source sites, and available deeper origin/custody evidence. Include dates, locations, historical process specifications and linked quality evidence where in scope. For pooled provenance, retain candidate receipts rather than selecting one arbitrarily. A product-only complaint returns candidate lots or a visible identity gap; it cannot yield an invented unique lot or case route.
 
 **Priority:** Critical. **Source strength:** Derived architectural principle. **Applicability:** A.
 
 **Source:** SRC-001 §§3.1–3.2, 3.5 upstream query; §6 tracing; pp. 11–12, 20, 40.
 
-**Audit question:** Can a customer-reported case or lot be traced to all relevant raw-material lots and receipts, with each result justified by retained relationships?
+**Audit question:** For the customer-case fixture below, does traceback return the complete expected raw-material lot, receipt, supplier and source-site set through every generation, plus supporting events and explicit candidate paths where case or receipt identity is ambiguous?
+
+<a id="recall-002"></a>
 
 ### RECALL-002 — Support complete forward impact and quantity disposition
+
+**Rule ID:** RECALL-002.
 
 **Rule:** Given an affected input lot or other supported incident scope, return every potentially affected descendant, its quantity/status/location, and all recorded downstream shipments and recipients.
 
 **Why:** Omitting one branch of production, repacking, or redistribution can leave affected goods in commerce.
 
-**Factory Ledger application:** Traverse all consumption branches, intermediates, rework, finished lots, and effective containment. Separate on-hand, held, in-transit, shipped, returned, consumed, and destroyed outcomes as applicable without double-counting the same material at several levels. Report direct customers/sites and available onward evidence; request missing deeper-tier data explicitly.
+**Factory Ledger application:** Resolve the incoming lot using product and supplier/issuer identifiers, and search all its receipts and uses across the retained scope. Traverse every consumption branch, intermediate, pooling context, rework generation, finished lot, packing output, and effective containment relationship without a fixed generation limit. Return each finished product identity and lot, the evidence path that included it, and every dispatched quantity, shipment date/reference, customer party and ship-to site. Preserve all historical recipient exposures, including returns and redirections; do not net customers out because goods came back. Distinguish confirmed receipt from dispatch/pending delivery, and retain available onward evidence with explicit partner-data gaps. Report current quantity/status/location separately from cumulative production and shipment flows, using compatible units and avoiding double-counting across generations or containment levels. Missing evidence prevents a completeness claim; an empty join is not proof of no impact.
 
 **Priority:** Critical. **Source strength:** Derived architectural principle. **Applicability:** A.
 
 **Source:** SRC-001 §§3.2, 3.5 downstream query, 4.1.1 lot-level traceability; R24–R25; pp. 12, 20, 23, 37.
 
-**Audit question:** For a contaminated supplier lot used in several runs, does the result include every affected output and customer, including rework and partial shipments?
+**Audit question:** For the contaminated-ingredient fixture below, does the result equal the expected finished-product/lot and customer/site sets, retain every shipment and return exposure, reconcile current dispositions, and show each evidence path and unresolved gap?
+
+<a id="recall-003"></a>
 
 ### RECALL-003 — Preserve conservative scope and explain exclusions
 
-**Rule:** Never narrow an incident's affected set using missing, ambiguous, or merely inferred evidence without documenting the basis and uncertainty.
+**Rule ID:** RECALL-003.
+
+**Rule:** Apply TRACE-003 precision limits and TRACE-004 gap handling to incident scope decisions: record each inclusion or exclusion, its evidence and uncertainty, and retain earlier scope decisions when new evidence changes the affected set.
 
 **Why:** False precision can incorrectly declare product unaffected.
 
@@ -950,13 +1245,17 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** If a run's ingredient allocation is incomplete, does the report expose uncertainty and potential exposure rather than silently excluding the run?
 
+<a id="recall-004"></a>
+
 ### RECALL-004 — Record intervention execution through closeout
+
+**Rule ID:** RECALL-004.
 
 **Rule:** Maintain a recall/intervention record linking scope decisions, accountable roles, affected objects, notifications, removal confirmations, and closeout evidence.
 
 **Why:** Finding recipients is only the beginning; the organization needs evidence of what action followed.
 
-**Factory Ledger application:** Preserve incident criteria and query/evidence versions, authorized initiation/approval, contacts, communication status, customer responses, quarantined/returned/destroyed quantities, unresolved actions, and closeout rationale. Do not equate notification delivery with product removal. Exact message standards and approval procedures depend on later sources and company policy.
+**Factory Ledger application:** Preserve incident criteria and query/evidence versions, authorized initiation/approval, contacts, communication status, customer responses, quarantined/returned/destroyed quantities, unresolved actions, and closeout rationale. Do not equate notification delivery with product removal. Exact message standards are outside this corpus; procedures and any adopted message profile must be explicitly established by company policy.
 
 **Priority:** High. **Source strength:** Derived architectural principle. **Applicability:** A/B; standardized external messages C.
 
@@ -964,13 +1263,17 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can an incident show which recipients confirmed removal, what quantities remain unresolved, who approved decisions, and why it was closed?
 
+<a id="recall-005"></a>
+
 ### RECALL-005 — Test both trace directions against operational scenarios
 
-**Rule:** Periodically exercise traceback and forward impact with expected results, response-time targets, and quantity reconciliation.
+**Rule ID:** RECALL-005.
+
+**Rule:** Exercise traceback and forward impact at a documented cadence and after material traceability changes, using independently specified expected results, response-time targets, and quantity reconciliation.
 
 **Why:** Data fields can exist while real trace paths fail under split lots, rework, repacking, or archive retrieval.
 
-**Factory Ledger application:** Run documented mock incidents, including partner participation where needed. Measure completeness, false exclusions, unresolved gaps, retrieval time, and communication readiness. Use the acceptance scenarios later in this rulebook as a starting point; management must set actual time targets from applicable requirements.
+**Factory Ledger application:** Run documented mock incidents, including partner participation where needed. Use both mandatory recall fixtures and the edge-case scenarios below; compare exact expected and actual identity/recipient sets as well as missing or extra paths. Record completeness, false exclusions, conservative inclusions, unresolved gaps, retrieval time, quantity reconciliation, and communication readiness. Management must set the cadence and time targets from applicable requirements; the source supplies no universal interval or deadline.
 
 **Priority:** High. **Source strength:** Derived architectural principle. **Applicability:** A/B.
 
@@ -980,7 +1283,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## O. Data quality and validation
 
+<a id="qual-001"></a>
+
 ### QUAL-001 — Enforce CTE-specific completeness before confirmation
+
+**Rule ID:** QUAL-001.
 
 **Rule:** Define required KDEs and relationships for each CTE and prevent incomplete data from being represented as a fully confirmed traceability record.
 
@@ -994,7 +1301,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can production or shipping appear fully confirmed while its required genealogy or recipient fields are missing?
 
+<a id="qual-002"></a>
+
 ### QUAL-002 — Validate semantic and physical consistency across records
+
+**Rule ID:** QUAL-002.
 
 **Rule:** Check that valid-looking values form a coherent physical and business history, not merely that they pass field-format validation.
 
@@ -1008,7 +1319,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Are incompatible units, incorrect material lots, impossible active parents, and unexplained stock deficits detected across workflows?
 
+<a id="qual-003"></a>
+
 ### QUAL-003 — Measure coverage and quality against defined denominators
+
+**Rule ID:** QUAL-003.
 
 **Rule:** Monitor identification, event recording, relationship completeness, and data quality relative to the documented scope.
 
@@ -1022,7 +1337,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Do reported coverage and quality metrics disclose scope and denominator and reveal missing events rather than only invalid recorded events?
 
+<a id="qual-004"></a>
+
 ### QUAL-004 — Turn detected exceptions into accountable action
+
+**Rule ID:** QUAL-004.
 
 **Rule:** Route traceability gaps and relevant condition/certificate exceptions to an accountable resolution process with retained outcomes.
 
@@ -1038,7 +1357,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## P. Interoperability and external data exchange
 
+<a id="exch-001"></a>
+
 ### EXCH-001 — Exchange traceability data securely within agreed timeframes
+
+**Rule ID:** EXCH-001.
 
 **Rule:** Enable both provision and receipt of traceability data through effective, secure mechanisms within the required timeframe.
 
@@ -1052,7 +1375,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can Factory Ledger supply and obtain a usable trace response within the agreed timeframe using authorized mechanisms?
 
+<a id="exch-002"></a>
+
 ### EXCH-002 — Use open standards for automated cross-party exchange
+
+**Rule ID:** EXCH-002.
 
 **Rule:** Traceability data electronically exchanged between parties for automated processing must use open data-sharing standards under the GS1 interoperability profile.
 
@@ -1066,7 +1393,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can each automated partner exchange identify and validate the open standard/profile it actually implements?
 
+<a id="exch-003"></a>
+
 ### EXCH-003 — Separate business meaning from exchange transport
+
+**Rule ID:** EXCH-003.
 
 **Rule:** Keep the meaning of identifiers, quantities, relations, and events independent of their delivery channel.
 
@@ -1080,7 +1411,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can the same event be shared through two supported channels without changing its identity or business meaning?
 
+<a id="exch-004"></a>
+
 ### EXCH-004 — Govern hybrid identifiers and non-standard extensions
+
+**Rule ID:** EXCH-004.
 
 **Rule:** Document how internal, legacy, non-GS1, and GS1 representations map, including their limits and any non-standard extensions.
 
@@ -1094,7 +1429,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can each external identity be mapped unambiguously, with any loss of precision or interoperability recorded?
 
+<a id="exch-005"></a>
+
 ### EXCH-005 — Control discovery, trust, and disclosure by purpose and role
+
+**Rule ID:** EXCH-005.
 
 **Rule:** Authorize access to traceability data according to the requesting party and permissible data scope, including parties beyond direct trading relationships.
 
@@ -1108,7 +1447,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a legitimate recall partner obtain relevant evidence without accessing another customer's unrelated shipments or internal formulations?
 
+<a id="exch-006"></a>
+
 ### EXCH-006 — Adopt EPCIS compatibility only against a defined need
+
+**Rule ID:** EXCH-006.
 
 **Rule:** Preserve EPCIS-compatible architectural concepts where useful, and implement actual EPCIS/CBV exchange only when justified by a defined partner or business requirement.
 
@@ -1124,7 +1467,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 ## Q. Additional architectural and operational principles
 
+<a id="arch-001"></a>
+
 ### ARCH-001 — Assign traceability responsibilities and train operators
+
+**Rule ID:** ARCH-001.
 
 **Rule:** Define accountable roles, written procedures, training, and contact/escalation paths for capture, master data, interventions, and trace requests.
 
@@ -1138,13 +1485,17 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Is each required capture and intervention step assigned to a trained role with a written procedure and usable escalation contact?
 
+<a id="arch-002"></a>
+
 ### ARCH-002 — Keep requirements aligned with changing operations
+
+**Rule ID:** ARCH-002.
 
 **Rule:** Reassess traceability scope, precision, KDEs, and workflows when products, processes, facilities, partners, or applicable requirements change.
 
 **Why:** A once-complete design can become incomplete after a new production or distribution step is introduced.
 
-**Factory Ledger application:** Maintain versioned requirement profiles and impact review for new workflows. Use documented gap analysis and product/facility pilots before rollout, followed by monitoring. This is a future implementation rule; the present source-processing phase does not perform that audit or rollout.
+**Factory Ledger application:** Maintain versioned requirement profiles and impact review for new workflows. Use documented gap analysis and product/facility pilots before rollout, followed by monitoring. This is an implementation obligation; this reconciliation does not perform a system audit or rollout.
 
 **Priority:** High. **Source strength:** GS1 recommendation. **Applicability:** A/B.
 
@@ -1152,7 +1503,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Does adding a new process or external warehouse trigger review of event coverage, identifiers, relationships, and trace-query tests?
 
+<a id="arch-003"></a>
+
 ### ARCH-003 — Preserve traceability across component boundaries and recovery
+
+**Rule ID:** ARCH-003.
 
 **Rule:** Ensure the logical traceability repository remains coherent and retrievable across its constituent systems, archives, and recovery procedures.
 
@@ -1166,7 +1521,11 @@ New batches extend this file. Retain IDs when wording changes; never reuse retir
 
 **Audit question:** Can a restored or archived system reconstruct a complete trace chain across all required components within its response target?
 
+<a id="arch-004"></a>
+
 ### ARCH-004 — Link condition and equipment evidence when it serves traceability
+
+**Rule ID:** ARCH-004.
 
 **Rule:** When condition monitoring or equipment history is in scope, associate observations with the relevant device/asset, time interval, place, and affected material context.
 
@@ -1244,6 +1603,51 @@ This matrix consolidates existing rules rather than adding new IDs. It is a Fact
 | Correct/adjust | Referenced original facts, original and effective values, actor/time/reason, stock/genealogy consequences | An administrative correction does not assert an unobserved physical event. DATA-001. |
 | Condition observation, if used | Device/asset, reading/unit, observation interval, relevant material/location association, source and uncertainty | Exposures depend on time and effective contents. ARCH-004. |
 
+## Mandatory recall scenario contracts
+
+These are hypothetical design fixtures, not Factory Ledger records or executed tests. Both queries must use the relationship and event-data contracts above, return evidence references for each path, identify the query cutoff and effective correction version, and expose scope/precision limitations. The expected sets below are defined independently of any implementation. Additional uncertain paths must be reported as candidates with reasons, not silently discarded or presented as proven contamination.
+
+### Shared hypothetical fixture
+
+Supplier Alpha at source site A supplies ingredient lot I1 on receipts RA1 and RA2; Supplier Beta at B supplies I2 on RB1; Supplier Gamma at C supplies I3 on RC1. Each lot has a distinct product/issuer-qualified identity. RA1 and RA2 are pooled, so subsequent I1 use is attributable to I1 but not to one particular receipt. For this fixture, all I1 and M1 quantities are consumed in the listed processes; no unlisted residual stock or process branches exist. An implementation fixture must supply compatible measured input/output quantities and justified process losses for production reconciliation.
+
+| Process | Actual inputs | Actual outputs |
+| --- | --- | --- |
+| T1 | I1 and I2 | Intermediate M1 |
+| T2 | All of M1 | Finished product P / lot F1, packed as 100 cases |
+| T3 | I1 and I3 | Finished product Q / lot F2, packed as 50 cases |
+| T4, later rework | 10 case-equivalents of F1 and I3 | Finished product R / lot F3, packed as 10 cases |
+| T0, unrelated control | I2 only | Finished product U / lot F0, 20 cases held on hand |
+
+Packing records link each packed lot to its bulk output and any in-scope packaging lots. The fixture retains event times, sites, parties, historical specifications and evidence for all processes. Case-equivalents and quantities here are fixture assumptions for disposition checks, not prescribed yield or unit-conversion rules.
+
+| Dispatch / disposition | Evidence and quantities |
+| --- | --- |
+| D1 | 30 F1 cases dispatched to Customer C1 / site S1; receipt confirmed |
+| D2 | 20 F1 cases dispatched to Customer C1 / site S2; receipt confirmed; 5 subsequently returned and held |
+| D3 | 25 F2 cases dispatched to Customer C2 / site S3; receipt confirmed |
+| D4 | 5 F3 cases dispatched to Customer C3 / site S4; arrival unconfirmed at the query cutoff |
+| D5 | 5 F2 cases first dispatched to Customer C4 / site S5, refused, then redirected and confirmed received by Customer C5 / site S6; retain both legs |
+| Remaining stock | F1: 40 never-dispatched cases plus the 5 returned cases on hold; F2: 20 cases on hand; F3: 5 cases on hand. The 10 F1 case-equivalents used by T4 are consumed history, not remaining F1 stock. |
+
+### Scenario 1 — Contaminated incoming ingredient lot → products and customers
+
+Start with Supplier Alpha's product/lot identifier for I1. The finished-product/lot result is exactly **{P/F1, Q/F2, R/F3}** through T1/T2, T3, and T4 respectively. Intermediate M1 and all I1 receipts/uses remain visible on the paths. F0 is excluded because its complete recorded ancestry contains I2 only; the matching presence of I2 in T1 is not a downstream path from I1 to F0.
+
+The historical dispatch/exposure result is exactly **{C1/S1, C1/S2, C2/S3, C3/S4, C4/S5, C5/S6}**, with D1–D5 and both D5 legs. Confirmed receiving sites are C1/S1, C1/S2, C2/S3 and C5/S6; C3/S4 remains a pending recipient, and C4/S5 a refused destination with its recorded custody evidence. Neither is silently dropped. Returned stock does not remove C1/S2 from the report. Customer summaries may deduplicate party identity, but must retain each site, shipment, quantity and delivery status underneath.
+
+At the cutoff, current affected finished-case holdings are 45 F1 cases (including 5 held returns), 20 F2 cases, and 5 F3 cases; outstanding dispatched quantities are 45 F1, 30 F2, and 5 F3 cases, with confirmation status preserved. F1 reconciles as 100 = 45 currently held + 45 outstanding dispatched + 10 consumed as rework; F2 as 50 = 20 + 30; F3 as 10 = 5 + 5. Gross dispatch, returns, redirections and rework are separate flows. Do not sum production across F1 and F3 to claim distinct remaining product. Unknown onward recipients are a visible boundary requiring partner evidence, not a claim that the full external chain is known.
+
+**Pass criterion:** All expected product/lot and exposure pairs appear with evidence paths and quantity/disposition reconciliation; the unrelated control is excluded on positive evidence; every gap, candidate and delivery-status distinction is visible. Primary rules: RECALL-002–RECALL-003, PROD-001–PROD-003, PACK-001–PACK-004, SHIP-001–SHIP-004, TRACE-003–TRACE-004.
+
+### Scenario 2 — Customer-reported finished case → raw materials and suppliers
+
+Customer C3 reports a case labeled product R / lot F3, with D4 as delivery context. Without serialization, the supported result is F3's history and the candidate case route, not an invented unique case identity or proof that D4 arrived. Trace back F3 → T4 → F1 → T2 → M1 → T1, and the direct I3 input to T4. The complete raw-material set is exactly **{I1, I2, I3}**; the receipt set is **{RA1, RA2, RB1, RC1}**; and the supplier/source-site set is **{Alpha/A, Beta/B, Gamma/C}**. RA1 and RA2 remain pooled candidate contributions. Include the actual packing records and their relevant packaging-lot/supplier ancestry, custody and location events, dates, specifications, quality evidence and correction history throughout the path. F2, F0 and T3 are not ancestors of F3 merely because they share ingredients.
+
+Repeat with an individually identified case whose packing/dispatch associations are recorded: the result may narrow its route only to the extent those associations justify it. Repeat with product-only or conflicting label data: return the supported candidate set or identity gap and required follow-up, without falsely claiming a complete unique history.
+
+**Pass criterion:** All expected raw-material, receipt and supplier/site identities appear with every supporting generation and its provenance; no recipe-only substitution or loss of rework/packaging history occurs; identity and pooled-receipt ambiguity are explicit. Primary rules: RECALL-001, ID-003, LOT-002–LOT-003, REC-001–REC-003, PROD-001–PROD-004, PACK-002–PACK-004, MASTER-003–MASTER-004, DATA-001.
+
 ## Acceptance scenarios for a later audit
 
 These are **proposed acceptance tests, not tests executed against Factory Ledger**. They supplement each rule's audit question and make relationship failures observable. A later auditor should implement fixtures suited to the actual system, capture query evidence, and grade each applicable rule individually.
@@ -1265,4 +1669,4 @@ These are **proposed acceptance tests, not tests executed against Factory Ledger
 | 13. Archived data and partner data are needed during a mock incident | Authorized personnel can retrieve readable evidence within defined targets. Partner delays, redactions, and missing records are visible and escalated. | DATA-004, EXCH-001, EXCH-005, ARCH-003 |
 | 14. A mixed-lot pallet or packing-material incident is traced | Every affected content lot or packaging-use branch is included; no homogeneous-pallet or ingredients-only assumption narrows the result. | TRACE-001, PACK-003–PACK-004, RECALL-002 |
 
-For any later audit result, record: Rule ID, applicability and rationale, pass/partial/fail/unknown/not-applicable status, concrete evidence, failing scenario, affected workflow/data population, risk/value, and remediation acceptance criterion. “Unknown” is not a pass; “not applicable” requires scope evidence. No audit results have been populated in this batch.
+For any later audit result, record: Rule ID, applicability and rationale, pass/partial/fail/unknown/not-applicable status, concrete evidence, failing scenario, affected workflow/data population, risk/value, and remediation acceptance criterion. “Unknown” is not a pass; “not applicable” requires scope evidence. No system audit results have been populated by this reconciliation.
