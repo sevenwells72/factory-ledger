@@ -4411,3 +4411,11 @@ ALTER TABLE ONLY public.transactions
 
 \unrestrict JSG62LwwKGOLEjoSefliprK7bTQnK46xH9AcajCIsxbCcr48kh2gax9Gs0Jn8j0
 
+
+-- ── PENDING MIGRATION 050 (sales-doc intake) ───────────────────────────────
+-- Not yet applied to production. Local test databases need it for
+-- tests/test_sales_order_extract.py. Remove this block after the prod
+-- apply + scripts/dump_prod_schema.sh re-dump (the dump overwrites this file,
+-- so the block disappears on its own).
+\ir ../../migrations/050_sales_doc_intake.sql
+
