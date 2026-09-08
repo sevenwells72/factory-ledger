@@ -4075,15 +4075,22 @@
     }) + ' ET';
   }
 
+  // Keep the status prefix when unwrapping a structured error: "HTTP 409: Lot
+  // already allocated" says which failure class it was and stays pasteable,
+  // where the bare message alone does not.
   function supplyApiErrorMessage(error) {
-    const match = /HTTP \d+: (.*)$/s.exec(error.message || '');
-    if (!match) return error.message || 'Request failed.';
+    const raw = (error && error.message) || '';
+    const match = /^HTTP (\d+): ([\s\S]*)$/.exec(raw);
+    if (!match) return raw || 'Request failed.';
     try {
-      const body = JSON.parse(match[1]);
-      return body.detail?.message || body.error_detail?.message || error.message;
+      const body = JSON.parse(match[2]);
+      const message = body.detail?.message || body.error_detail?.message;
+      if (message) return `HTTP ${match[1]}: ${message}`;
     } catch (_) {
-      return error.message;
+      // Not structured JSON — fall through to the raw message, which already
+      // carries the status prefix.
     }
+    return raw;
   }
 
   function showSupplyFeedback(message, kind = 'success') {
