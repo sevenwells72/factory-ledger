@@ -12,7 +12,11 @@
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
   --text-dimmed: #909daf;
-  --primary: #3b82f6;
+  /* Nearest value to #3b82f6, hue and saturation held, that clears 4.6:1
+     under white text (#3b82f6 measured 3.68 on every --primary fill in the
+     dashboard — 07-systemic-clusters A4). Light keeps #2563eb, which already
+     measures 5.17. */
+  --primary: #1b6df5;
   /* --primary is a fill (white text on it); --primary-text is the same hue
      used as text and as a line on a surface — links, the selected-tab
      indicator, focus rings. The two pull in opposite directions on a dark
@@ -138,7 +142,7 @@ body {
   white-space: nowrap;
 }
 .site-nav-link:hover { color: #f1f5f9; background: rgba(255,255,255,0.06); text-decoration: none; }
-.site-nav-link.active { color: #fff; background: #3b82f6; }
+.site-nav-link.active { color: #fff; background: var(--primary); }
 .site-nav-toggle {
   display: none; background: none; border: 1px solid rgba(255,255,255,0.12);
   border-radius: 6px; color: #94a3b8; font-size: 18px; padding: 4px 10px;

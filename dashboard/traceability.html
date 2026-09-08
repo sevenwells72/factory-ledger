@@ -18,7 +18,7 @@
   --text-muted: #94a3b8;
   --text-dimmed: #64748b;
   --border: #334155;
-  --primary: #3b82f6;
+  --primary: #1b6df5;      /* fill under white text, 4.61:1 — see dashboard.css */
   --primary-text: #669ef8; /* links / text on a surface — see dashboard.css --primary-text */
   --primary-hover: #60a5fa;
   --accent: #10b981;
@@ -47,7 +47,7 @@ a:hover { text-decoration: underline; }
 .site-nav-links { display:flex;gap:4px;align-items:center; }
 .site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
 .site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
-.site-nav-link.active { color:#fff;background:#3b82f6; }
+.site-nav-link.active { color:#fff;background:var(--primary); }
 .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
 @media(max-width:768px){
   .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
