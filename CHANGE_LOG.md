@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-08 14:40 — Migration 049 applied to prod; schema.sql re-dumped
+- **File(s) changed:** `tests/schema/schema.sql`
+- **What changed:** Applied `migrations/049_purchase_doc_intake.sql` to prod via the session pooler (clean single-transaction COMMIT; verified read-only: both tables, `expected_receipts.source_document_id`, five-value status constraint, 0 rows). Re-dumped schema.sql from prod via `scripts/dump_prod_schema.sh` (4,413 lines, zero data rows) — the pending `\ir 049` block is gone, the 049 objects are now in the dump proper. Local test DB rebuilt `--fresh` from the new dump; suite 485 passed + known pre-existing `test_recent_ledger` failure. Railway vars ANTHROPIC_API_KEY / SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY verified present on the FastAPI service (set by owner; new deployment active, health 200).
+- **Why:** ER-intake deploy checklist steps 1–3 (owner-approved): migration must precede the merge — `EXPECTED_RECEIPT_SELECT_SQL` reads `er.source_document_id`, so deploying the app against a pre-049 schema 500s.
+
+---
+
 ## 2026-09-08 13:50 — ER intake audit #3 fixes: finding 8 closed (8a heal-with-upsert, 8b serialized dedupe)
 - **File(s) changed:** `main.py`, `tests/test_expected_receipt_extract.py`, `docs/designs/er-intake-audit-3.md` (new), `docs/designs/er-intake-audit-1-response.md`
 - **What changed:** (8a) the upload_failed heal path uploads with `x-upsert: true` so a landed object whose success response was lost reads as success (bytes-match via file_sha256 asserted explicitly — 409 SHA_MISMATCH, unreachable by construction); fresh uploads keep x-upsert: false. (8b) the dedupe SELECT and INSERT now run in one transaction under `pg_advisory_xact_lock(hashtext(file_sha256))`, so concurrent identical uploads resolve to one row (loser gets 200 with the winner's document_id) — verified by a two-connection race test with pg_locks-confirmed simultaneous waiters. Audit #3 report saved verbatim; round-3 table appended to the response doc. Suite 485 passed + known pre-existing `test_recent_ledger` failure.
