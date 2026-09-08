@@ -11,11 +11,13 @@ bytes → validated-dict function, and matching/approval live elsewhere.
 """
 
 import base64
+import math
 import os
+from datetime import datetime
 from typing import List, Optional
 
 import anthropic
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, field_validator
 
 DEFAULT_EXTRACTION_MODEL = "claude-sonnet-5"
 
@@ -37,6 +39,15 @@ class ExtractedLine(BaseModel):
     quantity: float
     unit: Optional[str] = None
 
+    # Audit fix 11: the "strict" contract really is strict — NaN/±inf and
+    # non-positive quantities are schema violations, not passthroughs.
+    @field_validator("quantity")
+    @classmethod
+    def _quantity_finite_positive(cls, v: float) -> float:
+        if not math.isfinite(v) or v <= 0:
+            raise ValueError("quantity must be a finite number > 0")
+        return v
+
 
 class ExtractionResult(BaseModel):
     supplier_name: str
@@ -44,6 +55,19 @@ class ExtractionResult(BaseModel):
     document_date: Optional[str] = None           # YYYY-MM-DD
     expected_delivery_date: Optional[str] = None  # YYYY-MM-DD
     lines: List[ExtractedLine]
+
+    # Audit fix 11: a date is exactly YYYY-MM-DD and a real calendar date,
+    # or null — never a free-text string the model happened to emit.
+    @field_validator("document_date", "expected_delivery_date")
+    @classmethod
+    def _valid_iso_date(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        try:
+            datetime.strptime(v, "%Y-%m-%d")
+        except (ValueError, TypeError):
+            raise ValueError("date must be YYYY-MM-DD or null")
+        return v
 
 
 # Forced tool-use schema. reference_number / document_date /

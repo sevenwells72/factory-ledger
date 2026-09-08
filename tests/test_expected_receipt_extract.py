@@ -395,6 +395,32 @@ class TestExtractPurchaseDocument:
         with pytest.raises(ExtractionError, match="Vision API call failed"):
             extract_purchase_document(b"x", "image/png")
 
+    # Audit fix 11: strict means strict — non-finite/non-positive quantities
+    # and invalid date strings are schema violations.
+
+    @pytest.mark.parametrize("qty", [float("nan"), float("inf"), float("-inf"), 0, -3])
+    def test_non_finite_or_non_positive_quantity_rejected(self, monkeypatch, qty):
+        bad = dict(GOOD_EXTRACTION,
+                   lines=[{"vendor_description": "THING", "quantity": qty, "unit": None}])
+        _fake_client(monkeypatch, tool_input=bad)
+        with pytest.raises(ExtractionError, match="did not match schema"):
+            extract_purchase_document(b"x", "image/png")
+
+    @pytest.mark.parametrize("field", ["document_date", "expected_delivery_date"])
+    @pytest.mark.parametrize("value", ["Sept 5 2026", "2026-13-45", "2026-02-30", "tomorrow", "26-09-05"])
+    def test_invalid_date_string_rejected(self, monkeypatch, field, value):
+        bad = dict(GOOD_EXTRACTION)
+        bad[field] = value
+        _fake_client(monkeypatch, tool_input=bad)
+        with pytest.raises(ExtractionError, match="did not match schema"):
+            extract_purchase_document(b"x", "image/png")
+
+    def test_valid_dates_still_pass(self, monkeypatch):
+        ok = dict(GOOD_EXTRACTION, document_date="2026-09-05", expected_delivery_date=None)
+        _fake_client(monkeypatch, tool_input=ok)
+        out = extract_purchase_document(b"x", "image/png")
+        assert out["extraction"]["document_date"] == "2026-09-05"
+
     def test_missing_api_key(self, monkeypatch):
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         with pytest.raises(ExtractionError, match="ANTHROPIC_API_KEY"):
@@ -972,6 +998,36 @@ class TestApproveEndpoint:
         r = self._approve(client, doc_id, sup, [])
         assert r.status_code == 422
         assert r.json()["detail"]["error_code"] == "NO_LINES"
+
+    # Audit fix 11: NaN/±inf weights are 422s on approve AND on the manual path.
+
+    @pytest.mark.parametrize("qty", [float("nan"), float("inf"), 0, -10])
+    def test_non_finite_expected_qty_lb_rejected(self, client, cur, qty):
+        sup, p1, p2, doc_id = self._seed(cur)
+        r = self._approve(client, doc_id, sup, [self._line(p1, qty_lb=qty)])
+        assert r.status_code == 422, r.text
+        cur.execute("SELECT count(*) AS n FROM expected_receipts WHERE source_document_id = %s", (doc_id,))
+        assert cur.fetchone()["n"] == 0
+
+    def test_non_finite_lb_per_unit_rejected(self, client, cur):
+        sup, p1, p2, doc_id = self._seed(cur)
+        line = self._line(p1)
+        line["lb_per_unit"] = float("nan")
+        r = self._approve(client, doc_id, sup, [line])
+        assert r.status_code == 422, r.text
+
+    def test_manual_endpoint_rejects_nan_expected_qty(self, client, cur):
+        """The core-level finite check covers the pre-existing manual gap:
+        NaN passes `<= 0` but must still land as INVALID_QUANTITY."""
+        sup = _seed_supplier(cur, "Vendor NaN Co 049")
+        pid = _seed_product(cur, "NaN Prod 049")
+        r = client.post("/expected-receipts", json={
+            "product_id": pid, "supplier_name": "Vendor NaN Co 049",
+            "expected_qty": float("nan")})
+        assert r.status_code == 422, r.text
+        assert r.json()["detail"]["error_code"] == "INVALID_QUANTITY"
+        cur.execute("SELECT count(*) AS n FROM expected_receipts WHERE supplier_id = %s", (sup,))
+        assert cur.fetchone()["n"] == 0
 
     def test_created_receipts_settle_like_manual_ones(self, client, cur):
         """The core-refactor guarantee: intake-created rows behave identically

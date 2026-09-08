@@ -2615,6 +2615,10 @@ class ApproveLineIn(BaseModel):
     lb_per_unit: Optional[float] = None
     save_alias: bool = True
 
+    # Audit fix 11: NaN/±inf are validated in the approve endpoint (not here):
+    # a pydantic-level rejection makes FastAPI echo the non-finite input into
+    # its 422 JSON, which starlette cannot serialize (500).
+
 
 class ExpectedReceiptApproveRequest(BaseModel):
     document_id: int
@@ -4911,8 +4915,10 @@ def _create_expected_receipt_core(cur, product_id: int, supplier_id: int, expect
     can never drift. Callers resolve/validate product + supplier first; this
     validates qty and the optional document link, inserts, and returns the
     full serialized record."""
-    if expected_qty is None or expected_qty <= 0:
-        raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be > 0 (lb)"})
+    # Audit fix 11: NaN slips past `<= 0` (all NaN comparisons are False) —
+    # require a finite positive number, so the manual endpoint is covered too.
+    if expected_qty is None or not math.isfinite(float(expected_qty)) or expected_qty <= 0:
+        raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be a finite number > 0 (lb)"})
     if source_document_id is not None:
         cur.execute("SELECT id FROM purchase_documents WHERE id = %s", (source_document_id,))
         if not cur.fetchone():
@@ -5691,6 +5697,18 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
     learn supplier_product_aliases (latest-wins) for lines with save_alias."""
     if not req.lines:
         raise HTTPException(status_code=422, detail={"error_code": "NO_LINES", "message": "At least one line is required"})
+    # Audit fix 11: NaN/±inf pass pydantic's float type and `<= 0` alike —
+    # every weight must be a finite number > 0 before anything is written.
+    for idx, line in enumerate(req.lines, start=1):
+        for field_name, value in (("expected_qty_lb", line.expected_qty_lb),
+                                  ("quantity", line.quantity),
+                                  ("lb_per_unit", line.lb_per_unit)):
+            if value is not None and (not math.isfinite(value) or value <= 0):
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error_code": "INVALID_QUANTITY",
+                            "message": f"Line {idx}: {field_name} must be a finite number > 0"},
+                )
 
     created_by = caller_source_tag(request, req.created_by)
     with get_transaction() as cur:
