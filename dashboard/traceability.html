@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Ledger — Lot Traceability</title>
 <link rel="stylesheet" href="mini-calendar.css?v=2">
+<script src="fetch-timeout.js?v=1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
 :root {
@@ -245,6 +246,7 @@ svg text { font-family: var(--font); }
   body { background: #fff; color: #000; }
 }
 </style>
+<link rel="stylesheet" href="interaction.css?v=1">
 </head>
 <body>
 
@@ -349,7 +351,7 @@ const headers = { 'X-Api-Key': API_KEY };
 // API HELPERS
 // ═══════════════════════════════════════════════════════
 async function api(path) {
-  const res = await fetch(API_BASE + path, { headers });
+  const res = await FL.fetchWithTimeout(API_BASE + path, { headers });
   const data = await res.json();
   if (!res.ok) {
     const err = new Error(data.detail || data.error || `HTTP ${res.status}`);
@@ -523,7 +525,13 @@ async function runTrace() {
     updateURL(lotCode, direction);
   } catch (e) {
     console.error('[Trace]', e);
-    if (e.status === 409 && e.data && e.data.error === 'ambiguous_lot_code') {
+    if (window.FL && FL.isStall(e)) {
+      // The spinner would otherwise sit there indefinitely (IMP-005).
+      const el = document.getElementById('statusBar');
+      el.className = 'status-bar error';
+      el.innerHTML = '';
+      FL.renderStall(el, runTrace, null);
+    } else if (e.status === 409 && e.data && e.data.error === 'ambiguous_lot_code') {
       showDisambiguation(lotCode, e.data.matches);
     } else if (e.message.includes('404')) {
       setStatus('error', `No records found for lot code "${lotCode}". Check the lot code and try again.`);
@@ -1394,7 +1402,7 @@ function loadFromURL() {
   loadFromURL();
 })();
 </script>
-<script src="mini-calendar.js?v=3"></script>
+<script src="mini-calendar.js?v=4"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

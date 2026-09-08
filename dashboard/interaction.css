@@ -1,0 +1,85 @@
+/* === Shared interaction states (IMP-004) ===
+   ACTION-002 and FEEDBACK-001, both Critical.
+
+   Before this file no `:active` rule existed in any of the six style sources
+   (dashboard.css, mini-calendar.css, and the inline blocks in sankey.html,
+   process-flow.html, traceability.html and scheduler/…-board.html), so not
+   one button in the product showed that a tap had registered. Nothing
+   visibly changing invites a second tap and a duplicate submission.
+
+   Linked by every page in dashboard/ so the press state is genuinely shared
+   rather than re-stated per page. Deliberately last in the <link> order so
+   these states win over per-page button rules without !important. */
+
+/* ── Press state ── */
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]),
+summary:active,
+.tab:active,
+a.btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.92);
+}
+
+/* Pointer feedback should not animate away the press. */
+button,
+[role="button"] {
+  transition: transform 0.06s ease, filter 0.06s ease;
+}
+
+/* ── Disabled ── */
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  filter: none;
+}
+
+/* ── Submitting ──
+   Set by the commit handlers alongside `disabled`, so a request in flight
+   reads as in flight rather than as an unresponsive control. */
+button.is-submitting,
+[role="button"].is-submitting {
+  cursor: progress;
+  opacity: 0.75;
+  transform: none;
+  filter: none;
+}
+
+/* A checkbox cannot change its own label, so mark the row it sits in. */
+.is-committing {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ── Stall banner (IMP-005) ──
+   Rendered over the last-good view by FL.renderStall when a request exceeds
+   the fetch timeout, so a stalled load reads as stalled rather than as an
+   indicator that stopped moving. */
+.fl-stall {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border: 1px solid #b45309;
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: rgba(180, 83, 9, 0.12);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.fl-stall-msg { flex: 1 1 auto; min-width: 12ch; }
+.fl-stall-retry {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}

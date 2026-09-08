@@ -166,6 +166,8 @@
     .summary-strip { grid-template-columns: 1fr; }
   }
 </style>
+<link rel="stylesheet" href="interaction.css?v=1">
+<script src="fetch-timeout.js?v=1"></script>
 </head>
 <body>
 
@@ -279,7 +281,7 @@
 
   // --- API helpers ---
   async function apiFetch(path) {
-    const res = await fetch(API_BASE + path, {
+    const res = await FL.fetchWithTimeout(API_BASE + path, {
       headers: { 'X-Api-Key': API_KEY }
     });
     if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
@@ -329,6 +331,19 @@
     } catch (e) {
       console.error('API fetch error:', e);
       consecutiveFailures++;
+      if (window.FL && FL.isStall(e)) {
+        // A hang is not "offline" and should not wait for three rounds to be
+        // named: explain it now and offer a next step (IMP-005).
+        const el = document.getElementById('error-banner');
+        el.textContent = '';
+        el.classList.add('visible');
+        FL.renderStall(el, refresh, lastSuccessTime
+          ? lastSuccessTime.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true })
+          : null);
+        if (!lastSuccessTime) useFallback = true;
+        isFetching = false;
+        return null;
+      }
       if (consecutiveFailures >= 3) {
         showStale();
       }
@@ -708,7 +723,7 @@
 
 })();
 </script>
-<script src="mini-calendar.js?v=3"></script>
+<script src="mini-calendar.js?v=4"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

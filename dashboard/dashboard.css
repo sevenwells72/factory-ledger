@@ -33,9 +33,15 @@
   --panel-header-bg: #162032;
   --search-bg: #283548;
   --search-border: #475569;
+  --bg-card: #283548;
   --overlay-bg: rgba(0, 0, 0, 0.5);
   --radius: 12px;
   --radius-sm: 8px;
+  /* Sticky-stack heights (IMP-002). Seeded with the desktop single-row
+     values and overwritten from a ResizeObserver in dashboard.js so the
+     offsets compose at any width, text size, or zoom level. */
+  --site-nav-h: 48px;
+  --header-h: 43px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
 }
@@ -71,6 +77,7 @@
   --panel-header-bg: #f1f5f9;
   --search-bg: #ffffff;
   --search-border: #cbd5e1;
+  --bg-card: #ffffff;
   --overlay-bg: rgba(0, 0, 0, 0.3);
 }
 
@@ -82,7 +89,7 @@ body {
   color: var(--text);
   font-size: 14px;
   line-height: 1.5;
-  padding-top: 48px;
+  padding-top: var(--site-nav-h);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -138,7 +145,7 @@ body {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
-  top: 48px;
+  top: var(--site-nav-h);
   z-index: 100;
 }
 
@@ -257,7 +264,7 @@ body {
   border-bottom: 2px solid var(--border);
   padding: 0 20px;
   position: sticky;
-  top: 91px;
+  top: calc(var(--site-nav-h) + var(--header-h));
   z-index: 99;
   overflow-x: auto;
 }
@@ -1814,6 +1821,18 @@ body {
   overflow-x: auto;
 }
 
+/* Shared horizontal-scroll wrapper (IMP-003).
+   Without a container of their own, wide tables make the *page* scroll
+   horizontally, sliding content out from under the fixed nav and sticky
+   header. Generalises the wrapper that already existed for the order-detail,
+   allocation and supplies tables. The min-widths keep columns readable and
+   let the wrapper take the scroll instead. */
+.table-scroll { overflow-x: auto; }
+.table-scroll > .orders-table { min-width: 1040px; }
+.table-scroll > .er-table { min-width: 860px; }
+.table-scroll > .activity-table { min-width: 620px; }
+.table-scroll > .inv-table { min-width: 360px; }
+
 .order-readiness-table { min-width: 1040px; }
 .line-blockers-cell { min-width: 210px; max-width: 300px; }
 .readiness-shortage { color: var(--danger) !important; font-weight: 700; }
@@ -1835,6 +1854,29 @@ body {
   cursor: pointer;
 }
 .btn-secondary:hover { color: var(--text); }
+
+/* Lot-code disambiguation choices (IMP-001) — resolves through the theme
+   system; no hard-coded fallback that could put --text on white. */
+.disambig-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.disambig-intro { margin: 0 0 12px; font-size: 14px; }
+.disambig-wrap { padding: 8px 0; }
+.disambig-btn {
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.disambig-btn:hover { background: var(--surface-hover); }
+.disambig-btn .disambig-source { color: var(--text-muted); font-size: 12px; }
 
 .order-status-select,
 .order-edit-input {
@@ -2186,7 +2228,6 @@ body {
   .calendar-grid.month-view { grid-template-columns: repeat(3, 1fr); }
   .tab-content { padding: 12px; }
   .lot-panel { width: 100%; max-width: 100vw; }
-  .tab-bar { top: 91px; }
   .notes-toolbar { flex-direction: column; align-items: stretch; }
   .form-row { grid-template-columns: 1fr; }
   .note-modal { width: 100%; max-width: 100vw; border-radius: 0; }

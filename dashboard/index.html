@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=27">
+  <link rel="stylesheet" href="dashboard.css?v=28">
   <link rel="stylesheet" href="mini-calendar.css?v=2">
+  <link rel="stylesheet" href="interaction.css?v=1">
 </head>
 <body>
 
@@ -416,7 +417,7 @@
           </div>
           <div class="form-group">
             <label for="er-qty">Expected qty (lb)</label>
-            <input type="text" id="er-qty" inputmode="decimal" placeholder="e.g. 2000" autocomplete="off">
+            <input type="number" id="er-qty" min="0" step="any" inputmode="decimal" placeholder="e.g. 2000" autocomplete="off">
           </div>
         </div>
         <div class="form-row">
@@ -515,9 +516,10 @@
     </div>
   </div>
 
-  <script src="mini-calendar.js?v=3"></script>
+  <script src="fetch-timeout.js?v=1"></script>
+  <script src="mini-calendar.js?v=4"></script>
   <script src="pallet-calculations.js?v=1"></script>
-  <script src="dashboard.js?v=40"></script>
+  <script src="dashboard.js?v=41"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
 </body>
 </html>

@@ -41,6 +41,100 @@
     },
   };
 
+  // ── Commit-in-flight state (IMP-004) ──
+  // ACTION-002 / FEEDBACK-001: a commit control must show that the tap
+  // registered and must not accept a second tap while the first request is
+  // still open. Mirrors the pattern already used by submitSupplyRequest.
+  function beginSubmit(btn, busyLabel) {
+    if (!btn) return null;
+    const prev = { text: btn.textContent, disabled: btn.disabled };
+    btn.disabled = true;
+    btn.classList.add('is-submitting');
+    if (busyLabel) btn.textContent = busyLabel;
+    return prev;
+  }
+
+  function endSubmit(btn, prev) {
+    if (!btn || !prev) return;
+    btn.classList.remove('is-submitting');
+    if (btn.isConnected) {
+      btn.textContent = prev.text;
+      btn.disabled = prev.disabled;
+    }
+  }
+
+  // A checkbox has no label to change, so freeze the row it lives in.
+  function beginRowCommit(el) {
+    const row = el && el.closest ? (el.closest('.note-card') || el.closest('tr') || el.parentElement) : null;
+    if (el) el.disabled = true;
+    if (row) row.classList.add('is-committing');
+    return { el, row };
+  }
+
+  function endRowCommit(handle) {
+    if (!handle) return;
+    if (handle.el && handle.el.isConnected) handle.el.disabled = false;
+    if (handle.row && handle.row.isConnected) handle.row.classList.remove('is-committing');
+  }
+
+  // ── Numeric input (IMP-006) ──
+  // parseFloat silently truncates: "12O" (letter O) yields 12 and "2,000 lb"
+  // pasted from a supplier email yields 2. Every quantity a user types goes
+  // through here instead, and anything that is not a complete, finite number
+  // is rejected rather than coerced.
+  function readNumericInput(el) {
+    if (!el) return { empty: true, valid: false, value: null };
+    const raw = String(el.value == null ? '' : el.value).trim();
+    if (raw === '') return { empty: true, valid: false, value: null };
+    // A type="number" field already reports "" for text the browser rejected,
+    // but the field can be re-typed or the attribute removed, so re-check.
+    if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(raw)) {
+      return { empty: false, valid: false, value: null };
+    }
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return { empty: false, valid: false, value: null };
+    return { empty: false, valid: true, value };
+  }
+
+  // ── Sticky stack offsets (IMP-002) ──
+  // .site-nav is fixed and .app-header/.tab-bar are sticky beneath it. The
+  // offsets used to be hard-coded (48px / 91px), which held only for a
+  // single-row desktop header; at <=768px the header wraps to three rows and
+  // the tab bar landed on top of it, hiding global search and Refresh. The
+  // same happened at 200% zoom, which reports a sub-768px viewport. Measure
+  // both bars instead and publish their heights as CSS variables.
+  function initStickyOffsets() {
+    const root = document.documentElement;
+    const siteNav = document.querySelector('.site-nav');
+    const header = document.querySelector('.app-header');
+
+    function publish() {
+      if (siteNav) {
+        root.style.setProperty('--site-nav-h', Math.ceil(siteNav.getBoundingClientRect().height) + 'px');
+      }
+      if (header) {
+        root.style.setProperty('--header-h', Math.ceil(header.getBoundingClientRect().height) + 'px');
+      }
+    }
+
+    publish();
+
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(publish);
+      if (siteNav) ro.observe(siteNav);
+      if (header) ro.observe(header);
+    } else {
+      // Older browsers: the CSS defaults stand until something resizes.
+      window.addEventListener('resize', publish);
+      window.addEventListener('orientationchange', publish);
+    }
+
+    // The nav toggle expands .site-nav; ResizeObserver catches it, but fire
+    // once directly so the no-ResizeObserver path stays correct too.
+    const navToggle = document.getElementById('navToggle');
+    if (navToggle) navToggle.addEventListener('click', () => setTimeout(publish, 0));
+  }
+
   // ── Theme ──
   function initTheme() {
     const saved = localStorage.getItem('dashboard-theme');
@@ -481,8 +575,57 @@
     if (el) el.classList.add('hidden');
   }
 
+  // ── Stall reporting (IMP-005) ──
+  // FEEDBACK-003: a stationary indicator reads as a freeze, so a request that
+  // exceeds the fetch timeout must change the UI to explain the stall and
+  // offer a next step. Ordinary failures keep the existing message.
+  function lastRefreshLabel() {
+    if (!state.lastRefresh) return null;
+    return state.lastRefresh.toLocaleString('en-US', {
+      timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true
+    }) + ' ET';
+  }
+
+  function showLoadError(elementId, prefix, error, retry) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const stalled = Boolean(window.FL && window.FL.isStall(error));
+    if (!stalled) {
+      showError(elementId, prefix + ': ' + ((error && error.message) || 'Failed to load data.'));
+      return;
+    }
+    el.textContent = '';
+    el.classList.remove('hidden');
+    const asOf = lastRefreshLabel();
+    const msg = document.createElement('span');
+    msg.className = 'fl-stall-msg';
+    msg.textContent = asOf
+      ? 'Server not responding \u2014 showing data from ' + asOf + '.'
+      : 'Server not responding after ' + Math.round(window.FL.DEFAULT_TIMEOUT_MS / 1000) + ' seconds.';
+    el.appendChild(msg);
+    if (typeof retry === 'function') {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'fl-stall-retry';
+      btn.textContent = 'Retry';
+      btn.addEventListener('click', () => {
+        btn.disabled = true;
+        btn.classList.add('is-submitting');
+        btn.textContent = 'Retrying\u2026';
+        Promise.resolve().then(retry).catch(() => {}).then(() => {
+          if (btn.isConnected) {
+            btn.disabled = false;
+            btn.classList.remove('is-submitting');
+            btn.textContent = 'Retry';
+          }
+        });
+      });
+      el.appendChild(btn);
+    }
+  }
+
   async function fetchAPI(path) {
-    const res = await fetch(API_BASE + path);
+    const res = await FL.fetchWithTimeout(API_BASE + path);
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`HTTP ${res.status}: ${body}`);
@@ -698,7 +841,7 @@
       renderProductionCalendar(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('production-error', 'Failed to load production calendar: ' + e.message);
+      showLoadError('production-error', 'Failed to load production calendar', e, refreshProductionCalendar);
     }
   }
 
@@ -897,7 +1040,7 @@
       renderFinishedGoodsPanels(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('finished-goods-error', 'Failed to load finished goods: ' + e.message);
+      showLoadError('finished-goods-error', 'Failed to load finished goods', e, refreshFinishedGoods);
     }
   }
 
@@ -915,7 +1058,7 @@
       html += `<div id="${panelId}" class="collapsible-body${expanded ? ' expanded' : ''}">`;
 
       if (panel.products.length > 0) {
-        html += '<table class="inv-table"><thead><tr><th>Product</th><th class="num">On Hand (lb)</th><th>Cases</th><th class="num">Pallets</th></tr></thead><tbody>';
+        html += '<div class="table-scroll"><table class="inv-table"><thead><tr><th>Product</th><th class="num">On Hand (lb)</th><th>Cases</th><th class="num">Pallets</th></tr></thead><tbody>';
         for (const p of panel.products) {
           const rowId = panelId + '-' + p.product_name.replace(/\W/g, '_');
           const caseWt = p.case_weight_lb || panel.case_weight_lb;
@@ -940,7 +1083,7 @@
           }
           html += `</tbody>`;
         }
-        html += '</tbody></table>';
+        html += '</tbody></table></div>';
       } else {
         html += '<div class="loading-indicator">No inventory on hand.</div>';
       }
@@ -967,7 +1110,7 @@
       renderBatchInventory(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('batches-error', 'Failed to load batch inventory: ' + e.message);
+      showLoadError('batches-error', 'Failed to load batch inventory', e, refreshBatchInventory);
     }
   }
 
@@ -999,7 +1142,7 @@
   }
 
   function renderBatchFamilyTable(batches) {
-    let html = '<table class="inv-table"><thead><tr><th>Batch</th><th class="num">On Hand (lb)</th><th>Est. Batches</th></tr></thead><tbody>';
+    let html = '<div class="table-scroll"><table class="inv-table"><thead><tr><th>Batch</th><th class="num">On Hand (lb)</th><th>Est. Batches</th></tr></thead><tbody>';
     for (const b of batches) {
       const rowId = 'batch-' + b.product_name.replace(/\W/g, '_');
       const estRaw = estimatedBatchesOnHand(b);
@@ -1038,7 +1181,7 @@
       }
       html += `</tbody>`;
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     return html;
   }
 
@@ -1083,7 +1226,7 @@
       renderIngredients(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('ingredients-error', 'Failed to load ingredients: ' + e.message);
+      showLoadError('ingredients-error', 'Failed to load ingredients', e, refreshIngredients);
     }
   }
 
@@ -1103,7 +1246,7 @@
         const uniqueUnits = [...new Set(itemUnits)];
         const headerUnit = uniqueUnits.length === 1 ? uniqueUnits[0] : null;
         const qtyHeader = headerUnit ? `On Hand (${escHtml(headerUnit)})` : 'On Hand';
-        html += `<table class="inv-table"><thead><tr><th>Ingredient</th><th class="num">${qtyHeader}</th></tr></thead><tbody>`;
+        html += `<div class="table-scroll"><table class="inv-table"><thead><tr><th>Ingredient</th><th class="num">${qtyHeader}</th></tr></thead><tbody>`;
         for (const item of cat.items) {
           const rowId = panelId + '-' + item.name.replace(/\W/g, '_');
           const uom = String(item.uom || cat.unit || 'lb').trim() || 'lb';
@@ -1125,7 +1268,7 @@
           }
           html += `</tbody>`;
         }
-        html += '</tbody></table>';
+        html += '</tbody></table></div>';
       } else {
         html += '<div class="loading-indicator">No inventory on hand.</div>';
       }
@@ -1178,7 +1321,7 @@
       renderShipments(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('shipments-error', 'Failed to load shipments: ' + e.message);
+      showLoadError('shipments-error', 'Failed to load shipments', e, refreshShipments);
     }
   }
 
@@ -1188,7 +1331,7 @@
       container.innerHTML = '<div class="loading-indicator">No shipments found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
+    let html = '<div class="table-scroll"><table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Customer</th><th>Ref</th></tr></thead><tbody>';
     for (const [idx, s] of shipments.entries()) {
       const rowId = 'ship-' + s.transaction_id;
       const products = (s.lines || []).map(l => l.product_name).filter(Boolean);
@@ -1214,7 +1357,7 @@
       if (s.notes) html += `<br><strong>Notes:</strong> ${escHtml(s.notes)}`;
       html += `</td></tr>`;
     }
-    html += '</tbody>' + showMoreFooter(shipments.length, 5) + '</table>';
+    html += '</tbody>' + showMoreFooter(shipments.length, 5) + '</table></div>';
     container.innerHTML = html;
     bindExpandableRows(container);
     bindLotLinks(container);
@@ -1231,7 +1374,7 @@
       renderReceipts(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('receipts-error', 'Failed to load receipts: ' + e.message);
+      showLoadError('receipts-error', 'Failed to load receipts', e, refreshReceipts);
     }
   }
 
@@ -1241,7 +1384,7 @@
       container.innerHTML = '<div class="loading-indicator">No receipts found.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
+    let html = '<div class="table-scroll"><table class="activity-table"><thead><tr><th>Occurred / Entered</th><th>Product(s)</th><th class="num">Qty (lb)</th><th>Supplier</th><th>BOL</th></tr></thead><tbody>';
     for (const [idx, r] of receipts.entries()) {
       const rowId = 'recv-' + r.transaction_id;
       const products = (r.lines || []).map(l => l.product_name).filter(Boolean);
@@ -1268,7 +1411,7 @@
       if (r.notes) html += `<br><strong>Notes:</strong> ${escHtml(r.notes)}`;
       html += `</td></tr>`;
     }
-    html += '</tbody>' + showMoreFooter(receipts.length, 5) + '</table>';
+    html += '</tbody>' + showMoreFooter(receipts.length, 5) + '</table></div>';
     container.innerHTML = html;
     bindExpandableRows(container);
     bindLotLinks(container);
@@ -1296,7 +1439,7 @@
       renderDailyEntries(data, container);
     } catch (e) {
       container.innerHTML = '';
-      showError('daily-entries-error', 'Failed to load daily entries: ' + e.message);
+      showLoadError('daily-entries-error', 'Failed to load daily entries', e, refreshDailyEntries);
     }
   }
 
@@ -1312,7 +1455,7 @@
       container.innerHTML = '<div class="loading-indicator">No entries for ' + escHtml(data.date) + '.</div>';
       return;
     }
-    let html = '<table class="activity-table"><thead><tr><th>Entered</th><th>Type</th><th>Product</th><th>SKU</th><th class="num">Qty (lb)</th></tr></thead><tbody>';
+    let html = '<div class="table-scroll"><table class="activity-table"><thead><tr><th>Entered</th><th>Type</th><th>Product</th><th>SKU</th><th class="num">Qty (lb)</th></tr></thead><tbody>';
     for (const t of entries) {
       const rowClass = t.late_entry ? ' class="late-entry"' : '';
       const lines = (t.lines && t.lines.length > 0) ? t.lines : [{}];
@@ -1336,7 +1479,7 @@
         html += `</tr>`;
       });
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
   }
 
@@ -1351,7 +1494,7 @@
     try {
       let url = API_BASE + '/lot/' + encodeURIComponent(lotCode);
       if (productId) url += '?product_id=' + encodeURIComponent(productId);
-      const res = await fetch(url);
+      const res = await FL.fetchWithTimeout(url);
       if (res.status === 409) {
         // Ambiguous lot code — show disambiguation picker
         const err = await res.json();
@@ -1370,16 +1513,13 @@
   }
 
   function renderLotDisambiguation(lotCode, matches, body) {
-    let html = '<div style="padding:8px 0;">';
-    html += `<p style="margin:0 0 12px;font-size:14px;">Lot code <strong>${escHtml(lotCode)}</strong> matches multiple products. Select the one you want:</p>`;
-    html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+    let html = '<div class="disambig-wrap">';
+    html += `<p class="disambig-intro">Lot code <strong>${escHtml(lotCode)}</strong> matches multiple products. Select the one you want:</p>`;
+    html += '<div class="disambig-list">';
     for (const m of matches) {
-      html += `<button class="disambig-btn" data-product-id="${m.product_id}" style="
-        text-align:left;padding:10px 12px;border:1px solid var(--border);border-radius:6px;
-        background:var(--bg-card,#fff);cursor:pointer;font-size:13px;
-      ">`;
+      html += `<button class="disambig-btn" data-product-id="${m.product_id}">`;
       html += `<strong>${escHtml(m.product_name)}</strong>`;
-      if (m.source) html += ` <span style="color:var(--text-muted);font-size:12px;">(${escHtml(m.source)})</span>`;
+      if (m.source) html += ` <span class="disambig-source">(${escHtml(m.source)})</span>`;
       html += '</button>';
     }
     html += '</div></div>';
@@ -1588,7 +1728,7 @@
         document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'orders'));
         document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-orders'));
         state.currentTab = 'orders';
-        openOrderDetail(parseInt(orderId));
+        openOrderDetail(Number(orderId));
       });
     });
 
@@ -1669,7 +1809,7 @@
       renderNotes(container);
     } catch (e) {
       container.innerHTML = '';
-      showError('notes-error', 'Failed to load notes: ' + e.message);
+      showLoadError('notes-error', 'Failed to load notes', e, refreshNotes);
     }
   }
 
@@ -1740,15 +1880,19 @@
     // Bind checkbox toggles
     container.querySelectorAll('.note-checkbox').forEach(cb => {
       cb.addEventListener('change', async () => {
+        if (cb.disabled) return;
         const id = cb.dataset.id;
+        const commit = beginRowCommit(cb);
         try {
-          await fetch(API_BASE + '/notes/' + id + '/toggle', {
+          await FL.fetchWithTimeout(API_BASE + '/notes/' + id + '/toggle', {
             method: 'PUT',
             headers: { 'X-API-Key': SALES_API_KEY },
           });
           refreshNotes();
         } catch (err) {
           showError('notes-error', 'Toggle failed: ' + err.message);
+        } finally {
+          endRowCommit(commit);
         }
       });
     });
@@ -1770,7 +1914,7 @@
         const id = btn.dataset.id;
         if (!confirm('Delete this item?')) return;
         try {
-          await fetch(API_BASE + '/notes/' + id, {
+          await FL.fetchWithTimeout(API_BASE + '/notes/' + id, {
             method: 'DELETE',
             headers: { 'X-API-Key': SALES_API_KEY },
           });
@@ -1807,6 +1951,10 @@
   }
 
   async function saveNote() {
+    const saveBtn = document.getElementById('note-save-btn');
+    // Guard the whole handler, not just the request: the early returns below
+    // must not leave the button disabled (IMP-004).
+    if (saveBtn && saveBtn.disabled) return;
     const category = document.querySelector('input[name="note-cat"]:checked').value;
     const title = document.getElementById('note-title').value.trim();
     if (!title) {
@@ -1822,10 +1970,11 @@
 
     const payload = { title, body, priority, due_date, entity_type, entity_id };
 
+    const prevSave = beginSubmit(saveBtn, 'Saving\u2026');
     try {
       if (state.editingNoteId) {
         // Update
-        await fetch(API_BASE + '/notes/' + state.editingNoteId, {
+        await FL.fetchWithTimeout(API_BASE + '/notes/' + state.editingNoteId, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'X-API-Key': SALES_API_KEY },
           body: JSON.stringify(payload),
@@ -1833,7 +1982,7 @@
       } else {
         // Create
         payload.category = category;
-        await fetch(API_BASE + '/notes', {
+        await FL.fetchWithTimeout(API_BASE + '/notes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Key': SALES_API_KEY },
           body: JSON.stringify(payload),
@@ -1843,6 +1992,8 @@
       refreshNotes();
     } catch (err) {
       alert('Save failed: ' + err.message);
+    } finally {
+      endSubmit(saveBtn, prevSave);
     }
   }
 
@@ -1913,7 +2064,7 @@
 
   async function fetchSalesAPI(path, options = {}) {
     const headers = { 'X-API-Key': SALES_API_KEY, ...(options.headers || {}) };
-    const res = await fetch(SALES_API_BASE + path, { ...options, headers });
+    const res = await FL.fetchWithTimeout(SALES_API_BASE + path, { ...options, headers });
     if (!res.ok) {
       const body = await res.text();
       const error = new Error(`HTTP ${res.status}: ${body}`);
@@ -2196,7 +2347,7 @@
     hideError('orders-error');
 
     try {
-      const response = await fetch(SALES_API_BASE + '/export/orders-matrix.xlsx', {
+      const response = await FL.fetchWithTimeout(SALES_API_BASE + '/export/orders-matrix.xlsx', {
         headers: { 'X-API-Key': SALES_API_KEY }
       });
       if (!response.ok) {
@@ -2269,7 +2420,7 @@
       renderOrdersList();
     } catch (e) {
       container.innerHTML = '';
-      showError('orders-error', 'Failed to load sales orders: ' + e.message);
+      showLoadError('orders-error', 'Failed to load sales orders', e, refreshOrders);
     }
   }
 
@@ -2309,7 +2460,7 @@
       return;
     }
 
-    let html = '<table class="orders-table"><thead><tr>';
+    let html = '<div class="table-scroll"><table class="orders-table"><thead><tr>';
     html += '<th class="order-expand-col" aria-label="Expand"></th><th class="order-ready-col" aria-label="Factory Ready"></th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th>Dispatch</th><th>Blockers / Warnings</th><th class="num">Pallets</th><th class="num">Effective Remaining</th>';
     html += '</tr></thead><tbody>';
 
@@ -2318,7 +2469,10 @@
       const readyReadOnly = Boolean(o.is_dispatch_queue);
       html += `<tr class="order-row ${o.ready ? 'so-ready' : ''}" data-order-id="${o.order_id}">`;
       html += `<td class="order-expand-cell"><button type="button" class="order-expand-toggle" data-order-id="${o.order_id}" aria-expanded="false" aria-controls="order-lines-${o.order_id}" title="Show line items"><span class="order-expand-caret">&#9656;</span></button></td>`;
-      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : 'title="Factory Ready"'}></td>`;
+      // A Factory Ready write re-renders this table, so carry the in-flight
+      // state through the re-render and keep the control disabled (IMP-004).
+      const readyBusy = Boolean(o.readyInFlight);
+      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><input type="checkbox" class="order-ready-checkbox" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></td>`;
       html += `<td><span class="order-link">${escHtml(o.order_number)}</span></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td>${formatDateShort(o.order_date)}</td>`;
@@ -2333,7 +2487,7 @@
       html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="11"><div class="order-lines-content"></div></td></tr>`;
     }
 
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 
     // Bind row clicks — clicking the row (incl. the SO number) opens the full detail page
@@ -2454,9 +2608,15 @@
       cb.addEventListener('click', ev => ev.stopPropagation());
       cb.addEventListener('change', async (ev) => {
         ev.stopPropagation();
+        if (cb.disabled) return;
         const orderId = cb.dataset.orderId;
         const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
         if (!order || order.is_dispatch_queue) return;
+        // The list is re-rendered below, which replaces this checkbox, so the
+        // in-flight guard also lives on the order record (IMP-004).
+        if (order.readyInFlight) { cb.checked = Boolean(order.ready); return; }
+        order.readyInFlight = true;
+        cb.disabled = true;
 
         const oldFlag = {
           ready: Boolean(order.ready),
@@ -2473,6 +2633,9 @@
         try {
           const saved = await postOrderReady(order, nextReady, order.note || null);
           updateCachedOrderReady(orderId, saved);
+          // Clear before the render below so the replacement checkbox comes
+          // back enabled — no extra re-render is added for the busy state.
+          order.readyInFlight = false;
           if (isDispatchQueueMode()) {
             await refreshOrders();
           } else {
@@ -2480,8 +2643,12 @@
           }
         } catch (e) {
           Object.assign(order, oldFlag);
+          order.readyInFlight = false;
           renderOrdersList();
           showError('orders-error', 'Factory Ready update failed: ' + e.message);
+        } finally {
+          order.readyInFlight = false;
+          if (cb.isConnected) cb.disabled = false;
         }
       });
     });
@@ -3378,7 +3545,7 @@
       renderExpectedReceipts();
     } catch (e) {
       container.innerHTML = '';
-      showError('er-error', 'Failed to load expected receipts: ' + e.message);
+      showLoadError('er-error', 'Failed to load expected receipts', e, refreshExpectedReceipts);
     }
   }
 
@@ -3420,7 +3587,7 @@
       return;
     }
 
-    let html = '<table class="orders-table er-table"><thead><tr>';
+    let html = '<div class="table-scroll"><table class="orders-table er-table"><thead><tr>';
     html += '<th>Product</th><th>Supplier</th><th class="num">Expected (lb)</th><th class="num">Received (lb)</th><th class="num">Remaining (lb)</th><th>Expected Date</th><th>Reference</th><th>Status</th><th class="er-actions-col"></th>';
     html += '</tr></thead><tbody>';
     for (const r of rows) {
@@ -3445,7 +3612,7 @@
       }
       html += '</tr>';
     }
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     container.innerHTML = html;
 
     container.querySelectorAll('.er-edit-btn').forEach(btn => {
@@ -3482,6 +3649,8 @@
       return;
     }
     hideError('er-error');
+    if (btn && btn.disabled) return;
+    const prevEr = beginSubmit(btn, status === 'closed' ? 'Closing\u2026' : 'Cancelling\u2026');
     try {
       await fetchSalesAPI(`/expected-receipts/${id}`, {
         method: 'PATCH',
@@ -3491,6 +3660,14 @@
       await refreshExpectedReceipts();
     } catch (e) {
       showError('er-error', `Failed to ${verb.toLowerCase()} ${label}: ${e.message}`);
+    } finally {
+      // refreshExpectedReceipts() re-renders the row, so restore only if this
+      // button survived; otherwise the replacement starts clean.
+      if (btn && btn.isConnected) {
+        btn.dataset.armed = '';
+        btn.classList.remove('er-armed');
+        endSubmit(btn, prevEr && { text: btn.dataset.originalText || prevEr.text, disabled: false });
+      }
     }
   }
 
@@ -3577,8 +3754,17 @@
 
   async function saveEr() {
     hideError('er-modal-error');
-    const qty = parseFloat(document.getElementById('er-qty').value);
-    if (!(qty > 0)) { showError('er-modal-error', 'Expected qty must be a positive number of pounds.'); return; }
+    const qtyField = document.getElementById('er-qty');
+    const qtyRead = readNumericInput(qtyField);
+    if (!qtyRead.valid) {
+      showError('er-modal-error', qtyRead.empty
+        ? 'Enter the expected qty in pounds.'
+        : 'Expected qty must be a number \u2014 "' + qtyField.value + '" is not. Enter digits only, e.g. 2000.');
+      qtyField.focus();
+      return;
+    }
+    const qty = qtyRead.value;
+    if (!(qty > 0)) { showError('er-modal-error', 'Expected qty must be a positive number of pounds.'); qtyField.focus(); return; }
     const expectedDate = document.getElementById('er-date').value || null;
     const reference = document.getElementById('er-reference').value.trim() || null;
     const notes = document.getElementById('er-notes').value.trim() || null;
@@ -3641,6 +3827,15 @@
       if (e.target === e.currentTarget) closeErModal();
     });
     document.getElementById('er-save-btn').addEventListener('click', saveEr);
+    // Surface a bad quantity on blur rather than at commit (IMP-006).
+    document.getElementById('er-qty').addEventListener('blur', (e) => {
+      const read = readNumericInput(e.target);
+      if (!read.empty && !read.valid) {
+        showError('er-modal-error', 'Expected qty must be a number \u2014 "' + e.target.value + '" is not. Enter digits only, e.g. 2000.');
+      } else {
+        hideError('er-modal-error');
+      }
+    });
     document.getElementById('er-product-search').addEventListener('input', (e) => {
       setErProduct(null);
       clearTimeout(state.erProductTimer);
@@ -3722,7 +3917,8 @@
       renderSuppliesInventory();
     } catch (e) {
       container.innerHTML = '';
-      showError('supplies-inventory-error', 'Failed to load supplies: ' + supplyApiErrorMessage(e));
+      if (window.FL && window.FL.isStall(e)) showLoadError('supplies-inventory-error', '', e, refreshSuppliesInventory);
+      else showError('supplies-inventory-error', 'Failed to load supplies: ' + supplyApiErrorMessage(e));
     }
   }
 
@@ -3913,7 +4109,8 @@
       renderSupplyRequests();
     } catch (e) {
       container.innerHTML = '';
-      showError('supply-requests-error', 'Failed to load supply requests: ' + supplyApiErrorMessage(e));
+      if (window.FL && window.FL.isStall(e)) showLoadError('supply-requests-error', '', e, refreshSupplyRequests);
+      else showError('supply-requests-error', 'Failed to load supply requests: ' + supplyApiErrorMessage(e));
     }
   }
 
@@ -4111,7 +4308,7 @@
   async function refreshHealthBadge() {
     const badge = document.getElementById('health-badge');
     try {
-      const res = await fetch('https://fastapi-production-b73a.up.railway.app/audit/integrity');
+      const res = await FL.fetchWithTimeout('https://fastapi-production-b73a.up.railway.app/audit/integrity');
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       const score = data.score;
@@ -4175,6 +4372,7 @@
 
   // ── Init ──
   function init() {
+    initStickyOffsets();
     initTheme();
     initTabs();
     initNotes();
