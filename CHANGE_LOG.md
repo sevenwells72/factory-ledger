@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-08 13:12 — Fix-by-finding response doc for ER intake audit #1
+
+- **File(s) changed:** `docs/designs/er-intake-audit-1-response.md` (new)
+- **What changed:** Table mapping each of the 12 audit findings to its fix, commit hash and regression tests, plus the two verification items (RLS/grant parity, bucket privacy) and open cleanup notes. Committed fdb43f3, pushed.
+- **Why:** Owner asked for a summary to hand back to the auditor.
+
+---
+
 ## 2026-09-08 13:07 — ER intake audit #1: all 12 findings fixed on feat/er-intake (13 commits, one per finding group)
 
 - **File(s) changed:** `docs/designs/er-intake-audit-1.md` (new), `docs/designs/expected-receipt-intake.md`, `main.py`, `extraction.py`, `migrations/049_purchase_doc_intake.sql`, `requirements.txt`, `dashboard/er-intake-logic.js` (new), `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/test_expected_receipt_extract.py`, `tests/test_er_intake_logic.js` (new), `tests/test_er_intake_logic_js.py` (new)
