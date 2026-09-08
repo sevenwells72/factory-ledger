@@ -2249,6 +2249,24 @@ body {
   .allocation-form-actions { grid-column: 1; }
 }
 
+/* Short viewports. Every other media query in this file keys on width alone,
+   so at 200% zoom — a 720x450 CSS-px viewport — the <=768px block above fires
+   and .app-header wraps to three rows. Right for a phone held in the hand,
+   wrong for a 450px-tall window: .site-nav + .app-header + .tab-bar then
+   measure 335px of 450 (74%), and the last actionable row of six screens
+   cannot be brought clear of them at any scroll position (LAYOUT-011,
+   cluster F1 / IMP-066).
+
+   Dropping .app-header out of the sticky stack leaves nav + tab-bar at 86px
+   (19%). .tab-bar re-anchors directly under .site-nav: its default offset is
+   calc(--site-nav-h + --header-h), and --header-h is published from a
+   ResizeObserver in dashboard.js that still measures the (now static) header,
+   so the offset has to be restated here or the bar would stick 249px low. */
+@media (max-height: 600px) {
+  .app-header { position: static; }
+  .tab-bar { top: var(--site-nav-h); }
+}
+
 /* === Expected Receipts (FR-2) === */
 .er-summary { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .section-hint { font-size: 12px; color: var(--text-muted); }
