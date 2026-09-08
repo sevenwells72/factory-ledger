@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-08 13:02 — /extract writes the DB row BEFORE the Storage upload
+
+- **File(s) changed:** `main.py`, `tests/test_expected_receipt_extract.py`
+- **What changed:** POST /expected-receipts/extract order swapped to purchase_documents INSERT → Storage upload → extraction (was upload-first). A readonly-armed request now 503s on the INSERT before anything reaches Storage — no orphan objects; the inverse failure (upload fails after INSERT) leaves a harmless status='uploaded' row with no object. Tripwire fixture's upload stub became a recording spy; the /extract tripwire test now also asserts zero Storage calls.
+- **Why:** Owner check during Phase 2 review caught the upload-first ordering.
+
+---
+
 ## 2026-09-08 12:52 — ER intake Phase 2: endpoints + allowlist + core refactor (branch feat/er-intake)
 
 - **File(s) changed:** `main.py`, `requirements.txt`, `tests/test_expected_receipt_extract.py`

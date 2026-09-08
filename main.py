@@ -5503,8 +5503,10 @@ async def extract_expected_receipt_document(
     now = get_plant_now()
     storage_path = f"{now:%Y/%m}/{sha256[:12]}-{uuid.uuid4().hex[:8]}-{safe_name}"
 
-    storage_upload_purchase_document(storage_path, content, mime)
-
+    # Row FIRST, Storage second (owner ruling 2026-09-08): a readonly-armed
+    # request must 503 on this INSERT before anything is written to Storage —
+    # no orphan objects. The inverse failure (upload fails after the INSERT)
+    # leaves a harmless status='uploaded' row with no object behind it.
     with get_transaction() as cur:
         cur.execute("SELECT id FROM purchase_documents WHERE file_sha256 = %s LIMIT 1", (sha256,))
         already_seen = cur.fetchone() is not None
@@ -5516,6 +5518,8 @@ async def extract_expected_receipt_document(
             (storage_path, file.filename, mime, sha256, len(content), caller_source_tag(request)),
         )
         document_id = cur.fetchone()["id"]
+
+    storage_upload_purchase_document(storage_path, content, mime)
 
     result = _run_extraction_and_store(document_id, content, mime)
 

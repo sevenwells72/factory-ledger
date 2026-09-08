@@ -858,12 +858,16 @@ class TestAllowlistAndTripwire:
 
         monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
         monkeypatch.setattr(main, "_capture_readonly_diagnostics", lambda: {"stub": True})
-        # storage/extractor must not be the failure here
-        monkeypatch.setattr(main, "storage_upload_purchase_document", lambda *a, **kw: None)
+        # storage/extractor must not be the failure here — and the upload spy
+        # lets tests assert NOTHING reached Storage (row-first ordering).
+        uploads = []
+        monkeypatch.setattr(main, "storage_upload_purchase_document",
+                            lambda *a, **kw: uploads.append(a))
         monkeypatch.setattr(extraction, "extract_purchase_document",
                             lambda *a, **kw: {"extraction": dict(GOOD_EXTRACTION), "extraction_model": "m"})
         with TestClient(main.app, raise_server_exceptions=False) as c:
             c.headers["X-API-Key"] = main.API_KEY
+            c.storage_uploads = uploads
             yield c
 
     def test_extract_trips_readonly_tripwire(self, readonly_client):
@@ -874,6 +878,9 @@ class TestAllowlistAndTripwire:
         assert body["success"] is False
         assert body["retryable"] is True
         assert "error_detail" in body  # write_response_envelope post-processed it
+        # Row-first ordering (owner ruling): the readonly 503 fires on the
+        # purchase_documents INSERT, so no orphan object lands in Storage.
+        assert readonly_client.storage_uploads == []
 
     def test_approve_trips_readonly_tripwire(self, readonly_client):
         r = readonly_client.post("/expected-receipts/extract/approve", json={
