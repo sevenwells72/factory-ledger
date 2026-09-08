@@ -1668,7 +1668,9 @@
 
         if (zeroLots.length > 0) {
           html += `<h4 style="font-size:13px;margin:12px 0 8px;color:var(--text-muted);">Depleted Lots (${zeroLots.length})</h4>`;
-          html += '<table style="width:100%;font-size:13px;border-collapse:collapse;opacity:0.6;">';
+          // A1 / IMP-067: muted text on the cells, not an opacity on the table —
+          // the lot links inside it are readable text and a 0.6 veil took them to 2.3:1.
+          html += '<table style="width:100%;font-size:13px;border-collapse:collapse;color:var(--text-muted);">';
           for (const l of zeroLots.slice(0, 10)) {
             html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" data-product-id="${productId}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
             html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;

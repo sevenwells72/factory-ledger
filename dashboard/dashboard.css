@@ -12,7 +12,20 @@
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
   --text-dimmed: #909daf;
-  --primary: #3b82f6;
+  /* Nearest value to #3b82f6, hue and saturation held, that clears 4.6:1
+     under white text (#3b82f6 measured 3.68 on every --primary fill in the
+     dashboard — 07-systemic-clusters A4). Light keeps #2563eb, which already
+     measures 5.17. */
+  --primary: #1b6df5;
+  /* --primary is a fill (white text on it); --primary-text is the same hue
+     used as text and as a line on a surface — links, the selected-tab
+     indicator, focus rings. The two pull in opposite directions on a dark
+     surface (A4 needs the fill darker, A5 needs the text lighter), which is
+     why one token cannot serve both (07-systemic-clusters A4/A5). Nearest
+     value to the fill, hue and saturation held, clearing 4.6:1 on every
+     surface it was measured rendering on: --surface 5.44, --surface-alt
+     5.74, --surface-hover 4.61, --row-header 6.07. */
+  --primary-text: #669ef8;
   --primary-hover: #60a5fa;
   --category-coconut: #60a5fa;
   --category-granola: #fbbf24;
@@ -63,6 +76,9 @@
   --text-muted: #5b697e;
   --text-dimmed: #5b697e;
   --primary: #2563eb;
+  /* 4.61 on --surface-hover, 5.44 on --surface-alt, 5.19 on --bg /
+     --row-header, 5.69 on --surface. #2563eb measured 4.19 on --surface-hover. */
+  --primary-text: #195aea;
   --primary-hover: #1d4ed8;
   --category-coconut: #2563eb;
   --category-granola: #955b06;
@@ -126,7 +142,7 @@ body {
   white-space: nowrap;
 }
 .site-nav-link:hover { color: #f1f5f9; background: rgba(255,255,255,0.06); text-decoration: none; }
-.site-nav-link.active { color: #fff; background: #3b82f6; }
+.site-nav-link.active { color: #fff; background: var(--primary); }
 .site-nav-toggle {
   display: none; background: none; border: 1px solid rgba(255,255,255,0.12);
   border-radius: 6px; color: #94a3b8; font-size: 18px; padding: 4px 10px;
@@ -179,7 +195,7 @@ body {
   transition: border-color 0.15s ease;
 }
 #global-search::placeholder { color: var(--text-muted); }
-#global-search:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+#global-search:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
 .search-dropdown {
   position: absolute;
@@ -263,7 +279,7 @@ body {
   transition: background-color 0.15s ease;
 }
 .btn-refresh:hover { background: var(--primary-hover); }
-.btn-refresh.loading { opacity: 0.6; pointer-events: none; }
+.btn-refresh.loading { opacity: 0.6; pointer-events: none; outline: 1px dashed currentColor; outline-offset: -3px; }
 
 .refresh-ts { font-size: 11px; color: var(--text-muted); }
 
@@ -295,7 +311,7 @@ body {
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab.active { color: var(--primary-text); border-bottom-color: var(--primary-text); }
 .tab:hover { color: var(--text); }
 
 .tab-content { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
@@ -402,6 +418,14 @@ body {
   .today-tile { grid-template-columns: 1fr; padding: 12px; }
   .today-tile-row { gap: 8px; }
 }
+
+/* === Placeholders (A7 / IMP-025 / INPUT-022) ===
+   Without a rule every placeholder is the user agent's rgb(117,117,117),
+   which measures 2.69:1 on --search-bg in dark — nine fields in the three
+   modal forms. --text-muted measures 4.77 on --search-bg dark and 6.1 on
+   the light field. Firefox applies its own opacity to placeholders unless
+   told not to. */
+::placeholder { color: var(--text-muted); opacity: 1; }
 
 /* === Form controls — shared minimums (T3, T4) === */
 /* Every text-like field, select and textarea clears --hit-min. :where() keeps
@@ -556,7 +580,7 @@ body {
   position: relative;
   z-index: 1;
   background: var(--surface-hover);
-  box-shadow: inset 0 0 0 2px var(--primary);
+  box-shadow: inset 0 0 0 2px var(--primary-text);
 }
 
 /* Today: tinted header + subtle glow */
@@ -944,14 +968,14 @@ body {
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--primary-text);
   cursor: pointer;
   transition: color 0.15s ease;
 }
 .show-more-btn:hover { color: var(--primary-hover); text-decoration: underline; }
 
 .lot-link {
-  color: var(--primary);
+  color: var(--primary-text);
   text-decoration: underline;
   cursor: pointer;
   font-family: var(--mono);
@@ -1131,11 +1155,14 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  transition: background-color 0.15s ease, opacity 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 .note-card:hover { background: var(--surface-hover); }
-.note-card.done { opacity: 0.55; }
-.note-card.done .note-title { text-decoration: line-through; }
+/* A1 / IMP-067: a done card is de-emphasised with the muted token on the
+   text itself, not an opacity on the card — a 0.55 veil took every colour
+   in it (title, body, badges, meta) below AA. The strike-through stays as the
+   non-colour carrier. */
+.note-card.done .note-title { color: var(--text-muted); text-decoration: line-through; }
 
 .note-card.priority-high { border-left: 3px solid var(--danger); }
 .note-card.priority-low { border-left: 3px solid var(--text-dimmed); }
@@ -1282,6 +1309,7 @@ body {
 .label-hint { font-weight: 400; color: var(--text-dimmed); }
 
 .form-group input[type="text"],
+.form-group input[type="number"],
 .form-group input[type="date"],
 .form-group textarea,
 .form-group select {
@@ -1300,7 +1328,7 @@ body {
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: var(--primary);
+  border-color: var(--primary-text);
   box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 
@@ -1337,7 +1365,7 @@ body {
 .notes-empty .notes-empty-icon {
   font-size: 32px;
   margin-bottom: 8px;
-  opacity: 0.5;
+  color: var(--text-dimmed);
 }
 
 /* === Sales Orders === */
@@ -1376,7 +1404,7 @@ body {
   cursor: pointer;
   transition: border-color 0.15s ease;
 }
-.orders-select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+.orders-select:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
 #orders-customer-search, #er-text-filter {
   padding: 7px 10px;
@@ -1390,7 +1418,7 @@ body {
   transition: border-color 0.15s ease;
 }
 #orders-customer-search::placeholder, #er-text-filter::placeholder { color: var(--text-muted); }
-#orders-customer-search:focus, #er-text-filter:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+#orders-customer-search:focus, #er-text-filter:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
 .orders-overdue-toggle {
   display: flex;
@@ -1438,9 +1466,14 @@ body {
 }
 
 .orders-table tr:nth-child(even) td { background: var(--row-alt); }
-.orders-table tr.order-row { cursor: pointer; transition: background-color 0.15s ease, opacity 0.15s ease; }
+.orders-table tr.order-row { cursor: pointer; transition: background-color 0.15s ease; }
 .orders-table tr.order-row:hover td { background: var(--surface-hover); }
-.orders-table tr.order-row.so-ready { opacity: 0.6; }
+/* A1 / IMP-067 / IMP-043: the Factory-Ready row is de-emphasised by colour on
+   its text, not by an opacity on the row. `opacity: 0.6` halved every colour
+   in the row — .so-ready-pill measured 1.16:1 in light — and no token value
+   can pass through a 60% veil. Children that carry their own colour (the SO
+   link, status badges, the readiness chip) keep it and pass on their own. */
+.orders-table tr.order-row.so-ready td { color: var(--text-muted); }
 .orders-table tr.order-row.so-ready td:first-child { border-left: 3px solid #22c55e; }
 .orders-table tr.order-inventory-row.hidden { display: none; }
 .orders-table tr.order-lines-row.hidden { display: none; }
@@ -1624,7 +1657,7 @@ body {
 }
 
 .order-ready-note-input:focus {
-  border-color: var(--primary);
+  border-color: var(--primary-text);
   box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
   outline: none;
 }
@@ -1672,7 +1705,7 @@ body {
 }
 
 .order-link {
-  color: var(--primary);
+  color: var(--primary-text);
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 500;
@@ -1709,7 +1742,7 @@ body {
   padding: 2px 7px;
   border: 1px solid rgba(34, 197, 94, 0.55);
   border-radius: 999px;
-  color: #86efac;
+  color: var(--badge-green-text);
   background: rgba(34, 197, 94, 0.12);
   font-size: 10px;
   font-family: var(--mono);
@@ -2136,7 +2169,7 @@ body {
 }
 .allocation-form select:focus,
 .allocation-form input:focus {
-  border-color: var(--primary);
+  border-color: var(--primary-text);
   box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 .allocation-lot-field,
@@ -2227,9 +2260,12 @@ body {
   color: var(--text-muted);
   font-size: 10px;
 }
-.allocation-row.allocation-status-released,
-.allocation-row.allocation-status-superseded,
-.allocation-row.allocation-status-shipped { opacity: 0.65; }
+/* A1 / IMP-067: inactive allocation rows — muted token on the cell text in
+   place of `opacity: 0.65`; the source / status badges keep their own
+   tokens. */
+.allocation-row.allocation-status-released td,
+.allocation-row.allocation-status-superseded td,
+.allocation-row.allocation-status-shipped td { color: var(--text-muted); }
 .allocation-source,
 .allocation-status {
   display: inline-block !important;
@@ -2338,7 +2374,7 @@ body {
 .orders-empty .orders-empty-icon {
   font-size: 32px;
   margin-bottom: 8px;
-  opacity: 0.5;
+  color: var(--text-dimmed);
 }
 
 /* Hidden utility (for detail toggle) */
@@ -2401,7 +2437,8 @@ body {
 .er-notes { font-size: 11px; color: var(--text-muted); max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .er-over { font-size: 11px; color: var(--text-muted); }
 .er-remaining { font-weight: 600; }
-.er-table tr.er-inactive td { opacity: 0.6; }
+/* A1 / IMP-067: closed / cancelled receipts — muted text, no opacity. */
+.er-table tr.er-inactive td { color: var(--text-muted); }
 /* Overdue rows flagged amber */
 .er-table tr.er-overdue td { background: color-mix(in srgb, var(--warning) 14%, transparent) !important; }
 .er-table tr.er-overdue td:first-child { border-left: 3px solid var(--warning); }
@@ -2516,7 +2553,7 @@ body {
   font-size: 13px;
   outline: none;
 }
-#supplies-search:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+#supplies-search:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 #supplies-search::placeholder { color: var(--text-muted); }
 
 .supplies-table-scroll { overflow-x: auto; }
@@ -2584,7 +2621,9 @@ body {
 .supply-request-name { font-weight: 600; }
 .supply-request-note { max-width: 300px; white-space: pre-wrap; color: var(--text-secondary); }
 .supply-request-actions { text-align: right; white-space: nowrap; }
-.supply-request-done td { opacity: 0.65; }
+/* A1 / IMP-067: done requests — muted text, no opacity. */
+.supply-request-done td,
+.supply-request-done .supply-request-note { color: var(--text-muted); }
 
 .supply-request-modal { max-width: 560px; }
 #supply-request-unlisted-fields.hidden,
@@ -2603,10 +2642,14 @@ body {
   font-size: 13px;
   outline: none;
 }
-.supply-quantity-row input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+.supply-quantity-row input:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 .supply-quantity-unit { min-width: 54px; color: var(--text-muted); font-size: 12px; }
 .btn-refresh:disabled,
 .btn-sm:disabled { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+/* A1: the disabled dim is kept — it dims the whole control (ACTION-002), not
+   a row of readable text — but white on a 55% fill cannot reach 4.5:1, so the
+   state also carries a non-colour cue: a dashed inset outline (in
+   interaction.css, shared by every page). */
 
 @media (max-width: 768px) {
   .supplies-page-header { align-items: flex-start; }
@@ -2682,7 +2725,7 @@ body {
 
 /* ACCESS-002: an outline, not a colour shift, so focus survives grayscale. */
 .attention-chip:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }
 
@@ -2703,7 +2746,11 @@ body {
   font-size: 12px;
   line-height: 1.25;
   color: var(--text-muted);
-  overflow-wrap: anywhere;
+  /* Word-boundary wrapping only (IMP-068). These are seven fixed labels the
+     product controls, not unbounded data strings; `overflow-wrap: anywhere`
+     broke them mid-word ("Overdue recei-pts") in the two-column phone grid.
+     The chip template's minmax(0, 1fr) label track keeps the chip from
+     overflowing once the column is full-width. */
 }
 
 /* The shape carrier. Present in the DOM at every state so toggling it cannot
@@ -2761,6 +2808,12 @@ body {
     padding: 10px 12px 14px;
   }
   .att-label { font-size: 11.5px; }
+}
+/* IMP-068: below 420px the 160px minimum still fits two columns in the
+   content column and leaves the label track a few characters wide. One
+   column, so every label reads whole. */
+@media (max-width: 420px) {
+  .attention-strip { grid-template-columns: 1fr; }
 }
 
 /* OTHER-00x: honour reduced motion for the hover/press transition. */

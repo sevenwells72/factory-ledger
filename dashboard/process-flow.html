@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Ledger — Production Process Flow</title>
 <link rel="stylesheet" href="mini-calendar.css?v=3">
+<script>
+  // Same preference dashboard.js writes (initTheme); applied before first paint.
+  try { document.documentElement.setAttribute('data-theme', localStorage.getItem('dashboard-theme') || 'dark'); } catch (e) {}
+</script>
 <style>
   :root {
     --hit-min: 44px; /* minimum hit region, TOUCH-003 — same token as dashboard.css */
@@ -13,18 +17,58 @@
     --card-border: rgba(255,255,255,0.08);
     --stage-active: rgba(29,158,117,0.10);
     --stage-idle: #2a2a3e;
-    --badge-active-bg: #1D9E75;
+    /* #1D9E75 under white text measured 3.4:1 by declared value (no active
+       line in the fixtures, so unmeasured in the run); #188462 is the nearest,
+       hue/saturation held, clearing 4.6 (4.65). */
+    --badge-active-bg: #188462;
     --badge-idle-bg: #3a3a4e;
-    --badge-idle-text: #888;
+    /* Greys (07 cluster A8). #888 measured 3.13–4.48:1 on this page's five
+       surfaces and #555 1.80–2.29. #989898 is the nearest grey clearing 4.6:1
+       on every surface it was measured on (--card-bg 5.51, --stage-idle 4.86,
+       the mini-calendar's #242e4a 4.65, --bg 5.91); the dimmer step folds onto
+       it, as dashboard.css did for --text-dimmed — there is no grey between
+       them that passes. The idle badge sits on the lighter --badge-idle-bg
+       and needs #a7a7a7 (4.61). */
+    --badge-idle-text: #a7a7a7;
     --text: #e0e0e0;
-    --text-muted: #888;
-    --text-dim: #555;
+    --text-muted: #989898;
+    --text-dim: #989898;
+    --text-dimmed: #989898; /* the name mini-calendar.css reads first */
+    --danger-text: #e46868; /* #e05050 measured 3.86 on the error banner, 4.11 on a card; nearest clearing 4.6 */
+    --banner-warn-bg: #4a3520; --banner-warn-text: #f0c040;
+    --banner-error-bg: #3a2020;
+    --inset-bg: rgba(0,0,0,0.35);
     --arrow-color: rgba(255,255,255,0.2);
+    --primary: #1b6df5;      /* fill under white text, 4.61:1 — see dashboard.css */
+    --primary-text: #669ef8; /* links / text on a surface — see dashboard.css --primary-text */
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  /* Light palette (07 cluster A8 / IMP-027) — dashboard.css's light token
+     values under this page's token names, so the page follows the shared
+     `dashboard-theme` preference. */
+  [data-theme="light"] {
+    --bg: #f1f5f9;
+    --card-bg: #ffffff;
+    --card-border: #cbd5e1;
+    --stage-active: rgba(29,158,117,0.12);
+    --stage-idle: #e2e8f0;
+    --badge-idle-bg: #e2e8f0;
+    --badge-idle-text: #5b697e;
+    --text: #0f172a;
+    --text-muted: #5b697e;
+    --text-dim: #5b697e;
+    --text-dimmed: #5b697e;
+    --danger-text: #991b1b;
+    --banner-warn-bg: #fef3c7; --banner-warn-text: #92400e;
+    --banner-error-bg: #fee2e2;
+    --inset-bg: rgba(255,255,255,0.55);
+    --arrow-color: rgba(15,23,42,0.25);
+    --primary: #2563eb;
+    --primary-text: #195aea;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; padding-top:48px; }
-  a { color:#3b82f6; text-decoration:none; }
+  a { color:var(--primary-text); text-decoration:none; }
   a:hover { text-decoration:underline; }
 
   /* Site Nav */
@@ -33,7 +77,7 @@
   .site-nav-links { display:flex;gap:4px;align-items:center; }
   .site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
   .site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
-  .site-nav-link.active { color:#fff;background:#3b82f6; }
+  .site-nav-link.active { color:#fff;background:var(--primary); }
   .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
   @media(max-width:768px){
     .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
@@ -142,8 +186,8 @@
 
   /* Stale warning */
   .stale-banner {
-    background: #4a3520;
-    color: #f0c040;
+    background: var(--banner-warn-bg);
+    color: var(--banner-warn-text);
     padding: 8px 24px;
     font-size: 13px;
     display: none;
@@ -152,8 +196,8 @@
 
   /* API error banner */
   .error-banner {
-    background: #3a2020;
-    color: #e05050;
+    background: var(--banner-error-bg);
+    color: var(--danger-text);
     padding: 8px 24px;
     font-size: 13px;
     display: none;
@@ -163,7 +207,7 @@
   .banner-detail {
     margin-top: 6px;
     padding: 8px 10px;
-    background: rgba(0,0,0,0.35);
+    background: var(--inset-bg);
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12px;
@@ -192,7 +236,7 @@
   .data-failure {
     grid-column: 1 / -1;
     background: var(--card-bg);
-    border: 1px solid #5a2a2a;
+    border: 1px solid color-mix(in srgb, var(--danger-text) 45%, transparent);
     border-radius: 8px;
     padding: 24px;
     display: flex;
@@ -200,11 +244,11 @@
     align-items: flex-start;
     gap: 10px;
   }
-  .data-failure-title { font-size: 15px; font-weight: 600; color: #e05050; }
+  .data-failure-title { font-size: 15px; font-weight: 600; color: var(--danger-text); }
   .data-failure-body { font-size: 13px; color: var(--text-muted); max-width: 60ch; line-height: 1.5; }
   .data-failure .banner-detail { color: var(--text-muted); align-self: stretch; }
   .data-failure-retry {
-    background: #3b82f6;
+    background: var(--primary);
     border: none;
     border-radius: 6px;
     color: #fff;
@@ -234,7 +278,7 @@
     .summary-strip { grid-template-columns: 1fr; }
   }
 </style>
-<link rel="stylesheet" href="interaction.css?v=1">
+<link rel="stylesheet" href="interaction.css?v=2">
 <script src="fetch-timeout.js?v=1"></script>
 </head>
 <body>

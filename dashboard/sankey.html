@@ -8,6 +8,10 @@
 <script src="fetch-timeout.js?v=1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
+<script>
+  // Same preference dashboard.js writes (initTheme); applied before first paint.
+  try { document.documentElement.setAttribute('data-theme', localStorage.getItem('dashboard-theme') || 'dark'); } catch (e) {}
+</script>
 <style>
   :root {
     --hit-min: 44px; /* minimum hit region, TOUCH-003 — same token as dashboard.css */
@@ -16,9 +20,20 @@
     --surface2: #283548;
     --text: #f1f5f9;
     --text-muted: #94a3b8;
+    /* mini-calendar.css reads --text-dimmed with a #64748b fallback, which
+       measured 2.61:1 on --surface2 here. #929fb1 is the nearest value,
+       hue/saturation held, clearing 4.6:1 on that surface (4.62). */
+    --text-dimmed: #929fb1;
     --border: #334155;
-    --primary: #3b82f6;
+    --primary: #1b6df5;      /* fill under white text, 4.61:1 — see dashboard.css */
+    --primary-text: #669ef8; /* links / text on a surface — see dashboard.css --primary-text */
     --accent: #10b981;
+    --danger-text: #fca5a5;
+    --badge-bg: #1e3a5f;       --badge-text: #bfdbfe;
+    --badge-amber-bg: #78350f; --badge-amber-text: #fef3c7;
+    --badge-red-bg: #7f1d1d;   --badge-red-text: #fecaca;
+    --inset-bg: rgba(0,0,0,0.35);
+    --overlay-bg: rgba(15,23,42,0.8);
     --col-ingredient: #1D9E75;
     --col-line: #7F77DD;
     --col-finished: #D85A30;
@@ -29,6 +44,34 @@
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
   }
+  /* Light palette (07 cluster A8 / IMP-027). The same token names as
+     dashboard.css's [data-theme="light"] block, with its values, so the page
+     follows the shared `dashboard-theme` preference. The four column-label
+     colours are the chart's node colours darkened, hue/saturation held, to
+     clear 4.6:1 on --bg and --surface as 12px text; the chart itself keeps
+     its own node colours (set in getNodeColor). */
+  [data-theme="light"] {
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface2: #e2e8f0;
+    --text: #0f172a;
+    --text-muted: #5b697e;
+    --text-dimmed: #5b697e;
+    --border: #cbd5e1;
+    --primary: #2563eb;
+    --primary-text: #195aea;
+    --accent: #059669;
+    --danger-text: #991b1b;
+    --badge-bg: #dbeafe;       --badge-text: #1e40af;
+    --badge-amber-bg: #fef3c7; --badge-amber-text: #92400e;
+    --badge-red-bg: #fee2e2;   --badge-red-text: #991b1b;
+    --inset-bg: rgba(255,255,255,0.55);
+    --overlay-bg: rgba(241,245,249,0.8);
+    --col-ingredient: #177d5d;
+    --col-line: #685ed7;
+    --col-finished: #bd4a24;
+    --col-customer: #2170c0;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: var(--font);
@@ -37,7 +80,7 @@
     min-height: 100vh;
     padding-top: 48px;
   }
-  a { color: var(--primary); text-decoration: none; }
+  a { color: var(--primary-text); text-decoration: none; }
   a:hover { text-decoration: underline; }
 
   /* Site Nav */
@@ -46,7 +89,7 @@
   .site-nav-links { display:flex;gap:4px;align-items:center; }
   .site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
   .site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
-  .site-nav-link.active { color:#fff;background:#3b82f6; }
+  .site-nav-link.active { color:#fff;background:var(--primary); }
   .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
   @media(max-width:768px){
     .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
@@ -151,7 +194,7 @@
   .banner-headline { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .banner-detail {
     padding: 8px 10px;
-    background: rgba(0,0,0,0.35);
+    background: var(--inset-bg);
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12px;
@@ -187,7 +230,7 @@
     text-align: center;
     padding: 24px;
   }
-  .data-failure-title { font-size: 16px; font-weight: 600; color: #fca5a5; }
+  .data-failure-title { font-size: 16px; font-weight: 600; color: var(--danger-text); }
   .data-failure-body { font-size: 14px; color: var(--text-muted); max-width: 60ch; line-height: 1.5; }
   .data-failure .banner-detail { align-self: stretch; text-align: left; max-width: 900px; margin: 0 auto; }
   .data-failure-retry {
@@ -204,18 +247,18 @@
   }
   .data-failure-retry:disabled { opacity: 0.6; cursor: default; }
   .banner.warning {
-    background: #78350f;
-    color: #fef3c7;
+    background: var(--badge-amber-bg);
+    color: var(--badge-amber-text);
     display: flex;
   }
   .banner.error {
-    background: #7f1d1d;
-    color: #fecaca;
+    background: var(--badge-red-bg);
+    color: var(--badge-red-text);
     display: flex;
   }
   .banner.info {
-    background: #1e3a5f;
-    color: #bfdbfe;
+    background: var(--badge-bg);
+    color: var(--badge-text);
     display: flex;
   }
 
@@ -268,7 +311,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15,23,42,0.8);
+    background: var(--overlay-bg);
     z-index: 20;
   }
   .spinner {
@@ -291,7 +334,7 @@
     font-size: 15px;
     gap: 8px;
   }
-  .empty-state .icon { font-size: 48px; opacity: 0.4; }
+  .empty-state .icon { font-size: 48px; color: var(--text-dimmed); }
 
   /* Legend */
   .legend {
@@ -333,7 +376,7 @@
     pointer-events: none;
   }
 </style>
-<link rel="stylesheet" href="interaction.css?v=1">
+<link rel="stylesheet" href="interaction.css?v=2">
 </head>
 <body>
 
