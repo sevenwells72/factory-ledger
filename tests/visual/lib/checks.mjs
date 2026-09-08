@@ -77,18 +77,96 @@ export const CHECK_SOURCE = `
   }
 
   // ── TOUCH-003 · hit region ≥ 44 pt ────────────────────────────────────────
+  // The region a finger can land on is not always the element's own box. Two
+  // things the browser hit-tests as part of a control are invisible to
+  // getBoundingClientRect() and are unioned in here:
+  //   1. an absolutely-positioned ::before / ::after the control generates. A
+  //      pointer event on generated content is dispatched to the originating
+  //      element, which is how dashboard.css extends a row-action control's
+  //      hit region without growing the row (IMP-011's "::before pseudo-element
+  //      expanding the hit area"). Only an out-of-flow box can lie outside the
+  //      element; an in-flow one is already inside the measured rect. A pseudo
+  //      with pointer-events: none is not hit-tested and is not counted.
+  //   2. a <label> that wraps a checkbox or radio. Activating a label activates
+  //      its control (HTML §4.10.4), so the label is the hit region —
+  //      07-systemic-clusters T4: "the wrapping label is what actually carries
+  //      the hit region". Only a wrapping label is counted, because its box is
+  //      one contiguous region that contains the control; a detached
+  //      label[for] elsewhere on the page would make the union a bounding box
+  //      of two separate regions. Labels of other control types are not
+  //      counted: a label on a text field only focuses it.
+  // Both are measured from geometry, not trusted from a flag. Where the two
+  // differ, the element's own box is recorded (boxW, boxH) beside the hit
+  // region (w, h) so they can be told apart in results.json.
+  function pseudoRect(el, r, which) {
+    const ps = getComputedStyle(el, which);
+    if (!ps || ps.content === 'none' || ps.content === 'normal' || ps.display === 'none') return null;
+    if (ps.position !== 'absolute') return null;
+    if (ps.pointerEvents === 'none' || ps.visibility === 'hidden') return null;
+    const cs = getComputedStyle(el);
+    // The containing block of an absolutely-positioned pseudo is the nearest
+    // positioned ancestor. Only the case where that is the element itself is
+    // measured; anything else is not a hit-region extension of this control.
+    if (cs.position === 'static') return null;
+    const top = parseFloat(ps.top), left = parseFloat(ps.left);
+    const w = parseFloat(ps.width), h = parseFloat(ps.height);
+    if (![top, left, w, h].every(Number.isFinite)) return null;
+    const x = r.left + parseFloat(cs.borderLeftWidth) + left;
+    const y = r.top + parseFloat(cs.borderTopWidth) + top;
+    return { left: x, top: y, right: x + w, bottom: y + h };
+  }
+
+  function unionRect(a, b) {
+    if (!b) return a;
+    return {
+      left: Math.min(a.left, b.left), top: Math.min(a.top, b.top),
+      right: Math.max(a.right, b.right), bottom: Math.max(a.bottom, b.bottom),
+    };
+  }
+
+  function ownHitRect(el) {
+    const r = rectOf(el);
+    let hit = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    hit = unionRect(hit, pseudoRect(el, r, '::before'));
+    hit = unionRect(hit, pseudoRect(el, r, '::after'));
+    return hit;
+  }
+
+  function hitRegion(el) {
+    const r = rectOf(el);
+    const grew = (a, b) => (b.right - b.left) > (a.right - a.left) + 0.5 || (b.bottom - b.top) > (a.bottom - a.top) + 0.5;
+    const own = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    let hit = ownHitRect(el);
+    const via = [];
+    if (grew(own, hit)) via.push('pseudo');
+    const type = el.tagName === 'INPUT' ? (el.getAttribute('type') || 'text').toLowerCase() : '';
+    if ((type === 'checkbox' || type === 'radio') && el.labels) {
+      const before = hit;
+      for (const label of el.labels) {
+        if (!label.contains(el) || !isVisible(label)) continue;
+        hit = unionRect(hit, ownHitRect(label));
+      }
+      if (grew(before, hit)) via.push('label');
+    }
+    return { hit, via: via.join('+') };
+  }
+
   function touchTargets(rootSel) {
     const rootEl = root(rootSel);
     const els = collect(INTERACTIVE, rootEl);
     const seen = new Set();
     const items = [];
+    const extended = [];
     for (const el of els) {
       if (seen.has(el)) continue;
       seen.add(el);
       if (el.tagName === 'OPTION' || el.closest('select')) continue;
       const r = rectOf(el);
-      const w = Math.round(r.width * 10) / 10;
-      const h = Math.round(r.height * 10) / 10;
+      const boxW = Math.round(r.width * 10) / 10;
+      const boxH = Math.round(r.height * 10) / 10;
+      const { hit, via } = hitRegion(el);
+      const w = Math.round((hit.right - hit.left) * 10) / 10;
+      const h = Math.round((hit.bottom - hit.top) * 10) / 10;
       // A larger interactive ancestor means the small glyph sits inside a big
       // target. Recorded, but it does not excuse the element: the two carry
       // different actions wherever both have their own handler.
@@ -102,13 +180,26 @@ export const CHECK_SOURCE = `
         anc = anc.parentElement;
       }
       const fails = w < MIN_HIT_PT || h < MIN_HIT_PT;
-      if (fails) items.push({ path: pathOf(el), label: labelOf(el), w, h, nested });
+      if (fails) {
+        // tag and the full class list are recorded because pathOf() drops the
+        // class once an element has an id, which is exactly what makes a
+        // failure hard to attribute to the CSS rule that sized it.
+        const item = { path: pathOf(el), label: labelOf(el), w, h, nested, tag: el.tagName.toLowerCase(), cls: (el.getAttribute('class') || '').trim().slice(0, 120) };
+        if (via) { item.boxW = boxW; item.boxH = boxH; item.hitVia = via; }
+        items.push(item);
+      } else if (via && (boxW < MIN_HIT_PT || boxH < MIN_HIT_PT)) {
+        extended.push({ path: pathOf(el), label: labelOf(el), boxW, boxH, w, h, hitVia: via });
+      }
     }
     items.sort((a, b) => (a.w * a.h) - (b.w * b.h));
     return {
       checked: els.length,
       failures: items.length,
       failuresNotNested: items.filter(i => !i.nested).length,
+      // Targets whose own box is under 44pt but whose hit region — a
+      // generated box or an associated label — is not. Counted so a pass
+      // earned that way is visible in results.json rather than silent.
+      passedViaExtension: extended,
       // Every failing measurement, not the twelve worst. The cap that used to
       // sit here dropped 2,910 of 4,968 TOUCH-003 measurements, which made any
       // arithmetic over results.json — cluster footprints, cells-cleared,
