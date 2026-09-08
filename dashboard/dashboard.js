@@ -4069,14 +4069,18 @@
   function erLbSourceLabel(src) {
     return {
       alias: 'saved alias', unit_is_lb: 'unit is lb', parsed_description: 'from description',
-      case_size: 'product case wt', kg: 'kg→lb', manual: 'manual', none: '',
+      case_size: 'product case wt', kg: 'kg→lb', manual: 'manual', computed: 'qty × lb/unit',
+      document: 'from document', edited: 'edited', none: '',
     }[src] || src || '';
   }
 
+  // A human pick renders as 'Chosen' — the Fuzzy badge never coexists with an
+  // enabled Approve (the pick sets match_source='chosen' in er-intake-logic).
   function erMatchBadge(line) {
-    const cls = { alias: 'er-match-alias', exact: 'er-match-exact', fuzzy: 'er-match-fuzzy', none: 'er-match-none' }[line.match_source] || 'er-match-none';
+    const cls = { alias: 'er-match-alias', exact: 'er-match-exact', chosen: 'er-match-chosen', fuzzy: 'er-match-fuzzy', none: 'er-match-none' }[line.match_source] || 'er-match-none';
     const label = line.match_source === 'alias' ? 'Alias'
       : line.match_source === 'exact' ? 'Exact'
+      : line.match_source === 'chosen' ? 'Chosen'
       : line.match_source === 'fuzzy' ? `Fuzzy ${Math.round(line.confidence * 100)}%`
       : 'No match';
     return `<span class="er-match-badge ${cls}">${label}</span>`;
@@ -4116,6 +4120,11 @@
         with reference "${escHtml(intake.reference || '')}". Approving will ask you to confirm.
       </div>` : '';
 
+    // One stacked card per line — the modal is ~500px wide and must never
+    // scroll horizontally (LAYOUT-003/DATA-001: compact stacked cards, one
+    // per record). Card: vendor text + badge / product row / quantity row
+    // (qty × unit → lb/unit → expected lb, source tag under each value) /
+    // include + save-alias footer.
     let rows = '';
     intake.lines.forEach((l, i) => {
       // Audit fix 1: a fuzzy match is rendered as a pre-highlighted candidate
@@ -4123,37 +4132,61 @@
       // open until a human clicks a product.
       const suggestions = (l.suggested && !l.candidates.some(c => c.product_id === l.suggested.product_id)
         ? [l.suggested, ...l.candidates] : l.candidates).slice(0, 3);
-      const prodCell = l.chosen
-        ? `<div>${escHtml(l.chosen.name)}${l.chosen.odoo_code ? ` <span class="er-sku">${escHtml(l.chosen.odoo_code)}</span>` : ''}</div>
-           <button type="button" class="btn-sm er-line-change" data-i="${i}" ${dis}>Change</button>`
-        : `<div class="er-line-picker"><input type="text" class="er-line-search" data-i="${i}" ${dis}
-             placeholder="Search products…" autocomplete="off"
-             value=""><div class="er-product-results hidden" id="er-line-results-${i}"></div></div>` +
-          (suggestions.length ? `<div class="er-sku">Suggestions: ${suggestions.map(c =>
+      const prodRow = l.chosen
+        ? `<div class="er-line-product">
+             <div class="er-line-product-name">${escHtml(l.chosen.name)}${l.chosen.odoo_code ? ` <span class="er-sku">${escHtml(l.chosen.odoo_code)}</span>` : ''}</div>
+             <button type="button" class="btn-sm er-line-change" data-i="${i}" ${dis}>Change</button>
+           </div>`
+        : `<div class="er-line-product">
+             <div class="er-line-picker"><input type="text" class="er-line-search" data-i="${i}" ${dis}
+               placeholder="Search products…" autocomplete="off" aria-label="Product for this line"
+               value=""><div class="er-product-results hidden" id="er-line-results-${i}"></div></div>
+           </div>` +
+          (suggestions.length ? `<div class="er-line-suggestions er-sku">Suggestions: ${suggestions.map(c =>
              `<a href="#" class="er-line-suggest${l.suggested && l.suggested.product_id === c.product_id ? ' er-line-suggest-primary' : ''}" data-i="${i}" data-pid="${c.product_id}" data-name="${escAttr(c.name)}" data-sku="${escAttr(c.odoo_code || '')}">${escHtml(c.name)}</a>`).join(' · ')}</div>` : '');
-      const lbCell = `
-        <input type="number" step="any" min="0" class="er-line-lbper" data-i="${i}" value="${l.lb_per_unit != null ? l.lb_per_unit : ''}" placeholder="?" ${dis}>
-        ${l.lb_source && l.lb_source !== 'none' ? `<span class="er-lb-source" title="Where this conversion came from">${erLbSourceLabel(l.lb_source)}</span>` : ''}`;
-      const qtyLbCell = `
-        <input type="number" step="any" min="0" class="er-line-qtylb" data-i="${i}" value="${l.qty_lb != null ? l.qty_lb : ''}" placeholder="required" ${dis}>
-        ${l.qty_lb != null && l.qty_lb_source ? `<span class="er-lb-source" title="Where this value came from">${erLbSourceLabel(l.qty_lb_source)}</span>`
-          : `<span class="er-lb-missing" title="Set the pounds before approving">needs lb</span>`}`;
-      // Audit fix 3: per-line alias learning is visible and opt-out; disabled
-      // until a product is chosen (there is nothing to teach without one).
-      const saveAliasCell = `<input type="checkbox" class="er-line-savealias" data-i="${i}"
-        ${l.save_alias ? 'checked' : ''} ${l.chosen && !intake.matching ? '' : 'disabled'}
-        aria-label="Save alias for this line"
-        title="Remember this supplier wording → product (and the conversion, when it matches the expected lb)">`;
-      rows += `<tr class="${l.include ? '' : 'er-line-excluded'}" data-line="${i}">
-        <td><input type="checkbox" class="er-line-include" data-i="${i}" ${l.include ? 'checked' : ''} ${dis} aria-label="Include this line"></td>
-        <td><div class="er-line-vendor-desc">${escHtml(l.vendor_description)}</div>${erMatchBadge(l)}</td>
-        <td class="num"><input type="number" step="any" min="0" class="er-line-qty" data-i="${i}" value="${l.quantity}" ${dis}></td>
-        <td><input type="text" class="er-line-unit" data-i="${i}" value="${escAttr(l.unit || '')}" placeholder="unit" ${dis}></td>
-        <td>${prodCell}</td>
-        <td class="num">${lbCell}</td>
-        <td class="num">${qtyLbCell}</td>
-        <td class="er-savealias-cell">${saveAliasCell}</td>
-      </tr>`;
+      // lb inputs NEVER carry a placeholder or default — an empty value stays
+      // visibly empty with a "needs lb" flag (INPUT-022: nothing hint-shaped
+      // that could be misread as an entered value).
+      const needsLb = `<span class="er-lb-missing" title="Set the pounds before approving">needs lb</span>`;
+      const srcTag = (src, title) => src && src !== 'none'
+        ? `<span class="er-lb-source" title="${title}">${erLbSourceLabel(src)}</span>` : needsLb;
+      rows += `<div class="er-line-card${l.include ? '' : ' er-line-excluded'}" data-line="${i}">
+        <div class="er-line-top">
+          <div class="er-line-vendor-desc">${escHtml(l.vendor_description)}</div>
+          ${erMatchBadge(l)}
+        </div>
+        ${prodRow}
+        <div class="er-line-qtyrow">
+          <div class="er-qcell er-qcell-qty">
+            <label>Qty × unit</label>
+            <div class="er-qcell-inputs">
+              <input type="number" step="any" min="0" class="er-line-qty" data-i="${i}" value="${l.quantity}" ${dis} aria-label="Quantity">
+              <span class="er-qcell-times">×</span>
+              <input type="text" class="er-line-unit" data-i="${i}" value="${escAttr(l.unit || '')}" ${dis} aria-label="Unit">
+            </div>
+            <span class="er-lb-source" title="Where quantity and unit came from">${erLbSourceLabel(l.qty_source || 'document')}</span>
+          </div>
+          <span class="er-qarrow" aria-hidden="true">→</span>
+          <div class="er-qcell">
+            <label>lb / unit</label>
+            <input type="number" step="any" min="0" class="er-line-lbper" data-i="${i}" value="${l.lb_per_unit != null ? l.lb_per_unit : ''}" ${dis} aria-label="Pounds per unit">
+            ${srcTag(l.lb_source, 'Where this conversion came from')}
+          </div>
+          <span class="er-qarrow" aria-hidden="true">→</span>
+          <div class="er-qcell">
+            <label>Expected lb</label>
+            <input type="number" step="any" min="0" class="er-line-qtylb" data-i="${i}" value="${l.qty_lb != null ? l.qty_lb : ''}" ${dis} aria-label="Expected pounds">
+            ${l.qty_lb != null && l.qty_lb_source ? srcTag(l.qty_lb_source, 'Where this value came from') : needsLb}
+          </div>
+        </div>
+        <div class="er-line-foot">
+          <label class="er-line-toggle"><input type="checkbox" class="er-line-include" data-i="${i}" ${l.include ? 'checked' : ''} ${dis}> Include</label>
+          <label class="er-line-toggle${l.chosen && !intake.matching ? '' : ' er-line-toggle-off'}"
+            title="Remember this supplier wording → product (and the conversion, when it matches the expected lb)">
+            <input type="checkbox" class="er-line-savealias" data-i="${i}"
+              ${l.save_alias ? 'checked' : ''} ${l.chosen && !intake.matching ? '' : 'disabled'}> Save alias</label>
+        </div>
+      </div>`;
     });
 
     const included = intake.lines.filter(l => l.include);
@@ -4185,15 +4218,14 @@
           <input type="date" id="er-review-date" value="${escAttr(intake.expectedDate || '')}" ${dis}>
         </div>
       </div>
-      <div class="er-review-table-wrap">
-        <table class="er-review-table">
-          <thead><tr><th></th><th>Vendor line (verbatim)</th><th class="num">Qty</th><th>Unit</th><th>Our product</th><th class="num">lb / unit</th><th class="num">Expected lb</th><th title="Remember this supplier wording for next time">Save alias</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
+      <div class="er-line-cards">${rows}</div>
       <div id="er-review-error" class="error-msg hidden"></div>
       <div class="er-review-footer">
-        <span class="er-review-totals">${included.length} of ${intake.lines.length} line(s) · ${fmtWt(totalLb)} lb total${intake.matching ? ' · matching…' : ''}</span>
+        <span class="er-review-totals">${included.length} of ${intake.lines.length} line(s) · ${fmtWt(totalLb)} lb total${intake.matching ? ' · matching…' : ''}${(() => {
+          // FEEDBACK-008: while Approve is unavailable, say why right here.
+          const blockers = included.filter(l => !ERIntake.lineApprovable(l)).length;
+          return blockers && !intake.matching ? ` · <span class="er-review-blockers">${blockers} line(s) need a product or lb</span>` : '';
+        })()}</span>
         <span>
           ${intake.matchStale ? '<button type="button" id="er-review-rematch" class="btn-sm">Retry matching</button>' : ''}
           <button type="button" id="er-review-back" class="btn-sm">Start over</button>

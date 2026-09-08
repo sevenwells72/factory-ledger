@@ -2461,8 +2461,9 @@ body {
 .er-product-chosen { margin-top: 6px; font-size: 12px; color: var(--text-muted); }
 #er-product-group.hidden { display: none; }
 
-/* === Expected-receipt AI intake (migration 049) === */
-.er-modal.er-reviewing { max-width: 940px; }
+/* === Expected-receipt AI intake (migration 049) ===
+   The review screen keeps the modal at its normal ~520px width and stacks
+   one card per line — no widening, no horizontal scrolling (LAYOUT-003). */
 .er-dropzone {
   border: 2px dashed var(--border); border-radius: var(--radius-sm);
   padding: 12px 14px; margin-bottom: 14px; background: var(--surface);
@@ -2482,8 +2483,12 @@ body {
 .er-extract-status .er-retry-btn { margin-left: 8px; }
 #er-manual-body.hidden, #er-review-body.hidden { display: none; }
 
-.er-review-header { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
-.er-review-header .form-group { flex: 1 1 180px; margin: 0; }
+/* Compact header: supplier on its own row, reference + date beside each
+   other — three fields, two rows, at any supported width. */
+.er-review-header { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-bottom: 10px; }
+.er-review-header .form-group { margin: 0; min-width: 0; }
+.er-review-header .form-group:first-child { grid-column: 1 / -1; }
+.er-review-header input, .er-review-header select { width: 100%; min-width: 0; }
 .er-review-doc-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
 .er-review-doc-meta a { color: var(--accent, #4a90d9); }
 .er-dup-banner {
@@ -2494,17 +2499,52 @@ body {
 .er-dup-banner a { color: inherit; text-decoration: underline; }
 .er-supplier-create-btn { margin-top: 6px; }
 
-.er-review-table-wrap { overflow-x: auto; margin-bottom: 10px; }
-.er-review-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.er-review-table th, .er-review-table td {
-  padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top;
+/* One stacked card per extracted line (DATA-001 mobile rows-as-cards;
+   LAYOUT-007 grouped surfaces). */
+.er-line-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.er-line-card {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface-alt); padding: 10px 12px; font-size: 13px;
 }
-.er-review-table th { font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
-.er-review-table td.num, .er-review-table th.num { text-align: right; }
-.er-review-table input[type="number"] { width: 84px; }
-.er-review-table input[type="text"] { width: 100%; min-width: 140px; }
-.er-line-excluded td { opacity: .45; }
-.er-line-vendor-desc { font-weight: 500; }
+/* Excluded cards dim their content, but the footer (with the Include
+   checkbox that brings the line back) stays fully visible. */
+.er-line-card.er-line-excluded > :not(.er-line-foot) { opacity: .45; }
+.er-line-top {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px; margin-bottom: 6px;
+}
+.er-line-vendor-desc { font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.er-line-product {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 8px;
+}
+.er-line-product-name { min-width: 0; overflow-wrap: anywhere; }
+.er-line-product .er-line-picker { flex: 1 1 auto; }
+.er-line-suggestions { margin: -4px 0 8px; }
+
+/* Quantity row: qty × unit → lb/unit → expected lb, source tag beneath each. */
+.er-line-qtyrow { display: flex; align-items: flex-start; gap: 6px; }
+.er-qcell { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.er-qcell-qty { flex: 1.5 1 0; }
+.er-qcell > label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .02em; color: var(--text-muted);
+}
+.er-qcell input { width: 100%; min-width: 0; }
+.er-qcell-inputs { display: flex; align-items: center; gap: 4px; }
+.er-qcell-times { color: var(--text-muted); flex: 0 0 auto; }
+.er-qarrow { color: var(--text-muted); flex: 0 0 auto; margin-top: 22px; }
+
+.er-line-foot {
+  display: flex; align-items: center; gap: 18px;
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+}
+.er-line-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; cursor: pointer; user-select: none;
+}
+.er-line-toggle input { margin: 0; }
+.er-line-toggle-off { color: var(--text-muted); cursor: default; }
 
 .er-match-badge {
   display: inline-block; padding: 1px 7px; border-radius: 9px;
@@ -2512,28 +2552,40 @@ body {
 }
 .er-match-alias { background: var(--badge-green-bg); color: var(--badge-green-text); }
 .er-match-exact { background: var(--badge-bg); color: var(--badge-text); }
+/* A human pick — confirmed, so it shares the confirmed (green) family. */
+.er-match-chosen { background: var(--badge-green-bg); color: var(--badge-green-text); }
 .er-match-fuzzy { background: var(--badge-amber-bg); color: var(--badge-amber-text); }
 .er-match-none { background: var(--row-header); color: var(--text-muted); }
 
 .er-lb-source {
-  display: inline-block; margin-left: 4px; font-size: 10px; color: var(--text-muted);
-  border: 1px solid var(--border); border-radius: 8px; padding: 0 5px; white-space: nowrap;
+  display: inline-block; font-size: 10px; color: var(--text-muted);
+  border: 1px solid var(--border); border-radius: 8px; padding: 0 5px;
+  white-space: nowrap; align-self: flex-start;
 }
-.er-lb-missing { color: var(--warning); font-size: 11px; }
+.er-lb-missing { color: var(--warning); font-size: 11px; font-weight: 600; align-self: flex-start; }
 /* Audit fix 1: the fuzzy suggestion is highlighted, but never pre-selected. */
 .er-line-suggest-primary {
   background: var(--badge-amber-bg); color: var(--badge-amber-text);
   border-radius: 8px; padding: 0 6px; font-weight: 600;
 }
-.er-savealias-cell { text-align: center; }
 .er-line-picker { position: relative; }
 .er-line-picker .er-product-results { position: absolute; z-index: 30; width: 100%; }
 
+/* Totals + Start over/Approve pinned to the bottom of the scrolling modal
+   body (LAYOUT-016), visually separated from the cards (LAYOUT-008). The
+   body's own bottom padding is dropped in review mode so nothing scrolls
+   into view underneath the pinned bar. */
+.er-modal.er-reviewing .note-modal-body { padding-bottom: 0; }
 .er-review-footer {
+  position: sticky; bottom: 0; z-index: 20;
+  margin: 0 -20px; padding: 10px 20px 14px;
+  background: var(--surface); border-top: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
+  gap: 8px 12px; flex-wrap: wrap;
 }
 .er-review-totals { font-size: 13px; color: var(--text-muted); }
+/* FEEDBACK-008: the disabled Approve says why, next to the totals. */
+.er-review-blockers { font-size: 12px; color: var(--warning); font-weight: 600; }
 .er-approve-btn.er-force-armed { border-color: var(--warning); color: var(--warning); font-weight: 600; }
 
 .er-doc-link {

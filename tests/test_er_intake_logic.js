@@ -34,7 +34,7 @@ test('alias match arrives chosen with computed lb', () => {
   assert.deepEqual(l.chosen, PROD);
   assert.equal(l.suggested, null);
   assert.equal(l.qty_lb, 200);
-  assert.equal(l.qty_lb_source, 'alias');
+  assert.equal(l.qty_lb_source, 'computed', 'expected lb is qty × lb/unit — tagged computed, never the conversion source');
   assert.equal(ERIntake.lineApprovable(l), true);
 });
 
@@ -84,8 +84,95 @@ test('explicit pick confirms the product and computes text-derived lb', () => {
   ERIntake.applyProductPick(l, PROD);
   assert.deepEqual(l.chosen, PROD);
   assert.equal(l.qty_lb, 200); // 4 × 50
-  assert.equal(l.qty_lb_source, 'parsed_description');
+  assert.equal(l.qty_lb_source, 'computed');
+  assert.equal(l.match_source, 'chosen', 'a human pick must replace the Fuzzy badge');
   assert.equal(ERIntake.lineApprovable(l), true);
+});
+
+// ── 2026-09-08 live-smoke regression: the exact /match payload the prod
+// smoke produced ("tote of honey", Dutch Gold Honey, fuzzy 43% → Honey
+// 11030). An untouched fuzzy line must never be approvable, and Approve
+// stays blocked until a human picks the product AND supplies pounds. ──────
+test('live case: fuzzy 43% honey line cannot enable Approve untouched', () => {
+  const honey = { product_id: 30, name: 'Honey', odoo_code: '11030', similarity: 0.429 };
+  const l = ERIntake.buildReviewLine({
+    vendor_description: 'tote of honey', quantity: 1.0, unit: 'tote',
+    match_source: 'fuzzy', confidence: 0.429,
+    product: honey, candidates: [honey],
+    lb_per_unit: null, lb_source: 'none', expected_qty_lb: null,
+  });
+  assert.equal(l.chosen, null);
+  assert.deepEqual(l.suggested, honey);
+  assert.equal(l.qty_lb, null);
+  assert.equal(l.match_source, 'fuzzy', 'badge still says Fuzzy while unpicked');
+  assert.equal(ERIntake.lineApprovable(l), false);
+  const ready = [l].filter(x => x.include).every(ERIntake.lineApprovable);
+  assert.equal(ready, false, 'the Approve gate must be closed');
+
+  // Typing pounds alone must not open it either.
+  ERIntake.applyQtyLbOverride(l, 640);
+  assert.equal(ERIntake.lineApprovable(l), false);
+
+  // Picking the suggestion clears the Fuzzy badge → 'chosen', and only the
+  // combination of a pick + pounds approves.
+  ERIntake.applyProductPick(l, honey);
+  assert.equal(l.match_source, 'chosen');
+  assert.equal(ERIntake.lineApprovable(l), true);
+});
+
+test('Change restores the server badge; re-picking sets chosen again', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'fuzzy', confidence: 0.429, product: PROD, candidates: [PROD],
+  }));
+  ERIntake.applyProductPick(l, PROD);
+  assert.equal(l.match_source, 'chosen');
+  ERIntake.clearChosen(l); // the "Change" button
+  assert.equal(l.match_source, 'fuzzy', 'no product chosen → back to the server verdict');
+  assert.equal(l.confidence, 0.429);
+  ERIntake.applyProductPick(l, { product_id: 9, name: 'Other', odoo_code: null });
+  assert.equal(l.match_source, 'chosen');
+});
+
+test('Change on an exact line restores Exact, not Chosen', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'exact', confidence: 1, product: PROD,
+  }));
+  ERIntake.clearChosen(l);
+  assert.equal(l.match_source, 'exact');
+});
+
+// ── Untouched fields are never labeled "manual"; qty/unit track edits ─────
+test('editing lb/unit never marks the untouched expected-lb field manual', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'exact', product: PROD, unit: 'BAG',
+  }));
+  ERIntake.applyLbPerUnitChange(l, 30);
+  assert.equal(l.lb_source, 'manual', 'the field the user actually typed in');
+  assert.equal(l.qty_lb, 120);
+  assert.equal(l.qty_lb_source, 'computed', 'derived value is computed, not manual');
+  ERIntake.applyQtyLbOverride(l, 100);
+  assert.equal(l.qty_lb_source, 'manual', 'a direct override IS manual');
+});
+
+test('qty/unit source starts as document and flips to edited on a real change', () => {
+  const l = ERIntake.buildReviewLine(matchLine({ quantity: 4, unit: 'BAG' }));
+  assert.equal(l.qty_source, 'document');
+  ERIntake.applyQuantityChange(l, 4);      // unchanged value
+  assert.equal(l.qty_source, 'document');
+  ERIntake.applyUnitChange(l, ' bag. ');   // cosmetic unit edit
+  assert.equal(l.qty_source, 'document');
+  ERIntake.applyQuantityChange(l, 6);
+  assert.equal(l.qty_source, 'edited');
+});
+
+test('a failed re-match never leaves a Chosen badge on a product-less line', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'fuzzy', confidence: 0.429, product: PROD, candidates: [PROD],
+  }));
+  ERIntake.applyProductPick(l, PROD);
+  const [reset] = ERIntake.applyRematchFailure([l]);
+  assert.equal(reset.chosen, null);
+  assert.equal(reset.match_source, 'fuzzy', 'badge falls back to the server verdict');
 });
 
 test('clearing the chosen product de-confirms the line', () => {

@@ -32,16 +32,24 @@
 
   /* One /expected-receipts/match line → the review screen's working copy.
      Only alias/exact matches arrive confirmed; a fuzzy product is demoted to
-     `suggested` and its (server-null) pounds stay empty until a human picks. */
+     `suggested` and its (server-null) pounds stay empty until a human picks.
+     The server's own verdict is kept in server_match_source/confidence so
+     "Change" can restore the badge after a human pick set it to 'chosen'.
+     qty_lb_source says how the EXPECTED-LB value itself was produced —
+     'computed' (quantity × lb/unit) or 'manual' (typed directly). Only a
+     direct edit of a field may ever tag that field 'manual'. */
   function buildReviewLine(matchLine) {
     const confirmed = CONFIRMED_SOURCES.includes(matchLine.match_source);
     return {
       ...matchLine,
+      server_match_source: matchLine.match_source,
+      server_confidence: matchLine.confidence,
       include: true,
       chosen: confirmed ? (matchLine.product || null) : null,
       suggested: !confirmed ? (matchLine.product || null) : null,
+      qty_source: 'document',
       qty_lb: confirmed ? matchLine.expected_qty_lb : null,
-      qty_lb_source: confirmed && matchLine.expected_qty_lb != null ? matchLine.lb_source : null,
+      qty_lb_source: confirmed && matchLine.expected_qty_lb != null ? 'computed' : null,
       // Audit fix 3: alias learning is opt-out per line; defaults on while the
       // conversion is untouched, off once expected lb is overridden directly.
       save_alias: true,
@@ -49,18 +57,20 @@
     };
   }
 
-  function recomputeQtyLb(line, source) {
+  function recomputeQtyLb(line) {
     if (line.chosen && line.lb_per_unit > 0 && line.quantity > 0) {
       line.qty_lb = roundLb(line.quantity * line.lb_per_unit);
-      line.qty_lb_source = source;
+      line.qty_lb_source = 'computed';
     }
     return line;
   }
 
   function applyQuantityChange(line, quantity) {
     if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
-    line.quantity = Number(quantity) > 0 ? Number(quantity) : 0;
-    return recomputeQtyLb(line, line.lb_source);
+    const next = Number(quantity) > 0 ? Number(quantity) : 0;
+    if (next !== line.quantity) line.qty_source = 'edited';
+    line.quantity = next;
+    return recomputeQtyLb(line);
   }
 
   function applyLbPerUnitChange(line, lbPerUnit) {
@@ -68,7 +78,7 @@
     const v = Number(lbPerUnit);
     line.lb_per_unit = v > 0 ? v : null;
     line.lb_source = line.lb_per_unit != null ? 'manual' : 'none';
-    return recomputeQtyLb(line, 'manual');
+    return recomputeQtyLb(line);
   }
 
   function applyQtyLbOverride(line, qtyLb) {
@@ -91,6 +101,7 @@
     const changed = normalizeUnit(next) !== normalizeUnit(line.unit);
     line.unit = next;
     if (changed) {
+      line.qty_source = 'edited';
       line.lb_per_unit = null;
       line.lb_source = 'none';
       line.qty_lb = null;
@@ -100,8 +111,10 @@
   }
 
   /* The ONLY way a product becomes chosen outside alias/exact: an explicit
-     human pick (suggestion click, typeahead pick). Text-derived conversions
-     may compute pounds now that a human has confirmed the product. */
+     human pick (suggestion click, typeahead pick). The pick sets
+     match_source to 'chosen' — the Fuzzy/No-match badge must not survive a
+     human decision (the product is no longer a guess). Text-derived
+     conversions may compute pounds now that a human confirmed the product. */
   function applyProductPick(line, product) {
     if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     line.chosen = {
@@ -109,7 +122,9 @@
       name: product.name,
       odoo_code: product.odoo_code || null,
     };
-    if (line.qty_lb == null) recomputeQtyLb(line, line.lb_source);
+    line.match_source = 'chosen';
+    line.confidence = 1.0;
+    if (line.qty_lb == null) recomputeQtyLb(line);
     return line;
   }
 
@@ -121,6 +136,10 @@
   function clearChosen(line) {
     if (line.matching) return line; // audit-2 fix 4b: locked while a match request is in flight
     line.chosen = null;
+    // A 'chosen' badge without a chosen product would lie — fall back to
+    // what the server actually said about this line.
+    line.match_source = line.server_match_source;
+    line.confidence = line.server_confidence;
     if (PRODUCT_DEPENDENT_LB_SOURCES.includes(line.lb_source)) {
       line.lb_per_unit = null;
       line.lb_source = 'none';
@@ -224,6 +243,8 @@
       ...l,
       matching: false,
       chosen: null,
+      match_source: l.server_match_source != null ? l.server_match_source : l.match_source,
+      confidence: l.server_confidence != null ? l.server_confidence : l.confidence,
       lb_per_unit: null,
       lb_source: 'none',
       qty_lb: null,
