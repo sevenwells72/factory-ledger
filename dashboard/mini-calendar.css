@@ -10,8 +10,11 @@
 }
 
 .mini-calendar-nav {
-  width: 30px;
-  min-width: 30px;
+  /* T10 — the only width-driven TOUCH-003 cluster: the arrows are 98-106px
+     tall and 24-30px wide. --hit-min is defined by every page's :root; the
+     fallback keeps the strip usable on a page that has not declared it. */
+  width: var(--hit-min, 44px);
+  min-width: var(--hit-min, 44px);
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
@@ -118,8 +121,8 @@
     padding-right: 8px;
   }
   .mini-calendar-nav {
-    width: 26px;
-    min-width: 26px;
+    width: var(--hit-min, 44px);
+    min-width: var(--hit-min, 44px);
   }
   .mini-calendar-months {
     grid-template-columns: repeat(3, 96px);
@@ -149,8 +152,8 @@
   }
 
   .mini-calendar-nav {
-    width: 24px;
-    min-width: 24px;
+    width: var(--hit-min, 44px);
+    min-width: var(--hit-min, 44px);
     font-size: 18px;
   }
 
