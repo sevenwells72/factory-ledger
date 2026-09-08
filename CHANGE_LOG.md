@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-08 14:42 — Merged feat/er-intake into main (merge commit 1c795a9, pushed)
+- **File(s) changed:** merge of the whole ER-intake branch; conflict resolutions in `dashboard/index.html`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** `--no-ff` merge (audit trail preserved per owner) onto main `b216d6f`, which had gained the hit-target/contrast dashboard sessions since the branch was cut. Resolutions: index.html cache-busts take each file's highest never-served version (`dashboard.css?v=34`, `dashboard.js?v=50`, `er-intake-logic.js?v=5`, `mini-calendar.css?v=3`, `interaction.css?v=2`); CHANGE_LOG keeps both sessions' entries; FACTORY_LEDGER_CHANGELOG ER-intake row renumbered 115→117 (row-28 precedent — 115/116 belong to the hit-target/contrast sessions). Merged tree verified before commit: suite 485 passed + known failure, 27/27 JS logic tests, both dashboard JS files parse.
+- **Why:** Deploy checklist step 4 (owner-approved) — audits closed at merge; Railway auto-deploys main.
+
+---
+
 ## 2026-09-08 14:40 — Migration 049 applied to prod; schema.sql re-dumped
 - **File(s) changed:** `tests/schema/schema.sql`
 - **What changed:** Applied `migrations/049_purchase_doc_intake.sql` to prod via the session pooler (clean single-transaction COMMIT; verified read-only: both tables, `expected_receipts.source_document_id`, five-value status constraint, 0 rows). Re-dumped schema.sql from prod via `scripts/dump_prod_schema.sh` (4,413 lines, zero data rows) — the pending `\ir 049` block is gone, the 049 objects are now in the dump proper. Local test DB rebuilt `--fresh` from the new dump; suite 485 passed + known pre-existing `test_recent_ledger` failure. Railway vars ANTHROPIC_API_KEY / SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY verified present on the FastAPI service (set by owner; new deployment active, health 200).
