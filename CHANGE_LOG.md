@@ -1,5 +1,21 @@
 # Change Log
 
+## 2026-09-08 00:20 — Changelog row 112 deploy status corrected
+
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Corrected `FACTORY_LEDGER_CHANGELOG.md` row 112, which still described the IMP-044 / ERROR-010 work as "NOT pushed/deployed". PR #25 merged into `main` at `a6b65e0` on 2026-09-08 and deployed. Verified against the live site before writing the note: the deployed `sankey.html`, `process-flow.html`, `traceability.html`, `dashboard.js` and `dashboard.css` are byte-identical to `a6b65e0` apart from Netlify's pretty-URL rewriting of the nav-link hrefs, and the `getFallback*` sample-data paths deleted by `684af02` are confirmed absent.
+- **Why:** Same staleness as row 111, corrected in the previous commit on this branch and flagged there for follow-up. The Regression Guard depends on the changelog stating accurately what is live, so a row claiming undeployed work that is in fact serving to users is a trap for the next person reading it.
+
+---
+
+## 2026-09-07 23:05 — IMP-030: attention strip on the dashboard entry screen
+
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.css`, `dashboard/dashboard.js`, `docs/design/audit/IMPROVEMENTS-MASTER.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added a "Needs Attention" strip above Today So Far on the Operations tab (commit `ae01e06`), rendering all seven operational attention counts as chips — count + label + icon — each a real link into the view that resolves it with the filter pre-applied: overdue receipts, overdue orders, dispatch-blocked orders, low stock, open supply requests, to-dos due today or overdue, and failed background refreshes. Six counts reuse data `refreshAll()` already fetches; no request was added. Dispatch-blocked needs `/sales/orders/fulfillment-check`, which is fetched only under the Dispatch Queue filter, so that chip reads "—" until the user opens the dispatch queue once rather than printing a zero it cannot stand behind. Failed refreshes are tracked by a registry keyed on the load-error element ids (`REFRESH_ERROR_IDS`), hooked into `hideError`/`showLoadError`, with modal and per-action error ids excluded by allowlist. Extracted `activateTab()` out of `initTabs` so the chips switch tabs through the same path as a tab click. Added an inline SVG icon sprite. Bumped `dashboard.css?v=28→29` and `dashboard.js?v=42→43`. Marked IMP-030 **DONE** with its hash in the Band 2 table and the per-improvement section, recording the two parts left for a follow-up (dispatch-blocked on entry, and NOTIFY-005's per-role routing). Corrected `FACTORY_LEDGER_CHANGELOG.md` row 111, which still described Band 0 as "NOT pushed/deployed" although PR #24 merged into `main` at `da76ffe` on 2026-09-08 and deployed — verified against the live site. Added row 113 for this change.
+- **Why:** NOTIFY-011 is a Hard rule and there is no notification channel in this product (no Notification API, service worker, push, or email trigger), so app entry is the only place an attention item can be discovered — yet every one of them sat behind a tab, several behind a tab plus a filter change, and failed background refreshes were visible nowhere at all. The audit calls this the highest-value single change in it. Design constraints followed: NAV-001 (status at a glance, one tap to the task), NOTIFY-010 (counts are unhandled items only and never faked), FEEDBACK-011 (state never carried by colour alone — verified in grayscale), and LAYOUT-020 (static markup plus container-sized grid tracks and a fixed 4.5ch count track, so a refresh cannot shift content under the user).
+
+---
+
 ## 2026-09-07 21:18 — Band 0 bookkeeping: IMP rows marked DONE, cache-bust bumps, regression changelog
 
 - **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `FACTORY_LEDGER_CHANGELOG.md`

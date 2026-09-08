@@ -69,7 +69,7 @@ These six resolve Critical rules and are each an hour to a day of work.
 | # | Improvement | Effort | Screens | Status | Commit |
 |---|---|---|---|---|---|
 | **IMP-029** | Signal truncation on every limited list | S | 12 | | |
-| **IMP-030** | Promote attention items to the entry screen | M | 7 | | |
+| **IMP-030** | Promote attention items to the entry screen | M | 7 | **DONE** | `ae01e06` |
 | **IMP-031** | Make every click target a real, focusable control | M | 25 | | |
 | **IMP-032** | Add accessible names to the six icon-only buttons | S | 15 | | |
 | **IMP-033** | Bind Enter to the primary action; trap focus in modals | S | 8 | | |
@@ -637,6 +637,10 @@ Nine list endpoints impose a server-side limit and only three tell the user:
 ---
 
 ### IMP-030 — Promote attention items to the entry screen
+
+**Status:** **DONE** · branch `feat/entry-attention-strip`, one commit — `ae01e06` adds a "Needs Attention" strip above Today So Far on the Operations tab carrying all seven counts as chips that deep-link into the view (with the filter pre-applied) that resolves each one. Six counts are derived from data `refreshAll()` already fetches, so no request was added. The seventh — dispatch-blocked — needs `/sales/orders/fulfillment-check`, which the dashboard fetches *only* while the Dispatch Queue filter is selected and therefore never on entry; the table below was optimistic on that one point. Rather than add a request or print a zero it cannot stand behind, that chip reads "—" until the user has opened the dispatch queue once, and reports the real figure thereafter (NOTIFY-010: never fake a badge). Failed background refreshes are counted by a registry keyed on the load-error element ids, so the number mirrors exactly the set of load errors on screen; modal and per-action error ids are excluded by allowlist. FEEDBACK-011 is carried by the numeral, the left-edge bar weight (dotted / 2px / 5px solid), the count's font weight, and a flag glyph shown only when non-zero — verified under a grayscale filter. LAYOUT-020 is held by shipping all seven chips in the static markup with an em-dash placeholder, sizing the grid tracks from the container rather than the content, fixing the count track at 4.5ch, and capping the printed value at "999+". Zero states are neutral: shown, not hidden, not red.
+
+**Remaining for a follow-up.** Two parts of this improvement are deliberately not in scope here. The dispatch-blocked count will only be available on entry once something fetches `fulfillment-check` on load — worth pairing with IMP-036 (auto-refresh) rather than adding a request solely for a badge. And NOTIFY-005 is only *mostly* resolved: the strip surfaces the counts, but there is still no per-item routing of who should see what (IMP-028's role model is the prerequisite).
 
 **Rules:** NOTIFY-011 (High, Hard rule) · NAV-001 · NOTIFY-005 · NOTIFY-010
 **Screens:** S-01, S-03, S-05, S-06, S-19, S-24, S-41, S-46, S-47, S-49, S-51 (7 distinct surfaces) · **Importance:** High · **Effort:** M

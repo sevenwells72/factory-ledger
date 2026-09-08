@@ -39,6 +39,15 @@
       loaded: false,
       pollTimer: null,
     },
+    // Needs Attention strip (IMP-030). `failures` is the set of background
+    // refreshes currently in a failed state; `last` caches the newest count
+    // each metric could be derived accurately from, so narrowing a tab's own
+    // filter degrades the strip to a stale-but-true number rather than to a
+    // fabricated zero (NOTIFY-010).
+    attention: {
+      failures: new Set(),
+      last: Object.create(null),
+    },
   };
 
   // ── Commit-in-flight state (IMP-004) ──
@@ -384,8 +393,10 @@
     dateLabel.textContent = 'Loading plant date…';
     try {
       const data = await fetchSalesAPI('/production/today-tile');
+      setRefreshFailed('today-tile', false);
       renderTodayTile(data);
     } catch (e) {
+      setRefreshFailed('today-tile', true);
       dateLabel.textContent = 'Plant date unavailable';
       container.innerHTML = `<div class="today-tile-state today-tile-error"><strong>Today’s production could not be loaded.</strong><span>${escHtml(e.message)}</span><button type="button" class="btn-sm today-tile-retry">Retry</button></div>`;
       container.querySelector('.today-tile-retry').addEventListener('click', refreshTodayTile);
@@ -573,6 +584,45 @@
   function hideError(elementId) {
     const el = document.getElementById(elementId);
     if (el) el.classList.add('hidden');
+    // Every refresh clears its own error element before fetching, so this is
+    // also the point at which a previously failed refresh stops being failed.
+    setRefreshFailed(elementId, false);
+  }
+
+  // ── Background-refresh failure registry (IMP-030) ──────────────────────
+  // NOTIFY-011: a refresh that fails silently is the one attention item the
+  // user cannot discover anywhere, because Promise.allSettled in refreshAll
+  // swallows it and each loader catches its own error. The registry mirrors
+  // exactly the set of load-error elements currently on screen, so the strip's
+  // count is true by construction rather than separately maintained.
+  //
+  // Keyed on the error element id, and deliberately allowlisted: modal and
+  // per-action error elements (order-detail, the two modals, and the
+  // mark-request-done failure that reuses `supply-requests-error`) are not
+  // background refreshes and must not inflate the count.
+  const REFRESH_ERROR_IDS = new Set([
+    'production-error',
+    'finished-goods-error',
+    'batches-error',
+    'ingredients-error',
+    'shipments-error',
+    'receipts-error',
+    'daily-entries-error',
+    'notes-error',
+    'orders-error',
+    'er-error',
+    'supplies-inventory-error',
+    'supply-requests-error',
+    'today-tile',
+  ]);
+
+  function setRefreshFailed(key, failed) {
+    if (!REFRESH_ERROR_IDS.has(key)) return;
+    const failures = state.attention.failures;
+    const had = failures.has(key);
+    if (failed) failures.add(key);
+    else failures.delete(key);
+    if (had !== failures.has(key)) renderAttentionStrip();
   }
 
   // ── Stall reporting (IMP-005) ──
@@ -589,6 +639,7 @@
   function showLoadError(elementId, prefix, error, retry) {
     const el = document.getElementById(elementId);
     if (!el) return;
+    setRefreshFailed(elementId, true);
     const stalled = Boolean(window.FL && window.FL.isStall(error));
     if (!stalled) {
       showError(elementId, prefix + ': ' + ((error && error.message) || 'Failed to load data.'));
@@ -634,19 +685,23 @@
   }
 
   // ── Tabs ──
+  // Extracted from initTabs so the attention strip's deep links (IMP-030)
+  // switch tabs through exactly the same path as a tab click — including the
+  // Recent Entries polling start/stop, which a hand-rolled switch would miss.
+  function activateTab(target) {
+    state.currentTab = target;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + target));
+    if (target === 'recent') {
+      openRecentEntries();
+    } else {
+      stopRecentEntriesPolling();
+    }
+  }
+
   function initTabs() {
     document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        const target = tab.dataset.tab;
-        state.currentTab = target;
-        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === target));
-        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + target));
-        if (target === 'recent') {
-          openRecentEntries();
-        } else {
-          stopRecentEntriesPolling();
-        }
-      });
+      tab.addEventListener('click', () => activateTab(tab.dataset.tab));
     });
   }
 
@@ -1792,6 +1847,7 @@
   state.notesFilter = 'all';   // 'all' | 'note' | 'todo' | 'reminder'
   state.notesShowDone = false;
   state.notesData = [];
+  state.notesLoaded = false;
   state.editingNoteId = null;
 
   async function refreshNotes() {
@@ -1806,6 +1862,7 @@
       if (params.length) url += '?' + params.join('&');
       const data = await fetchAPI(url);
       state.notesData = data.notes || [];
+      state.notesLoaded = true;
       renderNotes(container);
     } catch (e) {
       container.innerHTML = '';
@@ -1814,6 +1871,8 @@
   }
 
   function renderNotes(container) {
+    renderAttentionStrip();
+
     const notes = state.notesData;
     if (notes.length === 0) {
       container.innerHTML = `<div class="notes-empty">
@@ -2418,6 +2477,9 @@
       updateDispatchQueueControls(data.summary || null);
       updateShipByCalendarIndicators();
       renderOrdersList();
+      // Both branches above land here, so this is the single point that sees
+      // every change to ordersData — including the dispatch-queue swap.
+      renderAttentionStrip();
     } catch (e) {
       container.innerHTML = '';
       showLoadError('orders-error', 'Failed to load sales orders', e, refreshOrders);
@@ -3578,6 +3640,7 @@
     const overdueCount = state.erData.filter(r => r.is_overdue).length;
     document.getElementById('er-summary').textContent =
       state.erLoaded ? `${rows.length} shown · ${openCount} open · ${overdueCount} overdue` : '';
+    renderAttentionStrip();
 
     if (rows.length === 0) {
       container.innerHTML = `<div class="orders-empty">
@@ -3871,6 +3934,7 @@
       badge.textContent = String(count);
       badge.setAttribute('aria-label', `${count} ${label}`);
     });
+    renderAttentionStrip();
   }
 
   function populateSupplyProductSelector() {
@@ -3918,7 +3982,10 @@
     } catch (e) {
       container.innerHTML = '';
       if (window.FL && window.FL.isStall(e)) showLoadError('supplies-inventory-error', '', e, refreshSuppliesInventory);
-      else showError('supplies-inventory-error', 'Failed to load supplies: ' + supplyApiErrorMessage(e));
+      else {
+        showError('supplies-inventory-error', 'Failed to load supplies: ' + supplyApiErrorMessage(e));
+        setRefreshFailed('supplies-inventory-error', true);
+      }
     }
   }
 
@@ -4117,7 +4184,10 @@
     } catch (e) {
       container.innerHTML = '';
       if (window.FL && window.FL.isStall(e)) showLoadError('supply-requests-error', '', e, refreshSupplyRequests);
-      else showError('supply-requests-error', 'Failed to load supply requests: ' + supplyApiErrorMessage(e));
+      else {
+        showError('supply-requests-error', 'Failed to load supply requests: ' + supplyApiErrorMessage(e));
+        setRefreshFailed('supply-requests-error', true);
+      }
     }
   }
 
@@ -4128,6 +4198,7 @@
     const countBadge = document.getElementById('supply-requests-open-count');
     countBadge.textContent = String(openCount);
     countBadge.setAttribute('aria-label', `${openCount} open supply requests`);
+    renderAttentionStrip();
     const showDone = document.getElementById('supply-requests-show-done').checked;
     const requests = state.supplies.requests.filter(request => showDone || request.status === 'open');
     if (requests.length === 0) {
@@ -4339,6 +4410,219 @@
   }
 
   // ── Refresh All ──
+  // ── Needs Attention strip (IMP-030) ───────────────────────────────────────
+  // NOTIFY-011 (Hard rule) + NAV-001. There is no notification channel in this
+  // product, so app entry is the only place an attention item can be found.
+  // All seven counts are derived from data refreshAll() already fetches; this
+  // module issues no request of its own.
+  //
+  // NOTIFY-010: a badge must count unhandled items and must never be faked.
+  // Each metric therefore returns a number only when the data in hand provably
+  // covers the whole population; when the user has narrowed that tab's own
+  // filter the metric returns null and the strip falls back to the last count
+  // it could derive honestly, or to "—" if there has never been one.
+
+  function plantToday() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  }
+
+  // Overdue expected receipts. `is_overdue` is computed by the API.
+  // The list is complete for this purpose while the status filter includes
+  // open records, which is its default.
+  function attnOverdueReceipts() {
+    const scope = document.getElementById('er-status-filter').value;
+    if (!state.erLoaded || (scope !== 'open' && scope !== 'all')) return null;
+    return state.erData.filter(r => r.is_overdue && r.status === 'open').length;
+  }
+
+  // Overdue sales orders — the count behind Tab 5's "Overdue only" checkbox.
+  // Dispatch-queue mode replaces ordersData with the fulfillment-check subset,
+  // so it cannot answer this question.
+  function attnOverdueOrders() {
+    const scope = document.getElementById('orders-status-filter').value;
+    if (!state.ordersLoaded || (scope !== 'open' && scope !== 'all')) return null;
+    return state.ordersData.filter(isOrderOverdue).length;
+  }
+
+  // Dispatch-blocked orders. `dispatch_ready` only exists on the
+  // /sales/orders/fulfillment-check payload, which the dashboard fetches only
+  // while the Dispatch Queue filter is selected — never on entry. Rather than
+  // add a request (or invent a zero), the chip reads "—" until the user has
+  // opened the dispatch queue once, and reports the real figure thereafter.
+  function attnDispatchBlocked() {
+    if (!state.ordersLoaded || !isDispatchQueueMode()) return null;
+    return state.ordersData.filter(order => !order.dispatch_ready).length;
+  }
+
+  // Low-stock supplies across every category, de-duplicated — the same
+  // derivation as the "All" sub-tab badge.
+  function attnLowStock() {
+    if (!state.supplies.inventoryLoaded) return null;
+    return supplyItemsForTab('all').filter(item => item.is_low).length;
+  }
+
+  function attnSupplyRequests() {
+    if (!state.supplies.requestsLoaded) return null;
+    return state.supplies.requests.filter(request => request.status === 'open').length;
+  }
+
+  // Open to-dos due today or already past due. refreshNotes fetches with the
+  // current category filter, so the set covers every open to-do only while
+  // that filter is "all" or "todo".
+  function attnTodosDue() {
+    const scope = state.notesFilter;
+    if (!state.notesLoaded || (scope !== 'all' && scope !== 'todo')) return null;
+    const today = plantToday();
+    return state.notesData.filter(n =>
+      n.category === 'todo' &&
+      n.status !== 'done' && n.status !== 'dismissed' &&
+      n.due_date && n.due_date <= today
+    ).length;
+  }
+
+  const ATTENTION_METRICS = [
+    { key: 'erOverdue',       compute: attnOverdueReceipts, noun: 'overdue expected receipt' },
+    { key: 'ordersOverdue',   compute: attnOverdueOrders,   noun: 'overdue sales order' },
+    { key: 'dispatchBlocked', compute: attnDispatchBlocked, noun: 'dispatch-blocked order' },
+    { key: 'lowStock',        compute: attnLowStock,        noun: 'low-stock supply item' },
+    { key: 'supplyRequests',  compute: attnSupplyRequests,  noun: 'open supply request' },
+    { key: 'todosDue',        compute: attnTodosDue,        noun: 'to-do due today or overdue' },
+    { key: 'refreshFailures', compute: () => state.attention.failures.size, noun: 'failed background refresh' },
+  ];
+
+  function pluralise(count, noun) {
+    return count === 1 ? noun : noun + 's';
+  }
+
+  function renderAttentionStrip() {
+    const strip = document.getElementById('attention-strip');
+    if (!strip) return;
+
+    for (const metric of ATTENTION_METRICS) {
+      const chip = strip.querySelector(`[data-attention="${metric.key}"]`);
+      if (!chip) continue;
+
+      let value = metric.compute();
+      let stale = false;
+      if (value === null || value === undefined) {
+        // Fall back to the last honestly derived figure rather than a zero.
+        value = Object.prototype.hasOwnProperty.call(state.attention.last, metric.key)
+          ? state.attention.last[metric.key]
+          : null;
+        stale = value !== null;
+      } else {
+        state.attention.last[metric.key] = value;
+      }
+
+      const countEl = chip.querySelector('[data-att-count]');
+      const stateEl = chip.querySelector('[data-att-state]');
+      const label = chip.querySelector('.att-label').textContent.trim();
+
+      if (value === null) {
+        chip.dataset.state = 'unknown';
+        countEl.innerHTML = '&mdash;';
+        stateEl.textContent = 'not loaded yet';
+        // ACCESS-010: the chip is icon-and-number, so it states its own purpose.
+        chip.setAttribute('aria-label', `${label}: not loaded yet. Open the view to check.`);
+        chip.title = `${label} — not loaded yet. Open the view to check.`;
+        continue;
+      }
+
+      chip.dataset.state = value > 0 ? 'attention' : 'clear';
+      // The printed value is capped so it cannot outgrow its fixed grid track
+      // and rewrap the label (LAYOUT-020); the exact figure stays in the
+      // accessible name and the tooltip, so nothing is lost.
+      countEl.textContent = value > 999 ? '999+' : String(value);
+      const phrase = `${value} ${pluralise(value, metric.noun)}`;
+      const suffix = stale ? ' (as of the last full load)' : '';
+      stateEl.textContent = phrase + suffix;
+      chip.setAttribute('aria-label', `${phrase}${suffix}. Open the view.`);
+      chip.title = `${phrase}${suffix}`;
+    }
+  }
+
+  // Each chip resolves to the view — and the filter state — in which the item
+  // can actually be handled, so the count is one tap from being worked (NAV-001).
+  const ATTENTION_TARGETS = {
+    erOverdue() {
+      activateTab('expected');
+      document.getElementById('er-overdue-only').checked = true;
+      if (state.erLoaded) renderExpectedReceipts();
+      return 'tab-expected';
+    },
+    ordersOverdue() {
+      activateTab('orders');
+      const status = document.getElementById('orders-status-filter');
+      // The overdue toggle filters the loaded list, so the list has to contain
+      // open orders for it to mean anything.
+      if (status.value !== 'open' && status.value !== 'all') {
+        status.value = 'open';
+        refreshOrders();
+      }
+      document.getElementById('orders-overdue-only').checked = true;
+      if (state.ordersLoaded) renderOrdersList();
+      return 'section-orders';
+    },
+    dispatchBlocked() {
+      activateTab('orders');
+      const status = document.getElementById('orders-status-filter');
+      const needsLoad = status.value !== 'dispatch_queue';
+      status.value = 'dispatch_queue';
+      document.getElementById('orders-overdue-only').checked = false;
+      document.getElementById('orders-dispatch-filter').value = 'blocked';
+      if (needsLoad || !state.ordersLoaded) refreshOrders();
+      else renderOrdersList();
+      return 'section-orders';
+    },
+    lowStock() {
+      activateTab('supplies');
+      const allTab = document.querySelector('.supplies-subtab[data-supply-tab="all"]');
+      if (allTab) allTab.click();
+      return 'section-supplies-inventory';
+    },
+    supplyRequests() {
+      activateTab('supplies');
+      const showDone = document.getElementById('supply-requests-show-done');
+      if (showDone.checked) {
+        showDone.checked = false;
+        renderSupplyRequests();
+      }
+      return 'section-supply-requests';
+    },
+    todosDue() {
+      activateTab('notes');
+      const todoBtn = document.querySelector('.notes-filter-btn[data-cat="todo"]');
+      if (todoBtn && state.notesFilter !== 'todo') todoBtn.click();
+      return 'tab-notes';
+    },
+    refreshFailures() {
+      // The view that resolves a failed refresh is a successful one.
+      refreshAll();
+      return null;
+    },
+  };
+
+  function initAttentionStrip() {
+    const strip = document.getElementById('attention-strip');
+    if (!strip) return;
+    strip.addEventListener('click', event => {
+      const chip = event.target.closest('.attention-chip');
+      if (!chip) return;
+      // These are real links for focus and keyboard activation, but the app has
+      // no URL state yet (IMP-047), so the hash must not actually navigate —
+      // a hash jump would scroll the page out from under the user.
+      event.preventDefault();
+      const handler = ATTENTION_TARGETS[chip.dataset.attention];
+      if (!handler) return;
+      const sectionId = handler();
+      const section = sectionId && document.getElementById(sectionId);
+      if (!section) return;
+      const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      section.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+    });
+    renderAttentionStrip();
+  }
+
   async function refreshAll() {
     const btn = document.getElementById('refresh-btn');
     btn.classList.add('loading');
@@ -4386,6 +4670,7 @@
     initOrders();
     initExpectedReceipts();
     initSupplies();
+    initAttentionStrip();
 
     document.getElementById('recent-entries-refresh').addEventListener('click', refreshRecentEntries);
     document.addEventListener('visibilitychange', () => {
