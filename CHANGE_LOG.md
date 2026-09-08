@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-07 20:10 — Traceability status bar renders API text as text, not markup (IMP-044 / ERROR-010)
+
+- **File(s) changed:** `dashboard/traceability.html`
+- **What changed:** `setStatus`, `suggestSimilar`, and `showDisambiguation` now build DOM nodes and set `textContent` instead of assigning `innerHTML`. `setStatus('error', ...)` receives raw API error bodies (`Trace failed: ${e.message}`) and typed lot codes; those are now appended as text nodes. `suggestSimilar` and `showDisambiguation` write into the same status bar and previously interpolated `lot_code`, `product_name`, `product_id`, and `entry_source` straight into an HTML string — they now build `<a>`/`<button>` elements with `textContent` and real `addEventListener` handlers instead of inline `onclick` attributes. Behaviour and styling are unchanged.
+- **Why:** ERROR-010 / IMP-044: never route API-controlled text through `innerHTML`. `dashboard.js` already does this correctly (`showError` uses `textContent`; other surfaces use `escHtml`); traceability was the only standalone page still assigning API text as markup. Checked the other standalone pages: `process-flow.html` (`showError`/`showStale`) and `sankey.html` (`showBanner`) already use `textContent`, and the scheduler escapes with `esc()` and makes no network calls — no other instances to fix.
+
+---
+
 ## 2026-09-07 17:46 — Design audit: deduplicated improvements master
 
 - **File(s) changed:** `docs/design/audit/IMPROVEMENTS-MASTER.md` (new)
