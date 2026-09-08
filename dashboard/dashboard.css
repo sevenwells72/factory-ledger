@@ -2363,6 +2363,7 @@ body {
   background: var(--badge-amber-bg); color: var(--badge-amber-text);
   border-radius: 8px; padding: 0 6px; font-weight: 600;
 }
+.er-savealias-cell { text-align: center; }
 .er-line-picker { position: relative; }
 .er-line-picker .er-product-results { position: absolute; z-index: 30; width: 100%; }
 

@@ -4069,6 +4069,12 @@
         <input type="number" step="any" min="0" class="er-line-qtylb" data-i="${i}" value="${l.qty_lb != null ? l.qty_lb : ''}" placeholder="required">
         ${l.qty_lb != null && l.qty_lb_source ? `<span class="er-lb-source" title="Where this value came from">${erLbSourceLabel(l.qty_lb_source)}</span>`
           : `<span class="er-lb-missing" title="Set the pounds before approving">needs lb</span>`}`;
+      // Audit fix 3: per-line alias learning is visible and opt-out; disabled
+      // until a product is chosen (there is nothing to teach without one).
+      const saveAliasCell = `<input type="checkbox" class="er-line-savealias" data-i="${i}"
+        ${l.save_alias ? 'checked' : ''} ${l.chosen ? '' : 'disabled'}
+        aria-label="Save alias for this line"
+        title="Remember this supplier wording → product (and the conversion, when it matches the expected lb)">`;
       rows += `<tr class="${l.include ? '' : 'er-line-excluded'}" data-line="${i}">
         <td><input type="checkbox" class="er-line-include" data-i="${i}" ${l.include ? 'checked' : ''} aria-label="Include this line"></td>
         <td><div class="er-line-vendor-desc">${escHtml(l.vendor_description)}</div>${erMatchBadge(l)}</td>
@@ -4077,6 +4083,7 @@
         <td>${prodCell}</td>
         <td class="num">${lbCell}</td>
         <td class="num">${qtyLbCell}</td>
+        <td class="er-savealias-cell">${saveAliasCell}</td>
       </tr>`;
     });
 
@@ -4108,7 +4115,7 @@
       </div>
       <div class="er-review-table-wrap">
         <table class="er-review-table">
-          <thead><tr><th></th><th>Vendor line (verbatim)</th><th class="num">Qty</th><th>Unit</th><th>Our product</th><th class="num">lb / unit</th><th class="num">Expected lb</th></tr></thead>
+          <thead><tr><th></th><th>Vendor line (verbatim)</th><th class="num">Qty</th><th>Unit</th><th>Our product</th><th class="num">lb / unit</th><th class="num">Expected lb</th><th title="Remember this supplier wording for next time">Save alias</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -4181,7 +4188,12 @@
       renderErReview();
     }));
     body.querySelectorAll('.er-line-unit').forEach(inp => inp.addEventListener('change', (e) => {
-      intake.lines[Number(e.target.dataset.i)].unit = e.target.value.trim() || null;
+      // Audit fix 3: a real unit change invalidates the conversion + pounds.
+      ERIntake.applyUnitChange(intake.lines[Number(e.target.dataset.i)], e.target.value);
+      renderErReview();
+    }));
+    body.querySelectorAll('.er-line-savealias').forEach(cb => cb.addEventListener('change', (e) => {
+      ERIntake.applySaveAliasToggle(intake.lines[Number(e.target.dataset.i)], e.target.checked);
     }));
     body.querySelectorAll('.er-line-lbper').forEach(inp => inp.addEventListener('change', (e) => {
       ERIntake.applyLbPerUnitChange(intake.lines[Number(e.target.dataset.i)], e.target.value);
@@ -4257,15 +4269,9 @@
           reference_number: document.getElementById('er-review-reference').value.trim() || null,
           expected_date: document.getElementById('er-review-date').value || null,
           force: intake.force,
-          lines: included.map(l => ({
-            product_id: l.chosen.product_id,
-            expected_qty_lb: l.qty_lb,
-            vendor_description: l.vendor_description,
-            quantity: l.quantity,
-            unit: l.unit,
-            lb_per_unit: l.lb_per_unit,
-            save_alias: true,
-          })),
+          // Audit fix 3: save_alias comes from the per-line checkbox, and the
+          // conversion rides along only when it explains the approved pounds.
+          lines: included.map(ERIntake.approveLinePayload),
         }),
       });
       closeErModal();

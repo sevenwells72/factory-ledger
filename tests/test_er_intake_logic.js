@@ -97,6 +97,116 @@ test('clearing the chosen product de-confirms the line', () => {
   assert.equal(ERIntake.lineApprovable(l), false);
 });
 
+// ── Audit fix 3: product/unit changes invalidate conversions; alias saving is
+// per-line, opt-out, and only sends a conversion that explains the pounds ──
+
+test('unit change invalidates lb_per_unit and expected lb', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', product: PROD, unit: 'BAG',
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }));
+  ERIntake.applyUnitChange(l, 'CASE');
+  assert.equal(l.lb_per_unit, null);
+  assert.equal(l.lb_source, 'none');
+  assert.equal(l.qty_lb, null);
+  assert.equal(ERIntake.lineApprovable(l), false);
+});
+
+test('cosmetic unit edit (same normalized unit) keeps the conversion', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', product: PROD, unit: 'BAG',
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }));
+  ERIntake.applyUnitChange(l, ' bag. ');
+  assert.equal(l.lb_per_unit, 50);
+  assert.equal(l.qty_lb, 200);
+});
+
+test('product change drops product-derived conversions and stale pounds', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'exact', product: PROD, unit: 'CASE',
+    lb_per_unit: 25, lb_source: 'case_size', expected_qty_lb: 100,
+  }));
+  ERIntake.clearChosen(l); // "Change" button — first half of a product change
+  assert.equal(l.lb_per_unit, null, 'old product’s case weight must not carry over');
+  assert.equal(l.qty_lb, null);
+  ERIntake.applyProductPick(l, { product_id: 9, name: 'Other', odoo_code: null });
+  assert.equal(l.qty_lb, null, 'no conversion left — pounds need manual entry');
+});
+
+test('product change keeps text-derived conversion and recomputes pounds', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'exact', product: PROD, unit: 'BAG',
+    lb_per_unit: 50, lb_source: 'parsed_description', expected_qty_lb: 200,
+  }));
+  ERIntake.clearChosen(l);
+  assert.equal(l.lb_per_unit, 50, 'the description’s own weight token is product-independent');
+  assert.equal(l.qty_lb, null, 'but stale pounds are dropped until re-pick');
+  ERIntake.applyProductPick(l, { product_id: 9, name: 'Other', odoo_code: null });
+  assert.equal(l.qty_lb, 200);
+});
+
+test('save_alias defaults on; overriding expected lb flips it off', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', product: PROD, unit: 'BAG',
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }));
+  assert.equal(l.save_alias, true);
+  ERIntake.applyQtyLbOverride(l, 175);
+  assert.equal(l.save_alias, false, 'overridden pounds must not teach the conversion');
+});
+
+test('an explicit save_alias choice survives a later lb override', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', product: PROD, unit: 'BAG',
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }));
+  ERIntake.applySaveAliasToggle(l, true);
+  ERIntake.applyQtyLbOverride(l, 175);
+  assert.equal(l.save_alias, true);
+});
+
+test('approve payload sends the conversion only when it explains the pounds', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', product: PROD, unit: 'BAG',
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }));
+  assert.equal(ERIntake.aliasConversionConsistent(l), true);
+  assert.equal(ERIntake.approveLinePayload(l).lb_per_unit, 50);
+  assert.equal(ERIntake.approveLinePayload(l).save_alias, true);
+
+  ERIntake.applySaveAliasToggle(l, true); // keep saving the product mapping…
+  ERIntake.applyQtyLbOverride(l, 175);    // …but the conversion no longer fits
+  assert.equal(ERIntake.aliasConversionConsistent(l), false);
+  const payload = ERIntake.approveLinePayload(l);
+  assert.equal(payload.save_alias, true);
+  assert.equal(payload.lb_per_unit, null, 'inconsistent conversion must not be taught');
+  assert.equal(payload.expected_qty_lb, 175);
+});
+
+test('save_alias false sends no conversion', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'alias', product: PROD, unit: 'BAG',
+    lb_per_unit: 50, lb_source: 'alias', expected_qty_lb: 200,
+  }));
+  ERIntake.applySaveAliasToggle(l, false);
+  const payload = ERIntake.approveLinePayload(l);
+  assert.equal(payload.save_alias, false);
+  assert.equal(payload.lb_per_unit, null);
+});
+
+test('manual lb-per-unit correction stays teachable and consistent', () => {
+  const l = ERIntake.buildReviewLine(matchLine({
+    match_source: 'exact', product: PROD, unit: 'BAG',
+    lb_per_unit: 25, lb_source: 'case_size', expected_qty_lb: 100,
+  }));
+  ERIntake.applyLbPerUnitChange(l, 30); // human corrects the conversion
+  assert.equal(l.qty_lb, 120);
+  assert.equal(l.save_alias, true);
+  const payload = ERIntake.approveLinePayload(l);
+  assert.equal(payload.lb_per_unit, 30);
+});
+
 test('no-match line starts fully unconfirmed', () => {
   const l = ERIntake.buildReviewLine(matchLine());
   assert.equal(l.chosen, null);
