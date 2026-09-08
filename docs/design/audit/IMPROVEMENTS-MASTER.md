@@ -18,9 +18,36 @@ Each of the five group files records findings **per rule, per screen**. The same
 **Effort** is a rough implementation size: **S** ≈ under a day, **M** ≈ one to three days, **L** ≈ a week or more.
 **Screens** is the count of inventoried screens the change affects.
 
-Sixty-seven improvements (IMP-001…IMP-067). Thirty-two resolve at least one Critical rule; twenty-two are High, twelve Medium, one Low. Eight are marked **DONE**.
+Sixty-seven improvements (IMP-001…IMP-067). Thirty-two resolve at least one Critical rule; twenty-two are High, twelve Medium, one Low. Nine are marked **DONE**, two **Partly done**.
 
 ---
+
+## Clusters shipped from 07
+
+[07-systemic-clusters.md](07-systemic-clusters.md) decomposes the browser check by **root cause** rather than by
+improvement, so its clusters do not map one-to-one onto the IMP numbers above. Six shipped on branch
+`fix/systemic-tokens-a`; this table is the per-cluster record. No new IMP numbers were minted for them — each
+already sits inside an existing improvement, and duplicating it here would defeat the deduplication this file
+exists to do.
+
+| Cluster | Rule | Change | Cells cleared | Commit | Improvement |
+|---|---|---|---:|---|---|
+| **A2** | ACCESS-008 | light `--text-muted` `#64748b` → `#5b697e` | — | `86ea5a4` | IMP-010 (partly) |
+| **A3** | ACCESS-008 | `--text-dimmed` dark `#64748b` → `#909daf`, light `#94a3b8` → `#5b697e` | — | `d9d77b7` | IMP-010 (partly) |
+| **A6** | ACCESS-008 | dark `--danger` `#ef4444` → `#f16161` | — | `414f1ea` | IMP-010 (partly) |
+| **A9** | ACCESS-008 | light `--category-granola` `#a16207` → `#955b06`, `--category-graham` `#15803d` → `#147839` | — | `8674c0a` | IMP-010 (partly) |
+| | | **A2 + A3 + A6 + A9 together** | **80 of 288** | | |
+| **O1** | LAYOUT-003 | `flex-wrap` on `.header` / `.header-right` below 768 px, in the three inline stylesheets | **16 of 28** | `163bd33` | IMP-027 (partly) |
+| **F1** | LAYOUT-011 | `@media (max-height: 600px)` — `.app-header` static, `.tab-bar` re-anchored | **12 of 12** | `70fe9a2` | **IMP-066 (DONE)** |
+
+The four ACCESS-008 clusters are counted together because they co-occur: measured alone they clear 38 + 27 + 3
++ 0 = 68 cells, and together they clear 80. A cell only flips to PASS when its *last* offender goes, which is
+what 07's "clears alone" column is warning about.
+
+Also on that branch, and not a cluster: the twelve-per-capture truncation in `tests/visual/lib/checks.mjs`
+(`:112`, `:256`) was lifted (`e801df3`), so `screenshots/results.json` now stores every failing measurement
+rather than the twelve worst. 07 had to re-run those two functions from a scratch script to get its numbers;
+that is no longer necessary.
 
 ## Proposed sequence
 
@@ -41,33 +68,33 @@ These six resolve Critical rules and are each an hour to a day of work.
 
 ### Band 1 — Critical
 
-| # | Improvement | Effort | Screens |
-|---|---|---|---|
-| **IMP-007** | Stop full-container re-renders on background refresh and per-row writes | M | 12 |
-| **IMP-008** | Preserve drafts; stop blanking the view on a failed refresh | M | 20 |
-| **IMP-009** | Raise operational text above the 12 px floor; add a mobile body size | M | ~50 |
-| **IMP-010** | Fix the light-theme contrast failures and `--text-dimmed` | S | ~30 |
-| **IMP-011** | Minimum 44 × 44 pt hit targets and a focus ring on every control | M | ~65 |
-| **IMP-012** | Separate the product-family palette from the status palette; tokenise the hard-coded colours | M | ~40 |
-| **IMP-013** | Introduce semantic button roles (primary / secondary / danger) | M | ~30 |
-| **IMP-014** | Replace the native `confirm()`/`alert()` dialogs | M | 6 |
-| **IMP-015** | Add a non-colour carrier to five status cues | S | 12 |
-| **IMP-016** | Add reversal paths and undo for the four one-way doors | M | 7 |
-| **IMP-017** | Mark required fields and gate every commit | S | 6 |
-| **IMP-018** | Replace `#note-entity-id` free text with a type-ahead | M | 1 |
-| **IMP-019** | Scope the Supplies search, or say that it is scoped | S | 2 |
-| **IMP-020** | Fix the Traceability lot index and state its real scope | M | 2 |
-| **IMP-021** | Add a `title` to truncated names; middle-truncate lot codes | S | 4 |
-| **IMP-022** | Add a currency symbol and unit to the order-line edit inputs | S | 2 |
-| **IMP-023** | Fix the Supplies "Incoming" column unit mismatch | S | 1 |
-| **IMP-024** | Add inline cross-field validation to the allocation quantity | S | 1 |
-| **IMP-025** | Style placeholders explicitly in the three modal forms | S | 3 |
-| **IMP-026** | Add a confirmation to the scheduler's order-line delete | S | 1 |
-| **IMP-027** | Give Sankey, Traceability, and the scheduler compact layouts | L | 28 |
-| **IMP-028** | Add authentication and a role model | L | all |
-| **IMP-065** | Make the two print views printable — the recall report prints white-on-white | S | 2 |
-| **IMP-066** | Reclaim viewport height at 200 % zoom; the sticky stack strands the last row | M | 6+ |
-| **IMP-067** | Replace the opacity dim on inactive rows with a token that still meets AA | S | 9 |
+| # | Improvement | Effort | Screens | Status | Commit |
+|---|---|---|---|---|---|
+| **IMP-007** | Stop full-container re-renders on background refresh and per-row writes | M | 12 | | |
+| **IMP-008** | Preserve drafts; stop blanking the view on a failed refresh | M | 20 | | |
+| **IMP-009** | Raise operational text above the 12 px floor; add a mobile body size | M | ~50 | | |
+| **IMP-010** | Fix the light-theme contrast failures and `--text-dimmed` | S | ~30 | Partly done | `86ea5a4`, `d9d77b7`, `414f1ea`, `8674c0a` |
+| **IMP-011** | Minimum 44 × 44 pt hit targets and a focus ring on every control | M | ~65 | | |
+| **IMP-012** | Separate the product-family palette from the status palette; tokenise the hard-coded colours | M | ~40 | | |
+| **IMP-013** | Introduce semantic button roles (primary / secondary / danger) | M | ~30 | | |
+| **IMP-014** | Replace the native `confirm()`/`alert()` dialogs | M | 6 | | |
+| **IMP-015** | Add a non-colour carrier to five status cues | S | 12 | | |
+| **IMP-016** | Add reversal paths and undo for the four one-way doors | M | 7 | | |
+| **IMP-017** | Mark required fields and gate every commit | S | 6 | | |
+| **IMP-018** | Replace `#note-entity-id` free text with a type-ahead | M | 1 | | |
+| **IMP-019** | Scope the Supplies search, or say that it is scoped | S | 2 | | |
+| **IMP-020** | Fix the Traceability lot index and state its real scope | M | 2 | | |
+| **IMP-021** | Add a `title` to truncated names; middle-truncate lot codes | S | 4 | | |
+| **IMP-022** | Add a currency symbol and unit to the order-line edit inputs | S | 2 | | |
+| **IMP-023** | Fix the Supplies "Incoming" column unit mismatch | S | 1 | | |
+| **IMP-024** | Add inline cross-field validation to the allocation quantity | S | 1 | | |
+| **IMP-025** | Style placeholders explicitly in the three modal forms | S | 3 | | |
+| **IMP-026** | Add a confirmation to the scheduler's order-line delete | S | 1 | | |
+| **IMP-027** | Give Sankey, Traceability, and the scheduler compact layouts | L | 28 | Partly done | `163bd33` |
+| **IMP-028** | Add authentication and a role model | L | all | | |
+| **IMP-065** | Make the two print views printable — the recall report prints white-on-white | S | 2 | | |
+| **IMP-066** | Reclaim viewport height at 200 % zoom; the sticky stack strands the last row | M | 6+ | **DONE** | `70fe9a2` |
+| **IMP-067** | Replace the opacity dim on inactive rows with a token that still meets AA | S | 9 | | |
 
 ### Band 2 — High
 
@@ -304,6 +331,45 @@ Plus fourteen selectors at 11 px carrying operational values where the standard 
 
 **Rules:** ACCESS-008 (Critical, Hard rule) · FEEDBACK-012 · LAYOUT-005 · OTHER-010
 **Screens:** ~30 · **Importance:** Critical · **Effort:** S
+
+**Status: partly done.** The four token clusters [07](07-systemic-clusters.md) prices separately have shipped —
+**A2** `86ea5a4`, **A3** `d9d77b7`, **A6** `414f1ea`, **A9** `8674c0a` — clearing **80 of the 288** failing
+ACCESS-008 capture cells with no regressions. Old → new, with the measured ratio on the surface that was binding:
+
+| Token | Theme | Old → new | Binding surface | Ratio |
+|---|---|---|---|---:|
+| `--text-muted` | light | `#64748b` → `#5b697e` | `--surface-hover` `#e2e8f0` | 3.86 → **4.52** |
+| `--text-dimmed` | dark | `#64748b` → `#909daf` | `--surface-hover` `#283548` | 2.61 → **4.51** |
+| `--text-dimmed` | light | `#94a3b8` → `#5b697e` | `--surface-hover` `#e2e8f0` | 2.08 → **4.52** |
+| `--danger` | dark | `#ef4444` → `#f16161` | `--surface` `#1e293b` | 3.89 → **4.61** |
+| `--category-granola` | light | `#a16207` → `#955b06` | `--surface-hover` `#e2e8f0` | 3.99 → **4.51** |
+| `--category-graham` | light | `#15803d` → `#147839` | `--surface-hover` `#e2e8f0` | 4.07 → **4.51** |
+
+Five of the six are the nearest value clearing 4.5 : 1. `--danger` is held to a **4.6 : 1** floor instead:
+its nearest passing value, `#f15d5d`, lands at exactly 4.50, so the verdict turns on the harness's
+rounding to two decimals and a backdrop one step lighter would put it back under. `#f16161` is the
+nearest value clearing 4.6, at 41.1 sRGB units from `#ef4444` against 35.4 for the knife-edge value.
+
+`--surface-hover` is the binding surface in every light-theme cluster and is named nowhere in the
+findings above — the table earlier in this section attributes A2's 3.86 : 1 to `--row-header`, where
+`#64748b` in fact measures 4.34 : 1. Values were chosen against the surface set **measured** across all
+384 captures (every visible text node on `index.html` whose computed colour resolves from the token,
+with its composited backdrop, font size and weight), not read off the stylesheet.
+
+**Not done, and what is left:**
+
+* **The `opacity` dim.** Every remaining ACCESS-008 failure on the six new values sits under an ancestor
+  `opacity` of 0.5–0.65. No colour clears 4.5 : 1 through a 50 % veil. That is **IMP-067**, including
+  `.so-ready-pill` at 1.16 : 1 and `.order-edit-message.success` — the two this section calls the ones
+  that matter most.
+* **The twelve hard-coded values** that bypass the token system, listed under IMP-012. Untouched.
+* **`--primary` in the dark palette.** Clusters A4 (white text on the `--primary` fill, 3.68 : 1) and A5
+  (`--primary` as link text, 3.37 : 1) pull the same token in opposite directions and need the token
+  split, not a nudge. Untouched.
+* **The three-step text scale is now two steps.** `--text-muted` and `--text-dimmed` both have to clear
+  4.5 : 1 on `--surface-hover`, so both land on the same boundary: in light they are the same hex, in dark
+  they are 4.51 against 4.84. [07](07-systemic-clusters.md) predicted this ("there is no value that
+  works"). A third step of de-emphasis needs a larger font or a different device, which is **IMP-009**.
 
 **Browser check:** measured. 151 of 190 light-theme captures carry at least one text node below AA; the worst non-print value is **1.16 : 1** (`.so-ready-pill`). 143 of 190 dark captures fail too, so this is not a light-theme-only defect — `span.lot-link` measures 2.32 : 1 on `--surface` in dark, and `.mini-calendar-dow` 1.8 : 1 on both. ([06](06-browser-check.md))
 
@@ -600,6 +666,26 @@ Two remove-shaped glyphs, adjacent, one recoverable and one not — the exact sh
 
 **Rules:** LAYOUT-003 (Critical, Hard rule) · LAYOUT-011 · LAYOUT-013 · OTHER-005 · CHART-006 · TOUCH-003
 **Screens:** S-57…S-70, S-72…S-91 (28) · **Importance:** Critical · **Effort:** L
+
+**Status: partly done.** Cluster **O1** shipped in `163bd33`: the `@media (max-width: 768px)` block that lets
+`.header` and `.header-right` wrap — already present at `dashboard.css:2223-2225`, which is why `index.html`
+never overflowed — copied into the inline stylesheets of `sankey.html`, `process-flow.html` and
+`traceability.html`. LAYOUT-003 / ACCESS-001 falls from **28 failing cells to 12**.
+
+[07](07-systemic-clusters.md) predicted O1 would clear all 24 of its cells. It cleared **16**. The header
+overflow is gone on all twelve screens, but four of them carried a second offender behind it, and both are
+this improvement's own scope rather than O1's:
+
+| Screens | Before → after | Residual offender |
+|---|---:|---|
+| S-57, S-58, S-59 | 112 px → **35 px** | `#chart-container > .column-labels` — four labels in a `space-between` flex row with `padding: 0 60px` and no wrap (`sankey.html:246-251`) |
+| S-70 | 135 px → **135 px** | `svg#graphSvg > g` renders the trace graph at a hard **900 px** in a 390 px viewport. The header itself now wraps correctly — `.mini-calendar-strip` moved from `left=80 / right=400` to `left=-47 / right=295` |
+
+The other 4 remaining cells are clusters **O2** (S-86, the scheduler's 580 px min-content `#topbar`) and
+**O3** (S-91, `@media print` rendering the full 4,779 px horizon — that one is **IMP-065**).
+
+Everything else in this improvement is untouched: Sankey's four columns below ~700 px, the Traceability
+graph's fixed width, and the scheduler's `240px minmax(0,1fr) 340px` grid with no collapse control.
 
 **Browser check:** measured. At 390 px, `traceability.html` overflows the document by **81 px** (135 px once the detail panel is open), `sankey.html` by **110–114 px**, and `process-flow.html` by **109–114 px**. The offender is `.header-right` on all three — the 768 px nav breakpoint wraps the links but not the header's own contents. The scheduler's pin modal overflows by **190 px**. All four surfaces also proved to have **no light palette at all**: their tokens sit on a bare `:root`, so the `data-theme` attribute two of them carry in markup does nothing. ([06](06-browser-check.md))
 
@@ -1273,6 +1359,28 @@ board a print width that fits — landscape `@page`, a scale transform, or colum
 
 **Rules:** LAYOUT-011 (Critical wherever a fixed bar can hide an actionable row) · ACCESS-001 (High, Hard rule) · LAYOUT-015
 **Screens:** S-12, S-30, S-32, S-33, S-39, S-52 measured; every long dashboard screen is exposed · **Importance:** Critical · **Effort:** M
+
+**Status: DONE** — `70fe9a2`. One height-keyed media query, the first in the product; every other one keys on
+width alone, which is why a 450 px-tall window was being served a phone's three-row header.
+
+```css
+@media (max-height: 600px) {
+  .app-header { position: static; }
+  .tab-bar { top: var(--site-nav-h); }
+}
+```
+
+The sticky stack drops from **335 px of a 450 px viewport (74 %) to 86 px (19 %)**, and **LAYOUT-011 closes
+completely: 0 failures in 384 captures**, from 12. The second declaration is not optional — `.tab-bar`'s offset
+is `calc(var(--site-nav-h) + var(--header-h))` and `--header-h` is published by the `ResizeObserver` at
+`dashboard.js:120-127`, which keeps measuring the header whether or not it is sticky; without restating the
+offset the tab bar would stick 249 px below the nav with nothing between them.
+
+Two notes. The threshold is **600 px**, per [07](07-systemic-clusters.md), not the 560 px suggested below;
+560 px would also clear all twelve captures (450 < 560), and 600 px additionally covers a 1440 × 1024 window at
+200 % zoom, which measures 512 px. And the fix taken is the *second* of the two this section offers — unsticking
+the header, not collapsing it to a compact row. The compact-row restructure remains the better outcome and is
+still worth doing alongside IMP-038 and IMP-055; it is no longer needed to satisfy the rule.
 
 IMP-002 fixed the *overlap* between the three sticky bars, and the browser check confirms that fix holds: at
 390 px and at 200 % zoom the bars now stack correctly and never sit on top of one another. What IMP-002 did not
