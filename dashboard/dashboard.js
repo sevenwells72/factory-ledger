@@ -162,7 +162,7 @@
 
   function updateThemeIcon(theme) {
     const btn = document.getElementById('theme-toggle');
-    if (btn) btn.innerHTML = theme === 'dark' ? '&#9788;' : '&#9790;';
+    if (btn) {btn.innerHTML=FLDesign.icon(theme==='dark'?'sun':'moon');btn.setAttribute('aria-label',theme==='dark'?'Switch to light appearance':'Switch to dark appearance');}
   }
 
   // ── Helpers ──
@@ -343,7 +343,7 @@
     const dateLabel = document.getElementById('today-tile-date');
     const made = data.made || {};
     const packed = data.packed || {};
-    dateLabel.textContent = data.date ? `Plant date: ${data.date} (America/New_York)` : 'Plant date unavailable';
+    dateLabel.textContent = data.date ? `Plant date: ${FLDesign.date(data.date)} · ET` : 'Plant date unavailable';
 
     const madeRows = [
       { label: 'Granola', count: made.granola_batches, unit: 'batches', family: 'granola' },
@@ -547,7 +547,7 @@
     if (record.entry_backfilled === true) provenance = ' · backfilled';
     if (source === 'legacy_unverified') provenance = ' · legacy';
     const title = `Entered time (${source})`;
-    return `<div class="created-at-meta" title="${escAttr(title)}">Entered: ${escHtml(record.created_date)} ${escHtml(record.created_time)}${escHtml(provenance)}</div>`;
+    return `<div class="created-at-meta" title="${escAttr(title)}">Entered: ${escHtml(FLDesign.date(record.created_date))} ${escHtml(record.created_time)}${escHtml(provenance)}</div>`;
   }
 
   function saveExpandedPanels() {
@@ -689,6 +689,7 @@
   // switch tabs through exactly the same path as a tab click — including the
   // Recent Entries polling start/stop, which a hand-rolled switch would miss.
   function activateTab(target) {
+    const route=new URL(location.href);route.searchParams.set('section',target);route.searchParams.delete('searchRecord');history.replaceState({},'',route);
     state.currentTab = target;
     window.dispatchEvent(new CustomEvent('fl-tab-change', { detail: target }));
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === target));
@@ -810,11 +811,13 @@
           <span class="recent-status-badge ${escAttr(status.className)}">${escHtml(status.label)}</span>
         </div>
         ${correctionDetail}
-        ${linesHtml}
+        <p class="recent-summary">TX-${escHtml(String(event.transaction_id))} · ${lines.length} ledger line${lines.length===1?'':'s'}${lines[0] ? ' · '+escHtml(lines[0].product_name || 'Unknown product')+' · '+escHtml(fmt(lines[0].quantity))+' '+escHtml(ledgerUnit(lines[0].unit)) : ''}</p>
+        <details class="record-details"><summary>View ledger lines and history</summary>${linesHtml}<a class="record-link" href="${escAttr('/history.html?'+new URLSearchParams({day:event.business_date || new Date(event.occurred_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}),transaction:event.transaction_id}))}">Open TX-${escHtml(String(event.transaction_id))} history →</a></details>
         <div class="recent-entry-dates"><span><strong>Occurred:</strong> ${escHtml(formatEnteredAt(event.occurred_at))}</span><span><strong>Entered:</strong> ${escHtml(formatEnteredAt(event.entered_at))}</span></div>
         ${timingFlags ? `<div class="recent-entry-timing-flags">${timingFlags}</div>` : ''}
       </article>`;
     }).join('');
+    FLDesign.filterCards(document.getElementById('recent-search'), '.recent-entry-card');
   }
 
   async function refreshRecentEntries() {
@@ -983,7 +986,7 @@
       } else {
         html += `<div class="${classes.join(' ')}">`;
       }
-      html += `<span class="day-card-date"><span class="day-name">${escHtml(day.day_name)}</span> &mdash; ${escHtml(day.date)}</span>`;
+      html += `<span class="day-card-date"><span class="day-name">${escHtml(day.day_name)}</span> &mdash; ${escHtml(FLDesign.date(day.date))}</span>`;
 
       if (summary.hasProduction) {
         if (summary.made.length > 0) {
@@ -1412,7 +1415,7 @@
       const products = (s.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
       html += `<tr class="expandable${overflowClass(idx)}" data-expand="${rowId}">`;
-      html += `<td><div>${escHtml(s.date)} ${escHtml(s.time)}</div>${createdAtMeta(s)}</td>`;
+      html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(s.date,s.time))}"><div>${escHtml(FLDesign.date(s.date))} ${escHtml(s.time)}</div>${createdAtMeta(s)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       html += `<td class="num">${s.total_units ? fmt(s.total_lbs) + ' lb &middot; ' + fmtInt(s.total_units) + ' units' : fmt(s.total_lbs) + ' lb'}</td>`;
       html += `<td>${escHtml(s.customer_name || '\u2014')}</td>`;
@@ -1465,7 +1468,7 @@
       const products = (r.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
       html += `<tr class="expandable${overflowClass(idx)}" data-expand="${rowId}">`;
-      html += `<td><div>${escHtml(r.date)} ${escHtml(r.time)}</div>${createdAtMeta(r)}</td>`;
+      html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(r.date,r.time))}"><div>${escHtml(FLDesign.date(r.date))} ${escHtml(r.time)}</div>${createdAtMeta(r)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       const recvUnits = r.cases_received || null;
       html += `<td class="num">${recvUnits ? fmt(r.total_lbs) + ' lb &middot; ' + fmtInt(recvUnits) + ' units' : fmt(r.total_lbs) + ' lb'}</td>`;
@@ -1540,7 +1543,7 @@
       lines.forEach((l, i) => {
         html += `<tr${rowClass}>`;
         if (i === 0) {
-          html += `<td rowspan="${lines.length}"><div>${escHtml((t.created_date || '—') + ' ' + (t.created_time || ''))}${escHtml(provenance)}</div>`;
+          html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(t.created_date,t.created_time))}" rowspan="${lines.length}"><div>${escHtml(FLDesign.date(t.created_date) + ' ' + (t.created_time || ''))}${escHtml(provenance)}</div>`;
           if (t.late_entry) {
             html += `<div class="late-lag" title="Event date ${escAttr(t.event_date)}">${escHtml(lateLagText(t))}</div>`;
           }
@@ -1560,6 +1563,7 @@
 
   // ── Lot Detail Panel ──
   async function openLotPanel(lotCode, productId) {
+    FLDesign.setRecord({type:'lot',name:lotCode,id:productId || null});
     const overlay = document.getElementById('lot-panel-overlay');
     const body = document.getElementById('lot-panel-body');
     const title = document.getElementById('lot-panel-title');
@@ -1621,12 +1625,13 @@
     html += `<dt>On Hand</dt><dd>${fmtQtyCases(data.on_hand_lbs, data.on_hand_cases)}</dd>`;
     html += '</dl>';
 
-    html += '<h4 style="font-size:13px;margin-bottom:8px;">Transaction Timeline</h4>';
+    html += `<p><a class="record-link" href="${escAttr(FLDesign.traceURL(data.lot_code, data.product_id))}">Trace this lot →</a></p>`;
+    html += '<h4 style="font-size:var(--fl-caption, 14px);margin-bottom:8px;">Transaction Timeline</h4>';
     if (data.timeline && data.timeline.length > 0) {
       html += '<ul class="timeline">';
       for (const t of data.timeline) {
         html += `<li class="txn-${t.type}">`;
-        html += `<div class="tl-date">Occurred: ${escHtml(t.date)} ${escHtml(t.time)}</div>`;
+        html += `<div class="tl-date">Occurred: ${escHtml(FLDesign.date(t.date))} ${escHtml(t.time)}</div>`;
         html += createdAtMeta(t);
         html += `<div><span class="tl-type">${escHtml(operationalLabel(t.type))}</span> <span class="tl-qty">${fmtQtyCases(t.quantity_lb, t.cases)}</span></div>`;
         let ctx = '';
@@ -1641,16 +1646,18 @@
       }
       html += '</ul>';
     } else {
-      html += '<div style="color:var(--text-muted);font-size:13px;">No transactions found.</div>';
+      html += '<div style="color:var(--text-muted);font-size:var(--fl-caption, 14px);">No transactions found.</div>';
     }
     body.innerHTML = html;
   }
 
   function closeLotPanel() {
+    FLDesign.setRecord(null);
     document.getElementById('lot-panel-overlay').classList.add('hidden');
   }
 
   async function openProductPanel(productId, productName) {
+    FLDesign.setRecord({type:'product',id:productId,name:productName || 'Product'});
     const overlay = document.getElementById('lot-panel-overlay');
     const body = document.getElementById('lot-panel-body');
     const title = document.getElementById('lot-panel-title');
@@ -1673,12 +1680,12 @@
         const zeroLots = data.lots.filter(l => l.on_hand_lbs === 0);
 
         if (activeLots.length > 0) {
-          html += '<h4 style="font-size:13px;margin:12px 0 8px;">Active Lots</h4>';
-          html += '<table style="width:100%;font-size:13px;border-collapse:collapse;">';
+          html += '<h4 style="font-size:var(--fl-caption, 14px);margin:12px 0 8px;">Active Lots</h4>';
+          html += '<table style="width:100%;font-size:var(--fl-caption, 14px);border-collapse:collapse;">';
           html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Lot Code</th><th style="text-align:left;padding:4px 8px;">Source</th><th style="text-align:right;padding:4px 8px;">On Hand</th></tr>';
           for (const l of activeLots) {
             html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" data-product-id="${productId}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
-            html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;
+            html += `<td style="padding:4px 8px;"><button type="button" class="lot-link">${escHtml(l.lot_code)}</button><a class="record-link lot-trace-link" href="${escAttr(FLDesign.traceURL(l.lot_code,productId))}">Trace →</a></td>`;
             html += `<td style="padding:4px 8px;">${escHtml(operationalLabel(l.entry_source))}</td>`;
             html += `<td style="text-align:right;padding:4px 8px;">${fmt(l.on_hand_lbs)} lb</td>`;
             html += '</tr>';
@@ -1687,31 +1694,30 @@
         }
 
         if (zeroLots.length > 0) {
-          html += `<h4 style="font-size:13px;margin:12px 0 8px;color:var(--text-muted);">Depleted Lots (${zeroLots.length})</h4>`;
+          html += `<h4 style="font-size:var(--fl-caption, 14px);margin:12px 0 8px;color:var(--text-muted);">Depleted Lots (${zeroLots.length})</h4>`;
           // A1 / IMP-067: muted text on the cells, not an opacity on the table —
           // the lot links inside it are readable text and a 0.6 veil took them to 2.3:1.
-          html += '<table style="width:100%;font-size:13px;border-collapse:collapse;color:var(--text-muted);">';
-          for (const l of zeroLots.slice(0, 10)) {
+          html += '<table style="width:100%;font-size:var(--fl-caption, 14px);border-collapse:collapse;color:var(--text-muted);">';
+          for (const l of zeroLots) {
             html += `<tr class="product-lot-row" data-lot-code="${escHtml(l.lot_code)}" data-product-id="${productId}" style="border-bottom:1px solid var(--border);cursor:pointer;">`;
-            html += `<td style="padding:4px 8px;"><span class="lot-link">${escHtml(l.lot_code)}</span></td>`;
+            html += `<td style="padding:4px 8px;"><button type="button" class="lot-link">${escHtml(l.lot_code)}</button><a class="record-link lot-trace-link" href="${escAttr(FLDesign.traceURL(l.lot_code,productId))}">Trace →</a></td>`;
             html += `<td style="padding:4px 8px;">${escHtml(operationalLabel(l.entry_source))}</td>`;
             html += `<td style="text-align:right;padding:4px 8px;">0 lb</td>`;
             html += '</tr>';
           }
           html += '</table>';
-          if (zeroLots.length > 10) {
-            html += `<div style="font-size:12px;color:var(--text-muted);padding:4px 8px;">...and ${zeroLots.length - 10} more depleted lots</div>`;
-          }
+
         }
       } else {
-        html += '<div style="color:var(--text-muted);font-size:13px;margin-top:8px;">No lots found for this product.</div>';
+        html += '<div style="color:var(--text-muted);font-size:var(--fl-caption, 14px);margin-top:8px;">No lots found for this product.</div>';
       }
 
       body.innerHTML = html;
 
       // Bind lot clicks within product panel
       body.querySelectorAll('.product-lot-row').forEach(row => {
-        row.addEventListener('click', () => {
+        row.addEventListener('click', (event) => {
+          if(event.target.closest('a'))return;
           openLotPanel(row.dataset.lotCode, row.dataset.productId);
         });
       });
@@ -1800,8 +1806,8 @@
     const notes = state.notesData;
     if (notes.length === 0) {
       container.innerHTML = `<div class="notes-empty">
-        <div class="notes-empty-icon">&#128221;</div>
-        No ${state.notesFilter === 'all' ? 'items' : state.notesFilter + 's'} yet. Click <strong>+ New</strong> to create one.
+
+        No ${state.notesFilter === 'all' ? 'items' : state.notesFilter + 's'} yet. Select <strong>New Note…</strong> to create one.
       </div>`;
       return;
     }
@@ -1826,26 +1832,26 @@
       html += '<div class="note-content">';
       html += '<div class="note-title-row">';
       html += `<span class="note-title">${escHtml(n.title)}</span>`;
-      html += `<span class="note-cat-badge cat-${n.category}">${n.category}</span>`;
+      html += `<span class="note-cat-badge cat-${n.category}">${{note:'Note',todo:'To-Do',reminder:'Reminder'}[n.category] || escHtml(n.category)}</span>`;
       if (n.priority === 'high') html += '<span class="note-priority-badge p-high">High</span>';
       if (n.priority === 'low') html += '<span class="note-priority-badge p-low">Low</span>';
       html += '</div>';
 
       if (n.body && n.body.trim()) {
-        html += `<div class="note-body">${escHtml(n.body)}</div>`;
+        html += `<p class="note-preview">${escHtml(n.body.slice(0, 140))}${n.body.length > 140 ? "…" : ""}</p><details class="record-details"><summary>Read note</summary><div class="note-body">${escHtml(n.body)}</div></details>`;
       }
 
       // Meta row
       const meta = [];
       if (n.due_date) {
         const overdue = !isDone && n.due_date < todayStr;
-        meta.push(`<span class="note-due ${overdue ? 'overdue' : ''}">Due: ${n.due_date}</span>`);
+        meta.push(`<span class="note-due ${overdue ? 'overdue' : ''}">Due: ${escHtml(FLDesign.date(n.due_date))}</span>`);
       }
       if (n.entity_type && n.entity_id) {
         meta.push(`<span class="note-entity">${escHtml(operationalLabel(n.entity_type))}: ${escHtml(n.entity_id)}</span>`);
       }
       if (n.created_at) {
-        meta.push(`<span>Created: ${escHtml(n.created_at)}</span>`);
+        meta.push(`<span>Created: ${escHtml(FLDesign.time(n.created_at))}</span>`);
       }
       if (meta.length) {
         html += `<div class="note-meta">${meta.join('')}</div>`;
@@ -1854,13 +1860,14 @@
 
       // Actions
       html += '<div class="note-actions">';
-      html += `<button class="note-action-btn edit" data-id="${n.id}" title="Edit note" aria-label="Edit note: ${escAttr(n.title)}">&#9998;</button>`;
-      html += `<button class="note-action-btn delete" data-id="${n.id}" title="Delete note" aria-label="Delete note: ${escAttr(n.title)}">&#10005;</button>`;
+      html += `<button class="note-action-btn edit" data-id="${n.id}" title="Edit note" aria-label="Edit note: ${escAttr(n.title)}">Edit</button>`;
+      html += `<button class="note-action-btn delete" data-id="${n.id}" title="Delete note" aria-label="Delete note: ${escAttr(n.title)}">Delete</button>`;
       html += '</div>';
 
       html += '</div>'; // .note-card
     }
     container.innerHTML = html;
+    FLDesign.filterCards(document.getElementById('notes-search'), '.note-card');
 
     // Bind checkbox toggles
     container.querySelectorAll('.note-checkbox').forEach(cb => {
@@ -1914,7 +1921,8 @@
   function openNoteModal(note) {
     state.editingNoteId = note ? note.id : null;
     const title = document.getElementById('note-modal-title');
-    title.textContent = note ? 'Edit Item' : 'New Item';
+    title.textContent = note ? 'Edit ' + ({note:'Note',todo:'To-Do',reminder:'Reminder'}[note.category] || 'Note') : 'New Note';
+    document.getElementById('note-save-btn').textContent = note ? 'Save Changes' : 'Create Note';
 
     // Populate fields
     const catRadios = document.querySelectorAll('input[name="note-cat"]');
@@ -1927,12 +1935,60 @@
     document.getElementById('note-entity-type').value = note ? (note.entity_type || '') : '';
     document.getElementById('note-entity-id').value = note ? (note.entity_id || '') : '';
 
+    resetNoteReference(note);
     document.getElementById('note-modal-overlay').classList.remove('hidden');
   }
 
   function closeNoteModal() {
     document.getElementById('note-modal-overlay').classList.add('hidden');
     state.editingNoteId = null;
+  }
+
+  let noteReference = null;
+  let noteReferenceGeneration = 0;
+  function resetNoteReference(note) {
+    noteReferenceGeneration++;
+    noteReference=note?.entity_type && note?.entity_id ? {type:note.entity_type,value:note.entity_id} : null;
+    document.getElementById('note-reference-results').replaceChildren();
+    document.getElementById('note-reference-status').textContent=noteReference ? 'Existing reference retained. Search and select to change it.' : 'Choose an existing record. This is a note reference, not a change to that record.';
+    document.getElementById('note-entity-id').disabled=!document.getElementById('note-entity-type').value;
+  }
+  function validateNoteReference() {
+    const type=document.getElementById('note-entity-type').value,value=document.getElementById('note-entity-id').value.trim();
+    if(noteReference?.type===type && noteReference.value===value)return true;
+    document.getElementById('note-reference-status').textContent='Select a matching existing record, or choose None to leave the note unpinned.';
+    document.getElementById('note-entity-id').focus();return false;
+  }
+  function initNoteReference() {
+    const input=document.getElementById('note-entity-id'),type=document.getElementById('note-entity-type'),results=document.getElementById('note-reference-results'),status=document.getElementById('note-reference-status');
+    let timer;
+    type.addEventListener('change',()=>{input.value='';resetNoteReference(null);});
+    input.addEventListener('input',()=>{
+      noteReference=null;const generation=++noteReferenceGeneration;clearTimeout(timer);results.replaceChildren();
+      const query=input.value.trim();if(query.length<2){status.textContent='Enter at least two characters, then choose a matching record.';return;}
+      status.textContent='Searching…';
+      timer=setTimeout(async()=>{try{
+        const kind=type.value;
+        const data=kind==='supplier'?await fetchSalesAPI('/suppliers?q='+encodeURIComponent(query)):await fetchAPI('/search?q='+encodeURIComponent(query));
+        if(generation!==noteReferenceGeneration)return;
+        const options=kind==='supplier'?(data.suppliers||[]).map(s=>({value:s.name,label:s.name+' — supplier #'+s.id})):
+          kind==='product'?(data.products||[]).map(p=>({value:String(p.product_id),label:p.name+' — product #'+p.product_id})):
+          kind==='lot'?(data.lots||[]).map(l=>({value:l.lot_code+' — '+l.product_name+' (#'+l.product_id+')',label:l.lot_code+' — '+l.product_name+' (#'+l.product_id+')'})):
+          (data.customers||[]).map(c=>({value:c.name,label:c.name}));
+        options.forEach(o=>{const b=document.createElement('button');b.type='button';b.className='reference-choice';b.textContent=o.label;b.addEventListener('click',()=>{input.value=o.value;noteReference={type:kind,value:o.value};noteReferenceGeneration++;results.replaceChildren();status.textContent='Selected: '+o.label;input.focus();});results.append(b);});
+        status.textContent=options.length?'Choose one of '+options.length+' matching records.':'No matching records. Change the search or choose None.';
+      }catch(e){if(generation===noteReferenceGeneration)status.textContent='Search unavailable. Edit the search to retry; no reference selected.';}},250);
+    });
+    document.querySelectorAll('input[name="note-cat"]').forEach(r=>r.addEventListener('change',()=>{const label={note:'Note',todo:'To-Do',reminder:'Reminder'}[r.value];document.getElementById('note-modal-title').textContent=(state.editingNoteId?'Edit ':'New ')+label;document.getElementById('note-save-btn').textContent=state.editingNoteId?'Save Changes':'Create '+label;}));
+  }
+  function initSupplierFilter() {
+    const input=document.getElementById('er-supplier-filter'),select=document.getElementById('er-supplier');
+    input.addEventListener('input',()=>{
+      const selected=select.value,q=input.value.trim().toLowerCase();
+      select.replaceChildren(new Option('— select supplier —',''));
+      state.erSuppliers.filter(s=>s.name===selected || (s.name+' '+s.id).toLowerCase().includes(q)).forEach(s=>select.add(new Option(s.name+' — #'+s.id,s.name)));
+      select.value=selected;document.getElementById('er-supplier-count').textContent=(select.options.length-1)+' suppliers shown. Select the exact name and ID.';
+    });
   }
 
   async function saveNote() {
@@ -1952,6 +2008,7 @@
     const due_date = document.getElementById('note-due').value || null;
     const entity_type = document.getElementById('note-entity-type').value || null;
     const entity_id = document.getElementById('note-entity-id').value.trim() || null;
+    if (entity_type && (!entity_id || !validateNoteReference())) return;
 
     const payload = { title, body, priority, due_date, entity_type, entity_id };
 
@@ -2109,7 +2166,7 @@
     if (!dateStr) return '—';
     const parts = dateStr.split('-');
     if (parts.length !== 3) return dateStr;
-    return parts[1] + '/' + parts[2] + '/' + parts[0].slice(2);
+    return FLDesign.date(dateStr);
   }
 
   function getLocalDateFromISO(dateStr) {
@@ -2134,7 +2191,7 @@
     return d.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      timeZone: 'America/New_York'
+      timeZone: 'America/New_York', timeZoneName: 'short'
     });
   }
 
@@ -2443,7 +2500,7 @@
 
     if (orders.length === 0) {
       container.innerHTML = `<div class="orders-empty">
-        <div class="orders-empty-icon">&#128230;</div>
+
         No orders match your filters.
       </div>`;
       return;
@@ -2464,8 +2521,8 @@
       html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><label class="check-hit"><input type="checkbox" class="order-ready-checkbox" aria-label="Factory Ready: ${escAttr(o.order_number)} — ${escAttr(o.customer)}" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></label></td>`;
       html += `<td><button type="button" class="order-link">${escHtml(o.order_number)}</button></td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
-      html += `<td>${formatDateShort(o.order_date)}</td>`;
-      html += `<td class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date)}</td>`;
+      html += `<td data-sort-value="${escAttr(o.order_date || '')}">${formatDateShort(o.order_date)}</td>`;
+      html += `<td data-sort-value="${escAttr(o.requested_ship_date || '')}" class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date)}</td>`;
       html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span>${orderReadyPill(o)}</td>`;
       html += `<td>${renderDispatchState(o)}</td>`;
       html += `<td class="order-blockers-cell">${renderOrderBlockers(o)}</td>`;
@@ -2508,7 +2565,7 @@
     let html = `<div class="order-ready-drawer"${readyReadOnly ? ` title="${readyTooltip}"` : ''}>`;
     html += '<label>Factory Ready note</label>';
     html += `<div class="order-ready-note-row"><input type="text" class="order-ready-note-input" data-order-id="${order.order_id}" value="${escAttr(readyNote)}" placeholder="Optional note for the floor" ${readyReadOnly ? `disabled title="${readyTooltip}"` : ''}>`;
-    html += `<button type="button" class="btn-sm order-ready-note-save" data-order-id="${order.order_id}" ${readyReadOnly ? `disabled title="${readyTooltip}"` : ''}>Save</button></div>`;
+    html += `<button type="button" class="btn-sm order-ready-note-save" data-order-id="${order.order_id}" ${readyReadOnly ? `disabled title="${readyTooltip}"` : ''}>Save Factory Ready Note</button></div>`;
     if (readyNote) html += `<div class="order-ready-note-text">${escHtml(readyNote)}</div>`;
     html += '</div>';
     html += '<div class="order-inline-readiness">';
@@ -2663,6 +2720,7 @@
         const contentCell = detailRow.querySelector('.order-lines-content');
 
         const expanding = detailRow.classList.contains('hidden');
+        if(expanding)FLDesign.setRecord({type:'order',id:orderId});
         detailRow.classList.toggle('hidden', !expanding);
         btn.classList.toggle('expanded', expanding);
         btn.setAttribute('aria-expanded', expanding ? 'true' : 'false');
@@ -2689,6 +2747,7 @@
   }
 
   async function openOrderDetail(orderId) {
+    FLDesign.setRecord({type:'order',id:orderId});
     const listView = document.getElementById('orders-list-view');
     const detailView = document.getElementById('order-detail-view');
     const container = document.getElementById('order-detail-container');
@@ -2810,6 +2869,7 @@
         if (!detailRow || !detailCell) return;
 
         const expanding = detailRow.classList.contains('hidden');
+        if(expanding)FLDesign.setRecord({type:'order',id:orderId});
         detailRow.classList.toggle('hidden', !expanding);
         btn.setAttribute('aria-expanded', expanding ? 'true' : 'false');
         if (!expanding || detailRow.dataset.loaded === 'true') return;
@@ -3471,6 +3531,7 @@
   }
 
   function closeOrderDetail() {
+    FLDesign.setRecord(null);
     const listView = document.getElementById('orders-list-view');
     const detailView = document.getElementById('order-detail-view');
 
@@ -3694,9 +3755,11 @@
     } catch (e) {
       state.erSuppliers = [];
     }
+    document.getElementById('er-supplier-filter').value = '';
+    document.getElementById('er-supplier-count').textContent = state.erSuppliers.length + ' suppliers shown. Select the exact name and ID.';
     const sel = document.getElementById('er-supplier');
     sel.innerHTML = '<option value="">— select supplier —</option>' +
-      state.erSuppliers.map(s => `<option value="${escAttr(s.name)}">${escHtml(s.name)}</option>`).join('');
+      state.erSuppliers.map(s => `<option value="${escAttr(s.name)}">${escHtml(s.name)} — #${s.id}</option>`).join('');
   }
 
   function setErProduct(id, name, sku) {
@@ -3736,6 +3799,7 @@
   async function openErModal(record) {
     state.erEditing = record || null;
     hideError('er-modal-error');
+    document.getElementById('er-save-btn').textContent = record ? 'Save Receipt Changes' : 'Create Expected Receipt';
     document.getElementById('er-modal-title').textContent = record ? `Edit Expected Receipt #${record.id}` : 'New Expected Receipt';
     erResetIntake();
     // Dropzone only on create — edit mode changes one existing record.
@@ -4622,7 +4686,7 @@
     const query = document.getElementById('supplies-search').value.trim().toLowerCase();
     const rows = supplyItemsForTab().filter(item => item.name.toLowerCase().includes(query));
     if (rows.length === 0) {
-      container.innerHTML = `<div class="orders-empty"><div class="orders-empty-icon">&#128230;</div>${query ? 'No products match this search.' : 'No products in this category.'}</div>`;
+      container.innerHTML = `<div class="orders-empty">${query ? 'No products match this search.' : 'No products in this category.'}</div>`;
       return;
     }
 
@@ -5289,6 +5353,15 @@
     if (params.has('searchRecord')) {
       try { openSearchRecord(JSON.parse(params.get('searchRecord'))); } catch (_) { /* Ignore invalid incoming selections. */ }
     }
+
+    // Shareable day scope: inputs remain literal calendar dates.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(params.get('day') || '')) {
+      document.getElementById('daily-entries-date').value=params.get('day');
+      document.getElementById('daily-entries-mode').value=params.get('mode')==='entered'?'entered':'event';
+      refreshDailyEntries();
+    }
+    initNoteReference();
+    initSupplierFilter();
 
     // Daily Entries controls
     document.getElementById('daily-entries-date').addEventListener('change', refreshDailyEntries);

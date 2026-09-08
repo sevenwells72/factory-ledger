@@ -1,5 +1,145 @@
 # Change Log
 
+## 2026-09-08 18:41 — Reset and clear supplier searches consistently when reopening receipt entry
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/design-controls.js`, `dashboard/index.html`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:40 — Document Batch C implementation, local verification and remaining validation limits
+- **File(s) changed:** `docs/design/audit-2026-09-08-batch-c.md`, `outputs/factory-ledger-batch-c-results.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:40 — Distinguish top-count Other groups from unclassified production lines
+- **File(s) changed:** `dashboard/sankey.html`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:39 — Give Activity timestamps chronological sort keys and finish whitespace checks
+- **File(s) changed:** `dashboard/design-controls.js`, `dashboard/dashboard.js`, `dashboard/traceability.html`, `tests/test_batch_c_ui.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:38 — Make trace report rows responsive and normalize report timestamps
+- **File(s) changed:** `dashboard/traceability.html`, `dashboard/shell-layout.css`, `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:36 — Keep supply expansions attached and leave editable order-detail tables unchanged
+- **File(s) changed:** `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:35 — Scope default ship-date sorting to the sales-order list
+- **File(s) changed:** `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:34 — Use soonest ship date for default order sorting and retain dispatch priority
+- **File(s) changed:** `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:34 — Retain table sort and desktop widths across refreshes in this browser
+- **File(s) changed:** `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:33 — Wrap populated trace search and direction controls on phones
+- **File(s) changed:** `dashboard/shell-layout.css`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:33 — Keep production stage cards readable at the larger mobile type size
+- **File(s) changed:** `dashboard/shell-layout.css`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:32 — Fix offset-aware production dates exposed by run-link verification
+- **File(s) changed:** `dashboard/process-flow.html`, `tests/test_batch_c_ui.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:32 — Resolve date tokens in local Batch C fixture preview
+- **File(s) changed:** `work/audit-preview-c.mjs`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:32 — Add Batch C regression tests for dates, identity, flow aggregation and note reference gate
+- **File(s) changed:** `tests/test_batch_c_ui.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:31 — Unify action icons and stable record routes; clear stale trace selections
+- **File(s) changed:** `dashboard/design-controls.js`, `dashboard/dashboard.js`, `dashboard/traceability.html`, `dashboard/shell-layout.css`, `work/batch_c_polish.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:30 — Apply shared type scale and preserve table expansion state during sorting
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/shell-layout.css`, `dashboard/design-controls.js`, `dashboard/history.js`, `work/batch_c_refine.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:29 — Create Batch C read-only fixture preview
+- **File(s) changed:** `work/audit-preview-c.mjs`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:28 — Add read-only ledger history, Material Flow relationship details and Production Lines refresh/drill-through
+- **File(s) changed:** `dashboard/history.html`, `dashboard/history.js`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/index.html`, `dashboard/shell.js`, `tests/test_recent_ledger.py`, `work/batch_c_pages.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:27 — Implement Batch C record links, note and supplier selection, content summaries and visual controls
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/shell-layout.css`, `work/batch_c_apply.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:26 — Start Batch C shared controls and record/date helpers
+- **File(s) changed:** `dashboard/design-controls.js`, `work/batch_c_edit.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
 ## 2026-09-08 18:20 — Complete Batch B implementation and local validation
 - **File(s) changed:** `docs/design/audit-2026-09-08-batch-b.md`, `FACTORY_LEDGER_CHANGELOG.md`; user report `outputs/factory-ledger-batch-b-results.md`.
 - **What changed:** Recorded all 11 scoped findings, four-width browser measurements, keyboard/search/form checks and collision-free chart result. 15 Python and 40 Node tests passed; syntax and diff checks passed.

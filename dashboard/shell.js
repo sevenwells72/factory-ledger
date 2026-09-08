@@ -66,6 +66,7 @@
       if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();highlight(active < 0 ? (event.key==='ArrowDown' ? 0 : choices.length-1) : active+(event.key==='ArrowDown'?1:-1));}
       if(event.key==='Enter'&&active>=0){event.preventDefault();select(choices[active]);}
     });
+    const incomingQuery=new URLSearchParams(location.search).get('query');if(incomingQuery){input.value=incomingQuery;input.dispatchEvent(new Event('input'));}
     document.addEventListener('click',event=>{if(!event.target.closest('.search-wrapper'))close();});
     document.addEventListener('keydown',event=>{if(event.key==='Escape')document.querySelectorAll('.reference-calendar[open],.mobile-more[open]').forEach(el=>el.open=false);});
     const nav=document.createElement('nav');nav.className='mobile-nav';nav.setAttribute('aria-label','Primary');
@@ -76,7 +77,7 @@
     const more=document.createElement('details');more.className='mobile-more';const summary=document.createElement('summary');summary.textContent='More';more.append(summary);
     const menu=document.createElement('div');menu.className='mobile-more-menu';
     [['recent','Recent Entries'],['notes','Notes'],['expected','Expected Receipts']].forEach(([key,label])=>menu.append(destination(key,label)));
-    [['sankey.html?v=2','Material Flow'],['process-flow.html?v=3','Production Lines'],['traceability.html?v=3','Traceability']].forEach(([url,label])=>{const a=document.createElement('a');a.href='/'+url;a.textContent=label;menu.append(a);});
+    [['history.html?v=1','Ledger History'],['sankey.html?v=3','Material Flow'],['process-flow.html?v=4','Production Lines'],['traceability.html?v=4','Traceability']].forEach(([url,label])=>{const a=document.createElement('a');a.href='/'+url;a.textContent=label;menu.append(a);});
     more.append(menu);nav.append(more);document.body.append(nav);
     function sync(key){nav.querySelectorAll('[data-section]').forEach(a=>{if(a.dataset.section===key)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});summary.classList.toggle('active',!dashboard || ['recent','notes','expected'].includes(key));more.open=false;}
     window.addEventListener('fl-tab-change',e=>sync(e.detail));sync(new URLSearchParams(location.search).get('section')|| (dashboard?'operations':''));

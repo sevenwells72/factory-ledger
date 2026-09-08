@@ -94,12 +94,12 @@ a:hover { text-decoration: underline; }
 
 /* Site Nav */
 .site-nav { position:fixed;top:0;left:0;right:0;height:48px;z-index:200;background:#1a1a2e;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;padding:0 20px; }
-.site-nav-brand { font-size:15px;font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
+.site-nav-brand { font-size:var(--fl-body, 15px);font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
 .site-nav-links { display:flex;gap:4px;align-items:center; }
-.site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
+.site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:var(--fl-caption, 14px);font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
 .site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
 .site-nav-link.active { color:#fff;background:var(--primary); }
-.site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
+.site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:var(--fl-headline, 18px);padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
 @media(max-width:768px){
   .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
   .site-nav-toggle{display:block}
@@ -116,9 +116,9 @@ a:hover { text-decoration: underline; }
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 48px; z-index: 100;
 }
-.header h1 { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-.header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted); }
-.back-link { font-size: 13px; display: flex; align-items: center; gap: 4px; }
+.header h1 { font-size:var(--fl-headline, 18px); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.header-right { display: flex; align-items: center; gap: 12px; font-size:var(--fl-caption, 14px); color: var(--text-muted); }
+.back-link { font-size:var(--fl-caption, 14px); display: flex; align-items: center; gap: 4px; }
 
 /* The wrap dashboard.css:2223-2225 already gives index.html. Without it
    .mini-calendar-strip cannot take its own row and pushes .header-right
@@ -145,13 +145,13 @@ a:hover { text-decoration: underline; }
 .search-input {
   width: 100%; min-height: var(--hit-min); padding: 10px 14px 10px 36px;
   background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
-  color: var(--text); font-size: 14px; font-family: var(--mono); outline: none;
+  color: var(--text); font-size:var(--fl-body, 14px); font-family: var(--mono); outline: none;
 }
 .search-input:focus { border-color: var(--primary-text); }
 .search-input::placeholder { color: var(--text-muted); opacity: 1; }
 .search-icon {
   position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
-  color: var(--text-muted); font-size: 15px; pointer-events: none;
+  color: var(--text-muted); font-size:var(--fl-body, 15px); pointer-events: none;
 }
 .search-dropdown {
   position: absolute; top: calc(100% + 4px); left: 0; right: 0;
@@ -161,21 +161,21 @@ a:hover { text-decoration: underline; }
 }
 .search-dropdown.open { display: block; }
 .search-group-label {
-  padding: 6px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  padding: 6px 12px; font-size:var(--fl-caption, 14px); font-weight: 600; text-transform: uppercase;
   color: var(--text-dimmed); background: var(--bg); letter-spacing: 0.5px;
 }
 .search-item {
   padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between;
-  align-items: center; font-size: 13px; border-bottom: 1px solid var(--row-border);
+  align-items: center; font-size:var(--fl-caption, 14px); border-bottom: 1px solid var(--row-border);
 }
 .search-item:hover { background: var(--surface2); }
 .search-item .lot-code { font-family: var(--mono); color: var(--text); }
-.search-item .product-name { color: var(--text-muted); font-size: 12px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-item .product-name { color: var(--text-muted); font-size:var(--fl-caption, 14px); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .direction-btns { display: flex; gap: 4px; }
 .dir-btn {
   min-height: var(--hit-min); padding: 8px 16px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: transparent; color: var(--text-muted); font-size: 13px; cursor: pointer;
+  background: transparent; color: var(--text-muted); font-size:var(--fl-caption, 14px); cursor: pointer;
   transition: all 0.15s;
 }
 .dir-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -183,7 +183,7 @@ a:hover { text-decoration: underline; }
 
 .trace-btn {
   min-height: var(--hit-min); padding: 8px 20px; border: none; border-radius: var(--radius);
-  background: var(--primary); color: #fff; font-size: 13px; font-weight: 600;
+  background: var(--primary); color: #fff; font-size:var(--fl-caption, 14px); font-weight: 600;
   cursor: pointer; transition: background 0.15s;
 }
 .trace-btn:hover { background: var(--primary-hover); }
@@ -194,9 +194,9 @@ a:hover { text-decoration: underline; }
   max-width: 900px; margin: 10px auto 0; display: flex; flex-wrap: wrap;
   gap: 6px; align-items: center; max-height: 60px; overflow: hidden;
 }
-.recent-label { font-size: 11px; color: var(--text-dimmed); margin-right: 4px; }
+.recent-label { font-size:var(--fl-caption, 14px); color: var(--text-dimmed); margin-right: 4px; }
 .lot-pill {
-  padding: 3px 10px; border-radius: 12px; font-size: 11px; font-family: var(--mono);
+  padding: 3px 10px; border-radius: 12px; font-size:var(--fl-caption, 14px); font-family: var(--mono);
   background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);
   color: var(--text-muted); cursor: pointer; transition: all 0.15s;
 }
@@ -205,7 +205,7 @@ a:hover { text-decoration: underline; }
 /* Completeness badge */
 .completeness-badge {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+  padding: 4px 12px; border-radius: 12px; font-size:var(--fl-caption, 14px); font-weight: 600;
 }
 .badge-complete { background: rgba(16,185,129,0.15); color: var(--badge-green-text); border: 1px solid rgba(16,185,129,0.3); }
 .badge-partial { background: rgba(245,158,11,0.15); color: var(--badge-amber-text); border: 1px solid rgba(245,158,11,0.3); }
@@ -222,7 +222,7 @@ a:hover { text-decoration: underline; }
 }
 .graph-ctrl-btn {
   min-width: var(--hit-min); min-height: var(--hit-min); padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--surface); color: var(--text-muted); font-size: 12px;
+  background: var(--surface); color: var(--text-muted); font-size:var(--fl-caption, 14px);
   cursor: pointer; transition: all 0.15s;
 }
 .graph-ctrl-btn:hover { border-color: var(--text-muted); color: var(--text); }
@@ -234,7 +234,7 @@ svg text { font-family: var(--font); }
 
 /* Status area */
 .status-bar {
-  padding: 12px 24px; text-align: center; color: var(--text-muted); font-size: 13px;
+  padding: 12px 24px; text-align: center; color: var(--text-muted); font-size:var(--fl-caption, 14px);
   min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .status-bar.error { color: var(--danger); }
@@ -253,19 +253,19 @@ svg text { font-family: var(--font); }
   background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
 }
-.detail-card h3 { font-size: 15px; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
-.detail-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.detail-card h3 { font-size:var(--fl-body, 15px); margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.detail-table { width: 100%; border-collapse: collapse; font-size:var(--fl-caption, 14px); }
 .detail-table th {
   text-align: left; padding: 6px 10px; color: var(--text-dimmed); font-weight: 500;
-  border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border); font-size:var(--fl-caption, 14px); text-transform: uppercase; letter-spacing: 0.3px;
 }
 .detail-table td {
   padding: 6px 10px; border-bottom: 1px solid var(--row-border);
-  color: var(--text-secondary); font-family: var(--mono); font-size: 12px;
+  color: var(--text-secondary); font-family: var(--mono); font-size:var(--fl-caption, 14px);
 }
 .detail-table td.name-col { font-family: var(--font); }
-.confirmed-tag { color: var(--accent); font-size: 11px; }
-.legacy-tag { color: var(--col-gap); font-size: 11px; }
+.confirmed-tag { color: var(--accent); font-size:var(--fl-caption, 14px); }
+.legacy-tag { color: var(--col-gap); font-size:var(--fl-caption, 14px); }
 
 /* Export panel */
 .export-btns {
@@ -273,7 +273,7 @@ svg text { font-family: var(--font); }
 }
 .export-btn {
   min-height: var(--hit-min); padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: transparent; color: var(--text-muted); font-size: 12px;
+  background: transparent; color: var(--text-muted); font-size:var(--fl-caption, 14px);
   cursor: pointer; transition: all 0.15s;
 }
 .export-btn:hover { border-color: var(--text-muted); color: var(--text); }
@@ -281,18 +281,18 @@ svg text { font-family: var(--font); }
 /* Node tooltip */
 .node-tooltip {
   position: absolute; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 10px 14px; font-size: 12px;
+  border-radius: var(--radius); padding: 10px 14px; font-size:var(--fl-caption, 14px);
   pointer-events: none; z-index: 300; max-width: 320px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: none;
 }
-.node-tooltip .tt-label { color: var(--text-dimmed); font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+.node-tooltip .tt-label { color: var(--text-dimmed); font-size:var(--fl-caption, 14px); text-transform: uppercase; letter-spacing: 0.3px; }
 .node-tooltip .tt-value { color: var(--text); margin-bottom: 4px; }
 .node-tooltip .tt-mono { font-family: var(--mono); }
 
 /* Legend */
 .legend {
   display: flex; flex-wrap: wrap; gap: 14px; padding: 8px 24px;
-  border-bottom: 1px solid var(--border); font-size: 11px;
+  border-bottom: 1px solid var(--border); font-size:var(--fl-caption, 14px);
 }
 .legend-item { display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
 .legend-swatch {
@@ -320,7 +320,8 @@ svg text { font-family: var(--font); }
 }
 </style>
 <link rel="stylesheet" href="interaction.css?v=2">
-  <link rel="stylesheet" href="shell-layout.css?v=1">
+  <link rel="stylesheet" href="shell-layout.css?v=2">
+<script src="design-controls.js?v=1"></script>
 </head>
 <body>
 
@@ -330,15 +331,15 @@ svg text { font-family: var(--font); }
   <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
   <div class="site-nav-links" id="navLinks">
     <a href="/" class="site-nav-link">Dashboard</a>
-    <a href="/sankey.html?v=2" class="site-nav-link">Material Flow</a>
-    <a href="/process-flow.html?v=3" class="site-nav-link">Production Lines</a>
-    <a href="/traceability.html?v=3" class="site-nav-link active">Traceability</a>
+    <a href="/sankey.html?v=3" class="site-nav-link">Material Flow</a>
+    <a href="/process-flow.html?v=4" class="site-nav-link">Production Lines</a>
+    <a href="/traceability.html?v=4" class="site-nav-link active">Traceability</a>
   </div>
 </nav>
 
 <!-- Header -->
 <div class="header">
-  <h1><span class="icon">&#x1f50d;</span> Lot Traceability</h1>
+  <h1>Traceability</h1>
   <div class="header-right">
     <div data-mini-calendar aria-label="Calendar"></div>
   </div>
@@ -348,7 +349,7 @@ svg text { font-family: var(--font); }
 <div class="search-area">
   <div class="search-row">
     <div class="search-input-wrap">
-      <span class="search-icon">&#x1f50e;</span>
+
       <input type="text" class="search-input" id="lotSearch" placeholder="Search by lot code, supplier lot, or product name..." autocomplete="off">
       <div class="search-dropdown" id="searchDropdown"></div>
     </div>
@@ -397,8 +398,8 @@ svg text { font-family: var(--font); }
 <div class="detail-panel" id="detailPanel">
   <div class="detail-card" id="traceDetail"></div>
   <div class="export-btns">
-    <button class="export-btn" onclick="printAuditReport()">&#x1f5a8; Print Audit Report</button>
-    <button class="export-btn" onclick="downloadAuditText()">&#x1f4be; Download Text Report</button>
+    <button class="export-btn" onclick="printAuditReport()">Print Audit Report</button>
+    <button class="export-btn" onclick="downloadAuditText()">Download Text Report</button>
   </div>
 </div>
 
@@ -518,7 +519,7 @@ let debounceTimer = null;
 searchInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
   const q = searchInput.value.trim();
-  if (q.length < 2) { closeDropdown(); document.getElementById('traceBtn').disabled = true; return; }
+  if (q.length < 2) { selectedLotCode=null;selectedProductId=null;closeDropdown(); document.getElementById('traceBtn').disabled = true; return; }
   debounceTimer = setTimeout(() => filterLots(q), 200);
   selectedLotCode = q;
   selectedProductId = null;  // clear — user is typing manually
@@ -643,11 +644,11 @@ function showDisambiguation(lotCode, matches) {
     const button = document.createElement('button');
     button.type = 'button';
     button.style.cssText = 'background:var(--surface2);border:1px solid var(--border);color:var(--text);'
-      + 'border-radius:6px;padding:8px 14px;cursor:pointer;text-align:left;font-size:13px;font-family:var(--font)';
+      + 'border-radius:6px;padding:8px 14px;cursor:pointer;text-align:left;font-size:var(--fl-caption, 14px);font-family:var(--font)';
     const name = document.createElement('strong');
     name.textContent = m.product_name || 'Unnamed product';
     const meta = document.createElement('span');
-    meta.style.cssText = 'font-size:11px;color:var(--text-muted)';
+    meta.style.cssText = 'font-size:var(--fl-caption, 14px);color:var(--text-muted)';
     meta.textContent = `ID: ${m.product_id} | Source: ${displaySource(m.entry_source)}`;
     button.append(name, document.createElement('br'), meta);
     button.addEventListener('click', () => pickDisambiguated(lotCode, m.product_id));
@@ -936,7 +937,7 @@ async function findSupplierForLot(lotId, ingNodeId) {
             type: txn.shipper_name ? 'supplier' : 'gap',
             label: supplierName,
             sublabel: txn.bol_reference ? `BOL: ${txn.bol_reference}` : '',
-            detail: `${txn.date} ${txn.time || ''} | Txn #${txn.id}`,
+            detail: `${FLDesign.date(txn.date)} ${txn.time || ''} | Txn #${txn.id}`,
             layer: 0, txnId: txn.id
           });
           addLink(suppId, ingNodeId, Math.abs(parseFloat(line.quantity_lb) || 0), 'confirmed');
@@ -988,7 +989,7 @@ async function findShipmentsForLot(lotId, batchNodeId) {
         id: 'cust-' + key + '-' + batchNodeId,
         type: 'customer', label: cust.name,
         sublabel: cust.orders.length ? cust.orders.join(', ') : '',
-        detail: `${cust.totalQty} lb | ${cust.date} | Txn #${cust.txnIds.join(', #')}`,  // unit enrichment via node detail in trace data
+        detail: `${cust.totalQty} lb | ${FLDesign.date(cust.date)} | Txn #${cust.txnIds.join(', #')}`,  // unit enrichment via node detail in trace data
         quantity: cust.totalQty, layer: 3, txnIds: cust.txnIds
       });
       addLink(batchNodeId, custId, cust.totalQty, 'confirmed');
@@ -1278,8 +1279,8 @@ function showTooltip(event, node) {
     <div class="tt-label">${typeLabel[node.type] || node.type}</div>
     <div class="tt-value tt-mono" style="font-weight:600">${node.label}</div>
     ${node.sublabel ? `<div class="tt-value">${node.sublabel}</div>` : ''}
-    ${node.detail ? `<div class="tt-value" style="color:var(--text-muted);font-size:11px">${node.detail}</div>` : ''}
-    ${node.isLegacy ? '<div style="color:var(--col-gap);font-size:11px;margin-top:4px">\u26A0 Legacy record — ingredient lot not tracked</div>' : ''}
+    ${node.detail ? `<div class="tt-value" style="color:var(--text-muted);font-size:var(--fl-caption, 14px)">${node.detail}</div>` : ''}
+    ${node.isLegacy ? '<div style="color:var(--col-gap);font-size:var(--fl-caption, 14px);margin-top:4px">\u26A0 Legacy record — ingredient lot not tracked</div>' : ''}
     ${node.txnId ? `<div class="tt-label" style="margin-top:4px">Transaction #${node.txnId}</div>` : ''}
   `;
   tt.style.display = 'block';
@@ -1380,10 +1381,10 @@ function renderDetailPanel() {
   const t = currentTrace;
   const dirLabel = t.direction === 'forward' ? 'Forward Trace (Ingredient \u2192 Batches \u2192 Customers)' : (graphNodes.some(n => n.id.startsWith('ing-') && n.layer === 1 && n.id === 'ing-' + t.startLot) ? 'Backward Trace (Supplier \u2192 Ingredient \u2192 Batches \u2192 Customers)' : 'Backward Trace (Batch \u2192 Ingredients \u2192 Suppliers)');
   const now = new Date();
-  const traceDate = now.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'medium', timeStyle: 'short' }) + ' ET';
+  const traceDate = FLDesign.time(now.toISOString());
 
   let html = `<h3>${dirLabel}</h3>`;
-  html += `<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--text-muted)">`;
+  html += `<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;font-size:var(--fl-caption, 14px);color:var(--text-muted)">`;
   html += `<span>Traced: ${traceDate}</span>`;
   html += `<span>Start: <strong style="color:var(--text);font-family:var(--mono)">${t.startLot}</strong></span>`;
   if (t.product) html += `<span>Product: ${t.product}</span>`;
@@ -1408,12 +1409,13 @@ function renderDetailPanel() {
       <td class="name-col">${node.sublabel || '-'}</td>
       <td>${node.quantity ? node.quantity.toLocaleString() + ' lb' : '-'}</td>
       <td>${conf === 'confirmed' ? '<span class="confirmed-tag">\u2713 Confirmed</span>' : conf === 'legacy' ? '<span class="legacy-tag">\u26A0 Legacy</span>' : '-'}</td>
-      <td class="name-col" style="font-size:11px">${node.detail || '-'}</td>
+      <td class="name-col" style="font-size:var(--fl-caption, 14px)">${node.detail || '-'}</td>
     </tr>`;
   }
   html += `</tbody></table>`;
 
   card.innerHTML = html;
+  card.querySelectorAll('.detail-table tbody tr').forEach(row=>[...row.cells].forEach((cell,i)=>cell.dataset.label=['Type','Lot / Name','Product','Quantity','Link','Detail'][i]));
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1427,7 +1429,7 @@ function downloadAuditText() {
   if (!currentTrace) return;
   const t = currentTrace;
   const now = new Date();
-  const traceDate = now.toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'long', timeStyle: 'long' });
+  const traceDate = FLDesign.time(now.toISOString());
 
   let text = '═══════════════════════════════════════════════\n';
   text += '  LOT TRACEABILITY AUDIT REPORT\n';
@@ -1516,6 +1518,6 @@ function loadFromURL() {
 </script>
 <script src="mini-calendar.js?v=4"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
-  <script src="shell.js?v=1"></script>
+  <script src="shell.js?v=2"></script>
 </body>
 </html>
