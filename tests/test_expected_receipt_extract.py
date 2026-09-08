@@ -637,6 +637,50 @@ class TestMatchEndpoint:
         else:
             assert line["expected_qty_lb"] is None  # …while qty stays null until confirm
 
+    # Audit fix 2: alias conversions are lb-per-ALIAS-UNIT and apply only when
+    # the line's unit matches the unit the alias was saved with.
+
+    def test_alias_unit_mismatch_falls_back_to_line_unit(self, client, cur):
+        """A 50-lb/BAG alias on a '100 LB' line must yield 100 lb, not 5,000."""
+        sup, exact_pid, alias_pid = self._seed(cur)
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "VNDR OATS SPECIAL 22.68KG", "quantity": 100, "unit": "LB"}])
+        line = r.json()["lines"][0]
+        assert line["match_source"] == "alias", "product association still reuses"
+        assert line["product"]["product_id"] == alias_pid
+        assert line["lb_source"] == "unit_is_lb" and line["lb_per_unit"] == 1.0
+        assert line["expected_qty_lb"] == 100
+
+    def test_alias_unit_mismatch_container_requires_manual_lb(self, client, cur):
+        sup, exact_pid, alias_pid = self._seed(cur)
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "VNDR OATS SPECIAL 22.68KG", "quantity": 3, "unit": "CASE"}])
+        line = r.json()["lines"][0]
+        assert line["match_source"] == "alias"
+        assert line["lb_per_unit"] is None and line["lb_source"] == "none"
+        assert line["expected_qty_lb"] is None
+
+    def test_alias_unit_match_is_normalized(self, client, cur):
+        sup, exact_pid, alias_pid = self._seed(cur)
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "vndr oats special 22.68kg", "quantity": 4, "unit": " bag. "}])
+        line = r.json()["lines"][0]
+        assert line["lb_source"] == "alias" and line["lb_per_unit"] == 50
+        assert line["expected_qty_lb"] == 200
+
+    def test_alias_with_null_unit_applies_to_unitless_line(self, client, cur):
+        sup, exact_pid, alias_pid = self._seed(cur)
+        cur.execute(
+            """INSERT INTO supplier_product_aliases
+                   (supplier_id, vendor_description, product_id, lb_per_unit, unit)
+               VALUES (%s, 'VNDR UNITLESS THING', %s, 30, NULL)""",
+            (sup, alias_pid))
+        r = self._match(client, "Vendor Match Co 049",
+                        [{"vendor_description": "VNDR UNITLESS THING", "quantity": 2, "unit": None}])
+        line = r.json()["lines"][0]
+        assert line["lb_source"] == "alias" and line["lb_per_unit"] == 30
+        assert line["expected_qty_lb"] == 60
+
     def test_fuzzy_never_computes_lb(self, client, cur):
         self._seed(cur)
         r = self._match(client, "Vendor Match Co 049",

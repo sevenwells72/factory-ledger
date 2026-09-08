@@ -5236,6 +5236,11 @@ def _normalize_vendor_description(text: Optional[str]) -> str:
     return re.sub(r"\s+", " ", text.strip()).lower()
 
 
+def _normalize_unit(unit: Optional[str]) -> Optional[str]:
+    """'BAG.', ' bag ' and 'bag' are the same unit; empty → None."""
+    return (unit or "").strip().lower().rstrip(".") or None
+
+
 def find_supplier_alias(cur, supplier_id: int, vendor_description: str) -> Optional[dict]:
     cur.execute(
         """SELECT spa.id, spa.product_id, spa.lb_per_unit, spa.unit,
@@ -5324,7 +5329,7 @@ def _match_line(cur, supplier_id: Optional[int], line: dict) -> dict:
     """
     desc = line["vendor_description"]
     quantity = float(line["quantity"])
-    unit_norm = (line.get("unit") or "").strip().lower().rstrip(".") or None
+    unit_norm = _normalize_unit(line.get("unit"))
 
     product = None
     candidates = []
@@ -5358,8 +5363,14 @@ def _match_line(cur, supplier_id: Optional[int], line: dict) -> dict:
                 product = next(c for c in candidates if c["product_id"] == stub_pick)
 
     # ── lb conversion ──
+    # Audit fix 2: an alias conversion is lb-per-ALIAS-UNIT — it applies only
+    # when the line's unit matches the unit the alias was saved with (a 50-lb
+    # BAG alias must not turn "100 LB" into 5,000 lb). The product association
+    # still reuses; a mismatched unit falls through to the unit-derived rules
+    # below, or stays null for manual entry.
     lb_per_unit, lb_source = None, "none"
-    if alias and alias.get("lb_per_unit") is not None:
+    if alias and alias.get("lb_per_unit") is not None \
+            and _normalize_unit(alias.get("unit")) == unit_norm:
         lb_per_unit, lb_source = float(alias["lb_per_unit"]), "alias"
     elif unit_norm in _LB_UNITS:
         lb_per_unit, lb_source = 1.0, "unit_is_lb"
