@@ -2746,7 +2746,11 @@ body {
   font-size: 12px;
   line-height: 1.25;
   color: var(--text-muted);
-  overflow-wrap: anywhere;
+  /* Word-boundary wrapping only (IMP-068). These are seven fixed labels the
+     product controls, not unbounded data strings; `overflow-wrap: anywhere`
+     broke them mid-word ("Overdue recei-pts") in the two-column phone grid.
+     The chip template's minmax(0, 1fr) label track keeps the chip from
+     overflowing once the column is full-width. */
 }
 
 /* The shape carrier. Present in the DOM at every state so toggling it cannot
@@ -2804,6 +2808,12 @@ body {
     padding: 10px 12px 14px;
   }
   .att-label { font-size: 11.5px; }
+}
+/* IMP-068: below 420px the 160px minimum still fits two columns in the
+   content column and leaves the label track a few characters wide. One
+   column, so every label reads whole. */
+@media (max-width: 420px) {
+  .attention-strip { grid-template-columns: 1fr; }
 }
 
 /* OTHER-00x: honour reduced motion for the hover/press transition. */
