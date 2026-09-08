@@ -5274,18 +5274,44 @@ def upsert_supplier_alias(cur, supplier_id: int, vendor_description: str, produc
     )
 
 
+# A standalone number: not preceded by a digit or dot (so '.5 LB' reads as
+# 0.5, never 5, and '1.5.5' matches nothing), decimals with or without a
+# leading integer part.
+_WEIGHT_NUM = r"(?<![\d.])(\d+(?:\.\d+)?|\.\d+)"
+_WEIGHT_LB_UNIT = r"(?:lbs?|pounds?)\b"
+
+
 def _parse_weight_lb_from_description(desc: str) -> Optional[float]:
-    """A weight token printed in the vendor's own wording: '50 LB', '50LB',
-    '50#' (digits BEFORE the #; '#9' is an item number and never matches)."""
+    """A weight token printed in the vendor's own wording, per unit ordered.
+
+    Audit fix 7: numeric boundaries are enforced ('.5 LB' → 0.5), 'N x M LB'
+    means N packs of M lb per unit (→ N×M), and ANY ambiguity — no token, or
+    tokens that disagree — returns None so the value stays manual. '50#'
+    matches (digits BEFORE the #); '#9' is an item number and never does."""
     if not desc:
         return None
-    m = re.search(r"(\d+(?:\.\d+)?)\s*(?:lbs?|pounds?)\b", desc, re.IGNORECASE)
-    if not m:
-        m = re.search(r"(\d+(?:\.\d+)?)#(?!\d)", desc)
-    if not m:
+    values, spans = [], []
+    # 'N x M LB' / 'N x M#' first; their inner 'M LB' must not also count alone.
+    for m in re.finditer(
+            rf"{_WEIGHT_NUM}\s*[x×]\s*(\d+(?:\.\d+)?|\.\d+)\s*(?:{_WEIGHT_LB_UNIT}|#(?!\d))",
+            desc, re.IGNORECASE):
+        values.append(float(m.group(1)) * float(m.group(2)))
+        spans.append(m.span())
+
+    def _inside_pack_token(span):
+        return any(a <= span[0] and span[1] <= b for a, b in spans)
+
+    for m in re.finditer(rf"{_WEIGHT_NUM}\s*{_WEIGHT_LB_UNIT}", desc, re.IGNORECASE):
+        if not _inside_pack_token(m.span()):
+            values.append(float(m.group(1)))
+    for m in re.finditer(rf"{_WEIGHT_NUM}#(?!\d)", desc):
+        if not _inside_pack_token(m.span()):
+            values.append(float(m.group(1)))
+
+    distinct = {round(v, 6) for v in values if v > 0}
+    if len(distinct) != 1:
         return None
-    value = float(m.group(1))
-    return value if value > 0 else None
+    return distinct.pop()
 
 
 def _ai_candidate_selection_stub(cur, vendor_description: str, candidates: list) -> Optional[int]:

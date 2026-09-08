@@ -763,6 +763,41 @@ class TestMatchEndpoint:
         assert cur.fetchone()["n"] == before
 
 
+class TestWeightTokenParser:
+    """Audit fix 7: _parse_weight_lb_from_description — numeric boundaries,
+    N × M packs, and null on any ambiguity."""
+
+    @pytest.mark.parametrize("desc,expected", [
+        ("Graham Cracker Crumbs - 50 LB", 50.0),
+        ("CHOC CHIPS 50LB", 50.0),
+        ("HONEY 60# PAIL", 60.0),
+        ("BUTTER .5 LB bag", 0.5),          # audit: was misread as 5 lb
+        ("BUTTER 0.5 LB bag", 0.5),
+        ("PECANS 4 x 5 LB case", 20.0),     # audit: was misread as 5 lb/unit
+        ("PECANS 4x5lb", 20.0),
+        ("PECANS 2 X 2.5# case", 5.0),
+        ("PECANS 4 x 5 LB (20 LB total)", 20.0),  # pack math and total agree
+        ("SS Classic #9 Bulk", None),       # '#9' is an item number
+        ("no weight printed here", None),
+        ("", None),
+        ("MIX 50 LB or 25 LB", None),       # conflicting tokens → manual
+        ("WEIRD 1.5.5 LB", None),           # malformed number → manual
+        ("ZERO 0 LB", None),
+        ("ZERO 0.0 LB pail", None),
+    ])
+    def test_parser(self, desc, expected):
+        assert main._parse_weight_lb_from_description(desc) == expected
+
+    def test_pack_weight_via_match_endpoint(self, client, cur):
+        sup = _seed_supplier(cur, "Vendor Pack Co 049")
+        r = client.post("/expected-receipts/match", json={"extraction": {
+            "supplier_name": "Vendor Pack Co 049", "reference_number": None,
+            "document_date": None, "expected_delivery_date": None,
+            "lines": [{"vendor_description": "PECANS 4 x 5 LB", "quantity": 3, "unit": "CASE"}]}})
+        line = r.json()["lines"][0]
+        assert line["lb_per_unit"] == 20 and line["lb_source"] == "parsed_description"
+
+
 class TestApproveEndpoint:
     def _seed(self, cur):
         sup = _seed_supplier(cur, "Vendor Approve Co 049")
