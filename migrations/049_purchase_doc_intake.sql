@@ -34,11 +34,21 @@ CREATE TABLE IF NOT EXISTS public.purchase_documents (
     extraction        jsonb,
     extraction_model  text,
     status            text        NOT NULL DEFAULT 'uploaded'
-                      CHECK (status IN ('uploaded','extracted','extraction_failed','approved')),
+                      CHECK (status IN ('uploaded','upload_failed','extracted','extraction_failed','approved')),
     approved_at       timestamptz,
     uploaded_at       timestamptz NOT NULL DEFAULT clock_timestamp(),
     created_by        text
 );
+
+-- Audit fix 12: 'upload_failed' marks a row whose Storage write failed (no
+-- object behind it — re-upload, don't retry extraction). Named-constraint
+-- replacement so a re-run upgrades a table created by an earlier draft of
+-- this migration; on a fresh table it drops and re-adds the same constraint.
+ALTER TABLE public.purchase_documents
+    DROP CONSTRAINT IF EXISTS purchase_documents_status_check;
+ALTER TABLE public.purchase_documents
+    ADD CONSTRAINT purchase_documents_status_check
+    CHECK (status IN ('uploaded','upload_failed','extracted','extraction_failed','approved'));
 
 -- Re-upload detection ("already_seen" in the extract response).
 CREATE INDEX IF NOT EXISTS idx_purchase_documents_sha256

@@ -5623,7 +5623,8 @@ def extract_expected_receipt_document(
     # Row FIRST, Storage second (owner ruling 2026-09-08): a readonly-armed
     # request must 503 on this INSERT before anything is written to Storage —
     # no orphan objects. The inverse failure (upload fails after the INSERT)
-    # leaves a harmless status='uploaded' row with no object behind it.
+    # marks the row 'upload_failed' (audit fix 12) so it can't sit around
+    # looking retryable with no object behind it.
     with get_transaction() as cur:
         cur.execute("SELECT id FROM purchase_documents WHERE file_sha256 = %s LIMIT 1", (sha256,))
         already_seen = cur.fetchone() is not None
@@ -5636,7 +5637,18 @@ def extract_expected_receipt_document(
         )
         document_id = cur.fetchone()["id"]
 
-    storage_upload_purchase_document(storage_path, content, mime)
+    try:
+        storage_upload_purchase_document(storage_path, content, mime)
+    except Exception:
+        # Audit fix 12: no object landed — the row must say so. Any failure
+        # (502 HTTPException from the helper, transport error, …) re-raises
+        # after the status write; approve and extract both refuse this status.
+        with get_transaction() as cur:
+            cur.execute(
+                "UPDATE purchase_documents SET status = 'upload_failed' WHERE id = %s AND status = 'uploaded'",
+                (document_id,),
+            )
+        raise
 
     return {
         "document_id": document_id,
@@ -5669,6 +5681,10 @@ def run_purchase_document_extraction(document_id: int, _: bool = Depends(verify_
         raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {document_id} not found"})
     if doc["status"] == "approved":
         raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {document_id} is already approved"})
+    if doc["status"] == "upload_failed":
+        # Audit fix 12: there is no object behind this row — extraction can't
+        # succeed; the fix is a fresh upload.
+        raise HTTPException(status_code=409, detail={"error_code": "UPLOAD_FAILED", "message": f"Purchase document {document_id} has no stored file (its upload failed) — upload the document again"})
 
     content = storage_download_purchase_document(doc["storage_path"])
     result = _run_extraction_and_store(document_id, content, doc["mime_type"])
@@ -5718,6 +5734,15 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
             raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
         if doc["status"] == "approved":
             raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
+        if doc["status"] != "extracted":
+            # Audit fix 12: only a successfully extracted document is
+            # reviewable — 'uploaded'/'upload_failed'/'extraction_failed'
+            # rows have nothing a human could have reviewed.
+            raise HTTPException(
+                status_code=409,
+                detail={"error_code": "DOCUMENT_NOT_EXTRACTED",
+                        "message": f"Purchase document {req.document_id} has status '{doc['status']}' — approval requires a successful extraction"},
+            )
 
         cur.execute("SELECT id, name, active FROM suppliers WHERE id = %s", (req.supplier_id,))
         supplier = cur.fetchone()

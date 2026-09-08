@@ -52,13 +52,13 @@ def _seed_supplier(cur, name):
     return cur.fetchone()["id"]
 
 
-def _insert_document(cur, path="2026/09/test-049.png"):
+def _insert_document(cur, path="2026/09/test-049.png", status="uploaded"):
     cur.execute(
         """INSERT INTO purchase_documents
-               (storage_path, mime_type, file_sha256, byte_size)
-           VALUES (%s, 'image/png', 'abc123', 10)
+               (storage_path, mime_type, file_sha256, byte_size, status)
+           VALUES (%s, 'image/png', 'abc123', 10, %s)
            RETURNING id, status, storage_bucket""",
-        (path,),
+        (path, status),
     )
     return cur.fetchone()
 
@@ -117,7 +117,7 @@ class TestPurchaseDocuments:
                 (f"x/mime-{i}", mime),
             )
         doc = _insert_document(db_cursor, path="x/status")
-        for status in ("extracted", "extraction_failed", "approved"):
+        for status in ("upload_failed", "extracted", "extraction_failed", "approved"):
             db_cursor.execute(
                 "UPDATE purchase_documents SET status = %s WHERE id = %s",
                 (status, doc["id"]),
@@ -494,7 +494,11 @@ def mock_storage(monkeypatch):
     """No real Supabase calls: record uploads, serve downloads, sign URLs."""
     calls = {"uploads": [], "downloads": [], "signed": []}
 
+    calls["upload_error"] = None  # set to an exception to fail the next upload
+
     def _upload(path, content, mime):
+        if calls["upload_error"] is not None:
+            raise calls["upload_error"]
         calls["uploads"].append({"path": path, "bytes": len(content), "mime": mime})
 
     def _download(path):
@@ -683,6 +687,34 @@ class TestExtractEndpoint:
         r = client.post("/purchase-documents/999999999/extract")
         assert r.status_code == 404
         assert r.json()["detail"]["error_code"] == "DOCUMENT_NOT_FOUND"
+
+    # Audit fix 12: a failed Storage upload marks the row 'upload_failed' —
+    # never a misleading 'uploaded' with no object behind it.
+
+    def test_storage_failure_marks_upload_failed(self, client, cur, mock_storage, mock_extractor):
+        from fastapi import HTTPException as FastHTTPException
+        mock_storage["upload_error"] = FastHTTPException(
+            status_code=502,
+            detail={"error_code": "STORAGE_UPLOAD_FAILED", "message": "Storage upload failed: 500 boom"})
+        r = _post_file(client)
+        assert r.status_code == 502
+        cur.execute("SELECT id, status FROM purchase_documents ORDER BY id DESC LIMIT 1")
+        row = cur.fetchone()
+        assert row["status"] == "upload_failed"
+        # Neither extraction nor approval may touch this row.
+        r2 = client.post(f"/purchase-documents/{row['id']}/extract")
+        assert r2.status_code == 409
+        assert r2.json()["detail"]["error_code"] == "UPLOAD_FAILED"
+        assert mock_extractor["calls"] == 0
+
+    def test_transport_error_also_marks_upload_failed(self, client, cur, mock_storage, mock_extractor):
+        # Not just the helper's 502 — any exception (transport error, …) must
+        # leave the row marked before it propagates.
+        mock_storage["upload_error"] = RuntimeError("connection reset")
+        with pytest.raises(RuntimeError, match="connection reset"):
+            _post_file(client)
+        cur.execute("SELECT status FROM purchase_documents ORDER BY id DESC LIMIT 1")
+        assert cur.fetchone()["status"] == "upload_failed"
 
     # Audit fix 5: an extraction retry must never reopen an approved document.
 
@@ -906,7 +938,8 @@ class TestApproveEndpoint:
         sup = _seed_supplier(cur, "Vendor Approve Co 049")
         p1 = _seed_product(cur, "Approve Prod A 049")
         p2 = _seed_product(cur, "Approve Prod B 049")
-        doc = _insert_document(cur, path="x/approve-049.png")
+        # Audit fix 12: approval requires a successfully extracted document.
+        doc = _insert_document(cur, path="x/approve-049.png", status="extracted")
         return sup, p1, p2, doc["id"]
 
     def _approve(self, client, doc_id, sup, lines, reference="PO-049", force=False):
@@ -941,7 +974,7 @@ class TestApproveEndpoint:
     def test_alias_latest_wins_via_endpoint(self, client, cur):
         sup, p1, p2, doc_id = self._seed(cur)
         self._approve(client, doc_id, sup, [self._line(p1, desc="SAME WORDING")])
-        doc2 = _insert_document(cur, path="x/approve-049b.png")["id"]
+        doc2 = _insert_document(cur, path="x/approve-049b.png", status="extracted")["id"]
         r = self._approve(client, doc2, sup, [self._line(p2, desc="  same   wording ")], force=True)
         assert r.status_code == 201, r.text
         cur.execute(
@@ -972,6 +1005,19 @@ class TestApproveEndpoint:
         cur.execute("SELECT count(*) AS n FROM expected_receipts WHERE source_document_id = %s", (doc_id,))
         assert cur.fetchone()["n"] == 0, "first line must roll back with the second"
         assert _doc_row(cur, doc_id)["status"] != "approved"
+
+    # Audit fix 12: approval requires status = 'extracted'.
+
+    @pytest.mark.parametrize("status", ["uploaded", "upload_failed", "extraction_failed"])
+    def test_approve_requires_extracted_status(self, client, cur, status):
+        sup = _seed_supplier(cur, f"Vendor Status Co 049 {status}")
+        pid = _seed_product(cur, f"Status Prod 049 {status}")
+        doc = _insert_document(cur, path=f"x/status-{status}-049.png", status=status)
+        r = self._approve(client, doc["id"], sup, [self._line(pid)])
+        assert r.status_code == 409, r.text
+        assert r.json()["detail"]["error_code"] == "DOCUMENT_NOT_EXTRACTED"
+        cur.execute("SELECT count(*) AS n FROM expected_receipts WHERE source_document_id = %s", (doc["id"],))
+        assert cur.fetchone()["n"] == 0
 
     def test_double_approve_rejected(self, client, cur):
         sup, p1, p2, doc_id = self._seed(cur)
@@ -1097,7 +1143,7 @@ class TestApprovalAdvisoryLock:
     def test_approve_takes_the_pair_lock(self, client, cur, monkeypatch):
         sup = _seed_supplier(cur, "Vendor Lock Co 049")
         pid = _seed_product(cur, "Lock Prod 049")
-        doc = _insert_document(cur, path="x/lock-049.png")
+        doc = _insert_document(cur, path="x/lock-049.png", status="extracted")
         calls = []
         orig = main._lock_supplier_reference
 
