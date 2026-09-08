@@ -340,6 +340,14 @@
 
 ---
 
+## 2026-09-08 15:46 — Rebased feat/mobile-entry-screen onto main (ER-intake now included); PR #33 conflicts resolved
+
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/sankey.html`, `dashboard/traceability.html` (conflict resolutions only; no application logic touched)
+- **What changed:** Rebased the five branch commits onto `main` at `bd974ae` (39 commits ahead of the old base `b216d6f`). Conflicts in three commits, all resolved keeping both sides: every CHANGE_LOG entry from both histories (branch entries slotted by timestamp); both sets of FACTORY rows, with the branch's row renumbered **117 → 119** because main's ER-intake merge took 117/118 (row-28 precedent) — its "based on `main` at `b216d6f`" text is now historical; `docs/design/audit/IMPROVEMENTS-MASTER.md` had no main-side edits so the branch's IMP updates carried over untouched. Cache-busts set one above main's values per file: `dashboard.css?v=36` (main 35), `dashboard.js?v=53` (main 52), `mini-calendar.css?v=4` (main 3), `mini-calendar.js?v=5` (main 4) — the last two normalized in all four HTML pages, and main's `er-intake-logic.js?v=7` kept. Verification: `node --check` clean on `dashboard.js`, `mini-calendar.js`, `er-intake-logic.js`, `tests/visual/lib/screens.mjs`; 390×844 dark captures of Operations, Operations with the month expanded, Sales Orders and Expected Receipts through the harness stub — `document.documentElement.scrollWidth` 390 on all four, caption 344px wide and `white-space: normal`, no page errors, no unmatched endpoints; pixel-diff against the committed `pr-screenshots/feat-mobile-entry-screen/after-*.png` differs only in the header "Updated" clock, so the PR screenshots were not regenerated.
+- **Why:** PR #33 reported CONFLICTING after the ER-intake feature landed on main; the owner asked for a rebase keeping both sides, then a force-push — no merge.
+
+---
+
 ## 2026-09-08 15:39 — Expanded-calendar caption wraps at 390px; harness screen S-02b; IMP-071 toolbar-alignment note
 
 - **File(s) changed:** `dashboard/mini-calendar.css`, `dashboard/mini-calendar.js`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `tests/visual/lib/screens.mjs`, `docs/design/audit/06-browser-check.md`, `docs/design/audit/IMPROVEMENTS-MASTER.md`, `docs/design/audit/pr-screenshots/feat-mobile-entry-screen/after-operations-390-calendar-open.png`, `FACTORY_LEDGER_CHANGELOG.md`
