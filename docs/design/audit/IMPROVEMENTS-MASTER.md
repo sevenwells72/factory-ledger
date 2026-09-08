@@ -18,7 +18,7 @@ Each of the five group files records findings **per rule, per screen**. The same
 **Effort** is a rough implementation size: **S** ≈ under a day, **M** ≈ one to three days, **L** ≈ a week or more.
 **Screens** is the count of inventoried screens the change affects.
 
-Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least one Critical rule; twenty-five are High, thirteen Medium, two Low. Nine are marked **DONE**, three **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
+Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least one Critical rule; twenty-five are High, thirteen Medium, two Low. Eleven are marked **DONE**, three **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
 
 ---
 
@@ -26,7 +26,8 @@ Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least on
 
 [07-systemic-clusters.md](07-systemic-clusters.md) decomposes the browser check by **root cause** rather than by
 improvement, so its clusters do not map one-to-one onto the IMP numbers above. Six shipped on branch
-`fix/systemic-tokens-a` (PR #28) and ten on `fix/systemic-touch-b`; this table is the per-cluster record. No new
+`fix/systemic-tokens-a` (PR #28), ten on `fix/systemic-touch-b` (PR #30) and the five remaining ACCESS-008
+clusters on `fix/systemic-contrast-c`; this table is the per-cluster record. No new
 IMP numbers were minted for them — each already sits inside an existing improvement, and duplicating it here
 would defeat the deduplication this file exists to do.
 
@@ -50,6 +51,12 @@ would defeat the deduplication this file exists to do.
 | **T10** | TOUCH-003 | `.mini-calendar-nav` width 30 / 26 / 24 → `var(--hit-min, 44px)` | 18 → 0 | `dcf3b1a` | IMP-011 (partly) |
 | **T12** | TOUCH-003 | `.trace-btn`, `.dir-btn`, `.export-btn`, `.graph-ctrl-btn`, `.search-input` — `min-height` (+ `min-width` on the graph controls) | 16 → 0 | `dcf3b1a` | IMP-011 (partly) |
 | | | **T1–T4, T6–T10, T12 together** | **200 of 316** | | |
+| **A5** | ACCESS-008 | new `--primary-text` (dark `#669ef8`, light `#195aea`) for `.lot-link`, `.order-link`, `.show-more-btn`, `.tab.active` and its indicator, the focus rings, the `a` rule on the three chart pages | 46 → 0 | `f99553b` | IMP-010 (partly) |
+| **A4** | ACCESS-008 | dark `--primary` `#3b82f6` → `#1b6df5` (4.61 under white); the four hard-coded `.site-nav-link.active` literals and process-flow's retry button take `var(--primary)` | 63 → 0 | `001f97b` | IMP-010 (partly) |
+| **A1** | ACCESS-008 | `opacity: 0.5–0.65` on text rows → `color: var(--text-muted)` on the text (`.note-card.done`, `.so-ready`, inactive allocations, `.er-inactive`, `.supply-request-done`, the depleted-lots table, the two empty-state icons); `.so-ready-pill` on `--badge-green-text`; disabled controls keep their dim and gain a dashed inset outline | 102 → 0 | `4578b2f` | **IMP-067 (DONE)**, IMP-043 (the dim half) |
+| **A7** | ACCESS-008 | one `::placeholder { color: var(--text-muted); opacity: 1 }`; `.form-group input[type="number"]` brought under the field rule | 26 → 0 | `ef75588` | **IMP-025 (DONE)** |
+| **A8** | ACCESS-008 | `[data-theme="light"]` token blocks for sankey, process-flow, traceability (+ a head script applying the shared `dashboard-theme` preference); their failing dark greys moved to the nearest AA value; traceability's print block on the light palette; the scheduler's `--amber`, `--idle`, `--ok`, a new `--ink3`, a `::placeholder` rule | 56 → 0 | `cea45fe` | IMP-027 (partly), IMP-010 (partly) |
+| | | **A1 + A4 + A5 + A7 + A8 together** | **208 of 208 — ACCESS-008 closed** | | |
 
 The four ACCESS-008 clusters are counted together because they co-occur: measured alone they clear 38 + 27 + 3
 + 0 = 68 cells, and together they clear 80. A cell only flips to PASS when its *last* offender goes, which is
@@ -90,7 +97,7 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-007** | Stop full-container re-renders on background refresh and per-row writes | M | 12 | | |
 | **IMP-008** | Preserve drafts; stop blanking the view on a failed refresh | M | 20 | | |
 | **IMP-009** | Raise operational text above the 12 px floor; add a mobile body size | M | ~50 | | |
-| **IMP-010** | Fix the light-theme contrast failures and `--text-dimmed` | S | ~30 | Partly done | `86ea5a4`, `d9d77b7`, `414f1ea`, `8674c0a` |
+| **IMP-010** | Fix the light-theme contrast failures and `--text-dimmed` | S | ~30 | Partly done | `86ea5a4`, `d9d77b7`, `414f1ea`, `8674c0a`, `f99553b`, `001f97b`, `cea45fe` |
 | **IMP-011** | Minimum 44 × 44 pt hit targets and a focus ring on every control | M | ~65 | Partly done | `498a530`, `6bef15f`, `ae29903`, `dcf3b1a` |
 | **IMP-012** | Separate the product-family palette from the status palette; tokenise the hard-coded colours | M | ~40 | | |
 | **IMP-013** | Introduce semantic button roles (primary / secondary / danger) | M | ~30 | | |
@@ -105,14 +112,14 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-022** | Add a currency symbol and unit to the order-line edit inputs | S | 2 | | |
 | **IMP-023** | Fix the Supplies "Incoming" column unit mismatch | S | 1 | | |
 | **IMP-024** | Add inline cross-field validation to the allocation quantity | S | 1 | | |
-| **IMP-025** | Style placeholders explicitly in the three modal forms | S | 3 | | |
+| **IMP-025** | Style placeholders explicitly in the three modal forms | S | 3 | **DONE** | `ef75588` |
 | **IMP-026** | Add a confirmation to the scheduler's order-line delete | S | 1 | | |
-| **IMP-027** | Give Sankey, Traceability, and the scheduler compact layouts | L | 28 | Partly done | `163bd33` |
+| **IMP-027** | Give Sankey, Traceability, and the scheduler compact layouts | L | 28 | Partly done | `163bd33`, `cea45fe` |
 | **IMP-028** | Add authentication and a role model | L | all | | |
 | **IMP-065** | Make the two print views printable — the recall report prints white-on-white | S | 2 | | |
 | **IMP-066** | Reclaim viewport height at 200 % zoom; the sticky stack strands the last row | M | 6+ | **DONE** | `70fe9a2` |
-| **IMP-067** | Replace the opacity dim on inactive rows with a token that still meets AA | S | 9 | | |
-| **IMP-068** | Stop the attention-strip labels breaking mid-word at 390 px — regression from PR #26 | S | 1 | | |
+| **IMP-067** | Replace the opacity dim on inactive rows with a token that still meets AA | S | 9 | **DONE** | `4578b2f` |
+| **IMP-068** | Stop the attention-strip labels breaking mid-word at 390 px — regression from PR #26 | S | 1 | **DONE** | `e171ed9` |
 
 ### Band 2 — High
 
@@ -132,7 +139,7 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-040** | Replace four small-set dropdowns and toggles with segmented controls | S | 4 | | |
 | **IMP-041** | Add sortable columns to the four tables where the task demands it | M | 10 | | |
 | **IMP-042** | Trim the multi-line table rows | M | 5 | | |
-| **IMP-043** | Stop dimming Factory-Ready rows; move the KPI row above the line table | S | 3 | | |
+| **IMP-043** | Stop dimming Factory-Ready rows; move the KPI row above the line table | S | 3 | Partly done | `4578b2f` |
 | **IMP-044** | Stop the fabricated sample-data fallback in Sankey and Process Flow | S | 6 | **DONE** | `c972526` `028c685` `684af02` `a6ae9d3` |
 | **IMP-045** | Give the Sankey a takeaway, an accessible table, and drill-through | M | 1 | | |
 | **IMP-046** | Adopt an accessibility checklist and write down the role → workflow map | S | all | | |
@@ -379,16 +386,31 @@ findings above — the table earlier in this section attributes A2's 3.86 : 1 to
 384 captures (every visible text node on `index.html` whose computed colour resolves from the token,
 with its composited backdrop, font size and weight), not read off the stylesheet.
 
+**Since shipped, on `fix/systemic-contrast-c`** — the remaining five ACCESS-008 clusters, and with them the
+rule: **208 → 0 failing cells of 384**, zero regressions on a per-cell diff of the other four rules.
+
+* **The `opacity` dim** — cluster **A1** `4578b2f`, which is **IMP-067**, now done.
+* **`--primary` split** — clusters **A5** `f99553b` and **A4** `001f97b`. `--primary-text` (dark `#669ef8`,
+  light `#195aea`) carries links, the selected-tab indicator and the focus rings; `--primary` (dark
+  `#3b82f6` → `#1b6df5`, light unchanged) is the fill. Same method as the table above — nearest value on the
+  original hue and saturation clearing **4.6 : 1** on every surface the probe measured the token rendering on:
+
+  | Token | Theme | Old → new | Binding surface | Ratio |
+  |---|---|---|---|---:|
+  | `--primary` (fill, under white) | dark | `#3b82f6` → `#1b6df5` | the fill itself | 3.68 → **4.61** |
+  | `--primary-text` | dark | (`#3b82f6`) → `#669ef8` | `--surface-hover` `#283548` | 3.37 → **4.61** |
+  | `--primary-text` | light | (`#2563eb`) → `#195aea` | `--surface-hover` `#e2e8f0` | 4.19 → **4.61** |
+
+  In light one value could have served both (the darker text value still clears 5.69 under white), but
+  the split exists anyway and the fill is left at the value that already passed.
+* **Placeholders** — cluster **A7** `ef75588`, which is **IMP-025**, now done.
+* **The four unthemed surfaces** — cluster **A8** `cea45fe`, under IMP-027.
+
 **Not done, and what is left:**
 
-* **The `opacity` dim.** Every remaining ACCESS-008 failure on the six new values sits under an ancestor
-  `opacity` of 0.5–0.65. No colour clears 4.5 : 1 through a 50 % veil. That is **IMP-067**, including
-  `.so-ready-pill` at 1.16 : 1 and `.order-edit-message.success` — the two this section calls the ones
-  that matter most.
-* **The twelve hard-coded values** that bypass the token system, listed under IMP-012. Untouched.
-* **`--primary` in the dark palette.** Clusters A4 (white text on the `--primary` fill, 3.68 : 1) and A5
-  (`--primary` as link text, 3.37 : 1) pull the same token in opposite directions and need the token
-  split, not a nudge. Untouched.
+* **The twelve hard-coded values** that bypass the token system, listed under IMP-012. Three of them
+  (`.site-nav-link.active`, `.so-ready-pill`, traceability's `.detail-card`) went to tokens in A4 / A1 / A8;
+  the rest are untouched.
 * **The three-step text scale is now two steps.** `--text-muted` and `--text-dimmed` both have to clear
   4.5 : 1 on `--surface-hover`, so both land on the same boundary: in light they are the same hex, in dark
   they are 4.51 against 4.84. [07](07-systemic-clusters.md) predicted this ("there is no value that
@@ -692,6 +714,11 @@ The eventual message is excellent — *"Only 240 lb is coverable. Reduce the req
 **Rules:** INPUT-022 (Critical, Hard rule) · ACCESS-008
 **Screens:** S-22, S-45, S-53 · **Importance:** Critical · **Effort:** S
 
+**Status: DONE** — cluster **A7**, `ef75588`. One `::placeholder { color: var(--text-muted); opacity: 1 }` in
+`dashboard.css` covers all nine fields (4.77 : 1 on the dark field, 6.1 on the light one); the same rule is on
+`traceability.html`'s search field and, on `--ink2`, the scheduler's 400-odd `.floor-name` fields. The 36
+placeholder measurements that failed at 2.69 : 1 now pass, and ACCESS-008 is 0 of 384.
+
 **Browser check:** measured, and the scope is wider than three forms. With no `::placeholder` rule, the user agent picks `rgb(117, 117, 117)`, which measures **2.69 : 1** against `--search-bg` in dark theme — a fail on all 36 measurements. In light theme the same default passes. Nine fields are affected: `#note-title`, `#note-body`, `#note-entity-id`, `#er-product-search`, `#er-reference`, `#er-notes`, `#supply-request-note`, `.order-ready-note-input` and `.allocation-note-input`. ([06](06-browser-check.md))
 
 `dashboard/dashboard.css:1161-1175` styles `.form-group input / textarea / select` but defines **no `::placeholder` rule**, so every modal field inherits the user agent's default — typically the text colour at ~54 % opacity, which against `--search-bg: #283548` with `--text: #f1f5f9` lands close to `--text-secondary`, the treatment used for real secondary **values**.
@@ -722,7 +749,18 @@ Two remove-shaped glyphs, adjacent, one recoverable and one not — the exact sh
 **Rules:** LAYOUT-003 (Critical, Hard rule) · LAYOUT-011 · LAYOUT-013 · OTHER-005 · CHART-006 · TOUCH-003
 **Screens:** S-57…S-70, S-72…S-91 (28) · **Importance:** Critical · **Effort:** L
 
-**Status: partly done.** Cluster **O1** shipped in `163bd33`: the `@media (max-width: 768px)` block that lets
+**Status: partly done.** Cluster **A8** shipped in `cea45fe`: `sankey.html`, `process-flow.html` and
+`traceability.html` each carry a `[data-theme="light"]` token block on `dashboard.css`'s light values and a
+two-line head script that applies the shared `dashboard-theme` preference before first paint, so "the light
+capture is the dark surface" is no longer true of any page — the three now respond to the theme attribute in the
+harness and to the dashboard's toggle in production (no toggle was added to their own nav). Their hard-coded
+greys and status colours are tokens in both themes, the dark values that failed on their own surface moved to
+the nearest AA-passing value, traceability's print block applies the light palette wholesale (`.detail-card h3`
+was 1.10 : 1 on paper), and the scheduler — already a light page — has its `--amber`, `--idle` and `--ok`
+corrected and its `.dtl-breakdown` literal promoted to `--ink3`. That is the *palette* half of this improvement;
+the *compact layout* half (O2, O3, the Sankey column labels, the 900 px trace graph) is still open.
+
+Cluster **O1** shipped in `163bd33`: the `@media (max-width: 768px)` block that lets
 `.header` and `.header-right` wrap — already present at `dashboard.css:2223-2225`, which is why `index.html`
 never overflowed — copied into the inline stylesheets of `sankey.html`, `process-flow.html` and
 `traceability.html`. LAYOUT-003 / ACCESS-001 falls from **28 failing cells to 12**.
@@ -1054,6 +1092,10 @@ The rule caps a list row at two lines. Three rows exceed it structurally:
 **Screens:** S-25, S-26, S-30 (3) · **Importance:** High · **Effort:** S
 
 **Browser check:** measured. `opacity: 0.6` on the Factory-Ready row takes `.so-ready-pill` to **1.16 : 1** in light, `.order-link` to 2.32 : 1 in dark, and the status badge, ship-by weekday, blockers cell and expand caret to 2.21–2.30 : 1 — the whole row below AA. The dim is not only a hierarchy inversion; it is a contrast failure. The same device on genuinely inactive rows fails too — see IMP-067. ([06](06-browser-check.md))
+
+**Status: partly done** — the dim half, in cluster **A1** (`4578b2f`): the row's `opacity: 0.6` is gone and its
+cell text is `--text-muted`; the pill, link and badges keep their own tokens and pass. The row is still
+de-emphasised, and the KPI row has not moved — the hierarchy decision this improvement is actually about is open.
 
 **(a)** `dashboard.css:1320` — `.orders-table tr.order-row.so-ready { opacity: 0.6 }`. Orders that are Factory Ready are dimmed to 60 %. A ready order is not a finished order; it is the one about to ship. This inverts the hierarchy for exactly the rows Luz is scanning for, and compounds the ACCESS-008 contrast margins. (Contrast the correct uses of the same device — `.er-inactive` (`2220`), `.allocation-status-released` (`2063`), `.supply-request-done` (`2402`), `.note-card.done` (`1020`) — all genuinely inactive.)
 
@@ -1463,7 +1505,16 @@ ACCESS-001 requires that at 200 % zoom *"every task is still completable"*. Comm
 
 ### IMP-067 — Replace the opacity dim on inactive rows with a token that still meets AA
 
-**Status:** New — raised by the rendered check ([06](06-browser-check.md)).
+**Status: DONE** — cluster **A1**, `4578b2f`. Every `opacity: 0.5–0.65` on a row of readable text is gone and
+the text carries `color: var(--text-muted)` instead: `.note-card.done` (strike-through kept as the non-colour
+carrier), `tr.order-row.so-ready`, the released / superseded / shipped allocation rows, `tr.er-inactive`,
+`.supply-request-done`, the depleted-lots table `dashboard.js` renders inline, and the two empty-state icons.
+`.so-ready-pill`'s hard-coded `#86efac` — a dark-surface green at ~1.5 : 1 on the light pill fill even without
+the veil — is `--badge-green-text`. The dim on *disabled controls* is kept on purpose (ACTION-002; it dims the
+whole control, not a row of text) and, since white through a 55–60 % veil cannot reach 4.5 : 1, the state also
+carries a dashed inset outline in `interaction.css` on every page. 102 cells, 864 measurements → 0.
+
+Raised by the rendered check ([06](06-browser-check.md)).
 
 **Rules:** ACCESS-008 (Critical, Hard rule) · FEEDBACK-011 · LAYOUT-005
 **Screens:** S-20, S-25, S-26, S-27, S-28, S-30, S-31, S-42, S-43 (9) · **Importance:** Critical · **Effort:** S
@@ -1496,7 +1547,9 @@ on a real device against live data, not in the harness. No application code was 
 
 ### IMP-068 — Stop the attention-strip labels breaking mid-word at 390 px
 
-**Status:** New — raised by the phone review of production (2026-09-08). **Regression from PR #26** (`2efb2fa`, IMP-030).
+**Status: DONE** — `e171ed9`. `overflow-wrap: anywhere` removed from `.att-label`; one
+`@media (max-width: 420px) { .attention-strip { grid-template-columns: 1fr } }`. Raised by the phone review of
+production (2026-09-08). **Regression from PR #26** (`2efb2fa`, IMP-030).
 
 **Rules:** LAYOUT-003 (Critical) · ACCESS-001
 **Screens:** the Needs Attention strip on the entry screen (added after the 00 inventory was drawn) · **Importance:** Critical · **Effort:** S
