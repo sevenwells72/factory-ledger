@@ -546,6 +546,90 @@ test('soMergeRematch preserves exclusions and agreeing picks like the ER merge',
   assert.equal(disagree[0].qty_lb, null);
 });
 
+// ── SO review follow-up (fix/so-intake-followup) ────────────────────────────
+
+test('soMergeRematch preserveResolved: a PO-number re-match keeps human picks, re-matches only unresolved lines', () => {
+  // Finding 1: editing the PO only re-runs the duplicate check — the customer
+  // is unchanged, so a line the user resolved must come through untouched.
+  const picked = ERIntake.soBuildReviewLine(soMatchLine());          // fuzzy/none → human picks
+  ERIntake.applyProductPick(picked, SO_PROD);
+  ERIntake.applyLbPerUnitChange(picked, 12);                          // typed case size → 36 lb
+  const open = ERIntake.soBuildReviewLine(soMatchLine({ description: 'STILL UNKNOWN' }));
+  ERIntake.lockLines([picked, open]);
+  assert.equal(picked.qty_lb, 36);
+
+  // The fresh result for line 0 is still fuzzy (no chosen product) — the old
+  // merge would have wiped the pick; line 1 now carries a suggestion.
+  const fresh = [
+    soMatchLine({ match_source: 'fuzzy', confidence: 0.7, product: SO_PROD }),
+    soMatchLine({ description: 'STILL UNKNOWN', match_source: 'fuzzy', confidence: 0.6, product: SO_PL_PROD }),
+  ];
+  const merged = ERIntake.soMergeRematch([picked, open], fresh, { preserveResolved: true });
+  assert.equal(merged[0], picked, 'the resolved line object is kept whole');
+  assert.equal(merged[0].chosen.product_id, 9, 'human pick survives the PO re-match');
+  assert.equal(merged[0].match_source, 'chosen');
+  assert.equal(merged[0].lb_per_unit, 12, 'typed conversion survives');
+  assert.equal(merged[0].qty_lb, 36, 'pounds survive');
+  assert.equal(merged[0].matching, false, 'and the line is unlocked');
+  assert.equal(merged[1].chosen, null, 'unresolved line is re-matched');
+  assert.equal(merged[1].suggested.product_id, 11, 'and takes the fresh suggestion');
+  assert.ok(!merged[1].matching, 'fresh line is not locked');
+
+  // Default (customer re-match) behaviour is unchanged: a disagreeing result
+  // still resets the pick.
+  const reset = ERIntake.soMergeRematch([picked, open], fresh);
+  assert.equal(reset[0].chosen, null, 'a customer re-match still resets a pick the result does not confirm');
+});
+
+test('applyProductPick pulls the product-master case size so cases→lb converts without typing', () => {
+  // Finding 2: picker results and suggestion chips carry case_size_lb.
+  const l = ERIntake.soBuildReviewLine(soMatchLine({ quantity: 3, unit: 'CASE' }));
+  assert.equal(l.lb_per_unit, null);
+  ERIntake.applyProductPick(l, { ...SO_PROD, case_size_lb: 10 });
+  assert.equal(l.lb_per_unit, 10, 'case size comes from the product master');
+  assert.equal(l.lb_source, 'case_size', 'tagged as product-derived so it dies with a product change');
+  assert.equal(l.qty_lb, 30, '3 cases × 10 lb');
+  assert.equal(l.qty_lb_source, 'computed');
+  assert.deepEqual(ERIntake.soApproveLinePayload(l), {
+    product_id: 9, quantity_lb: 30, quantity: 3, unit: 'CASE', case_size_lb: 10,
+    unit_price: 32.5, customer_item_code: 'CQ-77', customer_description: 'THEIR GRANOLA 10LB CASE', save_alias: true,
+  });
+
+  // Change → re-pick a product with a different case size: the old product's
+  // conversion is dropped and the new one's is applied.
+  ERIntake.clearChosen(l);
+  assert.equal(l.lb_per_unit, null);
+  ERIntake.applyProductPick(l, { ...SO_PL_PROD, case_size_lb: 25 });
+  assert.equal(l.lb_per_unit, 25);
+  assert.equal(l.qty_lb, 75);
+
+  // A product with no case size falls back to what the user typed.
+  const typed = ERIntake.soBuildReviewLine(soMatchLine({ quantity: 2, unit: 'CASE' }));
+  ERIntake.applyLbPerUnitChange(typed, 8);
+  ERIntake.applyProductPick(typed, { ...SO_PROD, case_size_lb: null });
+  assert.equal(typed.lb_per_unit, 8, 'typed case size kept when the product has none');
+  assert.equal(typed.lb_source, 'manual');
+  assert.equal(typed.qty_lb, 16);
+
+  // A typed case size is never overwritten by the master (customer packs differ).
+  const typedFirst = ERIntake.soBuildReviewLine(soMatchLine({ quantity: 2, unit: 'CASE' }));
+  ERIntake.applyLbPerUnitChange(typedFirst, 8);
+  ERIntake.applyProductPick(typedFirst, { ...SO_PROD, case_size_lb: 10 });
+  assert.equal(typedFirst.lb_per_unit, 8, 'explicit manual conversion wins over the master');
+
+  // An lb-unit line keeps its 1-lb identity; the product case size is irrelevant.
+  const lbLine = ERIntake.soBuildReviewLine(soMatchLine({ quantity: 500, unit: 'LB', case_size_source: 'unit_is_lb', quantity_lb: 500 }));
+  ERIntake.applyProductPick(lbLine, { ...SO_PROD, case_size_lb: 10 });
+  assert.equal(lbLine.lb_per_unit, 1);
+  assert.equal(lbLine.qty_lb, 500);
+
+  // ER picks carry no case_size_lb — their behaviour is unchanged.
+  const er = ERIntake.buildReviewLine(matchLine());
+  ERIntake.applyProductPick(er, PROD);
+  assert.equal(er.lb_per_unit, null);
+  assert.deepEqual(er.chosen, PROD);
+});
+
 test('soPriceBasis: per-case on cases, per-lb on lb, unclear otherwise (ruling 5)', () => {
   assert.equal(ERIntake.soPriceBasis('CASE'), 'per_case');
   assert.equal(ERIntake.soPriceBasis(' cs. '), 'per_case');

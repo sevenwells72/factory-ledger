@@ -135,6 +135,17 @@
     }
     line.match_source = 'chosen';
     line.confidence = 1.0;
+    // SO follow-up (review finding 2): a picked product brings its master
+    // case size along (picker + suggestion chips carry case_size_lb) so
+    // cases→lb converts without typing. It fills a line that has no
+    // conversion yet; a value the user already typed ('manual') and an
+    // lb-unit line's 1-lb identity ('unit_is_lb') are never overwritten,
+    // and a product with no case size leaves whatever is there in place.
+    const productCase = Number(product.case_size_lb);
+    if (productCase > 0 && !['manual', 'unit_is_lb'].includes(line.lb_source)) {
+      line.lb_per_unit = productCase;
+      line.lb_source = 'case_size';
+    }
     if (line.qty_lb == null) recomputeQtyLb(line);
     return line;
   }
@@ -204,12 +215,22 @@
      carries the new supplier's conversion); otherwise the line goes back to
      unconfirmed. Everything else — match data, conversions — comes from the
      fresh result, which was computed from the CURRENT (edited) qty/unit. */
-  function mergeRematch(prevLines, matchLines, build) {
+  function mergeRematch(prevLines, matchLines, build, opts) {
     const buildLine = build || buildReviewLine;
+    const preserveResolved = Boolean(opts && opts.preserveResolved);
     return matchLines.map((ml, i) => {
       const fresh = buildLine(ml);
       const prev = prevLines && prevLines[i];
       if (!prev) return fresh;
+      // SO follow-up (review finding 1): a re-match that did NOT change the
+      // counterparty (PO-number edit — only the duplicate check re-runs)
+      // must not throw away a resolved line. The line is kept whole —
+      // chosen product, conversion, pounds, edits — and only unlocked;
+      // unresolved lines take the fresh result as usual.
+      if (preserveResolved && prev.chosen) {
+        prev.matching = false;
+        return prev;
+      }
       fresh.include = prev.include;
       if (prev.save_alias_touched) {
         fresh.save_alias = prev.save_alias;
@@ -321,8 +342,8 @@
     return buildReviewLine(soNormalizeMatchLine(ml));
   }
 
-  function soMergeRematch(prevLines, matchLines) {
-    return mergeRematch(prevLines, matchLines, soBuildReviewLine);
+  function soMergeRematch(prevLines, matchLines, opts) {
+    return mergeRematch(prevLines, matchLines, soBuildReviewLine, opts);
   }
 
   /* Owner ruling 5: a price is stored only when its basis is unambiguous —

@@ -5678,14 +5678,36 @@ def resolve_customer_for_match(cur, customer_name) -> tuple:
 def _so_product_public(row: dict, pool: set) -> dict:
     """Match-response product/candidate shape. prior_sales + label_type ride
     along so the review screen can render the private-label warning badge
-    (owner rulings 2/3) without another round trip."""
+    (owner rulings 2/3) without another round trip. case_size_lb is filled
+    in by _so_attach_case_sizes (a suggestion-chip pick converts cases→lb
+    from the product master without typing — SO review finding 2)."""
     return {
         "product_id": row.get("product_id") or row.get("id"),
         "name": row.get("product_name") or row.get("name"),
         "odoo_code": row.get("odoo_code"),
         "label_type": row.get("label_type") or "house",
         "prior_sales": (row.get("product_id") or row.get("id")) in pool,
+        "case_size_lb": None,
     }
+
+
+def _so_attach_case_sizes(cur, products: list) -> None:
+    """Fill case_size_lb (master case_size_lb, else default_case_weight_lb,
+    else None) on the given public product dicts in one query."""
+    ids = sorted({p["product_id"] for p in products if p and p.get("product_id")})
+    if not ids:
+        return
+    cur.execute(
+        "SELECT id, case_size_lb, default_case_weight_lb FROM products WHERE id = ANY(%s)",
+        (ids,),
+    )
+    sizes = {}
+    for r in cur.fetchall():
+        case_lb = r.get("case_size_lb") or r.get("default_case_weight_lb")
+        sizes[r["id"]] = float(case_lb) if case_lb else None
+    for p in products:
+        if p and p.get("product_id"):
+            p["case_size_lb"] = sizes.get(p["product_id"])
 
 
 def _match_so_line(cur, customer_id: Optional[int], pool: list, line: dict) -> dict:
@@ -5746,6 +5768,7 @@ def _match_so_line(cur, customer_id: Optional[int], pool: list, line: dict) -> d
                 product_row = results[0]
 
     product = _so_product_public(product_row, pool_set) if product_row else None
+    _so_attach_case_sizes(cur, candidates + ([product] if product else []))
 
     # ── cases → lb conversion (owner rules; no kg, no description parsing —
     # customer POs order finished goods in cases or pounds) ──
@@ -5757,15 +5780,8 @@ def _match_so_line(cur, customer_id: Optional[int], pool: list, line: dict) -> d
     else:
         if alias and alias.get("case_size_lb") is not None:
             case_size, case_size_source = float(alias["case_size_lb"]), "alias"
-        elif match_source in ("alias", "exact") and product:
-            cur.execute(
-                "SELECT case_size_lb, default_case_weight_lb FROM products WHERE id = %s",
-                (product["product_id"],),
-            )
-            prow = cur.fetchone()
-            case_lb = (prow or {}).get("case_size_lb") or (prow or {}).get("default_case_weight_lb")
-            if case_lb:
-                case_size, case_size_source = float(case_lb), "product"
+        elif match_source in ("alias", "exact") and product and product.get("case_size_lb"):
+            case_size, case_size_source = float(product["case_size_lb"]), "product"
         if case_size is not None and match_source in ("alias", "exact"):
             quantity_lb = round(quantity * case_size, 4)
 
