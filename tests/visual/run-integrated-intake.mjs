@@ -39,7 +39,7 @@ try {
    if(u.pathname==='/suppliers')return reply({suppliers:[{id:4,name:'Fixture Supplier'}]});
    if(u.pathname==='/sales/orders' && req.method()==='GET'){
     const data=await loadFixture('sales-orders.json',tokens);
-    data.orders.forEach(o=>{o.source_document_id=9000+o.order_id;o.customer_po='PO-'+o.order_id;});return reply(data);
+    data.orders.forEach(o=>{o.source_document_id=9000+o.order_id;o.customer_po='PO-'+o.order_id;if(o.ready){o.ready_by='floor';o.ready_at='2026-09-08T17:17:00Z';}});return reply(data);
    }
    if(u.pathname.match(/^\/purchase-documents\/\d+\/url$/))return reply({url:server.origin+'/fixture-document.pdf'});
    if(['/expected-receipts/extract','/sales/orders/extract'].includes(u.pathname)){
@@ -74,6 +74,12 @@ try {
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width);
   const adjacent=await table.locator('.order-identity-cell').first().evaluate(cell=>{const a=cell.querySelector('.order-link').getBoundingClientRect(),b=cell.querySelector('.so-doc-link').getBoundingClientRect();return b.left>=a.right && b.top<a.bottom;});
   assert.ok(adjacent,'order button and paperclip stay side by side');
+  const cardGeometry=await table.locator('.order-row').evaluateAll(rows=>rows.filter(r=>r.querySelector('.so-ready-pill')).map(r=>{const badge=r.querySelector('.so-ready-pill').getBoundingClientRect(),qty=r.cells[10].getBoundingClientRect();return {id:r.dataset.orderId,badgeTop:badge.top,quantityBottom:qty.bottom,below:badge.top>=qty.bottom,overlap:Math.min(badge.right,qty.right)>Math.max(badge.left,qty.left)&&Math.min(badge.bottom,qty.bottom)>Math.max(badge.top,qty.top)};}));
+  if(width===390 && !process.env.CAPTURE_BASELINE)assert.ok(cardGeometry.length && cardGeometry.every(x=>x.below&&!x.overlap),JSON.stringify(cardGeometry));
+  await page.evaluate(()=>window.scrollTo(0,0));
+  const toolbar=await page.locator('#orders-list-view .orders-toolbar').evaluate(e=>({height:e.getBoundingClientRect().height,width:e.getBoundingClientRect().width}));
+  await page.screenshot({path:path.join(output,`orders-${width}-${theme}.png`)});
+  await table.locator('.order-row.so-ready').first().screenshot({path:path.join(output,`ready-card-${width}-${theme}.png`)});
   const measurements=[];
   for(const kind of ['er','so']){
    if(kind==='er')await page.goto(server.origin+'/?section=expected');
@@ -114,9 +120,13 @@ try {
    await page.locator(`#${kind}-review-${kind==='er'?'reference':'po'}`).fill(kind.toUpperCase()+'-EDITED');
    await page.locator(`#${kind}-modal-close`).click();
   }
+  await page.goto(server.origin+'/history.html?day=2026-09-08&type=ship');
+  await page.locator('#history-status').filter({hasNotText:'Loading'}).waitFor();
+  await page.screenshot({path:path.join(output,`history-${width}-${theme}.png`)});
+  const historyStyle=await page.locator('#history-form').evaluate(e=>({padding:getComputedStyle(e.closest('main')).paddingLeft,controlBackground:getComputedStyle(e.querySelector('select')).backgroundColor}));
   assert.deepEqual(errors,[]);
   assert.ok(!requests.some(r=>r.path.endsWith('/approve')));
-  results.push({width,theme,rowsSorted:original.length,paperclip:'opened document only',measurements,errors,unmatched:[...state.unmatched],blocked:[...new Set(blocked)]});
+  results.push({width,theme,rowsSorted:original.length,paperclip:'opened document only',cardGeometry,toolbar,historyStyle,measurements,errors,unmatched:[...state.unmatched],blocked:[...new Set(blocked)]});
   await context.close();
  }
  await fs.writeFile(path.join(output,'results.json'),JSON.stringify(results,null,2));

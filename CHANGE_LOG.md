@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-09-09 09:01 — Document Batch 4 validation and before/after evidence
+- **File(s) changed:** `docs/design/audit-2026-09-09-batch-4.md`, `FACTORY_LEDGER_CHANGELOG.md`; workspace output report and before/after screenshots
+- **What changed:** Recorded 59 Node/12 Python passes, badge non-overlap, 46px toolbar reduction, themed controls/history padding and SO/ER fixture review/paperclip results.
+- **Why:** User requested tested CSS-only fixes and a reviewable draft PR; no merge or deployment.
+
+---
+
+## 2026-09-09 09:00 — Fix four live-audit CSS findings in Batch 4
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/shell-layout.css`, stylesheet references in five dashboard HTML pages, `tests/test_recent_ledger.py`, `FACTORY_LEDGER_CHANGELOG.md`, fixture harness selector
+- **What changed:** Place wrapped readiness below quantity, compact phone filters/actions, theme native fields and pad history content. Bump CSS 40/shell 3 and add row 125 as local only.
+- **Why:** Address the four user-approved production audit findings without application JS behavior changes. Baseline fixture screenshots captured first.
+
+---
+
+## 2026-09-09 08:59 — Capture Batch 4 CSS regression baselines
+- **File(s) changed:** `tests/visual/run-integrated-intake.mjs`
+- **What changed:** Added readiness geometry, toolbar/history and before/after screenshot coverage to the local fixture harness.
+- **Why:** Reproduce live CSS findings while retaining SO/ER review and paperclip checks. No application JS changed.
+
+---
+
 ## 2026-09-09 08:46 — Design audit B+C DEPLOYED: PR #34 squash-merged, Netlify + Railway live (FACTORY rows 123/124)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (rows 123/124 → DEPLOYED), squash-merge commit `7270d2a`
 - **What changed:** Owner-approved deploy executed: PR #34 (`fix/design-audit-3`, head `fda782f`, pre-merge review passed all 6 checks) squash-merged into main as `7270d2a` ("fix(design): Batch B+C integrated over SO intake (rows 122–124, js56/css39/intake9)"). Netlify deploy `6aa154c08ab6220008656dc4` ready 12:44:48Z from `7270d2a`; live-verified index.html serves `dashboard.css?v=39` / `intake-logic.js?v=9` / `dashboard.js?v=56` plus `shell-layout.css?v=2` / `design-controls.js?v=1` / `shell.js?v=2`, and history.html serves css v39 / history.js v1. Railway deployment `e2e131e4` SUCCESS 08:46 ET — a rebuild of bit-identical backend code (main.py, extraction.py, migrations, schema dump all unchanged vs pre-merge main, verified by blob hash); /health 200. Remote branch `fix/design-audit-3` deleted after merge. Rows 123/124 marked DEPLOYED.
