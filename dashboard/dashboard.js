@@ -2176,12 +2176,20 @@
     return new Date(parts[0], parts[1] - 1, parts[2]);
   }
 
-  function formatShipByDate(dateStr) {
+  // IMP-072 (FEEDBACK-011): when the date is overdue the weekday line carries
+  // the fact in two non-colour forms as well as the red — a warning glyph
+  // (shown at phone width by dashboard.css) and visually-hidden "overdue" text
+  // that reads at every width. The caller still puts .date-overdue on the cell.
+  function formatShipByDate(dateStr, overdue) {
     const formattedDate = formatDateShort(dateStr);
     const localDate = getLocalDateFromISO(dateStr);
     if (!localDate) return escHtml(formattedDate);
     const weekday = localDate.toLocaleDateString(undefined, { weekday: 'short' });
-    return `<span class="ship-by-date">${escHtml(formattedDate)}</span><span class="ship-by-weekday">${escHtml(weekday)}</span>`;
+    const flag = overdue
+      ? '<svg class="ship-by-flag" aria-hidden="true" focusable="false"><use href="#i-alert"></use></svg>'
+      : '';
+    const hidden = overdue ? '<span class="sr-only">, overdue</span>' : '';
+    return `<span class="ship-by-date">${escHtml(formattedDate)}</span><span class="ship-by-weekday">${flag}${escHtml(weekday)}${hidden}</span>`;
   }
 
   function formatReadyTime(value) {
@@ -2527,7 +2535,7 @@
       html += `<td class="order-identity-cell" data-sort-value="${escAttr(o.order_number)}"><button type="button" class="order-link">${escHtml(o.order_number)}</button>${soDocLink}</td>`;
       html += `<td>${escHtml(o.customer)}</td>`;
       html += `<td data-sort-value="${escAttr(o.order_date || '')}">${formatDateShort(o.order_date)}</td>`;
-      html += `<td data-sort-value="${escAttr(o.requested_ship_date || '')}" class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date)}</td>`;
+      html += `<td data-sort-value="${escAttr(o.requested_ship_date || '')}" class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date, overdue)}</td>`;
       html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span>${orderReadyPill(o)}</td>`;
       html += `<td>${renderDispatchState(o)}</td>`;
       html += `<td class="order-blockers-cell">${renderOrderBlockers(o)}</td>`;
@@ -3684,8 +3692,8 @@
       html += `<td class="num">${fmtWt(r.expected_qty)}</td>`;
       html += `<td class="num">${fmtWt(r.received_qty)}${r.over_receipt_qty > 0 ? ` <span class="er-over" title="Over-receipt">(+${fmtWt(r.over_receipt_qty)})</span>` : ''}</td>`;
       html += `<td class="num er-remaining">${fmtWt(r.remaining)}</td>`;
-      html += `<td class="${r.is_overdue ? 'date-overdue' : ''}">${formatShipByDate(r.expected_date)}</td>`;
-      html += `<td>${escHtml(r.reference_number || '—')}</td>`;
+      html += `<td class="${r.is_overdue ? 'date-overdue' : ''}">${formatShipByDate(r.expected_date, Boolean(r.is_overdue))}</td>`;
+      html += `<td><span class="er-reference">${escHtml(r.reference_number || '—')}</span></td>`;
       html += `<td>${erStatusBadge(r)}</td>`;
       if (r.status === 'open') {
         html += `<td class="er-actions">
@@ -5170,7 +5178,7 @@
           ['Supplier', escHtml(receipt.supplier_name || '\u2014')],
           ['Quantity remaining', `<span class="supply-lot-remaining">${fmtWt(receipt.remaining)} lb</span>`, 'supply-detail-field-quantity'],
           ['Expected date', escHtml(formatSupplyLotDate(receipt.expected_date))],
-          ['Reference', escHtml(receipt.reference_number || '\u2014')],
+          ['Reference', `<span class="supply-reference">${escHtml(receipt.reference_number || '\u2014')}</span>`],
         ]) +
       '</article>'
     ).join('') + '</div></section>';
@@ -5547,7 +5555,7 @@
       if (!Number.isFinite(data.score) || !Array.isArray(data.checks)) throw new Error('Incomplete health check');
       const score = data.score;
       const failures = data.checks.filter(c => c.status === 'fail');
-      badge.textContent = `Health: ${score}/100`;
+      setHealthScore(badge, `${score}/100`);
       badge.className = 'health-badge ' + (score >= 90 ? 'health-green' : score >= 70 ? 'health-yellow' : 'health-red');
       badge.title = `${failures.length} checks need review. Open health details.`;
       badge.setAttribute('aria-label', `Health score ${score} out of 100. ${failures.length} checks need review. Open details.`);
@@ -5570,7 +5578,7 @@
             (records ? `<ul>${records}</ul>` : '<p>Affected record details were not supplied by this check.</p>') + '</section>';
         }).join('');
     } catch (_) {
-      badge.textContent = 'Health: unavailable';
+      setHealthScore(badge, 'unavailable');
       badge.className = 'health-badge';
       badge.title = 'Open health details to retry';
       badge.setAttribute('aria-label', 'Health check unavailable. Open details to retry.');
@@ -5585,6 +5593,14 @@
     document.getElementById('health-badge').addEventListener('click', () => dialog.showModal());
     document.getElementById('health-close').addEventListener('click', () => dialog.close());
     document.getElementById('health-retry').addEventListener('click', refreshHealthBadge);
+  }
+
+  // IMP-073: the badge holds a "Health" label span beside the score, so the
+  // score is written into its own span rather than over the whole badge.
+  function setHealthScore(badge, value) {
+    const slot = badge.querySelector('.health-score');
+    if (slot) slot.textContent = value;
+    else badge.textContent = value;
   }
 
   // ── Refresh All ──

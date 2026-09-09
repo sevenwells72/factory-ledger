@@ -18,7 +18,7 @@ Each of the five group files records findings **per rule, per screen**. The same
 **Effort** is a rough implementation size: **S** ≈ under a day, **M** ≈ one to three days, **L** ≈ a week or more.
 **Screens** is the count of inventoried screens the change affects.
 
-Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least one Critical rule; twenty-five are High, thirteen Medium, two Low. Eleven are marked **DONE**, three **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
+Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least one Critical rule; twenty-five are High, thirteen Medium, two Low. Fifteen are marked **DONE**, four **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
 
 ---
 
@@ -134,7 +134,7 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-035** | Stop showing raw API bodies to the user | S | 17 | | |
 | **IMP-036** | Auto-refresh the operational lists; fix the last-updated timestamp | M | 20 | | |
 | **IMP-037** | Add a fixed spacing scale and a named type scale | M | all | | |
-| **IMP-038** | Restructure the tab bar into primary navigation | L | ~35 | | |
+| **IMP-038** | Restructure the tab bar into primary navigation | L | ~35 | Partly done | `ca9a8e4` (phone header only) |
 | **IMP-039** | Add a shared page header carrying global search to all four pages | M | 14 | | |
 | **IMP-040** | Replace four small-set dropdowns and toggles with segmented controls | S | 4 | | |
 | **IMP-041** | Add sortable columns to the four tables where the task demands it | M | 10 | | |
@@ -143,9 +143,9 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-044** | Stop the fabricated sample-data fallback in Sankey and Process Flow | S | 6 | **DONE** | `c972526` `028c685` `684af02` `a6ae9d3` |
 | **IMP-045** | Give the Sankey a takeaway, an accessible table, and drill-through | M | 1 | | |
 | **IMP-046** | Adopt an accessibility checklist and write down the role → workflow map | S | all | | |
-| **IMP-069** | Collapse the mini-calendar strip on phone — it dominates the first screen | M | 4 | | |
-| **IMP-070** | Keep SO identifiers on one line in the Orders table on phone | S | 4 | | |
-| **IMP-072** | Add a non-colour carrier to the red ship-date weekday | S | 4 | | |
+| **IMP-069** | Collapse the mini-calendar strip on phone — it dominates the first screen | M | 4 | **DONE** | `b8c3283` |
+| **IMP-070** | Keep SO identifiers on one line in the Orders table on phone | S | 4 | **DONE** | `ca9a8e4`, `731ca2a` |
+| **IMP-072** | Add a non-colour carrier to the red ship-date weekday | S | 4 | **DONE** | `ca9a8e4` |
 
 ### Band 3 — Medium and below
 
@@ -170,7 +170,7 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-063** | Cap and restructure the two disambiguation choice lists | S | 2 |
 | **IMP-064** | Add a context label to the notes list and the depleted-lots table | S | 3 |
 | **IMP-071** | Stack the card headers (title + description) below 768 px | S | 5 |
-| **IMP-073** | Label the health-score badge — "80" beside the title says nothing on touch | S | 1 |
+| **IMP-073** | Label the health-score badge — "80" beside the title says nothing on touch — **DONE** `ca9a8e4` | S | 1 |
 
 ---
 
@@ -1012,6 +1012,11 @@ The rule's clause is explicit: *"SO lists, Expected Receipts, Today So Far… st
 
 ### IMP-038 — Restructure the tab bar into primary navigation
 
+**Status: Partly done** — the phone header, `ca9a8e4` (branch `feat/mobile-entry-screen`). Below 520px
+`.app-header` is a four-row grid: title + health badge, then theme / Refresh / Updated at `--hit-min`, then the
+collapsed calendar (IMP-069), then search; `.header-left` / `.header-right` are `display: contents` so the grid
+places their children directly. The tab-bar restructuring — the substance of this improvement — is untouched.
+
 **Rules:** NAV-004 (High) · NAV-008 · LAYOUT-003 · TOUCH-003 · NOTIFY-010
 **Screens:** S-05 and every tab pane (~35) · **Importance:** High · **Effort:** L
 
@@ -1591,6 +1596,15 @@ the structural form of that on phone.
 **Fix:** below ~520 px collapse to **one month**, or to a single row of upcoming ship dates — or to a count
 (*"6 SOs ship this week"*) linking to the Orders tab. Keep the three-month strip from tablet width up.
 
+**Status: DONE** — `b8c3283` (branch `feat/mobile-entry-screen`). Below 520px `mini-calendar.js` renders a
+compact form: one 44px row — *Today · Tue, Sep 8*, a pill with today's open-SO count when non-zero, and a ▾ —
+that expands the current month inline: prev / next at `--hit-min`, and 44px day cells that are real buttons
+(`aria-label` "Saturday, September 5 — 1 open Sales Order ship by this date"; a tap reads that into an
+`aria-live` caption, since the desktop cells' `title` does not exist on touch). One month only. Open state and
+the selected day survive the re-render a ship-count refresh triggers. On a 390×844 viewport the header is
+219px tall collapsed and Needs Attention starts at y=357 with all seven chips above the fold (bottom 795);
+before, the strip's title started at y≈690. Above 520px `renderStrip()` and its CSS are byte-identical.
+
 ---
 
 ### IMP-070 — Keep SO identifiers on one line in the Orders table on phone
@@ -1610,6 +1624,16 @@ row triples in height, cutting how many orders fit on screen.
 with horizontal scroll; or middle-truncate (`SO-2608…-001`) with the full value revealed on tap — a `title`
 attribute is not enough, since tooltips do not exist on touch (same device constraint as IMP-021's lot codes).
 
+**Status: DONE** — `ca9a8e4` (branch `feat/mobile-entry-screen`). One rule: `white-space: nowrap` on
+`td .order-link`, `td .lot-link`, `td .er-reference` (a new span around the Expected Receipts reference / PO
+number), `.order-number`, `.supply-lot-code` and the new `.supply-reference` on the supplies incoming card.
+Scoped to cells because the search dropdown reuses `.lot-link` for product and customer names, which must
+still wrap at 390px. The nowrap option was taken over truncation: the identifier is the thing the row is
+found by, and the wrapper already scrolls. **Phone-only** (`731ca2a`, inside the ≤520px block): a
+frozen-clock pixel diff of the 1440px captures showed the Sales Orders table re-flowing, because on `main` the
+SO # column is already narrow enough at 1440px that `SO-1421` wraps at its hyphen — the same defect on
+desktop. Lifting the rule out of the media query is a one-line follow-up that changes desktop column widths.
+
 ---
 
 ### IMP-071 — Stack the card headers below 768 px
@@ -1624,6 +1648,11 @@ override, so a card's title and its description render as **two squeezed columns
 Needs Attention card, where "Needs Attention" sits beside its two-sentence `.section-hint` and both wrap in
 their narrow halves. The Supplies page header already shows the correct treatment: its hint is `display: block`
 under the title (`2323`).
+
+Same family, seen in the `feat/mobile-entry-screen` 390px captures: in the phone Orders toolbar the `<select>`
+and the two checkboxes centre while the Export / Refresh buttons under them sit left — `.orders-filters` keeps
+its desktop `align-items: center` (`dashboard.css:1396-1398`) when the ≤768px block turns it into a column,
+and `.orders-toolbar-actions` stays a left-aligned row — so one toolbar carries two alignments.
 
 **Fix:** `flex-direction: column; align-items: flex-start; gap: 4px` on `.section-header` below 768 px.
 
@@ -1646,6 +1675,14 @@ is late — that most changes what Luz does next.
 **Fix:** add an icon or text alongside the colour — *"⚠ Mon"* or *"Mon · 3d overdue"* — per IMP-015's
 prescription (`⚠ 3d overdue` instead of a red date).
 
+**Status: DONE** — `ca9a8e4` (branch `feat/mobile-entry-screen`). `formatShipByDate(dateStr, overdue)` now
+renders the weekday line as `<svg #i-alert> Sat<span class="sr-only">, overdue</span>` when the caller's
+overdue flag is set (Sales Orders and Expected Receipts tables). The hidden text reads at every width; the
+glyph is shown at ≤520px, where this branch was scoped — showing it on desktop too is a one-line change to
+the `.ship-by-flag` rule, deliberately not made here so the 1440px render stays pixel-identical. The first cut
+let the absolutely-positioned hidden span escape `.table-scroll` and widen the Expected Receipts tab by 259px
+at 390px; `.ship-by-weekday { position: relative }` contains it.
+
 ---
 
 ### IMP-073 — Label the health-score badge
@@ -1663,6 +1700,13 @@ score that could be read as a count, a percentage, or an order number says nothi
 
 **Fix:** a visible label (*"Health 80"*), or make the badge a tappable control opening a small popover with
 the score and the per-check breakdown that `refreshHealthBadge` already composes into the tooltip string.
+
+**Status: DONE** — `ca9a8e4` (branch `feat/mobile-entry-screen`). The visible-label option: the badge holds
+`<span class="health-label">Health</span> <span class="health-score">86</span>`. At ≤520px the label is shown
+(*Health 86*) in the phone header's first row beside the title; above 520px it is visually hidden so the
+desktop box is unchanged, but the accessible name is now "Health 86" everywhere. `refreshHealthBadge` writes
+the score into `.health-score`. The popover was not built: the label fits the two-row header and the
+per-check breakdown still lives in the `title`, so the touch gap on the breakdown itself stays open.
 
 ---
 

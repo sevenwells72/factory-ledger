@@ -49,7 +49,6 @@
  .reference-calendar-panel { left:0;right:auto;width:calc(100vw - 48px); }
  .reference-calendar-panel .mini-calendar-strip { width:100%;box-sizing:border-box; }
  .reference-calendar-panel .mini-calendar-months { grid-template-columns:minmax(0,1fr);width:100%; }
- .reference-calendar-panel .mini-calendar-day,.reference-calendar-panel .mini-calendar-dow { min-height:20px;font-size:var(--fl-caption, 14px); }
  .tab-bar { display:none; }
  .mobile-nav { position:fixed;bottom:0;left:0;right:0;z-index:190;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px 4px calc(6px + env(safe-area-inset-bottom));gap:2px;background:var(--surface,var(--card-bg));border-top:1px solid var(--border); }
  .mobile-nav a,.mobile-nav summary { min-height:48px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:var(--fl-caption, 14px);color:var(--text);padding:4px;border-radius:6px;text-decoration:none;cursor:pointer; }
@@ -70,6 +69,19 @@
  .er-modal .note-modal-body { display:flex;flex-direction:column; }
  #er-manual-body { order:-1; }
  .er-modal.er-reviewing #er-dropzone { order:-2; }
+}
+/* 521-768px only: the desktop three-month strip renders inside the panel and
+   its 10px display-only cells need a readable floor. Below 520px IMP-069's
+   compact month renders instead, with 44px tappable day buttons that this
+   rule must not shrink (mini-calendar.css owns that block). */
+@media(min-width:521px) and (max-width:768px) {
+ .reference-calendar-panel .mini-calendar-day,.reference-calendar-panel .mini-calendar-dow { min-height:20px;font-size:var(--fl-caption, 14px); }
+}
+/* ≤520px the panel holds IMP-069's compact month: 7 tappable day columns need
+   (44px × 7) + gaps + padding, so the panel takes the full width minus the
+   header's 12px side padding. */
+@media(max-width:520px) {
+ .reference-calendar-panel { width:calc(100vw - 16px); padding:8px; }
 }
 
 @media(max-width:768px) {
