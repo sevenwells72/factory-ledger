@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-09 11:19 — Railway watch paths confirmed: docs-only push skipped (FACTORY row 129)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Recorded the first watch-path test result. The docs-only push `a865478` (row 129 DEPLOYED) produced Railway deployment record `38940a52` with status SKIPPED at 15:15:18Z; no build ran, deployment `0d6e3d92` (merge `f951070`) stayed live, and `/health` remained HTTP 200 throughout. Row 129 updated in place with the same result. This commit is a second docs-only push and is expected to be skipped as well.
+- **Why:** Close the loop on row 129 with evidence that docs commits no longer cause the ~5 min 502 window.
+
+---
+
 ## 2026-09-09 11:15 — Deployed Railway watch paths (PR #38 → main, FACTORY row 129)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Owner-approved squash merge of PR #38, head `1282104`, as `f951070`. Railway deployment `0d6e3d92` SUCCESS for the merge commit (this rebuild was expected: the merge is processed under the pre-watch-path config). `/health` at 15:14:46Z returned HTTP 200, healthy, database connected, pool active. Remote branch `chore/railway-watch-paths` deleted. FACTORY row 129 marked DEPLOYED. This docs-only commit is itself the first test of the watch patterns: Railway should show no new deployment for it. Result recorded in the next entry.
