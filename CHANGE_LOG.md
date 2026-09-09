@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-09 10:24 — Deployed SO intake follow-up (PR #36 → main, FACTORY row 127)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 127 → DEPLOYED)
+- **What changed:** Owner-approved squash-merge of PR #36 (`fix/so-intake-followup`, head `1316b14`, Codex cross-review approved) into main as `30b4f11`. Netlify production deploy `6aa16b31012ffc000879d369` ready 14:20:44Z from the merge commit; live index.html verified serving intake-logic.js?v=11 / dashboard.js?v=58 / dashboard.css?v=41. Railway FastAPI deployment `8fa4a164-aa9e-432c-8e97-e524153c2554` SUCCESS for `30b4f11` (main.py + requirements.txt changed, so a real rebuild: /health returned 502 for ~5 minutes during it, then 200 healthy with the pool active). Remote branch `fix/so-intake-followup` deleted after merge.
+- **Why:** Owner approved deploying the SO intake review fixes after Codex cross-review sign-off (2026-09-09).
+
+---
+
 ## 2026-09-09 10:12 — Row 127 Codex fix: case-size autofill keys off the line's current unit, not lb_source (intake-logic v11)
 - **File(s) changed:** `dashboard/intake-logic.js`, `dashboard/index.html`, `tests/test_er_intake_logic.js`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Codex cross-review of PR #36 found that `applyProductPick` gated the master case size on `lb_source`, which `applyUnitChange` resets to `'none'` — so an unresolved CASE line changed to LB, quantity typed 2, then a 10 lb/case product picked previewed 20 lb and enabled Approve. The pick now checks the line's current normalized unit through a new shared `unitIsLb()` (`LB_UNITS` hoisted to the top of the module; `SO_LB_UNITS` aliases it; exported). An lb-unit line never takes a case size; if a unit change dropped its conversion, the pick restores the 1 lb/unit `unit_is_lb` identity so typed pounds carry through (2 lb, approvable, never taught as a case size). Non-lb lines fill from the master unless the conversion is `manual`. New node test reproduces the exact sequence plus lbs/LB./pounds/# spellings and the LB→CASE direction. `intake-logic.js` v10→11 (dashboard.js stays v58). Row 127 amended. 47/47 node; 90 pytest (SO extract + JS wrapper) green.
