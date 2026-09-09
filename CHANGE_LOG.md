@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-09 08:46 — Design audit B+C DEPLOYED: PR #34 squash-merged, Netlify + Railway live (FACTORY rows 123/124)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (rows 123/124 → DEPLOYED), squash-merge commit `7270d2a`
+- **What changed:** Owner-approved deploy executed: PR #34 (`fix/design-audit-3`, head `fda782f`, pre-merge review passed all 6 checks) squash-merged into main as `7270d2a` ("fix(design): Batch B+C integrated over SO intake (rows 122–124, js56/css39/intake9)"). Netlify deploy `6aa154c08ab6220008656dc4` ready 12:44:48Z from `7270d2a`; live-verified index.html serves `dashboard.css?v=39` / `intake-logic.js?v=9` / `dashboard.js?v=56` plus `shell-layout.css?v=2` / `design-controls.js?v=1` / `shell.js?v=2`, and history.html serves css v39 / history.js v1. Railway deployment `e2e131e4` SUCCESS 08:46 ET — a rebuild of bit-identical backend code (main.py, extraction.py, migrations, schema dump all unchanged vs pre-merge main, verified by blob hash); /health 200. Remote branch `fix/design-audit-3` deleted after merge. Rows 123/124 marked DEPLOYED.
+- **Why:** Owner approved the squash-merge and deploy of the integrated design-audit B+C work (2026-09-09).
+
+---
+
 ## 2026-09-08 19:04 — Record completed integration verification
 - **File(s) changed:** `docs/design/audit-2026-09-08-integration.md`
 - **What changed:** Recorded 59 Node and 245 Python passes, eight ER/SO fixture browser flows, protected-file equality and exact log preservation.
