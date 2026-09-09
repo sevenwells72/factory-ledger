@@ -2978,3 +2978,18 @@ button.health-badge { font-family: inherit; border: 1px solid var(--border); cur
   .er-modal .er-qcell { flex: 1 1 96px; }
   .er-modal .er-qcell-qty { flex: 1.5 1 150px; }
 }
+
+/* Batch 4: native controls use the same appearance tokens as styled fields. */
+:root { color-scheme:dark; }
+:root[data-theme="light"] { color-scheme:light; }
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="hidden"]), select, textarea) {
+  background-color:var(--search-bg);
+  color:var(--text);
+  border:1px solid var(--search-border);
+  border-radius:var(--radius-sm);
+  padding:7px 10px;
+  font-family:var(--font);
+}
+:where(input, select, textarea):focus-visible { outline:2px solid var(--primary-text);outline-offset:2px; }
+/* Scope padding to the history page without changing shared section tables. */
+body:has(#history-form) > main { padding:16px clamp(12px,3vw,32px); }
