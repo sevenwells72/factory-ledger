@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-09 11:11 — Railway watch paths: stop rebuilding on docs-only commits (FACTORY row 129)
+- **File(s) changed:** `railway.json` (new), `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Added `railway.json` at repo root with `build.watchPatterns`: `/*.py`, `/requirements.txt`, `/runtime.txt`, `/railway.json`, `/dashboard/dashboard_config.json`. Root-anchored positive patterns only; no negations. Covers the two modules the service imports (main.py, extraction.py), the two files Nixpacks reads at build (requirements.txt, runtime.txt), the watch config itself, and the one non-Python file the running service reads from disk (`dashboard_config.json`, loaded by three `/dashboard/api/*` handlers that the Netlify dashboard calls). Excludes `dashboard/` UI assets, `docs/`, `*.md`, `tests/`, `gpt-configs/`, `scripts/`, `archive/`, and `migrations/` (applied by hand in Supabase; never read by the service). Added FACTORY row 129 (PENDING MERGE). Branch `chore/railway-watch-paths` off `main` at `ad8f9f1`.
+- **Why:** Railway rebuilt the FastAPI service on every push to main, including changelog/docs commits, causing a ~5 min 502 window each time. The first deploy after merge will still rebuild; watch paths take effect for subsequent pushes.
+
+---
+
 ## 2026-09-09 10:46 — Deployed design audit 5 (PR #37 → main, FACTORY row 128)
 - **What changed:** Owner-approved squash merge of PR #37, head `fd5eda4`, as `003119cea0dd0ce44d9c41cecc50ee108e204fc7`. Netlify production deploy `6aa170feaf08540008be5211` is ready (published 14:45:39Z) for that merge; live `index.html` serves dashboard.css v42 / dashboard.js v59 / intake-logic.js v12 / shell-layout.css v5. Railway deployment `a435e847-969a-4095-a7df-6cc6e8ef7701` reports SUCCESS for the same merge; subsequent `/health` at 14:46:13Z returns HTTP 200, healthy database connection and active pool. FACTORY row 128 marked DEPLOYED.
 - **Next batch:** Logged IMP-074: at 1440px, Sales Orders Pallets text `0.3 pallet / 1 physical mixed pallet` occupies five lines. Use a tighter two-line presentation while retaining both the fractional pallet quantity and physical mixed-pallet count, keeping the columns fitted and mobile layout intact. Finding only; no formatting or calculation changes in this docs commit.
