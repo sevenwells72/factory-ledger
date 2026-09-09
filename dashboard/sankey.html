@@ -85,12 +85,12 @@
 
   /* Site Nav */
   .site-nav { position:fixed;top:0;left:0;right:0;height:48px;z-index:200;background:#1a1a2e;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;padding:0 20px; }
-  .site-nav-brand { font-size:15px;font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
+  .site-nav-brand { font-size:var(--fl-body, 15px);font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
   .site-nav-links { display:flex;gap:4px;align-items:center; }
-  .site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
+  .site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:var(--fl-caption, 14px);font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
   .site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
   .site-nav-link.active { color:#fff;background:var(--primary); }
-  .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
+  .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:var(--fl-headline, 18px);padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
   @media(max-width:768px){
     .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
     .site-nav-toggle{display:block}
@@ -112,22 +112,22 @@
     z-index: 100;
   }
   .header h1 {
-    font-size: 18px;
+    font-size:var(--fl-headline, 18px);
     font-weight: 600;
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  .header h1 .icon { font-size: 22px; }
+  .header h1 .icon { font-size:var(--fl-headline, 22px); }
   .header-right {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 13px;
+    font-size:var(--fl-caption, 14px);
     color: var(--text-muted);
   }
   .back-link {
-    font-size: 13px;
+    font-size:var(--fl-caption, 14px);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -159,7 +159,7 @@
     gap: 8px;
   }
   .control-group label {
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -171,7 +171,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 6px 10px;
-    font-size: 13px;
+    font-size:var(--fl-caption, 14px);
     font-family: var(--font);
     cursor: pointer;
   }
@@ -185,7 +185,7 @@
   /* Banner */
   .banner {
     padding: 8px 24px;
-    font-size: 13px;
+    font-size:var(--fl-caption, 14px);
     display: none;
     flex-direction: column;
     align-items: stretch;
@@ -197,7 +197,7 @@
     background: var(--inset-bg);
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     line-height: 1.45;
     white-space: pre-wrap;
     word-break: break-word;
@@ -211,7 +211,7 @@
     color: inherit;
     border-radius: 4px;
     padding: 4px 10px;
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     font-family: inherit;
     line-height: 1.2;
     min-height: 28px;
@@ -230,8 +230,8 @@
     text-align: center;
     padding: 24px;
   }
-  .data-failure-title { font-size: 16px; font-weight: 600; color: var(--danger-text); }
-  .data-failure-body { font-size: 14px; color: var(--text-muted); max-width: 60ch; line-height: 1.5; }
+  .data-failure-title { font-size:var(--fl-body, 16px); font-weight: 600; color: var(--danger-text); }
+  .data-failure-body { font-size:var(--fl-body, 14px); color: var(--text-muted); max-width: 60ch; line-height: 1.5; }
   .data-failure .banner-detail { align-self: stretch; text-align: left; max-width: 900px; margin: 0 auto; }
   .data-failure-retry {
     background: var(--primary);
@@ -239,7 +239,7 @@
     border-radius: 6px;
     color: #fff;
     font-family: inherit;
-    font-size: 14px;
+    font-size:var(--fl-body, 14px);
     font-weight: 600;
     padding: 10px 20px;
     min-height: 40px;
@@ -275,7 +275,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 8px 12px;
-    font-size: 13px;
+    font-size:var(--fl-caption, 14px);
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.15s;
@@ -294,7 +294,7 @@
     margin-bottom: 8px;
   }
   .col-label {
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -331,10 +331,10 @@
     justify-content: center;
     min-height: 400px;
     color: var(--text-muted);
-    font-size: 15px;
+    font-size:var(--fl-body, 15px);
     gap: 8px;
   }
-  .empty-state .icon { font-size: 48px; color: var(--text-dimmed); }
+  .empty-state .icon { font-size:var(--fl-display, 48px); color: var(--text-dimmed); }
 
   /* Legend */
   .legend {
@@ -348,7 +348,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     color: var(--text-muted);
   }
   .legend-swatch {
@@ -360,7 +360,7 @@
   /* Footer */
   .footer {
     padding: 16px 24px;
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     color: var(--text-muted);
     border-top: 1px solid var(--border);
     display: flex;
@@ -371,12 +371,14 @@
 
   /* Node labels */
   .node-label {
-    font-size: 11px;
+    font-size:var(--fl-caption, 14px);
     fill: var(--text);
     pointer-events: none;
   }
 </style>
 <link rel="stylesheet" href="interaction.css?v=2">
+  <link rel="stylesheet" href="shell-layout.css?v=2">
+<script src="design-controls.js?v=1"></script>
 </head>
 <body>
 
@@ -385,14 +387,14 @@
   <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
   <div class="site-nav-links" id="navLinks">
     <a href="/" class="site-nav-link">Dashboard</a>
-    <a href="/sankey.html" class="site-nav-link active">Material Flow</a>
-    <a href="/process-flow.html?v=2" class="site-nav-link">Production Lines</a>
-    <a href="/traceability.html?v=2" class="site-nav-link">Traceability</a>
+    <a href="/sankey.html?v=3" class="site-nav-link active">Material Flow</a>
+    <a href="/process-flow.html?v=4" class="site-nav-link">Production Lines</a>
+    <a href="/traceability.html?v=4" class="site-nav-link">Traceability</a>
   </div>
 </nav>
 
 <div class="header">
-  <h1><span class="icon">&#9776;</span> Product Flow — Sankey</h1>
+  <h1>Material Flow</h1>
   <div class="header-right">
     <div data-mini-calendar aria-label="Calendar"></div>
     <span id="last-updated"></span>
@@ -680,7 +682,30 @@
       links.push({ source: src, target: tgt, value: val, type: 'fc' });
     }
 
+    // Retain exact contributors so Other can be inspected without guessing.
+    const raw=[...Object.entries(ingredientToLine).map(([key,value])=>({key,value,type:'il'})),...Object.entries(lineToFinished).map(([key,value])=>({key,value,type:'lf'})),...Object.entries(finishedToCustomer).map(([key,value])=>({key,value,type:'fc'}))];
+    links.forEach(link=>{link.members=raw.filter(r=>{
+      if(r.type!==link.type)return false;const [source,target]=r.key.split('|');
+      const a=r.type==='il'?(topIngredients.has(source)?source:'Other Ingredients'):r.type==='lf'?source:(topFinished.has(source)?source:'Other Products');
+      const b=r.type==='il'?target:r.type==='lf'?(topFinished.has(target)?target:'Other Products'):(topCustomers.has(target)?target:'Other Customers');
+      return a===link.source&&b===link.target;
+    }).map(r=>{const [source,target]=r.key.split('|');return {source,target,value:r.value};});});
     return links;
+  }
+
+  function renderRelationships(links,range,truncated) {
+    let section=document.getElementById('flow-relationships');
+    if(!section){section=document.createElement('section');section.id='flow-relationships';section.className='flow-explanation';document.getElementById('chart-container').after(section);}
+    section.replaceChildren();
+    const heading=document.createElement('h2');heading.textContent='Flow relationships';section.append(heading);
+    const summary=document.createElement('p');summary.setAttribute('role','status');
+    const shipped=links.filter(l=>l.type==='fc').sort((a,b)=>b.value-a.value)[0];
+    summary.textContent=FLDesign.date(range.since)+' – '+FLDesign.date(range.until)+': '+(shipped?'Largest displayed shipment flow: '+shipped.source+' → '+shipped.target+', '+shipped.value.toLocaleString('en-US',{maximumFractionDigits:1})+' lb.':'No shipment flow meets the display threshold.')+(truncated?' Partial data: the latest 100 transactions per type are shown.':'');section.append(summary);
+    const note=document.createElement('p');note.textContent='Wider bands mean more pounds. Each stage is aggregated separately; do not add stages together or infer that production was shipped in the same period. Flows below '+MIN_FLOW_LB+' lb after grouping are omitted. Other Ingredients, Products and Customers contain records outside the selected top counts. Other Production means the product was not assigned to a named production line. Expand a relationship to inspect its exact contributors.';section.append(note);
+    const table=document.createElement('table');table.className='flow-relationships';table.innerHTML='<caption>Displayed flows and exact contributing relationships</caption><thead><tr><th>Source</th><th>Destination</th><th class="num">Pounds / details</th></tr></thead><tbody></tbody>';
+    links.forEach(link=>{const row=table.tBodies[0].insertRow();row.insertCell().textContent=link.source;row.insertCell().textContent=link.target;const cell=row.insertCell();cell.dataset.sortValue=link.value;const amount=document.createElement('strong');amount.textContent=link.value.toLocaleString('en-US',{maximumFractionDigits:1})+' lb';cell.append(amount);
+      const details=document.createElement('details');details.className='record-details';const title=document.createElement('summary');title.textContent='Inspect '+link.members.length+' contributing relationship'+(link.members.length===1?'':'s');details.append(title);const members=document.createElement('div');members.className='flow-members';
+      link.members.forEach(m=>{const p=document.createElement('p');p.textContent=m.source+' → '+m.target+': '+m.value.toLocaleString('en-US',{maximumFractionDigits:1})+' lb. ';const a=document.createElement('a');a.className='record-link';a.href='/?query='+encodeURIComponent(link.type==='il'?m.source:link.type==='lf'?m.target:m.source);a.textContent='Find product record →';p.append(a);members.append(p);});details.append(members);cell.append(details);});section.append(table);
   }
 
   // --- Sankey rendering ---
@@ -705,7 +730,17 @@
     }
 
     const width = container.clientWidth || 900;
-    const height = Math.max(500, links.length * 8);
+    if (width <= 900) {
+      const list = document.createElement('div'); list.className = 'flow-compact-list';
+      const heading = document.createElement('h3'); heading.textContent = 'Flows for the selected period'; list.append(heading);
+      links.forEach(link => {
+        const card = document.createElement('article');
+        const route = document.createElement('p'); route.textContent = link.source + ' → ' + link.target;
+        const amount = document.createElement('strong'); amount.textContent = Number(link.value).toLocaleString('en-US', {maximumFractionDigits:1}) + ' lb';
+        card.append(route, amount); list.append(card);
+      });
+      container.append(list); return;
+    }
 
     // Build node set preserving column order
     const nodeNames = new Set();
@@ -726,6 +761,9 @@
       }
     }
 
+    const perColumn = [0, 0, 0, 0];
+    Object.values(nodeColumn).forEach(col => perColumn[col]++);
+    const height = Math.max(600, Math.max(...perColumn) * 72);
     const nodeArray = Array.from(nodeNames);
     const nodeIndex = {};
     nodeArray.forEach((n, i) => nodeIndex[n] = i);
@@ -740,10 +778,10 @@
     const sankey = d3.sankey()
       .nodeId(d => d.index)
       .nodeWidth(18)
-      .nodePadding(12)
-      .nodeAlign(d3.sankeyLeft)
+      .nodePadding(52)
+      .nodeAlign(d => d.column)
       .nodeSort((a, b) => b.value - a.value)
-      .extent([[1, 1], [width - 1, height - 1]]);
+      .extent([[1, 24], [width - 1, height - 24]]);
 
     // Assign fixed columns
     const graph = sankey({
@@ -752,7 +790,7 @@
     });
 
     // Override x positions by column
-    const colWidth = (width - 20 - 18) / 3;
+    const colWidth = (width - 24) / 4;
     for (const node of graph.nodes) {
       const col = nodeColumn[node.name] ?? 0;
       node.x0 = col * colWidth + 1;
@@ -824,25 +862,21 @@
         tooltip.style.opacity = 0;
       });
 
-    // Node labels
-    svg.append('g')
-      .selectAll('text')
-      .data(graph.nodes)
-      .join('text')
-      .attr('class', 'node-label')
-      .attr('x', d => {
-        const col = nodeColumn[d.name] ?? 0;
-        return col < 2 ? d.x1 + 6 : d.x0 - 6;
-      })
-      .attr('y', d => (d.y0 + d.y1) / 2)
-      .attr('dy', '0.35em')
-      .attr('text-anchor', d => {
-        const col = nodeColumn[d.name] ?? 0;
-        return col < 2 ? 'start' : 'end';
-      })
-      .text(d => {
-        const lbl = d.name.length > 28 ? d.name.slice(0, 26) + '…' : d.name;
-        return `${lbl} (${d3.format(',.0f')(d.value)} lb)`;
+    // Each label owns its column width and a 44px vertical slot. Full names
+    // remain available with a pointer, keyboard or touch selection.
+    const detail = document.createElement('div'); detail.id = 'flow-selected';
+    detail.setAttribute('role','status'); detail.textContent = 'Select a label to read its full name and connected flows.';
+    container.append(detail);
+    svg.append('g').selectAll('foreignObject').data(graph.nodes).join('foreignObject')
+      .attr('x', d => d.x1 + 4).attr('y', d => Math.max(0,(d.y0 + d.y1) / 2 - 22))
+      .attr('width', colWidth - 28).attr('height',44)
+      .append('xhtml:button').attr('type','button').attr('class','flow-node-label')
+      .attr('aria-label', d => 'Show flows for ' + d.name).attr('title', d => d.name)
+      .text(d => d.name + ' (' + d3.format(',.0f')(d.value) + ' lb)')
+      .on('click', (event,d) => {
+        detail.replaceChildren(); const title=document.createElement('strong'); title.textContent=d.name; detail.append(title);
+        links.filter(l=>l.source===d.name||l.target===d.name).forEach(l=>{const line=document.createElement('p');line.textContent=l.source+' → '+l.target+': '+d3.format(',.1f')(l.value)+' lb';detail.append(line);});
+        detail.scrollIntoView({block:'nearest'});
       });
   }
 
@@ -997,6 +1031,7 @@
 
       const links = processData(makeData, shipData, {}, topN, topC, topI);
       renderSankey(links);
+      renderRelationships(links, range, truncated);
 
       if (truncated) {
         document.getElementById('truncation-note').textContent =
@@ -1005,7 +1040,7 @@
 
       lastSuccessTime = new Date();
       document.getElementById('last-updated').textContent =
-        'Updated ' + lastSuccessTime.toLocaleTimeString();
+        'Updated ' + FLDesign.time(lastSuccessTime.toISOString());
     } catch (err) {
       console.error('API error:', err);
       // No fabricated data on any path (IMP-044); a stall is still named as
@@ -1014,7 +1049,7 @@
       const stalled = !!(window.FL && FL.isStall(err));
       if (lastSuccessTime) {
         // A real chart is still on screen. Say how old it is; do not redraw it.
-        const since = lastSuccessTime.toLocaleTimeString();
+        const since = FLDesign.time(lastSuccessTime.toISOString());
         showBanner(
           stalled
             ? `Server not responding — showing data from ${since}`
@@ -1061,5 +1096,6 @@
 </script>
 <script src="mini-calendar.js?v=4"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
+  <script src="shell.js?v=2"></script>
 </body>
 </html>

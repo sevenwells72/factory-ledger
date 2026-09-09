@@ -73,12 +73,12 @@
 
   /* Site Nav */
   .site-nav { position:fixed;top:0;left:0;right:0;height:48px;z-index:200;background:#1a1a2e;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;padding:0 20px; }
-  .site-nav-brand { font-size:15px;font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
+  .site-nav-brand { font-size:var(--fl-body, 15px);font-weight:700;color:#f1f5f9;white-space:nowrap;letter-spacing:-0.3px; }
   .site-nav-links { display:flex;gap:4px;align-items:center; }
-  .site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
+  .site-nav-link { display:inline-flex;align-items:center;min-height:var(--hit-min);padding:5px 14px;border-radius:6px;font-size:var(--fl-caption, 14px);font-weight:500;color:#94a3b8;text-decoration:none;transition:all 0.15s;white-space:nowrap; }
   .site-nav-link:hover { color:#f1f5f9;background:rgba(255,255,255,0.06);text-decoration:none; }
   .site-nav-link.active { color:#fff;background:var(--primary); }
-  .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:18px;padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
+  .site-nav-toggle { display:none;background:none;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#94a3b8;font-size:var(--fl-headline, 18px);padding:4px 10px;min-width:var(--hit-min);min-height:var(--hit-min);cursor:pointer;line-height:1; }
   @media(max-width:768px){
     .site-nav{flex-wrap:wrap;height:auto;min-height:48px}
     .site-nav-toggle{display:block}
@@ -95,9 +95,9 @@
     display: flex; align-items: center; justify-content: space-between;
     position: sticky; top: 48px; z-index: 100;
   }
-  .header h1 { font-size:18px; font-weight:600; }
-  .header-right { display:flex; align-items:center; gap:12px; font-size:13px; color:var(--text-muted); }
-  .back-link { font-size:13px; }
+  .header h1 { font-size:var(--fl-headline, 18px); font-weight:600; }
+  .header-right { display:flex; align-items:center; gap:12px; font-size:var(--fl-caption, 14px); color:var(--text-muted); }
+  .back-link { font-size:var(--fl-caption, 14px); }
 
   /* The wrap dashboard.css:2223-2225 already gives index.html. Without it
      .mini-calendar-strip cannot take its own row and pushes .header-right
@@ -122,9 +122,9 @@
     border-radius: 8px;
     padding: 16px;
   }
-  .summary-card .label { font-size:12px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
-  .summary-card .value { font-size:24px; font-weight:600; }
-  .summary-card .sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .summary-card .label { font-size:var(--fl-caption, 14px); color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
+  .summary-card .value { font-size:var(--fl-title, 24px); font-weight:600; }
+  .summary-card .sub { font-size:var(--fl-caption, 14px); color:var(--text-muted); margin-top:2px; }
 
   /* Line cards */
   .lines-grid {
@@ -143,11 +143,11 @@
   .line-header {
     display: flex; justify-content: space-between; align-items: flex-start;
   }
-  .line-title { font-size:16px; font-weight:600; }
-  .line-product { font-size:13px; color:var(--text-muted); margin-top:2px; }
-  .line-also { font-size:11px; color:var(--text-dim); margin-top:2px; font-style:italic; }
+  .line-title { font-size:var(--fl-body, 16px); font-weight:600; }
+  .line-product { font-size:var(--fl-caption, 14px); color:var(--text-muted); margin-top:2px; }
+  .line-also { font-size:var(--fl-caption, 14px); color:var(--text-dim); margin-top:2px; font-style:italic; }
   .badge {
-    display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; text-transform:uppercase;
+    display:inline-block; padding:3px 10px; border-radius:12px; font-size:var(--fl-caption, 14px); font-weight:600; text-transform:uppercase;
   }
   .badge-active { background:var(--badge-active-bg); color:#fff; }
   .badge-idle { background:var(--badge-idle-bg); color:var(--badge-idle-text); }
@@ -165,31 +165,31 @@
   }
   .stage-active { background: var(--stage-active); }
   .stage-idle { background: var(--stage-idle); }
-  .stage-value { font-size:18px; font-weight:500; white-space:nowrap; }
-  .stage-label { font-size:11px; color:var(--text-muted); margin-top:2px; white-space:nowrap; }
-  .stage-name { font-size:11px; color:var(--text-dim); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px; }
+  .stage-value { font-size:var(--fl-headline, 18px); font-weight:500; white-space:nowrap; }
+  .stage-label { font-size:var(--fl-caption, 14px); color:var(--text-muted); margin-top:2px; white-space:nowrap; }
+  .stage-name { font-size:var(--fl-caption, 14px); color:var(--text-dim); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.3px; }
   .arrow {
     flex-shrink: 0;
     width: 24px;
     display: flex; align-items: center; justify-content: center;
     color: var(--arrow-color);
-    font-size: 16px;
+    font-size:var(--fl-body, 16px);
   }
 
   /* Metrics row */
   .metrics {
-    display: flex; gap: 20px; font-size:13px;
+    display: flex; gap: 20px; font-size:var(--fl-caption, 14px);
   }
   .metric-label { color:var(--text-muted); }
   .metric-value { font-weight:500; }
-  .hydration-note { font-size:10px; color:var(--text-dim); }
+  .hydration-note { font-size:var(--fl-caption, 14px); color:var(--text-dim); }
 
   /* Stale warning */
   .stale-banner {
     background: var(--banner-warn-bg);
     color: var(--banner-warn-text);
     padding: 8px 24px;
-    font-size: 13px;
+    font-size:var(--fl-caption, 14px);
     display: none;
   }
   .stale-banner.visible { display:block; }
@@ -199,7 +199,7 @@
     background: var(--banner-error-bg);
     color: var(--danger-text);
     padding: 8px 24px;
-    font-size: 13px;
+    font-size:var(--fl-caption, 14px);
     display: none;
   }
   .error-banner.visible { display:block; }
@@ -210,7 +210,7 @@
     background: var(--inset-bg);
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     line-height: 1.45;
     white-space: pre-wrap;
     word-break: break-word;
@@ -224,7 +224,7 @@
     color: inherit;
     border-radius: 4px;
     padding: 4px 10px;
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     font-family: inherit;
     line-height: 1.2;
     min-height: 28px;
@@ -244,8 +244,8 @@
     align-items: flex-start;
     gap: 10px;
   }
-  .data-failure-title { font-size: 15px; font-weight: 600; color: var(--danger-text); }
-  .data-failure-body { font-size: 13px; color: var(--text-muted); max-width: 60ch; line-height: 1.5; }
+  .data-failure-title { font-size:var(--fl-body, 15px); font-weight: 600; color: var(--danger-text); }
+  .data-failure-body { font-size:var(--fl-caption, 14px); color: var(--text-muted); max-width: 60ch; line-height: 1.5; }
   .data-failure .banner-detail { color: var(--text-muted); align-self: stretch; }
   .data-failure-retry {
     background: var(--primary);
@@ -253,7 +253,7 @@
     border-radius: 6px;
     color: #fff;
     font-family: inherit;
-    font-size: 13px;
+    font-size:var(--fl-caption, 14px);
     font-weight: 600;
     padding: 9px 18px;
     min-height: 36px;
@@ -264,7 +264,7 @@
   /* Footer */
   .footer {
     padding: 12px 24px;
-    font-size: 12px;
+    font-size:var(--fl-caption, 14px);
     color: var(--text-dim);
     text-align: center;
   }
@@ -280,6 +280,8 @@
 </style>
 <link rel="stylesheet" href="interaction.css?v=2">
 <script src="fetch-timeout.js?v=1"></script>
+  <link rel="stylesheet" href="shell-layout.css?v=2">
+<script src="design-controls.js?v=1"></script>
 </head>
 <body>
 
@@ -288,17 +290,17 @@
   <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
   <div class="site-nav-links" id="navLinks">
     <a href="/" class="site-nav-link">Dashboard</a>
-    <a href="/sankey.html" class="site-nav-link">Material Flow</a>
-    <a href="/process-flow.html?v=2" class="site-nav-link active">Production Lines</a>
-    <a href="/traceability.html?v=2" class="site-nav-link">Traceability</a>
+    <a href="/sankey.html?v=3" class="site-nav-link">Material Flow</a>
+    <a href="/process-flow.html?v=4" class="site-nav-link active">Production Lines</a>
+    <a href="/traceability.html?v=4" class="site-nav-link">Traceability</a>
   </div>
 </nav>
 
 <div class="header">
-  <h1>Production Process Flow</h1>
+  <h1>Production Lines</h1>
   <div class="header-right">
     <div data-mini-calendar aria-label="Calendar"></div>
-    <span id="last-updated"></span>
+    <span id="last-updated"></span><button type="button" id="production-refresh" class="btn-sm">Refresh Production Lines</button>
   </div>
 </div>
 
@@ -370,25 +372,20 @@
   }
 
   // --- Timezone helpers ---
-  function toET(utcStr) {
-    const d = new Date(utcStr + (utcStr.endsWith('Z') ? '' : 'Z'));
-    return new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  function plantTransactionDay(value) {
+    const raw=String(value||'');
+    // Legacy transaction.timestamp values without an offset are UTC; accept ISO offsets too.
+    const date=new Date(raw+(/(Z|[+-]\d{2}:\d{2})$/i.test(raw)?'':'Z'));
+    return Number.isNaN(+date)?null:new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
   }
 
   function todayET() {
-    const now = new Date();
-    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    return et.toISOString().slice(0, 10);
+    return plantTransactionDay(new Date().toISOString());
   }
 
-  function formatTimeET(utcStr) {
-    const d = new Date(utcStr + (utcStr.endsWith('Z') ? '' : 'Z'));
-    return d.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }) + ' ET';
-  }
-
-  function formatDateET(utcStr) {
-    const d = new Date(utcStr + (utcStr.endsWith('Z') ? '' : 'Z'));
-    return d.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' });
+  function formatDateET(value) {
+    const raw=String(value||'');
+    return FLDesign.time(raw+(/(Z|[+-]\d{2}:\d{2})$/i.test(raw)?'':'Z'));
   }
 
   // --- API helpers ---
@@ -497,10 +494,7 @@
     const lineData = {};
 
     for (const tx of allTx) {
-      const etDate = toET(tx.timestamp);
-      const dateStr = etDate.getFullYear() + '-' +
-        String(etDate.getMonth() + 1).padStart(2, '0') + '-' +
-        String(etDate.getDate()).padStart(2, '0');
+      const dateStr = /^\d{4}-\d{2}-\d{2}$/.test(tx.business_date||'') ? tx.business_date : plantTransactionDay(tx.occurred_at || tx.timestamp);
 
       // Find output product (positive quantity line)
       const outputLines = tx.lines.filter(l => l.quantity_lb > 0);
@@ -539,6 +533,7 @@
       if (!lineData[line].lastRunTimestamp || tx.timestamp > lineData[line].lastRunTimestamp) {
         lineData[line].lastRunTimestamp = tx.timestamp;
         lineData[line].lastRunDate = dateStr;
+        lineData[line].lastRunId = tx.id;
       }
     }
 
@@ -650,6 +645,7 @@
         const lastStr = ld.lastRunTimestamp ? 'Last run: ' + formatDateET(ld.lastRunTimestamp) : 'No recent activity';
         html += `<div class="line-product">${lastStr}</div>`;
       }
+      if(ld.lastRunId && ld.lastRunDate) html += `<a class="record-link" href="/history.html?${new URLSearchParams({day:ld.lastRunDate,transaction:ld.lastRunId})}">Inspect last run TX-${ld.lastRunId} →</a>`;
       html += `</div>`;
       html += `<span class="badge ${isActive ? 'badge-active' : 'badge-idle'}">${isActive ? 'Active' : 'Idle'}</span>`;
       html += `</div>`;
@@ -920,6 +916,7 @@
   }
 
   // Initial load
+  document.getElementById('production-refresh').addEventListener('click',async()=>{const b=document.getElementById('production-refresh');b.disabled=true;b.textContent='Refreshing…';try{await refresh();}finally{b.disabled=false;b.textContent='Refresh Production Lines';}});
   refresh();
   setInterval(refresh, REFRESH_MS);
 
@@ -927,5 +924,6 @@
 </script>
 <script src="mini-calendar.js?v=4"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
+  <script src="shell.js?v=2"></script>
 </body>
 </html>

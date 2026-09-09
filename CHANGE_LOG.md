@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-09-08 19:04 — Record completed integration verification
+- **File(s) changed:** `docs/design/audit-2026-09-08-integration.md`
+- **What changed:** Recorded 59 Node and 245 Python passes, eight ER/SO fixture browser flows, protected-file equality and exact log preservation.
+- **Why:** User requested a reviewable integration report before a separately approved merge/deployment.
+
+---
+
+## 2026-09-08 19:02 — Keep integrated order identity and mobile intake quantities readable
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/dashboard.css`, `tests/visual/run-integrated-intake.mjs`
+- **What changed:** Keep order/document controls adjacent, use order-number sort values, wrap ER quantity cells and source tags at phone widths. Correct fixture selectors and assert no cross-cell overlap.
+- **Why:** Screenshot review found ER source-label overlap at 390px and desktop paperclip wrapping despite initial geometry checks passing.
+
+---
+
+## 2026-09-08 19:01 — Add isolated ER/SO browser integration checks
+- **File(s) changed:** `tests/visual/run-integrated-intake.mjs`
+- **What changed:** Added synthetic upload/extraction/matching, paperclip and grouped-sort checks across desktop/phone and light/dark. Network writes are intercepted.
+- **Why:** Verify the combined integration; local migration 050 applied only to factory_ledger_design_audit_a. First runs: 59 Node and 244 Python tests passed.
+
+---
+
+## 2026-09-08 18:59 — Integrate deployed SO intake into design audit branch
+- **File(s) changed:** Merge changes from origin/main; conflict resolution in dashboard/dashboard.js, dashboard/index.html, CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md; cache references in dashboard/history.html and tests/test_recent_ledger.py
+- **What changed:** Preserved both order and document buttons, shared intake module and SO modal; retained both log histories and renumbered Codex rows 122–124; selected JS 56/CSS 39/intake 9.
+- **Why:** User-authorized isolated integration; no merge to main or deployment.
+
+---
+
 ## 2026-09-08 18:35 — SO intake DEPLOYED: migration 050 → prod, merge to main, Railway + Netlify live (FACTORY row 121)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `tests/schema/schema.sql`, merge commit `fea70ba`, schema re-dump `f3bacdf`
 - **What changed:** Owner-approved deploy sequence executed: branch pushed through `6be8694`; local merge of `feat/so-intake` into main on top of Batch A `32b96d2` (conflicts resolved: FACTORY row renumbered 119→121 [119/120 = design-audit session, row-28 precedent], both CHANGE_LOG entry sets kept, Batch A's Factory-Ready aria-label combined with the SO paperclip in `renderOrdersList`, cache-busts renumbered to highest-never-served `dashboard.css?v=37` / `dashboard.js?v=54` since Batch A's Netlify deploy had already served v36/v53); suite on merged tree 580 passed + known test_recent_ledger failure, node 49/49. Migration 050 applied to prod via session pooler 5432 and verified (document_kind + 2 existing rows defaulted 'purchase', customer_product_aliases, sales_orders.customer_po/source_document_id, 5 indexes); `scripts/dump_prod_schema.sh` re-dump (pending `\ir 050` gone, `f3bacdf`); main pushed `32b96d2..f3bacdf` → Railway deployment `dd0ebb2e` SUCCESS 18:28, Netlify serving v37/v54/intake-logic v8. Live-verified: the 3 intake routes 401 without a key; `/sales/orders/match` 200 + correct shape with the dashboard key; `GET /sales/orders` rows carry `customer_po`/`source_document_id`; `POST /sales/orders` still 403 on the dashboard key (ruling 1); ER upload path healthy (422 on missing file, not 500). FACTORY row 121 marked DEPLOYED.
@@ -25,6 +53,202 @@
 - **File(s) changed:** `docs/designs/sales-order-intake.md`, `migrations/050_sales_doc_intake.sql`, `extraction.py`, `tests/test_sales_order_extract.py`, `tests/schema/schema.sql`
 - **What changed:** New branch `feat/so-intake` (cut from main bd974ae). Committed the owner-approved design for customer-PO → sales-order intake (mirrors ER intake; owner rulings 1–10 folded in: intake-only V1, private-label warn-never-block, full-catalog picker with prior-sales first, cancelled orders/lines excluded from the pool, unambiguous-basis price storage, no create-customer, status='confirmed', renumber at merge, ER byte-identical upload refactor, er-intake-logic.js→intake-logic.js rename without shim). Phase 1: migration 050 (purchase_documents.document_kind 'purchase'|'sales', customer_product_aliases with generated alias_key + latest-wins unique, sales_orders.customer_po + source_document_id + warn-only normalized dedupe index) — applied to LOCAL test DB only, NOT prod; extraction.py gained kind='purchase'|'sales' (sales tool schema/prompt: buyer-not-vendor customer_name, customer_item_code, unit_price ≥0-or-null, strict dates; shared _validate_iso_date_value; default kind byte-identical purchase path); tests/test_sales_order_extract.py (37 tests: 050 constraints, exact approve-path alias upsert, PO dedupe lookup shape, idempotent re-apply, faked-client sales extraction incl. unknown-kind + purchase-path guard); schema.sql carries pending `\ir 050` block. Suite 523 passed + known pre-existing test_recent_ledger failure; tests/test_expected_receipt_extract.py untouched and green (owner ruling 9).
 - **Why:** Owner approved the sales-order intake proposal (2026-09-08) — paste/drop a customer PO into a New Sales Order modal → extract → match → review → approve; Phase 1 of 3.
+## 2026-09-08 18:41 — Reset and clear supplier searches consistently when reopening receipt entry
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/design-controls.js`, `dashboard/index.html`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:40 — Document Batch C implementation, local verification and remaining validation limits
+- **File(s) changed:** `docs/design/audit-2026-09-08-batch-c.md`, `outputs/factory-ledger-batch-c-results.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:40 — Distinguish top-count Other groups from unclassified production lines
+- **File(s) changed:** `dashboard/sankey.html`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:39 — Give Activity timestamps chronological sort keys and finish whitespace checks
+- **File(s) changed:** `dashboard/design-controls.js`, `dashboard/dashboard.js`, `dashboard/traceability.html`, `tests/test_batch_c_ui.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:38 — Make trace report rows responsive and normalize report timestamps
+- **File(s) changed:** `dashboard/traceability.html`, `dashboard/shell-layout.css`, `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:36 — Keep supply expansions attached and leave editable order-detail tables unchanged
+- **File(s) changed:** `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:35 — Scope default ship-date sorting to the sales-order list
+- **File(s) changed:** `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:34 — Use soonest ship date for default order sorting and retain dispatch priority
+- **File(s) changed:** `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:34 — Retain table sort and desktop widths across refreshes in this browser
+- **File(s) changed:** `dashboard/design-controls.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:33 — Wrap populated trace search and direction controls on phones
+- **File(s) changed:** `dashboard/shell-layout.css`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:33 — Keep production stage cards readable at the larger mobile type size
+- **File(s) changed:** `dashboard/shell-layout.css`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:32 — Fix offset-aware production dates exposed by run-link verification
+- **File(s) changed:** `dashboard/process-flow.html`, `tests/test_batch_c_ui.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:32 — Resolve date tokens in local Batch C fixture preview
+- **File(s) changed:** `work/audit-preview-c.mjs`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:32 — Add Batch C regression tests for dates, identity, flow aggregation and note reference gate
+- **File(s) changed:** `tests/test_batch_c_ui.js`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:31 — Unify action icons and stable record routes; clear stale trace selections
+- **File(s) changed:** `dashboard/design-controls.js`, `dashboard/dashboard.js`, `dashboard/traceability.html`, `dashboard/shell-layout.css`, `work/batch_c_polish.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:30 — Apply shared type scale and preserve table expansion state during sorting
+- **File(s) changed:** `dashboard/dashboard.css`, `dashboard/dashboard.js`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/shell-layout.css`, `dashboard/design-controls.js`, `dashboard/history.js`, `work/batch_c_refine.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:29 — Create Batch C read-only fixture preview
+- **File(s) changed:** `work/audit-preview-c.mjs`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:28 — Add read-only ledger history, Material Flow relationship details and Production Lines refresh/drill-through
+- **File(s) changed:** `dashboard/history.html`, `dashboard/history.js`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/index.html`, `dashboard/shell.js`, `tests/test_recent_ledger.py`, `work/batch_c_pages.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:27 — Implement Batch C record links, note and supplier selection, content summaries and visual controls
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/shell-layout.css`, `work/batch_c_apply.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:26 — Start Batch C shared controls and record/date helpers
+- **File(s) changed:** `dashboard/design-controls.js`, `work/batch_c_edit.py`
+- **What changed:** Implement approved Batch C presentation and navigation improvements locally.
+- **Why:** Continue the 34-finding design audit without production data changes.
+
+---
+
+## 2026-09-08 18:20 — Complete Batch B implementation and local validation
+- **File(s) changed:** `docs/design/audit-2026-09-08-batch-b.md`, `FACTORY_LEDGER_CHANGELOG.md`; user report `outputs/factory-ledger-batch-b-results.md`.
+- **What changed:** Recorded all 11 scoped findings, four-width browser measurements, keyboard/search/form checks and collision-free chart result. 15 Python and 40 Node tests passed; syntax and diff checks passed.
+- **Why:** Provide a reviewable local Batch B commit. No push or deployment; Batch C remains deferred.
+
+---
+
+## 2026-09-08 18:18 — Batch B final scope and field-width refinements
+- **File(s) changed:** shared shell JS/CSS and four page includes.
+- **What changed:** Clearly scoped the local trace search alongside global search and bounded the existing readiness-note edit field using its actual class. Normalized shared asset include formatting.
+- **Why:** Complete findings 16 and 22 without changing their record or shipping semantics.
+
+---
+
+## 2026-09-08 18:17 — Batch B keyboard edge cases and cache assertions
+- **File(s) changed:** `dashboard/shell.js`, `tests/test_recent_ledger.py`.
+- **What changed:** Arrow Up from an unselected list starts at the last result; clearing a search announces the minimum input requirement. Updated cache-version assertions for Batch B.
+- **Why:** Complete search keyboard behavior and retain the existing version regression guard.
+
+---
+
+## 2026-09-08 18:16 — Batch B chart collision corrections
+- **File(s) changed:** `dashboard/sankey.html`, `dashboard/shell-layout.css`.
+- **What changed:** Aligned Sankey layout to explicit semantic columns before computing y positions; reserved top/bottom label space, aligned column headings, and revealed selected flow details in view. Hid mobile navigation behind open dialogs.
+- **Why:** Browser geometry found two collisions/clipped labels caused by repositioning nodes from different computed columns; form navigation must not cover dialog content.
+
+---
+
+## 2026-09-08 18:15 — Batch B narrow-width browser fixes
+- **File(s) changed:** `dashboard/shell-layout.css`, `dashboard/shell.js`, `dashboard/dashboard.js`.
+- **What changed:** Removed the inherited 1040 px table minimum from order cards, extended cards to tablet widths, prioritized due/dispatch/remaining fields, put quick actions before today’s totals, aligned DOM order with mobile visual order, and moved keyboard focus into search-opened lot dialogs.
+- **Why:** Browser measurements exposed remaining internal card overflow and below-fold quick actions.
+
+---
+
+## 2026-09-08 18:14 — Verify Batch A deployment and prepare Batch B browser checks
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`; scratch `work/audit-preview-b.mjs`.
+- **What changed:** Confirmed live A frontend versions and backend request_unit field after approved merge; started isolated B fixture preview on localhost:8880 with writes rejected.
+- **Why:** Record deployed predecessor and safely test responsive changes.
+
+---
+
+## 2026-09-08 18:14 — Batch B Material Flow layout and shell integration
+- **File(s) changed:** `dashboard/sankey.html`, `dashboard/shell-layout.css`, `dashboard/shell.js`, `dashboard/dashboard.js`; scratch `work/fl_batch_b_edit.py`.
+- **What changed:** Allocated independent label columns and vertical space, full-name selection, and mobile source-to-destination flow cards. Connected quick actions to actual existing controls and the customer filter; anchored intake approval on phones.
+- **Why:** Fix overlapping labels and preserve existing entry/search workflows within Batch B.
+
+---
+
+## 2026-09-08 18:13 — Batch B shared shell and responsive controls (local, in progress)
+- **File(s) changed:** `dashboard/shell.js`, `dashboard/shell-layout.css`, `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`.
+- **What changed:** Shared search with keyboard choices, compact reference calendars, five mobile destinations with More, existing quick actions, mobile order cards, real 44 px controls, contextual trace shortcuts, and sticky receipt Save. Cache versions advanced.
+- **Why:** User requested the next batch after merging A; work is isolated on fix/design-audit-2 and remains local.
+
+---
+
 ## 2026-09-08 15:49 — Completed and verified approved design audit Batch A locally
 - **File(s) changed:** `dashboard/dashboard.js`, `docs/design/audit-2026-09-08-batch-a.md`, `FACTORY_LEDGER_CHANGELOG.md`; user report `outputs/factory-ledger-batch-a-results.md`.
 - **What changed:** Recorded all eight approved findings, DB unit evidence, cache versions and validation: 63 Python and 40 Node tests passed, syntax/diff checks passed, browser success/idle/outage checks passed. Health balances explicitly identify missing source units.

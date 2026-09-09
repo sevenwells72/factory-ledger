@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=37">
+  <link rel="stylesheet" href="dashboard.css?v=39">
   <link rel="stylesheet" href="mini-calendar.css?v=3">
   <link rel="stylesheet" href="interaction.css?v=2">
+  <link rel="stylesheet" href="shell-layout.css?v=2">
+  <script src="design-controls.js?v=1"></script>
 </head>
 <body>
 
@@ -51,9 +53,9 @@
     <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
     <div class="site-nav-links" id="navLinks">
       <a href="/" class="site-nav-link active">Dashboard</a>
-      <a href="/sankey.html" class="site-nav-link">Material Flow</a>
-      <a href="/process-flow.html?v=2" class="site-nav-link">Production Lines</a>
-      <a href="/traceability.html?v=2" class="site-nav-link">Traceability</a>
+      <a href="/sankey.html?v=3" class="site-nav-link">Material Flow</a>
+      <a href="/process-flow.html?v=4" class="site-nav-link">Production Lines</a>
+      <a href="/traceability.html?v=4" class="site-nav-link">Traceability</a>
     </div>
   </nav>
 
@@ -247,6 +249,8 @@
         </div>
         <button id="recent-entries-refresh" class="btn-refresh recent-entries-refresh" type="button" aria-label="Refresh recent entries">Refresh</button>
       </div>
+      <input type="search" id="recent-search" autocomplete="off">
+      <p><a class="record-link" href="/history.html">Browse ledger history by date →</a></p>
       <div id="recent-entries-status" class="recent-entries-status" role="status" aria-live="polite"></div>
       <div id="recent-entries-feed" class="recent-entries-feed" aria-live="polite"></div>
     </section>
@@ -316,9 +320,10 @@
           <input type="checkbox" id="notes-show-done"> Show completed
         </label>
       </div>
-      <button id="notes-add-btn" class="btn-refresh">+ New</button>
+      <button id="notes-add-btn" class="btn-refresh">New Note…</button>
     </div>
 
+    <input type="search" id="notes-search" autocomplete="off">
     <!-- Notes List -->
     <div id="notes-list"></div>
     <div id="notes-error" class="error-msg hidden"></div>
@@ -403,7 +408,7 @@
         <span id="er-summary" class="er-summary"></span>
       </div>
       <div class="orders-toolbar-actions">
-        <button id="er-new-btn" class="btn-refresh" title="Record an expected delivery">+ New Expected Receipt</button>
+        <button id="er-new-btn" class="btn-refresh" title="Record an expected delivery">New Expected Receipt…</button>
         <button id="er-refresh-btn" class="btn-refresh" title="Refresh expected receipts">Refresh</button>
       </div>
     </div>
@@ -562,6 +567,9 @@
         <div class="form-row">
           <div class="form-group">
             <label for="er-supplier">Supplier <span class="label-hint">(required)</span></label>
+            <label for="er-supplier-filter">Find supplier by name or ID</label>
+            <input type="search" id="er-supplier-filter" autocomplete="off">
+            <p id="er-supplier-count" role="status"></p>
             <select id="er-supplier"></select>
           </div>
           <div class="form-group">
@@ -586,7 +594,7 @@
         <p id="er-save-help" role="status">Select a product, supplier, and positive quantity to save.</p>
         <div id="er-modal-error" class="error-msg hidden"></div>
         <div class="form-actions">
-          <button id="er-save-btn" class="btn-refresh" aria-describedby="er-save-help" disabled>Save</button>
+          <button id="er-save-btn" class="btn-refresh" aria-describedby="er-save-help" disabled>Create Expected Receipt</button>
           <button id="er-cancel-btn" class="btn-sm">Cancel</button>
         </div>
         </div><!-- /er-manual-body -->
@@ -626,7 +634,7 @@
   <div id="note-modal-overlay" class="panel-overlay hidden" role="dialog" aria-label="Note editor">
     <div class="note-modal">
       <div class="panel-header">
-        <h3 id="note-modal-title">New Item</h3>
+        <h3 id="note-modal-title">New Note</h3>
         <button id="note-modal-close" class="btn-close" aria-label="Close">&times;</button>
       </div>
       <div class="note-modal-body">
@@ -673,11 +681,12 @@
           </div>
           <div class="form-group">
             <label for="note-entity-id">Related record name or number</label>
-            <input type="text" id="note-entity-id" placeholder="e.g. Granola Classic 25 LB" autocomplete="off">
+            <input type="search" id="note-entity-id" autocomplete="off" aria-describedby="note-reference-status">
+            <p id="note-reference-status" role="status"></p><div id="note-reference-results"></div>
           </div>
         </div>
         <div class="form-actions">
-          <button id="note-save-btn" class="btn-refresh">Save</button>
+          <button id="note-save-btn" class="btn-refresh">Create Note</button>
           <button id="note-cancel-btn" class="btn-sm">Cancel</button>
         </div>
       </div>
@@ -698,8 +707,9 @@
   <script src="fetch-timeout.js?v=1"></script>
   <script src="mini-calendar.js?v=4"></script>
   <script src="pallet-calculations.js?v=1"></script>
-  <script src="intake-logic.js?v=8"></script>
-  <script src="dashboard.js?v=54"></script>
+  <script src="intake-logic.js?v=9"></script>
+  <script src="dashboard.js?v=56"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
+  <script src="shell.js?v=2"></script>
 </body>
 </html>
