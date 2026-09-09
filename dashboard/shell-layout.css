@@ -179,3 +179,33 @@ body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-seri
  #orders-list-view .table-tools label { width:auto;min-width:0; }
  #orders-list-view .table-tools select { width:100%;min-width:0; }
 }
+/* Batch 5: keep SO sorting outside the horizontal scroller (INPUT-009,
+   DATA-004, LAYOUT-011). overflow:clip preserves rounded corners without
+   becoming the sticky controls' scrolling ancestor. */
+@media (min-width:1101px) {
+ #section-orders { overflow:clip; }
+ #orders-table-container > .table-scroll { overflow:visible; }
+ #orders-table-container > .table-scroll > .orders-table {
+  display:block;
+  min-width:0;
+  max-width:100%;
+  overflow-x:auto;
+  scrollbar-width:auto;
+  scrollbar-color:var(--text-muted) var(--surface);
+ }
+ #orders-table-container > .table-scroll > .table-tools {
+  position:sticky;
+  top:calc(var(--site-nav-h) + var(--header-h) + var(--hit-min));
+  z-index:90;
+  padding:8px 12px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 4px #0002;
+ }
+ #orders-table-container > .table-scroll > .table-tools::after {
+  content:'Scroll sideways to see all columns →';
+  color:var(--text-secondary);
+  margin-left:auto;
+ }
+ #orders-table-container .readiness-chip { white-space:normal;overflow-wrap:anywhere; }
+}

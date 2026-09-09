@@ -21,6 +21,20 @@
 
 ---
 
+## 2026-09-09 09:59 — Verify design audit 5 before/after; local handoff
+- **File(s) changed:** `tests/visual/run-sales-orders-layout.mjs`, `docs/design/audit/06-browser-check.md`, `docs/design/audit-2026-09-09-batch-5.md`; output evidence and global change log.
+- **What changed:** 310 captures per run: 1201 PASS / 164 FAIL / 47 WARN before, 1206 / 157 / 49 after; 138 N/A and zero errors each. Differences are refresh-shift verdicts outside Sales Orders; other rules unchanged. S-24–29 remains 100 PASS / 16 existing touch FAIL / 4 N/A. Focused layout checks improve four desktop failures to six passing width/theme scenarios; 1101px expanded-resize check passes. No application JS changes. Documented local-only handoff.
+- **Why:** Verify the requested scroll readability and sticky sorting fixes and preserve before/after evidence before awaiting rebase/push approval.
+
+---
+
+## 2026-09-09 09:55 — Design audit 5: readable Sales Orders scroll area and visible sorting (local only)
+- **File(s) changed:** `dashboard/shell-layout.css`, shell stylesheet references in five dashboard HTML pages, `tests/visual/run-sales-orders-layout.mjs`, `docs/design/audit/06-browser-check.md`, `docs/design/audit-2026-09-09-batch-5.md`, `FACTORY_LEDGER_CHANGELOG.md`; global change log updated.
+- **What changed:** Desktop Sales Orders table owns horizontal scrolling, with a persistent scroll hint. Sorting stays beneath the measured nav/header plus the 44px tab bar. Preserve rounded clipping without creating a sticky scrolling ancestor; chip labels wrap. Shell cache version 3 → 4, strictly above fetched main 43960a4. Application JS unchanged. Before/after Playwright verification recorded in the batch report.
+- **Why:** Blockers were partially offscreen with no clear scroll affordance; Customer / Ascending disappeared under sticky chrome. Branch `fix/design-audit-5`; no push or deployment; await approval to rebase over `fix/so-intake-followup` and push.
+
+---
+
 ## 2026-09-09 09:46 — Deployed mobile entry screen (PR #33 → main, FACTORY row 126)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 126 → DEPLOYED)
 - **What changed:** Owner-approved squash-merge of PR #33 (`feat/mobile-entry-screen`, head `a64e192`) into main as `8b391ab`. Netlify production deploy `6aa162d236b12f00084fe7a3` ready 13:44:50Z from the merge commit; live index.html verified serving dashboard.css?v=41 / dashboard.js?v=57 / mini-calendar.css?v=5 / mini-calendar.js?v=6 / intake-logic.js?v=9 / shell-layout.css?v=3. Railway /health 200 (merge contained no backend files). Remote branch `feat/mobile-entry-screen` deleted after merge.
