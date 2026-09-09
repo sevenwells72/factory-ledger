@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-09 09:04 — Deployed design audit Batch 4 (PR #35 → main)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** PR #35 marked ready and squash-merged to main as `a1b592f` ("fix(design): phone badge wrap, toolbar, dark controls, history padding (row 125, css40/shell3)"). Netlify production deploy 6aa1594946e5d200089c2309 ready; live index.html serves dashboard.css?v=40 and shell-layout.css?v=3. Railway rebuilt identical code, /health 200. Remote branch `fix/design-audit-4` deleted. Row 125 updated to DEPLOYED.
+- **Why:** Owner approved deploying the Batch 4 live-audit CSS fixes.
+
+---
+
 ## 2026-09-09 09:01 — Document Batch 4 validation and before/after evidence
 - **File(s) changed:** `docs/design/audit-2026-09-09-batch-4.md`, `FACTORY_LEDGER_CHANGELOG.md`; workspace output report and before/after screenshots
 - **What changed:** Recorded 59 Node/12 Python passes, badge non-overlap, 46px toolbar reduction, themed controls/history padding and SO/ER fixture review/paperclip results.
