@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-09 11:15 — Deployed Railway watch paths (PR #38 → main, FACTORY row 129)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Owner-approved squash merge of PR #38, head `1282104`, as `f951070`. Railway deployment `0d6e3d92` SUCCESS for the merge commit (this rebuild was expected: the merge is processed under the pre-watch-path config). `/health` at 15:14:46Z returned HTTP 200, healthy, database connected, pool active. Remote branch `chore/railway-watch-paths` deleted. FACTORY row 129 marked DEPLOYED. This docs-only commit is itself the first test of the watch patterns: Railway should show no new deployment for it. Result recorded in the next entry.
+- **Why:** Close out row 129. Also noted for follow-up: Railway CLI 5.49.6 warns that `railway.json` / `railway.toml` config-as-code is deprecated in favour of `.railway/railway.ts` (`railway config migrate`); existing files keep working until 2026-12-01, so the watch config must be migrated before then.
+
+---
+
 ## 2026-09-09 11:11 — Railway watch paths: stop rebuilding on docs-only commits (FACTORY row 129)
 - **File(s) changed:** `railway.json` (new), `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Added `railway.json` at repo root with `build.watchPatterns`: `/*.py`, `/requirements.txt`, `/runtime.txt`, `/railway.json`, `/dashboard/dashboard_config.json`. Root-anchored positive patterns only; no negations. Covers the two modules the service imports (main.py, extraction.py), the two files Nixpacks reads at build (requirements.txt, runtime.txt), the watch config itself, and the one non-Python file the running service reads from disk (`dashboard_config.json`, loaded by three `/dashboard/api/*` handlers that the Netlify dashboard calls). Excludes `dashboard/` UI assets, `docs/`, `*.md`, `tests/`, `gpt-configs/`, `scripts/`, `archive/`, and `migrations/` (applied by hand in Supabase; never read by the service). Added FACTORY row 129 (PENDING MERGE). Branch `chore/railway-watch-paths` off `main` at `ad8f9f1`.
