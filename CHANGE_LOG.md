@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-09-09 — PR #37 follow-up: fit desktop Sales Orders columns before scrolling
+- **What changed:** The original preview allowed Blockers to remain clipped until horizontal scrolling. Status and Pallets had excessive minimum widths. The list now uses the desktop width with a native auto-layout table; Status shrinks to its widest badge plus padding, the Factory Ready stamp wraps below it within 22ch, and dispatch/pallet/customer/Blockers text can wrap. All columns fit above 1100px; the scroll hint is limited to 769–1100px, with existing phone cards below that. Sticky sorting is retained. Shell-layout cache version v4 → v5 in five HTML pages; other asset versions and application logic unchanged. FACTORY row 128 updated in place.
+- **Validation:** Strengthened Playwright checks use long order IDs, a PO attachment and mixed-pallet descriptions, and assert desktop fit at scrollLeft=0. Previous PR fails eight desktop and two tablet cases; updated branch passes 12/12 width/theme cases including 1280 and 1440. Full 1440/390 light/dark audit: 310 captures, 1215 PASS / 157 FAIL / 40 WARN / 138 N/A, zero errors. Eight desktop Sales Orders touch verdicts improve; contrast, overflow and fixed-bar verdicts unchanged. Remaining 41 verdict movements are refresh-shift timing outside Sales Orders. 47/47 intake tests; syntax and diff checks pass. Full details in `docs/design/audit-2026-09-09-batch-5.md`.
+- **Purpose:** Owner requested correcting width allocation in the same PR. Push for review; do not merge.
+
+---
+
+## 2026-09-09 — Design audit 5 rebased after PR #36; refreshed audit and PR preparation
+- **What changed:** Rebased `fix/design-audit-5` onto current `origin/main` `ea5c15b`, preserving the merged intake fixes and both changelog histories. Renumbered the design entry to row 128, preserving deployed row 127 verbatim. Shell-layout v4 stays above main v3; requested cache versions are intake v12 > v11, dashboard JS v59 > v58, and dashboard CSS v42 > v41 (history reference included). Those three assets, main.py and requirements.txt remain byte-identical to main.
+- **Validation:** Fresh 310-capture Playwright runs per revision at 1440/390 light/dark. Main: 1192 PASS / 170 FAIL / 50 WARN; branch: 1202 / 168 / 42; both 138 N/A, zero errors. All 38 verdict changes are timing-sensitive LAYOUT-020 refresh shifts; other rule verdicts are identical. Sales Orders retains 16 existing touch-target failures. Focused layout checks pass 6/6; intake Node tests pass 47/47; syntax and diff checks pass. Full details in `docs/design/audit-2026-09-09-batch-5.md`.
+- **Purpose:** Owner authorized rebase, audit, push and PR creation after PR #36 merged. Review only; do not merge.
+
+---
+
 ## 2026-09-09 10:24 — Deployed SO intake follow-up (PR #36 → main, FACTORY row 127)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 127 → DEPLOYED)
 - **What changed:** Owner-approved squash-merge of PR #36 (`fix/so-intake-followup`, head `1316b14`, Codex cross-review approved) into main as `30b4f11`. Netlify production deploy `6aa16b31012ffc000879d369` ready 14:20:44Z from the merge commit; live index.html verified serving intake-logic.js?v=11 / dashboard.js?v=58 / dashboard.css?v=41. Railway FastAPI deployment `8fa4a164-aa9e-432c-8e97-e524153c2554` SUCCESS for `30b4f11` (main.py + requirements.txt changed, so a real rebuild: /health returned 502 for ~5 minutes during it, then 200 healthy with the pool active). Remote branch `fix/so-intake-followup` deleted after merge.
@@ -18,6 +32,20 @@
 - **File(s) changed:** `dashboard/intake-logic.js`, `dashboard/dashboard.js`, `dashboard/index.html`, `main.py`, `requirements.txt`, `tests/test_er_intake_logic.js`, `tests/test_sales_order_extract.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** (1) `mergeRematch`/`soMergeRematch` accept `{ preserveResolved }` — a line with a chosen product is kept whole (and unlocked) and only unresolved lines take the fresh match. `soRunMatch(opts)` remembers the mode on `intake.matchOpts`; the PO-number change handler passes `{ preserveResolved: true }`, the customer change handler passes `null` (full re-match as before), Retry reuses the last mode, and a failed preserve-mode match unlocks lines instead of resetting them (with its own error text). (2) `applyProductPick` copies `product.case_size_lb` into `lb_per_unit` (`lb_source='case_size'`) unless the line already has a manual conversion or is an lb-unit line, then recomputes pounds. Backend `_so_product_public` now always carries `case_size_lb`, filled by new `_so_attach_case_sizes` (master `case_size_lb`, else `default_case_weight_lb`, else null; one query per line) for candidates and the suggested product; the alias/exact conversion block reads it instead of re-querying. Suggestion chips and picker rows carry `data-case`; both pick paths pass `case_size_lb`. (3) `PyYAML==6.0.3` added to requirements.txt (pinned to the `.venv-test` version; imported by `tests/test_batch1_correctness_security.py`). Cache-busts: dashboard.js v57→58, intake-logic.js v9→10; dashboard.css unchanged (v41). Tests: two new node tests (PO re-match preserves picks; master case size on pick with fallback-to-typed / no-overwrite-of-manual / lb-line / ER-unchanged cases) and one new pytest (`test_suggestion_and_candidates_carry_master_case_size`). 46/46 node; 97 pytest green (SO extract + JS wrapper + batch1).
 - **Why:** Three findings from the read-only SO intake review: editing the PO number discarded human line picks; chip/picker picks did not convert cases→lb without typing; PyYAML was an undeclared dependency. Branch `fix/so-intake-followup`; PR opened, not merged.
+
+---
+
+## 2026-09-09 09:59 — Verify design audit 5 before/after; local handoff
+- **File(s) changed:** `tests/visual/run-sales-orders-layout.mjs`, `docs/design/audit/06-browser-check.md`, `docs/design/audit-2026-09-09-batch-5.md`; output evidence and global change log.
+- **What changed:** 310 captures per run: 1201 PASS / 164 FAIL / 47 WARN before, 1206 / 157 / 49 after; 138 N/A and zero errors each. Differences are refresh-shift verdicts outside Sales Orders; other rules unchanged. S-24–29 remains 100 PASS / 16 existing touch FAIL / 4 N/A. Focused layout checks improve four desktop failures to six passing width/theme scenarios; 1101px expanded-resize check passes. No application JS changes. Documented local-only handoff.
+- **Why:** Verify the requested scroll readability and sticky sorting fixes and preserve before/after evidence before awaiting rebase/push approval.
+
+---
+
+## 2026-09-09 09:55 — Design audit 5: readable Sales Orders scroll area and visible sorting (local only)
+- **File(s) changed:** `dashboard/shell-layout.css`, shell stylesheet references in five dashboard HTML pages, `tests/visual/run-sales-orders-layout.mjs`, `docs/design/audit/06-browser-check.md`, `docs/design/audit-2026-09-09-batch-5.md`, `FACTORY_LEDGER_CHANGELOG.md`; global change log updated.
+- **What changed:** Desktop Sales Orders table owns horizontal scrolling, with a persistent scroll hint. Sorting stays beneath the measured nav/header plus the 44px tab bar. Preserve rounded clipping without creating a sticky scrolling ancestor; chip labels wrap. Shell cache version 3 → 4, strictly above fetched main 43960a4. Application JS unchanged. Before/after Playwright verification recorded in the batch report.
+- **Why:** Blockers were partially offscreen with no clear scroll affordance; Customer / Ascending disappeared under sticky chrome. Branch `fix/design-audit-5`; no push or deployment; await approval to rebase over `fix/so-intake-followup` and push.
 
 ---
 
