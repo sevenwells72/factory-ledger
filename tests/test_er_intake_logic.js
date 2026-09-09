@@ -630,6 +630,41 @@ test('applyProductPick pulls the product-master case size so cases→lb converts
   assert.deepEqual(er.chosen, PROD);
 });
 
+test('applyProductPick never applies a master case size to a line whose unit is now LB (Codex review of PR #36)', () => {
+  // Exact reported sequence: unresolved CASE line → unit changed to LB →
+  // quantity typed as 2 → pick a 10 lb/case product. The unit change resets
+  // lb_source to 'none', so a source-based check applied the case size and
+  // previewed 20 lb (approvable). The pick must key off the current unit.
+  const l = ERIntake.soBuildReviewLine(soMatchLine({ quantity: 3, unit: 'CASE' }));
+  ERIntake.applyUnitChange(l, 'LB');
+  assert.equal(l.lb_source, 'none', 'precondition: the unit change dropped the conversion');
+  ERIntake.applyQuantityChange(l, 2);
+  ERIntake.applyProductPick(l, { ...SO_PROD, case_size_lb: 10 });
+  assert.equal(l.qty_lb, 2, 'typed pounds carry through: 2 lb, not 2 × 10');
+  assert.equal(l.lb_per_unit, 1, 'lb identity restored, not the case size');
+  assert.equal(l.lb_source, 'unit_is_lb');
+  assert.equal(l.qty_lb_source, 'computed');
+  assert.ok(ERIntake.lineApprovable(l));
+  assert.equal(ERIntake.soApproveLinePayload(l).case_size_lb, null, 'the 1-lb identity is never taught as a case size');
+
+  // Other spellings of the unit behave the same.
+  for (const unit of ['lbs', 'LB.', 'pounds', '#']) {
+    const x = ERIntake.soBuildReviewLine(soMatchLine({ quantity: 3, unit: 'CASE' }));
+    ERIntake.applyUnitChange(x, unit);
+    ERIntake.applyQuantityChange(x, 5);
+    ERIntake.applyProductPick(x, { ...SO_PROD, case_size_lb: 10 });
+    assert.equal(x.qty_lb, 5, `unit "${unit}" is pounds`);
+  }
+
+  // And the reverse direction still converts: LB line → CASE → pick applies the master.
+  const back = ERIntake.soBuildReviewLine(soMatchLine({ quantity: 500, unit: 'LB', case_size_source: 'unit_is_lb', quantity_lb: 500 }));
+  ERIntake.applyUnitChange(back, 'cases');
+  ERIntake.applyQuantityChange(back, 2);
+  ERIntake.applyProductPick(back, { ...SO_PROD, case_size_lb: 10 });
+  assert.equal(back.lb_per_unit, 10);
+  assert.equal(back.qty_lb, 20);
+});
+
 test('soPriceBasis: per-case on cases, per-lb on lb, unclear otherwise (ruling 5)', () => {
   assert.equal(ERIntake.soPriceBasis('CASE'), 'per_case');
   assert.equal(ERIntake.soPriceBasis(' cs. '), 'per_case');
