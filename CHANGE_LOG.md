@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-09 — Design audit 5 rebased after PR #36; refreshed audit and PR preparation
+- **What changed:** Rebased `fix/design-audit-5` onto current `origin/main` `ea5c15b`, preserving the merged intake fixes and both changelog histories. Renumbered the design entry to row 128, preserving deployed row 127 verbatim. Shell-layout v4 stays above main v3; requested cache versions are intake v12 > v11, dashboard JS v59 > v58, and dashboard CSS v42 > v41 (history reference included). Those three assets, main.py and requirements.txt remain byte-identical to main.
+- **Validation:** Fresh 310-capture Playwright runs per revision at 1440/390 light/dark. Main: 1192 PASS / 170 FAIL / 50 WARN; branch: 1202 / 168 / 42; both 138 N/A, zero errors. All 38 verdict changes are timing-sensitive LAYOUT-020 refresh shifts; other rule verdicts are identical. Sales Orders retains 16 existing touch-target failures. Focused layout checks pass 6/6; intake Node tests pass 47/47; syntax and diff checks pass. Full details in `docs/design/audit-2026-09-09-batch-5.md`.
+- **Purpose:** Owner authorized rebase, audit, push and PR creation after PR #36 merged. Review only; do not merge.
+
+---
+
 ## 2026-09-09 10:24 — Deployed SO intake follow-up (PR #36 → main, FACTORY row 127)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 127 → DEPLOYED)
 - **What changed:** Owner-approved squash-merge of PR #36 (`fix/so-intake-followup`, head `1316b14`, Codex cross-review approved) into main as `30b4f11`. Netlify production deploy `6aa16b31012ffc000879d369` ready 14:20:44Z from the merge commit; live index.html verified serving intake-logic.js?v=11 / dashboard.js?v=58 / dashboard.css?v=41. Railway FastAPI deployment `8fa4a164-aa9e-432c-8e97-e524153c2554` SUCCESS for `30b4f11` (main.py + requirements.txt changed, so a real rebuild: /health returned 502 for ~5 minutes during it, then 200 healthy with the pool active). Remote branch `fix/so-intake-followup` deleted after merge.
