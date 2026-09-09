@@ -2444,18 +2444,20 @@ body {
 }
 
 /* IMP-038 (phone header) / IMP-069 / IMP-072 / IMP-073 — the ≤520px entry
-   screen. The header becomes a four-row grid: title + health badge, then the
-   three 44px controls, then the collapsed calendar, then search. .header-left
-   and .header-right dissolve (display: contents) so their children are placed
-   directly; nothing above 520px reads any of this. */
+   screen. The header becomes a three-row grid: reference-calendar disclosure +
+   health badge, then the three 44px controls, then search. The h1 is hidden at
+   this width by shell-layout.css (the site-nav brand is the phone title), and
+   shell.js wraps the mini-calendar in a `details.reference-calendar`
+   disclosure, so that disclosure — not the strip — takes the calendar cell.
+   .header-left and .header-right dissolve (display: contents) so their
+   children are placed directly; nothing above 520px reads any of this. */
 @media (max-width: 520px) {
   .app-header {
     display: grid;
     grid-template-columns: auto auto minmax(0, 1fr);
     grid-template-areas:
-      "title  title   health"
+      "cal    cal     health"
       "theme  refresh updated"
-      "cal    cal     cal"
       "search search  search";
     align-items: center;
     column-gap: 8px;
@@ -2464,19 +2466,12 @@ body {
   }
   .header-left,
   .header-right { display: contents; }
-  .app-header h1 {
-    grid-area: title;
-    display: flex;
-    align-items: center;
-    min-height: var(--hit-min);
-    font-size: 17px;
-  }
-  .health-badge { grid-area: health; justify-self: end; gap: 5px; }
+  .health-badge { grid-area: health; justify-self: end; gap: 5px; min-height: var(--hit-min); }
   .health-label { font-weight: 600; }
   .btn-theme { grid-area: theme; }
   .btn-refresh { grid-area: refresh; }
   .refresh-ts { grid-area: updated; min-width: 0; white-space: normal; }
-  .header-right > .mini-calendar-strip { grid-area: cal; order: 0; width: auto; }
+  .header-right > .reference-calendar { grid-area: cal; justify-self: start; }
   .header-center { grid-area: search; order: 0; margin: 0; }
 
   /* IMP-070: identifiers never break at their hyphens — SO numbers, lot

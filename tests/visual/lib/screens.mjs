@@ -24,7 +24,20 @@ async function ready(page) {
 
 async function tab(page, name) {
   await ready(page);
-  await page.click(`.tab[data-tab="${name}"]`);
+  const tabBtn = page.locator(`.tab[data-tab="${name}"]`);
+  if (await tabBtn.isVisible().catch(() => false)) {
+    await tabBtn.click();
+  } else {
+    // ≤768px the shell hides .tab-bar and navigates through the fixed
+    // .mobile-nav (PR #34); Recent / Notes / Expected Receipts sit in "More".
+    const direct = page.locator(`.mobile-nav > a[data-section="${name}"]`);
+    if (await direct.count()) {
+      await direct.click();
+    } else {
+      await page.click('.mobile-more summary');
+      await page.click(`.mobile-more-menu a[data-section="${name}"]`);
+    }
+  }
   await sleep(T.med);
 }
 
@@ -105,13 +118,15 @@ export const SCREENS = [
   // ── A. Shared chrome ────────────────────────────────────────────────────
   { id: 'S-01', name: 'Site navigation bar', page: 'index', mobile: 'yes', region: '.site-nav',
     setup: async (page, ctx) => { await ready(page); if (ctx.width < 769) await clickIf(page, '#navToggle'); } },
+  // The shell wraps the strip in a `details.reference-calendar` disclosure
+  // (PR #34) — open it first or the region is not visible.
   { id: 'S-02', name: 'Mini-calendar strip (3-month)', page: 'index', mobile: 'partial', region: '[data-mini-calendar]',
-    setup: ready },
+    setup: async page => { await ready(page); await openDetails(page, 'Reference calendar'); } },
   // IMP-069: below 520px the strip is a collapsed row; this is the expanded
   // month, the only state that adds width to the header. Above 520px there is
   // no toggle and the capture is S-02 again.
   { id: 'S-02b', name: 'Mini-calendar — expanded month (phone)', page: 'index', mobile: 'yes', region: '[data-mini-calendar]',
-    setup: async page => { await ready(page); await clickIf(page, '.mini-calendar-toggle'); } },
+    setup: async page => { await ready(page); await openDetails(page, 'Reference calendar'); await clickIf(page, '.mini-calendar-toggle'); } },
 
   // ── B. Factory Dashboard — page chrome ──────────────────────────────────
   { id: 'S-03', name: 'App header', page: 'index', mobile: 'yes', region: '.app-header', setup: ready },
