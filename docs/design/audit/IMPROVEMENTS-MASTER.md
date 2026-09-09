@@ -18,7 +18,7 @@ Each of the five group files records findings **per rule, per screen**. The same
 **Effort** is a rough implementation size: **S** ≈ under a day, **M** ≈ one to three days, **L** ≈ a week or more.
 **Screens** is the count of inventoried screens the change affects.
 
-Seventy-three improvements (IMP-001…IMP-073). Thirty-three resolve at least one Critical rule; twenty-five are High, thirteen Medium, two Low. Fifteen are marked **DONE**, four **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
+Seventy-four improvements (IMP-001…IMP-074). Thirty-three resolve at least one Critical rule; twenty-five are High, fourteen Medium, two Low. Fifteen are marked **DONE**, four **Partly done**. IMP-068…IMP-073 were raised by a phone review of production at 390 px on 2026-09-08 — the first findings in this file observed on a real device against live data rather than in the harness.
 
 ---
 
@@ -171,6 +171,7 @@ These six resolve Critical rules and are each an hour to a day of work.
 | **IMP-064** | Add a context label to the notes list and the depleted-lots table | S | 3 |
 | **IMP-071** | Stack the card headers (title + description) below 768 px | S | 5 |
 | **IMP-073** | Label the health-score badge — "80" beside the title says nothing on touch — **DONE** `ca9a8e4` | S | 1 |
+| **IMP-074** | Present Sales Orders pallet quantity and physical mixed-pallet count in two lines — next design batch | S | 4 |
 
 ---
 
@@ -1707,6 +1708,20 @@ the score and the per-check breakdown that `refreshHealthBadge` already composes
 desktop box is unchanged, but the accessible name is now "Health 86" everywhere. `refreshHealthBadge` writes
 the score into `.health-score`. The popover was not built: the label fits the two-row header and the
 per-check breakdown still lives in the `title`, so the touch gap on the breakdown itself stays open.
+
+---
+
+### IMP-074 — Present Sales Orders Pallets in a tighter two-line format
+
+**Status:** Open — next design batch. Reported by the owner on 2026-09-09 while approving PR #37; not part of the deployed formatting change.
+
+**Screens:** S-25, S-26, S-27, S-28 · **Importance:** Medium · **Effort:** S
+
+**Finding:** At 1440px, the Sales Orders Pallets cell wraps `0.3 pallet / 1 physical mixed pallet` across five lines. All columns now fit after PR #37, but this long label unnecessarily increases row height.
+
+**Next change:** Present the fractional pallet quantity and physical mixed-pallet count in a tighter two-line format. Preserve both values and their meaning; do not change pallet calculations or widen columns enough to reintroduce desktop horizontal scrolling.
+
+**Acceptance:** The example occupies at most two lines at 1440px; all columns, including Blockers, still fit without horizontal scrolling at 1280px and above; the sticky sort row and 390px cards remain intact.
 
 ---
 

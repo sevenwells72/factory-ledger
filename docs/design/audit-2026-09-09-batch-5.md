@@ -1,6 +1,6 @@
 # Sales Orders design audit 5
 
-Branch: `fix/design-audit-5`, PR #37, based on post-#36 `main` (`ea5c15b`). Review only; do not merge.
+**DEPLOYED 2026-09-09.** PR #37 (`fix/design-audit-5`) squash-merged as `003119c` with owner approval. Netlify production deploy `6aa170feaf08540008be5211` is ready; live assets are css v42 / js v59 / intake v12 / shell v5. Railway merge deployment reports SUCCESS and `/health` returns 200 after completion. FACTORY row 128.
 
 ## Current behavior
 
@@ -54,3 +54,7 @@ node --test tests/test_er_intake_logic.js
 node --check tests/visual/run-sales-orders-layout.mjs
 git diff --check
 ```
+
+## Next batch
+
+IMP-074 records the owner-reported five-line Pallets label at 1440px (`0.3 pallet / 1 physical mixed pallet`). Tighten it to two lines in the next design batch while preserving both quantities and the fitted desktop columns.
