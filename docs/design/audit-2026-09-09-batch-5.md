@@ -1,50 +1,56 @@
 # Sales Orders design audit 5
 
-Branch: `fix/design-audit-5`. Rebased onto `origin/main` `ea5c15b` after PR #36 merged (`30b4f11`). Prepared for PR review; do not merge without owner approval.
+Branch: `fix/design-audit-5`, PR #37, based on post-#36 `main` (`ea5c15b`). Review only; do not merge.
 
-Desktop CSS gives the table its own horizontal scroll area and keeps a visible “Scroll sideways to see all columns →” hint beside sorting. The sort controls stay below the nav, measured header and 44px tab bar. The section uses `overflow:clip` to retain rounded corners without trapping sticky positioning; the outer wrapper uses visible overflow. Blocker chip text can wrap. Responsive cards at 390px are unchanged. No application JavaScript changes were required.
+## Current behavior
 
-Changed asset: `shell-layout.css?v=3` → **v4** on index, history, sankey, process-flow and traceability. As requested, intake-logic references advance v11 → **v12**, dashboard.js v58 → **v59**, and dashboard.css v41 → **v42** (including the older history-page reference). Those three asset files are byte-identical to current main; their query versions are strictly above main. FACTORY_LEDGER_CHANGELOG uses **row 128**, preserving deployed row 127.
+The Sales Orders list uses the available desktop width. Above 1100px, its native table fits all columns, including Blockers, without horizontal scrolling. Status takes only its content width; the Factory Ready stamp sits below the status badge and wraps within 22ch. Dispatch badges, pallet descriptions and customer names can wrap instead of forcing large minimum column widths. Blockers labels wrap naturally without truncation or line clamping.
 
-## Original before/after verification
+The sort row remains sticky beneath the navigation, measured header and tab bar. At 769–1100px the table uses local horizontal scrolling with the scroll hint. At 768px and below the existing responsive cards remain. The 44px desktop tab-bar assumption still applies to the sticky offset.
 
-Full Playwright audit: **310 captures before and 310 after**, all available screens at 1440 and 390, light and dark. Local fixture data only; no production data changed. Counts are rule verdicts, not unique defects.
+The shell stylesheet is **v5** on all five referencing pages. Other query versions remain intake **v12**, dashboard JS **v59**, and dashboard CSS **v42**, already above main's v11/v58/v41. Application JS, dashboard.css, backend and requirements content remain unchanged from main. Changelog row **128** remains unique; deployed intake row 127 is preserved.
 
-| Width (both themes) | Before PASS / FAIL / WARN | After PASS / FAIL / WARN |
+## Why the original check missed the issue
+
+PR #37 initially proved that Blockers could be reached *after scrolling*. It did not prove that the columns fit at desktop width. On the original live preview, a 1158px table had 1702px of content: Status occupied 366px and Pallets 344px. The unwrapped ready stamp and pallet description, plus the 1200px content cap, forced unnecessary overflow.
+
+## Focused regression
+
+The updated fixture test uses production-length order numbers, a PO attachment, a long customer name, Factory Ready stamps and mixed-pallet descriptions. It checks all columns **before any horizontal scrolling**, cell-content containment, Status width relative to its widest badge, two-line maximum Blockers labels, sticky controls, the narrow-width fallback and phone cards.
+
+**12/12 scenarios pass**: 1440, 1385, 1280, 1101, 1024 and 390, each in light and dark. The same test against the previous PR head fails all eight fitted-desktop scenarios and both tablet fallback scenarios; both phone scenarios already pass.
+
+| Viewport | Table / available width | Status width | Result |
+|---|---|---|---|
+| 1440 | 1398 / 1398px | 196.8px | All columns fit at scroll position zero |
+| 1385 | 1343 / 1343px | 196.8px | All columns fit at scroll position zero |
+| 1280 | 1238 / 1238px | 196.8px | All columns fit at scroll position zero |
+| 1101 | 1059 / 1059px | 196.8px | All columns fit at scroll position zero |
+| 1024 | 982px viewport for the table | — | Local scrolling and hint; sticky sort row |
+| 390 | 364 / 364px | — | Existing cards; no page overflow |
+
+Desktop, 1280px and phone captures were visually inspected. The fit checks explicitly reject the old failure mode where `overflow:clip` hid overflowing columns without widening the document.
+
+## Full audit
+
+Fresh full Playwright audit: **310 captures** at 1440 and 390 in both themes, **zero errors**.
+
+| Width (both themes) | Previous PR PASS / FAIL / WARN | Updated PASS / FAIL / WARN |
 |---|---|---|
-| 1440 | 672 / 95 / 25 | 674 / 92 / 26 |
-| 390 | 529 / 69 / 22 | 532 / 65 / 23 |
-| Total | 1201 / 164 / 47 | 1206 / 157 / 49 |
+| 1440 | 672 / 95 / 25 | 686 / 84 / 22 |
+| 390 | 530 / 73 / 17 | 529 / 73 / 18 |
+| Total | 1202 / 168 / 42 | 1215 / 157 / 40 |
 
-Both runs: 138 N/A, **0 errors**. Every verdict change is LAYOUT-020 refresh layout shift on screens outside Sales Orders. These timing-sensitive changes are not credited as improvements from this fix. TOUCH-003, ACCESS-008, LAYOUT-003/ACCESS-001 and LAYOUT-011 verdicts are identical across all captures.
+Both runs have 138 N/A. Eight desktop TOUCH-003 verdicts on Sales Orders S-25–S-28 improve from FAIL to PASS (both themes). The Sales Orders group is now **108 PASS / 8 existing mobile touch FAIL / 4 N/A**, previously 100 / 16 / 4. Contrast, horizontal-overflow and fixed-bar verdicts are unchanged. The other 41 changed verdicts are refresh-layout-shift measurements outside Sales Orders; those timing-sensitive movements are not claimed as improvements. No non-refresh rule regresses.
 
-Sales Orders S-24–S-29, all four variants: **100 PASS / 16 FAIL / 4 N/A before and after**. The remaining failures are existing touch-target findings. The broad audit does not test the new persistent scroll hint or intermediate-scroll sorting visibility, so a focused regression harness covers those requirements.
+All **47 intake Node tests pass**. Focused-harness syntax and `git diff --check` pass.
 
-Focused harness: **4 desktop scenarios fail before → all 6 width/theme scenarios pass after** (1385, 1440, 390; light/dark). At desktop widths the 1618px table scrolls inside 1158px; all Blockers cells and chip text are reachable at the right edge, the document does not overflow, and sorting sits at y=182px, exactly the sticky-stack bottom. The 390px cards remain contained. Mobile does not use sticky sorting. An additional 1101px check with Resize columns expanded places the controls at y=182–532 with no document overflow.
-
-Commands:
+## Commands
 
 ```sh
 npm run test:visual -- --variants 1440-light,1440-dark,390-light,390-dark --concurrency 12
 node tests/visual/run-sales-orders-layout.mjs [dashboard-root] [output-dir]
+node --test tests/test_er_intake_logic.js
 node --check tests/visual/run-sales-orders-layout.mjs
 git diff --check
 ```
-
-## Rebase verification
-
-The rebase preserved the deployed SO intake logic and both changelog histories. Row 128 is unique and does not collide with row 127. The sticky offset relies on the existing 44px desktop tab-bar height; revisit if that chrome changes.
-
-Fresh full Playwright audit against post-#36 main: **310 captures on each revision**, 1440 and 390 in light and dark, with fixture API responses only.
-
-| Width (both themes) | Main PASS / FAIL / WARN | Rebased branch PASS / FAIL / WARN |
-|---|---|---|
-| 1440 | 666 / 95 / 31 | 672 / 95 / 25 |
-| 390 | 526 / 75 / 19 | 530 / 73 / 17 |
-| Total | 1192 / 170 / 50 | 1202 / 168 / 42 |
-
-Both runs have 138 N/A and **zero errors**. All 38 changed verdicts are LAYOUT-020 refresh shifts; the touch, contrast, horizontal-overflow and fixed-bar verdicts are identical. These timing-sensitive changes are not credited as improvements. Sales Orders S-24–S-29 retains the same **16 existing touch-target failures**: main 99 PASS / 16 FAIL / 1 WARN / 4 N/A; branch 100 PASS / 16 FAIL / 4 N/A. Its only changed verdict is S-26 1440-light LAYOUT-020 WARN → PASS.
-
-Focused Playwright checks: **6/6 pass** (1385, 1440 and 390, both themes): sticky controls visible, sideways-scroll hint present on desktop, no document overflow, responsive mobile cards retained, and blocker labels reachable. Desktop sorting sits at y=182, immediately below the sticky chrome. Desktop and phone captures were visually inspected.
-
-Post-rebase intake Node tests: **47/47 pass**, including the merged CASE→LB→pick regression. `node --check tests/visual/run-sales-orders-layout.mjs` and `git diff --check` pass. No application JS, dashboard.css, backend or requirements content differs from main. Only shell-layout.css changes runtime styling; the higher query versions are intentional cache invalidation requested for this integration.
