@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "watchPatterns": [
+      "/*.py",
+      "/requirements.txt",
+      "/runtime.txt",
+      "/railway.json",
+      "/dashboard/dashboard_config.json"
+    ]
+  }
+}
