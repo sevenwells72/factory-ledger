@@ -4640,14 +4640,22 @@
       matchSeq: 0,
       matching: false,
       matchStale: false,
+      matchOpts: null,
     };
     soExtractStatus(`Extracted ${extractResponse.extraction.lines.length} line(s). Matching against the ledger…`);
     await soRunMatch();
   }
 
-  async function soRunMatch() {
+  /* opts.preserveResolved: the counterparty did not change (PO-number edit —
+     only the duplicate check needs re-running), so resolved lines are kept
+     whole and only unresolved lines take the fresh match (review finding 1).
+     The option is remembered so "Retry matching" after a failure re-runs the
+     same kind of match. */
+  async function soRunMatch(opts) {
     const intake = state.soIntake;
     if (!intake) return;
+    if (opts !== undefined) intake.matchOpts = opts || null;
+    const preserveResolved = Boolean(intake.matchOpts && intake.matchOpts.preserveResolved);
     const seq = ++intake.matchSeq;
     intake.matching = true;
     ERIntake.lockLines(intake.lines);
@@ -4669,7 +4677,7 @@
       intake.match = match;
       intake.customerId = match.customer.match ? match.customer.match.customer_id : null;
       intake.poolIds = new Set(match.prior_sales_product_ids || []);
-      intake.lines = ERIntake.soMergeRematch(intake.lines, match.lines);
+      intake.lines = ERIntake.soMergeRematch(intake.lines, match.lines, { preserveResolved });
       intake.matching = false;
       intake.matchStale = false;
       renderSoReview();
@@ -4677,11 +4685,16 @@
       if (state.soIntake !== intake || seq !== intake.matchSeq) return;
       intake.matching = false;
       intake.matchStale = true;
-      intake.lines = ERIntake.applyRematchFailure(intake.lines);
+      // A failed PO-only re-match leaves the line data valid (same customer):
+      // just unlock. A failed customer re-match leaves it stale: reset.
+      intake.lines = preserveResolved
+        ? ERIntake.unlockLines(intake.lines)
+        : ERIntake.applyRematchFailure(intake.lines);
       if (intake.lines.length) {
         renderSoReview();
-        showError('so-review-error',
-          `Matching failed: ${(e.message || '').slice(0, 300)} — line matches were reset; fix the connection and re-select the customer (or press Retry matching) before approving.`);
+        showError('so-review-error', preserveResolved
+          ? `Matching failed: ${(e.message || '').slice(0, 300)} — the duplicate check could not re-run for the new PO number; press Retry matching before approving.`
+          : `Matching failed: ${(e.message || '').slice(0, 300)} — line matches were reset; fix the connection and re-select the customer (or press Retry matching) before approving.`);
       } else {
         soExtractStatus(`<span class="error-msg">Matching failed: ${escHtml(e.message.slice(0, 300))}</span>`);
       }
@@ -4743,7 +4756,7 @@
                value=""><div class="er-product-results hidden" id="so-line-results-${i}"></div></div>
            </div>` +
           (suggestions.length ? `<div class="er-line-suggestions er-sku">Suggestions: ${suggestions.map(c =>
-             `<a href="#" class="so-line-suggest${l.suggested && l.suggested.product_id === c.product_id ? ' er-line-suggest-primary' : ''}" data-i="${i}" data-pid="${c.product_id}" data-name="${escAttr(c.name)}" data-sku="${escAttr(c.odoo_code || '')}" data-label="${escAttr(c.label_type || '')}" data-prior="${c.prior_sales === true ? '1' : c.prior_sales === false ? '0' : ''}">${escHtml(c.name)}</a>`).join(' · ')}</div>` : '');
+             `<a href="#" class="so-line-suggest${l.suggested && l.suggested.product_id === c.product_id ? ' er-line-suggest-primary' : ''}" data-i="${i}" data-pid="${c.product_id}" data-name="${escAttr(c.name)}" data-sku="${escAttr(c.odoo_code || '')}" data-label="${escAttr(c.label_type || '')}" data-prior="${c.prior_sales === true ? '1' : c.prior_sales === false ? '0' : ''}" data-case="${c.case_size_lb != null ? c.case_size_lb : ''}">${escHtml(c.name)}</a>`).join(' · ')}</div>` : '');
       const needsLb = `<span class="er-lb-missing" title="Set the pounds before approving">needs lb</span>`;
       const srcTag = (src, title) => src && src !== 'none'
         ? `<span class="er-lb-source" title="${title}">${erLbSourceLabel(src)}</span>` : needsLb;
@@ -4868,13 +4881,15 @@
       // and agreeing picks; forceKey binding disarms a stale override.
       intake.customerId = cust.id;
       intake.extraction.customer_name = cust.name;
-      await soRunMatch();
+      await soRunMatch(null);
     });
 
     body.querySelector('#so-review-po').addEventListener('input', (e) => {
       intake.customerPo = e.target.value;
     });
-    body.querySelector('#so-review-po').addEventListener('change', () => { soRunMatch(); });
+    // A PO-number edit only changes the duplicate check — the customer is the
+    // same, so resolved lines (human picks included) are kept (finding 1).
+    body.querySelector('#so-review-po').addEventListener('change', () => { soRunMatch({ preserveResolved: true }); });
     body.querySelector('#so-review-order-date').addEventListener('change', (e) => {
       intake.orderDate = e.target.value;
     });
@@ -4930,6 +4945,7 @@
         product_id: a.dataset.pid, name: a.dataset.name, odoo_code: a.dataset.sku,
         label_type: a.dataset.label || null,
         prior_sales: a.dataset.prior === '1' ? true : a.dataset.prior === '0' ? false : null,
+        case_size_lb: a.dataset.case !== '' ? Number(a.dataset.case) : null,
       });
     }));
     body.querySelectorAll('.so-line-search').forEach(inp => {
@@ -4950,7 +4966,7 @@
               .sort((a, b) => Number(b.prior_sales) - Number(a.prior_sales))
               .slice(0, 8);
             box.innerHTML = products.length
-              ? products.map(p => `<div class="er-product-option" data-pid="${p.id}" data-name="${escAttr(p.name)}" data-sku="${escAttr(p.odoo_code || '')}" data-label="${escAttr(p.label_type || '')}" data-prior="${p.prior_sales ? '1' : '0'}">${escHtml(p.name)}${p.odoo_code ? ` <span class="er-sku">${escHtml(p.odoo_code)}</span>` : ''}${p.label_type === 'private_label' && !p.prior_sales ? ' <span class="er-lb-missing" title="Private label — no prior sales to this customer">&#9888;&#65039; private label</span>' : ''}</div>`).join('')
+              ? products.map(p => `<div class="er-product-option" data-pid="${p.id}" data-name="${escAttr(p.name)}" data-sku="${escAttr(p.odoo_code || '')}" data-label="${escAttr(p.label_type || '')}" data-prior="${p.prior_sales ? '1' : '0'}" data-case="${p.case_size_lb != null ? p.case_size_lb : ''}">${escHtml(p.name)}${p.odoo_code ? ` <span class="er-sku">${escHtml(p.odoo_code)}</span>` : ''}${p.label_type === 'private_label' && !p.prior_sales ? ' <span class="er-lb-missing" title="Private label — no prior sales to this customer">&#9888;&#65039; private label</span>' : ''}</div>`).join('')
               : '<div class="er-product-option er-product-none">No products found</div>';
             box.classList.remove('hidden');
             box.querySelectorAll('.er-product-option[data-pid]').forEach(opt => {
@@ -4958,6 +4974,9 @@
                 product_id: opt.dataset.pid, name: opt.dataset.name, odoo_code: opt.dataset.sku,
                 label_type: opt.dataset.label || null,
                 prior_sales: opt.dataset.prior === '1',
+                // /products/search returns the master case size — the pick
+                // converts cases→lb without typing (finding 2).
+                case_size_lb: opt.dataset.case !== '' ? Number(opt.dataset.case) : null,
               }));
             });
           } catch (err) {

@@ -731,6 +731,27 @@ class TestSalesMatchEndpoint:
         assert line["case_size_source"] == "none"
         assert all(c["product_id"] != out_pool for c in line["candidates"])
 
+    def test_suggestion_and_candidates_carry_master_case_size(self, client, cur):
+        """SO review finding 2: the fuzzy suggestion and every candidate carry
+        case_size_lb from the product master (case_size_lb, else
+        default_case_weight_lb, else None) so a chip pick converts cases→lb
+        client-side without typing. Fuzzy lines still never compute lb
+        server-side."""
+        cust = _seed_customer(cur, "Match Cust F2")
+        sized = _seed_product(cur, "Chip Sized Granola Bag", case_size_lb=15)
+        unsized = _seed_product(cur, "Chip Sized Granola Bag Deluxe")
+        _seed_prior_sale(cur, cust, sized)
+        _seed_prior_sale(cur, cust, unsized)
+        r = _match(client, "Match Cust F2", [_line("chip sized granola", 2)])
+        assert r.status_code == 200, r.text
+        line = r.json()["lines"][0]
+        assert line["quantity_lb"] is None, "fuzzy never computes lb"
+        by_id = {c["product_id"]: c for c in line["candidates"]}
+        assert by_id[sized]["case_size_lb"] == 15.0
+        assert by_id[unsized]["case_size_lb"] is None
+        if line["product"] is not None:
+            assert line["product"]["case_size_lb"] == by_id[line["product"]["product_id"]]["case_size_lb"]
+
     def test_no_fuzzy_with_empty_pool(self, client, cur):
         cust = _seed_customer(cur, "Match Cust G")
         _seed_product(cur, "Some Fuzzy Target Granola")

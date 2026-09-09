@@ -23,6 +23,9 @@
      they die with a product change. Text/unit-derived and manual conversions
      survive a product change but not a unit change. */
   const PRODUCT_DEPENDENT_LB_SOURCES = ['alias', 'case_size'];
+  /* Units that mean "the quantity IS pounds" (mirrors the server's _LB_UNITS
+     for both ER and SO matching): 1 lb per unit, never a case size. */
+  const LB_UNITS = ['lb', 'lbs', 'lb.', 'lbs.', 'pound', 'pounds', '#'];
 
   function roundLb(value) {
     return Math.round(value * 100) / 100;
@@ -31,6 +34,10 @@
   function normalizeUnit(unit) {
     const u = (unit == null ? '' : String(unit)).trim().toLowerCase().replace(/\.+$/, '');
     return u || null;
+  }
+
+  function unitIsLb(unit) {
+    return LB_UNITS.includes(normalizeUnit(unit) || '');
   }
 
   /* One /expected-receipts/match line → the review screen's working copy.
@@ -135,6 +142,28 @@
     }
     line.match_source = 'chosen';
     line.confidence = 1.0;
+    // SO follow-up (review finding 2): a picked product brings its master
+    // case size along (picker + suggestion chips carry case_size_lb) so
+    // cases→lb converts without typing. The decision keys off the line's
+    // CURRENT unit, not lb_source — a unit change resets lb_source to
+    // 'none', so checking the source let a CASE→LB line pick up a case
+    // size and multiply typed pounds (Codex cross-review of PR #36).
+    const productCase = Number(product.case_size_lb);
+    if (unitIsLb(line.unit)) {
+      // The quantity IS pounds: a master case size never applies. Restore
+      // the 1-lb identity if a unit change dropped it (server semantics:
+      // unit_is_lb → 1.0 lb/unit) so the typed pounds carry through.
+      if (line.lb_per_unit == null) {
+        line.lb_per_unit = 1;
+        line.lb_source = 'unit_is_lb';
+      }
+    } else if (productCase > 0 && line.lb_source !== 'manual') {
+      // Fills a line with no conversion yet; a value the user already typed
+      // ('manual') is never overwritten, and a product with no case size
+      // leaves whatever is there in place.
+      line.lb_per_unit = productCase;
+      line.lb_source = 'case_size';
+    }
     if (line.qty_lb == null) recomputeQtyLb(line);
     return line;
   }
@@ -204,12 +233,22 @@
      carries the new supplier's conversion); otherwise the line goes back to
      unconfirmed. Everything else — match data, conversions — comes from the
      fresh result, which was computed from the CURRENT (edited) qty/unit. */
-  function mergeRematch(prevLines, matchLines, build) {
+  function mergeRematch(prevLines, matchLines, build, opts) {
     const buildLine = build || buildReviewLine;
+    const preserveResolved = Boolean(opts && opts.preserveResolved);
     return matchLines.map((ml, i) => {
       const fresh = buildLine(ml);
       const prev = prevLines && prevLines[i];
       if (!prev) return fresh;
+      // SO follow-up (review finding 1): a re-match that did NOT change the
+      // counterparty (PO-number edit — only the duplicate check re-runs)
+      // must not throw away a resolved line. The line is kept whole —
+      // chosen product, conversion, pounds, edits — and only unlocked;
+      // unresolved lines take the fresh result as usual.
+      if (preserveResolved && prev.chosen) {
+        prev.matching = false;
+        return prev;
+      }
       fresh.include = prev.include;
       if (prev.save_alias_touched) {
         fresh.save_alias = prev.save_alias;
@@ -299,7 +338,7 @@
      quantity_lb → expected_qty_lb. customer_item_code and unit_price ride
      along untouched. */
 
-  const SO_LB_UNITS = ['lb', 'lbs', 'lb.', 'lbs.', 'pound', 'pounds', '#'];
+  const SO_LB_UNITS = LB_UNITS;
   const SO_CASE_UNITS = ['case', 'cases', 'cs', 'box', 'boxes', 'ctn', 'carton', 'cartons'];
 
   function soNormalizeMatchLine(ml) {
@@ -321,8 +360,8 @@
     return buildReviewLine(soNormalizeMatchLine(ml));
   }
 
-  function soMergeRematch(prevLines, matchLines) {
-    return mergeRematch(prevLines, matchLines, soBuildReviewLine);
+  function soMergeRematch(prevLines, matchLines, opts) {
+    return mergeRematch(prevLines, matchLines, soBuildReviewLine, opts);
   }
 
   /* Owner ruling 5: a price is stored only when its basis is unambiguous —
@@ -393,6 +432,7 @@
     clipboardFilename,
     forceKey,
     normalizeUnit,
+    unitIsLb,
     roundLb,
     soNormalizeMatchLine,
     soBuildReviewLine,

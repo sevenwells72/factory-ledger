@@ -11,3 +11,5 @@ anthropic==0.69.0
 httpx==0.27.2
 # PDF page-count validation for purchase-document intake (audit fix 9); pure-python, no transitive deps.
 pypdf==5.1.0
+# yaml is imported by tests/test_batch1_correctness_security.py (openapi-gpt-v3.yaml 30-op guard) but was never declared (SO intake review finding 3).
+PyYAML==6.0.3
