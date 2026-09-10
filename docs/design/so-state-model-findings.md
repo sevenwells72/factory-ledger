@@ -372,6 +372,111 @@ Confirmed to hold. Fulfillment and Health are built on
 
 ---
 
+## Cross-review fix pass (2026-09-10) — policy rulings
+
+The Codex cross-review of PR #40 found two blockers and eight should-fix items.
+The owner's rulings below are policy, not preference, and the branch implements
+them.
+
+### State is authoritative
+
+Any write that ships, allocates, or otherwise advances an order requires
+`state='open'`, **checked under the order row lock**. Otherwise 409 naming the
+current state and pointing at reopen (`ORDER_NOT_OPEN`, with
+`suggested_action: "reopen"`).
+
+Enforced at:
+* `ship_order` commit — `main.py`, after the `FOR UPDATE OF so` read
+* `ship_order` preview — read-only, no lock, but it must not promise something
+  the commit will refuse
+* `_load_allocatable_line()` — under the existing `FOR UPDATE OF so, sol`
+* `PATCH /sales/orders/{id}/status` for the two exit-shaped values
+
+### Lock ordering
+
+**`sales_orders` row first (`SELECT … FOR UPDATE`), then product/lot locks.**
+The allocation path already did this. `ship_order_commit` did not: it read the
+order unlocked and then took product locks inside the ship plans, which is both
+a deadlock shape against the exits and a lost-update window — a close could
+commit between the eligibility read and the shipment write. `_load_so_for_state_change()`
+was also strengthened from `FOR NO KEY UPDATE` to `FOR UPDATE` so every state
+path takes the identical lock.
+
+### Legacy-cancellation policy — `PATCH /sales/orders/{id}/status`
+
+Two of the eight legacy status values are administrative exits wearing an
+operational costume. Letting them write `status` alone would leave the two
+models disagreeing — exactly the drift the mirror exists to prevent — and would
+make the legacy endpoint the way around the cancel guard.
+
+| value | behaviour |
+|---|---|
+| `new`, `confirmed`, `in_production`, `ready` | unchanged; **never touch state** |
+| `cancelled` | routes through the same logic as `POST /cancel`: order lock → `fulfillment='unshipped'` guard (409 `ORDER_ALREADY_SHIPPED` pointing at close/`short_closed` if partial or shipped) → `state='cancelled'`, `state_reason='other'`, `state_note='via legacy status endpoint'` → reservations released → `status` mirrored to `'cancelled'` |
+| `invoiced` | routes through close: `state='closed'`, reason `shipped_recorded` when effective remaining is 0 across all non-cancelled lines else `shipped_not_recorded`, `state_note='via legacy status endpoint (invoiced)'`, reservations released, and **`status` mirrored to `'invoiced'`, not close's usual `'shipped'`**, so this endpoint's own legacy callers still see the status they asked for |
+
+The legacy response keeps every field it had (`order_id`, `order_number`,
+`previous_status`, `status`, `allocations_released`, `message`); the exit
+branches add `state`, `state_reason`, `state_note`, `state_changed_by` and
+`attribution_note` on top. Operational transitions add nothing.
+
+### Cutover reconciliation
+
+An idempotent sweep runs at startup beside the Migration 007 sweep
+(`main.py`, "Migration 051-reconcile"):
+
+```sql
+UPDATE sales_orders
+   SET state = 'cancelled', state_reason = 'other',
+       state_note = 'reconciled from legacy status at startup',
+       state_changed_by = 'startup-reconcile',
+       state_changed_at = clock_timestamp()
+ WHERE status = 'cancelled' AND state = 'open'
+```
+
+**Rows with `status IN ('shipped','invoiced')` and `state='open'` are NOT
+touched.** "Open · Shipped" is a legitimate, expected combination — everything
+physically went out but nobody has administratively closed the order yet — and
+making that visible is precisely why the state model exists. Auto-closing them
+would erase the distinction on the first boot after deploy.
+
+### Other rulings applied
+
+* **Exit release is order-scoped.** The legacy cancel path calls
+  `_expire_auto_fifo_allocations()` per product, which expires *other orders'*
+  stale auto-FIFO rows as a side effect. Reasonable for an allocation endpoint;
+  wrong for an administrative exit — closing one order must not release a
+  different customer's reservation, and `reservations_released` must list
+  exactly the rows the call changed. `_release_order_reservations()` no longer
+  expires; the original function and its other callers are untouched.
+* **`changed_by`** is stripped of whitespace and otherwise stored verbatim.
+  Over 120 characters is **rejected with 400**, never truncated — silently
+  storing a clipped identity would quietly corrupt the one field whose purpose
+  is saying who did this. `released_by` on reservations released during an exit
+  comes from `caller_source_tag(request)` and **never** from the body: the body
+  is a claim about who asked for the exit, not a fact about which surface
+  released stock.
+* **`related_so_id`** must exist, must not be the order itself, and is accepted
+  **only** for `duplicate`/`superseded` (400 `RELATED_SO_NOT_APPLICABLE`
+  otherwise). Validated identically in preview and commit.
+* **Health info** reports `unallocated_need_lb` whenever it exceeds zero, not
+  only when nothing at all is allocated — 100 lb remaining with 40 lb allocated
+  is 60 lb unallocated, and the old test hid exactly the partially-covered
+  lines most worth seeing. Still info-only; never affects level.
+* **`attribution_note` is returned in preview responses too**, alongside
+  `resulting_state_changed_by`, so the caveat travels with every response that
+  mentions attribution rather than only the committing one.
+* **Terminal states cannot carry a NULL reason.** `state_reason IN (…)` is NULL
+  when the column is NULL, and a CHECK constraint admits NULL — only an
+  explicit `FALSE` rejects a row. Each terminal branch now carries
+  `state_reason IS NOT NULL`, and the whole expression is wrapped in `IS TRUE`.
+* **Backfill idempotency is a durable marker**, `migration_markers(name PK,
+  applied_at)`, introduced in 051 because the repo had no applied-migration
+  table. A guard derived from the order rows cannot tell "already backfilled"
+  from "backfilled, and every row has since legitimately moved on".
+
+---
+
 ## Follow-up: `_operator_id()` is a no-op placeholder
 
 **Not fixed in this PR by owner ruling** — `_operator_id()` and `verify_api_key`

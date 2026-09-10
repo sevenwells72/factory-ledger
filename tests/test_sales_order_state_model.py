@@ -19,6 +19,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from psycopg2.extras import RealDictCursor
 
 import main
 
@@ -263,12 +264,26 @@ def test_cancelled_rejects_a_close_reason(db_cursor):
         )
 
 
-def _run_backfill(cur):
-    """Re-run only the backfill DO block against rows seeded in this test."""
+BACKFILL_MARKER = "051_sales_order_state_backfill"
+
+
+def _backfill_block():
     sql = MIGRATION.read_text()
     start = sql.index("DO $$\nDECLARE")
     end = sql.index("END $$;", start) + len("END $$;")
-    cur.execute(sql[start:end])
+    return sql[start:end]
+
+
+def _run_backfill(cur, *, fresh=True):
+    """Run the migration's backfill DO block against rows seeded in this test.
+
+    fresh=True clears the applied marker first, so each test sees the block as
+    a first-ever apply. The suite's own test DB has already been migrated, so
+    without this every backfill test would just watch the block no-op.
+    """
+    if fresh:
+        cur.execute("DELETE FROM migration_markers WHERE name = %s", (BACKFILL_MARKER,))
+    cur.execute(_backfill_block())
 
 
 @pytest.mark.db
@@ -607,6 +622,7 @@ def test_close_releases_reservations_and_audits_the_release(db_cursor, client):
                              "changed_by": "office-jo"})
     assert resp.status_code == 200, resp.text
     assert [r["id"] for r in resp.json()["reservations_released"]] == [alloc_id]
+    assert resp.json()["state_changed_by"] == "office-jo"
 
     db_cursor.execute(
         "SELECT status, released_at, released_by, release_reason "
@@ -617,7 +633,10 @@ def test_close_releases_reservations_and_audits_the_release(db_cursor, client):
     assert row["status"] == "released"
     assert row["released_at"] is not None, "the audit is the released_at/by/reason stamp"
     assert row["release_reason"] == "order_closed"
-    assert row["released_by"] == "office-jo"
+    # released_by is the CALLER SURFACE, never the body's changed_by: the body
+    # is a claim about who asked for the exit, not about who released stock.
+    assert row["released_by"] != "office-jo"
+    assert row["released_by"] is None, "master key with no tag -> NULL"
 
 
 @pytest.mark.db
@@ -1105,7 +1124,12 @@ def test_patch_status_endpoint_still_works_untouched(db_cursor, client):
 
 
 def test_gpt_schema_has_no_state_operations():
-    """Dashboard-only by design; the GPT yaml is already at its 30-op ceiling."""
+    """Dashboard-only by design.
+
+    The assertion is `<= 30`, not `== 30`: 30 is a CEILING from CLAUDE.md, not
+    a required count. Pinning it to exactly 30 would turn retiring an operation
+    — a perfectly good thing to do — into a test failure.
+    """
     yaml = __import__("yaml")
     spec = yaml.safe_load(
         (Path(__file__).resolve().parent.parent / "openapi-gpt-v3.yaml").read_text())
@@ -1126,3 +1150,910 @@ def test_new_endpoints_are_on_the_dashboard_allowlist():
                   ("POST", "/sales/orders/{order_id}/cancel"),
                   ("POST", "/sales/orders/{order_id}/reopen")):
         assert entry in main.DASHBOARD_KEY_ALLOWLIST, entry
+
+
+# ═════════════════════════════════════════════════════════════════
+# Migration hardening: terminal states, marker idempotency
+# ═════════════════════════════════════════════════════════════════
+
+@pytest.mark.db
+@pytest.mark.parametrize("state", ["closed", "cancelled"])
+def test_terminal_state_with_null_reason_is_rejected(db_cursor, state):
+    """A terminal state with no reason is the one thing the column exists to
+    prevent. NULL IN (...) is NULL, and a CHECK admits NULL — only an explicit
+    IS NOT NULL makes the constraint bite."""
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    db_cursor.execute("SAVEPOINT null_reason")
+    with pytest.raises(Exception):
+        db_cursor.execute(
+            "UPDATE sales_orders SET state = %s, state_reason = NULL WHERE id = %s",
+            (state, order_id),
+        )
+    db_cursor.execute("ROLLBACK TO SAVEPOINT null_reason")
+
+
+@pytest.mark.db
+def test_backfill_marker_is_written_and_is_the_gate(db_cursor):
+    customer_id, token = _seed_customer(db_cursor)
+    _seed_order(db_cursor, customer_id, token, status="confirmed")
+    db_cursor.execute("UPDATE sales_orders SET state_changed_at=NULL, state_changed_by=NULL")
+    _run_backfill(db_cursor)
+    db_cursor.execute("SELECT applied_at FROM migration_markers WHERE name = %s",
+                      (BACKFILL_MARKER,))
+    assert db_cursor.fetchone() is not None
+
+
+@pytest.mark.db
+def test_rerun_is_a_noop_on_an_empty_database(db_cursor):
+    """Zero order rows: nothing to derive a guard from, so the marker has to
+    carry it."""
+    db_cursor.execute("DELETE FROM migration_markers WHERE name = %s", (BACKFILL_MARKER,))
+    db_cursor.execute(_backfill_block())
+    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name = %s",
+                      (BACKFILL_MARKER,))
+    assert db_cursor.fetchone()["n"] == 1
+    db_cursor.execute(_backfill_block())          # rerun, marker present
+    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name = %s",
+                      (BACKFILL_MARKER,))
+    assert db_cursor.fetchone()["n"] == 1, "marker must not be duplicated"
+
+
+@pytest.mark.db
+def test_rerun_ignores_orders_created_after_the_migration(db_cursor):
+    """A row-derived guard would re-stamp these with a false
+    'backfilled from legacy status=…' note."""
+    customer_id, token = _seed_customer(db_cursor)
+    old_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
+    db_cursor.execute("UPDATE sales_orders SET state_changed_at=NULL, state_changed_by=NULL "
+                      "WHERE id = %s", (old_id,))
+    _run_backfill(db_cursor)
+
+    new_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
+    _run_backfill(db_cursor, fresh=False)
+
+    row = _state_row(db_cursor, new_id)
+    assert row["state"] == "open"
+    assert row["state_note"] is None, "a post-migration order was never backfilled"
+    assert row["state_changed_by"] is None
+
+
+@pytest.mark.db
+def test_rerun_is_a_noop_after_every_backfilled_row_changed_state(db_cursor, client):
+    """The case a row-derived guard cannot see: the migration did its work, and
+    then every row it touched legitimately moved on."""
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
+    db_cursor.execute("UPDATE sales_orders SET state_changed_at=NULL, state_changed_by=NULL "
+                      "WHERE id = %s", (order_id,))
+    _run_backfill(db_cursor)
+    assert _state_row(db_cursor, order_id)["state_changed_by"] == "migration-051"
+
+    closed = client.post(f"/sales/orders/{order_id}/close",
+                         json={"reason": "short_closed", "mode": "commit"})
+    assert closed.status_code == 200, closed.text
+    after_close = _state_row(db_cursor, order_id)
+
+    _run_backfill(db_cursor, fresh=False)
+    assert _state_row(db_cursor, order_id) == after_close, (
+        "the rerun must not re-backfill a row that has since changed state"
+    )
+
+
+# ═════════════════════════════════════════════════════════════════
+# State is authoritative for advancing writes
+# ═════════════════════════════════════════════════════════════════
+
+@pytest.mark.db
+@pytest.mark.parametrize("exit_kind", ["close", "cancel"])
+def test_shipping_a_closed_or_cancelled_order_is_rejected(db_cursor, client, exit_kind):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="ready")
+    _add_line(db_cursor, order_id, product_id, 100)
+
+    body = ({"reason": "short_closed", "mode": "commit"} if exit_kind == "close"
+            else {"reason": "customer_cancelled", "mode": "commit"})
+    assert client.post(f"/sales/orders/{order_id}/{exit_kind}", json=body).status_code == 200
+
+    resp = client.post(f"/sales/orders/{order_id}/ship/commit", json={"ship_all": True})
+    assert resp.status_code == 409, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "ORDER_NOT_OPEN"
+    assert detail["state"] == ("closed" if exit_kind == "close" else "cancelled")
+    assert "reopen" in detail["message"]
+    assert detail["suggested_action"] == "reopen"
+
+
+@pytest.mark.db
+def test_ship_preview_refuses_a_closed_order_too(db_cursor, client):
+    """Preview exists to answer 'can I ship this'; answering yes to something
+    the commit will refuse is worse than refusing early."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="ready")
+    _add_line(db_cursor, order_id, product_id, 100)
+    client.post(f"/sales/orders/{order_id}/close",
+                json={"reason": "short_closed", "mode": "commit"})
+
+    resp = client.post(f"/sales/orders/{order_id}/ship/preview", json={"ship_all": True})
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+
+
+@pytest.mark.db
+def test_allocation_after_close_is_rejected(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+
+    assert client.post(f"/sales/orders/{order_id}/close",
+                       json={"reason": "short_closed", "mode": "commit"}).status_code == 200
+
+    resp = client.post(f"/sales/orders/{order_id}/allocations",
+                       json={"mode": "manual", "line_id": line_id, "quantity_lb": 50})
+    assert resp.status_code == 409, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "ORDER_NOT_OPEN"
+    assert detail["state"] == "closed"
+
+
+@pytest.mark.db
+def test_allocation_after_reopen_works_again(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    client.post(f"/sales/orders/{order_id}/close",
+                json={"reason": "short_closed", "mode": "commit"})
+    client.post(f"/sales/orders/{order_id}/reopen", json={"mode": "commit"})
+
+    resp = client.post(f"/sales/orders/{order_id}/allocations",
+                       json={"mode": "manual", "line_id": line_id, "quantity_lb": 50})
+    assert resp.status_code == 200, resp.text
+
+
+@pytest.mark.db
+def test_double_close_is_rejected(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    first = client.post(f"/sales/orders/{order_id}/close",
+                        json={"reason": "short_closed", "mode": "commit"})
+    assert first.status_code == 200, first.text
+    second = client.post(f"/sales/orders/{order_id}/close",
+                         json={"reason": "short_closed", "mode": "commit"})
+    assert second.status_code == 409, second.text
+    assert second.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+    # and the first close's record is intact
+    row = _state_row(db_cursor, order_id)
+    assert row["state_reason"] == "short_closed"
+
+
+# ─── reservation scoping ─────────────────────────────────────────
+
+@pytest.mark.db
+def test_exit_leaves_other_orders_reservations_alone(db_cursor, client):
+    """Closing one order must not release another customer's stock — not even
+    as a side effect of expiring stale auto-FIFO rows on the shared product."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+
+    mine, _ = _seed_order(db_cursor, customer_id, token)
+    my_line = _add_line(db_cursor, mine, product_id, 100)
+    my_alloc = _allocate(db_cursor, mine, my_line, product_id, 100, lot_id=lot_id)
+
+    theirs, _ = _seed_order(db_cursor, customer_id, token)
+    their_line = _add_line(db_cursor, theirs, product_id, 100)
+    their_alloc = _allocate(db_cursor, theirs, their_line, product_id, 100, lot_id=lot_id)
+
+    # a stale auto-FIFO row on the SAME product, belonging to the other order:
+    # the legacy cancel path would expire this as a side effect. It needs its
+    # own line — soa_active_lot_uniq forbids two active rows per (line, lot).
+    their_stale_line = _add_line(db_cursor, theirs, product_id, 25)
+    db_cursor.execute(
+        "INSERT INTO sales_order_allocations "
+        "(sales_order_id, sales_order_line_id, product_id, lot_id, quantity_lb, source, expires_at) "
+        "VALUES (%s,%s,%s,%s,%s,'auto_fifo', NOW() - INTERVAL '1 hour') RETURNING id",
+        (theirs, their_stale_line, product_id, lot_id, 25),
+    )
+    their_stale = db_cursor.fetchone()["id"]
+
+    resp = client.post(f"/sales/orders/{mine}/close",
+                       json={"reason": "short_closed", "mode": "commit"})
+    assert resp.status_code == 200, resp.text
+    assert [r["id"] for r in resp.json()["reservations_released"]] == [my_alloc], (
+        "reservations_released must list exactly the rows this exit changed"
+    )
+
+    db_cursor.execute(
+        "SELECT id, status FROM sales_order_allocations WHERE id = ANY(%s) ORDER BY id",
+        ([their_alloc, their_stale],))
+    assert [r["status"] for r in db_cursor.fetchall()] == ["active", "active"], (
+        "the other order's rows — including its stale auto-FIFO row — are untouched"
+    )
+
+
+@pytest.mark.db
+def test_exit_releases_this_orders_expired_row_too(db_cursor, client):
+    """An expired auto-FIFO row is still status='active' until something
+    releases it, and it belongs to this order — so the exit takes it, and
+    preview must have said so."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    db_cursor.execute(
+        "INSERT INTO sales_order_allocations "
+        "(sales_order_id, sales_order_line_id, product_id, lot_id, quantity_lb, source, expires_at) "
+        "VALUES (%s,%s,%s,%s,50,'auto_fifo', NOW() - INTERVAL '1 hour') RETURNING id",
+        (order_id, line_id, product_id, lot_id),
+    )
+    expired = db_cursor.fetchone()["id"]
+
+    preview = client.post(f"/sales/orders/{order_id}/close",
+                          json={"reason": "short_closed", "mode": "preview"})
+    assert expired in [r["id"] for r in preview.json()["reservations_to_release"]]
+
+    commit = client.post(f"/sales/orders/{order_id}/close",
+                         json={"reason": "short_closed", "mode": "commit"})
+    assert [r["id"] for r in commit.json()["reservations_released"]] == [expired]
+
+
+# ─── attribution ─────────────────────────────────────────────────
+
+@pytest.mark.db
+def test_changed_by_is_stripped_but_never_truncated(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    at_limit = "j" * 120
+    resp = client.post(f"/sales/orders/{order_id}/close",
+                       json={"reason": "short_closed", "mode": "commit",
+                             "changed_by": f"  {at_limit}  "})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["state_changed_by"] == at_limit
+    assert _state_row(db_cursor, order_id)["state_changed_by"] == at_limit
+
+
+@pytest.mark.db
+def test_changed_by_over_the_limit_is_rejected_not_truncated(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    resp = client.post(f"/sales/orders/{order_id}/close",
+                       json={"reason": "short_closed", "mode": "commit",
+                             "changed_by": "j" * 121})
+    assert resp.status_code == 400, resp.text
+    assert resp.json()["detail"]["error_code"] == "CHANGED_BY_TOO_LONG"
+    assert _state_row(db_cursor, order_id)["state"] == "open", "nothing written"
+
+
+@pytest.mark.db
+def test_changed_by_is_validated_in_preview_too(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    resp = client.post(f"/sales/orders/{order_id}/close",
+                       json={"reason": "short_closed", "mode": "preview",
+                             "changed_by": "j" * 121})
+    assert resp.status_code == 400, resp.text
+
+
+@pytest.mark.db
+def test_body_changed_by_never_becomes_released_by(db_cursor, client, monkeypatch):
+    """changed_by is a claim about who asked for the exit. released_by is a
+    fact about which surface released stock. They are not the same field."""
+    monkeypatch.setattr(main, "DASHBOARD_API_KEY", "sostate-dashboard-key")
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    alloc_id = _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
+
+    resp = client.post(f"/sales/orders/{order_id}/cancel",
+                       json={"reason": "customer_cancelled", "mode": "commit",
+                             "changed_by": "impersonated-surface"},
+                       headers={"X-API-Key": "sostate-dashboard-key"})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["state_changed_by"] == "impersonated-surface"
+
+    db_cursor.execute("SELECT released_by FROM sales_order_allocations WHERE id = %s",
+                      (alloc_id,))
+    assert db_cursor.fetchone()["released_by"] == "dashboard", (
+        "released_by comes from the authenticated surface, never the body"
+    )
+
+
+# ─── related_so_id ───────────────────────────────────────────────
+
+@pytest.mark.db
+def test_related_so_id_must_exist(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    resp = client.post(f"/sales/orders/{order_id}/cancel",
+                       json={"reason": "duplicate", "related_so_id": 99999999,
+                             "mode": "commit"})
+    assert resp.status_code == 400, resp.text
+    assert resp.json()["detail"]["error_code"] == "RELATED_SO_NOT_FOUND"
+
+
+@pytest.mark.db
+def test_related_so_id_may_not_be_the_order_itself(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    resp = client.post(f"/sales/orders/{order_id}/cancel",
+                       json={"reason": "duplicate", "related_so_id": order_id,
+                             "mode": "commit"})
+    assert resp.status_code == 400, resp.text
+    assert resp.json()["detail"]["error_code"] == "RELATED_SO_INVALID"
+
+
+@pytest.mark.db
+def test_related_so_id_is_refused_for_a_reason_that_cannot_use_it(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    other_id, _ = _seed_order(db_cursor, customer_id, token)
+    resp = client.post(f"/sales/orders/{order_id}/cancel",
+                       json={"reason": "customer_cancelled", "related_so_id": other_id,
+                             "mode": "commit"})
+    assert resp.status_code == 400, resp.text
+    assert resp.json()["detail"]["error_code"] == "RELATED_SO_NOT_APPLICABLE"
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("bad,code", [
+    (99999999, "RELATED_SO_NOT_FOUND"),
+    ("self", "RELATED_SO_INVALID"),
+])
+def test_related_so_id_validation_is_identical_in_preview(db_cursor, client, bad, code):
+    """A preview that reports success for a body the commit rejects is a lie."""
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    related = order_id if bad == "self" else bad
+    resp = client.post(f"/sales/orders/{order_id}/cancel",
+                       json={"reason": "duplicate", "related_so_id": related,
+                             "mode": "preview"})
+    assert resp.status_code == 400, resp.text
+    assert resp.json()["detail"]["error_code"] == code
+
+
+# ─── preview coverage ────────────────────────────────────────────
+
+@pytest.mark.db
+def test_cancel_preview_reports_state_and_reservations_without_writing(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    alloc_id = _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
+
+    resp = client.post(f"/sales/orders/{order_id}/cancel",
+                       json={"reason": "customer_cancelled", "mode": "preview"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["mode"] == "preview"
+    assert body["resulting_state"] == "cancelled"
+    assert body["resulting_status"] == "cancelled"
+    assert [r["id"] for r in body["reservations_to_release"]] == [alloc_id]
+    assert body["attribution_note"]
+
+    assert _state_row(db_cursor, order_id)["state"] == "open"
+    db_cursor.execute("SELECT status FROM sales_order_allocations WHERE id=%s", (alloc_id,))
+    assert db_cursor.fetchone()["status"] == "active"
+
+
+@pytest.mark.db
+def test_reopen_preview_reports_the_restored_status_without_writing(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="in_production")
+    client.post(f"/sales/orders/{order_id}/close",
+                json={"reason": "short_closed", "mode": "commit"})
+
+    resp = client.post(f"/sales/orders/{order_id}/reopen", json={"mode": "preview"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["resulting_state"] == "open"
+    assert body["resulting_status"] == "in_production"
+    assert body["reservations_to_release"] == []
+    assert body["attribution_note"]
+    assert _state_row(db_cursor, order_id)["state"] == "closed", "preview must not write"
+
+
+@pytest.mark.db
+def test_preview_carries_the_attribution_note(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    body = client.post(f"/sales/orders/{order_id}/close",
+                       json={"reason": "short_closed", "mode": "preview",
+                             "changed_by": "office-jo"}).json()
+    assert body["attribution_note"] == main.SO_STATE_ATTRIBUTION_NOTE
+    assert body["resulting_state_changed_by"] == "office-jo"
+
+
+# ═════════════════════════════════════════════════════════════════
+# Health: partial allocation
+# ═════════════════════════════════════════════════════════════════
+
+@pytest.mark.db
+def test_health_info_reports_partially_allocated_pounds(db_cursor, client, monkeypatch):
+    """100 remaining with 40 allocated is 60 lb unallocated. Reporting nothing
+    for it hid exactly the partially-covered lines worth seeing."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    order_id, _ = _seed_order(db_cursor, customer_id, token,
+                              ship_date=date.today() + timedelta(days=30))
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _allocate(db_cursor, order_id, line_id, product_id, 40, lot_id=lot_id)
+
+    health = client.get(f"/sales/orders/{order_id}").json()["health"]
+    assert health["level"] == "quiet", "info never escalates"
+    assert any("60 lb not allocated" in i for i in health["info"]), health["info"]
+
+
+@pytest.mark.db
+def test_health_info_is_silent_when_fully_allocated(db_cursor, client, monkeypatch):
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    order_id, _ = _seed_order(db_cursor, customer_id, token,
+                              ship_date=date.today() + timedelta(days=30))
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
+
+    assert client.get(f"/sales/orders/{order_id}").json()["health"]["info"] == []
+
+
+# ═════════════════════════════════════════════════════════════════
+# Legacy PATCH /status — the legacy-cancellation policy
+# ═════════════════════════════════════════════════════════════════
+
+@pytest.mark.db
+def test_legacy_patch_cancelled_routes_through_the_cancel_logic(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    alloc_id = _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
+
+    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "cancelled"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["status"] == "cancelled", "legacy response shape is unchanged"
+    assert body["previous_status"] == "confirmed"
+    assert body["state"] == "cancelled"
+    assert body["state_reason"] == "other"
+    assert body["state_note"] == "via legacy status endpoint"
+
+    row = _state_row(db_cursor, order_id)
+    assert (row["status"], row["state"], row["state_reason"]) == ("cancelled", "cancelled", "other")
+    assert row["status_before_exit"] == "confirmed"
+
+    db_cursor.execute("SELECT status, release_reason FROM sales_order_allocations WHERE id=%s",
+                      (alloc_id,))
+    alloc = db_cursor.fetchone()
+    assert alloc["status"] == "released"
+    assert alloc["release_reason"] == "order_cancelled"
+
+
+@pytest.mark.db
+def test_legacy_patch_cancelled_is_refused_when_partially_shipped(db_cursor, client):
+    """The guard has to live here too, or the legacy endpoint becomes the way
+    round it."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="partial_ship")
+    line_id = _add_line(db_cursor, order_id, product_id, 100, shipped=40, status="partial")
+    _post_ship(db_cursor, line_id, product_id, lot_id, 40, recorded=40)
+
+    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "cancelled"})
+    assert resp.status_code == 409, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "ORDER_ALREADY_SHIPPED"
+    assert detail["suggested_reason"] == "short_closed"
+
+    row = _state_row(db_cursor, order_id)
+    assert row["state"] == "open" and row["status"] == "partial_ship", "nothing written"
+
+
+@pytest.mark.db
+def test_legacy_patch_invoiced_routes_through_close_and_mirrors_invoiced(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="shipped")
+    line_id = _add_line(db_cursor, order_id, product_id, 100, shipped=100, status="fulfilled")
+    _post_ship(db_cursor, line_id, product_id, lot_id, 100, recorded=100)
+
+    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "invoiced"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["status"] == "invoiced", "mirrored to 'invoiced', NOT close's usual 'shipped'"
+    assert body["state"] == "closed"
+    assert body["state_reason"] == "shipped_recorded"
+    assert body["state_note"] == "via legacy status endpoint (invoiced)"
+
+    row = _state_row(db_cursor, order_id)
+    assert (row["status"], row["state"]) == ("invoiced", "closed")
+    assert row["status_before_exit"] == "shipped"
+
+
+@pytest.mark.db
+def test_legacy_patch_invoiced_picks_not_recorded_when_pounds_remain(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="shipped")
+    line_id = _add_line(db_cursor, order_id, product_id, 100, shipped=100, status="fulfilled")
+    _post_ship(db_cursor, line_id, product_id, lot_id, 40, recorded=100)
+
+    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "invoiced"})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["state_reason"] == "shipped_not_recorded"
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("start,target", [
+    ("new", "confirmed"),
+    ("confirmed", "in_production"),
+    ("in_production", "ready"),
+    ("ready", "in_production"),
+])
+def test_legacy_patch_operational_values_never_touch_state(db_cursor, client, start, target):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status=start)
+    before = _state_row(db_cursor, order_id)
+
+    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": target})
+    assert resp.status_code == 200, resp.text
+
+    after = _state_row(db_cursor, order_id)
+    assert after["status"] == target
+    assert after["state"] == before["state"] == "open"
+    assert after["state_reason"] is None
+    assert after["state_changed_at"] == before["state_changed_at"]
+    assert after["status_before_exit"] is None
+    assert "state" not in resp.json(), "operational transitions report no state change"
+
+
+@pytest.mark.db
+def test_legacy_patch_is_refused_on_an_order_that_left_the_board(db_cursor, client):
+    """Belt and braces: the mirror already makes the transition table refuse
+    these, but the state gate says so in the language of the new model."""
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="shipped",
+                              state="closed", reason="shipped_recorded")
+    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "invoiced"})
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+
+
+# ═════════════════════════════════════════════════════════════════
+# Startup reconciliation
+# ═════════════════════════════════════════════════════════════════
+
+RECONCILE_SQL = """
+    UPDATE sales_orders
+       SET state = 'cancelled',
+           state_reason = 'other',
+           state_note = 'reconciled from legacy status at startup',
+           state_changed_by = 'startup-reconcile',
+           state_changed_at = clock_timestamp()
+     WHERE status = 'cancelled'
+       AND state = 'open'
+"""
+
+
+@pytest.mark.db
+def test_startup_reconcile_moves_legacy_cancelled_rows(db_cursor):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="cancelled")
+    assert _state_row(db_cursor, order_id)["state"] == "open"
+
+    db_cursor.execute(RECONCILE_SQL)
+    row = _state_row(db_cursor, order_id)
+    assert row["state"] == "cancelled"
+    assert row["state_reason"] == "other"
+    assert row["state_note"] == "reconciled from legacy status at startup"
+    assert row["state_changed_by"] == "startup-reconcile"
+
+
+@pytest.mark.db
+def test_startup_reconcile_is_idempotent(db_cursor):
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="cancelled")
+    db_cursor.execute(RECONCILE_SQL)
+    first = _state_row(db_cursor, order_id)
+    db_cursor.execute(RECONCILE_SQL)
+    assert db_cursor.rowcount == 0, "second sweep matches nothing"
+    assert _state_row(db_cursor, order_id) == first
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("status", ["shipped", "invoiced"])
+def test_startup_reconcile_leaves_open_shipped_orders_alone(db_cursor, status):
+    """'Open · Shipped' is legitimate: everything physically went out, nobody
+    has administratively closed it yet. That distinction is the whole point of
+    the state model — auto-closing these would erase it."""
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status=status)
+    before = _state_row(db_cursor, order_id)
+
+    db_cursor.execute(RECONCILE_SQL)
+    assert _state_row(db_cursor, order_id) == before
+    assert _state_row(db_cursor, order_id)["state"] == "open"
+
+
+@pytest.mark.db
+def test_startup_reconcile_does_not_disturb_a_deliberate_reopen(db_cursor, client):
+    """An order reopened on purpose has its status restored from
+    status_before_exit, so it no longer reads status='cancelled' and the sweep
+    cannot claw it back."""
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
+    client.post(f"/sales/orders/{order_id}/cancel",
+                json={"reason": "customer_cancelled", "mode": "commit"})
+    client.post(f"/sales/orders/{order_id}/reopen", json={"mode": "commit"})
+    assert _state_row(db_cursor, order_id)["status"] == "confirmed"
+
+    db_cursor.execute(RECONCILE_SQL)
+    row = _state_row(db_cursor, order_id)
+    assert row["state"] == "open", "a deliberate reopen survives the sweep"
+
+
+def test_startup_reconcile_block_exists_and_spares_shipped_rows():
+    """Guard the sweep's WHERE clause itself — the dangerous edit is widening
+    it to cover shipped/invoiced."""
+    source = (Path(__file__).resolve().parent.parent / "main.py").read_text()
+    start = source.index("# Migration 051-reconcile:")
+    end = source.index("# Migration 008:", start)
+    block = source[start:end]
+    assert "state_changed_by = 'startup-reconcile'" in block
+    assert "WHERE status = 'cancelled'" in block
+    assert "AND state = 'open'" in block
+    assert "shipped" not in block.split('"""')[1] if '"""' in block else True
+
+
+# ═════════════════════════════════════════════════════════════════
+# Concurrency: real races on separate DB connections
+#
+# These are the tests that actually prove the lock. Each one parks a third
+# connection on the sales_orders row, watches the endpoint under test QUEUE on
+# it — which is only possible because that endpoint now takes the row lock
+# first — then commits a conflicting state change and lets the endpoint
+# proceed. An endpoint that read the order without FOR UPDATE would sail past
+# the parked lock and act on a stale state.
+#
+# They use real committed rows (not the rolled-back fixture transaction) and
+# clean up after themselves.
+# ═════════════════════════════════════════════════════════════════
+
+class TestStateRaces:
+
+    @staticmethod
+    def _wait_for_row_lock_waiter(watch_cur, deadline_s=15):
+        import time
+        deadline = time.time() + deadline_s
+        while time.time() < deadline:
+            watch_cur.execute(
+                "SELECT count(*) AS n FROM pg_locks "
+                " WHERE locktype IN ('transactionid', 'tuple') AND NOT granted"
+            )
+            if watch_cur.fetchone()["n"] >= 1:
+                return True
+            time.sleep(0.05)
+        return False
+
+    @staticmethod
+    def _seed_committed(seed_cur, *, status, with_alloc=False, stock=1000):
+        token = uuid4().hex[:10].upper()
+        seed_cur.execute("INSERT INTO customers (name, active) VALUES (%s,true) RETURNING id",
+                         (f"RACE Cust {token}",))
+        customer_id = seed_cur.fetchone()["id"]
+        seed_cur.execute(
+            "INSERT INTO products (name,type,odoo_code,uom,is_service,active) "
+            "VALUES (%s,'finished',%s,'lb',false,true) RETURNING id",
+            (f"RACE FG {token}", f"RACE-{token}"))
+        product_id = seed_cur.fetchone()["id"]
+        seed_cur.execute(
+            "INSERT INTO lots (product_id,lot_code,entry_source,received_at) "
+            "VALUES (%s,%s,'received',NOW()) RETURNING id",
+            (product_id, f"RACE-LOT-{token}"))
+        lot_id = seed_cur.fetchone()["id"]
+        seed_cur.execute("INSERT INTO transactions (type,timestamp) VALUES ('receive',NOW()) RETURNING id")
+        txn = seed_cur.fetchone()["id"]
+        seed_cur.execute(
+            "INSERT INTO transaction_lines (transaction_id,product_id,lot_id,quantity_lb) "
+            "VALUES (%s,%s,%s,%s)", (txn, product_id, lot_id, stock))
+        order_number = f"RACE-SO-{token}"
+        seed_cur.execute(
+            "INSERT INTO sales_orders (customer_id,order_number,status) VALUES (%s,%s,%s) RETURNING id",
+            (customer_id, order_number, status))
+        order_id = seed_cur.fetchone()["id"]
+        seed_cur.execute(
+            "INSERT INTO sales_order_flags (so_number,ready,ready_at,ready_by) "
+            "VALUES (%s,true,NOW(),'test')", (order_number,))
+        seed_cur.execute(
+            "INSERT INTO sales_order_lines (sales_order_id,product_id,quantity_lb,line_status) "
+            "VALUES (%s,%s,100,'pending') RETURNING id", (order_id, product_id))
+        line_id = seed_cur.fetchone()["id"]
+        alloc_id = None
+        if with_alloc:
+            seed_cur.execute(
+                "INSERT INTO sales_order_allocations "
+                "(sales_order_id,sales_order_line_id,product_id,lot_id,quantity_lb,source) "
+                "VALUES (%s,%s,%s,%s,100,'staged_lot') RETURNING id",
+                (order_id, line_id, product_id, lot_id))
+            alloc_id = seed_cur.fetchone()["id"]
+        return {"customer_id": customer_id, "product_id": product_id, "lot_id": lot_id,
+                "order_id": order_id, "order_number": order_number,
+                "line_id": line_id, "alloc_id": alloc_id}
+
+    @staticmethod
+    def _cleanup(seed_cur, ids):
+        """Remove the sales-order side of the fixture.
+
+        The ledger rows (transactions / transaction_lines) and the lot and
+        product that hang off them are deliberately left behind: the ledger is
+        append-only and enforced by a trigger —
+        "transaction_lines is append-only; create a correction event instead" —
+        so a test tearing them down would be asserting the opposite of the
+        invariant this codebase is built on. The leftovers are uniquely named
+        per run, belong to no order, and are inert: FIFO is per-product and
+        nothing else looks these up.
+        """
+        seed_cur.execute("DELETE FROM shipment_lines WHERE sales_order_line_id = %s", (ids["line_id"],))
+        seed_cur.execute("DELETE FROM shipments WHERE sales_order_id = %s", (ids["order_id"],))
+        seed_cur.execute("DELETE FROM sales_order_shipments WHERE sales_order_line_id = %s", (ids["line_id"],))
+        seed_cur.execute("DELETE FROM sales_order_allocations WHERE sales_order_id = %s", (ids["order_id"],))
+        seed_cur.execute("DELETE FROM sales_order_lines WHERE sales_order_id = %s", (ids["order_id"],))
+        seed_cur.execute("DELETE FROM sales_order_flags WHERE so_number = %s", (ids["order_number"],))
+        seed_cur.execute("DELETE FROM sales_orders WHERE id = %s", (ids["order_id"],))
+
+    def _run_race(self, monkeypatch, *, seed_kwargs, call, conflicting_sql):
+        """Park a lock on the order row, watch `call` queue on it, commit
+        `conflicting_sql`, then release and return the endpoint's response."""
+        import os, threading
+        import psycopg2 as pg
+        from psycopg2.extras import RealDictCursor
+        from fastapi.testclient import TestClient as TC
+        from contextlib import contextmanager as _ctx
+
+        url = os.environ.get("TEST_DATABASE_URL")
+        if not url:
+            pytest.skip("TEST_DATABASE_URL not set")
+
+        seed = pg.connect(url)
+        seed.autocommit = True
+        ids = None
+        try:
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                ids = self._seed_committed(sc, **seed_kwargs)
+
+            @_ctx
+            def _real_conn():
+                conn = pg.connect(url)
+                try:
+                    yield conn
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.close()
+
+            monkeypatch.setattr(main, "get_db_connection", _real_conn)
+
+            holder = pg.connect(url)
+            results = []
+            try:
+                with holder.cursor() as hc:
+                    hc.execute("SELECT id FROM sales_orders WHERE id = %s FOR UPDATE",
+                               (ids["order_id"],))
+
+                with TC(main.app) as tc:
+                    tc.headers["X-API-Key"] = main.API_KEY
+                    thread = threading.Thread(target=lambda: results.append(call(tc, ids)))
+                    thread.start()
+
+                    with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                        queued = self._wait_for_row_lock_waiter(sc)
+                    assert queued, (
+                        "the endpoint never queued on the sales_orders row lock — "
+                        "it is not taking the order row lock first"
+                    )
+
+                    # the conflicting state change wins the race
+                    with holder.cursor() as hc:
+                        hc.execute(conflicting_sql, (ids["order_id"],))
+                    holder.commit()
+
+                    thread.join(timeout=30)
+                    assert not thread.is_alive(), "the endpoint hung"
+            finally:
+                holder.close()
+
+            return results[0], ids, seed
+        except Exception:
+            if ids is not None:
+                with seed.cursor() as sc:
+                    self._cleanup(sc, ids)
+            seed.close()
+            raise
+
+    CANCEL_SQL = ("UPDATE sales_orders SET state='cancelled', state_reason='other', "
+                  "state_note='race', status='cancelled', status_before_exit='ready' "
+                  "WHERE id = %s")
+    CLOSE_SQL = ("UPDATE sales_orders SET state='closed', state_reason='short_closed', "
+                 "state_note='race', status='shipped', status_before_exit='confirmed' "
+                 "WHERE id = %s")
+
+    @pytest.mark.db
+    def test_shipment_loses_to_a_concurrent_cancel(self, monkeypatch):
+        """A ship that began before the cancel committed must still refuse:
+        it re-reads state under its own row lock after the cancel lands."""
+        resp, ids, seed = self._run_race(
+            monkeypatch,
+            seed_kwargs={"status": "ready", "with_alloc": True},
+            call=lambda tc, i: tc.post(f"/sales/orders/{i['order_id']}/ship/commit",
+                                       json={"ship_all": True}),
+            conflicting_sql=self.CANCEL_SQL,
+        )
+        try:
+            assert resp.status_code == 409, resp.text
+            assert resp.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT count(*) AS n FROM shipments WHERE sales_order_id = %s",
+                           (ids["order_id"],))
+                assert sc.fetchone()["n"] == 0, "no shipment may exist for a cancelled order"
+                sc.execute("SELECT quantity_shipped_lb FROM sales_order_lines WHERE id = %s",
+                           (ids["line_id"],))
+                assert float(sc.fetchone()["quantity_shipped_lb"]) == 0
+        finally:
+            with seed.cursor() as sc:
+                self._cleanup(sc, ids)
+            seed.close()
+
+    @pytest.mark.db
+    def test_allocation_loses_to_a_concurrent_close(self, monkeypatch):
+        resp, ids, seed = self._run_race(
+            monkeypatch,
+            seed_kwargs={"status": "confirmed"},
+            call=lambda tc, i: tc.post(
+                f"/sales/orders/{i['order_id']}/allocations",
+                json={"mode": "manual", "line_id": i["line_id"], "quantity_lb": 50}),
+            conflicting_sql=self.CLOSE_SQL,
+        )
+        try:
+            assert resp.status_code == 409, resp.text
+            assert resp.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT count(*) AS n FROM sales_order_allocations "
+                           " WHERE sales_order_id = %s AND status = 'active'",
+                           (ids["order_id"],))
+                assert sc.fetchone()["n"] == 0, "no reservation may be created on a closed order"
+        finally:
+            with seed.cursor() as sc:
+                self._cleanup(sc, ids)
+            seed.close()
+
+    @pytest.mark.db
+    def test_close_loses_to_a_concurrent_close(self, monkeypatch):
+        """Two exits racing: the second one re-reads under its own lock and
+        refuses rather than overwriting the first one's reason."""
+        resp, ids, seed = self._run_race(
+            monkeypatch,
+            seed_kwargs={"status": "confirmed"},
+            call=lambda tc, i: tc.post(f"/sales/orders/{i['order_id']}/close",
+                                       json={"reason": "shipped_recorded", "mode": "commit"}),
+            conflicting_sql=self.CLOSE_SQL,
+        )
+        try:
+            assert resp.status_code == 409, resp.text
+            assert resp.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT state_reason FROM sales_orders WHERE id = %s",
+                           (ids["order_id"],))
+                assert sc.fetchone()["state_reason"] == "short_closed", (
+                    "the winner's reason survives"
+                )
+        finally:
+            with seed.cursor() as sc:
+                self._cleanup(sc, ids)
+            seed.close()

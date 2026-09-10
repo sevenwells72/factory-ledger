@@ -73,17 +73,29 @@ BEGIN
     -- The reason must match the state it explains: 'open' has nothing to
     -- explain, the three shipping-shaped reasons belong to 'closed', and the
     -- five intent-shaped reasons belong to 'cancelled'.
+    --
+    -- The IS NOT NULL on each terminal branch is load-bearing, not decoration.
+    -- Without it, state='closed' with a NULL reason evaluates to
+    -- (FALSE) OR (TRUE AND NULL) OR (FALSE) = NULL, and a CHECK admits NULL —
+    -- only an explicit FALSE rejects a row. That would let a terminal state
+    -- exist with no recorded reason, which is the one thing this column is for.
+    -- The trailing IS TRUE makes the whole expression three-valued-safe even if
+    -- a future branch is added without the same care.
     IF NOT EXISTS (SELECT 1 FROM pg_constraint
                     WHERE conname = 'sales_orders_state_reason_matches_state') THEN
         ALTER TABLE public.sales_orders
             ADD CONSTRAINT sales_orders_state_reason_matches_state
             CHECK (
-                (state = 'open'      AND state_reason IS NULL)
-             OR (state = 'closed'    AND state_reason IN (
-                    'shipped_recorded', 'shipped_not_recorded', 'short_closed'))
-             OR (state = 'cancelled' AND state_reason IN (
-                    'customer_cancelled', 'cns_declined', 'duplicate',
-                    'superseded', 'other'))
+                (
+                    (state = 'open'      AND state_reason IS NULL)
+                 OR (state = 'closed'    AND state_reason IS NOT NULL
+                                         AND state_reason IN (
+                        'shipped_recorded', 'shipped_not_recorded', 'short_closed'))
+                 OR (state = 'cancelled' AND state_reason IS NOT NULL
+                                         AND state_reason IN (
+                        'customer_cancelled', 'cns_declined', 'duplicate',
+                        'superseded', 'other'))
+                ) IS TRUE
             );
     END IF;
 
@@ -97,6 +109,27 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_sales_orders_state
     ON public.sales_orders (state);
+
+-- ─────────────────────────────────────────────────────────────────
+-- Applied-migration markers
+--
+-- This repo had no applied-migration table; migrations were re-run by hand and
+-- each guarded itself. That works for pure DDL (IF NOT EXISTS) but not for a
+-- data backfill, which cannot tell "already backfilled" from "backfilled, and
+-- the rows have legitimately moved on since". Gating on the order rows
+-- themselves is exactly that mistake: once a backfilled order is reopened or
+-- re-closed by hand, a row-derived guard stops recognising its own work.
+--
+-- Introduced here, deliberately generic, so later migrations can use it.
+-- ─────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.migration_markers (
+    name       text PRIMARY KEY,
+    applied_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+
+COMMENT ON TABLE public.migration_markers IS
+    'One row per applied one-shot migration step (data backfills especially). Durable and independent of the rows a backfill touched, so re-running a migration is a no-op even after those rows have changed.';
 
 -- ─────────────────────────────────────────────────────────────────
 -- Comments
@@ -143,9 +176,9 @@ DECLARE
     n_cancelled integer := 0;
     n_other     integer := 0;
 BEGIN
-    IF EXISTS (SELECT 1 FROM public.sales_orders
-                WHERE state_changed_by = 'migration-051') THEN
-        RAISE NOTICE '051 backfill: already applied, skipping.';
+    IF EXISTS (SELECT 1 FROM public.migration_markers
+                WHERE name = '051_sales_order_state_backfill') THEN
+        RAISE NOTICE '051 backfill: marker present, already applied — skipping.';
         RETURN;
     END IF;
 
@@ -220,6 +253,9 @@ BEGIN
     SELECT count(*) INTO n_other
       FROM public.sales_orders
      WHERE state_changed_at IS NULL;
+
+    INSERT INTO public.migration_markers (name)
+         VALUES ('051_sales_order_state_backfill');
 
     RAISE NOTICE '051 backfill counts:';
     RAISE NOTICE '  status(new,confirmed,in_production,ready,partial_ship) -> state=open                             : %', n_open;

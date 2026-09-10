@@ -1418,6 +1418,7 @@ def _coalesce_lot_allocations(cur, product_id: int, source_lot_id: int, target_l
 def _load_allocatable_line(cur, order_id: int, line_id: int) -> dict:
     cur.execute(
         """SELECT so.id AS sales_order_id, so.order_number, so.status AS order_status,
+                  so.state AS order_state,
                   sol.id AS line_id, sol.product_id, sol.quantity_lb,
                   sol.line_status, p.name AS product_name, p.odoo_code AS sku,
                   COALESCE(p.is_service, false) AS is_service
@@ -1438,6 +1439,12 @@ def _load_allocatable_line(cur, order_id: int, line_id: int) -> dict:
             line_id=line_id,
         )
     line = dict(row)
+    # State is authoritative and is checked HERE, under the FOR UPDATE above,
+    # so a close/cancel committing concurrently cannot slip a new reservation
+    # onto an order that has just left the board. The legacy status checks
+    # below stay exactly as they were.
+    _require_open_state(line["order_state"], line["order_number"], order_id,
+                        "allocating")
     if line["is_service"]:
         _allocation_error(
             "SERVICE_LINE_NOT_ALLOCATABLE",
@@ -1808,6 +1815,47 @@ async def startup():
             db_pool.putconn(conn)
     except Exception as e:
         logger.warning(f"Migration 007 warning (non-fatal): {e}")
+
+    # Migration 051-reconcile: legacy status='cancelled' rows that predate the
+    # state model, or that some path wrote to status directly after it.
+    #
+    # Only status='cancelled' is reconciled. Rows with status in
+    # (shipped, invoiced) and state='open' are NOT touched: "Open · Shipped" is
+    # a legitimate, expected combination — everything physically went out but
+    # nobody has administratively closed the order yet, and that is precisely
+    # the distinction the state model was added to make visible. Auto-closing
+    # them would erase it.
+    #
+    # Idempotent by construction: the WHERE clause stops matching once a row is
+    # reconciled, and a row later reopened on purpose has status restored from
+    # status_before_exit, so it no longer reads status='cancelled' either.
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE sales_orders
+                       SET state = 'cancelled',
+                           state_reason = 'other',
+                           state_note = 'reconciled from legacy status at startup',
+                           state_changed_by = 'startup-reconcile',
+                           state_changed_at = clock_timestamp()
+                     WHERE status = 'cancelled'
+                       AND state = 'open'
+                """)
+                reconciled = cur.rowcount
+                conn.commit()
+                if reconciled > 0:
+                    logger.info(
+                        f"Migration 051-reconcile: {reconciled} order(s) with legacy "
+                        f"status='cancelled' moved to state='cancelled'"
+                    )
+                else:
+                    logger.info("Migration 051-reconcile: no legacy cancelled orders to reconcile")
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"Migration 051-reconcile warning (non-fatal): {e}")
 
     # Migration 008: Lot merge support columns
     # Adds status, merged_into_lot_id, merged_at, merge_reason to lots table
@@ -11417,6 +11465,34 @@ def _load_sales_order_readiness(cur, order_rows: list) -> tuple[dict, dict]:
 # 'posted'). No new SQL is issued for either.
 # ═══════════════════════════════════════════════════════════════
 
+# Any write that ships, allocates, or otherwise advances an order requires
+# state='open'. State is authoritative: a closed or cancelled order is off the
+# board, and letting stock move against it would make the board a lie. Always
+# checked under the order row lock, never on an unlocked read.
+SO_ADVANCING_WRITE_STATES = ("closed", "cancelled")
+
+
+def _require_open_state(state, order_number, order_id, action: str):
+    """409 unless the order is open. Names the state and points at reopen."""
+    if state in SO_ADVANCING_WRITE_STATES:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error_code": "ORDER_NOT_OPEN",
+                "message": (
+                    f"Order {order_number} is '{state}' — {action} requires an "
+                    f"open order. Reopen it first: "
+                    f"POST /sales/orders/{order_id}/reopen"
+                ),
+                "input": str(order_id),
+                "suggestions": [],
+                "order_id": order_id,
+                "state": state,
+                "suggested_action": "reopen",
+            },
+        )
+
+
 def _so_state_fields(row) -> dict:
     """The stored state columns, shaped for a response body."""
     changed_at = row.get("state_changed_at")
@@ -11510,15 +11586,19 @@ def compute_so_health(
         reasons.append(f"Factory Ready not set and ship date is {when}")
 
     # info — never escalates
+    #
+    # unallocated_need_lb, not "allocated is zero": a line with 100 lb
+    # remaining and 40 lb allocated has 60 lb unallocated, and reporting
+    # nothing for it hid exactly the partially-covered lines most worth
+    # seeing. The readiness query already computes this as
+    # max(0, remaining - allocated).
     if not _allocations_enforced():
         for line in line_readiness:
-            r = line["readiness"]
-            remaining = float(r.get("remaining_lb") or 0)
-            allocated = float(r.get("allocated_lb") or 0)
-            if remaining > BALANCE_EPSILON and allocated <= BALANCE_EPSILON:
+            unallocated = float(line["readiness"].get("unallocated_need_lb") or 0)
+            if unallocated > BALANCE_EPSILON:
                 label = line.get("sku") or line.get("product") or "line"
                 info.append(
-                    f"{remaining:g} lb not allocated on {label} "
+                    f"{unallocated:g} lb not allocated on {label} "
                     f"(line #{line['line_id']}); allocations not enforced"
                 )
 
@@ -11995,7 +12075,13 @@ def _so_state_error(code: str, message: str, status_code: int = 400, **extra):
 
 
 def _load_so_for_state_change(cur, order_id: int) -> dict:
-    """Lock the order and return it with its derived fulfillment."""
+    """Lock the order row, then return it with its derived fulfillment.
+
+    FOR UPDATE, and taken before any product/lot lock — this is the head of the
+    normative lock order that ship_order_commit and the allocation path also
+    follow. Every state decision below is made against THIS locked read, so a
+    concurrent ship cannot land between the check and the write.
+    """
     cur.execute(
         """SELECT so.id, so.order_number, so.status, so.state, so.state_reason,
                   so.status_before_exit, so.requested_ship_date,
@@ -12003,7 +12089,7 @@ def _load_so_for_state_change(cur, order_id: int) -> dict:
              FROM sales_orders so
              LEFT JOIN sales_order_flags sof ON sof.so_number = so.order_number
             WHERE so.id = %s
-              FOR NO KEY UPDATE OF so""",
+              FOR UPDATE OF so""",
         (order_id,),
     )
     row = cur.fetchone()
@@ -12011,19 +12097,33 @@ def _load_so_for_state_change(cur, order_id: int) -> dict:
         _so_state_error("ORDER_NOT_FOUND", f"Order #{order_id} not found",
                         status_code=404, order_id=order_id)
     readiness_by_order, _lines = _load_sales_order_readiness(cur, [row])
+    readiness = readiness_by_order[row["id"]]
     order = dict(row)
-    order["fulfillment"] = derive_fulfillment(readiness_by_order[order["id"]])
+    order["fulfillment"] = derive_fulfillment(readiness)
+    order["remaining_effective_lb"] = float(readiness.get("remaining_effective_lb") or 0)
     return order
 
 
+def _shipped_close_reason(order: dict) -> str:
+    """shipped_recorded when the ledger says nothing is still owed."""
+    return ("shipped_recorded"
+            if order["remaining_effective_lb"] <= BALANCE_EPSILON
+            else "shipped_not_recorded")
+
+
 def _validate_state_reason(reason: str, note, related_so_id, cur, order_id: int):
-    """reason='other' needs a note; duplicate/superseded need a real sibling SO."""
+    """reason='other' needs a note; duplicate/superseded need a real sibling SO.
+
+    Called identically from preview and commit, so a preview can never report
+    success for a body the commit would reject.
+    """
     if reason == "other" and not (note or "").strip():
         _so_state_error(
             "STATE_NOTE_REQUIRED",
             "reason 'other' requires a note explaining the exit",
             status_code=422, order_id=order_id,
         )
+
     if reason in SO_RELATED_REQUIRED_REASONS:
         if related_so_id is None:
             _so_state_error(
@@ -12032,29 +12132,52 @@ def _validate_state_reason(reason: str, note, related_so_id, cur, order_id: int)
                 f"duplicates or was superseded by",
                 status_code=422, order_id=order_id,
             )
-        if int(related_so_id) == int(order_id):
-            _so_state_error(
-                "RELATED_SO_INVALID",
-                "related_so_id cannot be the order itself",
-                status_code=422, order_id=order_id,
-            )
-        cur.execute("SELECT id FROM sales_orders WHERE id = %s", (related_so_id,))
-        if not cur.fetchone():
-            _so_state_error(
-                "RELATED_SO_NOT_FOUND",
-                f"related_so_id #{related_so_id} does not exist",
-                status_code=404, order_id=order_id,
-            )
+    elif related_so_id is not None:
+        # Accepting it silently for, say, customer_cancelled would store a
+        # relationship nothing renders and nothing means.
+        _so_state_error(
+            "RELATED_SO_NOT_APPLICABLE",
+            f"related_so_id is only meaningful for reason "
+            f"{' or '.join(SO_RELATED_REQUIRED_REASONS)}, not '{reason}'",
+            status_code=400, order_id=order_id,
+        )
+
+    if related_so_id is None:
+        return
+
+    if int(related_so_id) == int(order_id):
+        _so_state_error(
+            "RELATED_SO_INVALID",
+            "related_so_id cannot be the order itself",
+            status_code=400, order_id=order_id,
+        )
+    cur.execute("SELECT id FROM sales_orders WHERE id = %s", (related_so_id,))
+    if not cur.fetchone():
+        _so_state_error(
+            "RELATED_SO_NOT_FOUND",
+            f"related_so_id #{related_so_id} does not exist",
+            status_code=400, order_id=order_id,
+        )
 
 
 def _release_order_reservations(cur, order_id: int, reason: str, released_by):
-    """Release the order's active reservations through the audited path.
+    """Release THIS ORDER'S active reservations, and nothing else.
 
-    Same ordering as the existing order-cancel path (main.py, PATCH .../status):
-    lock the product, expire stale auto-FIFO rows, then release — otherwise the
-    release races auto-FIFO expiry. _release_active_allocations stamps
-    released_at / released_by / release_reason on each row, which is the audit;
-    it writes no ledger rows and emits no trace events.
+    Deliberately narrower than the legacy cancel path, which calls
+    _expire_auto_fifo_allocations() per product and so expires OTHER orders'
+    stale auto-FIFO rows as a side effect of closing this one. That is a
+    reasonable thing for an allocation endpoint to do and a bad thing for an
+    administrative exit to do: closing one order should not silently release a
+    different customer's reservation, and `reservations_released` in the
+    response must list exactly the rows this call changed. The original
+    function and its other callers are untouched.
+
+    The caller has already locked the sales_orders row. Product locks are taken
+    here, after it, per the normative lock order.
+
+    _release_active_allocations stamps released_at / released_by /
+    release_reason on each row — that is the audit. No ledger rows, no trace
+    events.
     """
     cur.execute(
         """SELECT DISTINCT product_id
@@ -12064,16 +12187,21 @@ def _release_order_reservations(cur, order_id: int, reason: str, released_by):
         (order_id,),
     )
     for item in cur.fetchall():
-        product_id = int(item["product_id"])
-        _lock_allocation_product(cur, product_id)
-        _expire_auto_fifo_allocations(cur, product_id, released_by)
+        _lock_allocation_product(cur, int(item["product_id"]))
     return _release_active_allocations(
         cur, order_id=order_id, reason=reason, released_by=released_by,
     )
 
 
 def _preview_order_reservations(cur, order_id: int) -> list:
-    """What _release_order_reservations would release, without releasing it."""
+    """What _release_order_reservations would release, without releasing it.
+
+    The predicate is deliberately identical to _release_active_allocations':
+    sales_order_id + status='active', with NO expires_at filter. An auto-FIFO
+    row past its expires_at is still status='active' until something expires
+    it, so the commit will release it — and a preview that hid it would
+    under-report what is about to change.
+    """
     cur.execute(
         """SELECT soa.id, soa.product_id, soa.sales_order_line_id, soa.lot_id,
                   soa.quantity_lb, p.name AS product, p.odoo_code AS sku,
@@ -12083,15 +12211,22 @@ def _preview_order_reservations(cur, order_id: int) -> list:
              LEFT JOIN lots l ON l.id = soa.lot_id
             WHERE soa.sales_order_id = %s
               AND soa.status = 'active'
-              AND (soa.expires_at IS NULL OR soa.expires_at > clock_timestamp())
             ORDER BY soa.id""",
         (order_id,),
     )
     return [dict(r) for r in cur.fetchall()]
 
 
-def _state_changed_by(request: Request, changed_by) -> Optional[str]:
+SO_CHANGED_BY_MAX = 120
+
+
+def _state_changed_by(request: Request, changed_by, order_id: int) -> Optional[str]:
     """Caller-supplied identity verbatim, else the interim source tag.
+
+    Whitespace is stripped; nothing else is altered. An over-long value is
+    REJECTED rather than truncated — silently storing "jo.smith@example.co"
+    when the caller said "jo.smith@example.com…" would be a quiet corruption of
+    the one field whose entire purpose is saying who did this.
 
     NEVER _operator_id(): that returns the constant 'legacy-shared-key' on
     every call (verify_api_key returns a bare True), which is a placeholder,
@@ -12099,13 +12234,21 @@ def _state_changed_by(request: Request, changed_by) -> Optional[str]:
     authenticated identity.
     """
     supplied = (changed_by or "").strip()
+    if len(supplied) > SO_CHANGED_BY_MAX:
+        _so_state_error(
+            "CHANGED_BY_TOO_LONG",
+            f"changed_by must be {SO_CHANGED_BY_MAX} characters or fewer "
+            f"(got {len(supplied)}); it is stored verbatim and is never truncated",
+            status_code=400, order_id=order_id,
+        )
     if supplied:
-        return supplied[:60]
+        return supplied
     return caller_source_tag(request)
 
 
 def _apply_state_change(cur, order: dict, *, state: str, reason,
-                        note, related_so_id, changed_by) -> dict:
+                        note, related_so_id, changed_by,
+                        mirror_status: Optional[str] = None) -> dict:
     """Write the state change and mirror it onto the legacy status column.
 
     The mirror writes sales_orders.status DIRECTLY, in this same transaction,
@@ -12119,7 +12262,10 @@ def _apply_state_change(cur, order: dict, *, state: str, reason,
     """
     order_id = order["id"]
     if state == "closed":
-        mirrored_status = "shipped"
+        # 'shipped' is the mirror for a normal close. The legacy
+        # PATCH .../status=invoiced route overrides it with 'invoiced' so its
+        # own callers see the status they asked for.
+        mirrored_status = mirror_status or "shipped"
         status_before_exit = order["status"]
     elif state == "cancelled":
         mirrored_status = "cancelled"
@@ -12197,6 +12343,10 @@ def close_sales_order(
             _validate_state_reason(req.reason, req.note, req.related_so_id,
                                    cur, order_id)
 
+            # Validated in preview too, so an over-long changed_by is reported
+            # before the operator commits rather than after.
+            changed_by = _state_changed_by(request, req.changed_by, order_id)
+
             if req.mode == "preview":
                 return {
                     "mode": "preview",
@@ -12206,17 +12356,18 @@ def close_sales_order(
                     "resulting_state": "closed",
                     "resulting_state_reason": req.reason,
                     "resulting_status": "shipped",
+                    "resulting_state_changed_by": changed_by,
                     "fulfillment": order["fulfillment"],
                     "reservations_to_release": _preview_order_reservations(cur, order_id),
+                    "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
                     "message": (
                         f"Order {order['order_number']} would be closed "
                         f"({req.reason}). Set mode=commit in request body."
                     ),
                 }
 
-            changed_by = _state_changed_by(request, req.changed_by)
             released = _release_order_reservations(
-                cur, order_id, "order_closed", changed_by)
+                cur, order_id, "order_closed", caller_source_tag(request))
             updated = _apply_state_change(
                 cur, order, state="closed", reason=req.reason,
                 note=req.note, related_so_id=req.related_so_id,
@@ -12275,6 +12426,8 @@ def cancel_sales_order(
             _validate_state_reason(req.reason, req.note, req.related_so_id,
                                    cur, order_id)
 
+            changed_by = _state_changed_by(request, req.changed_by, order_id)
+
             if req.mode == "preview":
                 return {
                     "mode": "preview",
@@ -12284,17 +12437,18 @@ def cancel_sales_order(
                     "resulting_state": "cancelled",
                     "resulting_state_reason": req.reason,
                     "resulting_status": "cancelled",
+                    "resulting_state_changed_by": changed_by,
                     "fulfillment": order["fulfillment"],
                     "reservations_to_release": _preview_order_reservations(cur, order_id),
+                    "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
                     "message": (
                         f"Order {order['order_number']} would be cancelled "
                         f"({req.reason}). Set mode=commit in request body."
                     ),
                 }
 
-            changed_by = _state_changed_by(request, req.changed_by)
             released = _release_order_reservations(
-                cur, order_id, "order_cancelled", changed_by)
+                cur, order_id, "order_cancelled", caller_source_tag(request))
             updated = _apply_state_change(
                 cur, order, state="cancelled", reason=req.reason,
                 note=req.note, related_so_id=req.related_so_id,
@@ -12341,6 +12495,8 @@ def reopen_sales_order(
                 )
 
             restored_status = order.get("status_before_exit") or "confirmed"
+            changed_by = _state_changed_by(request, req.changed_by, order_id)
+
             if req.mode == "preview":
                 return {
                     "mode": "preview",
@@ -12350,8 +12506,10 @@ def reopen_sales_order(
                     "resulting_state": "open",
                     "resulting_state_reason": None,
                     "resulting_status": restored_status,
+                    "resulting_state_changed_by": changed_by,
                     "fulfillment": order["fulfillment"],
                     "reservations_to_release": [],
+                    "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
                     "message": (
                         f"Order {order['order_number']} would reopen with status "
                         f"'{restored_status}'. Reservations are not restored. "
@@ -12359,7 +12517,6 @@ def reopen_sales_order(
                     ),
                 }
 
-            changed_by = _state_changed_by(request, req.changed_by)
             updated = _apply_state_change(
                 cur, order, state="open", reason=None,
                 note=req.note, related_so_id=None, changed_by=changed_by)
@@ -12908,7 +13065,26 @@ def update_lot_received_at(
 
 
 @app.patch("/sales/orders/{order_id}/status")
-def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderStatusUpdate = ..., _: bool = Depends(verify_api_key)):
+def update_order_status(request: Request, order_id: int = Depends(resolve_order_id), req: OrderStatusUpdate = ..., _: bool = Depends(verify_api_key)):
+    """Legacy operational status transitions, plus the legacy-cancellation policy.
+
+    Two of the eight status values are administrative exits wearing an
+    operational costume, and letting them write `status` alone would leave the
+    two models disagreeing — the exact drift the mirror exists to prevent:
+
+      * 'cancelled' routes through the same logic as POST /cancel, including
+        the fulfillment='unshipped' guard. An order with pounds already
+        shipped is refused here too, with the same 409 pointing at
+        close/short_closed.
+      * 'invoiced' routes through close, with the reason picked from the
+        ledger (shipped_recorded when nothing is still owed, else
+        shipped_not_recorded). Its mirror is overridden to 'invoiced' rather
+        than close's usual 'shipped', so this endpoint's own legacy callers
+        still see the status they asked for.
+
+    The other four values — new, confirmed, in_production, ready — are purely
+    operational, behave exactly as they always have, and never touch state.
+    """
     all_statuses = list(VALID_TRANSITIONS.keys())
     if req.status not in all_statuses:
         raise HTTPException(400, f"Invalid status. Must be one of: {all_statuses}")
@@ -12923,22 +13099,16 @@ def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderSta
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Get current status first
-                cur.execute(
-                    "SELECT order_number, status FROM sales_orders WHERE id = %s",
-                    (order_id,)
-                )
-                row = cur.fetchone()
-                if not row:
-                    raise HTTPException(404, f"Order #{order_id} not found")
-
-                current = row['status']
+                # Order row lock first, per the normative lock order — the
+                # exit branches below take product locks after it.
+                order = _load_so_for_state_change(cur, order_id)
+                current = order['status']
                 allowed = MANUAL_TRANSITIONS.get(current, [])
 
                 if req.status not in allowed:
                     if not allowed:
                         raise HTTPException(400,
-                            f"Order {row['order_number']} is '{current}' — this is a terminal status. "
+                            f"Order {order['order_number']} is '{current}' — this is a terminal status. "
                             f"No further status changes are allowed."
                         )
                     raise HTTPException(400,
@@ -12946,32 +13116,67 @@ def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderSta
                         f"Allowed transitions from '{current}': {allowed}."
                     )
 
-                cur.execute(
-                    "UPDATE sales_orders SET status = %s WHERE id = %s RETURNING order_number, status",
-                    (req.status, order_id)
-                )
-                updated = cur.fetchone()
                 released_allocations = []
-                if req.status == 'cancelled':
+                state_fields = {}
+
+                if req.status in ('cancelled', 'invoiced'):
+                    _require_open_state(order['state'], order['order_number'],
+                                        order_id, f"setting status '{req.status}'")
+
+                    if req.status == 'cancelled':
+                        if order['fulfillment'] != 'unshipped':
+                            _so_state_error(
+                                "ORDER_ALREADY_SHIPPED",
+                                f"Order {order['order_number']} is "
+                                f"'{order['fulfillment']}' — pounds have already "
+                                f"shipped, so it cannot be cancelled. Close it "
+                                f"instead: POST /sales/orders/{order_id}/close "
+                                f"with reason 'short_closed'.",
+                                status_code=409, order_id=order_id,
+                                fulfillment=order['fulfillment'],
+                                suggested_action="close",
+                                suggested_reason="short_closed",
+                            )
+                        target_state = 'cancelled'
+                        reason = 'other'
+                        note = 'via legacy status endpoint'
+                        mirror = 'cancelled'
+                        release_reason = 'order_cancelled'
+                    else:
+                        target_state = 'closed'
+                        reason = _shipped_close_reason(order)
+                        note = 'via legacy status endpoint (invoiced)'
+                        # NOT close's usual 'shipped': this endpoint's callers
+                        # asked for 'invoiced' and legacy readers distinguish
+                        # the two.
+                        mirror = 'invoiced'
+                        release_reason = 'order_closed'
+
+                    released_allocations = _release_order_reservations(
+                        cur, order_id, release_reason, caller_source_tag(request))
+                    updated_row = _apply_state_change(
+                        cur, order, state=target_state, reason=reason,
+                        note=note, related_so_id=None,
+                        changed_by=caller_source_tag(request),
+                        mirror_status=mirror)
+                    updated = updated_row
+                    state_fields = {
+                        "state": updated_row["state"],
+                        "state_reason": updated_row["state_reason"],
+                        "state_note": updated_row["state_note"],
+                        "state_changed_by": updated_row["state_changed_by"],
+                        "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
+                    }
+                else:
+                    # Purely operational: status only, state untouched.
                     cur.execute(
-                        """SELECT DISTINCT product_id
-                             FROM sales_order_allocations
-                            WHERE sales_order_id = %s AND status = 'active'
-                            ORDER BY product_id""",
-                        (order_id,),
+                        "UPDATE sales_orders SET status = %s WHERE id = %s RETURNING order_number, status",
+                        (req.status, order_id)
                     )
-                    product_ids = [int(item['product_id']) for item in cur.fetchall()]
-                    for product_id in product_ids:
-                        _lock_allocation_product(cur, product_id)
-                        _expire_auto_fifo_allocations(cur, product_id, _operator_id(_))
-                    released_allocations = _release_active_allocations(
-                        cur,
-                        order_id=order_id,
-                        reason='order_cancelled',
-                        released_by=_operator_id(_),
-                    )
+                    updated = cur.fetchone()
+
                 logger.info(f"Order {updated['order_number']} status: {current} → {req.status}")
-                return {
+                response = {
                     "order_id": order_id,
                     "order_number": updated['order_number'],
                     "previous_status": current,
@@ -12979,6 +13184,8 @@ def update_order_status(order_id: int = Depends(resolve_order_id), req: OrderSta
                     "allocations_released": released_allocations,
                     "message": f"Order {updated['order_number']}: {current} → {req.status}"
                 }
+                response.update(state_fields)
+                return response
     except HTTPException:
         raise
     except Exception as e:
@@ -13364,10 +13571,15 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
     if mode == "preview":
         try:
             with get_transaction() as cur:
-                cur.execute("SELECT so.order_number, so.status, c.name FROM sales_orders so JOIN customers c ON c.id = so.customer_id WHERE so.id = %s", (order_id,))
+                cur.execute("SELECT so.order_number, so.status, so.state, c.name FROM sales_orders so JOIN customers c ON c.id = so.customer_id WHERE so.id = %s", (order_id,))
                 order_row = cur.fetchone()
                 if not order_row:
                     raise HTTPException(404, f"Order #{order_id} not found")
+                # Read-only, so no row lock — but preview's whole job is to
+                # answer "can I ship this", and answering yes to something the
+                # commit will refuse is worse than refusing early.
+                _require_open_state(order_row['state'], order_row['order_number'],
+                                    order_id, "shipping")
                 if order_row['status'] == 'new':
                     raise HTTPException(400, f"Cannot ship order {order_row['order_number']} — status is 'new'. Confirm the order first.")
                 if order_row['status'] in ('invoiced', 'cancelled'):
@@ -13446,10 +13658,26 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    cur.execute("SELECT so.id, so.order_number, so.status, so.customer_id, c.name FROM sales_orders so JOIN customers c ON c.id = so.customer_id WHERE so.id = %s", (order_id,))
+                    # Lock ordering is normative: the sales_orders row FIRST,
+                    # then any product/lot locks (_lock_allocation_product, and
+                    # the lock=True ship plans below). A ship that took product
+                    # locks first and an exit that took the order row first
+                    # would deadlock against each other; worse, without the row
+                    # lock a concurrent close/cancel could commit between this
+                    # eligibility read and the shipment write, shipping stock
+                    # against an order that is no longer on the board.
+                    cur.execute(
+                        "SELECT so.id, so.order_number, so.status, so.state, so.customer_id, c.name "
+                        "  FROM sales_orders so JOIN customers c ON c.id = so.customer_id "
+                        " WHERE so.id = %s "
+                        "   FOR UPDATE OF so",
+                        (order_id,),
+                    )
                     order_row = cur.fetchone()
                     if not order_row:
                         raise HTTPException(404, f"Order #{order_id} not found")
+                    _require_open_state(order_row['state'], order_row['order_number'],
+                                        order_id, "shipping")
                     if order_row['status'] == 'new':
                         raise HTTPException(400, f"Cannot ship order {order_row['order_number']} — status is 'new'. Confirm the order first.")
                     if order_row['status'] in ('invoiced', 'cancelled'):
