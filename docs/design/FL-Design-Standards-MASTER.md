@@ -1,6 +1,6 @@
 # Factory Ledger — UX/UI Design Standards (Master)
 
-**Version:** 1.0 (consolidated) · **Date:** 2026-09-07
+**Version:** 1.1 · **Date:** 2026-09-10 · *(1.0 consolidated 2026-09-07; 1.1 adds category 17, Status & Data Display)*
 **Status:** Standards under construction. No evaluation of the current Factory Ledger has been made.
 
 ## How this document was built
@@ -16,7 +16,7 @@ Five extraction threads processed Apple HIG pages in parallel and each assigned 
 
 **Fields per rule:** Rule · Meaning · Factory Ledger application · Platform (Desktop/Web, Mobile, Both) · Importance (Critical, High, Medium, Low/Contextual) · Type (Hard rule, Strong recommendation, Situational idea) · Audit test · Sources.
 
-**Categories / ID prefixes:** NAV, LAYOUT, ACTION, INPUT, TOUCH, FEEDBACK, ERROR, SEARCH, DATA, ACCESS, PERF, NOTIFY, DRAG (direct manipulation), CHART (charts & dashboards), ICON (icons & imagery), OTHER.
+**Categories / ID prefixes:** NAV, LAYOUT, ACTION, INPUT, TOUCH, FEEDBACK, ERROR, SEARCH, DATA, ACCESS, PERF, NOTIFY, DRAG (direct manipulation), CHART (charts & dashboards), ICON (icons & imagery), STATUS (status & data display), OTHER.
 
 ---
 
@@ -1510,6 +1510,149 @@ Five extraction threads processed Apple HIG pages in parallel and each assigned 
 
 ---
 
+## 17. Status & Data Display
+
+How a record's condition and its numbers are rendered. Sections 6 and 9 govern the mechanics — what a
+status colour may be (FEEDBACK-011–014), how a row is built (DATA-003, DATA-007). This section governs
+the semantics: which concepts are allowed to share a space, when a value should not be shown at all, and
+how a number is written. It exists because the Sales Orders surface merged four independent concepts into
+one column and printed raw database decimals beside them; every rule below is the general form of a
+specific defect found there.
+
+Eight of the fourteen have a clause a rendered page can settle without judgement and are checked by
+`tests/visual/run-visual-audit.mjs`:
+
+| Rule | Mechanically checked | Checked by |
+|---|:--:|---|
+| STATUS-001 Orthogonal dimensions | manual | — |
+| STATUS-002 Silence means normal | **yes** | rendered chip text against a nominal-phrase list |
+| STATUS-003 Context is not repeated | manual | — |
+| STATUS-004 One alarm per row | **yes** | danger/warning-toned elements counted per row |
+| STATUS-005 Chip explanations | **yes** (hook only) | `data-explain` hook, focusability; content is manual |
+| STATUS-006 One number formatter | **yes** | rendered numeric text against the format |
+| STATUS-007 No orphan placeholders | **yes** | dash-only elements outside table cells |
+| STATUS-008 Single-line list rows | **yes** | measured row height at ≥ 1200 px |
+| STATUS-009 Chip subtext | manual | — |
+| STATUS-010 No developer vocabulary | **yes** | denylist scan over rendered text |
+| STATUS-011 Disclaimers appear once | **yes** | repeated sentences within one capture |
+| STATUS-012 Three health levels | manual | — |
+| STATUS-013 Detail-page case summary | manual | — |
+| STATUS-014 Tabs with counts | manual | — |
+
+### STATUS-001 — State, Fulfillment, Readiness and Health are four independent dimensions and always render separately
+- **Rule:** A record carries several conditions at once, and they vary independently: **State** (open / closed / cancelled), **Fulfillment** (unshipped / partial / shipped), **Readiness** (Factory Ready or not), and **Health** (critical / warning / quiet). Each gets its own column, chip, or field. Never combine two into one column, one chip, or one word, and never let one dimension's value suppress another's.
+- **Meaning:** Combined dimensions are lossy. A single "Status" column that reads "Partial" cannot say whether the order is still open, and one that reads "Cancelled" hides that three pallets already shipped. The operator then has to open the record to learn what the list was supposed to tell them.
+- **Factory Ledger:** A sales order that is open, half shipped, marked Factory Ready and overdue is four values, not one: State `Open` · Fulfillment `Partial` · Readiness `Factory Ready` · Health `overdue`. The order list gives each its own column; the detail header gives each its own field.
+- **Platform:** Both · **Importance:** Critical · **Type:** Hard rule
+- **Audit:** Take any record with a non-trivial combination. Can State, Fulfillment, Readiness and Health each be read off the list independently, or does one column carry more than one of them?
+- **Sources:** FL-SO-2026-09 · Related: DATA-007, FEEDBACK-011, STATUS-012
+
+### STATUS-002 — Silence means normal: a nominal value renders as nothing, never as a positive badge
+- **Rule:** Only the exceptional gets a mark. A value that is what it should be renders as nothing at all, or as an em-dash where a column needs a placeholder. Never render a coloured "OK", "Good", "Confirmed", "Normal", "Fine", "Healthy", "On Track", "No Issues", "All Clear", or "Checks Passed" badge for the ordinary case.
+- **Meaning:** A badge on every row is a badge on no row. Marking the normal case spends the operator's attention on the 95% of rows that need none, and leaves nothing left over to make the 5% that do stand out.
+- **Factory Ledger:** An order with no blockers shows an empty Health cell, not a green "Checks passed" pill. A lot within date shows nothing in the age column; only an aged lot is marked.
+- **Platform:** Both · **Importance:** High · **Type:** Hard rule
+- **Audit:** On a list where most rows are normal, how many rows carry a status badge? If it is most of them, what does the badge distinguish?
+- **Sources:** FL-SO-2026-09 · Related: FEEDBACK-014, LAYOUT-018, STATUS-004
+
+### STATUS-003 — A value implied by the active tab or filter is not repeated on every row
+- **Rule:** When a view is already scoped to a value, that value does not appear again per row. It belongs in the view's heading or the tab label, once.
+- **Meaning:** A column whose every cell reads the same thing carries no information and costs width the distinguishing columns need.
+- **Factory Ledger:** Inside the **Open** tab, no row says "Open". Inside a supplier-filtered receipts list, the supplier is in the heading, not in every row. The moment the filter widens to All, the column earns its place again and returns.
+- **Platform:** Both · **Importance:** High · **Type:** Strong recommendation
+- **Audit:** In each tab and under each default filter, is there a column whose value is the same on every row? Is that value already stated by the tab or filter?
+- **Sources:** FL-SO-2026-09 · Related: NAV-003, DATA-003, STATUS-014
+
+### STATUS-004 — At most one danger- or warning-toned element per list row
+- **Rule:** A row gets one alarm. Where several conditions on one record would each be coloured, show the most severe and let the explanation (STATUS-005) carry the rest.
+- **Meaning:** Two red marks on one row do not read as twice as urgent; they read as decoration, and they break the scan that finds the one row that matters.
+- **Factory Ledger:** An overdue order that is also short on inventory shows one critical mark — the more severe — and names the second condition inside the explanation, not as a second red chip beside the first.
+- **Platform:** Both · **Importance:** High · **Type:** Hard rule
+- **Audit:** Count the danger- and warning-toned elements in the worst row of each list. Is the count above one?
+- **Sources:** FL-SO-2026-09 · Related: FEEDBACK-013, LAYOUT-018, STATUS-012
+
+### STATUS-005 — Every status, health and blocker chip opens an explanation, through one defined markup hook
+- **Rule:** Any chip that reports a condition explains itself on demand: a generic definition of the condition, plus what it means for **this** record — the quantities, lines and dates behind it. The explanation opens on hover on pointer devices, on tap on touch devices, and on keyboard focus. One markup hook carries this everywhere: the chip element has **`data-explain`** whose value is the `id` of the element holding the explanation, is **`aria-describedby`**-linked to that same element, and is focusable (a `button`, or `tabindex="0"` where it must stay a `span`). A `title` attribute is not the hook: it is invisible on touch, unstyleable, and slow.
+- **Meaning:** A chip that says "Blocked" without saying by what, and by how much, forces the operator to open the record — which is the trip the list was meant to save. One hook means the popover behaviour is written once and every chip inherits it.
+- **Factory Ledger:** "Short 240 lb" opens: what a shortage is, then this order's two short lines with the quantity missing on each and the date the shortfall was measured. Applies to Health chips, blocker chips, Fulfillment chips and the Factory Ready marker alike.
+- **Platform:** Both · **Importance:** High · **Type:** Hard rule
+- **Audit:** Does every condition chip carry `data-explain`, an `aria-describedby` link and a focus stop? Does the explanation give both the definition and this record's specifics — quantities, lines, dates?
+- **Sources:** FL-SO-2026-09 · Related: ACCESS-010, NAV-010, INPUT-009, ACCESS-003
+
+### STATUS-006 — One number formatter for the whole product
+- **Rule:** Every rendered number goes through one formatter. Thousands separators always. Pounds to whole numbers. Pallets to one decimal. Numerals are tabular wherever numbers stack or align. No raw stored value ever reaches the screen: `13500.0000` is a database representation, not a quantity.
+- **Meaning:** Trailing zeros and unseparated digits make an operator re-read the number, and re-reading a quantity is how the wrong quantity gets shipped. Consistency also means an unusual-looking number is genuinely unusual, not just differently formatted.
+- **Factory Ledger:** `13,500 lb` — not `13500.0000`, not `13500 lb`, not `13,500.00 lb`. `4.5 pallets` — not `4.50` and not `5`. Order totals, line quantities, on-hand, shortages and the allocation matrix all use the same function.
+- **Platform:** Both · **Importance:** Critical · **Type:** Hard rule
+- **Audit:** Search rendered text for a number with three or more decimal places, and for a value of 1,000 or more without a separator. Do the same quantity and unit render identically on the list, the detail page and the print view?
+- **Sources:** FL-SO-2026-09 · Related: ACCESS-005, DATA-005, DATA-012
+
+### STATUS-007 — No orphan placeholders: an empty secondary value is omitted, not dashed
+- **Rule:** Where a secondary line, subtitle or caption has no value, the element is not rendered. A dangling "—" on a second line is not an empty state; it is a rendering artefact. Column placeholders inside a table cell are the one exception — a dash there holds the column's alignment and is read as part of the grid.
+- **Meaning:** An empty stacked line still costs vertical space, still draws the eye, and tells the operator nothing that omitting it would not.
+- **Factory Ledger:** An order row with no customer PO shows the order number alone, not the order number above a dash. A receipt with no notes shows no notes line.
+- **Platform:** Both · **Importance:** Medium · **Type:** Hard rule
+- **Audit:** In a row whose optional values are all empty, does any line render as a bare dash outside a table cell?
+- **Sources:** FL-SO-2026-09 · Related: DATA-003, STATUS-008
+
+### STATUS-008 — List rows are single-line: at most 56 px tall at desktop width
+- **Rule:** A row in a list or table occupies one line and is at most 56 px tall at desktop width (≥ 1200 CSS px). Secondary detail belongs in the chip explanation (STATUS-005) or on the detail page. A detail row the user has explicitly expanded is not a list row and is not bound by this height.
+- **Meaning:** Scanning is vertical. Every extra line per row is one fewer record visible, and a two-line row halves how much of the list the operator can hold in view while comparing.
+- **Factory Ledger:** The Sales Orders row is one line: order number · customer · quantity · ship date · State · Fulfillment · Readiness · Health. SKU, PO number and notes live behind the expander and on the detail page.
+- **Platform:** Desktop/Web (Mobile: stacked rows are governed by DATA-003's two-line limit) · **Importance:** High · **Type:** Strong recommendation
+- **Audit:** At 1440 px, measure the tallest unexpanded row in each list. Is any above 56 px, and what is on the second line?
+- **Sources:** FL-SO-2026-09 · Related: DATA-003, ACCESS-009, STATUS-007
+
+### STATUS-009 — A chip's subtext never restates its title
+- **Rule:** Where a chip carries both a label and a detail line, the detail adds facts the label does not already give — quantities, lines, dates. It never paraphrases the label.
+- **Meaning:** Restated text is read twice and informs once, and it makes the chip wide enough to push the row past STATUS-008.
+- **Factory Ledger:** "Inventory Short" · "240 lb across 2 lines" — not "Inventory Short" · "inventory is short".
+- **Platform:** Both · **Importance:** Medium · **Type:** Strong recommendation
+- **Audit:** Read each chip's label and its subtext in turn. Does the subtext state a fact the label did not?
+- **Sources:** FL-SO-2026-09 · Related: ACCESS-004, STATUS-005
+
+### STATUS-010 — No developer vocabulary in user-facing copy
+- **Rule:** Screen text, empty states, error messages, tooltips and explanations use factory and office vocabulary. Implementation terms never appear: "API", "endpoint", "returns", "null", "undefined", "NaN", "TTL", "cache", "payload", "JSON", "timeout", "500", "stack trace", and internal field or table names (`sales_order_id`, `qty_lb`, `order_lines`).
+- **Meaning:** A message written in implementation terms cannot be acted on by the person reading it, and it tells them the tool is not finished.
+- **Factory Ledger:** "Quantities are as of 6:15 AM" — not "cache TTL 900s". "This order has no lines yet" — not "lines returned null". "Couldn't reach the ledger — retry" — not "API 500 on /orders".
+- **Platform:** Both · **Importance:** High · **Type:** Hard rule
+- **Audit:** Scan all rendered text, including error and empty states, for implementation terms and for `snake_case` identifiers.
+- **Sources:** FL-SO-2026-09 · Related: OTHER-004, ACCESS-004, ERROR-010
+
+### STATUS-011 — A disclaimer appears once per screen, at first relevance
+- **Rule:** A caveat, as-of note or limitation is stated once on a screen, at the first place it applies. The same sentence never repeats within one view — not per row, not per card, not per section.
+- **Meaning:** A sentence repeated down a screen stops being read, including the one time it mattered. It also costs the space the data needs.
+- **Factory Ledger:** "Bag count unavailable" belongs once above the tile, not on each of its rows. An as-of timestamp belongs in the section header, not in every cell.
+- **Platform:** Both · **Importance:** Medium · **Type:** Strong recommendation
+- **Audit:** Does any sentence of forty characters or more render more than once in a single view?
+- **Sources:** FL-SO-2026-09 · Related: NOTIFY-002, ACCESS-004, LAYOUT-001
+
+### STATUS-012 — Health has exactly three visual levels and no fourth tone
+- **Rule:** Health renders in three levels only: **critical** (the danger token), **warning** (the warning token), and **quiet** (no colour at all). No other tone, tint, weight or icon is used for health — no informational blue, no positive green, no fourth severity.
+- **Meaning:** Three levels can be learned at a glance and ranked without a legend. A fourth makes the operator ask which of two colours is worse.
+- **Factory Ledger:** Overdue and short-inventory are critical. Due today and partially allocated are warnings. Everything else is quiet — no chip (STATUS-002). Positive green is not a health tone; Factory Ready is Readiness, and it renders as a readiness marker.
+- **Platform:** Both · **Importance:** High · **Type:** Hard rule
+- **Audit:** List every tone health takes on any screen. Are there exactly three, and does the third have no colour?
+- **Sources:** FL-SO-2026-09 · Related: FEEDBACK-012, OTHER-010, STATUS-001
+
+### STATUS-013 — A detail page opens with a one-line case summary
+- **Rule:** The first line of a detail page states the case: identifier · party · quantity · key date with relative overdue · Fulfillment · Readiness · Health. It answers "what am I looking at and does it need me" before the reader scrolls.
+- **Meaning:** Detail pages are opened to make one decision. The summary makes the common decision without reading the rest.
+- **Factory Ledger:** `SO-1042 · Whole Foods NE · 13,500 lb · ships Sep 12 (2 days late) · Partial · Factory Ready · Short 240 lb`.
+- **Platform:** Both · **Importance:** High · **Type:** Strong recommendation
+- **Audit:** Does the top line of each detail page carry all seven elements, and is it readable without scrolling at the narrowest supported width?
+- **Sources:** FL-SO-2026-09 · Related: NAV-003, LAYOUT-004, STATUS-001
+
+### STATUS-014 — Tabs with counts are the primary filter on every list view; dropdowns are secondary refinements
+- **Rule:** The division an operator uses most often is a row of tabs, each showing its count. Dropdowns and checkboxes refine within the selected tab; they never carry the primary division. A tab's count is live and matches the rows the tab shows.
+- **Meaning:** A tab shows the shape of the work before it is clicked — how many are open, how many are stuck. A dropdown hides both the options and their sizes behind a click.
+- **Factory Ledger:** Sales Orders: `Open 24 · Needs Review 3 · Shipped 61 · All 88`, with customer, date range and Factory Ready as dropdown refinements inside the chosen tab.
+- **Platform:** Both · **Importance:** High · **Type:** Strong recommendation
+- **Audit:** Is the most-used division of each list a visible tab row with counts, or is it hidden in a dropdown? Does each count match its tab's row count?
+- **Sources:** FL-SO-2026-09 · Related: NAV-004, NAV-007, NAV-012, SEARCH-005, STATUS-003
+
+---
+
 ## Appendix A — Rule count by category
 
 | Category | Prefix | Rules |
@@ -1530,9 +1673,10 @@ Five extraction threads processed Apple HIG pages in parallel and each assigned 
 | Charts & Dashboards | CHART | 8 |
 | Icons & Imagery | ICON | 10 |
 | Other | OTHER | 11 |
-| **Total** | | **178** |
+| Status & Data Display | STATUS | 14 |
+| **Total** | | **192** |
 
-Source rules consolidated: 216 (M1 35 · M2 24 · A 36 · B 37 · C 36 · D 48) → 178 master rules.
+Source rules consolidated: 216 (M1 35 · M2 24 · A 36 · B 37 · C 36 · D 48) → 178 master rules. Version 1.1 adds 14 STATUS rules from the Sales Orders field review (FL-SO-2026-09), for 192.
 
 ---
 
@@ -1554,7 +1698,7 @@ LAYOUT-001→LAYOUT-009
 ACTION-001→ACTION-001 · ACTION-002→TOUCH-003 · ACTION-003→ACTION-002 · ACTION-004→ACTION-003 · ACTION-005→ACTION-004 · ACTION-006→ACTION-005 · ACTION-007→ACTION-006 · ACTION-008→ACTION-007 · ACTION-009→ACTION-008 · ACTION-010→ACTION-009 · ACTION-011→LAYOUT-021 · ACTION-012→ACTION-010 · ACTION-013→ACTION-011 · ACTION-014→NAV-007 · ACTION-015→NAV-008 · ACTION-016→ACTION-012 · ACTION-017→NAV-006
 INPUT-001→INPUT-008 + INPUT-010 · INPUT-002→INPUT-003 · INPUT-003→INPUT-002
 TOUCH-001→TOUCH-004 · TOUCH-002→TOUCH-001
-STATUS-001→FEEDBACK-001
+STATUS-001→FEEDBACK-001 *(source-thread B's `STATUS-001`; unrelated to the master `STATUS-*` prefix introduced in §17)*
 ERROR-001→ERROR-004 · ERROR-002→ERROR-005 · ERROR-003→ERROR-006 · ERROR-004→ERROR-007 · ERROR-005→ACTION-008 · ERROR-006→ERROR-008 · ERROR-007→ERROR-009
 ACCESS-001→ACCESS-008
 OTHER-001→OTHER-009 · OTHER-002→DRAG-011
@@ -1624,3 +1768,33 @@ A INPUT-003, A INPUT-004, A INPUT-005, A INPUT-008, A INPUT-009 · B NAV-002, B 
 - FEEDBACK-012 / OTHER-010: the status-color table and token file are referenced but not yet authored.
 - FEEDBACK-003: define the stall timeout (N seconds) per operation class.
 - PERF: no standalone rules yet; expect HIG pages on loading, launching, and offline handling to populate this category.
+
+---
+
+## Appendix D — Version 1.1 changelog (Status & Data Display)
+
+**Date:** 2026-09-10 · **Source:** FL-SO-2026-09, the Sales Orders field review.
+
+**New category:** 17 — Status & Data Display, prefix `STATUS`. Every rule in it is the general form of a
+defect found on the Sales Orders list and detail surfaces: four independent conditions merged into one
+"Status" column, positive badges on ordinary rows, raw stored decimals, stacked dash placeholders, and
+`title`-only chip tooltips that touch devices never show.
+
+**New rules:** STATUS-001–014.
+
+**No existing rule was renumbered, reworded or removed.** Where a STATUS rule sharpens an existing one,
+the relationship is recorded in the `Related:` line of both, not by editing the older rule:
+- STATUS-002 / STATUS-004 sharpen FEEDBACK-013 and FEEDBACK-014 for list rows.
+- STATUS-006 gives DATA-005 and ACCESS-005 a single concrete number format.
+- STATUS-008 gives DATA-003 a measured height at desktop width.
+- STATUS-012 fixes the health palette that FEEDBACK-012 and OTHER-010 leave open — it does **not** close
+  the open item above, which is the full status-colour table for every dimension, not just health.
+
+**Prefix note:** source thread B used a `STATUS-` prefix of its own, mapped in Appendix B to `FEEDBACK-001`.
+It has no relation to this category; no master rule has ever carried a `STATUS-` ID before version 1.1.
+
+**Mechanical coverage:** STATUS-002, -004, -005 (hook only), -006, -007, -008, -010 and -011 are checked by
+`tests/visual/run-visual-audit.mjs` and appear in `docs/design/audit/06-browser-check.md`. The other six
+are manual review. STATUS-005's hook (`data-explain` + `aria-describedby` + a focus stop) does not exist in
+the product yet: its check is written against the markup the redesign will introduce and fails everywhere
+until then, by design.

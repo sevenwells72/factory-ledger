@@ -106,6 +106,14 @@ export function writeReport({ results, screens, variants, rules, verdict, zoomSc
   out.push('| **LAYOUT-003 / ACCESS-001** | No horizontal document overflow | `documentElement.scrollWidth − clientWidth`; offenders inside a genuine `overflow-x` scroller are excluded | Orientation change; Spanish label length; largest OS text size; hierarchy preservation |');
   out.push('| **LAYOUT-011** | Fixed bars do not cover the last scrollable row | Every scroll region driven to its end, then `elementFromPoint` occlusion probes. A candidate is only a failure if it is under a *bottom-anchored* bar at maximum scroll, or still occluded after being re-parked at 60% of the viewport — a row passing under a sticky header is reachable and is not counted | Whether the layout uses the available space |');
   out.push('| **LAYOUT-020** | Nothing moves on a refresh | `PerformanceObserver(\'layout-shift\')` CLS plus per-element before/after position deltas across the app\'s own refresh callback | Reordering under a *user* action; live-update buffering policy |');
+  out.push('| **STATUS-002** | No coloured badge announces a nominal value | Every chip-shaped element\'s rendered text matched against the rule\'s nominal-phrase list, then tested for a saturated fill, border or text colour | Whether the *absence* of a chip reads as "normal" to an operator |');
+  out.push('| **STATUS-004** | At most one danger/warning-toned element per list row | Tone decided by hue against the resolved `--danger` / `--warning` tokens (±12°, saturation ≥ 0.22), counted per row. Inherited `color` counts once, on the element that introduces it | Whether the surviving alarm is the *most severe* of the conditions present |');
+  out.push('| **STATUS-005** | The explanation hook exists | `data-explain` naming a real element, `aria-describedby` naming the same id, and a focus stop, on every chip. Chips whose only explanation is `title=` are counted separately | The explanation\'s **content** — definition plus this record\'s quantities, lines and dates. Manual |');
+  out.push('| **STATUS-006** | One number format | Rendered numeric text: ≥ 3 decimal places, ≥ 1,000 without a separator, decimal pounds, pallets past one decimal, and digits in an aligned column without tabular figures. Codes, dates, bare years and any column whose header names an identifier (SKU, Code, Lot, Order) are skipped; the tabular clause is measured only where digit width can misalign a column — a separator, a decimal, a unit, or three or more digits | Whether the same quantity agrees between screen, print and export |');
+  out.push('| **STATUS-007** | No orphan placeholders | Elements whose entire text is a dash, `n/a`, `none`, `null` or `undefined`, outside a table cell (a cell dash holds column alignment and is the rule\'s exception) | Whether omitting the line loses a distinction the reader needed |');
+  out.push('| **STATUS-008** | List rows ≤ 56 px | Measured row height at viewports ≥ 1200 px. Rows the user expanded are excluded by class | Whether what was pushed off the row is reachable in one step |');
+  out.push('| **STATUS-010** | No developer vocabulary | Denylist scan over rendered text and over `title` / `placeholder` / `aria-label`, plus any `snake_case` identifier. "returns" is not on the list: on a factory floor it means returned goods | Tone, jargon that is not on the list, Spanish copy |');
+  out.push('| **STATUS-011** | A disclaimer appears once | Sentences of 40 characters or more, counted within one capture; any rendered twice is reported | Whether the one surviving copy sits at first relevance |');
   out.push('');
   out.push('**One approximation, stated.** Where an ancestor sets `opacity`, the text colour is faded against its local');
   out.push('backdrop. That is exact wherever the faded subtree sits on the same surface as its backdrop — the');
@@ -115,6 +123,14 @@ export function writeReport({ results, screens, variants, rules, verdict, zoomSc
   out.push('node below its AA target. LAYOUT-003/ACCESS-001 fails above 1 px of document overflow. LAYOUT-011 fails on');
   out.push('any occluded interactive element. LAYOUT-020 passes at CLS ≤ 0.1 **and** zero moved anchors, warns to');
   out.push('CLS 0.25, fails above it.');
+  out.push('The STATUS rules fail on any single instance: one coloured nominal badge, one row with two alarms, one');
+  out.push('chip without the hook, one mis-formatted number, one orphan dash, one row over 56 px, one denylisted term,');
+  out.push('one repeated sentence.');
+  out.push('');
+  out.push('**STATUS-005 fails everywhere by design.** The `data-explain` hook the rule defines is not in the product');
+  out.push('yet. The check is written against the markup the Sales Orders redesign will introduce, so today it reports');
+  out.push('the size of that work — how many chips need the hook, and how many currently rely on a `title` tooltip that');
+  out.push('a touch device never shows.');
   out.push('');
 
   out.push('## Results at a glance');
@@ -385,6 +401,198 @@ export function writeReport({ results, screens, variants, rules, verdict, zoomSc
     }
   }
   out.push('');
+
+  // ── Category 17 · Status & Data Display ─────────────────────────────────
+  // Every STATUS finding is an element-level record with a `worst` array on the
+  // rule's data. They differ only in which columns are worth printing, so one
+  // aggregator handles all eight: collapse by signature (plus whatever second
+  // key distinguishes two findings on the same selector), then print.
+  const STATUS_SECTIONS = [
+    {
+      rule: 'STATUS-002',
+      title: 'STATUS-002 — nominal values rendered as a badge',
+      empty: 'No chip announced a nominal value in colour in any capture.',
+      lead: ['A row where nothing is wrong should carry no badge. These do.'],
+      columns: ['Chip', 'Text', 'Screens'],
+      key: w => w.text || '',
+      row: (e, screens) => [`\`${esc(e.sig)}\``, esc([...e.texts][0] || '—'), screens],
+      collect: (e, w) => { (e.texts = e.texts || new Set()).add(w.text); },
+    },
+    {
+      rule: 'STATUS-004',
+      title: 'STATUS-004 — list rows carrying more than one alarm',
+      empty: 'No list row carried more than one danger- or warning-toned element in any capture.',
+      lead: [
+        'Tone is measured by hue against the resolved `--danger` and `--warning` tokens, so a `color-mix()`ed',
+        'fill counts as the token it was mixed from and a class rename does not hide it. Inherited text colour is',
+        'attributed to the element that introduces it, not to every descendant that inherits it.',
+      ],
+      columns: ['Row', 'Most alarms seen', 'Tones', 'Screens'],
+      key: () => '',
+      row: (e, screens) => [`\`${esc(e.sig)}\``, `**${e.alarms}**`, esc([...e.tones].sort().join(', ')), screens],
+      collect: (e, w) => {
+        e.alarms = Math.max(e.alarms || 0, w.alarms || 0);
+        e.tones = e.tones || new Set();
+        for (const m of w.marks || []) e.tones.add(m.tone + ' (' + m.via + ')');
+      },
+      sort: (a, b) => (b.alarms || 0) - (a.alarms || 0),
+      sigOf: w => w.row,
+    },
+    {
+      rule: 'STATUS-005',
+      title: 'STATUS-005 — chips with no explanation hook',
+      empty: 'Every chip carried `data-explain`, an `aria-describedby` link and a focus stop.',
+      lead: [
+        'Expected to be the whole population until the redesign lands: the hook does not exist in the product yet.',
+        'The `title=` column is the migration surface — a tooltip a touch device never shows, standing in for the',
+        'popover the rule asks for.',
+      ],
+      columns: ['Chip', 'Example text', 'What is missing', 'Has `title=`', 'Screens'],
+      key: w => w.reasons.join('+'),
+      row: (e, screens) => [
+        `\`${esc(e.sig)}\``, esc([...e.texts][0] || '—'),
+        esc((e.reasons || []).join('; ')), e.hasTitle ? 'yes' : 'no', screens,
+      ],
+      collect: (e, w) => {
+        (e.texts = e.texts || new Set()).add(w.text);
+        e.reasons = w.reasons;
+        e.hasTitle = e.hasTitle || w.hasTitle;
+      },
+    },
+    {
+      rule: 'STATUS-006',
+      title: 'STATUS-006 — numbers outside the format',
+      empty: 'Every rendered number matched the format.',
+      lead: [
+        '`raw-decimal` is a stored value that reached the screen; `no-separator` is a value of 1,000 or more written',
+        'without a comma; `lb-precision` and `pallet-precision` are the wrong number of decimals for the unit;',
+        '`not-tabular` is digits in an aligned column rendered with proportional figures, measured only where',
+        'digit width can misalign the column — a separator, a decimal, a unit, or three or more digits — and',
+        'outside any column whose header names an identifier. Codes, dates, bare years and identifier',
+        'columns (SKU, Code, Lot, Order) are skipped throughout, so a numeric SKU is never counted as an',
+        'unseparated quantity.',
+      ],
+      columns: ['Kind', 'Element', 'Example', 'Screens'],
+      key: w => w.kind,
+      row: (e, screens) => [`\`${esc(e.kind)}\``, `\`${esc(e.sig)}\``, esc([...e.samples][0] || '—'), screens],
+      collect: (e, w) => {
+        e.kind = w.kind;
+        (e.samples = e.samples || new Set()).add(w.context || w.value);
+      },
+      sort: (a, b) => String(a.kind).localeCompare(String(b.kind)) || b.instances - a.instances,
+      extra: results => {
+        const kinds = {};
+        for (const r of results) {
+          const d = r.rules['STATUS-006'];
+          for (const [k, n] of Object.entries((d && d.byKind) || {})) kinds[k] = (kinds[k] || 0) + n;
+        }
+        if (!Object.keys(kinds).length) return [];
+        const lines = ['', '**Failures by kind, across all captures.**', '', '| Kind | Count |', '|---|---:|'];
+        for (const [k, n] of Object.entries(kinds).sort((a, b) => b[1] - a[1])) lines.push(`| \`${k}\` | ${n} |`);
+        return lines;
+      },
+    },
+    {
+      rule: 'STATUS-007',
+      title: 'STATUS-007 — orphan placeholders',
+      empty: 'No dash-only element was rendered outside a table cell.',
+      lead: ['A dash inside a table cell holds the column\'s alignment and is the rule\'s stated exception; these are not that.'],
+      columns: ['Element', 'Text', 'Screens'],
+      key: w => w.text,
+      row: (e, screens) => [`\`${esc(e.sig)}\``, esc([...e.texts][0] || '—'), screens],
+      collect: (e, w) => { (e.texts = e.texts || new Set()).add(w.text); },
+    },
+    {
+      rule: 'STATUS-008',
+      title: 'STATUS-008 — list rows over 56 px at desktop width',
+      empty: 'Every list row measured at or under 56 px at 1440 px.',
+      lead: ['Tallest first. Measured only at viewports ≥ 1200 px; rows the user expanded are excluded.'],
+      columns: ['Row', 'Tallest', 'Screens'],
+      key: () => '',
+      row: (e, screens) => [`\`${esc(e.sig)}\``, `**${e.height}px**`, screens],
+      collect: (e, w) => { e.height = Math.max(e.height || 0, w.height || 0); },
+      sort: (a, b) => (b.height || 0) - (a.height || 0),
+    },
+    {
+      rule: 'STATUS-010',
+      title: 'STATUS-010 — developer vocabulary in user-facing copy',
+      empty: 'No denylisted term and no `snake_case` identifier appeared in any rendered text.',
+      lead: ['Rendered text and the `title` / `placeholder` / `aria-label` copy that goes with it.'],
+      columns: ['Term(s)', 'Element', 'Copy', 'Screens'],
+      key: w => w.terms.join('+'),
+      row: (e, screens) => [
+        esc((e.terms || []).map(t => '`' + t + '`').join(', ')),
+        `\`${esc(e.sig)}\``, esc([...e.texts][0] || '—'), screens,
+      ],
+      collect: (e, w) => { e.terms = w.terms; (e.texts = e.texts || new Set()).add(w.text); },
+    },
+    {
+      rule: 'STATUS-011',
+      title: 'STATUS-011 — sentences rendered more than once in one view',
+      empty: 'No sentence of 40 characters or more was rendered twice within a single capture.',
+      lead: ['`Most in one view` is the highest number of times the sentence appeared in a single capture.'],
+      columns: ['Sentence', 'Most in one view', 'Screens'],
+      key: w => w.text,
+      row: (e, screens) => [esc([...e.texts][0] || '—'), `**${e.count}**`, screens],
+      collect: (e, w) => { (e.texts = e.texts || new Set()).add(w.text); e.count = Math.max(e.count || 0, w.count || 0); },
+      sort: (a, b) => (b.count || 0) - (a.count || 0),
+      sigOf: w => w.text.slice(0, 60),
+    },
+  ];
+
+  out.push('## Findings, category 17 — Status & Data Display');
+  out.push('');
+  out.push('Eight of the fourteen STATUS rules have a mechanical clause. STATUS-001, -003, -009, -012, -013 and -014');
+  out.push('need someone to read the screen and are absent from this report entirely — they are not reported as passing.');
+  out.push('');
+
+  for (const section of STATUS_SECTIONS) {
+    out.push(`### ${section.title}`);
+    out.push('');
+    const grouped = new Map();
+    for (const r of results) {
+      const d = r.rules[section.rule];
+      if (!d || !d.worst) continue;
+      for (const w of d.worst) {
+        const sig = section.sigOf ? signature(section.sigOf(w)) : signature(w.path);
+        const key = sig + '|' + section.key(w);
+        let e = grouped.get(key);
+        if (!e) { e = { sig, instances: 0, screens: new Set(), variants: new Set() }; grouped.set(key, e); }
+        e.instances++;
+        e.screens.add(r.id);
+        e.variants.add(r.variant);
+        section.collect(e, w);
+      }
+    }
+    if (grouped.size === 0) {
+      out.push(section.empty);
+    } else {
+      for (const line of section.lead) out.push(line);
+      out.push('');
+      out.push('| ' + section.columns.join(' | ') + ' | Instances |');
+      out.push('|' + section.columns.map(() => '---').join('|') + '|---:|');
+      const rows = [...grouped.values()].sort(section.sort || ((a, b) => b.instances - a.instances));
+      for (const e of rows.slice(0, 40)) {
+        const screens = [...e.screens].sort().slice(0, 8).join(', ') + (e.screens.size > 8 ? ` +${e.screens.size - 8}` : '');
+        out.push('| ' + section.row(e, screens).join(' | ') + ` | ${e.instances} |`);
+      }
+      if (grouped.size > 40) {
+        out.push('');
+        out.push(`_${grouped.size - 40} further distinct findings omitted; the full list is in \`screenshots/results.json\`._`);
+      }
+    }
+    if (section.extra) for (const line of section.extra(results)) out.push(line);
+    // STATUS-005 carries one number the table cannot show: how many chips are
+    // in scope at all, and how many of them lean on a `title` tooltip today.
+    if (section.rule === 'STATUS-005') {
+      const chips = results.reduce((n, r) => n + ((r.rules['STATUS-005'] || {}).checked || 0), 0);
+      const titles = results.reduce((n, r) => n + ((r.rules['STATUS-005'] || {}).titleOnly || 0), 0);
+      const complete = results.reduce((n, r) => n + ((r.rules['STATUS-005'] || {}).complete || 0), 0);
+      out.push('');
+      out.push(`**Scope.** ${chips} chip measurements across all captures; ${complete} carry the full hook, ${titles} carry a \`title\` attribute.`);
+    }
+    out.push('');
+  }
 
   // ── Capture notes / errors ──────────────────────────────────────────────
   // Surfaces with no light palette at all — an ACCESS-001 observation this run settles.

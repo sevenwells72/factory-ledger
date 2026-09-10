@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-10 12:34 — Design standards category 17 (Status & Data Display) + eight harness checks
+- **File(s) changed:** `docs/design/FL-Design-Standards-MASTER.md`, `tests/visual/lib/checks.mjs`, `tests/visual/lib/report.mjs`, `tests/visual/run-visual-audit.mjs`, `tests/visual/README.md`, `docs/design/audit/06-browser-check.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added category 17, Status & Data Display (STATUS-001–014), to the design standards master; bumped it to version 1.1 and added Appendix D recording the addition. No existing rule was renumbered, reworded or removed. Wired the eight machine-checkable rules into the Playwright design-audit harness — STATUS-002 (coloured nominal badges), -004 (more than one alarm per row), -005 (the `data-explain` chip explanation hook), -006 (number formatting), -007 (orphan dash placeholders), -008 (row height ≤ 56 px at desktop width), -010 (developer vocabulary), -011 (repeated disclaimers) — as new functions in `lib/checks.mjs`, verdicts in `run-visual-audit.mjs`, and findings sections in `lib/report.mjs`. Ran the full 388-capture audit and recorded the baseline in `06-browser-check.md`. No application file was touched.
+- **Why:** The Sales Orders surface merges State, Fulfillment, Readiness and Health into one column, badges the ordinary case, and prints raw stored decimals such as `13500.0000`. The standards had no category that covered any of it, so the redesign had nothing to be measured against. STATUS-005's hook does not exist in the product yet: its check is written against the markup the redesign will introduce and fails on every chip today by design.
+
+---
+
 ## 2026-09-09 11:19 — Railway watch paths confirmed: docs-only push skipped (FACTORY row 129)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Recorded the first watch-path test result. The docs-only push `a865478` (row 129 DEPLOYED) produced Railway deployment record `38940a52` with status SKIPPED at 15:15:18Z; no build ran, deployment `0d6e3d92` (merge `f951070`) stayed live, and `/health` remained HTTP 200 throughout. Row 129 updated in place with the same result. This commit is a second docs-only push and is expected to be skipped as well.
