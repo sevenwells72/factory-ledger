@@ -1,5 +1,6 @@
 """FR-12 contract tests for the authenticated global recent-ledger feed."""
 
+import re
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -216,6 +217,22 @@ def test_recent_pre_039_entry_has_zero_effective_lag(client, cur):
     assert entered_at == occurred_at
 
 
+def _assert_cache_busted(root, index, asset):
+    """`asset` is referenced exactly once from index.html, with a numeric
+    ?v= cache-buster, and the file it names is actually on disk."""
+    refs = re.findall(rf'\b{re.escape(asset)}\?v=(\d+)\b', index)
+    assert refs, (
+        f"{asset} must be referenced from index.html with a ?v=N cache-buster; "
+        f"a stale browser cache is how a dashboard fix silently fails to ship"
+    )
+    assert len(refs) == 1, (
+        f"{asset} is referenced {len(refs)} times with differing versions "
+        f"{refs} — one of them will serve stale bytes"
+    )
+    assert (root / "dashboard" / asset).is_file(), \
+        f"index.html references {asset}, which does not exist"
+
+
 def test_dashboard_activity_renders_occurred_entered_lag_and_backfill_badge():
     root = Path(__file__).resolve().parent.parent
     dashboard = (root / "dashboard/dashboard.js").read_text(encoding="utf-8")
@@ -230,9 +247,16 @@ def test_dashboard_activity_renders_occurred_entered_lag_and_backfill_badge():
     assert "if (record.entry_backfilled === true) provenance = ' · backfilled';" in dashboard
     assert "migration_backfill_039" not in dashboard
     assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in styles
-    assert 'dashboard.css?v=40' in index
-    assert 'shell-layout.css?v=3' in index
-    assert 'dashboard.js?v=56' in index
+
+    # Read the cache-buster from index.html instead of hardcoding it. The old
+    # assertions pinned dashboard.css?v=40 / shell-layout.css?v=3 /
+    # dashboard.js?v=56 and rotted the moment any of the three was bumped —
+    # index.html was at v=42 / v=5 / v=59 while this test still asserted the
+    # old numbers. What actually matters here is that each asset the Activity
+    # feed depends on is referenced ONCE, with a numeric cache-buster, and that
+    # the file it points at exists.
+    for asset in ("dashboard.css", "shell-layout.css", "dashboard.js"):
+        _assert_cache_busted(root, index, asset)
 
 
 @pytest.mark.db
