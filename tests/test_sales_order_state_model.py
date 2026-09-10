@@ -1184,60 +1184,190 @@ def test_backfill_marker_is_written_and_is_the_gate(db_cursor):
     assert db_cursor.fetchone() is not None
 
 
-@pytest.mark.db
-def test_rerun_is_a_noop_on_an_empty_database(db_cursor):
-    """Zero order rows: nothing to derive a guard from, so the marker has to
-    carry it."""
-    db_cursor.execute("DELETE FROM migration_markers WHERE name = %s", (BACKFILL_MARKER,))
-    db_cursor.execute(_backfill_block())
-    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name = %s",
-                      (BACKFILL_MARKER,))
-    assert db_cursor.fetchone()["n"] == 1
-    db_cursor.execute(_backfill_block())          # rerun, marker present
-    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name = %s",
-                      (BACKFILL_MARKER,))
-    assert db_cursor.fetchone()["n"] == 1, "marker must not be duplicated"
+# ─── migration rerun, in a genuinely isolated schema ─────────────
+#
+# These three make claims about a whole database — "empty", "EVERY backfilled
+# row has since changed" — that the shared test DB cannot honour: it holds rows
+# from the schema load and from whatever else has run. Asserting them there
+# would be calling something a precondition without ever establishing it.
+#
+# Each therefore runs in a throwaway schema, on its OWN connection, where the
+# precondition is created and then asserted before the rerun happens.
+
+ISOLATED_SCHEMA_DDL = """
+CREATE TABLE sales_orders (
+    id                 serial PRIMARY KEY,
+    order_number       text NOT NULL,
+    status             text NOT NULL,
+    state              text NOT NULL DEFAULT 'open',
+    state_reason       text,
+    state_note         text,
+    state_changed_at   timestamptz,
+    state_changed_by   text,
+    related_so_id      integer REFERENCES sales_orders(id),
+    status_before_exit text
+);
+CREATE TABLE products (
+    id         serial PRIMARY KEY,
+    is_service boolean NOT NULL DEFAULT false
+);
+CREATE TABLE sales_order_lines (
+    id             serial PRIMARY KEY,
+    sales_order_id integer NOT NULL REFERENCES sales_orders(id),
+    product_id     integer NOT NULL REFERENCES products(id),
+    quantity_lb    numeric(14,4) NOT NULL,
+    line_status    text NOT NULL DEFAULT 'pending'
+);
+CREATE TABLE sales_order_shipments (
+    sales_order_line_id integer NOT NULL,
+    transaction_id      integer NOT NULL,
+    quantity_lb         numeric(14,4) NOT NULL
+);
+CREATE TABLE ledger_current_transactions (
+    id integer PRIMARY KEY, type text, effective_status text
+);
+CREATE TABLE ledger_current_transaction_lines (
+    transaction_id integer, product_id integer, quantity_lb numeric(14,4)
+);
+CREATE TABLE migration_markers (
+    name text PRIMARY KEY,
+    applied_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+"""
+
+
+@contextmanager
+def _isolated_schema():
+    """An empty schema on its OWN connection.
+
+    The separate connection matters as much as the separate schema: the suite's
+    db_cursor runs inside one long-lived, never-committed transaction shared by
+    every test, so DDL issued through it holds locks for the rest of the
+    session and can wedge a later TestClient's startup migrations. An
+    autocommit connection of its own cannot do that.
+    """
+    import os
+    import psycopg2 as pg
+
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL not set")
+    name = f"so_state_iso_{uuid4().hex[:8]}"
+    conn = pg.connect(url, application_name="sostate-isolated-migration")
+    conn.autocommit = True
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(f"CREATE SCHEMA {name}")
+            try:
+                cur.execute(f"SET search_path TO {name}")
+                cur.execute(ISOLATED_SCHEMA_DDL)
+                yield cur
+            finally:
+                cur.execute("SET search_path TO public")
+                cur.execute(f"DROP SCHEMA {name} CASCADE")
+    finally:
+        conn.close()
+
+
+def _isolated_backfill_block():
+    """The migration's backfill with its public. prefixes stripped so it
+    resolves through search_path. The LOGIC is byte-identical."""
+    return _backfill_block().replace("public.", "")
 
 
 @pytest.mark.db
-def test_rerun_ignores_orders_created_after_the_migration(db_cursor):
+def test_rerun_is_a_noop_on_a_genuinely_empty_database():
+    """Zero rows — asserted, not assumed. With nothing to derive a guard from,
+    the marker is the only thing that can carry it."""
+    with _isolated_schema() as cur:
+        cur.execute("SELECT count(*) AS n FROM sales_orders")
+        assert cur.fetchone()["n"] == 0, "precondition: the schema really is empty"
+        cur.execute("SELECT count(*) AS n FROM migration_markers")
+        assert cur.fetchone()["n"] == 0, "precondition: no marker yet"
+
+        cur.execute(_isolated_backfill_block())
+        cur.execute("SELECT count(*) AS n FROM migration_markers WHERE name = %s",
+                    (BACKFILL_MARKER,))
+        assert cur.fetchone()["n"] == 1, "the first run writes the marker"
+
+        cur.execute(_isolated_backfill_block())
+        cur.execute("SELECT count(*) AS n FROM migration_markers WHERE name = %s",
+                    (BACKFILL_MARKER,))
+        assert cur.fetchone()["n"] == 1, "the rerun is a no-op; no duplicate marker"
+
+
+@pytest.mark.db
+def test_rerun_ignores_orders_created_after_the_migration():
     """A row-derived guard would re-stamp these with a false
     'backfilled from legacy status=…' note."""
-    customer_id, token = _seed_customer(db_cursor)
-    old_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
-    db_cursor.execute("UPDATE sales_orders SET state_changed_at=NULL, state_changed_by=NULL "
-                      "WHERE id = %s", (old_id,))
-    _run_backfill(db_cursor)
+    with _isolated_schema() as cur:
+        cur.execute("INSERT INTO sales_orders (order_number, status) "
+                    "VALUES ('OLD', 'confirmed') RETURNING id")
+        old_id = cur.fetchone()["id"]
+        cur.execute(_isolated_backfill_block())
+        cur.execute("SELECT state_changed_by FROM sales_orders WHERE id = %s", (old_id,))
+        assert cur.fetchone()["state_changed_by"] == "migration-051"
 
-    new_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
-    _run_backfill(db_cursor, fresh=False)
+        cur.execute("INSERT INTO sales_orders (order_number, status) "
+                    "VALUES ('NEW', 'confirmed') RETURNING id")
+        new_id = cur.fetchone()["id"]
+        cur.execute(_isolated_backfill_block())
 
-    row = _state_row(db_cursor, new_id)
-    assert row["state"] == "open"
-    assert row["state_note"] is None, "a post-migration order was never backfilled"
-    assert row["state_changed_by"] is None
+        cur.execute("SELECT state, state_note, state_changed_by "
+                    "  FROM sales_orders WHERE id = %s", (new_id,))
+        row = cur.fetchone()
+        assert row["state"] == "open"
+        assert row["state_note"] is None, "a post-migration order was never backfilled"
+        assert row["state_changed_by"] is None
 
 
 @pytest.mark.db
-def test_rerun_is_a_noop_after_every_backfilled_row_changed_state(db_cursor, client):
-    """The case a row-derived guard cannot see: the migration did its work, and
-    then every row it touched legitimately moved on."""
-    customer_id, token = _seed_customer(db_cursor)
-    order_id, _ = _seed_order(db_cursor, customer_id, token, status="confirmed")
-    db_cursor.execute("UPDATE sales_orders SET state_changed_at=NULL, state_changed_by=NULL "
-                      "WHERE id = %s", (order_id,))
-    _run_backfill(db_cursor)
-    assert _state_row(db_cursor, order_id)["state_changed_by"] == "migration-051"
+def test_rerun_is_a_noop_after_every_backfilled_row_changed_state():
+    """The case a row-derived guard cannot see: the migration did its work and
+    then every row it touched legitimately moved on.
 
-    closed = client.post(f"/sales/orders/{order_id}/close",
-                         json={"reason": "short_closed", "mode": "commit"})
-    assert closed.status_code == 200, closed.text
-    after_close = _state_row(db_cursor, order_id)
+    Every backfilled row is actually moved here, and the absence of the
+    migration's own stamp is asserted before the rerun — so the precondition in
+    the name is established, not hoped for.
+    """
+    with _isolated_schema() as cur:
+        for n, status in enumerate(
+                ["new", "confirmed", "in_production", "ready", "partial_ship",
+                 "shipped", "invoiced", "cancelled"]):
+            cur.execute("INSERT INTO sales_orders (order_number, status) VALUES (%s, %s)",
+                        (f"SO-{n}", status))
 
-    _run_backfill(db_cursor, fresh=False)
-    assert _state_row(db_cursor, order_id) == after_close, (
-        "the rerun must not re-backfill a row that has since changed state"
-    )
+        cur.execute(_isolated_backfill_block())
+        cur.execute("SELECT id, state FROM sales_orders "
+                    " WHERE state_changed_by = 'migration-051' ORDER BY id")
+        backfilled = [(r["id"], r["state"]) for r in cur.fetchall()]
+        assert len(backfilled) == 8, "every seeded row was backfilled"
+
+        for order_id, state in backfilled:
+            target = (("cancelled", "other") if state != "cancelled"
+                      else ("closed", "short_closed"))
+            cur.execute(
+                "UPDATE sales_orders SET state = %s, state_reason = %s, "
+                "       state_note = 'moved on', state_changed_by = 'a-human' "
+                " WHERE id = %s",
+                (target[0], target[1], order_id))
+        cur.execute("SELECT count(*) AS n FROM sales_orders "
+                    " WHERE state_changed_by = 'migration-051'")
+        assert cur.fetchone()["n"] == 0, (
+            "precondition: not one row still carries the migration's own stamp"
+        )
+
+        cur.execute("SELECT id, state, state_reason, state_note, state_changed_by "
+                    "  FROM sales_orders ORDER BY id")
+        before = [dict(r) for r in cur.fetchall()]
+
+        cur.execute(_isolated_backfill_block())
+
+        cur.execute("SELECT id, state, state_reason, state_note, state_changed_by "
+                    "  FROM sales_orders ORDER BY id")
+        assert [dict(r) for r in cur.fetchall()] == before, (
+            "the rerun must not re-backfill rows that have since changed state"
+        )
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -1826,19 +1956,55 @@ def test_startup_reconcile_block_exists_and_spares_shipped_rows():
 
 class TestStateRaces:
 
+    APP_NAME = "sostate-race-endpoint"
+
     @staticmethod
-    def _wait_for_row_lock_waiter(watch_cur, deadline_s=15):
+    def _wait_for_blocked_endpoint(watch_cur, app_name, holder_pid, deadline_s=20):
+        """Wait until the ENDPOINT's own backend is blocked BY THE HOLDER, and
+        return the statement it is stuck on.
+
+        Identifying the endpoint's backend by application_name and checking
+        pg_blocking_pids() is what makes this a real assertion. Counting
+        ungranted locks globally would pass on any unrelated wait — and, worse,
+        would still pass if the row lock were removed from the endpoint
+        entirely, because the endpoint's own later writes would block on the
+        holder anyway. Pinning the WAITING QUERY to the initial order-row
+        SELECT is the part that fails the moment that SELECT stops locking.
+        """
         import time
         deadline = time.time() + deadline_s
         while time.time() < deadline:
             watch_cur.execute(
-                "SELECT count(*) AS n FROM pg_locks "
-                " WHERE locktype IN ('transactionid', 'tuple') AND NOT granted"
+                """SELECT pid, query, pg_blocking_pids(pid) AS blockers
+                     FROM pg_stat_activity
+                    WHERE application_name = %s AND state = 'active'""",
+                (app_name,),
             )
-            if watch_cur.fetchone()["n"] >= 1:
-                return True
+            for row in watch_cur.fetchall():
+                if holder_pid in (row["blockers"] or []):
+                    return row["query"]
             time.sleep(0.05)
-        return False
+        return None
+
+    @staticmethod
+    def _assert_waiting_on_order_row_select(query, table="sales_orders"):
+        """The blocked statement must be the initial locking read of the order
+        row — not some later write that would block regardless."""
+        assert query, "the endpoint never blocked on the holder connection"
+        normalized = " ".join(query.lower().split())
+        assert "for no key update" in normalized, (
+            f"the endpoint is not blocked on a locking read: {query!r}"
+        )
+        assert normalized.startswith("select"), (
+            f"the endpoint blocked on a write, not the initial order-row "
+            f"SELECT — the row lock has been lost: {query!r}"
+        )
+        assert table in normalized, (
+            f"the endpoint is blocked on the wrong relation: {query!r}"
+        )
+        assert "update " not in normalized.split("for no key update")[0], (
+            f"expected a SELECT ... FOR NO KEY UPDATE, got: {query!r}"
+        )
 
     @staticmethod
     def _seed_committed(seed_cur, *, status, with_alloc=False, stock=1000):
@@ -1889,22 +2055,52 @@ class TestStateRaces:
     def _cleanup(seed_cur, ids):
         """Remove the sales-order side of the fixture.
 
-        The ledger rows (transactions / transaction_lines) and the lot and
-        product that hang off them are deliberately left behind: the ledger is
-        append-only and enforced by a trigger —
-        "transaction_lines is append-only; create a correction event instead" —
-        so a test tearing them down would be asserting the opposite of the
-        invariant this codebase is built on. The leftovers are uniquely named
-        per run, belong to no order, and are inert: FIFO is per-product and
-        nothing else looks these up.
+        The ledger rows (transactions / transaction_lines) stay: the ledger is
+        append-only and enforced by a trigger — "transaction_lines is
+        append-only; create a correction event instead" — so a test tearing
+        them down would be asserting the opposite of the invariant this
+        codebase is built on.
+
+        Everything that CAN go, goes: the order and its lines, flags,
+        reservations and shipment rows are deleted, the now-unreferenced
+        customer is deleted, and the product — still referenced by those
+        ledger rows, so undeletable — is deactivated so it drops out of every
+        catalogue and search path.
         """
-        seed_cur.execute("DELETE FROM shipment_lines WHERE sales_order_line_id = %s", (ids["line_id"],))
-        seed_cur.execute("DELETE FROM shipments WHERE sales_order_id = %s", (ids["order_id"],))
-        seed_cur.execute("DELETE FROM sales_order_shipments WHERE sales_order_line_id = %s", (ids["line_id"],))
-        seed_cur.execute("DELETE FROM sales_order_allocations WHERE sales_order_id = %s", (ids["order_id"],))
-        seed_cur.execute("DELETE FROM sales_order_lines WHERE sales_order_id = %s", (ids["order_id"],))
-        seed_cur.execute("DELETE FROM sales_order_flags WHERE so_number = %s", (ids["order_number"],))
-        seed_cur.execute("DELETE FROM sales_orders WHERE id = %s", (ids["order_id"],))
+        def _try(sql, params):
+            # seed is autocommit, so each statement stands alone. Best-effort
+            # per statement: if a shipment DID land (which only happens when
+            # this file's own locking assertions have already failed), its
+            # trace_events row pins the order and the delete raises. Losing the
+            # teardown on top of the real failure would bury it.
+            try:
+                seed_cur.execute(sql, params)
+            except Exception:
+                pass
+
+        _try("DELETE FROM shipment_lines WHERE sales_order_line_id = %s", (ids["line_id"],))
+        _try("DELETE FROM shipments WHERE sales_order_id = %s", (ids["order_id"],))
+        _try("DELETE FROM sales_order_shipments WHERE sales_order_line_id = %s", (ids["line_id"],))
+        _try("DELETE FROM sales_order_allocations WHERE sales_order_id = %s", (ids["order_id"],))
+        _try("DELETE FROM sales_order_lines WHERE sales_order_id = %s", (ids["order_id"],))
+        _try("DELETE FROM sales_order_flags WHERE so_number = %s", (ids["order_number"],))
+        _try("DELETE FROM sales_orders WHERE id = %s", (ids["order_id"],))
+        # If the order survived the delete, it is pinned by append-only ledger
+        # or trace rows and cannot go. Take it OFF THE BOARD instead. A
+        # leftover *open* order is not inert: GET /sales/orders/counts walks
+        # every open order and touches products, and the client fixture's
+        # RELEASE SAVEPOINT promotes that lock to the session transaction,
+        # where it blocks the next TestClient's startup ALTER on products —
+        # wedging the whole run. Closed orders are skipped by all of it.
+        _try("UPDATE sales_orders SET state = 'closed', "
+             "       state_reason = 'short_closed', status = 'shipped', "
+             "       state_note = 'race fixture teardown' "
+             " WHERE id = %s AND state = 'open'", (ids["order_id"],))
+        # The customer is now unreferenced, so it goes. The product and lot are
+        # still referenced by the append-only ledger rows above and cannot be
+        # deleted, so they are deactivated instead — inert, and visibly so.
+        _try("DELETE FROM customers WHERE id = %s", (ids["customer_id"],))
+        _try("UPDATE products SET active = false WHERE id = %s", (ids["product_id"],))
 
     def _run_race(self, monkeypatch, *, seed_kwargs, call, conflicting_sql):
         """Park a lock on the order row, watch `call` queue on it, commit
@@ -1928,7 +2124,10 @@ class TestStateRaces:
 
             @_ctx
             def _real_conn():
-                conn = pg.connect(url)
+                # A distinct application_name so the assertions below can find
+                # THIS backend in pg_stat_activity rather than guessing from
+                # global lock counts.
+                conn = pg.connect(url, application_name=self.APP_NAME)
                 try:
                     yield conn
                     conn.commit()
@@ -1940,12 +2139,16 @@ class TestStateRaces:
 
             monkeypatch.setattr(main, "get_db_connection", _real_conn)
 
-            holder = pg.connect(url)
+            holder = pg.connect(url, application_name="sostate-race-holder")
             results = []
+            blocked_query = None
             try:
                 with holder.cursor() as hc:
-                    hc.execute("SELECT id FROM sales_orders WHERE id = %s FOR UPDATE",
-                               (ids["order_id"],))
+                    hc.execute("SELECT pg_backend_pid()")
+                    holder_pid = hc.fetchone()[0]
+                    hc.execute(
+                        "SELECT id FROM sales_orders WHERE id = %s FOR NO KEY UPDATE",
+                        (ids["order_id"],))
 
                 with TC(main.app) as tc:
                     tc.headers["X-API-Key"] = main.API_KEY
@@ -1953,13 +2156,16 @@ class TestStateRaces:
                     thread.start()
 
                     with seed.cursor(cursor_factory=RealDictCursor) as sc:
-                        queued = self._wait_for_row_lock_waiter(sc)
-                    assert queued, (
-                        "the endpoint never queued on the sales_orders row lock — "
-                        "it is not taking the order row lock first"
-                    )
+                        blocked_query = self._wait_for_blocked_endpoint(
+                            sc, self.APP_NAME, holder_pid)
 
-                    # the conflicting state change wins the race
+                    # Release BEFORE asserting anything. The in-flight request
+                    # is holding the TestClient's ASGI portal, so an assertion
+                    # raised here would exit the `with` block while that
+                    # request is still waiting on the holder — and TestClient
+                    # would wait for the request, which is waiting for the lock
+                    # we are about to release. The whole test hangs instead of
+                    # failing. Unwind first, judge afterwards.
                     with holder.cursor() as hc:
                         hc.execute(conflicting_sql, (ids["order_id"],))
                     holder.commit()
@@ -1969,6 +2175,7 @@ class TestStateRaces:
             finally:
                 holder.close()
 
+            self._assert_waiting_on_order_row_select(blocked_query)
             return results[0], ids, seed
         except Exception:
             if ids is not None:
@@ -2057,3 +2264,423 @@ class TestStateRaces:
             with seed.cursor() as sc:
                 self._cleanup(sc, ids)
             seed.close()
+
+
+# ═════════════════════════════════════════════════════════════════
+# Legacy PATCH: guards run before the transition gate
+# ═════════════════════════════════════════════════════════════════
+
+@pytest.mark.db
+def test_legacy_patch_cancelled_on_a_fully_shipped_open_order_gets_the_structured_409(
+        db_cursor, client):
+    """A fully shipped order is status='shipped', so MANUAL_TRANSITIONS would
+    reject 'cancelled' with a generic 400 "invalid transition". The specific,
+    actionable answer has to win: 409 ORDER_ALREADY_SHIPPED, naming the
+    fulfillment and pointing at close/short_closed."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="shipped")
+    line_id = _add_line(db_cursor, order_id, product_id, 100, shipped=100, status="fulfilled")
+    _post_ship(db_cursor, line_id, product_id, lot_id, 100, recorded=100)
+
+    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "cancelled"})
+    assert resp.status_code == 409, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "ORDER_ALREADY_SHIPPED"
+    assert detail["fulfillment"] == "shipped"
+    assert detail["suggested_action"] == "close"
+    assert detail["suggested_reason"] == "short_closed"
+    assert "short_closed" in detail["message"]
+
+    row = _state_row(db_cursor, order_id)
+    assert (row["state"], row["status"]) == ("open", "shipped"), "nothing written"
+
+
+@pytest.mark.db
+def test_legacy_patch_operational_value_still_gets_the_plain_transition_400(db_cursor, client):
+    """The reorder must not swallow the generic gate for operational values."""
+    customer_id, token = _seed_customer(db_cursor)
+    order_id, _ = _seed_order(db_cursor, customer_id, token, status="new")
+    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "ready"})
+    assert resp.status_code == 400, resp.text
+    assert "Invalid status transition" in str(resp.json())
+
+
+# ═════════════════════════════════════════════════════════════════
+# Lock order: line mutations take the order row first
+# ═════════════════════════════════════════════════════════════════
+
+class TestLineMutationLockOrder(TestStateRaces):
+
+    @pytest.mark.db
+    def test_quantity_reduction_loses_to_a_concurrent_cancel(self, monkeypatch):
+        """A line quantity reduction shrinks that line's reservations, so it
+        contends with the exits over the same rows. It must queue on the ORDER
+        row, not walk straight into the allocation rows."""
+        resp, ids, seed = self._run_race(
+            monkeypatch,
+            seed_kwargs={"status": "confirmed", "with_alloc": True},
+            call=lambda tc, i: tc.patch(
+                f"/sales/orders/{i['order_id']}/lines/{i['line_id']}/update",
+                params={"quantity_lb": 10}),
+            conflicting_sql=self.CANCEL_SQL,
+        )
+        try:
+            # The endpoint queued on the order row (asserted inside _run_race)
+            # and then ran against the post-cancel state.
+            assert resp.status_code in (200, 404, 409), resp.text
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT state FROM sales_orders WHERE id = %s", (ids["order_id"],))
+                assert sc.fetchone()["state"] == "cancelled", "the cancel won"
+        finally:
+            with seed.cursor() as sc:
+                self._cleanup(sc, ids)
+            seed.close()
+
+    @pytest.mark.db
+    def test_line_cancel_queues_on_the_order_row(self, monkeypatch):
+        resp, ids, seed = self._run_race(
+            monkeypatch,
+            seed_kwargs={"status": "confirmed", "with_alloc": True},
+            call=lambda tc, i: tc.patch(
+                f"/sales/orders/{i['order_id']}/lines/{i['line_id']}/cancel"),
+            conflicting_sql=self.CLOSE_SQL,
+        )
+        try:
+            assert resp.status_code in (200, 404, 409), resp.text
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT state FROM sales_orders WHERE id = %s", (ids["order_id"],))
+                assert sc.fetchone()["state"] == "closed", "the close won"
+        finally:
+            with seed.cursor() as sc:
+                self._cleanup(sc, ids)
+            seed.close()
+
+
+# ═════════════════════════════════════════════════════════════════
+# Lock order: no deadlock between multi-row writers
+#
+# These assert the ABSENCE of a deadlock, which only means something if the
+# two sides genuinely overlap and genuinely run at once. Each starts both
+# sides on their own connections, has each take its first lock and wait at a
+# barrier, then releases them together — so the interleaving that would
+# deadlock under a disagreeing lock order actually gets a chance to happen.
+# ═════════════════════════════════════════════════════════════════
+
+class _StubRequest:
+    """Just enough Request for caller_source_tag(): it reads one header."""
+
+    def __init__(self, api_key=None):
+        self.headers = {"X-API-Key": api_key} if api_key else {}
+
+
+class TestNoDeadlock:
+    """Two writers that overlap, started together, each on its own connection.
+
+    These assert the ABSENCE of a deadlock, which is only meaningful if the two
+    sides genuinely run at once. They call the endpoint FUNCTIONS directly
+    rather than going through TestClient: one TestClient serialises requests
+    through a single ASGI portal (so there would be no concurrency to test),
+    and two TestClients each run the app's startup and shutdown against the
+    same module-level db_pool and race to close it. Calling the functions on
+    two real connections gives real parallelism and neither problem.
+    """
+
+    @staticmethod
+    def _url():
+        import os
+        url = os.environ.get("TEST_DATABASE_URL")
+        if not url:
+            pytest.skip("TEST_DATABASE_URL not set")
+        return url
+
+    @staticmethod
+    def _per_thread_conn(url, app_name):
+        """monkeypatch target: a fresh real connection for every call."""
+        from contextlib import contextmanager as _ctx
+        import psycopg2 as pg
+
+        @_ctx
+        def _conn():
+            conn = pg.connect(url, application_name=app_name)
+            try:
+                yield conn
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+        return _conn
+
+    @staticmethod
+    def _run_together(fn_a, fn_b, timeout=60):
+        """Start both at a barrier; return {name: result_or_exception}."""
+        import threading
+        start = threading.Barrier(2)
+        out = {}
+
+        def _wrap(name, fn):
+            def _run():
+                start.wait(timeout=20)
+                try:
+                    out[name] = fn()
+                except Exception as exc:          # noqa: BLE001 - recorded, asserted on
+                    out[name] = exc
+            return _run
+
+        threads = [threading.Thread(target=_wrap("a", fn_a)),
+                   threading.Thread(target=_wrap("b", fn_b))]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=timeout)
+        assert not any(t.is_alive() for t in threads), (
+            "the two writers never both finished — they deadlocked or hung"
+        )
+        return out
+
+    @staticmethod
+    def _assert_no_deadlock(result, label):
+        """40P01 is Postgres's deadlock_detected. Matching the SQLSTATE rather
+        than the English word keeps fixture data out of the assertion."""
+        import psycopg2
+        if isinstance(result, psycopg2.Error):
+            assert result.pgcode != "40P01", f"{label} deadlocked: {result}"
+            raise AssertionError(f"{label} failed: {result!r}")
+        if isinstance(result, Exception):
+            assert "40P01" not in str(result), f"{label} deadlocked: {result}"
+            raise AssertionError(f"{label} failed: {result!r}")
+
+    @pytest.mark.db
+    def test_reciprocal_duplicate_cancellations_do_not_deadlock(self, monkeypatch):
+        """A→B and B→A at the same moment.
+
+        Writing related_so_id takes FOR KEY SHARE on the OTHER order's row.
+        Under FOR UPDATE on the order row this is a textbook deadlock: A holds
+        A and reaches for B while B holds B and reaches for A, and Postgres
+        kills one with 40P01. FOR NO KEY UPDATE does not conflict with KEY
+        SHARE, so both commit.
+        """
+        import psycopg2 as pg
+
+        url = self._url()
+        seed = pg.connect(url)
+        seed.autocommit = True
+        ids_a = ids_b = None
+        try:
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                ids_a = TestStateRaces._seed_committed(sc, status="confirmed")
+                ids_b = TestStateRaces._seed_committed(sc, status="confirmed")
+
+            monkeypatch.setattr(main, "get_db_connection",
+                                self._per_thread_conn(url, "sostate-reciprocal"))
+
+            def _cancel(mine, other):
+                return lambda: main.cancel_sales_order(
+                    main.SalesOrderCancelRequest(
+                        reason="duplicate", related_so_id=other["order_id"],
+                        mode="commit"),
+                    _StubRequest(), mine["order_id"], True)
+
+            out = self._run_together(_cancel(ids_a, ids_b), _cancel(ids_b, ids_a))
+
+            for label in ("a", "b"):
+                self._assert_no_deadlock(out[label], label)
+                assert out[label]["state"] == "cancelled", out[label]
+
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT id, related_so_id FROM sales_orders "
+                           " WHERE id = ANY(%s)",
+                           ([ids_a["order_id"], ids_b["order_id"]],))
+                rows = {r["id"]: r["related_so_id"] for r in sc.fetchall()}
+            assert rows[ids_a["order_id"]] == ids_b["order_id"]
+            assert rows[ids_b["order_id"]] == ids_a["order_id"], (
+                "both reciprocal references survived"
+            )
+        finally:
+            with seed.cursor() as sc:
+                for ids in (ids_a, ids_b):
+                    if ids:
+                        try:
+                            sc.execute("UPDATE sales_orders SET related_so_id = NULL "
+                                       " WHERE id = %s", (ids["order_id"],))
+                        except Exception:
+                            pass
+                for ids in (ids_a, ids_b):
+                    if ids:
+                        TestStateRaces._cleanup(sc, ids)
+            seed.close()
+
+    @pytest.mark.db
+    def test_multi_product_ship_and_exit_do_not_deadlock(self, monkeypatch):
+        """Ship order A (lines ordered P_high, P_low) against closing order B
+        (reservations on P_low, P_high).
+
+        If each side locked products in the order its own lines happened to be
+        in, A would take P_high and wait for P_low while B took P_low and
+        waited for P_high. Sorting product ids ascending on BOTH sides is what
+        lets this finish.
+        """
+        import psycopg2 as pg
+
+        url = self._url()
+        seed = pg.connect(url)
+        seed.autocommit = True
+        made = {}
+        try:
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                token = uuid4().hex[:10].upper()
+                sc.execute("INSERT INTO customers (name, active) VALUES (%s,true) RETURNING id",
+                           (f"LOCKORDER Cust {token}",))
+                customer_id = sc.fetchone()["id"]
+
+                products = []
+                for n in (1, 2):
+                    sc.execute(
+                        "INSERT INTO products (name,type,odoo_code,uom,is_service,active) "
+                        "VALUES (%s,'finished',%s,'lb',false,true) RETURNING id",
+                        (f"LOCKORDER FG{n} {token}", f"LO{n}-{token}"))
+                    pid = sc.fetchone()["id"]
+                    sc.execute(
+                        "INSERT INTO lots (product_id,lot_code,entry_source,received_at) "
+                        "VALUES (%s,%s,'received',NOW()) RETURNING id",
+                        (pid, f"LO{n}-LOT-{token}"))
+                    lot = sc.fetchone()["id"]
+                    sc.execute("INSERT INTO transactions (type,timestamp) "
+                               "VALUES ('receive',NOW()) RETURNING id")
+                    txn = sc.fetchone()["id"]
+                    sc.execute("INSERT INTO transaction_lines "
+                               "(transaction_id,product_id,lot_id,quantity_lb) "
+                               "VALUES (%s,%s,%s,1000)", (txn, pid, lot))
+                    products.append((pid, lot))
+                products.sort()
+                (p_low, lot_low), (p_high, lot_high) = products
+
+                def _order(number, status, line_products):
+                    sc.execute(
+                        "INSERT INTO sales_orders (customer_id,order_number,status) "
+                        "VALUES (%s,%s,%s) RETURNING id", (customer_id, number, status))
+                    oid = sc.fetchone()["id"]
+                    sc.execute("INSERT INTO sales_order_flags "
+                               "(so_number,ready,ready_at,ready_by) "
+                               "VALUES (%s,true,NOW(),'test')", (number,))
+                    lines = []
+                    for pid, lot in line_products:
+                        sc.execute(
+                            "INSERT INTO sales_order_lines "
+                            "(sales_order_id,product_id,quantity_lb,line_status) "
+                            "VALUES (%s,%s,50,'pending') RETURNING id", (oid, pid))
+                        lines.append((sc.fetchone()["id"], pid, lot))
+                    return oid, number, lines
+
+                # A's lines are created P_HIGH first, so line order and product
+                # order deliberately disagree.
+                a_id, a_num, a_lines = _order(
+                    f"LO-A-{token}", "ready", [(p_high, lot_high), (p_low, lot_low)])
+                b_id, b_num, b_lines = _order(
+                    f"LO-B-{token}", "confirmed", [(p_low, lot_low), (p_high, lot_high)])
+                for line_id, pid, lot in b_lines:
+                    sc.execute(
+                        "INSERT INTO sales_order_allocations "
+                        "(sales_order_id,sales_order_line_id,product_id,lot_id,"
+                        " quantity_lb,source) VALUES (%s,%s,%s,%s,50,'staged_lot')",
+                        (b_id, line_id, pid, lot))
+                made = {"customer_id": customer_id, "products": [p_low, p_high],
+                        "orders": [(a_id, a_num, a_lines), (b_id, b_num, b_lines)]}
+
+            monkeypatch.setattr(main, "get_db_connection",
+                                self._per_thread_conn(url, "sostate-lockorder"))
+
+            out = self._run_together(
+                lambda: main.ship_order(
+                    a_id, main.ShipOrderRequest(mode="commit", ship_all=True), True),
+                lambda: main.close_sales_order(
+                    main.SalesOrderCloseRequest(reason="short_closed", mode="commit"),
+                    _StubRequest(), b_id, True),
+            )
+
+            self._assert_no_deadlock(out["a"], "ship")
+            self._assert_no_deadlock(out["b"], "close")
+            assert out["a"]["order_status"] in ("shipped", "partial_ship"), out["a"]
+            assert out["b"]["state"] == "closed", out["b"]
+        finally:
+            with seed.cursor() as sc:
+                for oid, num, lines in made.get("orders", []):
+                    for line_id, _pid, _lot in lines:
+                        for sql in (
+                            "DELETE FROM shipment_lines WHERE sales_order_line_id = %s",
+                            "DELETE FROM sales_order_shipments WHERE sales_order_line_id = %s",
+                            "DELETE FROM sales_order_allocations WHERE sales_order_line_id = %s",
+                        ):
+                            try:
+                                sc.execute(sql, (line_id,))
+                            except Exception:
+                                pass
+                    for sql, params in (
+                        ("DELETE FROM shipments WHERE sales_order_id = %s", (oid,)),
+                        ("DELETE FROM sales_order_lines WHERE sales_order_id = %s", (oid,)),
+                        ("DELETE FROM sales_order_flags WHERE so_number = %s", (num,)),
+                        ("DELETE FROM sales_orders WHERE id = %s", (oid,)),
+                        # see TestStateRaces._cleanup: a surviving OPEN order
+                        # wedges later runs, a closed one is inert.
+                        ("UPDATE sales_orders SET state = 'closed', "
+                         "       state_reason = 'short_closed', status = 'shipped', "
+                         "       state_note = 'race fixture teardown' "
+                         " WHERE id = %s AND state = 'open'", (oid,)),
+                    ):
+                        try:
+                            sc.execute(sql, params)
+                        except Exception:
+                            pass
+                for pid in made.get("products", []):
+                    try:
+                        sc.execute("UPDATE products SET active = false WHERE id = %s", (pid,))
+                    except Exception:
+                        pass
+                if made.get("customer_id"):
+                    try:
+                        sc.execute("DELETE FROM customers WHERE id = %s",
+                                   (made["customer_id"],))
+                    except Exception:
+                        pass
+            seed.close()
+
+
+def test_allocation_path_locks_one_product_and_lock_helper_sorts():
+    """The allocation endpoint locks exactly one product per request, so
+    "ascending" is trivially satisfied there; the multi-product helper is what
+    has to sort, and _lock_allocation_product itself orders lots and
+    allocations by id."""
+    import inspect
+    alloc_src = inspect.getsource(main.create_sales_order_allocation)
+    assert alloc_src.count("_lock_allocation_product(") == 1, (
+        "the allocation path is expected to lock a single product"
+    )
+    assert "_lock_allocation_products(" not in alloc_src
+
+    helper = inspect.getsource(main._lock_allocation_products)
+    assert "sorted(" in helper, "multi-product locking must be ascending by id"
+
+    one = inspect.getsource(main._lock_allocation_product)
+    assert one.count("ORDER BY id") >= 2, "lots and allocations both locked by id"
+
+
+def test_ship_commit_takes_locks_in_the_normative_order():
+    """order row -> line rows -> products, with products pre-acquired before
+    either planning loop."""
+    import inspect
+    src = inspect.getsource(main.ship_order)
+    commit = src[src.index('# mode == "commit"'):]
+
+    i_order = commit.index("FOR NO KEY UPDATE OF so")
+    i_lines = commit.index("_lock_sales_order_lines(")
+    i_products = commit.index("_lock_allocation_products(")
+    i_preflight = commit.index("if _allocations_enforced():")
+    i_plan = commit.index("plan = _sales_order_ship_plan(")
+
+    assert i_order < i_lines < i_products, (
+        "lock order must be order row -> lines -> products"
+    )
+    assert i_products < i_preflight, "products pre-acquired before the preflight loop"
+    assert i_products < i_plan, "products pre-acquired before the shipping loop"

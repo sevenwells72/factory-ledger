@@ -381,6 +381,85 @@ def _allocation_error(code: str, message: str, status_code: int = 409, **fields)
     raise HTTPException(status_code=status_code, detail=detail)
 
 
+# ─────────────────────────────────────────────────────────────────
+# Normative lock order for every sales-order write path:
+#
+#     sales_orders row  ->  sales_order_lines rows  ->  product/lot rows
+#
+# and within products/lots, always ascending id. Two writers that take the
+# same locks in the same order cannot deadlock; two that disagree on the order
+# eventually will.
+#
+# Strength is FOR NO KEY UPDATE on both sales_orders and sales_order_lines, NOT
+# FOR UPDATE. Nothing in this codebase deletes or rekeys either table — the key
+# columns are sales_orders.id, sales_orders.order_number and
+# sales_order_lines.id, and order_number is written only by the BEFORE INSERT
+# trigger — so the weaker mode is sufficient to mutually exclude all three
+# writers (exit, ship, allocate). It matters because FOR UPDATE also conflicts
+# with the FOR KEY SHARE locks that FK checks take on the referenced row:
+# every insert into sales_order_allocations, sales_order_shipments,
+# shipment_lines, shipments and trace_events takes one, as does any write of
+# sales_orders.related_so_id. FOR UPDATE there is a self-inflicted deadlock
+# surface for no added protection.
+# ─────────────────────────────────────────────────────────────────
+
+def _lock_sales_order(cur, order_id: int) -> dict:
+    """Step 1: the order row. Head of the normative lock order."""
+    cur.execute(
+        """SELECT id, order_number, status, state
+             FROM sales_orders
+            WHERE id = %s
+              FOR NO KEY UPDATE""",
+        (order_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "ORDER_NOT_FOUND",
+                "message": f"Order #{order_id} not found",
+                "input": str(order_id),
+                "suggestions": [],
+            },
+        )
+    return dict(row)
+
+
+def _lock_sales_order_lines(cur, order_id: int, line_ids=None) -> list:
+    """Step 2: the order's line rows, ascending id."""
+    if line_ids is not None:
+        cur.execute(
+            """SELECT id FROM sales_order_lines
+                WHERE sales_order_id = %s AND id = ANY(%s)
+                ORDER BY id
+                  FOR NO KEY UPDATE""",
+            (order_id, [int(i) for i in line_ids]),
+        )
+    else:
+        cur.execute(
+            """SELECT id FROM sales_order_lines
+                WHERE sales_order_id = %s
+                ORDER BY id
+                  FOR NO KEY UPDATE""",
+            (order_id,),
+        )
+    return [int(r["id"]) for r in cur.fetchall()]
+
+
+def _lock_allocation_products(cur, product_ids) -> list:
+    """Step 3: product/lot locks for several products, ascending product id.
+
+    Taking them all up front, in one deterministic order, is what lets a
+    multi-product shipment and a multi-product exit run concurrently instead of
+    grabbing each other's second product.
+    """
+    ordered = sorted({int(p) for p in product_ids})
+    for product_id in ordered:
+        _lock_allocation_product(cur, product_id)
+    return ordered
+
+
 def _lock_allocation_product(cur, product_id: int):
     """Serialize every allocation-affecting write for one product.
 
@@ -1426,7 +1505,7 @@ def _load_allocatable_line(cur, order_id: int, line_id: int) -> dict:
              JOIN sales_order_lines sol ON sol.sales_order_id = so.id
              JOIN products p ON p.id = sol.product_id
             WHERE so.id = %s AND sol.id = %s
-            FOR UPDATE OF so, sol""",
+            FOR NO KEY UPDATE OF so, sol""",
         (order_id, line_id),
     )
     row = cur.fetchone()
@@ -1439,10 +1518,10 @@ def _load_allocatable_line(cur, order_id: int, line_id: int) -> dict:
             line_id=line_id,
         )
     line = dict(row)
-    # State is authoritative and is checked HERE, under the FOR UPDATE above,
-    # so a close/cancel committing concurrently cannot slip a new reservation
-    # onto an order that has just left the board. The legacy status checks
-    # below stay exactly as they were.
+    # State is authoritative and is checked HERE, under the FOR NO KEY UPDATE
+    # above, so a close/cancel committing concurrently cannot slip a new
+    # reservation onto an order that has just left the board. The legacy
+    # status checks below stay exactly as they were.
     _require_open_state(line["order_state"], line["order_number"], order_id,
                         "allocating")
     if line["is_service"]:
@@ -12077,10 +12156,10 @@ def _so_state_error(code: str, message: str, status_code: int = 400, **extra):
 def _load_so_for_state_change(cur, order_id: int) -> dict:
     """Lock the order row, then return it with its derived fulfillment.
 
-    FOR UPDATE, and taken before any product/lot lock — this is the head of the
-    normative lock order that ship_order_commit and the allocation path also
-    follow. Every state decision below is made against THIS locked read, so a
-    concurrent ship cannot land between the check and the write.
+    FOR NO KEY UPDATE, taken before any line or product/lot lock — the head of
+    the normative lock order that ship_order_commit and the allocation path
+    also follow. Every state decision below is made against THIS locked read,
+    so a concurrent ship cannot land between the check and the write.
     """
     cur.execute(
         """SELECT so.id, so.order_number, so.status, so.state, so.state_reason,
@@ -12089,7 +12168,7 @@ def _load_so_for_state_change(cur, order_id: int) -> dict:
              FROM sales_orders so
              LEFT JOIN sales_order_flags sof ON sof.so_number = so.order_number
             WHERE so.id = %s
-              FOR UPDATE OF so""",
+              FOR NO KEY UPDATE OF so""",
         (order_id,),
     )
     row = cur.fetchone()
@@ -12182,12 +12261,10 @@ def _release_order_reservations(cur, order_id: int, reason: str, released_by):
     cur.execute(
         """SELECT DISTINCT product_id
              FROM sales_order_allocations
-            WHERE sales_order_id = %s AND status = 'active'
-            ORDER BY product_id""",
+            WHERE sales_order_id = %s AND status = 'active'""",
         (order_id,),
     )
-    for item in cur.fetchall():
-        _lock_allocation_product(cur, int(item["product_id"]))
+    _lock_allocation_products(cur, [r["product_id"] for r in cur.fetchall()])
     return _release_active_allocations(
         cur, order_id=order_id, reason=reason, released_by=released_by,
     )
@@ -13103,8 +13180,31 @@ def update_order_status(request: Request, order_id: int = Depends(resolve_order_
                 # exit branches below take product locks after it.
                 order = _load_so_for_state_change(cur, order_id)
                 current = order['status']
-                allowed = MANUAL_TRANSITIONS.get(current, [])
 
+                # The exit guards run BEFORE the MANUAL_TRANSITIONS gate.
+                # Order matters for the operator: a fully shipped open order
+                # asked to go 'cancelled' should be told "pounds already
+                # shipped — close it with short_closed instead", not the
+                # generic "invalid transition: shipped → cancelled". The
+                # specific, actionable answer has to win over the generic one.
+                if req.status in ('cancelled', 'invoiced'):
+                    _require_open_state(order['state'], order['order_number'],
+                                        order_id, f"setting status '{req.status}'")
+                    if req.status == 'cancelled' and order['fulfillment'] != 'unshipped':
+                        _so_state_error(
+                            "ORDER_ALREADY_SHIPPED",
+                            f"Order {order['order_number']} is "
+                            f"'{order['fulfillment']}' — pounds have already "
+                            f"shipped, so it cannot be cancelled. Close it "
+                            f"instead: POST /sales/orders/{order_id}/close "
+                            f"with reason 'short_closed'.",
+                            status_code=409, order_id=order_id,
+                            fulfillment=order['fulfillment'],
+                            suggested_action="close",
+                            suggested_reason="short_closed",
+                        )
+
+                allowed = MANUAL_TRANSITIONS.get(current, [])
                 if req.status not in allowed:
                     if not allowed:
                         raise HTTPException(400,
@@ -13120,23 +13220,7 @@ def update_order_status(request: Request, order_id: int = Depends(resolve_order_
                 state_fields = {}
 
                 if req.status in ('cancelled', 'invoiced'):
-                    _require_open_state(order['state'], order['order_number'],
-                                        order_id, f"setting status '{req.status}'")
-
                     if req.status == 'cancelled':
-                        if order['fulfillment'] != 'unshipped':
-                            _so_state_error(
-                                "ORDER_ALREADY_SHIPPED",
-                                f"Order {order['order_number']} is "
-                                f"'{order['fulfillment']}' — pounds have already "
-                                f"shipped, so it cannot be cancelled. Close it "
-                                f"instead: POST /sales/orders/{order_id}/close "
-                                f"with reason 'short_closed'.",
-                                status_code=409, order_id=order_id,
-                                fulfillment=order['fulfillment'],
-                                suggested_action="close",
-                                suggested_reason="short_closed",
-                            )
                         target_state = 'cancelled'
                         reason = 'other'
                         note = 'via legacy status endpoint'
@@ -13410,6 +13494,13 @@ def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = 
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Normative lock order: order row, then the line, then the
+                # product. Cancelling a line releases its reservations, so it
+                # races the administrative exits over the same rows — without
+                # the order lock, a line cancel could interleave with a close
+                # and release stock the close had already accounted for.
+                _lock_sales_order(cur, order_id)
+                _lock_sales_order_lines(cur, order_id, [line_id])
                 cur.execute(
                     """UPDATE sales_order_lines SET line_status = 'cancelled'
                        WHERE id = %s AND sales_order_id = %s AND line_status != 'fulfilled'
@@ -13448,12 +13539,16 @@ def update_order_line(
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Normative lock order: order row first. A quantity reduction
+                # shrinks the line's reservations, so it contends with the
+                # exits for the same allocation rows.
+                _lock_sales_order(cur, order_id)
                 cur.execute(
                     """SELECT id, product_id, quantity_lb, unit_price, line_status
                          FROM sales_order_lines
                         WHERE id = %s AND sales_order_id = %s
                           AND line_status NOT IN ('fulfilled', 'cancelled')
-                        FOR UPDATE""",
+                        FOR NO KEY UPDATE""",
                     (line_id, order_id),
                 )
                 existing = cur.fetchone()
@@ -13670,7 +13765,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                         "SELECT so.id, so.order_number, so.status, so.state, so.customer_id, c.name "
                         "  FROM sales_orders so JOIN customers c ON c.id = so.customer_id "
                         " WHERE so.id = %s "
-                        "   FOR UPDATE OF so",
+                        "   FOR NO KEY UPDATE OF so",
                         (order_id,),
                     )
                     order_row = cur.fetchone()
@@ -13678,6 +13773,9 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                         raise HTTPException(404, f"Order #{order_id} not found")
                     _require_open_state(order_row['state'], order_row['order_number'],
                                         order_id, "shipping")
+                    # Step 2 of the normative lock order: the order's line rows,
+                    # ascending id — before any product/lot lock below.
+                    _lock_sales_order_lines(cur, order_id)
                     if order_row['status'] == 'new':
                         raise HTTPException(400, f"Cannot ship order {order_row['order_number']} — status is 'new'. Confirm the order first.")
                     if order_row['status'] in ('invoiced', 'cancelled'):
@@ -13714,6 +13812,22 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
 
                     if not lines_to_ship:
                         raise HTTPException(status_code=409, detail={"error_code": "ORDER_ALREADY_FULFILLED", "message": f"Order {order_row['order_number']} has no remaining lines to ship.", "order_id": order_id, "order_number": order_row['order_number'], "status": order_row['status']})
+
+                    # Step 3 of the normative lock order: EVERY product this
+                    # shipment touches, ascending product id, taken here before
+                    # either planning loop runs.
+                    #
+                    # Taking them one at a time inside the loops would order the
+                    # locks by line id — i.e. by whatever order the operator
+                    # happened to add the lines — so shipping an order with
+                    # products (P2, P1) could grab P2 while an exit on another
+                    # order holding P1 waited for P2. Both would wait forever.
+                    # Sorting makes every writer agree on the sequence.
+                    _lock_allocation_products(
+                        cur,
+                        [item["product_id"] for item in lines_to_ship
+                         if not item["is_service"]],
+                    )
 
                     # PR 5 hard-gate preflight.  Run before the shipment header or
                     # any line/service updates.  This is deliberately absent from

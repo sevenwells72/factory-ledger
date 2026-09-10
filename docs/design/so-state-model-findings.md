@@ -477,6 +477,103 @@ would erase the distinction on the first boot after deploy.
 
 ---
 
+## The locking invariant (documented, not incidental)
+
+Two rulings, both load-bearing. Everything below follows from them.
+
+### Ruling 1 — strength: `FOR NO KEY UPDATE`
+
+**Every `sales_orders` and `sales_order_lines` row lock is `FOR NO KEY UPDATE`.
+Not `FOR UPDATE`.**
+
+Verified before adopting it:
+
+* **Nothing deletes either table.** There is no `DELETE FROM sales_orders` or
+  `DELETE FROM sales_order_lines` anywhere in the codebase.
+* **Nothing rekeys either table.** The key columns are `sales_orders.id`,
+  `sales_orders.order_number` (unique) and `sales_order_lines.id`. No `UPDATE`
+  writes any of them; `order_number` is written only by the `BEFORE INSERT`
+  trigger `trg_order_number`, and the two `BEFORE UPDATE` triggers touch only
+  `updated_at` and the `created_at` guard.
+
+So the weaker mode still mutually excludes all three writers — exit, ship,
+allocate — because they all take it on the same row.
+
+What it buys: `FOR UPDATE` conflicts with `FOR KEY SHARE`, which is what a
+foreign-key check takes on the *referenced* row. Nine FK constraints point at
+these two tables:
+
+| referencing table | → |
+|---|---|
+| `sales_order_allocations` | `sales_orders`, `sales_order_lines` |
+| `sales_order_shipments` | `sales_order_lines` |
+| `sales_order_allocation_reactivations` | `sales_order_lines` |
+| `shipment_lines` | `sales_order_lines` |
+| `shipments` | `sales_orders` |
+| `trace_events` | `sales_orders` |
+| `sales_orders.related_so_id` | `sales_orders` (self) |
+
+Every insert into any of them takes `KEY SHARE` on the row it references — as
+does writing `related_so_id`. Under `FOR UPDATE`, an exit holding order A and
+writing `related_so_id = B` blocks against anything holding B, and two
+reciprocal duplicate-cancellations (A→B and B→A) deadlock outright: Postgres
+kills one with **40P01**. `FOR NO KEY UPDATE` does not conflict with
+`KEY SHARE`, so both commit. `tests/test_sales_order_state_model.py::TestNoDeadlock::test_reciprocal_duplicate_cancellations_do_not_deadlock`
+pins exactly that.
+
+### Ruling 2 — order
+
+```
+sales_orders row  ->  sales_order_lines rows  ->  product/lot rows
+```
+
+and **within products/lots, always ascending id**. Every sales-order write path
+follows it, shipping included.
+
+Ascending matters as much as the sequence. If each writer locked products in
+whatever order its own lines happened to be in, shipping an order whose lines
+read (P2, P1) would take P2 and wait for P1 while an exit on another order held
+P1 and waited for P2 — both forever. Sorting makes every writer agree.
+`TestNoDeadlock::test_multi_product_ship_and_exit_do_not_deadlock` builds
+exactly that disagreement into the fixture and asserts both sides finish.
+
+### Every lock site
+
+| # | Function | Lock target | Strength | Order position |
+|---|---|---|---|---|
+| 1 | `_lock_sales_order()` | `sales_orders` (one row) | `FOR NO KEY UPDATE` | 1 — order row |
+| 2 | `_lock_sales_order_lines()` | `sales_order_lines` (order's rows, `ORDER BY id`) | `FOR NO KEY UPDATE` | 2 — line rows |
+| 3 | `_lock_allocation_products()` | delegates to #4, per product, **ascending product id** | — | 3 — products |
+| 4 | `_lock_allocation_product()` | `lots` (`ORDER BY id`), then `sales_order_allocations` (`ORDER BY id`) | `FOR UPDATE` | 3 — inside one product |
+| 5 | `_load_so_for_state_change()` | `sales_orders` (one row) | `FOR NO KEY UPDATE OF so` | 1 — head of every exit |
+| 6 | `_load_allocatable_line()` | `sales_orders` + `sales_order_lines` (one each) | `FOR NO KEY UPDATE OF so, sol` | 1 then 2, one statement |
+| 7 | `ship_order` commit — order read | `sales_orders` (one row) | `FOR NO KEY UPDATE OF so` | 1 |
+| 8 | `ship_order` commit — line lock | `sales_order_lines` (all order rows) | `FOR NO KEY UPDATE` | 2 |
+| 9 | `ship_order` commit — product pre-lock | every shipment product, ascending | via #3 | 3, before **either** planning loop |
+| 10 | `ship_order` preview | *no lock* — read-only | — | n/a (state still checked) |
+| 11 | `cancel_order_line()` | order row, then that line, then the product | `FOR NO KEY UPDATE`, then #4 | 1 → 2 → 3 |
+| 12 | `update_order_line()` (incl. quantity reduction) | order row, then that line, then the product | `FOR NO KEY UPDATE`, then #4 | 1 → 2 → 3 |
+| 13 | `update_order_status()` (legacy PATCH) | via #5 | `FOR NO KEY UPDATE OF so` | 1, then #3 on the exit branches |
+| 14 | `create_sales_order_allocation()` | via #6, then exactly one product via #4 | — | 1 → 2 → 3 |
+| 15 | `_shrink_active_allocations()` / `_release_active_allocations()` | `sales_order_allocations` rows | `FOR UPDATE` | 3 — inside the product lock |
+
+`sales_order_allocations` and `lots` keep `FOR UPDATE`: they are the rows whose
+identity and existence actually change (rows are released, shrunk, re-pointed
+at other lots), and nothing takes `KEY SHARE` against them in a conflicting
+pattern.
+
+Two exceptions worth stating plainly, because both are deliberate:
+
+* **Ship preview takes no lock at all.** It is read-only. It *does* run the
+  same `state='open'` check, because a preview whose job is answering "can I
+  ship this" must not answer yes to something the commit will refuse.
+* **The exits lock the order row and then products, skipping line rows.** They
+  do not mutate lines. Skipping a step is not an inversion — the sequence they
+  do take is still 1 → 3 — so they cannot deadlock against a writer that takes
+  1 → 2 → 3.
+
+---
+
 ## Follow-up: `_operator_id()` is a no-op placeholder
 
 **Not fixed in this PR by owner ruling** — `_operator_id()` and `verify_api_key`
