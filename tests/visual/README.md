@@ -26,9 +26,22 @@ npm run test:visual -- --headed --concurrency 1  # watch it drive
 * Captures each screen at **390px** (screens the inventory marks Mobile *Yes* or *Partial*), at **1440px**
   (every screen), each in light and dark, plus **1440px at 200% zoom** for the Operations, Sales Orders,
   Expected Receipts and Supplies tabs.
-* Runs five mechanical checks per capture: hit-target size (TOUCH-003), WCAG AA contrast (ACCESS-008),
-  horizontal overflow (LAYOUT-003 / ACCESS-001), fixed-bar occlusion (LAYOUT-011), and layout shift on the
-  app's own refresh (LAYOUT-020).
+* Runs thirteen mechanical checks per capture:
+  * **Layout and access** — hit-target size (TOUCH-003), WCAG AA contrast (ACCESS-008), horizontal overflow
+    (LAYOUT-003 / ACCESS-001), fixed-bar occlusion (LAYOUT-011), and layout shift on the app's own refresh
+    (LAYOUT-020).
+  * **Status & data display** (category 17) — coloured nominal badges (STATUS-002), more than one alarm in a
+    row (STATUS-004), the chip explanation hook (STATUS-005), number formatting (STATUS-006), orphan dash
+    placeholders (STATUS-007), row height at desktop width (STATUS-008), developer vocabulary (STATUS-010),
+    and repeated disclaimers (STATUS-011).
+
+  The other six STATUS rules — STATUS-001, -003, -009, -012, -013, -014 — are manual review. They are not in
+  `RULES`, do not appear in the matrix, and are never reported as passing.
+
+  **STATUS-005 fails on every chip today, on purpose.** The rule defines the hook (`data-explain` naming the
+  explanation element, `aria-describedby` naming the same id, and a focus stop); the product does not have it
+  yet. The check is written against the markup the Sales Orders redesign will introduce, so its count is the
+  size of that work, and it turns green when the redesign lands rather than needing to be written then.
 
 It reports findings. It fixes nothing and changes no application file.
 
