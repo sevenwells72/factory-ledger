@@ -1742,11 +1742,15 @@ db_pool = None
 # runs the DDL and records the marker IN THE SAME TRANSACTION; every later
 # boot reads one row and issues no DDL at all.
 #
-# Concurrent boots are safe by construction, not by luck: two instances may
-# both find no marker and both run, but the DDL is all IF NOT EXISTS so the
-# loser is a no-op, and the marker insert is ON CONFLICT DO NOTHING so the
-# loser does not error. Postgres serialises the ALTER TABLEs on the ACCESS
-# EXCLUSIVE lock regardless.
+# Concurrent boots are serialised, not merely survivable. Every one of these
+# transactions opens with pg_advisory_xact_lock(STARTUP_MIGRATION_LOCK_KEY),
+# taken BEFORE the marker is read, so the whole check-DDL-insert sequence is
+# atomic against another booting instance: a second instance cannot observe
+# "no marker" while the first is still between its SELECT and its COMMIT. The
+# lock is transaction-scoped, so it releases on commit OR rollback — a crashed
+# or wedged boot cannot hold it. IF NOT EXISTS and ON CONFLICT DO NOTHING stay
+# in place underneath as a second line of defence for any path that reaches the
+# DDL without the lock (the ungated fallback below).
 #
 # `migration_markers` is referenced UNQUALIFIED here, the way every other table
 # in this module is, so it resolves through search_path. Migration 051 writes
@@ -1766,6 +1770,49 @@ STARTUP_MIGRATION_MARKERS_DDL = """
     )
 """
 
+# The advisory-lock key that serialises the whole startup-migration sequence.
+#
+# Fixed and arbitrary, but not made up on the spot: it is the first 8 bytes of
+# sha256(b"factory_ledger.startup_migrations") read as a big-endian SIGNED
+# 64-bit integer (0x0300fb351bff4d7c), which is the single-argument form
+# pg_advisory_xact_lock takes. Reproduce it with:
+#
+#     python3 -c "import hashlib,struct; print(struct.unpack('>q',
+#         hashlib.sha256(b'factory_ledger.startup_migrations').digest()[:8])[0])"
+#
+# NEVER CHANGE IT. Advisory locks are keyed by value alone — two instances
+# using different keys do not exclude each other, so a changed constant during
+# a rolling deploy silently reopens exactly the race the lock closes. The key
+# is database-wide (pg_advisory_xact_lock, not the two-int variant), which is
+# what we want: one migration sequence at a time per database, whatever schema
+# search_path resolves to.
+#
+# It also has to not collide with the advisory locks this module already takes.
+# The other call sites use the small literals 1, 2 and 3, plus hashtext /
+# hashtextextended of a per-object string; a derived 64-bit value stays clear of
+# the literals by construction. If you add another advisory lock here, derive it
+# the same way rather than reaching for 4.
+STARTUP_MIGRATION_LOCK_KEY = 216448987635338620
+
+
+class _MarkerAccessError(Exception):
+    """`migration_markers` itself could not be read or written.
+
+    Distinct from a failure inside a migration body: the block's own work may
+    be perfectly applicable, it is only the bookkeeping that is unreachable.
+    The caller answers this by re-running the block ungated.
+    """
+
+
+def _lock_startup_migrations(cur) -> None:
+    """Serialise this transaction against any other booting instance.
+
+    Transaction-scoped on purpose: the lock releases on COMMIT *or* ROLLBACK,
+    so a block that raises cannot leave the next instance waiting forever, and
+    no explicit unlock is needed on any path.
+    """
+    cur.execute("SELECT pg_advisory_xact_lock(%s)", (STARTUP_MIGRATION_LOCK_KEY,))
+
 
 def _ensure_migration_markers() -> bool:
     """Make the marker table exist before anything gates on it.
@@ -1776,15 +1823,34 @@ def _ensure_migration_markers() -> bool:
     ungated — the pre-guard behaviour. Skipping schema work because the
     bookkeeping table is missing would be strictly worse than the lock cost
     the guard exists to avoid.
+
+    The advisory lock is taken INSIDE this transaction, before the CREATE:
+    two instances issuing `CREATE TABLE IF NOT EXISTS` at the same instant is
+    a known Postgres race (the loser can fail on a duplicate-key error against
+    pg_type/pg_class rather than being the promised no-op), and the whole point
+    of this table is that it is there before anything gates on it.
+
+    OWNERSHIP MATTERS: the application role must OWN `migration_markers`.
+    Row-level security is enabled on the public tables in prod with no policies
+    attached, and an owner bypasses RLS while a non-owner does not — a
+    non-owning role would see an empty SELECT (every marker invisible) and a
+    denied INSERT. That is survivable, because `_run_once_startup_migration`
+    degrades to the ungated every-boot path with a warning rather than
+    concluding "already applied", but it silently forfeits the guard. If the
+    startup log shows the ungated-fallback warning on every boot, check the
+    table's owner first.
     """
     try:
         conn = db_pool.getconn()
         try:
             with conn.cursor() as cur:
+                _lock_startup_migrations(cur)
                 cur.execute(STARTUP_MIGRATION_MARKERS_DDL)
             conn.commit()
             return True
         finally:
+            # putconn rolls back a connection handed back mid-transaction,
+            # which also releases the advisory lock if the CREATE failed.
             db_pool.putconn(conn)
     except Exception as e:
         logger.warning(
@@ -1792,6 +1858,75 @@ def _ensure_migration_markers() -> bool:
             f"ungated this boot"
         )
         return False
+
+
+def _run_gated_startup_migration(name: str, body) -> None:
+    """The marker-gated path: lock, check, run, record — one transaction.
+
+    Raises `_MarkerAccessError` if the marker row could not be read or written,
+    so the caller can fall back to the ungated path. Any other exception is the
+    block's own failure and propagates as-is.
+    """
+    conn = db_pool.getconn()
+    try:
+        try:
+            with conn.cursor() as cur:
+                # BEFORE the SELECT, so check-DDL-insert is atomic against a
+                # concurrent booting instance rather than merely idempotent.
+                # A lock we cannot take is the guard failing, not the block —
+                # so it degrades to ungated like any other marker failure.
+                try:
+                    _lock_startup_migrations(cur)
+                except Exception as e:
+                    raise _MarkerAccessError(f"lock: {e}") from e
+                try:
+                    cur.execute(
+                        "SELECT 1 FROM migration_markers WHERE name = %s",
+                        (name,),
+                    )
+                    already_applied = cur.fetchone() is not None
+                except Exception as e:
+                    raise _MarkerAccessError(f"read: {e}") from e
+                if already_applied:
+                    conn.rollback()
+                    logger.info(f"{name}: marker present, already applied — skipping")
+                    return
+                body(cur)
+                try:
+                    cur.execute(
+                        "INSERT INTO migration_markers (name) VALUES (%s) "
+                        "ON CONFLICT (name) DO NOTHING",
+                        (name,),
+                    )
+                except Exception as e:
+                    raise _MarkerAccessError(f"write: {e}") from e
+            conn.commit()
+        except Exception:
+            # Includes the marker failures: the block's work is rolled back, so
+            # the ungated retry starts from a clean slate rather than half-done.
+            conn.rollback()
+            raise
+    finally:
+        db_pool.putconn(conn)
+
+
+def _run_ungated_startup_migration(name: str, body) -> None:
+    """Run the block unconditionally, in its own transaction — pre-guard behaviour.
+
+    No marker is read and none is written, so this runs on every boot. That is
+    the deliberate degradation: every-boot DDL costs an ACCESS EXCLUSIVE lock,
+    while a mis-set gate would cost unapplied schema.
+    """
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                body(cur)
+            conn.commit()
+        finally:
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(f"{name} warning (non-fatal): {e}")
 
 
 def _run_once_startup_migration(name: str, body, gated: bool = True) -> None:
@@ -1802,32 +1937,34 @@ def _run_once_startup_migration(name: str, body, gated: bool = True) -> None:
     leaves no marker and the next boot retries. Failures stay non-fatal — the
     app has always booted through them — and because the marker is written only
     on success, a block that failed is retried rather than skipped forever.
+
+    A failure to READ OR WRITE THE MARKER ITSELF is treated differently from a
+    failure inside ``body``: the block's transaction is rolled back and the
+    block is re-run with ``gated=False`` in a fresh transaction, with a warning
+    naming the block and the error. A misconfigured `migration_markers`
+    (permissions, RLS, a missing table) therefore degrades to today's
+    every-boot behaviour — loud and visible — and never to silently unapplied
+    schema. See `_ensure_migration_markers` on why the app role must own the
+    table.
     """
-    try:
-        conn = db_pool.getconn()
+    if gated:
         try:
-            with conn.cursor() as cur:
-                if gated:
-                    cur.execute(
-                        "SELECT 1 FROM migration_markers WHERE name = %s",
-                        (name,),
-                    )
-                    if cur.fetchone() is not None:
-                        conn.rollback()
-                        logger.info(f"{name}: marker present, already applied — skipping")
-                        return
-                body(cur)
-                if gated:
-                    cur.execute(
-                        "INSERT INTO migration_markers (name) VALUES (%s) "
-                        "ON CONFLICT (name) DO NOTHING",
-                        (name,),
-                    )
-            conn.commit()
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"{name} warning (non-fatal): {e}")
+            _run_gated_startup_migration(name, body)
+            return
+        except _MarkerAccessError as e:
+            logger.warning(
+                f"{name}: migration_markers could not be used ({e}); rolled back "
+                f"and re-running this block UNGATED — schema work still applies, "
+                f"but it will run on every boot until the table is fixed"
+            )
+        except Exception as e:
+            # The block's own failure. No marker was written, so the next boot
+            # retries it; do NOT re-run it ungated here, which would only run
+            # the same failing body a second time.
+            logger.warning(f"{name} warning (non-fatal): {e}")
+            return
+
+    _run_ungated_startup_migration(name, body)
 
 
 def _run_startup_migrations() -> None:

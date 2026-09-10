@@ -26,6 +26,9 @@ ACCESS EXCLUSIVE DDL through it — or against the real `public` tables while it
 is open — is precisely the deadlock this change exists to stop.
 """
 
+import logging
+import threading
+from collections import Counter
 from contextlib import contextmanager
 from uuid import uuid4
 
@@ -495,3 +498,314 @@ def test_missing_marker_table_falls_back_to_ungated(monkeypatch):
 
         assert ran["n"] == 2, "ungated blocks run every time, as they always did"
         assert "ungated" not in _markers(conn), "and record nothing"
+
+
+# ─────────────────────────────────────────────────────────────────
+# Two instances booting at the same instant
+# ─────────────────────────────────────────────────────────────────
+# The tests above drive one connection. They cannot see the race the advisory
+# lock exists to close, because a single connection cannot observe "no marker"
+# while it is itself between its own SELECT and its own COMMIT. These do it for
+# real: two connections, two threads, released together on a barrier, against a
+# database with no markers AND no `migration_markers` table at all — the state a
+# brand-new database is in when a deploy starts two instances at once.
+
+class _ThreadSpyPool:
+    """`main.db_pool` for a concurrency test: one `_SpyPool` per thread.
+
+    `main.db_pool` is a module global, so two threads booting at once share one
+    pool object. This dispatches on the calling thread, so each "instance" gets
+    its own real connection — and its own statement log to be counted later.
+    """
+
+    def __init__(self, pools_by_thread):
+        self._pools = pools_by_thread
+
+    def _pool(self):
+        return self._pools[threading.get_ident()]
+
+    def getconn(self):
+        return self._pool().getconn()
+
+    def putconn(self, conn):
+        return self._pool().putconn(conn)
+
+
+@contextmanager
+def _concurrent_pre_051_database(monkeypatch, instances=2):
+    """A throwaway schema with N independent connections pointed at it.
+
+    Deliberately does NOT create `migration_markers`: two instances issuing
+    `CREATE TABLE IF NOT EXISTS` at the same instant is itself a documented
+    Postgres race, and it is the first thing the lock has to survive.
+    """
+    import os
+    import psycopg2 as pg
+
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL not set")
+
+    schema = f"startup_mig_conc_{uuid4().hex[:8]}"
+    admin = pg.connect(url, application_name="startup-migrations-conc-admin")
+    admin.autocommit = True
+    conns = []
+    try:
+        with admin.cursor() as cur:
+            cur.execute(f"CREATE SCHEMA {schema}")
+            cur.execute(f"SET search_path TO {schema}")
+            cur.execute(PRE_MIGRATION_SCHEMA_DDL)
+        for i in range(instances):
+            conn = pg.connect(url, application_name=f"startup-migrations-conc-{i}")
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                cur.execute(f"SET search_path TO {schema}")
+            conn.autocommit = False
+            conns.append(conn)
+        registry = {}
+        monkeypatch.setattr(main, "db_pool", _ThreadSpyPool(registry))
+        yield registry, conns, admin
+    finally:
+        for conn in conns:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        with admin.cursor() as cur:
+            cur.execute("SET search_path TO public")
+            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+        admin.close()
+
+
+def _single_boot_ddl_baseline(monkeypatch):
+    """What one uncontended boot issues — the yardstick for "exactly once"."""
+    with _pre_051_database(monkeypatch) as (spy, _conn):
+        main._run_startup_migrations()
+        return Counter(spy.ddl_statements())
+
+
+@pytest.mark.db
+def test_two_instances_booting_at_once_apply_every_ddl_exactly_once(monkeypatch):
+    """The real race, with real connections — not a simulated one.
+
+    Without `pg_advisory_xact_lock` both instances read "no marker" inside the
+    same window and both run the whole DDL sequence; the ALTERs are IF NOT
+    EXISTS so nothing errors, but every one of them takes ACCESS EXCLUSIVE a
+    second time, which is the entire cost this change exists to remove. With
+    the lock the loser waits, then finds the marker and issues nothing.
+    """
+    baseline = _single_boot_ddl_baseline(monkeypatch)
+    assert baseline, "precondition: an uncontended boot issues DDL"
+
+    with _concurrent_pre_051_database(monkeypatch) as (registry, conns, admin):
+        assert _query(admin, "SELECT to_regclass('migration_markers') AS r")[0]["r"] is None, \
+            "precondition: no marker table yet — both instances must create it"
+
+        barrier = threading.Barrier(len(conns))
+        results = [{"spy": None, "error": None} for _ in conns]
+
+        def _boot(index, conn):
+            spy = _SpyPool(conn)
+            registry[threading.get_ident()] = spy
+            results[index]["spy"] = spy
+            barrier.wait(timeout=30)
+            try:
+                main._run_startup_migrations()
+            except BaseException as exc:      # noqa: BLE001 — recorded, re-raised below
+                results[index]["error"] = exc
+
+        threads = [threading.Thread(target=_boot, args=(i, c), name=f"boot-{i}")
+                   for i, c in enumerate(conns)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=120)
+        assert not any(t.is_alive() for t in threads), (
+            "a booting instance never finished — the advisory lock is meant to "
+            "make the loser WAIT, not hang"
+        )
+
+        for i, result in enumerate(results):
+            assert result["error"] is None, f"instance {i} failed to boot: {result['error']!r}"
+
+        # The marker table itself: created once, by whichever instance won.
+        assert _query(admin, "SELECT to_regclass('migration_markers') AS r")[0]["r"]
+        assert _query(
+            admin,
+            "SELECT count(*) AS n FROM information_schema.tables "
+            " WHERE table_schema = current_schema() AND table_name = 'migration_markers'",
+        )[0]["n"] == 1
+
+        # One marker per gated block, one row each.
+        rows = _query(admin, "SELECT name, count(*) AS n FROM migration_markers GROUP BY name")
+        assert {r["name"] for r in rows} == GATED_MARKERS
+        assert all(r["n"] == 1 for r in rows), rows
+
+        # And the point of the whole exercise: no statement ran twice.
+        combined = Counter()
+        for result in results:
+            combined.update(result["spy"].ddl_statements())
+        assert combined == baseline, (
+            "every DDL statement must be issued exactly once across BOTH "
+            "instances; extra copies mean the second instance ran the sequence "
+            f"too. Extra: {combined - baseline}, missing: {baseline - combined}"
+        )
+
+
+# ─────────────────────────────────────────────────────────────────
+# When migration_markers cannot be used at all
+# ─────────────────────────────────────────────────────────────────
+# A marker table the app cannot read or write must degrade to the pre-guard
+# every-boot behaviour WITH A WARNING — never to "no marker found, and also no
+# marker written", and never to schema that silently stops being applied.
+#
+# These use a second, non-superuser role that OWNS the schema and every table
+# the startup blocks touch — so the DDL is within its rights — while
+# `migration_markers` is owned by someone else. That is the prod shape: RLS is
+# enabled on the public tables with no policies attached, and the owner bypasses
+# RLS while a non-owner does not.
+
+@contextmanager
+def _marker_table_denied_database(monkeypatch, mode):
+    """A pre-051 database whose `migration_markers` is out of the app's reach.
+
+    ``mode`` picks how:
+
+      ``"select"``  INSERT granted, SELECT not  → the marker READ is denied
+      ``"insert"``  SELECT granted, INSERT not  → the marker WRITE is denied
+      ``"rls"``     both granted, but RLS is enabled with no policies → the
+                    read silently returns nothing and the write is refused.
+                    The silent read is why this case needs its own test: it
+                    looks exactly like "not applied yet".
+    """
+    import os
+    import psycopg2 as pg
+
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL not set")
+
+    tag = uuid4().hex[:8]
+    schema = f"startup_mig_deny_{tag}"
+    role = f"startup_mig_role_{tag}"
+
+    admin = pg.connect(url, application_name="startup-migrations-deny-admin")
+    admin.autocommit = True
+    app = None
+    try:
+        with admin.cursor() as cur:
+            cur.execute(f"CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE")
+            cur.execute(f"CREATE SCHEMA {schema} AUTHORIZATION {role}")
+
+        # The app role builds — and therefore owns — everything the blocks touch.
+        app = pg.connect(url, user=role, application_name="startup-migrations-deny-app")
+        app.autocommit = True
+        with app.cursor() as cur:
+            cur.execute(f"SET search_path TO {schema}")
+            cur.execute(PRE_MIGRATION_SCHEMA_DDL)
+
+        # …but NOT migration_markers, which admin owns. Same DDL the app would
+        # have used, so the shape cannot drift from main.py's.
+        with admin.cursor() as cur:
+            cur.execute(f"SET search_path TO {schema}")
+            cur.execute(main.STARTUP_MIGRATION_MARKERS_DDL)
+            if mode == "select":
+                cur.execute(f"GRANT INSERT ON {schema}.migration_markers TO {role}")
+            elif mode == "insert":
+                cur.execute(f"GRANT SELECT ON {schema}.migration_markers TO {role}")
+            elif mode == "rls":
+                cur.execute(f"GRANT SELECT, INSERT ON {schema}.migration_markers TO {role}")
+                cur.execute(f"ALTER TABLE {schema}.migration_markers "
+                            f"ENABLE ROW LEVEL SECURITY")
+            else:  # pragma: no cover — programming error in the test itself
+                raise AssertionError(f"unknown mode {mode!r}")
+
+        _set_autocommit(app, False)
+        spy = _SpyPool(app)
+        monkeypatch.setattr(main, "db_pool", spy)
+        yield spy, admin
+    finally:
+        if app is not None:
+            try:
+                app.close()
+            except Exception:
+                pass
+        with admin.cursor() as cur:
+            cur.execute("SET search_path TO public")
+            cur.execute(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
+            cur.execute(f"DROP OWNED BY {role}")
+            cur.execute(f"DROP ROLE IF EXISTS {role}")
+        admin.close()
+
+
+def _ungated_fallback_warnings(caplog):
+    return [r.getMessage() for r in caplog.records
+            if r.levelno >= logging.WARNING and "UNGATED" in r.getMessage()]
+
+
+def _assert_degraded_to_ungated(caplog, spy, admin):
+    """Boot succeeded, applied the schema anyway, and said so out loud.
+
+    The schema is checked FIRST on purpose: an unreachable marker table must
+    never cost applied schema, and that — not the wording of a log line — is
+    what a regression here would take away.
+    """
+    assert spy.alter_table_statements(), (
+        "the fallback must actually issue the DDL — a marker table the app "
+        "cannot use must not stop the schema work"
+    )
+    for table, column in EXPECTED_COLUMNS:
+        assert _query(
+            admin,
+            "SELECT 1 FROM information_schema.columns "
+            " WHERE table_schema = current_schema() "
+            "   AND table_name = %s AND column_name = %s",
+            (table, column),
+        ), f"{table}.{column} was not applied by the ungated fallback"
+    for table in EXPECTED_TABLES:
+        assert _query(admin, "SELECT to_regclass(%s) AS r", (table,))[0]["r"], \
+            f"{table} was not created by the ungated fallback"
+
+    # Nothing was recorded, so the next boot does the same thing — loudly.
+    assert _query(admin, "SELECT count(*) AS n FROM migration_markers")[0]["n"] == 0
+
+    # And it is loud: one warning per block, naming the block and the cause.
+    warnings = _ungated_fallback_warnings(caplog)
+    for marker in sorted(GATED_MARKERS):
+        assert any(marker in w for w in warnings), (
+            f"{marker} must warn by name that it fell back to the ungated path; "
+            f"got: {warnings}"
+        )
+        assert any(marker in w and "migration_markers" in w for w in warnings), (
+            f"{marker}'s warning must name the cause, not just the block"
+        )
+
+
+@pytest.mark.db
+def test_marker_select_denied_falls_back_to_ungated(monkeypatch, caplog):
+    """Permission denied on the marker READ ⇒ run the block, don't skip it."""
+    caplog.set_level(logging.WARNING, logger=main.logger.name)
+    with _marker_table_denied_database(monkeypatch, "select") as (spy, admin):
+        main._run_startup_migrations()
+        _assert_degraded_to_ungated(caplog, spy, admin)
+
+
+@pytest.mark.db
+def test_marker_insert_denied_falls_back_to_ungated(monkeypatch, caplog):
+    """Permission denied on the marker WRITE ⇒ the block's work is rolled back
+    and re-run ungated, not left half-applied and unrecorded."""
+    caplog.set_level(logging.WARNING, logger=main.logger.name)
+    with _marker_table_denied_database(monkeypatch, "insert") as (spy, admin):
+        main._run_startup_migrations()
+        _assert_degraded_to_ungated(caplog, spy, admin)
+
+
+@pytest.mark.db
+def test_marker_blocked_by_rls_falls_back_to_ungated(monkeypatch, caplog):
+    """RLS on, no policies, non-owner: the read returns nothing and the write
+    is refused. The empty read is indistinguishable from "not applied yet", so
+    the refused write is what has to catch it — and it does."""
+    caplog.set_level(logging.WARNING, logger=main.logger.name)
+    with _marker_table_denied_database(monkeypatch, "rls") as (spy, admin):
+        main._run_startup_migrations()
+        _assert_degraded_to_ungated(caplog, spy, admin)
