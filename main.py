@@ -13395,18 +13395,15 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT order_number, status FROM sales_orders WHERE id = %s", (order_id,))
-                row = cur.fetchone()
-                if not row:
-                    raise HTTPException(
-                        status_code=404,
-                        detail={
-                            "error_code": "ORDER_NOT_FOUND",
-                            "message": f"Order #{order_id} not found",
-                            "input": str(order_id),
-                            "suggestions": [],
-                        }
-                    )
+                # Step 1 of the normative lock order, taken BEFORE the
+                # eligibility read below and before the inserts. Adding a line
+                # advances the order, so state is authoritative here too: an
+                # unlocked read would let a line land on an order that a
+                # concurrent close or cancel had already taken off the board.
+                locked = _lock_sales_order(cur, order_id)
+                _require_open_state(locked['state'], locked['order_number'],
+                                    order_id, "adding lines")
+                row = locked
                 if row['status'] in ('shipped', 'invoiced', 'cancelled'):
                     raise HTTPException(
                         status_code=400,

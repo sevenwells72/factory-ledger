@@ -18,6 +18,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from psycopg2.extras import RealDictCursor
 
@@ -1412,6 +1413,59 @@ def test_ship_preview_refuses_a_closed_order_too(db_cursor, client):
 
 
 @pytest.mark.db
+@pytest.mark.parametrize("exit_kind,expected_state", [
+    ("close", "closed"), ("cancel", "cancelled"),
+])
+def test_adding_a_line_to_a_closed_or_cancelled_order_is_rejected(
+        db_cursor, client, exit_kind, expected_state):
+    """Adding a line advances the order, so state gates it like every other
+    SO write."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token)
+    db_cursor.execute("SELECT name FROM products WHERE id = %s", (product_id,))
+    product_name = db_cursor.fetchone()["name"]
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    _add_line(db_cursor, order_id, product_id, 100)
+
+    body = ({"reason": "short_closed", "mode": "commit"} if exit_kind == "close"
+            else {"reason": "customer_cancelled", "mode": "commit"})
+    assert client.post(f"/sales/orders/{order_id}/{exit_kind}",
+                       json=body).status_code == 200
+
+    resp = client.post(f"/sales/orders/{order_id}/lines",
+                       json={"lines": [{"product_name": product_name,
+                                        "quantity_lb": 25}]})
+    assert resp.status_code == 409, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "ORDER_NOT_OPEN"
+    assert detail["state"] == expected_state
+    assert detail["suggested_action"] == "reopen"
+    assert "reopen" in detail["message"]
+
+    db_cursor.execute("SELECT count(*) AS n FROM sales_order_lines "
+                      " WHERE sales_order_id = %s", (order_id,))
+    assert db_cursor.fetchone()["n"] == 1, "nothing was inserted"
+
+
+@pytest.mark.db
+def test_adding_a_line_works_again_after_reopen(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token)
+    db_cursor.execute("SELECT name FROM products WHERE id = %s", (product_id,))
+    product_name = db_cursor.fetchone()["name"]
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    _add_line(db_cursor, order_id, product_id, 100)
+    client.post(f"/sales/orders/{order_id}/close",
+                json={"reason": "short_closed", "mode": "commit"})
+    client.post(f"/sales/orders/{order_id}/reopen", json={"mode": "commit"})
+
+    resp = client.post(f"/sales/orders/{order_id}/lines",
+                       json={"lines": [{"product_name": product_name,
+                                        "quantity_lb": 25}]})
+    assert resp.status_code == 200, resp.text
+
+
+@pytest.mark.db
 def test_allocation_after_close_is_rejected(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
@@ -1941,55 +1995,340 @@ def test_startup_reconcile_block_exists_and_spares_shipped_rows():
 
 
 # ═════════════════════════════════════════════════════════════════
-# Concurrency: real races on separate DB connections
+# Concurrency harness
 #
-# These are the tests that actually prove the lock. Each one parks a third
-# connection on the sales_orders row, watches the endpoint under test QUEUE on
-# it — which is only possible because that endpoint now takes the row lock
-# first — then commits a conflicting state change and lets the endpoint
-# proceed. An endpoint that read the order without FOR UPDATE would sail past
-# the parked lock and act on a stale state.
+# Every concurrency test here works the same way:
 #
-# They use real committed rows (not the rolled-back fixture transaction) and
-# clean up after themselves.
+#   1. Pre-create each endpoint's DB connection, with a UUID application_name
+#      of its own, and read its exact backend PID with pg_backend_pid() BEFORE
+#      the endpoint runs. Every later pg_locks / pg_blocking_pids assertion
+#      names that PID. Nothing matches on application_name — two runs, or a
+#      stray connection, must never be able to satisfy an assertion by
+#      accident; the name exists only to make a stuck backend identifiable by
+#      a human reading pg_stat_activity.
+#
+#   2. Park a HOLDER connection on the exact resource the writers contend on,
+#      positioned at the step AFTER their first lock. That is what forces the
+#      interleaving: each transaction gets far enough to take its first-step
+#      lock and then queues, so they are genuinely overlapping and holding
+#      partial lock sets — the state in which a disagreeing lock order
+#      deadlocks. Without the holder, one transaction usually just finishes
+#      before the other starts and the test proves nothing.
+#
+#   3. Assert through pg_blocking_pids() that EVERY participating backend is
+#      blocked on the holder before the holder lets go.
+#
+#   4. Release, join, and only then judge.
+#
+# NOTE ON WHAT THESE PROVE. The two-writer tests call the endpoint FUNCTIONS
+# directly rather than issuing HTTP requests, so they are transaction-body
+# concurrency tests: they exercise the real lock sequence of each endpoint's
+# transaction, not the full request path (no routing, no auth dependency, no
+# response envelope). That is deliberate — one TestClient serialises both
+# threads through a single ASGI portal, and two TestClients race to close the
+# same module-level db_pool — but it does mean they are not request-identical.
+#
+# They use real committed rows, not the rolled-back fixture transaction, and
+# clean up after themselves. Cleanup failures are NOT swallowed: a wedge must
+# surface as a failure here rather than as a hang in whatever runs next.
+# ═════════════════════════════════════════════════════════════════
+
+
+class _EndpointConn:
+    """A pre-created endpoint connection whose backend PID is known up front."""
+
+    def __init__(self, url, label):
+        import psycopg2 as pg
+
+        self.app_name = f"sostate-{label}-{uuid4().hex[:12]}"
+        self.conn = pg.connect(url, application_name=self.app_name)
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT pg_backend_pid()")
+            self.pid = cur.fetchone()[0]
+
+    def close(self):
+        try:
+            self.conn.close()
+        except Exception:
+            pass
+
+
+def _provider_for(mapping):
+    """monkeypatch target for main.get_db_connection.
+
+    Hands each thread the connection pre-created for it, so the PID captured
+    before the run is genuinely the one the endpoint uses.
+    """
+    import threading
+    from contextlib import contextmanager as _ctx
+
+    @_ctx
+    def _provider():
+        econn = mapping[threading.current_thread().name]
+        try:
+            yield econn.conn
+            econn.conn.commit()
+        except Exception:
+            econn.conn.rollback()
+            raise
+
+    return _provider
+
+
+def _lock_graph(watch_cur, pids):
+    """{pid: (waiting_query, [direct blockers])} for the pids given."""
+    watch_cur.execute(
+        """SELECT pid, query, pg_blocking_pids(pid) AS blockers
+             FROM pg_stat_activity
+            WHERE pid = ANY(%s)""",
+        (list(pids),),
+    )
+    return {r["pid"]: (r["query"], list(r["blockers"] or []))
+            for r in watch_cur.fetchall()}
+
+
+def _reaches_holder(pid, holder_pid, graph, _seen=None):
+    """Is `pid` parked behind the holder, directly or through another writer?
+
+    Postgres reports only the DIRECT blocker. When two writers queue on the
+    same rows the first names the holder and the second names the first — so a
+    check that demanded every writer name the holder would fail on a genuine
+    two-deep queue. Both are nonetheless stopped behind the holder while
+    holding their own step-1 locks, which is exactly the interleaving these
+    tests exist to force, so the check follows the chain.
+    """
+    _seen = _seen or set()
+    if pid in _seen:
+        return False
+    _seen.add(pid)
+    for blocker in graph.get(pid, (None, []))[1]:
+        if blocker == holder_pid or _reaches_holder(blocker, holder_pid, graph, _seen):
+            return True
+    return False
+
+
+def _blocked_on(watch_cur, pid, holder_pid):
+    """The statement `pid` is stuck on, if the holder is what is blocking it."""
+    graph = _lock_graph(watch_cur, [pid])
+    if pid not in graph:
+        return None
+    query, _blockers = graph[pid]
+    return query if _reaches_holder(pid, holder_pid, graph) else None
+
+
+def _wait_until_all_blocked(watch_cur, pids, holder_pid, deadline_s=25):
+    """Wait for EVERY pid to be parked behind the holder; return {pid: query}.
+
+    Returns whatever it managed to observe if the deadline passes, so the
+    caller can report which backend never queued.
+    """
+    import time
+
+    pids = list(pids)
+    deadline = time.time() + deadline_s
+    while time.time() < deadline:
+        # One snapshot per poll: the whole chain has to be read consistently,
+        # or a writer can look unblocked simply because its blocker was read
+        # a moment earlier.
+        graph = _lock_graph(watch_cur, pids + [holder_pid])
+        seen = {pid: graph[pid][0] for pid in pids
+                if pid in graph and _reaches_holder(pid, holder_pid, graph)}
+        if len(seen) == len(pids):
+            return seen
+        time.sleep(0.05)
+    graph = _lock_graph(watch_cur, pids + [holder_pid])
+    return {pid: graph[pid][0] for pid in pids
+            if pid in graph and _reaches_holder(pid, holder_pid, graph)}
+
+
+def _run_concurrently(named_calls, timeout=60):
+    """Start every call on its own named thread at a barrier.
+
+    Thread names are the keys, which is how _provider_for hands each one its
+    own pre-created connection.
+    """
+    import threading
+
+    start = threading.Barrier(len(named_calls))
+    out = {}
+
+    def _wrap(name, fn):
+        def _run():
+            start.wait(timeout=25)
+            try:
+                out[name] = fn()
+            except Exception as exc:            # noqa: BLE001 - recorded, asserted on
+                out[name] = exc
+        return _run
+
+    threads = [threading.Thread(target=_wrap(name, fn), name=name)
+               for name, fn in named_calls.items()]
+    for t in threads:
+        t.start()
+    return threads, out
+
+
+def _join_all(threads, timeout=60):
+    for t in threads:
+        t.join(timeout=timeout)
+    alive = [t.name for t in threads if t.is_alive()]
+    assert not alive, f"these writers never finished (deadlock or hang): {alive}"
+
+
+def _assert_no_deadlock(result, label):
+    """40P01 is Postgres's deadlock_detected. Matching the SQLSTATE rather than
+    the English word keeps fixture data out of the assertion."""
+    import psycopg2
+
+    if isinstance(result, psycopg2.Error):
+        assert result.pgcode != "40P01", f"{label} deadlocked: {result}"
+        raise AssertionError(f"{label} failed: {result!r}")
+    if isinstance(result, Exception):
+        assert "40P01" not in str(result), f"{label} deadlocked: {result}"
+        raise AssertionError(f"{label} failed: {result!r}")
+
+
+class _StubRequest:
+    """Just enough Request for caller_source_tag(): it reads one header."""
+
+    def __init__(self, api_key=None):
+        self.headers = {"X-API-Key": api_key} if api_key else {}
+
+
+def _test_url():
+    import os
+
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL not set")
+    return url
+
+
+# ─────────────────────────────────────────────────────────────────
+# Committed fixtures
+# ─────────────────────────────────────────────────────────────────
+
+def _seed_committed(seed_cur, *, status, with_alloc=False, stock=1000):
+    token = uuid4().hex[:10].upper()
+    seed_cur.execute("INSERT INTO customers (name, active) VALUES (%s,true) RETURNING id",
+                     (f"RACE Cust {token}",))
+    customer_id = seed_cur.fetchone()["id"]
+    seed_cur.execute(
+        "INSERT INTO products (name,type,odoo_code,uom,is_service,active) "
+        "VALUES (%s,'finished',%s,'lb',false,true) RETURNING id",
+        (f"RACE FG {token}", f"RACE-{token}"))
+    product_id = seed_cur.fetchone()["id"]
+    seed_cur.execute(
+        "INSERT INTO lots (product_id,lot_code,entry_source,received_at) "
+        "VALUES (%s,%s,'received',NOW()) RETURNING id",
+        (product_id, f"RACE-LOT-{token}"))
+    lot_id = seed_cur.fetchone()["id"]
+    seed_cur.execute("INSERT INTO transactions (type,timestamp) VALUES ('receive',NOW()) RETURNING id")
+    txn = seed_cur.fetchone()["id"]
+    seed_cur.execute(
+        "INSERT INTO transaction_lines (transaction_id,product_id,lot_id,quantity_lb) "
+        "VALUES (%s,%s,%s,%s)", (txn, product_id, lot_id, stock))
+    order_number = f"RACE-SO-{token}"
+    seed_cur.execute(
+        "INSERT INTO sales_orders (customer_id,order_number,status) VALUES (%s,%s,%s) RETURNING id",
+        (customer_id, order_number, status))
+    order_id = seed_cur.fetchone()["id"]
+    seed_cur.execute(
+        "INSERT INTO sales_order_flags (so_number,ready,ready_at,ready_by) "
+        "VALUES (%s,true,NOW(),'test')", (order_number,))
+    seed_cur.execute(
+        "INSERT INTO sales_order_lines (sales_order_id,product_id,quantity_lb,line_status) "
+        "VALUES (%s,%s,100,'pending') RETURNING id", (order_id, product_id))
+    line_id = seed_cur.fetchone()["id"]
+    alloc_id = None
+    if with_alloc:
+        seed_cur.execute(
+            "INSERT INTO sales_order_allocations "
+            "(sales_order_id,sales_order_line_id,product_id,lot_id,quantity_lb,source) "
+            "VALUES (%s,%s,%s,%s,100,'staged_lot') RETURNING id",
+            (order_id, line_id, product_id, lot_id))
+        alloc_id = seed_cur.fetchone()["id"]
+    return {"customer_id": customer_id, "product_id": product_id, "lot_id": lot_id,
+            "order_id": order_id, "order_number": order_number,
+            "line_id": line_id, "alloc_id": alloc_id}
+
+
+def _cleanup_order(seed_cur, order_id, order_number):
+    """Remove one committed order. Raises if anything unexpected blocks it.
+
+    Nothing is swallowed: a cleanup that quietly fails leaves rows behind that
+    wedge a LATER test, which then looks like an unrelated hang. Failing here
+    keeps the cause attached to the cause.
+
+    The one branch that is expected rather than exceptional: trace_events is
+    append-only and references sales_orders, so a shipped order genuinely
+    cannot be deleted. Those are taken OFF THE BOARD instead — a leftover
+    *open* order is not inert, because GET /sales/orders/counts walks every
+    open order and touches products, and the client fixture's RELEASE SAVEPOINT
+    promotes that lock into the suite's shared session transaction, where it
+    blocks the next TestClient's startup ALTER on products.
+    """
+    seed_cur.execute(
+        """DELETE FROM shipment_lines
+            WHERE sales_order_line_id IN (SELECT id FROM sales_order_lines
+                                           WHERE sales_order_id = %s)""",
+        (order_id,))
+    seed_cur.execute(
+        """DELETE FROM sales_order_shipments
+            WHERE sales_order_line_id IN (SELECT id FROM sales_order_lines
+                                           WHERE sales_order_id = %s)""",
+        (order_id,))
+    seed_cur.execute("DELETE FROM shipments WHERE sales_order_id = %s", (order_id,))
+    seed_cur.execute("DELETE FROM sales_order_allocations WHERE sales_order_id = %s",
+                     (order_id,))
+    seed_cur.execute("UPDATE sales_orders SET related_so_id = NULL WHERE related_so_id = %s",
+                     (order_id,))
+    seed_cur.execute("UPDATE sales_orders SET related_so_id = NULL WHERE id = %s",
+                     (order_id,))
+
+    seed_cur.execute("SELECT EXISTS (SELECT 1 FROM trace_events WHERE sales_order_id = %s) AS pinned",
+                     (order_id,))
+    if seed_cur.fetchone()["pinned"]:
+        seed_cur.execute(
+            "UPDATE sales_orders SET state = 'closed', state_reason = 'short_closed', "
+            "       status = 'shipped', state_note = 'race fixture teardown' "
+            " WHERE id = %s", (order_id,))
+    else:
+        seed_cur.execute("DELETE FROM sales_order_lines WHERE sales_order_id = %s", (order_id,))
+        seed_cur.execute("DELETE FROM sales_order_flags WHERE so_number = %s", (order_number,))
+        seed_cur.execute("DELETE FROM sales_orders WHERE id = %s", (order_id,))
+
+
+def _cleanup_committed(seed_cur, ids):
+    """Order side removed; the product is deactivated because append-only
+    ledger rows still reference it; the customer goes once unreferenced."""
+    _cleanup_order(seed_cur, ids["order_id"], ids["order_number"])
+    seed_cur.execute("UPDATE products SET active = false WHERE id = %s", (ids["product_id"],))
+    seed_cur.execute(
+        "SELECT EXISTS (SELECT 1 FROM sales_orders WHERE customer_id = %s) AS used",
+        (ids["customer_id"],))
+    if not seed_cur.fetchone()["used"]:
+        seed_cur.execute("DELETE FROM customers WHERE id = %s", (ids["customer_id"],))
+
+
+# ═════════════════════════════════════════════════════════════════
+# One writer vs a parked holder: does the endpoint take the ORDER ROW lock?
 # ═════════════════════════════════════════════════════════════════
 
 class TestStateRaces:
-
-    APP_NAME = "sostate-race-endpoint"
-
-    @staticmethod
-    def _wait_for_blocked_endpoint(watch_cur, app_name, holder_pid, deadline_s=20):
-        """Wait until the ENDPOINT's own backend is blocked BY THE HOLDER, and
-        return the statement it is stuck on.
-
-        Identifying the endpoint's backend by application_name and checking
-        pg_blocking_pids() is what makes this a real assertion. Counting
-        ungranted locks globally would pass on any unrelated wait — and, worse,
-        would still pass if the row lock were removed from the endpoint
-        entirely, because the endpoint's own later writes would block on the
-        holder anyway. Pinning the WAITING QUERY to the initial order-row
-        SELECT is the part that fails the moment that SELECT stops locking.
-        """
-        import time
-        deadline = time.time() + deadline_s
-        while time.time() < deadline:
-            watch_cur.execute(
-                """SELECT pid, query, pg_blocking_pids(pid) AS blockers
-                     FROM pg_stat_activity
-                    WHERE application_name = %s AND state = 'active'""",
-                (app_name,),
-            )
-            for row in watch_cur.fetchall():
-                if holder_pid in (row["blockers"] or []):
-                    return row["query"]
-            time.sleep(0.05)
-        return None
+    """Each test parks a holder on the sales_orders row, watches the endpoint
+    queue on THAT row, then commits a conflicting state change and lets the
+    endpoint through to re-read under its own lock."""
 
     @staticmethod
     def _assert_waiting_on_order_row_select(query, table="sales_orders"):
         """The blocked statement must be the initial locking read of the order
-        row — not some later write that would block regardless."""
+        row — not some later write that would block regardless.
+
+        This is the assertion that bites when the row lock is removed: without
+        it, an endpoint with no row lock still ends up blocked on the holder at
+        its final UPDATE, and a naive "is it blocked?" check would pass.
+        """
         assert query, "the endpoint never blocked on the holder connection"
         normalized = " ".join(query.lower().split())
         assert "for no key update" in normalized, (
@@ -2002,187 +2341,59 @@ class TestStateRaces:
         assert table in normalized, (
             f"the endpoint is blocked on the wrong relation: {query!r}"
         )
-        assert "update " not in normalized.split("for no key update")[0], (
-            f"expected a SELECT ... FOR NO KEY UPDATE, got: {query!r}"
-        )
-
-    @staticmethod
-    def _seed_committed(seed_cur, *, status, with_alloc=False, stock=1000):
-        token = uuid4().hex[:10].upper()
-        seed_cur.execute("INSERT INTO customers (name, active) VALUES (%s,true) RETURNING id",
-                         (f"RACE Cust {token}",))
-        customer_id = seed_cur.fetchone()["id"]
-        seed_cur.execute(
-            "INSERT INTO products (name,type,odoo_code,uom,is_service,active) "
-            "VALUES (%s,'finished',%s,'lb',false,true) RETURNING id",
-            (f"RACE FG {token}", f"RACE-{token}"))
-        product_id = seed_cur.fetchone()["id"]
-        seed_cur.execute(
-            "INSERT INTO lots (product_id,lot_code,entry_source,received_at) "
-            "VALUES (%s,%s,'received',NOW()) RETURNING id",
-            (product_id, f"RACE-LOT-{token}"))
-        lot_id = seed_cur.fetchone()["id"]
-        seed_cur.execute("INSERT INTO transactions (type,timestamp) VALUES ('receive',NOW()) RETURNING id")
-        txn = seed_cur.fetchone()["id"]
-        seed_cur.execute(
-            "INSERT INTO transaction_lines (transaction_id,product_id,lot_id,quantity_lb) "
-            "VALUES (%s,%s,%s,%s)", (txn, product_id, lot_id, stock))
-        order_number = f"RACE-SO-{token}"
-        seed_cur.execute(
-            "INSERT INTO sales_orders (customer_id,order_number,status) VALUES (%s,%s,%s) RETURNING id",
-            (customer_id, order_number, status))
-        order_id = seed_cur.fetchone()["id"]
-        seed_cur.execute(
-            "INSERT INTO sales_order_flags (so_number,ready,ready_at,ready_by) "
-            "VALUES (%s,true,NOW(),'test')", (order_number,))
-        seed_cur.execute(
-            "INSERT INTO sales_order_lines (sales_order_id,product_id,quantity_lb,line_status) "
-            "VALUES (%s,%s,100,'pending') RETURNING id", (order_id, product_id))
-        line_id = seed_cur.fetchone()["id"]
-        alloc_id = None
-        if with_alloc:
-            seed_cur.execute(
-                "INSERT INTO sales_order_allocations "
-                "(sales_order_id,sales_order_line_id,product_id,lot_id,quantity_lb,source) "
-                "VALUES (%s,%s,%s,%s,100,'staged_lot') RETURNING id",
-                (order_id, line_id, product_id, lot_id))
-            alloc_id = seed_cur.fetchone()["id"]
-        return {"customer_id": customer_id, "product_id": product_id, "lot_id": lot_id,
-                "order_id": order_id, "order_number": order_number,
-                "line_id": line_id, "alloc_id": alloc_id}
-
-    @staticmethod
-    def _cleanup(seed_cur, ids):
-        """Remove the sales-order side of the fixture.
-
-        The ledger rows (transactions / transaction_lines) stay: the ledger is
-        append-only and enforced by a trigger — "transaction_lines is
-        append-only; create a correction event instead" — so a test tearing
-        them down would be asserting the opposite of the invariant this
-        codebase is built on.
-
-        Everything that CAN go, goes: the order and its lines, flags,
-        reservations and shipment rows are deleted, the now-unreferenced
-        customer is deleted, and the product — still referenced by those
-        ledger rows, so undeletable — is deactivated so it drops out of every
-        catalogue and search path.
-        """
-        def _try(sql, params):
-            # seed is autocommit, so each statement stands alone. Best-effort
-            # per statement: if a shipment DID land (which only happens when
-            # this file's own locking assertions have already failed), its
-            # trace_events row pins the order and the delete raises. Losing the
-            # teardown on top of the real failure would bury it.
-            try:
-                seed_cur.execute(sql, params)
-            except Exception:
-                pass
-
-        _try("DELETE FROM shipment_lines WHERE sales_order_line_id = %s", (ids["line_id"],))
-        _try("DELETE FROM shipments WHERE sales_order_id = %s", (ids["order_id"],))
-        _try("DELETE FROM sales_order_shipments WHERE sales_order_line_id = %s", (ids["line_id"],))
-        _try("DELETE FROM sales_order_allocations WHERE sales_order_id = %s", (ids["order_id"],))
-        _try("DELETE FROM sales_order_lines WHERE sales_order_id = %s", (ids["order_id"],))
-        _try("DELETE FROM sales_order_flags WHERE so_number = %s", (ids["order_number"],))
-        _try("DELETE FROM sales_orders WHERE id = %s", (ids["order_id"],))
-        # If the order survived the delete, it is pinned by append-only ledger
-        # or trace rows and cannot go. Take it OFF THE BOARD instead. A
-        # leftover *open* order is not inert: GET /sales/orders/counts walks
-        # every open order and touches products, and the client fixture's
-        # RELEASE SAVEPOINT promotes that lock to the session transaction,
-        # where it blocks the next TestClient's startup ALTER on products —
-        # wedging the whole run. Closed orders are skipped by all of it.
-        _try("UPDATE sales_orders SET state = 'closed', "
-             "       state_reason = 'short_closed', status = 'shipped', "
-             "       state_note = 'race fixture teardown' "
-             " WHERE id = %s AND state = 'open'", (ids["order_id"],))
-        # The customer is now unreferenced, so it goes. The product and lot are
-        # still referenced by the append-only ledger rows above and cannot be
-        # deleted, so they are deactivated instead — inert, and visibly so.
-        _try("DELETE FROM customers WHERE id = %s", (ids["customer_id"],))
-        _try("UPDATE products SET active = false WHERE id = %s", (ids["product_id"],))
 
     def _run_race(self, monkeypatch, *, seed_kwargs, call, conflicting_sql):
-        """Park a lock on the order row, watch `call` queue on it, commit
-        `conflicting_sql`, then release and return the endpoint's response."""
-        import os, threading
         import psycopg2 as pg
-        from psycopg2.extras import RealDictCursor
-        from fastapi.testclient import TestClient as TC
-        from contextlib import contextmanager as _ctx
 
-        url = os.environ.get("TEST_DATABASE_URL")
-        if not url:
-            pytest.skip("TEST_DATABASE_URL not set")
-
+        url = _test_url()
         seed = pg.connect(url)
         seed.autocommit = True
         ids = None
+        endpoint = None
+        holder = None
         try:
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
-                ids = self._seed_committed(sc, **seed_kwargs)
+                ids = _seed_committed(sc, **seed_kwargs)
 
-            @_ctx
-            def _real_conn():
-                # A distinct application_name so the assertions below can find
-                # THIS backend in pg_stat_activity rather than guessing from
-                # global lock counts.
-                conn = pg.connect(url, application_name=self.APP_NAME)
-                try:
-                    yield conn
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                    raise
-                finally:
-                    conn.close()
-
-            monkeypatch.setattr(main, "get_db_connection", _real_conn)
+            endpoint = _EndpointConn(url, "race")
+            monkeypatch.setattr(main, "get_db_connection",
+                                _provider_for({"endpoint": endpoint}))
 
             holder = pg.connect(url, application_name="sostate-race-holder")
-            results = []
-            blocked_query = None
-            try:
-                with holder.cursor() as hc:
-                    hc.execute("SELECT pg_backend_pid()")
-                    holder_pid = hc.fetchone()[0]
-                    hc.execute(
-                        "SELECT id FROM sales_orders WHERE id = %s FOR NO KEY UPDATE",
-                        (ids["order_id"],))
+            with holder.cursor() as hc:
+                hc.execute("SELECT pg_backend_pid()")
+                holder_pid = hc.fetchone()[0]
+                # Parked on the order row itself: the very first lock the
+                # endpoint should take.
+                hc.execute("SELECT id FROM sales_orders WHERE id = %s FOR NO KEY UPDATE",
+                           (ids["order_id"],))
 
-                with TC(main.app) as tc:
-                    tc.headers["X-API-Key"] = main.API_KEY
-                    thread = threading.Thread(target=lambda: results.append(call(tc, ids)))
-                    thread.start()
+            threads, out = _run_concurrently({"endpoint": lambda: call(ids)})
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                blocked = _wait_until_all_blocked(sc, [endpoint.pid], holder_pid)
+            blocked_query = blocked.get(endpoint.pid)
 
-                    with seed.cursor(cursor_factory=RealDictCursor) as sc:
-                        blocked_query = self._wait_for_blocked_endpoint(
-                            sc, self.APP_NAME, holder_pid)
-
-                    # Release BEFORE asserting anything. The in-flight request
-                    # is holding the TestClient's ASGI portal, so an assertion
-                    # raised here would exit the `with` block while that
-                    # request is still waiting on the holder — and TestClient
-                    # would wait for the request, which is waiting for the lock
-                    # we are about to release. The whole test hangs instead of
-                    # failing. Unwind first, judge afterwards.
-                    with holder.cursor() as hc:
-                        hc.execute(conflicting_sql, (ids["order_id"],))
-                    holder.commit()
-
-                    thread.join(timeout=30)
-                    assert not thread.is_alive(), "the endpoint hung"
-            finally:
-                holder.close()
+            # Release BEFORE asserting. The endpoint is mid-transaction on a
+            # connection this test owns; raising here would leave it parked
+            # while teardown tried to clean up the very rows it holds.
+            with holder.cursor() as hc:
+                hc.execute(conflicting_sql, (ids["order_id"],))
+            holder.commit()
+            _join_all(threads)
 
             self._assert_waiting_on_order_row_select(blocked_query)
-            return results[0], ids, seed
+            return out["endpoint"], ids, seed
         except Exception:
             if ids is not None:
-                with seed.cursor() as sc:
-                    self._cleanup(sc, ids)
+                with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                    _cleanup_committed(sc, ids)
             seed.close()
             raise
+        finally:
+            if holder is not None:
+                holder.close()
+            if endpoint is not None:
+                endpoint.close()
 
     CANCEL_SQL = ("UPDATE sales_orders SET state='cancelled', state_reason='other', "
                   "state_note='race', status='cancelled', status_before_exit='ready' "
@@ -2193,18 +2404,19 @@ class TestStateRaces:
 
     @pytest.mark.db
     def test_shipment_loses_to_a_concurrent_cancel(self, monkeypatch):
-        """A ship that began before the cancel committed must still refuse:
-        it re-reads state under its own row lock after the cancel lands."""
-        resp, ids, seed = self._run_race(
+        """A ship that began before the cancel committed must still refuse: it
+        re-reads state under its own row lock after the cancel lands."""
+        result, ids, seed = self._run_race(
             monkeypatch,
             seed_kwargs={"status": "ready", "with_alloc": True},
-            call=lambda tc, i: tc.post(f"/sales/orders/{i['order_id']}/ship/commit",
-                                       json={"ship_all": True}),
+            call=lambda i: main.ship_order(
+                i["order_id"], main.ShipOrderRequest(mode="commit", ship_all=True), True),
             conflicting_sql=self.CANCEL_SQL,
         )
         try:
-            assert resp.status_code == 409, resp.text
-            assert resp.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+            assert isinstance(result, HTTPException), result
+            assert result.status_code == 409
+            assert result.detail["error_code"] == "ORDER_NOT_OPEN"
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 sc.execute("SELECT count(*) AS n FROM shipments WHERE sales_order_id = %s",
                            (ids["order_id"],))
@@ -2213,47 +2425,51 @@ class TestStateRaces:
                            (ids["line_id"],))
                 assert float(sc.fetchone()["quantity_shipped_lb"]) == 0
         finally:
-            with seed.cursor() as sc:
-                self._cleanup(sc, ids)
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                _cleanup_committed(sc, ids)
             seed.close()
 
     @pytest.mark.db
     def test_allocation_loses_to_a_concurrent_close(self, monkeypatch):
-        resp, ids, seed = self._run_race(
+        result, ids, seed = self._run_race(
             monkeypatch,
             seed_kwargs={"status": "confirmed"},
-            call=lambda tc, i: tc.post(
-                f"/sales/orders/{i['order_id']}/allocations",
-                json={"mode": "manual", "line_id": i["line_id"], "quantity_lb": 50}),
+            call=lambda i: main.create_sales_order_allocation(
+                main.SalesOrderAllocationCreate(
+                    mode="manual", line_id=i["line_id"], quantity_lb=50),
+                _StubRequest(), i["order_id"], True),
             conflicting_sql=self.CLOSE_SQL,
         )
         try:
-            assert resp.status_code == 409, resp.text
-            assert resp.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+            assert isinstance(result, HTTPException), result
+            assert result.status_code == 409
+            assert result.detail["error_code"] == "ORDER_NOT_OPEN"
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 sc.execute("SELECT count(*) AS n FROM sales_order_allocations "
                            " WHERE sales_order_id = %s AND status = 'active'",
                            (ids["order_id"],))
-                assert sc.fetchone()["n"] == 0, "no reservation may be created on a closed order"
+                assert sc.fetchone()["n"] == 0, "no reservation on a closed order"
         finally:
-            with seed.cursor() as sc:
-                self._cleanup(sc, ids)
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                _cleanup_committed(sc, ids)
             seed.close()
 
     @pytest.mark.db
     def test_close_loses_to_a_concurrent_close(self, monkeypatch):
-        """Two exits racing: the second one re-reads under its own lock and
-        refuses rather than overwriting the first one's reason."""
-        resp, ids, seed = self._run_race(
+        """Two exits racing: the second re-reads under its own lock and refuses
+        rather than overwriting the first one's reason."""
+        result, ids, seed = self._run_race(
             monkeypatch,
             seed_kwargs={"status": "confirmed"},
-            call=lambda tc, i: tc.post(f"/sales/orders/{i['order_id']}/close",
-                                       json={"reason": "shipped_recorded", "mode": "commit"}),
+            call=lambda i: main.close_sales_order(
+                main.SalesOrderCloseRequest(reason="shipped_recorded", mode="commit"),
+                _StubRequest(), i["order_id"], True),
             conflicting_sql=self.CLOSE_SQL,
         )
         try:
-            assert resp.status_code == 409, resp.text
-            assert resp.json()["detail"]["error_code"] == "ORDER_NOT_OPEN"
+            assert isinstance(result, HTTPException), result
+            assert result.status_code == 409
+            assert result.detail["error_code"] == "ORDER_NOT_OPEN"
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 sc.execute("SELECT state_reason FROM sales_orders WHERE id = %s",
                            (ids["order_id"],))
@@ -2261,220 +2477,151 @@ class TestStateRaces:
                     "the winner's reason survives"
                 )
         finally:
-            with seed.cursor() as sc:
-                self._cleanup(sc, ids)
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                _cleanup_committed(sc, ids)
             seed.close()
 
-
-# ═════════════════════════════════════════════════════════════════
-# Legacy PATCH: guards run before the transition gate
-# ═════════════════════════════════════════════════════════════════
-
-@pytest.mark.db
-def test_legacy_patch_cancelled_on_a_fully_shipped_open_order_gets_the_structured_409(
-        db_cursor, client):
-    """A fully shipped order is status='shipped', so MANUAL_TRANSITIONS would
-    reject 'cancelled' with a generic 400 "invalid transition". The specific,
-    actionable answer has to win: 409 ORDER_ALREADY_SHIPPED, naming the
-    fulfillment and pointing at close/short_closed."""
-    customer_id, token = _seed_customer(db_cursor)
-    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
-    order_id, _ = _seed_order(db_cursor, customer_id, token, status="shipped")
-    line_id = _add_line(db_cursor, order_id, product_id, 100, shipped=100, status="fulfilled")
-    _post_ship(db_cursor, line_id, product_id, lot_id, 100, recorded=100)
-
-    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "cancelled"})
-    assert resp.status_code == 409, resp.text
-    detail = resp.json()["detail"]
-    assert detail["error_code"] == "ORDER_ALREADY_SHIPPED"
-    assert detail["fulfillment"] == "shipped"
-    assert detail["suggested_action"] == "close"
-    assert detail["suggested_reason"] == "short_closed"
-    assert "short_closed" in detail["message"]
-
-    row = _state_row(db_cursor, order_id)
-    assert (row["state"], row["status"]) == ("open", "shipped"), "nothing written"
-
-
-@pytest.mark.db
-def test_legacy_patch_operational_value_still_gets_the_plain_transition_400(db_cursor, client):
-    """The reorder must not swallow the generic gate for operational values."""
-    customer_id, token = _seed_customer(db_cursor)
-    order_id, _ = _seed_order(db_cursor, customer_id, token, status="new")
-    resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "ready"})
-    assert resp.status_code == 400, resp.text
-    assert "Invalid status transition" in str(resp.json())
-
-
-# ═════════════════════════════════════════════════════════════════
-# Lock order: line mutations take the order row first
-# ═════════════════════════════════════════════════════════════════
-
-class TestLineMutationLockOrder(TestStateRaces):
-
     @pytest.mark.db
-    def test_quantity_reduction_loses_to_a_concurrent_cancel(self, monkeypatch):
-        """A line quantity reduction shrinks that line's reservations, so it
-        contends with the exits over the same rows. It must queue on the ORDER
-        row, not walk straight into the allocation rows."""
-        resp, ids, seed = self._run_race(
+    def test_quantity_reduction_queues_on_the_order_row(self, monkeypatch):
+        """A quantity reduction shrinks that line's reservations, so it
+        contends with the exits over the same allocation rows. It must queue on
+        the ORDER row rather than walking straight into them."""
+        result, ids, seed = self._run_race(
             monkeypatch,
             seed_kwargs={"status": "confirmed", "with_alloc": True},
-            call=lambda tc, i: tc.patch(
-                f"/sales/orders/{i['order_id']}/lines/{i['line_id']}/update",
-                params={"quantity_lb": 10}),
+            call=lambda i: main.update_order_line(
+                i["order_id"], i["line_id"], 10, None, True),
             conflicting_sql=self.CANCEL_SQL,
         )
         try:
-            # The endpoint queued on the order row (asserted inside _run_race)
-            # and then ran against the post-cancel state.
-            assert resp.status_code in (200, 404, 409), resp.text
+            _ = result
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 sc.execute("SELECT state FROM sales_orders WHERE id = %s", (ids["order_id"],))
                 assert sc.fetchone()["state"] == "cancelled", "the cancel won"
         finally:
-            with seed.cursor() as sc:
-                self._cleanup(sc, ids)
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                _cleanup_committed(sc, ids)
             seed.close()
 
     @pytest.mark.db
     def test_line_cancel_queues_on_the_order_row(self, monkeypatch):
-        resp, ids, seed = self._run_race(
+        result, ids, seed = self._run_race(
             monkeypatch,
             seed_kwargs={"status": "confirmed", "with_alloc": True},
-            call=lambda tc, i: tc.patch(
-                f"/sales/orders/{i['order_id']}/lines/{i['line_id']}/cancel"),
+            call=lambda i: main.cancel_order_line(i["order_id"], i["line_id"], True),
             conflicting_sql=self.CLOSE_SQL,
         )
         try:
-            assert resp.status_code in (200, 404, 409), resp.text
+            _ = result
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 sc.execute("SELECT state FROM sales_orders WHERE id = %s", (ids["order_id"],))
                 assert sc.fetchone()["state"] == "closed", "the close won"
         finally:
-            with seed.cursor() as sc:
-                self._cleanup(sc, ids)
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                _cleanup_committed(sc, ids)
+            seed.close()
+
+    @pytest.mark.db
+    def test_add_line_queues_on_the_order_row(self, monkeypatch):
+        """Adding a line advances the order, so it takes the order row lock
+        first like every other SO write."""
+        result, ids, seed = self._run_race(
+            monkeypatch,
+            seed_kwargs={"status": "confirmed"},
+            call=lambda i: main.add_order_lines(
+                i["order_id"],
+                main.AddOrderLines(lines=[main.OrderLineInput(
+                    product_name="ignored", quantity_lb=5)]),
+                True),
+            conflicting_sql=self.CANCEL_SQL,
+        )
+        try:
+            _ = result
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT state FROM sales_orders WHERE id = %s", (ids["order_id"],))
+                assert sc.fetchone()["state"] == "cancelled", "the cancel won"
+                sc.execute("SELECT count(*) AS n FROM sales_order_lines "
+                           " WHERE sales_order_id = %s", (ids["order_id"],))
+                assert sc.fetchone()["n"] == 1, (
+                    "no line may land on an order that has been cancelled"
+                )
+        finally:
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                _cleanup_committed(sc, ids)
             seed.close()
 
 
 # ═════════════════════════════════════════════════════════════════
-# Lock order: no deadlock between multi-row writers
+# Two writers, forced to overlap: deadlock freedom
 #
-# These assert the ABSENCE of a deadlock, which only means something if the
-# two sides genuinely overlap and genuinely run at once. Each starts both
-# sides on their own connections, has each take its first lock and wait at a
-# barrier, then releases them together — so the interleaving that would
-# deadlock under a disagreeing lock order actually gets a chance to happen.
+# Scope: SALES-ORDER write paths only. The production/batch commit paths
+# (make, pack, reassign_lot) take product locks under their own rules and are
+# NOT covered by these tests or by this PR — see the findings doc.
 # ═════════════════════════════════════════════════════════════════
 
-class _StubRequest:
-    """Just enough Request for caller_source_tag(): it reads one header."""
-
-    def __init__(self, api_key=None):
-        self.headers = {"X-API-Key": api_key} if api_key else {}
-
-
 class TestNoDeadlock:
-    """Two writers that overlap, started together, each on its own connection.
-
-    These assert the ABSENCE of a deadlock, which is only meaningful if the two
-    sides genuinely run at once. They call the endpoint FUNCTIONS directly
-    rather than going through TestClient: one TestClient serialises requests
-    through a single ASGI portal (so there would be no concurrency to test),
-    and two TestClients each run the app's startup and shutdown against the
-    same module-level db_pool and race to close it. Calling the functions on
-    two real connections gives real parallelism and neither problem.
-    """
 
     @staticmethod
-    def _url():
-        import os
-        url = os.environ.get("TEST_DATABASE_URL")
-        if not url:
-            pytest.skip("TEST_DATABASE_URL not set")
-        return url
+    def _force_interleaving(seed, holder, threads, pids, labels):
+        """Wait for every writer to queue on the holder, then release and join.
+
+        The queue check is captured but NOT asserted here. Raising while the
+        writers are still parked would leave them mid-transaction on
+        connections the teardown is about to close, turning a clear failure
+        into "connection already closed" noise. Unwind first; the caller
+        judges afterwards.
+        """
+        with seed.cursor(cursor_factory=RealDictCursor) as sc:
+            blocked = _wait_until_all_blocked(sc, pids, holder_pid=holder["pid"])
+        holder["conn"].commit()
+        _join_all(threads)
+        return [labels[p] for p in pids if p not in blocked]
 
     @staticmethod
-    def _per_thread_conn(url, app_name):
-        """monkeypatch target: a fresh real connection for every call."""
-        from contextlib import contextmanager as _ctx
-        import psycopg2 as pg
-
-        @_ctx
-        def _conn():
-            conn = pg.connect(url, application_name=app_name)
-            try:
-                yield conn
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
-            finally:
-                conn.close()
-        return _conn
-
-    @staticmethod
-    def _run_together(fn_a, fn_b, timeout=60):
-        """Start both at a barrier; return {name: result_or_exception}."""
-        import threading
-        start = threading.Barrier(2)
-        out = {}
-
-        def _wrap(name, fn):
-            def _run():
-                start.wait(timeout=20)
-                try:
-                    out[name] = fn()
-                except Exception as exc:          # noqa: BLE001 - recorded, asserted on
-                    out[name] = exc
-            return _run
-
-        threads = [threading.Thread(target=_wrap("a", fn_a)),
-                   threading.Thread(target=_wrap("b", fn_b))]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=timeout)
-        assert not any(t.is_alive() for t in threads), (
-            "the two writers never both finished — they deadlocked or hung"
+    def _assert_all_queued(missing):
+        assert not missing, (
+            f"these writers never queued on the holder, so the dangerous "
+            f"interleaving was never forced: {missing}"
         )
-        return out
-
-    @staticmethod
-    def _assert_no_deadlock(result, label):
-        """40P01 is Postgres's deadlock_detected. Matching the SQLSTATE rather
-        than the English word keeps fixture data out of the assertion."""
-        import psycopg2
-        if isinstance(result, psycopg2.Error):
-            assert result.pgcode != "40P01", f"{label} deadlocked: {result}"
-            raise AssertionError(f"{label} failed: {result!r}")
-        if isinstance(result, Exception):
-            assert "40P01" not in str(result), f"{label} deadlocked: {result}"
-            raise AssertionError(f"{label} failed: {result!r}")
 
     @pytest.mark.db
     def test_reciprocal_duplicate_cancellations_do_not_deadlock(self, monkeypatch):
-        """A→B and B→A at the same moment.
+        """A→B and B→A at once.
 
         Writing related_so_id takes FOR KEY SHARE on the OTHER order's row.
-        Under FOR UPDATE on the order row this is a textbook deadlock: A holds
-        A and reaches for B while B holds B and reaches for A, and Postgres
-        kills one with 40P01. FOR NO KEY UPDATE does not conflict with KEY
-        SHARE, so both commit.
+        Under FOR UPDATE this is a textbook deadlock: A holds A and reaches for
+        B while B holds B and reaches for A, and Postgres kills one with 40P01.
+
+        HOLDER POSITION: both order rows, FOR SHARE. FOR SHARE conflicts with
+        FOR NO KEY UPDATE, so neither cancel can complete step 1 — both queue
+        at the very first lock and are released together. That is what
+        guarantees they are actually in flight simultaneously, each about to
+        reach for the other's row, instead of one tidily finishing first.
         """
         import psycopg2 as pg
 
-        url = self._url()
+        url = _test_url()
         seed = pg.connect(url)
         seed.autocommit = True
         ids_a = ids_b = None
+        conns = {}
+        holder = None
         try:
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
-                ids_a = TestStateRaces._seed_committed(sc, status="confirmed")
-                ids_b = TestStateRaces._seed_committed(sc, status="confirmed")
+                ids_a = _seed_committed(sc, status="confirmed")
+                ids_b = _seed_committed(sc, status="confirmed")
 
-            monkeypatch.setattr(main, "get_db_connection",
-                                self._per_thread_conn(url, "sostate-reciprocal"))
+            conns = {"a": _EndpointConn(url, "recip-a"),
+                     "b": _EndpointConn(url, "recip-b")}
+            monkeypatch.setattr(main, "get_db_connection", _provider_for(conns))
+
+            holder = pg.connect(url, application_name="sostate-recip-holder")
+            with holder.cursor() as hc:
+                hc.execute("SELECT pg_backend_pid()")
+                holder_pid = hc.fetchone()[0]
+                hc.execute("SELECT id FROM sales_orders WHERE id = ANY(%s) "
+                           " ORDER BY id FOR SHARE",
+                           ([ids_a["order_id"], ids_b["order_id"]],))
 
             def _cancel(mine, other):
                 return lambda: main.cancel_sales_order(
@@ -2483,15 +2630,20 @@ class TestNoDeadlock:
                         mode="commit"),
                     _StubRequest(), mine["order_id"], True)
 
-            out = self._run_together(_cancel(ids_a, ids_b), _cancel(ids_b, ids_a))
+            threads, out = _run_concurrently({"a": _cancel(ids_a, ids_b),
+                                              "b": _cancel(ids_b, ids_a)})
+            missing = self._force_interleaving(
+                seed, {"conn": holder, "pid": holder_pid}, threads,
+                [conns["a"].pid, conns["b"].pid],
+                {conns["a"].pid: "cancel A→B", conns["b"].pid: "cancel B→A"})
+            self._assert_all_queued(missing)
 
             for label in ("a", "b"):
-                self._assert_no_deadlock(out[label], label)
+                _assert_no_deadlock(out[label], label)
                 assert out[label]["state"] == "cancelled", out[label]
 
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
-                sc.execute("SELECT id, related_so_id FROM sales_orders "
-                           " WHERE id = ANY(%s)",
+                sc.execute("SELECT id, related_so_id FROM sales_orders WHERE id = ANY(%s)",
                            ([ids_a["order_id"], ids_b["order_id"]],))
                 rows = {r["id"]: r["related_so_id"] for r in sc.fetchall()}
             assert rows[ids_a["order_id"]] == ids_b["order_id"]
@@ -2499,17 +2651,14 @@ class TestNoDeadlock:
                 "both reciprocal references survived"
             )
         finally:
-            with seed.cursor() as sc:
+            if holder is not None:
+                holder.close()
+            for c in conns.values():
+                c.close()
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 for ids in (ids_a, ids_b):
                     if ids:
-                        try:
-                            sc.execute("UPDATE sales_orders SET related_so_id = NULL "
-                                       " WHERE id = %s", (ids["order_id"],))
-                        except Exception:
-                            pass
-                for ids in (ids_a, ids_b):
-                    if ids:
-                        TestStateRaces._cleanup(sc, ids)
+                        _cleanup_committed(sc, ids)
             seed.close()
 
     @pytest.mark.db
@@ -2517,17 +2666,26 @@ class TestNoDeadlock:
         """Ship order A (lines ordered P_high, P_low) against closing order B
         (reservations on P_low, P_high).
 
-        If each side locked products in the order its own lines happened to be
+        If each side locked products in the order its own lines happened to sit
         in, A would take P_high and wait for P_low while B took P_low and
-        waited for P_high. Sorting product ids ascending on BOTH sides is what
-        lets this finish.
+        waited for P_high. Ascending product id on both sides is what lets this
+        finish.
+
+        HOLDER POSITION: P_low's lot rows, FOR UPDATE — the step AFTER each
+        writer's order-row lock. Both writers therefore get through step 1 (and
+        A through step 2) holding partial lock sets, then queue on the first
+        product. That is precisely the state a disagreeing product order
+        deadlocks from; releasing the holder lets them both proceed only
+        because they agree on the sequence.
         """
         import psycopg2 as pg
 
-        url = self._url()
+        url = _test_url()
         seed = pg.connect(url)
         seed.autocommit = True
         made = {}
+        conns = {}
+        holder = None
         try:
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 token = uuid4().hex[:10].upper()
@@ -2541,19 +2699,19 @@ class TestNoDeadlock:
                         "INSERT INTO products (name,type,odoo_code,uom,is_service,active) "
                         "VALUES (%s,'finished',%s,'lb',false,true) RETURNING id",
                         (f"LOCKORDER FG{n} {token}", f"LO{n}-{token}"))
-                    pid = sc.fetchone()["id"]
+                    pid_ = sc.fetchone()["id"]
                     sc.execute(
                         "INSERT INTO lots (product_id,lot_code,entry_source,received_at) "
                         "VALUES (%s,%s,'received',NOW()) RETURNING id",
-                        (pid, f"LO{n}-LOT-{token}"))
+                        (pid_, f"LO{n}-LOT-{token}"))
                     lot = sc.fetchone()["id"]
                     sc.execute("INSERT INTO transactions (type,timestamp) "
                                "VALUES ('receive',NOW()) RETURNING id")
                     txn = sc.fetchone()["id"]
                     sc.execute("INSERT INTO transaction_lines "
                                "(transaction_id,product_id,lot_id,quantity_lb) "
-                               "VALUES (%s,%s,%s,1000)", (txn, pid, lot))
-                    products.append((pid, lot))
+                               "VALUES (%s,%s,%s,1000)", (txn, pid_, lot))
+                    products.append((pid_, lot))
                 products.sort()
                 (p_low, lot_low), (p_high, lot_high) = products
 
@@ -2566,12 +2724,12 @@ class TestNoDeadlock:
                                "(so_number,ready,ready_at,ready_by) "
                                "VALUES (%s,true,NOW(),'test')", (number,))
                     lines = []
-                    for pid, lot in line_products:
+                    for pid_, lot in line_products:
                         sc.execute(
                             "INSERT INTO sales_order_lines "
                             "(sales_order_id,product_id,quantity_lb,line_status) "
-                            "VALUES (%s,%s,50,'pending') RETURNING id", (oid, pid))
-                        lines.append((sc.fetchone()["id"], pid, lot))
+                            "VALUES (%s,%s,50,'pending') RETURNING id", (oid, pid_))
+                        lines.append((sc.fetchone()["id"], pid_, lot))
                     return oid, number, lines
 
                 # A's lines are created P_HIGH first, so line order and product
@@ -2580,70 +2738,234 @@ class TestNoDeadlock:
                     f"LO-A-{token}", "ready", [(p_high, lot_high), (p_low, lot_low)])
                 b_id, b_num, b_lines = _order(
                     f"LO-B-{token}", "confirmed", [(p_low, lot_low), (p_high, lot_high)])
-                for line_id, pid, lot in b_lines:
+                for line_id, pid_, lot in b_lines:
                     sc.execute(
                         "INSERT INTO sales_order_allocations "
                         "(sales_order_id,sales_order_line_id,product_id,lot_id,"
                         " quantity_lb,source) VALUES (%s,%s,%s,%s,50,'staged_lot')",
-                        (b_id, line_id, pid, lot))
+                        (b_id, line_id, pid_, lot))
                 made = {"customer_id": customer_id, "products": [p_low, p_high],
-                        "orders": [(a_id, a_num, a_lines), (b_id, b_num, b_lines)]}
+                        "orders": [(a_id, a_num), (b_id, b_num)]}
 
-            monkeypatch.setattr(main, "get_db_connection",
-                                self._per_thread_conn(url, "sostate-lockorder"))
+            conns = {"ship": _EndpointConn(url, "lockorder-ship"),
+                     "close": _EndpointConn(url, "lockorder-close")}
+            monkeypatch.setattr(main, "get_db_connection", _provider_for(conns))
 
-            out = self._run_together(
-                lambda: main.ship_order(
+            holder = pg.connect(url, application_name="sostate-lockorder-holder")
+            with holder.cursor() as hc:
+                hc.execute("SELECT pg_backend_pid()")
+                holder_pid = hc.fetchone()[0]
+                hc.execute("SELECT id FROM lots WHERE product_id = %s ORDER BY id FOR UPDATE",
+                           (p_low,))
+
+            threads, out = _run_concurrently({
+                "ship": lambda: main.ship_order(
                     a_id, main.ShipOrderRequest(mode="commit", ship_all=True), True),
-                lambda: main.close_sales_order(
+                "close": lambda: main.close_sales_order(
                     main.SalesOrderCloseRequest(reason="short_closed", mode="commit"),
                     _StubRequest(), b_id, True),
-            )
+            })
+            missing = self._force_interleaving(
+                seed, {"conn": holder, "pid": holder_pid}, threads,
+                [conns["ship"].pid, conns["close"].pid],
+                {conns["ship"].pid: "ship A", conns["close"].pid: "close B"})
+            self._assert_all_queued(missing)
 
-            self._assert_no_deadlock(out["a"], "ship")
-            self._assert_no_deadlock(out["b"], "close")
-            assert out["a"]["order_status"] in ("shipped", "partial_ship"), out["a"]
-            assert out["b"]["state"] == "closed", out["b"]
+            _assert_no_deadlock(out["ship"], "ship")
+            _assert_no_deadlock(out["close"], "close")
+            assert out["ship"]["order_status"] in ("shipped", "partial_ship"), out["ship"]
+            assert out["close"]["state"] == "closed", out["close"]
         finally:
-            with seed.cursor() as sc:
-                for oid, num, lines in made.get("orders", []):
-                    for line_id, _pid, _lot in lines:
-                        for sql in (
-                            "DELETE FROM shipment_lines WHERE sales_order_line_id = %s",
-                            "DELETE FROM sales_order_shipments WHERE sales_order_line_id = %s",
-                            "DELETE FROM sales_order_allocations WHERE sales_order_line_id = %s",
-                        ):
-                            try:
-                                sc.execute(sql, (line_id,))
-                            except Exception:
-                                pass
-                    for sql, params in (
-                        ("DELETE FROM shipments WHERE sales_order_id = %s", (oid,)),
-                        ("DELETE FROM sales_order_lines WHERE sales_order_id = %s", (oid,)),
-                        ("DELETE FROM sales_order_flags WHERE so_number = %s", (num,)),
-                        ("DELETE FROM sales_orders WHERE id = %s", (oid,)),
-                        # see TestStateRaces._cleanup: a surviving OPEN order
-                        # wedges later runs, a closed one is inert.
-                        ("UPDATE sales_orders SET state = 'closed', "
-                         "       state_reason = 'short_closed', status = 'shipped', "
-                         "       state_note = 'race fixture teardown' "
-                         " WHERE id = %s AND state = 'open'", (oid,)),
-                    ):
-                        try:
-                            sc.execute(sql, params)
-                        except Exception:
-                            pass
-                for pid in made.get("products", []):
-                    try:
-                        sc.execute("UPDATE products SET active = false WHERE id = %s", (pid,))
-                    except Exception:
-                        pass
+            if holder is not None:
+                holder.close()
+            for c in conns.values():
+                c.close()
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                for oid, num in made.get("orders", []):
+                    _cleanup_order(sc, oid, num)
+                for pid_ in made.get("products", []):
+                    sc.execute("UPDATE products SET active = false WHERE id = %s", (pid_,))
                 if made.get("customer_id"):
-                    try:
+                    sc.execute("SELECT EXISTS (SELECT 1 FROM sales_orders "
+                               " WHERE customer_id = %s) AS used", (made["customer_id"],))
+                    if not sc.fetchone()["used"]:
                         sc.execute("DELETE FROM customers WHERE id = %s",
                                    (made["customer_id"],))
-                    except Exception:
-                        pass
+            seed.close()
+
+    @pytest.mark.db
+    def test_quantity_reduction_and_exit_do_not_deadlock(self, monkeypatch):
+        """A quantity reduction on one order against an exit on another, both
+        holding reservations on the same product.
+
+        HOLDER POSITION: the shared product's lot rows, FOR UPDATE — the step
+        after each writer's order-row lock. Both take their own order row, then
+        queue on the shared product, so they overlap while holding partial lock
+        sets. Under a disagreeing order this is where they would grab each
+        other's next lock.
+        """
+        import psycopg2 as pg
+
+        url = _test_url()
+        seed = pg.connect(url)
+        seed.autocommit = True
+        ids_a = ids_b = None
+        conns = {}
+        holder = None
+        try:
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                ids_a = _seed_committed(sc, status="confirmed", with_alloc=True)
+                # B reuses A's product, so both contend on the same lot rows.
+                ids_b = _seed_committed(sc, status="confirmed")
+                sc.execute("UPDATE sales_order_lines SET product_id = %s WHERE id = %s",
+                           (ids_a["product_id"], ids_b["line_id"]))
+                sc.execute(
+                    "INSERT INTO sales_order_allocations "
+                    "(sales_order_id,sales_order_line_id,product_id,lot_id,"
+                    " quantity_lb,source) VALUES (%s,%s,%s,%s,25,'staged_lot')",
+                    (ids_b["order_id"], ids_b["line_id"],
+                     ids_a["product_id"], ids_a["lot_id"]))
+
+            conns = {"reduce": _EndpointConn(url, "qty-reduce"),
+                     "exit": _EndpointConn(url, "qty-exit")}
+            monkeypatch.setattr(main, "get_db_connection", _provider_for(conns))
+
+            holder = pg.connect(url, application_name="sostate-qty-holder")
+            with holder.cursor() as hc:
+                hc.execute("SELECT pg_backend_pid()")
+                holder_pid = hc.fetchone()[0]
+                hc.execute("SELECT id FROM lots WHERE product_id = %s ORDER BY id FOR UPDATE",
+                           (ids_a["product_id"],))
+
+            threads, out = _run_concurrently({
+                "reduce": lambda: main.update_order_line(
+                    ids_a["order_id"], ids_a["line_id"], 10, None, True),
+                "exit": lambda: main.close_sales_order(
+                    main.SalesOrderCloseRequest(reason="short_closed", mode="commit"),
+                    _StubRequest(), ids_b["order_id"], True),
+            })
+            missing = self._force_interleaving(
+                seed, {"conn": holder, "pid": holder_pid}, threads,
+                [conns["reduce"].pid, conns["exit"].pid],
+                {conns["reduce"].pid: "quantity reduction on A",
+                 conns["exit"].pid: "close B"})
+            self._assert_all_queued(missing)
+
+            _assert_no_deadlock(out["reduce"], "quantity reduction")
+            _assert_no_deadlock(out["exit"], "close")
+            assert out["exit"]["state"] == "closed", out["exit"]
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT quantity_lb FROM sales_order_lines WHERE id = %s",
+                           (ids_a["line_id"],))
+                assert float(sc.fetchone()["quantity_lb"]) == 10
+        finally:
+            if holder is not None:
+                holder.close()
+            for c in conns.values():
+                c.close()
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                for ids in (ids_a, ids_b):
+                    if ids:
+                        _cleanup_committed(sc, ids)
+            seed.close()
+
+    @pytest.mark.db
+    def test_add_line_and_cancel_do_not_deadlock_and_no_line_lands(self, monkeypatch):
+        """Adding a line to an order while that same order is being cancelled.
+
+        HOLDER POSITION: the order row itself, FOR SHARE — which conflicts with
+        FOR NO KEY UPDATE, so BOTH writers queue at step 1 and are released
+        together. Whichever wins, the loser must see the winner's committed
+        state under its own lock: no line may land on a cancelled order.
+        """
+        import psycopg2 as pg
+
+        url = _test_url()
+        seed = pg.connect(url)
+        seed.autocommit = True
+        ids = None
+        conns = {}
+        holder = None
+        product_name = None
+        try:
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                ids = _seed_committed(sc, status="confirmed")
+                sc.execute("SELECT name FROM products WHERE id = %s", (ids["product_id"],))
+                product_name = sc.fetchone()["name"]
+
+            conns = {"add": _EndpointConn(url, "addline-add"),
+                     "cancel": _EndpointConn(url, "addline-cancel")}
+            monkeypatch.setattr(main, "get_db_connection", _provider_for(conns))
+
+            holder = pg.connect(url, application_name="sostate-addline-holder")
+            with holder.cursor() as hc:
+                hc.execute("SELECT pg_backend_pid()")
+                holder_pid = hc.fetchone()[0]
+                hc.execute("SELECT id FROM sales_orders WHERE id = %s FOR SHARE",
+                           (ids["order_id"],))
+
+            threads, out = _run_concurrently({
+                "add": lambda: main.add_order_lines(
+                    ids["order_id"],
+                    main.AddOrderLines(lines=[main.OrderLineInput(
+                        product_name=product_name, quantity_lb=25)]),
+                    True),
+                "cancel": lambda: main.cancel_sales_order(
+                    main.SalesOrderCancelRequest(reason="customer_cancelled",
+                                                 mode="commit"),
+                    _StubRequest(), ids["order_id"], True),
+            })
+            missing = self._force_interleaving(
+                seed, {"conn": holder, "pid": holder_pid}, threads,
+                [conns["add"].pid, conns["cancel"].pid],
+                {conns["add"].pid: "add line", conns["cancel"].pid: "cancel"})
+            self._assert_all_queued(missing)
+
+            for label in ("add", "cancel"):
+                if isinstance(out[label], HTTPException):
+                    assert out[label].status_code == 409, out[label].detail
+                else:
+                    _assert_no_deadlock(out[label], label)
+
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                sc.execute("SELECT state FROM sales_orders WHERE id = %s", (ids["order_id"],))
+                state = sc.fetchone()["state"]
+                sc.execute("SELECT count(*) AS n FROM sales_order_lines "
+                           " WHERE sales_order_id = %s", (ids["order_id"],))
+                lines = sc.fetchone()["n"]
+
+            # The cancel always wins the state — it is the only writer that
+            # sets one. Which of the two got the row lock first is genuinely
+            # nondeterministic, so the invariant is keyed on the ADD's own
+            # outcome, not on the final state:
+            #
+            #   add succeeded  -> it ran while the order was still open, and
+            #                     the cancel landed afterwards. Its line is a
+            #                     legitimate line on an order later cancelled.
+            #   add refused    -> it ran after the cancel committed, saw
+            #                     state='cancelled' under its own row lock,
+            #                     and inserted nothing.
+            #
+            # What must never happen is an add that observed 'cancelled' and
+            # inserted anyway, or one that succeeded without leaving its line.
+            assert state == "cancelled", "the cancel is the only writer that sets state"
+            if isinstance(out["add"], HTTPException):
+                assert out["add"].detail["error_code"] == "ORDER_NOT_OPEN", out["add"].detail
+                assert lines == 1, (
+                    "the add was refused, so it must not have inserted anything"
+                )
+            else:
+                assert lines == 2, (
+                    "the add reported success, so its line must actually be there"
+                )
+        finally:
+            if holder is not None:
+                holder.close()
+            for c in conns.values():
+                c.close()
+            with seed.cursor(cursor_factory=RealDictCursor) as sc:
+                if ids:
+                    _cleanup_committed(sc, ids)
             seed.close()
 
 
