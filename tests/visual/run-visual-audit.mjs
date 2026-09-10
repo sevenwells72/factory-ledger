@@ -8,7 +8,9 @@
 //
 // Captures every screen in docs/design/audit/00-screen-inventory.md and runs
 // the mechanical clauses of TOUCH-003, ACCESS-008, LAYOUT-003/ACCESS-001,
-// LAYOUT-011 and LAYOUT-020 against each capture. Writes the matrix to
+// LAYOUT-011, LAYOUT-020 and the eight machine-checkable STATUS rules
+// (STATUS-002, -004, -005, -006, -007, -008, -010, -011) against each
+// capture. Writes the matrix to
 // docs/design/audit/06-browser-check.md. It changes no application file and
 // makes no network request: every API response comes from tests/visual/fixtures.
 import fs from 'node:fs/promises';
@@ -51,7 +53,14 @@ const ZOOM_SCREENS = new Set([
   'S-46', 'S-47', 'S-48', 'S-49', 'S-50', 'S-51', 'S-52', 'S-53',
 ]);
 
-const RULES = ['TOUCH-003', 'ACCESS-008', 'LAYOUT-003/ACCESS-001', 'LAYOUT-011', 'LAYOUT-020'];
+const RULES = [
+  'TOUCH-003', 'ACCESS-008', 'LAYOUT-003/ACCESS-001', 'LAYOUT-011', 'LAYOUT-020',
+  // Category 17 — Status & Data Display. The other six STATUS rules are manual
+  // review and are deliberately absent: a rule with no mechanical clause must
+  // not appear in the matrix as a pass.
+  'STATUS-002', 'STATUS-004', 'STATUS-005', 'STATUS-006', 'STATUS-007',
+  'STATUS-008', 'STATUS-010', 'STATUS-011',
+];
 
 function parseArgs(argv) {
   const out = { screens: null, variants: null, headed: false, concurrency: 4, reportOnly: false };
@@ -170,6 +179,21 @@ async function runCapture(context, origin, screen, variant, tokens, stubState) {
     // Page-scoped rules
     result.rules['LAYOUT-003/ACCESS-001'] = await page.evaluate(() => window.__FL_AUDIT.horizontalOverflow());
 
+    // Category 17 — Status & Data Display. All eight are region-scoped: they
+    // ask about what this screen renders, and the region is what the screen is.
+    // STATUS-008 needs the variant's CSS width because its clause is desktop-only
+    // and window.innerWidth on the zoom variants is the zoomed width, not 1440.
+    const sel = screen.region || null;
+    result.rules['STATUS-002'] = await page.evaluate(s => window.__FL_AUDIT.nominalBadges(s), sel);
+    result.rules['STATUS-004'] = await page.evaluate(s => window.__FL_AUDIT.alarmsPerRow(s), sel);
+    result.rules['STATUS-005'] = await page.evaluate(s => window.__FL_AUDIT.explainHooks(s), sel);
+    result.rules['STATUS-006'] = await page.evaluate(s => window.__FL_AUDIT.numberFormat(s), sel);
+    result.rules['STATUS-007'] = await page.evaluate(s => window.__FL_AUDIT.orphanPlaceholders(s), sel);
+    result.rules['STATUS-008'] = await page.evaluate(
+      ([s, w]) => window.__FL_AUDIT.rowHeights(s, { width: w }), [sel, variant.width]);
+    result.rules['STATUS-010'] = await page.evaluate(s => window.__FL_AUDIT.devVocabulary(s), sel);
+    result.rules['STATUS-011'] = await page.evaluate(s => window.__FL_AUDIT.repeatedSentences(s), sel);
+
     // Screenshot before the occlusion probe scrolls the page to its end.
     // Viewport capture with the screen's region scrolled into view — what the
     // user actually sees at this width, sticky chrome included. An element-clip
@@ -264,6 +288,47 @@ export function verdict(rule, data) {
       return data.coveredCount === 0
         ? { status: 'PASS', detail: `${data.bars.length} fixed/sticky bar${data.bars.length === 1 ? '' : 's'}; last row of every scroll region reachable` }
         : { status: 'FAIL', detail: `${data.coveredCount} actionable element${data.coveredCount === 1 ? '' : 's'} behind a fixed bar` };
+    // ── Category 17 — Status & Data Display ──────────────────────────────
+    case 'STATUS-002':
+      if (!data.checked) return { status: 'N/A', detail: 'no chip-shaped element in this region' };
+      return data.failures === 0
+        ? { status: 'PASS', detail: `${data.checked} chips, none a coloured nominal badge` }
+        : { status: 'FAIL', detail: `${data.failures}/${data.checked} chips announce a nominal value in colour` };
+    case 'STATUS-004':
+      if (!data.applicable) return { status: 'N/A', detail: data.reason };
+      if (!data.checked) return { status: 'N/A', detail: 'no list row in this region' };
+      return data.failures === 0
+        ? { status: 'PASS', detail: `${data.checked} rows, at most one alarm each (worst ${data.maxAlarms})` }
+        : { status: 'FAIL', detail: `${data.failures}/${data.checked} rows carry more than one alarm (worst ${data.maxAlarms})` };
+    case 'STATUS-005':
+      if (!data.checked) return { status: 'N/A', detail: 'no chip-shaped element in this region' };
+      return data.failures === 0
+        ? { status: 'PASS', detail: `${data.checked} chips carry the data-explain hook` }
+        : { status: 'FAIL', detail: `${data.failures}/${data.checked} chips have no explanation hook (${data.titleOnly} rely on title=)` };
+    case 'STATUS-006': {
+      if (!data.checked && !data.alignedCells) return { status: 'N/A', detail: 'no rendered number in this region' };
+      if (data.failures === 0) return { status: 'PASS', detail: `${data.checked} numbers, all formatted` };
+      const kinds = Object.entries(data.byKind || {}).map(([k, n]) => `${k} ${n}`).join(', ');
+      return { status: 'FAIL', detail: `${data.failures} formatting failures (${kinds})` };
+    }
+    case 'STATUS-007':
+      return data.failures === 0
+        ? { status: 'PASS', detail: 'no dash-only element outside a table cell' }
+        : { status: 'FAIL', detail: `${data.failures} orphan placeholder${data.failures === 1 ? '' : 's'}` };
+    case 'STATUS-008':
+      if (!data.applicable) return { status: 'N/A', detail: data.reason };
+      if (!data.checked) return { status: 'N/A', detail: 'no list row in this region' };
+      return data.failures === 0
+        ? { status: 'PASS', detail: `${data.checked} rows, tallest ${data.tallest}px` }
+        : { status: 'FAIL', detail: `${data.failures}/${data.checked} rows over 56px (tallest ${data.tallest}px)` };
+    case 'STATUS-010':
+      return data.failures === 0
+        ? { status: 'PASS', detail: `${data.checked} text elements, no implementation vocabulary` }
+        : { status: 'FAIL', detail: `${data.failures} element${data.failures === 1 ? '' : 's'} use developer vocabulary` };
+    case 'STATUS-011':
+      return data.failures === 0
+        ? { status: 'PASS', detail: `${data.checked} sentences, none repeated` }
+        : { status: 'FAIL', detail: `${data.failures} sentence${data.failures === 1 ? '' : 's'} rendered more than once (${data.repeatedInstances} extra renders)` };
     case 'LAYOUT-020': {
       if (!data.applicable) return { status: 'N/A', detail: data.reason };
       if (!data.clsSupported) return { status: 'ERROR', detail: 'layout-shift observer unavailable' };
