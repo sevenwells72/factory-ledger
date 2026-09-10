@@ -671,8 +671,26 @@ taking the caller's locks would break the invariant silently.
 > `_release_active_allocations()` / `_shrink_active_allocations()` as if they
 > established their own position in the lock order. **They do not.** They are
 > inherited-prelock functions (D5, D6): they lock only `sales_order_allocations`
-> rows, and they are at "step 3" solely because every caller has already taken
-> steps 1 and 3's product lock. The corrected wording is in D5/D6 above.
+> rows, and they sit at "step 3" only because of what their caller already
+> holds. The corrected wording is in D5/D6 above.
+>
+> **And "every caller holds step 1" is not true.** `release_sales_order_allocation()`
+> (A16) calls `_release_active_allocations()` holding **only** the product
+> lock — it reads the order unlocked and never takes the order row. So D5's
+> requirement is caller-dependent, not universal:
+>
+> * the exits and the legacy PATCH reach it holding the order row (A5) **and**
+>   the product lock (A3/A4);
+> * `cancel_order_line()` reaches it holding the order row, the line, and the
+>   product (A11);
+> * `release_sales_order_allocation()` reaches it holding the product lock
+>   alone (A16).
+>
+> The last case is safe because it never reaches *backwards* for an order or
+> line lock afterwards, so it cannot invert against a 1 → 2 → 3 writer — but it
+> is a genuine exception to the pattern, not an instance of it, and anything
+> that added an order-row or line lock to that path *after* the product lock
+> would create an inversion.
 
 ---
 
@@ -708,15 +726,38 @@ Mutation-verified: removing the row lock from `ship_order`, from
 `_load_allocatable_line` or from `add_order_lines`, with the state check left
 in place, fails the assertion.
 
-**`TestNoDeadlock`** — two writers forced to overlap by a holder parked on the
-resource they contend on at the step *after* their first lock, so both are
-parked while holding partial lock sets. Each asserts both backends are parked
-behind the holder before it releases.
+**`TestNoDeadlock`** — two writers staged into a specific interleaving by
+parked holders, then released.
+
+Being precise about what this does and does not establish, because the
+distinction matters:
+
+* **What a holder does.** It drives each writer to a known step and stops it
+  there, so the two are provably overlapping and holding partial lock sets
+  when they are released. It removes the schedule-dependence that made the
+  earlier version of these tests pass vacuously — one writer simply finishing
+  before the other started.
+* **What the chain assertion establishes.** Each test asserts the *shape* of
+  the resulting blocking graph, not merely that both writers are blocked
+  somewhere. That shape is what differs between the current lock order and the
+  pre-fix one, which is why these tests fail under the mutations rather than
+  surviving them.
+* **What a passing test does NOT establish.** That the pre-fix code would have
+  deadlocked on this schedule is *not* proved by the test passing — a test
+  that passes says only that the current code completes. The counter-evidence
+  comes from the mutation table in the PR body: each mutation restores one
+  piece of the pre-fix locking and the corresponding test then fails, twice of
+  the three with Postgres reporting SQLSTATE **40P01** outright.
+* **What none of them establish.** Absence of deadlock in general. These are
+  four specific schedules over sales-order write paths. They are not a proof
+  of deadlock freedom across all interleavings, and they say nothing at all
+  about `make` / `pack` / `reassign_lot`.
 
 > Postgres reports only the **direct** blocker. When two writers queue on the
-> same rows, the first names the holder and the second names the first, so the
-> check follows the blocking chain rather than demanding every writer name the
-> holder directly.
+> same rows, the first names the holder and the second names the first, so
+> reachability checks follow the blocking chain; where a test needs one
+> specific link — "the exit is blocked *by the reduction*" — it pins that
+> direct edge instead.
 
 **These are transaction-body concurrency tests, not request-identical.** They
 call the endpoint *functions* directly rather than issuing HTTP requests, so
