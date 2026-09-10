@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-10 13:05 — SO state model: Phase A discovery findings (Phase B paused)
+- **File(s) changed:** `docs/design/so-state-model-findings.md`
+- **What changed:** Read-only discovery for the orthogonal sales-order state model (stored State + administrative exits, derived Fulfillment, tiered Health) on branch `feat/so-state-model`. Documented all 7 writers of `sales_orders.status` / `sales_order_lines.line_status`, all 15 backend readers that branch on status plus the two divergent definitions of "open", the dashboard and openapi-gpt-v3.yaml consumers, the `sales_orders_status_check` constraint, next migration number (051), the allocation release path and its in-row audit columns, the reusable effective-quantity SQL, and the test-harness setup for this clone. No application file touched.
+- **Why:** Phase A of the state-model task. Phase B (migration + endpoints + tests) is paused: finding A4 contradicts the task's `[ASSUMED]` premise that a surface-level actor can be derived from the API key on every write path. `verify_api_key` returns a bare `True`, so `_operator_id()` yields the constant `'legacy-shared-key'` on every call — a placeholder three existing tests explicitly forbid — and the sanctioned `caller_source_tag()` returns NULL for master-key calls. `state_changed_by` has no correct source until the owner rules on it (real attribution is unbuilt FR-15).
+
+---
+
 ## 2026-09-09 11:19 — Railway watch paths confirmed: docs-only push skipped (FACTORY row 129)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Recorded the first watch-path test result. The docs-only push `a865478` (row 129 DEPLOYED) produced Railway deployment record `38940a52` with status SKIPPED at 15:15:18Z; no build ran, deployment `0d6e3d92` (merge `f951070`) stayed live, and `/health` remained HTTP 200 throughout. Row 129 updated in place with the same result. This commit is a second docs-only push and is expected to be skipped as well.
