@@ -127,6 +127,11 @@ COMMENT ON COLUMN public.sales_orders.status_before_exit IS
 -- through ledger_current_transactions with effective_status = 'posted' —
 -- over non-cancelled lines only.
 --
+-- now() (transaction start) rather than clock_timestamp() is deliberate here:
+-- every backfilled row should carry the same stamp, because they were all
+-- decided by one event. The API path uses clock_timestamp() instead, so two
+-- state changes in one request are distinguishable.
+--
 -- Idempotent: skipped entirely once any migration-051 marker row exists.
 -- ─────────────────────────────────────────────────────────────────
 
