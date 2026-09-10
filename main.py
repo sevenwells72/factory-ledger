@@ -13576,7 +13576,12 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
 
 
 @app.patch("/sales/orders/{order_id}/lines/{line_id}/cancel")
-def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = Path(...), _: bool = Depends(verify_api_key)):
+def cancel_order_line(
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    line_id: int = Path(...),
+    _: bool = Depends(verify_api_key),
+):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -13597,12 +13602,17 @@ def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = 
                 if not row:
                     raise HTTPException(404, "Line not found or already fulfilled")
                 _lock_allocation_product(cur, int(row['product_id']))
-                _expire_auto_fifo_allocations(cur, int(row['product_id']), _operator_id(_))
+                # released_by comes from caller_source_tag, the same source the
+                # manual release endpoint uses — never the shared-key operator
+                # placeholder, which is the constant 'legacy-shared-key' on 100%
+                # of calls and puts a second, incompatible kind of value in this
+                # column.
+                _expire_auto_fifo_allocations(cur, int(row['product_id']), caller_source_tag(request))
                 released = _release_active_allocations(
                     cur,
                     line_id=line_id,
                     reason='line_cancelled',
-                    released_by=_operator_id(_),
+                    released_by=caller_source_tag(request),
                 )
                 return {"order_id": order_id, "line_id": line_id, "line_status": "cancelled",
                         "allocations_released": released, "message": "Line cancelled"}
@@ -13742,7 +13752,12 @@ def update_order_line(
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/sales/orders/{order_id}/ship")
-def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+def ship_order(
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    req: Optional[ShipOrderRequest] = None,
+    _: bool = Depends(verify_api_key),
+):
     """Ship against a sales order. mode=preview returns feasibility; mode=commit executes and creates shipment record."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at if req else None,
@@ -13923,12 +13938,15 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                         for item in lines_to_ship:
                             if item["is_service"]:
                                 continue
+                            # As on every other allocation write: a surface
+                            # tag, never the 'legacy-shared-key' placeholder.
+                            # See caller_source_tag()'s docstring.
                             plan = _sales_order_ship_plan(
                                 cur,
                                 int(item["product_id"]),
                                 int(item["line_id"]),
                                 float(item["quantity_lb"]),
-                                released_by=_operator_id(_),
+                                released_by=caller_source_tag(request),
                                 lock=True,
                                 persist_expired=False,
                             )
@@ -14003,7 +14021,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                             int(item["product_id"]),
                             int(item["line_id"]),
                             qty_to_ship,
-                            released_by=_operator_id(_),
+                            released_by=caller_source_tag(request),
                         )
                         actual_ship = float(plan["actual_ship_lb"])
                         if actual_ship <= BALANCE_EPSILON:
@@ -14176,14 +14194,24 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
     return adjust(req, _)
 
 @app.post("/sales/orders/{order_id}/ship/preview", include_in_schema=False)
-def ship_order_preview(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+def ship_order_preview(
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    req: Optional[ShipOrderRequest] = None,
+    _: bool = Depends(verify_api_key),
+):
     if req is None:
         req = ShipOrderRequest()
     req.mode = "preview"
-    return ship_order(order_id, req, _)
+    return ship_order(request, order_id, req, _)
 
 @app.post("/sales/orders/{order_id}/ship/commit", operation_id="commitShipOrder")
-def commit_ship_order(req: CommitShipOrderRequest, order_id: int = Depends(resolve_order_id), _: bool = Depends(verify_api_key)):
+def commit_ship_order(
+    req: CommitShipOrderRequest,
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    _: bool = Depends(verify_api_key),
+):
     """Always commit a sales-order shipment through the shared ship_order service."""
     commit_req = ShipOrderRequest(
         mode="commit",
@@ -14192,7 +14220,7 @@ def commit_ship_order(req: CommitShipOrderRequest, order_id: int = Depends(resol
         occurred_at=req.occurred_at,
         backfill=req.backfill,
     )
-    return ship_order(order_id, commit_req, _)
+    return ship_order(request, order_id, commit_req, _)
 
 
 # ═══════════════════════════════════════════════════════════════

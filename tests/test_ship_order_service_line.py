@@ -32,6 +32,18 @@ from main import (
 )
 
 
+class _StubRequest:
+    """Just enough Request for caller_source_tag(): it reads one header.
+
+    ship_order / commit_ship_order now take the request so released_by can
+    carry a real surface tag instead of the 'legacy-shared-key' placeholder.
+    """
+
+    def __init__(self, api_key=None):
+        self.headers = {"X-API-Key": api_key} if api_key else {}
+
+
+
 class _ConnProxy:
     """Wrap a real psycopg2 connection so commit()/rollback() operate on
     an inner SAVEPOINT. The outer `db_cursor` fixture rolls back the enclosing
@@ -171,6 +183,7 @@ def test_full_stock_plus_service_ships_order(db_cursor, ship_order_db):
     seeded = _seed(db_cursor, stock_lb=100, physical_qty_lb=100)
 
     resp = commit_ship_order(
+        request=_StubRequest(),
         order_id=seeded["order_id"],
         req=CommitShipOrderRequest(ship_all=True),
         _=True,
@@ -200,6 +213,7 @@ def test_partial_stock_plus_service_still_fulfills_service(db_cursor, ship_order
     seeded = _seed(db_cursor, stock_lb=50, physical_qty_lb=100)
 
     resp = commit_ship_order(
+        request=_StubRequest(),
         order_id=seeded["order_id"],
         req=CommitShipOrderRequest(ship_all=True),
         _=True,
@@ -228,6 +242,7 @@ def test_service_only_order_raises_zero_shipment(db_cursor, ship_order_db):
 
     with pytest.raises(HTTPException) as exc_info:
         ship_order(
+            request=_StubRequest(),
             order_id=seeded["order_id"],
             req=ShipOrderRequest(mode="commit", ship_all=True),
             _=True,
@@ -247,6 +262,7 @@ def test_ship_order_preview_makes_no_changes(db_cursor, ship_order_db):
     seeded = _seed(db_cursor, stock_lb=100, physical_qty_lb=100)
 
     resp = ship_order_preview(
+        request=_StubRequest(),
         order_id=seeded["order_id"],
         req=ShipOrderRequest(mode="preview", ship_all=True),
         _=True,
@@ -266,6 +282,7 @@ def test_commit_route_rejects_quantity_over_remaining(db_cursor, ship_order_db):
 
     with pytest.raises(HTTPException) as exc_info:
         commit_ship_order(
+            request=_StubRequest(),
             order_id=seeded["order_id"],
             req=CommitShipOrderRequest(
                 lines=[ShipOrderLineRequest(line_id=seeded["physical_line_id"], quantity_lb=101)]
@@ -282,6 +299,7 @@ def test_commit_route_rejects_quantity_over_remaining(db_cursor, ship_order_db):
 def test_commit_route_preserves_already_fulfilled_409s(db_cursor, ship_order_db):
     seeded = _seed(db_cursor, stock_lb=100, physical_qty_lb=100)
     commit_ship_order(
+        request=_StubRequest(),
         order_id=seeded["order_id"],
         req=CommitShipOrderRequest(ship_all=True),
         _=True,
@@ -289,6 +307,7 @@ def test_commit_route_preserves_already_fulfilled_409s(db_cursor, ship_order_db)
 
     with pytest.raises(HTTPException) as line_exc:
         commit_ship_order(
+            request=_StubRequest(),
             order_id=seeded["order_id"],
             req=CommitShipOrderRequest(
                 lines=[ShipOrderLineRequest(line_id=seeded["physical_line_id"], quantity_lb=1)]
@@ -300,6 +319,7 @@ def test_commit_route_preserves_already_fulfilled_409s(db_cursor, ship_order_db)
 
     with pytest.raises(HTTPException) as order_exc:
         commit_ship_order(
+            request=_StubRequest(),
             order_id=seeded["order_id"],
             req=CommitShipOrderRequest(ship_all=True),
             _=True,
