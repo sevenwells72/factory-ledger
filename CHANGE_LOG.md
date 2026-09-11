@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-11 — PR #46 backend deployed before PR #45 dashboard
+
+- **Deploy order:** PR #46, the backend half of #45, merged as `7947324` and deployed on Railway on 2026-09-11. PR #45 then merged as `fbe9c0d`, and the Sales Orders list redesign deployed on Netlify on 2026-09-11.
+- **What changed:** The backend supplies effective list totals and pallet `line_status`, with state-based overdue and Ready gating. The dashboard uses those semantics for tabs, orthogonal columns, popovers, and close/cancel/reopen dialogs. FACTORY_LEDGER_CHANGELOG rows 132–138 are now marked **DEPLOYED 2026-09-11**, with rows 139–140 recording these two merges; Railway auto-deploys `main` when `.py` files change.
+- **Why:** The backend had to be live first so the redesigned dashboard could read the effective quantities and pallet line state and use the authoritative order-state rules for overdue and Ready actions from its first production load.
+
+---
+
 ## 2026-09-11 08:57 — Completed Sales Orders PR validation with explicit refresh-audit qualification
 
 - **File(s) changed:** `docs/design/audit/pr-screenshots/feat-so-list-redesign/`, `docs/design/audit/06-browser-check.md`.
