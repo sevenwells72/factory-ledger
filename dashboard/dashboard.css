@@ -1427,7 +1427,9 @@ body {
 #orders-customer-search::placeholder, #er-text-filter::placeholder { color: var(--text-muted); }
 #orders-customer-search:focus, #er-text-filter:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
-.orders-overdue-toggle {
+
+/* Shared checkbox refinements on Expected Receipts and Supplies. */
+.filter-checkbox {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -1436,7 +1438,7 @@ body {
   cursor: pointer;
   white-space: nowrap;
 }
-.orders-overdue-toggle input { cursor: pointer; accent-color: var(--primary); }
+.filter-checkbox input { cursor: pointer; accent-color: var(--primary); }
 
 .orders-dispatch-summary {
   color: var(--text-muted);

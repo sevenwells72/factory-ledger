@@ -3,8 +3,9 @@
   'use strict';
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const formats = {
-    number: new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }),
-    pallets: new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    number: new Intl.NumberFormat('en-US', { maximumFractionDigits: 0, roundingMode: 'halfExpand' }),
+    pallets: new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1, roundingMode: 'halfExpand' }),
+    money: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', roundingMode: 'halfExpand' }),
   };
   const number = (value, kind = 'number') => value == null || !Number.isFinite(Number(value)) ? '—' : (formats[kind] || formats.number).format(Number(value));
   const pounds = value => number(value) + ' lb';
@@ -22,9 +23,10 @@
     if (text === '—') return { attrs: info.attrs, content: '—' + info.content };
     return `<button type="button" class="so-explain-trigger ${className}" ${info.attrs}${label ? ` aria-label="${escape(label)}"` : ''}>${text}</button>${info.content}`;
   }
-  function healthContent(order) {
+  function healthContent(order, { omitAllocationNote = false } = {}) {
     const health = order.health || {};
-    let html = (health.reasons || []).map(paragraph).join('') + (health.info || []).map(paragraph).join('');
+    const copy = value => omitAllocationNote ? String(value).replace(/\s*\(allocations not enforced\)/gi, '') : value;
+    let html = (health.reasons || []).map(copy).map(paragraph).join('') + (health.info || []).map(copy).map(paragraph).join('');
     if (health.info_detail?.length) html += '<details><summary>Show allocation details</summary><ul>' + health.info_detail.map(line => `<li>${escape(line.product_name || line.sku || 'Line')}${line.product_name && line.sku ? ' (' + escape(line.sku) + ')' : ''}: ${pounds(line.unallocated_lb)} not allocated</li>`).join('') + '</ul></details>';
     return html;
   }
@@ -119,5 +121,5 @@
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && active) { const anchor = active.anchor; const focusInside = active.panel.contains(document.activeElement); closeExplanation(); if (focusInside) { anchor.focus(); closeExplanation(); } event.stopPropagation(); } });
   window.addEventListener('resize', closeExplanation);
   window.addEventListener('scroll', event => { if (active && !active.panel.contains(event.target)) closeExplanation(); }, true);
-  window.SOList = {number,row,bindExplanations,closeExplanation};
+  window.SOList = {number,row,bindExplanations,closeExplanation,explanation,trigger,healthContent,paragraph,stamp,date,reasons};
 })();

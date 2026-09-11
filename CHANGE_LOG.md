@@ -1,5 +1,48 @@
 # Change Log
 
+## 2026-09-11 10:49 — Complete Sales Order detail final audit (NOT DEPLOYED)
+
+- **Files changed:** `docs/design/audit/06-browser-check.md` and `docs/design/audit/pr-screenshots/feat-so-detail-redesign/`.
+- **What changed:** Saved canonical full before/after audits (388 captures each, zero runner errors), both implementation review passes, targeted interactions, screenshots, raw measurements, and comparison tables. Final list/detail have zero failures across all 13 rules. All 22 new other-screen LAYOUT-020 cells reproduce on frozen `12b01b6` with matching settled geometry in separate diagnostics; there are no other new failures. Canonical matrices and every diagnostic sample are retained.
+- **Validation:** 848 Python tests, 64 JavaScript tests, 36 detail interactions, 70 shared-exit checks, 26 list layout cases, and both list interaction widths pass. Exactly two implementation review passes were used; application changes stopped at `c0eed1c`. Blubber’s Netlify preview approval remains pending.
+- **Why:** Supply the requested merge evidence without hiding existing refresh-paint timing noise or changing audit thresholds. No backend files changed and production is not deployed.
+
+---
+
+## 2026-09-11 — Correct detail interaction edge cases before final rendered review (NOT DEPLOYED)
+
+- **Files changed:** `dashboard/dashboard.js`, `dashboard/so-detail.css`, browser asset references, `tests/test_batch_a_ui.js`, detail interaction tests and shipping-preview fixture.
+- **What changed:** Preserve existing Ready notes when opening an order directly or through a related-order link, loading missing flag metadata before writing. Related links now have real record URLs and preserve modified-click navigation. Service effective shipments show “Not tracked”; inventory pallet differences retain sign and fractions. Shipping warnings use structured quantities through SOList.number. Detail quantity/price edit inputs meet the 44px touch target.
+- **Validation:** Final targeted checks pass: **64 JavaScript tests, 36 detail interaction checks, 70 shared-exit checks, 26 list layout cases, and both list interaction widths**. The full second visual audit is running. The first 388-capture audit had zero requested STATUS failures in list/detail; baseline timing diagnostics remain separate from canonical results.
+- **Why:** Address the complete first-review findings in one correction window; no third implementation pass. Asset references are refreshed on index and auxiliary pages.
+
+---
+
+## 2026-09-11 — Implement Sales Order detail case summary and shared exit actions (NOT DEPLOYED)
+
+- **Files changed:** `dashboard/dashboard.js`, `dashboard/so-list.js`, `dashboard/so-list-actions.js`, `dashboard/so-detail.css`, dashboard styles and asset versions, visual fixtures/scripts, and `tests/test_batch_a_ui.js`.
+- **What changed:** Separated State, Ready to ship, Fulfillment, and Health; added shared explanations, effective line quantities, neutral allocation information, exit provenance and related-order navigation. Reused preview/commit exits with detail and list-count refresh. Removed legacy sales-order status readers and repeated copy; shared SOList.number formats quantities and pallets. Kept Expected Receipts/Supplies checkbox styling under a generic class while deleting the removed list control CSS.
+- **Validation:** First rendered review in progress; 848 Python and 62 JavaScript tests pass. Visual fixtures now carry authoritative state/fulfillment/health; README records the shipped-order inconsistency correction and stronger shipping-preview coverage.
+- **Why:** Make the detail page explain the same independent facts as the list without backend changes. Existing backend header-edit status gating remains a documented limitation.
+
+---
+
+## 2026-09-11 — Restore full Python regression coverage for additive pallet line state
+
+- **File changed:** `tests/test_sales_order_line_fields.py`.
+- **What changed:** Added `line_status: pending` to the exact expected pallet-line response already supplied by PR #46. Full local database suite: **848 passed**, using the pinned Python 3.12 environment from the dev checkout. The first run exposed the stale expectation (847 passed, one failure).
+- **Why:** Preserve the full response assertion while recognizing the deployed additive field used to exclude cancelled lines. No backend change.
+
+---
+
+## 2026-09-11 — Sales Order detail specification and list Step 3.1 (NOT DEPLOYED)
+
+- **Files changed:** `docs/design/sales-order-detail-spec.md`, `dashboard/`, related test tooling and audit evidence.
+- **What changed:** Committed the design specification first; moved list sorting/resizing into its table heading, removed Hide ready to ship, and changed calendar order filtering to authoritative state. Detail implementation and validation are tracked in the entries below as completed.
+- **Why:** Keep state, fulfillment, readiness, and health independent across the Sales Orders screen family and make every condition explainable. Backend files and production deployment are outside scope.
+
+---
+
 ## 2026-09-11 — PR #46 backend deployed before PR #45 dashboard
 
 - **Deploy order:** PR #46, the backend half of #45, merged as `7947324` and deployed on Railway on 2026-09-11. PR #45 then merged as `fbe9c0d`, and the Sales Orders list redesign deployed on Netlify on 2026-09-11.

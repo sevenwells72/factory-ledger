@@ -113,8 +113,8 @@ try{
   assert.deepEqual(await ids(page),[101]);
   await page.locator('#orders-customer-search').fill('');await page.locator('#orders-customer-search').press('Enter');await loaded(page);
   await page.waitForFunction(()=>document.querySelectorAll('#orders-table-container .order-row').length===9);
-  await page.getByLabel('Hide ready to ship',{exact:true}).check();assert.deepEqual(await ids(page),[101,103,105,106,108]);
-  await page.getByLabel('Hide ready to ship',{exact:true}).uncheck();
+  assert.equal(await page.getByLabel('Hide ready to ship',{exact:true}).count(),0,'Ready membership is controlled by the Ready to ship tab');
+  assert.equal(await page.locator('#section-orders > .section-header .table-tools').count(),1,'Sort and Resize belong in the table header');
   const orderTrigger=page.locator('.order-row[data-order-id="101"] > td:nth-child(2) [data-explain]').first();
   await checkExplanation(page,orderTrigger,width===390?'tap':'hover');
   if(width===1440)await checkExplanation(page,orderTrigger,'focus');

@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=43">
+  <link rel="stylesheet" href="dashboard.css?v=44">
   <link rel="stylesheet" href="mini-calendar.css?v=5">
   <link rel="stylesheet" href="interaction.css?v=2">
-  <link rel="stylesheet" href="shell-layout.css?v=5">
-  <link rel="stylesheet" href="so-list.css?v=1">
+  <link rel="stylesheet" href="shell-layout.css?v=6">
+  <link rel="stylesheet" href="so-list.css?v=2">
   <link rel="stylesheet" href="so-list-actions.css?v=1">
-  <script src="design-controls.js?v=2"></script>
+  <link rel="stylesheet" href="so-detail.css?v=2">
+  <script src="design-controls.js?v=3"></script>
 </head>
 <body>
 
@@ -348,7 +349,6 @@
       <div class="orders-toolbar">
         <div class="orders-filters">
           <input type="text" id="orders-customer-search" aria-label="Filter customers" placeholder="Filter by customer…" autocomplete="off">
-          <label class="orders-overdue-toggle"><input type="checkbox" id="orders-hide-ready"> Hide ready to ship</label>
         </div>
         <div class="orders-toolbar-actions">
           <button id="so-new-btn" class="btn-refresh" title="Create a sales order from a customer PO photo or PDF">New Sales Order</button>
@@ -359,6 +359,7 @@
 
       <section class="section" id="section-orders" role="tabpanel" aria-labelledby="so-tab-open">
         <p id="orders-refinement-summary" class="so-refinement-summary" aria-live="polite"></p>
+        <div class="section-header so-table-header"><h2>Sales Orders</h2><div id="orders-table-tools"></div></div>
         <div id="orders-table-container"></div>
         <div id="orders-error" class="error-msg hidden"></div>
       </section>
@@ -387,7 +388,7 @@
           <option value="all">All</option>
         </select>
         <input type="text" id="er-text-filter" placeholder="Filter by product / supplier / reference..." autocomplete="off">
-        <label class="orders-overdue-toggle">
+        <label class="filter-checkbox">
           <input type="checkbox" id="er-overdue-only"> Overdue only
         </label>
         <span id="er-summary" class="er-summary"></span>
@@ -443,7 +444,7 @@
       <div class="section-header supplies-requests-header">
         <h2>Supply Requests <span class="supplies-count-badge" id="supply-requests-open-count" aria-label="0 open supply requests">0</span></h2>
         <div class="supplies-request-controls">
-          <label class="orders-overdue-toggle">
+          <label class="filter-checkbox">
             <input type="checkbox" id="supply-requests-show-done"> Show completed
           </label>
           <button id="supply-requests-refresh-btn" class="btn-sm" type="button">Refresh</button>
@@ -690,12 +691,12 @@
   </div>
 
   <script src="fetch-timeout.js?v=1"></script>
-  <script src="mini-calendar.js?v=6"></script>
+  <script src="mini-calendar.js?v=7"></script>
   <script src="pallet-calculations.js?v=1"></script>
   <script src="intake-logic.js?v=12"></script>
-  <script src="so-list.js?v=1"></script>
-  <script src="so-list-actions.js?v=1"></script>
-  <script src="dashboard.js?v=60"></script>
+  <script src="so-list.js?v=2"></script>
+  <script src="so-list-actions.js?v=2"></script>
+  <script src="dashboard.js?v=62"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
   <script src="shell.js?v=2"></script>
 </body>

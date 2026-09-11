@@ -1,0 +1,125 @@
+........................................................................ [  8%]
+........................................................................ [ 16%]
+........................................................................ [ 25%]
+........................................................................ [ 33%]
+........................................................................ [ 42%]
+........................................................................ [ 50%]
+........................................................................ [ 59%]
+........................................................................ [ 67%]
+........................................................................ [ 76%]
+........................................................................ [ 84%]
+........................................................................ [ 93%]
+........................................................                 [100%]
+=============================== warnings summary ===============================
+main.py:2306
+  /Users/michaelgross/Documents/factory-ledger/main.py:2306: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../../dev/factory-ledger/.venv-test/lib/python3.12/site-packages/fastapi/applications.py:4547
+../../dev/factory-ledger/.venv-test/lib/python3.12/site-packages/fastapi/applications.py:4547
+  /Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/fastapi/applications.py:4547: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+main.py:2330
+  /Users/michaelgross/Documents/factory-ledger/main.py:2330: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+main.py:3222
+  /Users/michaelgross/Documents/factory-ledger/main.py:3222: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("category")
+
+main.py:3228
+  /Users/michaelgross/Documents/factory-ledger/main.py:3228: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("priority")
+
+main.py:3243
+  /Users/michaelgross/Documents/factory-ledger/main.py:3243: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("priority")
+
+main.py:3249
+  /Users/michaelgross/Documents/factory-ledger/main.py:3249: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("status")
+
+main.py:3339
+  /Users/michaelgross/Documents/factory-ledger/main.py:3339: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator('unit', pre=True, always=True)
+
+main.py:3343
+  /Users/michaelgross/Documents/factory-ledger/main.py:3343: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator('quantity_lb', always=True, pre=True)
+
+main.py:3325
+  /Users/michaelgross/Documents/factory-ledger/main.py:3325: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderLineInput(BaseModel):
+
+../../dev/factory-ledger/.venv-test/lib/python3.12/site-packages/pydantic/_internal/_config.py:386
+tests/test_batch1_correctness_security.py::test_admin_sql_route_is_removed
+  /Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/pydantic/_internal/_config.py:386: UserWarning: Valid config keys have changed in V2:
+  * 'underscore_attrs_are_private' has been removed
+    warnings.warn(message, UserWarning)
+
+main.py:3411
+  /Users/michaelgross/Documents/factory-ledger/main.py:3411: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CommitShipOrderRequest(InventoryWriteRequest):
+
+tests/test_audit_savepoints_lotcodes.py: 13 warnings
+tests/test_batch1_correctness_security.py: 4 warnings
+tests/test_daily_entries.py: 6 warnings
+tests/test_dashboard_api_key.py: 7 warnings
+tests/test_expected_receipt_extract.py: 68 warnings
+tests/test_expected_receipts.py: 18 warnings
+tests/test_inventory_occurred_at.py: 5 warnings
+tests/test_lot_identity_047.py: 16 warnings
+tests/test_notes_auth.py: 8 warnings
+tests/test_orders_matrix_export.py: 8 warnings
+tests/test_phase1_ledger_integrity.py: 6 warnings
+tests/test_production_today_tile.py: 1 warning
+tests/test_production_warning.py: 6 warnings
+tests/test_recent_ledger.py: 11 warnings
+tests/test_released_by_attribution.py: 7 warnings
+tests/test_sales_order_allocations.py: 45 warnings
+tests/test_sales_order_extract.py: 47 warnings
+tests/test_sales_order_line_fields.py: 4 warnings
+tests/test_sales_order_readiness.py: 16 warnings
+tests/test_sales_order_state_model.py: 94 warnings
+tests/test_supplies.py: 12 warnings
+tests/test_trace_emission.py: 22 warnings
+tests/test_write_response_contract.py: 25 warnings
+  /Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/httpx/_client.py:690: DeprecationWarning: The 'app' shortcut is now deprecated. Use the explicit style 'transport=WSGITransport(app=...)' instead.
+    warnings.warn(message, DeprecationWarning)
+
+tests/test_expected_receipt_extract.py::TestExtractEndpoint::test_magic_bytes_override_claimed_mime
+  /Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/reportlab/lib/rl_safe_eval.py:11: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    haveNameConstant = hasattr(ast,'NameConstant')
+
+tests/test_expected_receipt_extract.py: 13 warnings
+  /Users/michaelgross/Documents/factory-ledger/main.py:6639: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    return match_extraction(cur, req.extraction.dict())
+
+tests/test_expected_receipts.py: 10 warnings
+  /Users/michaelgross/Documents/factory-ledger/main.py:5544: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    data = req.dict(exclude_unset=True)
+
+tests/test_notes_auth.py::test_notes_update_with_key
+tests/test_notes_auth.py::test_notes_domain_errors_unchanged_with_key
+tests/test_write_response_contract.py::test_note_update_success_and_id
+  /Users/michaelgross/Documents/factory-ledger/main.py:16238: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    data = req.dict(exclude_unset=True)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+848 passed, 490 warnings in 24.91s

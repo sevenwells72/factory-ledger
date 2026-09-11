@@ -1,0 +1,2709 @@
+{
+  "phase": "after",
+  "baselineHead": "12b01b6be30c194af2de60fcb50d47a5ed32780a",
+  "canonicalBeforeGeneratedAt": "2026-09-11T14:25:08.991Z",
+  "afterGeneratedAt": "2026-09-11T14:44:27.941Z",
+  "diagnostics": [
+    {
+      "file": "before-refresh-diagnostic-1.json",
+      "generatedAt": "2026-09-11T14:34:41.067Z",
+      "captures": 56,
+      "errors": []
+    },
+    {
+      "file": "before-refresh-diagnostic-2.json",
+      "generatedAt": "2026-09-11T14:37:05.248Z",
+      "captures": 56,
+      "errors": []
+    },
+    {
+      "file": "before-refresh-diagnostic-3.json",
+      "generatedAt": "2026-09-11T14:38:01.289Z",
+      "captures": 15,
+      "errors": []
+    },
+    {
+      "file": "before-refresh-diagnostic-4.json",
+      "generatedAt": "2026-09-11T14:38:28.465Z",
+      "captures": 6,
+      "errors": []
+    },
+    {
+      "file": "before-refresh-diagnostic-5.json",
+      "generatedAt": "2026-09-11T14:45:38.630Z",
+      "captures": 16,
+      "errors": []
+    },
+    {
+      "file": "before-refresh-diagnostic-6.json",
+      "generatedAt": "2026-09-11T14:46:56.335Z",
+      "captures": 9,
+      "errors": []
+    }
+  ],
+  "newTimingFailureCells": 22,
+  "reproduced": 22,
+  "unreproduced": [],
+  "rows": [
+    {
+      "id": "S-01",
+      "variant": "1440-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 97,
+        "anchorsAfter": 100,
+        "moved": 6,
+        "vanished": 45,
+        "maxDeltaPx": 5,
+        "worst": [
+          {
+            "key": "SUMMARY   Reference calendar",
+            "dx": 5,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  mini-calendar-nav Previous month",
+            "dx": 5,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  mini-calendar-nav Next month",
+            "dx": 5,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON health-badge health-badge.health-yellow Health score 86 out of 100. ",
+            "dx": 5,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON theme-toggle btn-theme Switch to dark appearance",
+            "dx": 5,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON refresh-btn btn-refresh Refresh",
+            "dx": 5,
+            "dy": 0
+          }
+        ]
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.2893,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 97,
+        "anchorsAfter": 100,
+        "moved": 0,
+        "vanished": 45,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [
+        "moved",
+        "maxDeltaPx",
+        "worst"
+      ],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2892, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2892,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2893, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2893,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-3.json",
+          "status": "WARN",
+          "detail": "CLS 0.2219, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2219,
+            "shiftEntries": 4,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-01",
+      "variant": "1440-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 97,
+        "anchorsAfter": 100,
+        "moved": 0,
+        "vanished": 45,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.2958,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 97,
+        "anchorsAfter": 100,
+        "moved": 0,
+        "vanished": 45,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "PASS",
+          "detail": "CLS 0.001, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.001,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "WARN",
+          "detail": "CLS 0.1101, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.1101,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-3.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2957, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2957,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-02",
+      "variant": "390-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4003,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4003, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4003,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4003, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4003,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-5.json",
+          "status": "PASS",
+          "detail": "CLS 0.0011, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0011,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-02",
+      "variant": "1440-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0047,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 97,
+        "anchorsAfter": 100,
+        "moved": 0,
+        "vanished": 45,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.2581,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 97,
+        "anchorsAfter": 100,
+        "moved": 0,
+        "vanished": 45,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "PASS",
+          "detail": "CLS 0.0047, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0047,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "WARN",
+          "detail": "CLS 0.2281, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2281,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-5.json",
+          "status": "PASS",
+          "detail": "CLS 0.0046, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0046,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-6.json",
+          "status": "FAIL",
+          "detail": "CLS 0.3157, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.3157,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-02b",
+      "variant": "390-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 121,
+        "anchorsAfter": 122,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4003,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 121,
+        "anchorsAfter": 122,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-5.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4003, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4003,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-02b",
+      "variant": "1440-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 97,
+        "anchorsAfter": 100,
+        "moved": 0,
+        "vanished": 45,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.3158,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 97,
+        "anchorsAfter": 100,
+        "moved": 0,
+        "vanished": 45,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-5.json",
+          "status": "PASS",
+          "detail": "CLS 0.0047, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0047,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-6.json",
+          "status": "FAIL",
+          "detail": "CLS 0.3451, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.3451,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 97,
+            "anchorsAfter": 100,
+            "moved": 0,
+            "vanished": 45,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-03",
+      "variant": "390-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4003,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4075, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4075,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4075, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4075,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 7,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": [
+            "vanished"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S-03",
+      "variant": "390-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4075,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4075, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4075,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "PASS",
+          "detail": "CLS 0, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0,
+            "shiftEntries": 0,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-3.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4075, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4075,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-04",
+      "variant": "390-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 96,
+        "anchorsAfter": 91,
+        "moved": 0,
+        "vanished": 93,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4075,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 96,
+        "anchorsAfter": 91,
+        "moved": 0,
+        "vanished": 93,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "PASS",
+          "detail": "CLS 0.0011, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0011,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 96,
+            "anchorsAfter": 91,
+            "moved": 0,
+            "vanished": 93,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4003, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4003,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 96,
+            "anchorsAfter": 91,
+            "moved": 0,
+            "vanished": 93,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-3.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4003, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4003,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 96,
+            "anchorsAfter": 91,
+            "moved": 0,
+            "vanished": 93,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-04",
+      "variant": "1440-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0012,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 104,
+        "anchorsAfter": 101,
+        "moved": 1,
+        "vanished": 97,
+        "maxDeltaPx": 3,
+        "worst": [
+          {
+            "key": "BUTTON  field-clear Clear search all records",
+            "dx": 3,
+            "dy": 0
+          }
+        ]
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.2902,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 104,
+        "anchorsAfter": 101,
+        "moved": 0,
+        "vanished": 97,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [
+        "moved",
+        "maxDeltaPx",
+        "worst"
+      ],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2975, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2975,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 104,
+            "anchorsAfter": 101,
+            "moved": 0,
+            "vanished": 97,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "PASS",
+          "detail": "CLS 0, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0,
+            "shiftEntries": 0,
+            "clsSupported": true,
+            "anchorsBefore": 104,
+            "anchorsAfter": 101,
+            "moved": 0,
+            "vanished": 97,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-3.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2975, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2975,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 104,
+            "anchorsAfter": 101,
+            "moved": 0,
+            "vanished": 97,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-4.json",
+          "status": "WARN",
+          "detail": "CLS 0.1105, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.1105,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 104,
+            "anchorsAfter": 101,
+            "moved": 0,
+            "vanished": 97,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-05",
+      "variant": "390-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4003,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-5.json",
+          "status": "PASS",
+          "detail": "CLS 0.0011, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0011,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-6.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4075, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4075,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-06",
+      "variant": "390-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4003,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 90,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "PASS",
+          "detail": "CLS 0.0011, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0011,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4075, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4075,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 89,
+            "anchorsAfter": 90,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-10",
+      "variant": "390-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 114,
+        "anchorsAfter": 115,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4003,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 114,
+        "anchorsAfter": 115,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-5.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4075, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4075,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 114,
+            "anchorsAfter": 115,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-11",
+      "variant": "390-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 105,
+        "anchorsAfter": 103,
+        "moved": 6,
+        "vanished": 63,
+        "maxDeltaPx": 54,
+        "worst": [
+          {
+            "key": "TH  num On Hand (lb)",
+            "dx": -54,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort On Hand (lb)",
+            "dx": -54,
+            "dy": 0
+          },
+          {
+            "key": "TH   Cases",
+            "dx": -51,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort Cases",
+            "dx": -51,
+            "dy": 0
+          },
+          {
+            "key": "TH  num Pallets",
+            "dx": -46,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort Pallets",
+            "dx": -46,
+            "dy": 0
+          }
+        ]
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.4003,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 105,
+        "anchorsAfter": 103,
+        "moved": 6,
+        "vanished": 63,
+        "maxDeltaPx": 54,
+        "worst": [
+          {
+            "key": "TH  num On Hand (lb)",
+            "dx": -54,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort On Hand (lb)",
+            "dx": -54,
+            "dy": 0
+          },
+          {
+            "key": "TH   Cases",
+            "dx": -51,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort Cases",
+            "dx": -51,
+            "dy": 0
+          },
+          {
+            "key": "TH  num Pallets",
+            "dx": -46,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort Pallets",
+            "dx": -46,
+            "dy": 0
+          }
+        ]
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "WARN",
+          "detail": "CLS 0.0011, 6 element(s) moved, max 54px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0011,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 105,
+            "anchorsAfter": 103,
+            "moved": 6,
+            "vanished": 63,
+            "maxDeltaPx": 54,
+            "worst": [
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": -54,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": -54,
+                "dy": 0
+              },
+              {
+                "key": "TH   Cases",
+                "dx": -51,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort Cases",
+                "dx": -51,
+                "dy": 0
+              },
+              {
+                "key": "TH  num Pallets",
+                "dx": -46,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort Pallets",
+                "dx": -46,
+                "dy": 0
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "WARN",
+          "detail": "CLS 0.0011, 6 element(s) moved, max 54px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0011,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 105,
+            "anchorsAfter": 103,
+            "moved": 6,
+            "vanished": 63,
+            "maxDeltaPx": 54,
+            "worst": [
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": -54,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": -54,
+                "dy": 0
+              },
+              {
+                "key": "TH   Cases",
+                "dx": -51,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort Cases",
+                "dx": -51,
+                "dy": 0
+              },
+              {
+                "key": "TH  num Pallets",
+                "dx": -46,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort Pallets",
+                "dx": -46,
+                "dy": 0
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-3.json",
+          "status": "FAIL",
+          "detail": "CLS 0.4003, 6 element(s) moved, max 54px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.4003,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 105,
+            "anchorsAfter": 103,
+            "moved": 6,
+            "vanished": 63,
+            "maxDeltaPx": 54,
+            "worst": [
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": -54,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": -54,
+                "dy": 0
+              },
+              {
+                "key": "TH   Cases",
+                "dx": -51,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort Cases",
+                "dx": -51,
+                "dy": 0
+              },
+              {
+                "key": "TH  num Pallets",
+                "dx": -46,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort Pallets",
+                "dx": -46,
+                "dy": 0
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-12",
+      "variant": "1440-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.224,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 102,
+        "anchorsAfter": 100,
+        "moved": 4,
+        "vanished": 40,
+        "maxDeltaPx": 65,
+        "worst": [
+          {
+            "key": "TH  num On Hand (lb)",
+            "dx": 65,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort On Hand (lb)",
+            "dx": 65,
+            "dy": 0
+          },
+          {
+            "key": "TH   Est. Batches",
+            "dx": -49,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort Est. Batches",
+            "dx": -49,
+            "dy": 0
+          }
+        ]
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.2892,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 102,
+        "anchorsAfter": 100,
+        "moved": 4,
+        "vanished": 40,
+        "maxDeltaPx": 65,
+        "worst": [
+          {
+            "key": "TH  num On Hand (lb)",
+            "dx": 65,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort On Hand (lb)",
+            "dx": 65,
+            "dy": 0
+          },
+          {
+            "key": "TH   Est. Batches",
+            "dx": -49,
+            "dy": 0
+          },
+          {
+            "key": "BUTTON  table-sort Est. Batches",
+            "dx": -49,
+            "dy": 0
+          }
+        ]
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2892, 4 element(s) moved, max 65px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2892,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 102,
+            "anchorsAfter": 100,
+            "moved": 4,
+            "vanished": 40,
+            "maxDeltaPx": 65,
+            "worst": [
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 65,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 65,
+                "dy": 0
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": -49,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": -49,
+                "dy": 0
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2893, 4 element(s) moved, max 65px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2893,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 102,
+            "anchorsAfter": 100,
+            "moved": 4,
+            "vanished": 40,
+            "maxDeltaPx": 65,
+            "worst": [
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 65,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 65,
+                "dy": 0
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": -49,
+                "dy": 0
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": -49,
+                "dy": 0
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-13",
+      "variant": "1440-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 111,
+        "anchorsAfter": 112,
+        "moved": 0,
+        "vanished": 59,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.2893,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 111,
+        "anchorsAfter": 112,
+        "moved": 0,
+        "vanished": 59,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2892, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2892,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 111,
+            "anchorsAfter": 112,
+            "moved": 0,
+            "vanished": 59,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2893, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2893,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 111,
+            "anchorsAfter": 112,
+            "moved": 0,
+            "vanished": 59,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-16",
+      "variant": "390-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 73,
+        "anchorsAfter": 74,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.5736,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 73,
+        "anchorsAfter": 74,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.5606, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.5606,
+            "shiftEntries": 4,
+            "clsSupported": true,
+            "anchorsBefore": 73,
+            "anchorsAfter": 74,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "PASS",
+          "detail": "CLS 0.0011, nothing moved (#refresh-btn)",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.0011,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 73,
+            "anchorsAfter": 74,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-16",
+      "variant": "390-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0011,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 73,
+        "anchorsAfter": 74,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.5606,
+        "shiftEntries": 4,
+        "clsSupported": true,
+        "anchorsBefore": 73,
+        "anchorsAfter": 74,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.5736, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.5736,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 73,
+            "anchorsAfter": 74,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.5142, 0 element(s) moved, max 0px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.5142,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 73,
+            "anchorsAfter": 74,
+            "moved": 0,
+            "vanished": 6,
+            "maxDeltaPx": 0,
+            "worst": []
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-17",
+      "variant": "390-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0606,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 74,
+        "anchorsAfter": 74,
+        "moved": 1,
+        "vanished": 28,
+        "maxDeltaPx": 105,
+        "worst": [
+          {
+            "key": "BUTTON  show-more-btn Show all (5 more)",
+            "dx": 0,
+            "dy": -105
+          }
+        ]
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.5736,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 74,
+        "anchorsAfter": 74,
+        "moved": 1,
+        "vanished": 28,
+        "maxDeltaPx": 105,
+        "worst": [
+          {
+            "key": "BUTTON  show-more-btn Show all (5 more)",
+            "dx": 0,
+            "dy": -105
+          }
+        ]
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.5736, 1 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.5736,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 74,
+            "anchorsAfter": 74,
+            "moved": 1,
+            "vanished": 28,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "BUTTON  show-more-btn Show all (5 more)",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.5606, 1 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.5606,
+            "shiftEntries": 4,
+            "clsSupported": true,
+            "anchorsBefore": 74,
+            "anchorsAfter": 74,
+            "moved": 1,
+            "vanished": 28,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "BUTTON  show-more-btn Show all (5 more)",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-18",
+      "variant": "390-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.0606,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 74,
+        "anchorsAfter": 74,
+        "moved": 1,
+        "vanished": 9,
+        "maxDeltaPx": 106,
+        "worst": [
+          {
+            "key": "BUTTON  show-more-btn Show all (3 more)",
+            "dx": 0,
+            "dy": -106
+          }
+        ]
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.5606,
+        "shiftEntries": 4,
+        "clsSupported": true,
+        "anchorsBefore": 74,
+        "anchorsAfter": 74,
+        "moved": 1,
+        "vanished": 9,
+        "maxDeltaPx": 106,
+        "worst": [
+          {
+            "key": "BUTTON  show-more-btn Show all (3 more)",
+            "dx": 0,
+            "dy": -106
+          }
+        ]
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.5606, 1 element(s) moved, max 106px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.5606,
+            "shiftEntries": 4,
+            "clsSupported": true,
+            "anchorsBefore": 74,
+            "anchorsAfter": 74,
+            "moved": 1,
+            "vanished": 9,
+            "maxDeltaPx": 106,
+            "worst": [
+              {
+                "key": "BUTTON  show-more-btn Show all (3 more)",
+                "dx": 0,
+                "dy": -106
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.5736, 1 element(s) moved, max 106px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.5736,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 74,
+            "anchorsAfter": 74,
+            "moved": 1,
+            "vanished": 9,
+            "maxDeltaPx": 106,
+            "worst": [
+              {
+                "key": "BUTTON  show-more-btn Show all (3 more)",
+                "dx": 0,
+                "dy": -106
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-55",
+      "variant": "1440-light",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.001,
+        "shiftEntries": 2,
+        "clsSupported": true,
+        "anchorsBefore": 121,
+        "anchorsAfter": 122,
+        "moved": 15,
+        "vanished": 62,
+        "maxDeltaPx": 105,
+        "worst": [
+          {
+            "key": "INPUT   On Hand (lb) column width",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "INPUT   Est. Batches column width",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH   Batch",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort Batch",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH  num On Hand (lb)",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort On Hand (lb)",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH   Est. Batches",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort Est. Batches",
+            "dx": 0,
+            "dy": -105
+          }
+        ]
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.2892,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 121,
+        "anchorsAfter": 122,
+        "moved": 15,
+        "vanished": 62,
+        "maxDeltaPx": 105,
+        "worst": [
+          {
+            "key": "INPUT   On Hand (lb) column width",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "INPUT   Est. Batches column width",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH   Batch",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort Batch",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH  num On Hand (lb)",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort On Hand (lb)",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH   Est. Batches",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort Est. Batches",
+            "dx": 0,
+            "dy": -105
+          }
+        ]
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "WARN",
+          "detail": "CLS 0.001, 15 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.001,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 15,
+            "vanished": 62,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "INPUT   On Hand (lb) column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "INPUT   Est. Batches column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2892, 15 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2892,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 15,
+            "vanished": 62,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "INPUT   On Hand (lb) column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "INPUT   Est. Batches column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-3.json",
+          "status": "WARN",
+          "detail": "CLS 0, 15 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0,
+            "shiftEntries": 0,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 15,
+            "vanished": 62,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "INPUT   On Hand (lb) column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "INPUT   Est. Batches column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-4.json",
+          "status": "WARN",
+          "detail": "CLS 0.1101, 15 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.1101,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 15,
+            "vanished": 62,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "INPUT   On Hand (lb) column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "INPUT   Est. Batches column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    },
+    {
+      "id": "S-55",
+      "variant": "1440-dark",
+      "before": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 121,
+        "anchorsAfter": 122,
+        "moved": 15,
+        "vanished": 62,
+        "maxDeltaPx": 105,
+        "worst": [
+          {
+            "key": "INPUT   On Hand (lb) column width",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "INPUT   Est. Batches column width",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH   Batch",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort Batch",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH  num On Hand (lb)",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort On Hand (lb)",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH   Est. Batches",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort Est. Batches",
+            "dx": 0,
+            "dy": -105
+          }
+        ]
+      },
+      "after": {
+        "applicable": true,
+        "trigger": "#refresh-btn",
+        "cls": 0.2892,
+        "shiftEntries": 3,
+        "clsSupported": true,
+        "anchorsBefore": 121,
+        "anchorsAfter": 122,
+        "moved": 15,
+        "vanished": 62,
+        "maxDeltaPx": 105,
+        "worst": [
+          {
+            "key": "INPUT   On Hand (lb) column width",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "INPUT   Est. Batches column width",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH   Batch",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort Batch",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH  num On Hand (lb)",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort On Hand (lb)",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "TH   Est. Batches",
+            "dx": 0,
+            "dy": -105
+          },
+          {
+            "key": "BUTTON  table-sort Est. Batches",
+            "dx": 0,
+            "dy": -105
+          }
+        ]
+      },
+      "canonicalGeometryChanges": [],
+      "reproduced": true,
+      "reproducedWithIdenticalGeometry": true,
+      "samples": [
+        {
+          "file": "before-refresh-diagnostic-1.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2892, 15 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2892,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 15,
+            "vanished": 62,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "INPUT   On Hand (lb) column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "INPUT   Est. Batches column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-2.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2893, 15 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2893,
+            "shiftEntries": 3,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 15,
+            "vanished": 62,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "INPUT   On Hand (lb) column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "INPUT   Est. Batches column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-3.json",
+          "status": "FAIL",
+          "detail": "CLS 0.2958, 15 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.2958,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 15,
+            "vanished": 62,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "INPUT   On Hand (lb) column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "INPUT   Est. Batches column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        },
+        {
+          "file": "before-refresh-diagnostic-4.json",
+          "status": "WARN",
+          "detail": "CLS 0.001, 15 element(s) moved, max 105px",
+          "data": {
+            "applicable": true,
+            "trigger": "#refresh-btn",
+            "cls": 0.001,
+            "shiftEntries": 2,
+            "clsSupported": true,
+            "anchorsBefore": 121,
+            "anchorsAfter": 122,
+            "moved": 15,
+            "vanished": 62,
+            "maxDeltaPx": 105,
+            "worst": [
+              {
+                "key": "INPUT   On Hand (lb) column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "INPUT   Est. Batches column width",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Batch",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH  num On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort On Hand (lb)",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "TH   Est. Batches",
+                "dx": 0,
+                "dy": -105
+              },
+              {
+                "key": "BUTTON  table-sort Est. Batches",
+                "dx": 0,
+                "dy": -105
+              }
+            ]
+          },
+          "geometryChangesFromAfter": []
+        }
+      ]
+    }
+  ]
+}

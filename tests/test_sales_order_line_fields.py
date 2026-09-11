@@ -191,5 +191,6 @@ def test_order_list_exposes_compact_case_line_data_for_pallet_display(client, _d
         "unit_count": 24,
         "shipped_units": 0,
         "remaining_units": 24,
+        "line_status": "pending",
         "is_non_weight": False,
     }]

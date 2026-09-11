@@ -1,0 +1,182 @@
+[
+  {
+    "variant": "1440-light",
+    "check": "Four independent dimensions; keyboard explanations and single-popover dismissal",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Line explanations use matching line IDs and effective ledger pounds through SOList.number",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Partial shipment 409 offers Close and previews the suggested reason before commit",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Open/shipped Ready remains editable while header edits are locked",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Direct detail links preserve an off-page Ready note and provenance",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Detail page stays in the viewport without browser errors",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Four independent dimensions; keyboard explanations and single-popover dismissal",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Line explanations use matching line IDs and effective ledger pounds through SOList.number",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Partial shipment 409 offers Close and previews the suggested reason before commit",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Open/shipped Ready remains editable while header edits are locked",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Direct detail links preserve an off-page Ready note and provenance",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Detail page stays in the viewport without browser errors",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Four independent dimensions; keyboard explanations and single-popover dismissal",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Line explanations use matching line IDs and effective ledger pounds through SOList.number",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Partial shipment 409 offers Close and previews the suggested reason before commit",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Open/shipped Ready remains editable while header edits are locked",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Direct detail links preserve an off-page Ready note and provenance",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Detail page stays in the viewport without browser errors",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Four independent dimensions; keyboard explanations and single-popover dismissal",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Line explanations use matching line IDs and effective ledger pounds through SOList.number",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Partial shipment 409 offers Close and previews the suggested reason before commit",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Open/shipped Ready remains editable while header edits are locked",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Direct detail links preserve an off-page Ready note and provenance",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Detail page stays in the viewport without browser errors",
+    "passed": true
+  }
+]

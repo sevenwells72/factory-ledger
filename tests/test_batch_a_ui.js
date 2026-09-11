@@ -76,14 +76,57 @@ test('rolling-deploy unit labels normalize weight packages and retain count-base
 });
 
 
-test('factory preparation never masks advisory blockers or diverged closed shipments', () => {
-  const ctx=context(dashboard,['renderDispatchState','renderOrderBlockers'],{
-    SALES_ORDER_CLOSED_STATUSES:['shipped','invoiced','cancelled'],renderBlockerChips:()=> 'Shipment totals diverged',
-  });
-  assert.match(ctx.renderDispatchState({ready:true,status:'confirmed',dispatch_ready:false}),/Needs review/);
-  assert.equal(ctx.renderDispatchState({status:'shipped',fulfillment_diverged:false}),'Not applicable');
-  const diverged={status:'shipped',fulfillment_diverged:true,dispatch_ready:false};
-  assert.match(ctx.renderDispatchState(diverged),/Needs review/);
-  assert.equal(ctx.renderOrderBlockers(diverged),'Shipment totals diverged');
-  assert.equal(ctx.renderDispatchState({status:'confirmed'}),'Not checked');
+test('sales order edit gates use administrative state and effective fulfillment independently', () => {
+  const ctx=context(dashboard,['canEditOrderHeader','canEditOrderLines'],{});
+  const makeOrder=(state,fulfillment,line_status='pending')=>({state,fulfillment,lines:[{line_status}],
+    get status(){throw new Error('Legacy order status must never drive detail controls');}});
+  assert.equal(ctx.canEditOrderHeader(makeOrder('open','unshipped')),true);
+  for(const state of ['closed','cancelled']) for(const fulfillment of ['unshipped','partial','shipped']) {
+    assert.equal(ctx.canEditOrderHeader(makeOrder(state,fulfillment)),false);
+    assert.equal(ctx.canEditOrderLines(makeOrder(state,fulfillment)),false);
+  }
+  for(const fulfillment of ['partial','shipped'])assert.equal(ctx.canEditOrderHeader(makeOrder('open',fulfillment)),false);
+  assert.equal(ctx.canEditOrderLines(makeOrder('open','partial')),true);
+  assert.equal(ctx.canEditOrderLines(makeOrder('open','shipped','fulfilled')),false);
+  assert.equal(ctx.canEditOrderLines(makeOrder('open','unshipped','cancelled')),false);
+  assert.equal(ctx.canEditOrderHeader({}),false);
+});
+
+test('order line quantities use effective pounds and do not invent effective service shipments', () => {
+  const ctx=context(dashboard,['orderLineQuantities'],{});
+  const physical=ctx.orderLineQuantities({quantity_lb:1000,quantity_shipped_lb:999,
+    readiness:{ordered_lb:1000,shipped_effective_lb:250,remaining_lb:750,allocated_lb:500,unallocated_need_lb:250}});
+  assert.equal(physical.shipped,250);
+  assert.equal(physical.remaining,750);
+  const service=ctx.orderLineQuantities({is_non_weight:true,unit_quantity:3,quantity_lb:3,
+    quantity_shipped_lb:1,remaining_lb:2,readiness:{ordered_lb:null,remaining_lb:null}});
+  assert.equal(service.service,true);
+  assert.equal(service.ordered,3);
+  assert.equal(service.shipped,null,'No service effective shipment field means not tracked, not zero');
+  assert.equal(service.remaining,2);
+});
+
+test('shipping preview formats structured warning quantities and does not repeat raw backend decimals', () => {
+  const presentation=vm.createContext({document:{addEventListener(){}},window:{addEventListener(){}}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../dashboard/so-list.js'),'utf8'),presentation);
+  const ctx=context(dashboard,['renderShippingPreview'],{SOList:presentation.window.SOList,escHtml:String});
+  for(const [warning_code,reserved_taken_lb,expected,meaning] of [
+    ['STOCK_ALLOCATED',260.5,'261 lb',/blocked/i],
+    ['STOCK_ALLOCATED',0,'1,501 lb',/blocked/i],
+    ['RESERVED_STOCK_OBSERVE_ONLY',260.5,'261 lb',/advisory|does not prevent shipping/i],
+  ]) {
+    const html=ctx.renderShippingPreview({
+      warnings:['Classic Granola: only 1240.0 lb currently takeable, need 1500.0 lb'],
+      lines:[{line_id:1011,product:'Classic Granola',requested_ship_lb:1500,can_ship_lb:1240,short:260,
+        reserved_others_lb:0,reserved_by_orders:[],allocation_warning:{warning_code,
+          reserved_taken_lb,reserved_others_lb:1500.5,
+          message:'Sales-order ship would use 260.5000 lb reserved for other orders. API commit RAW_DATABASE_SECRET'}}],
+    });
+    assert.match(html,/1,500 lb/);
+    assert.match(html,/1,240 lb/);
+    assert.match(html,/Short 260 lb/i);
+    assert.ok(html.includes(expected),expected);
+    assert.match(html,meaning);
+    assert.doesNotMatch(html,/\b\d+\.\d+\s*lb|RAW_DATABASE_SECRET|API commit/);
+  }
 });

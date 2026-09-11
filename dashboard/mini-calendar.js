@@ -6,7 +6,6 @@
   const SHIP_DATES_EVENT = 'factory-ledger:ship-dates';
   const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
   const SALES_API_KEY = 'dashboard-key-2026';
-  const OPEN_ORDER_STATUSES = new Set(['new', 'confirmed', 'in_production', 'ready', 'partial_ship']);
 
   // IMP-069: below 520px the three-month strip collapses to one row — today's
   // date with a disclosure that expands the current month inline, one month
@@ -222,7 +221,7 @@
     const counts = {};
     for (const order of orders || []) {
       const shipDate = order && order.requested_ship_date;
-      if (!shipDate || !OPEN_ORDER_STATUSES.has(order.status)) continue;
+      if (!shipDate || order.state !== 'open') continue;
       counts[shipDate] = (counts[shipDate] || 0) + 1;
     }
     return counts;
