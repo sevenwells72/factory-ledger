@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-11 — Restore full Python regression coverage for additive pallet line state
+
+- **File changed:** `tests/test_sales_order_line_fields.py`.
+- **What changed:** Added `line_status: pending` to the exact expected pallet-line response already supplied by PR #46. Full local database suite: **848 passed**, using the pinned Python 3.12 environment from the dev checkout. The first run exposed the stale expectation (847 passed, one failure).
+- **Why:** Preserve the full response assertion while recognizing the deployed additive field used to exclude cancelled lines. No backend change.
+
+---
+
 ## 2026-09-11 — Sales Order detail specification and list Step 3.1 (NOT DEPLOYED)
 
 - **Files changed:** `docs/design/sales-order-detail-spec.md`, `dashboard/`, related test tooling and audit evidence.
