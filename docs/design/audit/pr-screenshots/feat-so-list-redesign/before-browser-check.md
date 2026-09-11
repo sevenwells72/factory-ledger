@@ -58,28 +58,29 @@ The STATUS rules fail on any single instance: one coloured nominal badge, one ro
 chip without the hook, one mis-formatted number, one orphan dash, one row over 56 px, one denylisted term,
 one repeated sentence.
 
-**STATUS-005 checks the MASTER-defined `data-explain` hook.** The Sales Orders list implements it;
-screens that have not yet adopted the hook still report failures, including chips that currently rely
-only on a `title` tooltip that a touch device never shows.
+**STATUS-005 fails everywhere by design.** The `data-explain` hook the rule defines is not in the product
+yet. The check is written against the markup the Sales Orders redesign will introduce, so today it reports
+the size of that work — how many chips need the hook, and how many currently rely on a `title` tooltip that
+a touch device never shows.
 
 ## Results at a glance
 
 | Rule | PASS | FAIL | WARN | n/a | err |
 |---|---:|---:|---:|---:|---:|
-| TOUCH-003 | 218 | 118 | 0 | 52 | 0 |
+| TOUCH-003 | 202 | 134 | 0 | 52 | 0 |
 | ACCESS-008 | 364 | 10 | 0 | 14 | 0 |
 | LAYOUT-003/ACCESS-001 | 384 | 4 | 0 | 0 | 0 |
 | LAYOUT-011 | 380 | 8 | 0 | 0 | 0 |
-| LAYOUT-020 | 205 | 39 | 62 | 82 | 0 |
-| STATUS-002 | 156 | 12 | 0 | 220 | 0 |
-| STATUS-004 | 56 | 74 | 0 | 258 | 0 |
-| STATUS-005 | 24 | 144 | 0 | 220 | 0 |
+| LAYOUT-020 | 213 | 39 | 54 | 82 | 0 |
+| STATUS-002 | 132 | 36 | 0 | 220 | 0 |
+| STATUS-004 | 36 | 94 | 0 | 258 | 0 |
+| STATUS-005 | 0 | 168 | 0 | 220 | 0 |
 | STATUS-006 | 184 | 58 | 0 | 146 | 0 |
-| STATUS-007 | 358 | 30 | 0 | 0 | 0 |
-| STATUS-008 | 24 | 46 | 0 | 318 | 0 |
-| STATUS-010 | 314 | 74 | 0 | 0 | 0 |
+| STATUS-007 | 346 | 42 | 0 | 0 | 0 |
+| STATUS-008 | 16 | 54 | 0 | 318 | 0 |
+| STATUS-010 | 304 | 84 | 0 | 0 | 0 |
 | STATUS-011 | 372 | 16 | 0 | 0 | 0 |
-| **All** | **3039** | **633** | **62** | **1310** | **0** |
+| **All** | **2933** | **747** | **54** | **1310** | **0** |
 
 ## Matrix — screen × rule × status
 
@@ -93,7 +94,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-01** Site navigation bar | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-01.png) |
 | **S-01** Site navigation bar | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-01.png) |
 | **S-01** Site navigation bar | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-01.png) |
-| **S-01** Site navigation bar | LAYOUT-020 | WARN | WARN | FAIL | PASS | PASS | PASS | [png](screenshots/1440-dark/S-01.png) |
+| **S-01** Site navigation bar | LAYOUT-020 | WARN | PASS | WARN | FAIL | PASS | PASS | [png](screenshots/1440-dark/S-01.png) |
 | **S-01** Site navigation bar | STATUS-002 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-01.png) |
 | **S-01** Site navigation bar | STATUS-004 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-01.png) |
 | **S-01** Site navigation bar | STATUS-005 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-01.png) |
@@ -106,7 +107,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-02** Mini-calendar strip (3-month) | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-02.png) |
 | **S-02** Mini-calendar strip (3-month) | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-02.png) |
 | **S-02** Mini-calendar strip (3-month) | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-02.png) |
-| **S-02** Mini-calendar strip (3-month) | LAYOUT-020 | FAIL | FAIL | PASS | PASS | — | — | [png](screenshots/1440-dark/S-02.png) |
+| **S-02** Mini-calendar strip (3-month) | LAYOUT-020 | FAIL | PASS | FAIL | WARN | — | — | [png](screenshots/1440-dark/S-02.png) |
 | **S-02** Mini-calendar strip (3-month) | STATUS-002 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-02.png) |
 | **S-02** Mini-calendar strip (3-month) | STATUS-004 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-02.png) |
 | **S-02** Mini-calendar strip (3-month) | STATUS-005 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-02.png) |
@@ -132,7 +133,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-03** App header | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-03.png) |
 | **S-03** App header | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-03.png) |
 | **S-03** App header | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-03.png) |
-| **S-03** App header | LAYOUT-020 | FAIL | PASS | FAIL | FAIL | PASS | PASS | [png](screenshots/1440-dark/S-03.png) |
+| **S-03** App header | LAYOUT-020 | FAIL | FAIL | FAIL | PASS | PASS | PASS | [png](screenshots/1440-dark/S-03.png) |
 | **S-03** App header | STATUS-002 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-03.png) |
 | **S-03** App header | STATUS-004 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-03.png) |
 | **S-03** App header | STATUS-005 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-03.png) |
@@ -145,7 +146,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-04** Global search field + results dropdown | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-04.png) |
 | **S-04** Global search field + results dropdown | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-04.png) |
 | **S-04** Global search field + results dropdown | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-04.png) |
-| **S-04** Global search field + results dropdown | LAYOUT-020 | PASS | PASS | WARN | PASS | — | — | [png](screenshots/1440-dark/S-04.png) |
+| **S-04** Global search field + results dropdown | LAYOUT-020 | FAIL | PASS | FAIL | PASS | — | — | [png](screenshots/1440-dark/S-04.png) |
 | **S-04** Global search field + results dropdown | STATUS-002 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-04.png) |
 | **S-04** Global search field + results dropdown | STATUS-004 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-04.png) |
 | **S-04** Global search field + results dropdown | STATUS-005 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-04.png) |
@@ -158,7 +159,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-05** Tab bar (7 tabs) | ACCESS-008 | n/a | n/a | PASS | PASS | n/a | n/a | [png](screenshots/1440-dark/S-05.png) |
 | **S-05** Tab bar (7 tabs) | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-05.png) |
 | **S-05** Tab bar (7 tabs) | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-05.png) |
-| **S-05** Tab bar (7 tabs) | LAYOUT-020 | PASS | PASS | WARN | FAIL | PASS | PASS | [png](screenshots/1440-dark/S-05.png) |
+| **S-05** Tab bar (7 tabs) | LAYOUT-020 | FAIL | FAIL | FAIL | WARN | PASS | PASS | [png](screenshots/1440-dark/S-05.png) |
 | **S-05** Tab bar (7 tabs) | STATUS-002 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-05.png) |
 | **S-05** Tab bar (7 tabs) | STATUS-004 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-05.png) |
 | **S-05** Tab bar (7 tabs) | STATUS-005 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-05.png) |
@@ -171,7 +172,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-06** Today So Far tile | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-06.png) |
 | **S-06** Today So Far tile | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-06.png) |
 | **S-06** Today So Far tile | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-06.png) |
-| **S-06** Today So Far tile | LAYOUT-020 | FAIL | PASS | WARN | PASS | PASS | PASS | [png](screenshots/1440-dark/S-06.png) |
+| **S-06** Today So Far tile | LAYOUT-020 | FAIL | FAIL | FAIL | FAIL | PASS | PASS | [png](screenshots/1440-dark/S-06.png) |
 | **S-06** Today So Far tile | STATUS-002 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-06.png) |
 | **S-06** Today So Far tile | STATUS-004 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-06.png) |
 | **S-06** Today So Far tile | STATUS-005 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-06.png) |
@@ -184,20 +185,20 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-07** Today So Far — error/retry state | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-07.png) |
-| **S-07** Today So Far — error/retry state | LAYOUT-020 | PASS | PASS | WARN | PASS | PASS | PASS | [png](screenshots/1440-dark/S-07.png) |
+| **S-07** Today So Far — error/retry state | LAYOUT-020 | WARN | WARN | WARN | WARN | PASS | PASS | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | STATUS-002 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | STATUS-004 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | STATUS-005 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | STATUS-006 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | STATUS-007 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | STATUS-008 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-07.png) |
-| **S-07** Today So Far — error/retry state | STATUS-010 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-07.png) |
+| **S-07** Today So Far — error/retry state | STATUS-010 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-07.png) |
 | **S-07** Today So Far — error/retry state | STATUS-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-07.png) |
 | **S-08** Production Calendar (rolling 5-day) | TOUCH-003 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-08.png) |
 | **S-08** Production Calendar (rolling 5-day) | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-08.png) |
 | **S-08** Production Calendar (rolling 5-day) | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-08.png) |
 | **S-08** Production Calendar (rolling 5-day) | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-08.png) |
-| **S-08** Production Calendar (rolling 5-day) | LAYOUT-020 | PASS | FAIL | FAIL | WARN | PASS | PASS | [png](screenshots/1440-dark/S-08.png) |
+| **S-08** Production Calendar (rolling 5-day) | LAYOUT-020 | FAIL | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-08.png) |
 | **S-08** Production Calendar (rolling 5-day) | STATUS-002 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-08.png) |
 | **S-08** Production Calendar (rolling 5-day) | STATUS-004 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-08.png) |
 | **S-08** Production Calendar (rolling 5-day) | STATUS-005 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-08.png) |
@@ -210,7 +211,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-09** Production Calendar — day detail panel | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-09.png) |
 | **S-09** Production Calendar — day detail panel | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-09.png) |
 | **S-09** Production Calendar — day detail panel | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-09.png) |
-| **S-09** Production Calendar — day detail panel | LAYOUT-020 | FAIL | FAIL | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-09.png) |
+| **S-09** Production Calendar — day detail panel | LAYOUT-020 | FAIL | PASS | PASS | FAIL | PASS | PASS | [png](screenshots/1440-dark/S-09.png) |
 | **S-09** Production Calendar — day detail panel | STATUS-002 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-09.png) |
 | **S-09** Production Calendar — day detail panel | STATUS-004 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-09.png) |
 | **S-09** Production Calendar — day detail panel | STATUS-005 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-09.png) |
@@ -223,7 +224,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-10** Finished Goods On-Hand — collapsible panels | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-10.png) |
 | **S-10** Finished Goods On-Hand — collapsible panels | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-10.png) |
 | **S-10** Finished Goods On-Hand — collapsible panels | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-10.png) |
-| **S-10** Finished Goods On-Hand — collapsible panels | LAYOUT-020 | FAIL | PASS | WARN | WARN | PASS | PASS | [png](screenshots/1440-dark/S-10.png) |
+| **S-10** Finished Goods On-Hand — collapsible panels | LAYOUT-020 | PASS | PASS | WARN | PASS | PASS | PASS | [png](screenshots/1440-dark/S-10.png) |
 | **S-10** Finished Goods On-Hand — collapsible panels | STATUS-002 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-10.png) |
 | **S-10** Finished Goods On-Hand — collapsible panels | STATUS-004 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-10.png) |
 | **S-10** Finished Goods On-Hand — collapsible panels | STATUS-005 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-10.png) |
@@ -236,7 +237,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-11** Finished Goods — per-product lot breakdown | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-11.png) |
 | **S-11** Finished Goods — per-product lot breakdown | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-11.png) |
 | **S-11** Finished Goods — per-product lot breakdown | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-11.png) |
-| **S-11** Finished Goods — per-product lot breakdown | LAYOUT-020 | WARN | FAIL | WARN | WARN | PASS | PASS | [png](screenshots/1440-dark/S-11.png) |
+| **S-11** Finished Goods — per-product lot breakdown | LAYOUT-020 | WARN | FAIL | FAIL | WARN | PASS | PASS | [png](screenshots/1440-dark/S-11.png) |
 | **S-11** Finished Goods — per-product lot breakdown | STATUS-002 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-11.png) |
 | **S-11** Finished Goods — per-product lot breakdown | STATUS-004 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-11.png) |
 | **S-11** Finished Goods — per-product lot breakdown | STATUS-005 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-11.png) |
@@ -249,7 +250,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-12** Batch Inventory On-Hand | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-12.png) |
 | **S-12** Batch Inventory On-Hand | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-12.png) |
 | **S-12** Batch Inventory On-Hand | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-12.png) |
-| **S-12** Batch Inventory On-Hand | LAYOUT-020 | FAIL | WARN | FAIL | WARN | WARN | WARN | [png](screenshots/1440-dark/S-12.png) |
+| **S-12** Batch Inventory On-Hand | LAYOUT-020 | WARN | WARN | FAIL | FAIL | WARN | WARN | [png](screenshots/1440-dark/S-12.png) |
 | **S-12** Batch Inventory On-Hand | STATUS-002 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-12.png) |
 | **S-12** Batch Inventory On-Hand | STATUS-004 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-12.png) |
 | **S-12** Batch Inventory On-Hand | STATUS-005 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-12.png) |
@@ -262,7 +263,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-13** On-Hand Ingredients | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-13.png) |
 | **S-13** On-Hand Ingredients | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-13.png) |
 | **S-13** On-Hand Ingredients | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-13.png) |
-| **S-13** On-Hand Ingredients | LAYOUT-020 | FAIL | FAIL | FAIL | WARN | PASS | PASS | [png](screenshots/1440-dark/S-13.png) |
+| **S-13** On-Hand Ingredients | LAYOUT-020 | FAIL | FAIL | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-13.png) |
 | **S-13** On-Hand Ingredients | STATUS-002 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-13.png) |
 | **S-13** On-Hand Ingredients | STATUS-004 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-13.png) |
 | **S-13** On-Hand Ingredients | STATUS-005 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-13.png) |
@@ -295,13 +296,13 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-15** Recent Entries — loading / empty / error states | STATUS-006 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-15.png) |
 | **S-15** Recent Entries — loading / empty / error states | STATUS-007 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-15.png) |
 | **S-15** Recent Entries — loading / empty / error states | STATUS-008 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-15.png) |
-| **S-15** Recent Entries — loading / empty / error states | STATUS-010 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-15.png) |
+| **S-15** Recent Entries — loading / empty / error states | STATUS-010 | FAIL | FAIL | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-15.png) |
 | **S-15** Recent Entries — loading / empty / error states | STATUS-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-15.png) |
 | **S-16** Daily Entries + day/mode toolbar | TOUCH-003 | FAIL | FAIL | PASS | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-16** Daily Entries + day/mode toolbar | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-16** Daily Entries + day/mode toolbar | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-16** Daily Entries + day/mode toolbar | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
-| **S-16** Daily Entries + day/mode toolbar | LAYOUT-020 | FAIL | FAIL | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-16.png) |
+| **S-16** Daily Entries + day/mode toolbar | LAYOUT-020 | FAIL | FAIL | PASS | FAIL | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-16** Daily Entries + day/mode toolbar | STATUS-002 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-16** Daily Entries + day/mode toolbar | STATUS-004 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-16.png) |
 | **S-16** Daily Entries + day/mode toolbar | STATUS-005 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-16.png) |
@@ -314,7 +315,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-17** Shipping log | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-17.png) |
 | **S-17** Shipping log | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-17.png) |
 | **S-17** Shipping log | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-17.png) |
-| **S-17** Shipping log | LAYOUT-020 | FAIL | WARN | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-17.png) |
+| **S-17** Shipping log | LAYOUT-020 | WARN | FAIL | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-17.png) |
 | **S-17** Shipping log | STATUS-002 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-17.png) |
 | **S-17** Shipping log | STATUS-004 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-17.png) |
 | **S-17** Shipping log | STATUS-005 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-17.png) |
@@ -353,7 +354,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-20** Notes list (cards) | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-20.png) |
 | **S-20** Notes list (cards) | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-20.png) |
 | **S-20** Notes list (cards) | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-20.png) |
-| **S-20** Notes list (cards) | LAYOUT-020 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-20.png) |
+| **S-20** Notes list (cards) | LAYOUT-020 | PASS | PASS | PASS | WARN | — | — | [png](screenshots/1440-dark/S-20.png) |
 | **S-20** Notes list (cards) | STATUS-002 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-20.png) |
 | **S-20** Notes list (cards) | STATUS-004 | FAIL | FAIL | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-20.png) |
 | **S-20** Notes list (cards) | STATUS-005 | FAIL | FAIL | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-20.png) |
@@ -379,7 +380,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-22** Dialog — Note create/edit modal | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
 | **S-22** Dialog — Note create/edit modal | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
 | **S-22** Dialog — Note create/edit modal | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
-| **S-22** Dialog — Note create/edit modal | LAYOUT-020 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
+| **S-22** Dialog — Note create/edit modal | LAYOUT-020 | PASS | PASS | WARN | PASS | — | — | [png](screenshots/1440-dark/S-22.png) |
 | **S-22** Dialog — Note create/edit modal | STATUS-002 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-22.png) |
 | **S-22** Dialog — Note create/edit modal | STATUS-004 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-22.png) |
 | **S-22** Dialog — Note create/edit modal | STATUS-005 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-22.png) |
@@ -402,58 +403,58 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-24** Orders toolbar | STATUS-008 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-24.png) |
 | **S-24** Orders toolbar | STATUS-010 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-24.png) |
 | **S-24** Orders toolbar | STATUS-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-24.png) |
-| **S-25** Orders list table | TOUCH-003 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
+| **S-25** Orders list table | TOUCH-003 | FAIL | FAIL | PASS | PASS | FAIL | FAIL | [png](screenshots/1440-dark/S-25.png) |
 | **S-25** Orders list table | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
 | **S-25** Orders list table | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
 | **S-25** Orders list table | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
 | **S-25** Orders list table | LAYOUT-020 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
-| **S-25** Orders list table | STATUS-002 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
-| **S-25** Orders list table | STATUS-004 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
-| **S-25** Orders list table | STATUS-005 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
+| **S-25** Orders list table | STATUS-002 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-25.png) |
+| **S-25** Orders list table | STATUS-004 | FAIL | FAIL | FAIL | FAIL | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
+| **S-25** Orders list table | STATUS-005 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-25.png) |
 | **S-25** Orders list table | STATUS-006 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
 | **S-25** Orders list table | STATUS-007 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
-| **S-25** Orders list table | STATUS-008 | n/a | n/a | PASS | PASS | n/a | n/a | [png](screenshots/1440-dark/S-25.png) |
+| **S-25** Orders list table | STATUS-008 | n/a | n/a | FAIL | FAIL | n/a | n/a | [png](screenshots/1440-dark/S-25.png) |
 | **S-25** Orders list table | STATUS-010 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
 | **S-25** Orders list table | STATUS-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-25.png) |
-| **S-26** Orders list — Ready to ship tab | TOUCH-003 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | LAYOUT-020 | PASS | PASS | WARN | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | STATUS-002 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | STATUS-004 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | STATUS-005 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | STATUS-006 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | STATUS-007 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | STATUS-008 | n/a | n/a | PASS | PASS | n/a | n/a | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | STATUS-010 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-26** Orders list — Ready to ship tab | STATUS-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
-| **S-27** Orders list — expandable line rows | TOUCH-003 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
+| **S-26** Orders list — Dispatch Queue mode | TOUCH-003 | FAIL | FAIL | PASS | PASS | FAIL | FAIL | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | LAYOUT-020 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | STATUS-002 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | STATUS-004 | FAIL | FAIL | FAIL | FAIL | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | STATUS-005 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | STATUS-006 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | STATUS-007 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | STATUS-008 | n/a | n/a | FAIL | FAIL | n/a | n/a | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | STATUS-010 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-26** Orders list — Dispatch Queue mode | STATUS-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-26.png) |
+| **S-27** Orders list — expandable line rows | TOUCH-003 | FAIL | FAIL | PASS | PASS | FAIL | FAIL | [png](screenshots/1440-dark/S-27.png) |
 | **S-27** Orders list — expandable line rows | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
 | **S-27** Orders list — expandable line rows | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
 | **S-27** Orders list — expandable line rows | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
-| **S-27** Orders list — expandable line rows | LAYOUT-020 | WARN | WARN | WARN | WARN | WARN | WARN | [png](screenshots/1440-dark/S-27.png) |
-| **S-27** Orders list — expandable line rows | STATUS-002 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
-| **S-27** Orders list — expandable line rows | STATUS-004 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
-| **S-27** Orders list — expandable line rows | STATUS-005 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
+| **S-27** Orders list — expandable line rows | LAYOUT-020 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
+| **S-27** Orders list — expandable line rows | STATUS-002 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-27.png) |
+| **S-27** Orders list — expandable line rows | STATUS-004 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-27.png) |
+| **S-27** Orders list — expandable line rows | STATUS-005 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-27.png) |
 | **S-27** Orders list — expandable line rows | STATUS-006 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
-| **S-27** Orders list — expandable line rows | STATUS-007 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
-| **S-27** Orders list — expandable line rows | STATUS-008 | n/a | n/a | PASS | PASS | n/a | n/a | [png](screenshots/1440-dark/S-27.png) |
+| **S-27** Orders list — expandable line rows | STATUS-007 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-27.png) |
+| **S-27** Orders list — expandable line rows | STATUS-008 | n/a | n/a | FAIL | FAIL | n/a | n/a | [png](screenshots/1440-dark/S-27.png) |
 | **S-27** Orders list — expandable line rows | STATUS-010 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
 | **S-27** Orders list — expandable line rows | STATUS-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-27.png) |
-| **S-28** Orders list — Ready to ship toggle + note | TOUCH-003 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | LAYOUT-020 | WARN | WARN | WARN | WARN | WARN | WARN | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | STATUS-002 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | STATUS-004 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | STATUS-005 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | STATUS-006 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | STATUS-007 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | STATUS-008 | n/a | n/a | PASS | PASS | n/a | n/a | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | STATUS-010 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
-| **S-28** Orders list — Ready to ship toggle + note | STATUS-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | TOUCH-003 | FAIL | FAIL | PASS | PASS | FAIL | FAIL | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | LAYOUT-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | LAYOUT-020 | PASS | PASS | PASS | WARN | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | STATUS-002 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | STATUS-004 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | STATUS-005 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | STATUS-006 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | STATUS-007 | FAIL | FAIL | FAIL | FAIL | FAIL | FAIL | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | STATUS-008 | n/a | n/a | FAIL | FAIL | n/a | n/a | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | STATUS-010 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
+| **S-28** Orders list — Factory Ready toggle + note | STATUS-011 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-28.png) |
 | **S-29** Orders list — empty state | TOUCH-003 | n/a | n/a | n/a | n/a | n/a | n/a | [png](screenshots/1440-dark/S-29.png) |
 | **S-29** Orders list — empty state | ACCESS-008 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-29.png) |
 | **S-29** Orders list — empty state | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | PASS | PASS | [png](screenshots/1440-dark/S-29.png) |
@@ -759,7 +760,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-54** Lot Detail side panel | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-54.png) |
 | **S-54** Lot Detail side panel | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-54.png) |
 | **S-54** Lot Detail side panel | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-54.png) |
-| **S-54** Lot Detail side panel | LAYOUT-020 | FAIL | FAIL | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-54.png) |
+| **S-54** Lot Detail side panel | LAYOUT-020 | FAIL | FAIL | WARN | WARN | — | — | [png](screenshots/1440-dark/S-54.png) |
 | **S-54** Lot Detail side panel | STATUS-002 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-54.png) |
 | **S-54** Lot Detail side panel | STATUS-004 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-54.png) |
 | **S-54** Lot Detail side panel | STATUS-005 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-54.png) |
@@ -772,7 +773,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-55** Lot disambiguation view | ACCESS-008 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-55.png) |
 | **S-55** Lot disambiguation view | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-55.png) |
 | **S-55** Lot disambiguation view | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-55.png) |
-| **S-55** Lot disambiguation view | LAYOUT-020 | FAIL | FAIL | WARN | FAIL | — | — | [png](screenshots/1440-dark/S-55.png) |
+| **S-55** Lot disambiguation view | LAYOUT-020 | FAIL | FAIL | WARN | WARN | — | — | [png](screenshots/1440-dark/S-55.png) |
 | **S-55** Lot disambiguation view | STATUS-002 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-55.png) |
 | **S-55** Lot disambiguation view | STATUS-004 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-55.png) |
 | **S-55** Lot disambiguation view | STATUS-005 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-55.png) |
@@ -785,7 +786,7 @@ column links the 1440px dark capture, or the first capture taken where that one 
 | **S-56** Product Detail panel (active + depleted lots) | ACCESS-008 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-56.png) |
 | **S-56** Product Detail panel (active + depleted lots) | LAYOUT-003/ACCESS-001 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-56.png) |
 | **S-56** Product Detail panel (active + depleted lots) | LAYOUT-011 | PASS | PASS | PASS | PASS | — | — | [png](screenshots/1440-dark/S-56.png) |
-| **S-56** Product Detail panel (active + depleted lots) | LAYOUT-020 | FAIL | PASS | FAIL | FAIL | — | — | [png](screenshots/1440-dark/S-56.png) |
+| **S-56** Product Detail panel (active + depleted lots) | LAYOUT-020 | FAIL | PASS | WARN | FAIL | — | — | [png](screenshots/1440-dark/S-56.png) |
 | **S-56** Product Detail panel (active + depleted lots) | STATUS-002 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-56.png) |
 | **S-56** Product Detail panel (active + depleted lots) | STATUS-004 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-56.png) |
 | **S-56** Product Detail panel (active + depleted lots) | STATUS-005 | n/a | n/a | n/a | n/a | — | — | [png](screenshots/1440-dark/S-56.png) |
@@ -1260,9 +1261,9 @@ the two carry different actions.
 | `button#ao-save` | Add | **41.4 × 26** | no | S-88 | 1440 |
 | `td > input` | — | **62 × 18** | no | S-76, S-77, S-78, S-79, S-80, S-81, S-82 | 1440 |
 | `button#btn-print` | Print | **46.7 × 26** | no | S-72, S-73 | 1440 |
+| `button.table-sort` | SKU | **28.2 × 44** | no | S-16, S-17, S-18, S-25, S-26, S-27, S-28 | 390, zoom200 |
 | `button.act.sec` | Clear baseline | **86.3 × 16** | no | S-75 | 1440 |
 | `span.lot-link` | CQ10-2609-A | **76.8 × 18** | no | S-11, S-12, S-13, S-17, S-18 | 1440, 390, zoom200 |
-| `button.table-sort` | SKU | **33.7 × 44** | no | S-16, S-17, S-18 | 390 |
 | `button#pin-cancel` | Cancel | **57.4 × 26** | no | S-86 | 1440, 390 |
 | `div.view-segments > button` | All | **39.8 × 44** | no | S-41 | 1440, 390, zoom200 |
 | `button.banner-btn` | Retry | **60.5 × 29.2** | no | S-59, S-62 | 1440, 390 |
@@ -1329,7 +1330,7 @@ fill and inherited `opacity` between the text and the first opaque surface has b
 | **S-14** Recent Entries feed | `1440-light` | 1 | `div#recent-entries-feed > article.recent-entry-card > details.record-details > a.record-link` Open TX-7107 history → | `(clipped by its own scroll region)` |
 | **S-14** Recent Entries feed | `1440-dark` | 1 | `div#recent-entries-feed > article.recent-entry-card > details.record-details > a.record-link` Open TX-7107 history → | `(clipped by its own scroll region)` |
 
-For completeness: 134 interactive elements across 60 captures were overlapped by a **top-anchored** sticky bar at maximum scroll. Each was re-probed after being parked at 60% of the viewport and each came clear, so none is a LAYOUT-011 failure — a row passing under a sticky header is what a sticky header does. They are counted here so the pass above is not read as "no bar ever overlaps anything".
+For completeness: 120 interactive elements across 54 captures were overlapped by a **top-anchored** sticky bar at maximum scroll. Each was re-probed after being parked at 60% of the viewport and each came clear, so none is a LAYOUT-011 failure — a row passing under a sticky header is what a sticky header does. They are counted here so the pass above is not read as "no bar ever overlaps anything".
 
 ### LAYOUT-020 — layout shift on refresh
 
@@ -1352,53 +1353,53 @@ because their ordinal position moved. It is a signal to look, not a finding on i
 
 | Screen | Variant | CLS | Moved | Max Δ | Anchors lost | Trigger | Worst mover |
 |---|---|---:|---:|---:|---:|---|---|
-| **S-16** Daily Entries + day/mode toolbar | `390-light` | **0.5736** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-16** Daily Entries + day/mode toolbar | `390-dark` | **0.5736** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-17** Shipping log | `390-light` | **0.5736** | 1 | 105px | 28 | #refresh-btn | BUTTON  show-more-btn Show all (5 more) (Δx 0px, Δy -105px) |
-| **S-18** Receiving log | `390-light` | **0.5606** | 1 | 106px | 9 | #refresh-btn | BUTTON  show-more-btn Show all (3 more) (Δx 0px, Δy -106px) |
-| **S-16** Daily Entries + day/mode toolbar | `1440-light` | **0.4924** | 0 | 0px | 43 | #refresh-btn | — |
-| **S-02** Mini-calendar strip (3-month) | `390-light` | **0.4075** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-03** App header | `390-light` | **0.4075** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-08** Production Calendar (rolling 5-day) | `390-dark` | **0.4075** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-16** Daily Entries + day/mode toolbar | `390-light` | **0.796** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-17** Shipping log | `390-dark` | **0.5736** | 1 | 105px | 28 | #refresh-btn | BUTTON  show-more-btn Show all (5 more) (Δx 0px, Δy -105px) |
+| **S-18** Receiving log | `390-light` | **0.5736** | 1 | 106px | 9 | #refresh-btn | BUTTON  show-more-btn Show all (3 more) (Δx 0px, Δy -106px) |
+| **S-16** Daily Entries + day/mode toolbar | `390-dark` | **0.5606** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-09** Production Calendar — day detail panel | `1440-dark` | **0.4875** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-03** App header | `390-dark` | **0.4075** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-05** Tab bar (7 tabs) | `390-light` | **0.4075** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-06** Today So Far tile | `390-light` | **0.4075** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-06** Today So Far tile | `390-dark` | **0.4075** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-09** Production Calendar — day detail panel | `390-light` | **0.4075** | 0 | 0px | 6 | #refresh-btn | — |
 | **S-11** Finished Goods — per-product lot breakdown | `390-dark` | **0.4075** | 6 | 54px | 63 | #refresh-btn | TH  num On Hand (lb) (Δx -54px, Δy 0px) |
-| **S-55** Lot disambiguation view | `390-light` | **0.4075** | 6 | 54px | 56 | #refresh-btn | TH  num On Hand (lb) (Δx -54px, Δy 0px) |
-| **S-56** Product Detail panel (active + depleted lots) | `390-light` | **0.4075** | 0 | 0px | 93 | #refresh-btn | — |
-| **S-02** Mini-calendar strip (3-month) | `390-dark` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-06** Today So Far tile | `390-light` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-09** Production Calendar — day detail panel | `390-light` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-09** Production Calendar — day detail panel | `390-dark` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-10** Finished Goods On-Hand — collapsible panels | `390-light` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
-| **S-12** Batch Inventory On-Hand | `390-light` | **0.4003** | 4 | 17px | 43 | #refresh-btn | TH   Est. Batches (Δx -17px, Δy 0px) |
-| **S-13** On-Hand Ingredients | `390-light` | **0.4003** | 0 | 0px | 19 | #refresh-btn | — |
-| **S-13** On-Hand Ingredients | `390-dark` | **0.4003** | 0 | 0px | 19 | #refresh-btn | — |
+| **S-13** On-Hand Ingredients | `390-light` | **0.4075** | 0 | 0px | 19 | #refresh-btn | — |
+| **S-13** On-Hand Ingredients | `390-dark` | **0.4075** | 0 | 0px | 19 | #refresh-btn | — |
+| **S-02** Mini-calendar strip (3-month) | `390-light` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-03** App header | `390-light` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-04** Global search field + results dropdown | `390-light` | **0.4003** | 0 | 0px | 93 | #refresh-btn | — |
+| **S-05** Tab bar (7 tabs) | `390-dark` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-08** Production Calendar (rolling 5-day) | `390-light` | **0.4003** | 0 | 0px | 6 | #refresh-btn | — |
 | **S-54** Lot Detail side panel | `390-light` | **0.4003** | 6 | 54px | 55 | #refresh-btn | TH  num On Hand (lb) (Δx -54px, Δy 0px) |
 | **S-54** Lot Detail side panel | `390-dark` | **0.4003** | 6 | 54px | 55 | #refresh-btn | TH  num On Hand (lb) (Δx -54px, Δy 0px) |
+| **S-55** Lot disambiguation view | `390-light` | **0.4003** | 6 | 54px | 56 | #refresh-btn | TH  num On Hand (lb) (Δx -54px, Δy 0px) |
 | **S-55** Lot disambiguation view | `390-dark` | **0.4003** | 6 | 54px | 56 | #refresh-btn | TH  num On Hand (lb) (Δx -54px, Δy 0px) |
+| **S-56** Product Detail panel (active + depleted lots) | `390-light` | **0.4003** | 0 | 0px | 93 | #refresh-btn | — |
 | **S-17** Shipping log | `1440-light` | **0.3556** | 8 | 104px | 56 | #refresh-btn | TR  expandable {{TODAY-0}} 09:25 AMEntered: (Δx 0px, Δy -104px) |
 | **S-17** Shipping log | `1440-dark` | **0.3414** | 8 | 104px | 56 | #refresh-btn | TR  expandable {{TODAY-0}} 09:25 AMEntered: (Δx 0px, Δy -104px) |
-| **S-16** Daily Entries + day/mode toolbar | `1440-dark` | **0.3401** | 0 | 0px | 43 | #refresh-btn | — |
+| **S-16** Daily Entries + day/mode toolbar | `1440-dark` | **0.3259** | 0 | 0px | 43 | #refresh-btn | — |
 | **S-18** Receiving log | `1440-light` | **0.3259** | 0 | 0px | 64 | #refresh-btn | — |
 | **S-18** Receiving log | `1440-dark` | **0.3259** | 0 | 0px | 64 | #refresh-btn | — |
-| **S-56** Product Detail panel (active + depleted lots) | `1440-light` | **0.2974** | 0 | 0px | 97 | #refresh-btn | — |
-| **S-56** Product Detail panel (active + depleted lots) | `1440-dark` | **0.2974** | 0 | 0px | 97 | #refresh-btn | — |
-| **S-01** Site navigation bar | `1440-light` | **0.2957** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-12** Batch Inventory On-Hand | `1440-light` | **0.2957** | 4 | 65px | 40 | #refresh-btn | TH  num On Hand (lb) (Δx 65px, Δy 0px) |
-| **S-54** Lot Detail side panel | `1440-dark` | **0.2957** | 15 | 105px | 61 | #refresh-btn | INPUT   On Hand (lb) column width (Δx 0px, Δy -105px) |
+| **S-02** Mini-calendar strip (3-month) | `1440-light` | **0.3156** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-01** Site navigation bar | `1440-dark` | **0.2957** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-05** Tab bar (7 tabs) | `1440-light` | **0.2956** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-06** Today So Far tile | `1440-light` | **0.2956** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-06** Today So Far tile | `1440-dark` | **0.2956** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-56** Product Detail panel (active + depleted lots) | `1440-dark` | **0.2902** | 1 | 6px | 97 | #refresh-btn | BUTTON  field-clear Clear search all records (Δx 6px, Δy 0px) |
+| **S-04** Global search field + results dropdown | `1440-light` | **0.2901** | 0 | 0px | 97 | #refresh-btn | — |
 | **S-03** App header | `1440-light` | **0.2892** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-03** App header | `1440-dark` | **0.2892** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-05** Tab bar (7 tabs) | `1440-dark` | **0.2892** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-08** Production Calendar (rolling 5-day) | `1440-light` | **0.2892** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-13** On-Hand Ingredients | `1440-light` | **0.2892** | 0 | 0px | 59 | #refresh-btn | — |
-| **S-54** Lot Detail side panel | `1440-light` | **0.2892** | 15 | 105px | 61 | #refresh-btn | INPUT   On Hand (lb) column width (Δx 0px, Δy -105px) |
-| **S-55** Lot disambiguation view | `1440-dark` | **0.2892** | 15 | 105px | 62 | #refresh-btn | INPUT   On Hand (lb) column width (Δx 0px, Δy -105px) |
-| **S-02b** Mini-calendar — expanded month (phone) | `1440-light` | **0.2484** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-11** Finished Goods — per-product lot breakdown | `1440-light` | **0.2892** | 16 | 105px | 45 | #refresh-btn | INPUT   On Hand (lb) column width (Δx 0px, Δy -105px) |
+| **S-12** Batch Inventory On-Hand | `1440-light` | **0.2892** | 4 | 65px | 40 | #refresh-btn | TH  num On Hand (lb) (Δx 65px, Δy 0px) |
+| **S-12** Batch Inventory On-Hand | `1440-dark` | **0.2892** | 4 | 65px | 40 | #refresh-btn | TH  num On Hand (lb) (Δx 65px, Δy 0px) |
 | **S-07** Today So Far — error/retry state | `1440-light` | **0.2351** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-05** Tab bar (7 tabs) | `1440-light` | **0.224** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-06** Today So Far tile | `1440-light` | **0.224** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-08** Production Calendar (rolling 5-day) | `1440-dark` | **0.224** | 0 | 0px | 45 | #refresh-btn | — |
-| **S-13** On-Hand Ingredients | `1440-dark` | **0.2219** | 0 | 0px | 59 | #refresh-btn | — |
+| **S-07** Today So Far — error/retry state | `1440-dark` | **0.23** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-10** Finished Goods On-Hand — collapsible panels | `1440-light` | **0.2219** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-01** Site navigation bar | `390-light` | **0.156** | 0 | 0px | 6 | #refresh-btn | — |
+| **S-02** Mini-calendar strip (3-month) | `1440-dark` | **0.1309** | 0 | 0px | 45 | #refresh-btn | — |
+| **S-02b** Mini-calendar — expanded month (phone) | `1440-light` | **0.1212** | 0 | 0px | 45 | #refresh-btn | — |
 
-_56 further shifting captures omitted; the full list is in `screenshots/results.json`._
+_48 further shifting captures omitted; the full list is in `screenshots/results.json`._
 
 ## Findings, category 17 — Status & Data Display
 
@@ -1411,7 +1412,8 @@ A row where nothing is wrong should carry no badge. These do.
 
 | Chip | Text | Screens | Instances |
 |---|---|---|---:|
-| `span.so-badge.status-confirmed` | Confirmed | S-30, S-32 | 12 |
+| `span.dispatch-pill.dispatch-ready` | Checks passed | S-25, S-26, S-27, S-28 | 168 |
+| `span.so-badge.status-confirmed` | Confirmed | S-25, S-26, S-27, S-28, S-30, S-32 | 84 |
 
 ### STATUS-004 — list rows carrying more than one alarm
 
@@ -1421,7 +1423,8 @@ attributed to the element that introduces it, not to every descendant that inher
 
 | Row | Most alarms seen | Tones | Screens | Instances |
 |---|---|---|---|---:|
-| `tbody > tr` | **3** | danger (text), warning (text) | S-30, S-31, S-32, S-34 | 72 |
+| `tr.order-row` | **4** | danger (background), danger (text), warning (text) | S-25, S-26, S-27, S-28 | 40 |
+| `tbody > tr` | **3** | danger (text), warning (text) | S-27, S-28, S-30, S-31, S-32, S-34 | 108 |
 | `tr.allocation-row.allocation-status-active` | **3** | danger (text), warning (text) | S-30, S-32, S-33, S-34, S-36, S-37 | 36 |
 | `tr.order-line-edit-row` | **3** | danger (text), warning (text) | S-33 | 18 |
 | `tr.er-row` | **3** | danger (text), warning (border), warning (text) | S-42, S-43 | 36 |
@@ -1437,25 +1440,30 @@ popover the rule asks for.
 
 | Chip | Example text | What is missing | Has `title=` | Screens | Instances |
 |---|---|---|---|---|---:|
+| `span.readiness-chip.severity-warn` | Partially allocated | no data-explain; aria-describedby does not name the explanation; not focusable | yes | S-25, S-26, S-27, S-28, S-30, S-31, S-32, S-33 +1 | 258 |
+| `span.dispatch-pill.dispatch-ready` | Checks passed | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-25, S-26, S-27, S-28 | 168 |
 | `button.lot-pill` | BSC-2609-A — Batch Sweetened Coconut | no data-explain; aria-describedby does not name the explanation | yes | S-63, S-65 | 168 |
+| `span.readiness-chip.severity-block` | Stock shortage | no data-explain; aria-describedby does not name the explanation; not focusable | yes | S-25, S-26, S-27, S-28, S-30, S-31, S-32, S-33 +1 | 164 |
 | `span.crewbadge` | 4👤 | no data-explain; aria-describedby does not name the explanation; not focusable | yes | S-83, S-84, S-91 | 144 |
-| `span.readiness-chip.severity-warn` | Partially allocated | no data-explain; aria-describedby does not name the explanation; not focusable | yes | S-30, S-31, S-32, S-33, S-34 | 126 |
-| `span.readiness-chip.severity-block` | Stock shortage | no data-explain; aria-describedby does not name the explanation; not focusable | yes | S-30, S-31, S-32, S-33, S-34 | 108 |
+| `span.so-badge.status-new` | New | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-25, S-26, S-27, S-28, S-30, S-31, S-32, S-33 +1 | 114 |
 | `span.allocation-status` | active | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-30, S-32, S-33, S-34, S-36, S-37 | 108 |
-| `span.so-badge.status-new` | pending | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-30, S-31, S-32, S-33, S-34 | 90 |
+| `span.so-badge.status-confirmed` | Confirmed | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-25, S-26, S-27, S-28, S-30, S-32 | 84 |
 | `span.so-badge.er-badge` | Overdue 3d | no data-explain; aria-describedby does not name the explanation; not focusable | yes | S-42, S-43 | 84 |
+| `span.so-ready-pill` | ✓ Factory Ready · luz · 2:05 PM EDT | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-25, S-26, S-27, S-28 | 72 |
+| `span.dispatch-pill.dispatch-blocked` | Needs review | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-25, S-26, S-27, S-28, S-30, S-32, S-33 | 54 |
+| `span.so-badge.status-ready` | Ready to Ship | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-25, S-26, S-27, S-28 | 48 |
 | `span.badge.stock-healthy` | 482 cases | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-10, S-11, S-12 | 42 |
 | `span.confirmed-tag` | ✓ Confirmed | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-70, S-71 | 32 |
 | `span.badge.stock-low` | 83 cases | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-10, S-12 | 24 |
 | `span.recent-status-badge.posted` | Posted | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-14 | 24 |
+| `span.so-badge.status-in_production` | In Production | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-25, S-26, S-27, S-28 | 24 |
+| `span.so-badge.status-partial_ship` | Partial Ship | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-25, S-26, S-27, S-28 | 24 |
 | `span.so-badge.supply-low-badge` | Low Stock | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-49, S-50 | 24 |
 | `span.so-badge.er-badge-open` | Open | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-51 | 24 |
 | `span.chip.early` | Early | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-87, S-88 | 20 |
 | `span.badge.stock-critical` | 0 cases | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-10, S-11, S-12 | 18 |
-| `span.dispatch-pill.dispatch-blocked` | Needs review | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-30, S-32, S-33 | 18 |
 | `span.badge.badge-idle` | Idle | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-61 | 16 |
 | `span.note-cat-badge.cat-todo` | To-Do | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-20 | 12 |
-| `span.so-badge.status-confirmed` | Confirmed | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-30, S-32 | 12 |
 | `span#supply-requests-open-count` | 4 | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-51, S-52 | 12 |
 | `div#recent-entries-status` | Showing 8 most recently entered ledger events. | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-14, S-15 | 8 |
 | `span.chip.ontime` | On time | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-87, S-88 | 8 |
@@ -1470,7 +1478,7 @@ popover the rule asks for.
 | `span.completeness-badge.badge-complete` | ✓ Complete trace — all links confirmed | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-68, S-69 | 4 |
 | `span.chip.tight` | Tight | no data-explain; aria-describedby does not name the explanation; not focusable | no | S-87, S-88 | 4 |
 
-**Scope.** 2234 chip measurements across all captures; 1068 carry the full hook, 576 carry a `title` attribute.
+**Scope.** 1822 chip measurements across all captures; 0 carry the full hook, 764 carry a `title` attribute.
 
 ### STATUS-006 — numbers outside the format
 
@@ -1513,6 +1521,7 @@ A dash inside a table cell holds the column's alignment and is the rule's stated
 | Element | Text | Screens | Instances |
 |---|---|---|---:|
 | `small.pallet-secondary` | — | S-30, S-31, S-32, S-33, S-34 | 54 |
+| `div.order-pallet-summary > strong` | — | S-27, S-28 | 12 |
 
 ### STATUS-008 — list rows over 56 px at desktop width
 
@@ -1524,6 +1533,7 @@ Tallest first. Measured only at viewports ≥ 1200 px; rows the user expanded ar
 | `div.note-card` | **185px** | S-20 | 10 |
 | `tbody > tr` | **173.4px** | S-30, S-31, S-32, S-34, S-51, S-76, S-77, S-78 +7 | 714 |
 | `tr.order-line-edit-row` | **147px** | S-33 | 6 |
+| `tr.order-row` | **122px** | S-25, S-26, S-27, S-28 | 64 |
 | `tr.er-row` | **101px** | S-42, S-43 | 28 |
 | `tr.allocation-row.allocation-status-released` | **88px** | S-30, S-32, S-33, S-34, S-36, S-37 | 12 |
 | `tr.allocation-row.allocation-status-active` | **65px** | S-30, S-32, S-33, S-34, S-36, S-37 | 24 |
@@ -1542,6 +1552,8 @@ Rendered text and the `title` / `placeholder` / `aria-label` copy that goes with
 | `order_id` | `div.hint` | CSV columns (any order, case-insensitive, extras ignored): order_id, c | S-76, S-77, S-78, S-79, S-80, S-81, S-82 | 14 |
 | `json` | `button#btn-savejson` | Save scenario (JSON) | S-76, S-77, S-78, S-79, S-80, S-81, S-82 | 14 |
 | `api` | `div.data-failure-body` | The ledger API did not answer, so there is no flow to draw. No volumes | S-59, S-62 | 8 |
+| `http` | `div.today-tile-state.today-tile-error > span` | HTTP 503: {"error":"Service Unavailable (visual-audit stub)"} | S-07 | 6 |
+| `http` | `div.recent-entries-error > span` | HTTP 503: {"error":"Service Unavailable (visual-audit stub)"} | S-15 | 4 |
 | `legacy_unverified` | `div.created-at-meta` | [title] Entered time (legacy_unverified) | S-17 | 4 |
 | `api` | `dl.lot-info-grid > dd` | Api | S-54 | 4 |
 | `api` | `span.disambig-source` | (Api) | S-55 | 4 |

@@ -39,6 +39,9 @@ try {
   }
   const controls = page.locator('#orders-table-container .table-tools');
   const sort = controls.locator('select');
+  // The table enhancement observer runs after the tab's rows are attached.
+  await sort.waitFor({state:'visible'});
+  await sort.locator('option').filter({hasText:/ship by/i}).first().waitFor({state:'attached'});
   const shipByOption = await sort.locator('option').evaluateAll(options=>options.find(o=>/ship by/i.test(o.textContent))?.value);
   if(shipByOption===undefined)throw new Error('Ship by sorting option is missing');
   await sort.selectOption(shipByOption);

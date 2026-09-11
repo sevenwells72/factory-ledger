@@ -21,6 +21,9 @@ npm run test:visual -- --headed --concurrency 1  # watch it drive
 ## What it does
 
 * Serves `dashboard/` from a throwaway local static server — the real files, unmodified.
+* Creates a fresh browser context for every screen/variant capture. Local storage,
+  scheduler sample orders, and table preferences cannot leak from another screen;
+  worker assignment does not change the input state.
 * Answers every Railway API call from `fixtures/`. **No network request leaves the machine and no database
   is touched.** Writes (`POST`/`PATCH`/`PUT`/`DELETE`) are acknowledged by the stub and applied nowhere.
 * Captures each screen at **390px** (screens the inventory marks Mobile *Yes* or *Partial*), at **1440px**
@@ -93,6 +96,8 @@ node tests/visual/run-so-exit-actions.mjs
 It retains desktop fit/sticky controls, narrow-tablet scrolling, and mobile card checks,
 and verifies the eight-column contract and desktop rows at most 56px. The general STATUS
 measurement code and its thresholds are unchanged.
+Open is measured at seven widths in both themes; Closed and Cancelled are also measured
+at 1440, 1200, and 390px in both themes, for 26 layout cases including long SO identifiers.
 
 The interaction suite drives the actual list at 1440 and 390px. A stateful API
 intercept verifies tab membership/query parameters/count refreshes, customer and
