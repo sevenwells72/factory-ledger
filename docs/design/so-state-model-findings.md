@@ -986,3 +986,165 @@ Mutation-verified, all four changes:
 The v2 mutation check on the critical window still holds: `<=` → `<` fails
 `shortage-exactly-the-boundary` and the narrowed-env-var test, and nothing else.
 Full suite: **798 passed** (758 before this branch).
+
+---
+
+## Step 2d — Health strings: aggregated info, one number format, product names
+
+The tiers were right and the sentences were not. Three defects, all in wording,
+none in the level:
+
+1. **`info` was one entry per line.** A twelve-line order with partial
+   allocations produced twelve near-identical sentences, and the total — the
+   number the operator is actually asking for — appeared in none of them.
+2. **Numbers were raw.** `{unallocated:g}` and `{total_short:g}` gave
+   `1400 lb` and `13500 lb`: no separator past a thousand, a decimal point
+   whenever the pounds were not round. STATUS-006 exists because re-reading a
+   quantity is how the wrong quantity gets shipped.
+3. **Lines were named by bare SKU.** `on SKU-1` is a lookup the reader has to
+   do at the moment they are trying to decide something.
+
+The shape stays a contract. `{level, reasons, info}` is unchanged and gains one
+key.
+
+### `info` aggregation
+
+One entry per order, not per line — the same rule the shortage reason has had
+since v2, and for the same reason:
+
+| Lines with unallocated pounds | Entry |
+|---|---|
+| 5 | `24,000 lb not allocated across 5 lines` |
+| 2 | `1,200 lb not allocated across 2 lines` |
+| 1 | `60 lb not allocated on Granola SS Chocolate Chip (70003)` |
+| 0 | — no entry |
+
+`across N lines` is omitted when N is 1: there is no count worth stating and
+nothing to disambiguate, so the single line names itself instead — which is
+also the only place a line identity still appears in a health string. Lines
+whose unallocated pounds fall under `BALANCE_EPSILON` are not lines: a rounding
+crumb must not inflate the count, nor turn a one-line order into a two-line one.
+
+When `ALLOCATIONS_ENFORCED` is off, ` (allocations not enforced)` is appended
+**once**, to that one entry — STATUS-011, a caveat is stated once at first
+relevance; repeated down a list it stops being read, including the time it
+mattered. Enforcement changes the wording and nothing else: the pounds are
+unallocated either way, the level never moves, and `info_detail` is identical
+with the flag on and off. That is asserted as a pair so the suffix cannot drift
+into carrying meaning.
+
+### `health.info_detail` — the rows behind the sentence
+
+Aggregation does not lose the per-line facts, it moves them. `info_detail` is a
+list the popover expands the sentence back into, one entry per line that has
+unallocated pounds:
+
+```json
+"info_detail": [
+  {"line_id": 412, "sku": "70003",
+   "product_name": "Granola SS Chocolate Chip", "unallocated_lb": 10000.0},
+  {"line_id": 413, "sku": "70011",
+   "product_name": "Granola Maple Pecan", "unallocated_lb": 14000.0}
+]
+```
+
+Three properties callers may rely on:
+
+* **Always present.** `[]` when there is nothing to expand — including on a
+  `closed` or `cancelled` order, which stays silent in every field. A caller
+  reads the key without checking whether it is there.
+* **Pounds are raw, not formatted.** `unallocated_lb` is a number, because a
+  string cannot be summed, sorted or re-rounded. Its entries sum to exactly the
+  pounds in the sentence; the front end runs them through its own STATUS-006
+  formatter. Formatting belongs to the layer that renders, and `info_detail`
+  does not render.
+* **`sku` and `product_name` are separate fields**, not the joined label. The
+  popover may want them in a column each.
+
+### One number formatter — STATUS-006
+
+`_fmt_number()` is the only thing in this module that turns a number into text.
+Thousands separators always, pounds to whole numbers, never a trailing decimal:
+`13,500 lb`, not `13500.0000`, not `13500 lb`, not `13,500.00 lb`.
+
+**Half rounds up, via `Decimal(ROUND_HALF_UP)` — not Python's own formatting.**
+`f"{607.5:,.0f}"` is `608` but `f"{606.5:,.0f}"` is `606`: `format` rounds half
+to *even*, so the same shortage prints larger or smaller depending on the digit
+before it. A shortage that prints smaller than it is reads as less urgent than
+it is.
+
+Counts go through the same function — `on 2 lines`, `across 5 lines`,
+`1,200 days overdue`. Not because a line count needs a separator today, but so
+that nothing in a health string is hand-formatted and there is no second place
+for a format to drift. Day counts are formatted in `_so_ship_phrase()`, pounds
+in the shortage reason and the unallocated entry.
+
+| Input | Output | Why it is in the table |
+|---|---|---|
+| `999` | `999` | below the separator |
+| `1000` | `1,000` | the separator boundary |
+| `999.5` | `1,000` | rounds up *and* gains a separator |
+| `607.5` | `608` | half rounds up |
+| `606.5` | `607` | the control — `format` gives `606` here |
+| `12345.4` | `12,345` | rounds down |
+| `12345.5` | `12,346` | rounds up |
+| `13500.0000` | `13,500` | the stored representation, formatted |
+| `None` | `0` | never renders blank |
+
+### `product name (SKU)`
+
+`_so_line_label()` renders `Granola SS Chocolate Chip (70003)` wherever a line
+is named in a reason or an info string. A bare SKU is a lookup; a bare name does
+not say which pack size.
+
+**It costs no query.** `SALES_ORDER_READINESS_SQL` already selects `p.name AS
+product` and `p.odoo_code AS sku` on every line row, and
+`_load_sales_order_readiness()` already carries both into the dict health reads
+— the name was being fetched and discarded. There is no per-line round trip and
+no second query.
+
+It degrades rather than printing an artefact: name only when there is no code,
+code only when there is no name, and the literal `line` when there is neither —
+never `Granola Maple ()` and never a bare `()`.
+
+### What did not change
+
+`{level, reasons, info}` and every rule about which facts land in which tier.
+The `info` shortage wording is still character-for-character the `reasons`
+wording. Unallocated pounds are still reported whether or not allocations are
+enforced, and still never escalate. `closed`/`cancelled` still report nothing at
+all.
+
+### Tests
+
+`tests/test_sales_order_state_model.py`: **231 tests in the file, 39 of them
+new**; full suite **837 passed** (798 before this branch).
+
+* **Aggregation** — one line, two lines, five lines, and a sub-epsilon line
+  that must not be counted; plus an end-to-end pair through the endpoint (one
+  partially-allocated line, and two on one order).
+* **The enforcement suffix** — on and off, stated as a pair whose only
+  difference is the suffix, plus a proof that it never raises the level and
+  never touches `info_detail`.
+* **`info_detail`** — one row per line, rows sum to the sentence, always present
+  and `[]` when empty, unaffected by the flag.
+* **Formatting** — a thirteen-row boundary table on `_fmt_number()` including
+  `606.5` as the half-even control, plus the STATUS-006 audit itself run against
+  the assembled strings: no three-decimal number, no value of 1,000 or more
+  without a separator.
+* **Product names** — a seven-row table on `_so_line_label()` covering both
+  halves, either half missing, whitespace, and neither; plus the substitution
+  end-to-end, where the name and code come from the readiness query's own
+  columns.
+
+Mutation-verified, every new rule:
+
+| Mutation | Result |
+|---|---|
+| `ROUND_HALF_UP` → default (half-even) | **2 fail**, `_fmt_number[606.5-607]` and `[0.5-1]` — the 607.5 row still passes, which is what makes it the control |
+| drop the thousands separator | **16 fail** |
+| `_so_line_label()` returns the bare SKU | **7 fail** |
+| un-aggregate: one `info` entry per line | **6 fail** |
+| drop the not-enforced note | **3 fail** |
+| `across N lines` boundary `> 1` → `>= 1` | **6 fail** |
+| drop `info_detail` from the returned shape | **10 fail** |
