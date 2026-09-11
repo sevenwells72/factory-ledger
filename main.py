@@ -11911,6 +11911,40 @@ def _so_health_warning_days() -> int:
                                   SO_HEALTH_WARNING_DAYS_DEFAULT)
 
 
+def _fmt_number(value) -> str:
+    """The one formatter every rendered health number goes through.
+
+    FL-Design-Standards-MASTER STATUS-006 — one number format for the whole
+    product: thousands separators always, pounds to whole numbers, never a
+    trailing decimal. `13500.0000` is a database representation, not a
+    quantity; an operator who has to re-read a number is how the wrong
+    quantity gets shipped.
+
+    Half rounds UP, not to even: Python's own `format` gives `606` for 606.5
+    and `608` for 607.5, and a shortage that prints smaller than it is reads
+    as less urgent than it is. Counts — lines, days — go through the same
+    function, so nothing in a health string is ever hand-formatted.
+    """
+    quantized = Decimal(str(value or 0)).quantize(Decimal("1"),
+                                                  rounding=ROUND_HALF_UP)
+    return f"{quantized:,}"
+
+
+def _so_line_label(line: dict) -> str:
+    """'Granola SS Chocolate Chip (70003)' — the floor's name, the office's code.
+
+    A bare SKU is a lookup the reader has to do; a bare name does not identify
+    which pack size. Both columns already ride along on every readiness row
+    (`p.name`, `p.odoo_code` in SALES_ORDER_READINESS_SQL), so this costs no
+    query. Degrades to whichever half exists rather than printing a blank.
+    """
+    name = str(line.get("product") or "").strip()
+    sku = str(line.get("sku") or "").strip()
+    if name and sku:
+        return f"{name} ({sku})"
+    return name or sku or "line"
+
+
 def _so_ship_phrase(requested_ship_date, today) -> Optional[str]:
     """The time half of a health reason, in the floor's words.
 
@@ -11923,12 +11957,12 @@ def _so_ship_phrase(requested_ship_date, today) -> Optional[str]:
     days = (requested_ship_date - today).days
     if days < 0:
         late = -days
-        return f"{late} day{'s' if late != 1 else ''} overdue"
+        return (f"{_fmt_number(late)} day{'s' if late != 1 else ''} overdue")
     if days == 0:
         return "ships today"
     if days == 1:
         return "ships tomorrow"
-    return f"ships in {days} days"
+    return f"ships in {_fmt_number(days)} days"
 
 
 def compute_so_health(
@@ -11942,12 +11976,18 @@ def compute_so_health(
 ) -> dict:
     """v2.1 — time-aware. Shape is the contract.
 
-    Callers may depend on {level, reasons, info}; they may NOT depend on which
-    facts land in which tier. Returns:
+    Callers may depend on {level, reasons, info, info_detail}; they may NOT
+    depend on which facts land in which tier. Returns:
 
-      level    'critical' | 'warning' | 'quiet'
-      reasons  strings that justify the level
-      info     strings that never affect the level
+      level        'critical' | 'warning' | 'quiet'
+      reasons      strings that justify the level
+      info         strings that never affect the level
+      info_detail  the rows behind an aggregated info string, for a popover to
+                   expand: {line_id, sku, product_name, unallocated_lb} each.
+                   Always present, `[]` when there is nothing to expand.
+
+    Every number in `reasons` and `info` goes through _fmt_number() — one
+    formatter, STATUS-006 — and every SKU through _so_line_label().
 
     What v2 changed from v1: a shortage is no longer critical on its own. The
     same shortage means something different at three days out than at three
@@ -11971,7 +12011,8 @@ def compute_so_health(
                 and nothing short
       info      a shortage further out than the warning window — on a
                 make-to-order book that is work not started yet, not a problem;
-                plus unallocated pounds. Never escalates.
+                plus unallocated pounds, aggregated to one entry per order with
+                the per-line rows in `info_detail`. Never escalates.
       quiet     nothing applies; or the order is closed or cancelled, which is
                 off the board and stops asking for attention entirely
 
@@ -11979,7 +12020,8 @@ def compute_so_health(
     how loudly to speak, the reasons say what to do.
     """
     if state in ("closed", "cancelled"):
-        return {"level": "quiet", "reasons": [], "info": []}
+        return {"level": "quiet", "reasons": [], "info": [],
+                "info_detail": []}
 
     today = today or _factory_today()
     reasons: list = []
@@ -12015,9 +12057,10 @@ def compute_so_health(
         critical = (speaks_up
                     and days_out is not None
                     and days_out <= _so_health_critical_days())
-        where = f" on {len(short_lines)} lines" if len(short_lines) > 1 else ""
+        where = (f" on {_fmt_number(len(short_lines))} lines"
+                 if len(short_lines) > 1 else "")
         tail = f" — {phrase}" if phrase else ""
-        text = f"Short {total_short:g} lb{where}{tail}"
+        text = f"Short {_fmt_number(total_short)} lb{where}{tail}"
         # Past the warning window the shortage is stated and nothing more. An
         # unproduced order with a month of runway is the normal state of a
         # make-to-order book; tiering it taught the board to be ignored.
@@ -12060,19 +12103,45 @@ def compute_so_health(
     # max(0, remaining - allocated). Reported whether or not allocations are
     # enforced — the pounds are unallocated either way; the flag only changes
     # whether that blocks a shipment, which the note records.
+    #
+    # Aggregated to ONE entry per order, for the same reason the shortage
+    # reason is: a twelve-line order emitted twelve near-identical sentences,
+    # and the total — the number the operator is actually asking for — was
+    # nowhere in the list. The per-line facts are not lost, they move to
+    # `info_detail` for the popover to expand. With a single line there is no
+    # "across N lines" to say, so the line names itself instead.
     enforced = _allocations_enforced()
-    for line in line_readiness:
-        unallocated = float(line["readiness"].get("unallocated_need_lb") or 0)
-        if unallocated > BALANCE_EPSILON:
-            label = line.get("sku") or line.get("product") or "line"
-            note = "" if enforced else "; allocations not enforced"
-            info.append(
-                f"{unallocated:g} lb not allocated on {label} "
-                f"(line #{line['line_id']}){note}"
-            )
+    unallocated_lines = [
+        (line, float(line["readiness"].get("unallocated_need_lb") or 0))
+        for line in line_readiness
+        if float(line["readiness"].get("unallocated_need_lb") or 0)
+        > BALANCE_EPSILON
+    ]
+    info_detail: list = [
+        {
+            "line_id": line["line_id"],
+            "sku": line.get("sku"),
+            "product_name": line.get("product"),
+            "unallocated_lb": unallocated,
+        }
+        for line, unallocated in unallocated_lines
+    ]
+    if unallocated_lines:
+        total_unallocated = sum(pounds for _, pounds in unallocated_lines)
+        if len(unallocated_lines) > 1:
+            where = f" across {_fmt_number(len(unallocated_lines))} lines"
+        else:
+            where = f" on {_so_line_label(unallocated_lines[0][0])}"
+        # Once per order, not once per line: STATUS-011 — a caveat repeated
+        # down a screen stops being read, including the time it mattered.
+        note = "" if enforced else " (allocations not enforced)"
+        info.append(
+            f"{_fmt_number(total_unallocated)} lb not allocated{where}{note}"
+        )
 
     level = "critical" if critical else ("warning" if reasons else "quiet")
-    return {"level": level, "reasons": reasons, "info": info}
+    return {"level": level, "reasons": reasons, "info": info,
+            "info_detail": info_detail}
 
 
 def _so_derived_fields(row, readiness: dict, line_readiness_by_line: dict) -> dict:

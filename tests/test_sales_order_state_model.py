@@ -12,6 +12,7 @@ behave exactly as they did before, because the deprecation-window mirror keeps
 sales_orders.status in step with state.
 """
 
+import re
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -826,12 +827,15 @@ def test_fulfillment_partial_and_unshipped(db_cursor, client):
 _TODAY = date(2026, 6, 15)
 
 
-def _fake_line(shortage=0.0, unallocated=0.0, line_id=1, sku="SKU-1"):
-    """One entry shaped like `_line_readiness()` yields, with only the two
-    fields health reads populated."""
+def _fake_line(shortage=0.0, unallocated=0.0, line_id=1, sku="SKU-1",
+               product=None):
+    """One entry shaped like `_line_readiness()` yields, with only the fields
+    health reads populated — including `product`, which the readiness query
+    already carries and the info strings now name."""
     return {
         "line_id": line_id,
         "sku": sku,
+        "product": product,
         "readiness": {
             "shortage_lb": shortage,
             "unallocated_need_lb": unallocated,
@@ -840,17 +844,32 @@ def _fake_line(shortage=0.0, unallocated=0.0, line_id=1, sku="SKU-1"):
 
 
 def _health(*, days_out=None, shortages=(), floor_ready=True, state="open",
-            fulfillment="unshipped", unallocated=0.0, today=_TODAY):
-    """compute_so_health() addressed in the vocabulary of the matrix."""
+            fulfillment="unshipped", unallocated=0.0, unallocateds=(),
+            products=(), today=_TODAY):
+    """compute_so_health() addressed in the vocabulary of the matrix.
+
+    `unallocated` puts pounds on the first line (or invents one); `unallocateds`
+    spreads a tuple of them across as many lines, which is what the aggregation
+    rule needs. `products` names those lines when the label is under test.
+    """
     lines = [
         _fake_line(shortage=shortage, line_id=i + 1, sku=f"SKU-{i + 1}")
         for i, shortage in enumerate(shortages)
     ]
-    if unallocated:
+    if unallocateds:
+        lines = [
+            _fake_line(unallocated=pounds, line_id=i + 1, sku=f"SKU-{i + 1}",
+                       product=(products[i] if i < len(products) else None))
+            for i, pounds in enumerate(unallocateds)
+        ]
+    elif unallocated:
         if lines:
             lines[0]["readiness"]["unallocated_need_lb"] = unallocated
+            if products:
+                lines[0]["product"] = products[0]
         else:
-            lines = [_fake_line(unallocated=unallocated)]
+            lines = [_fake_line(unallocated=unallocated,
+                                product=(products[0] if products else None))]
     return main.compute_so_health(
         state=state,
         fulfillment=fulfillment,
@@ -936,7 +955,7 @@ _TIER_MATRIX = [
         dict(days_out=13, shortages=(1400,)),
         "quiet",
         [],
-        ["Short 1400 lb — ships in 13 days"],
+        ["Short 1,400 lb — ships in 13 days"],
     ),
     (
         "shortage-14-days-out",
@@ -1107,7 +1126,274 @@ def test_health_closed_and_cancelled_carry_no_info_either():
     for state in ("closed", "cancelled"):
         health = _health(days_out=-12, shortages=(500,), unallocated=60,
                          state=state)
-        assert health == {"level": "quiet", "reasons": [], "info": []}, state
+        assert health == {"level": "quiet", "reasons": [], "info": [],
+                          "info_detail": []}, state
+
+
+# ═════════════════════════════════════════════════════════════════
+# Health strings — aggregation, one number format, product names
+#
+# These are the only tests of the *wording*. The tier matrix above proves which
+# list a line lands in; these prove what it says once it is there. They drive
+# compute_so_health() directly for the same reason the matrix does: string
+# assembly is a pure function of the readiness rows, and the DB-backed pair at
+# the end proves the endpoint feeds it real ones.
+# ═════════════════════════════════════════════════════════════════
+
+# ── unallocated pounds aggregate to one entry per order ───────────────────
+
+def test_unallocated_on_one_line_names_that_line_and_says_no_count(monkeypatch):
+    """With a single line there is no 'across N lines' to say — and nothing to
+    disambiguate, so the line names itself instead."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    health = _health(days_out=30, unallocateds=(60,),
+                     products=("Granola SS Chocolate Chip",))
+    assert health["info"] == [
+        "60 lb not allocated on Granola SS Chocolate Chip (SKU-1)"]
+
+
+def test_unallocated_across_many_lines_is_one_entry_carrying_the_total(monkeypatch):
+    """Five lines, one sentence. v2.1 emitted five near-identical sentences and
+    left the total — the number the operator is asking for — out of all five."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    health = _health(days_out=30,
+                     unallocateds=(10000, 6000, 4000, 3000, 1000))
+    assert health["info"] == ["24,000 lb not allocated across 5 lines"]
+
+
+def test_unallocated_two_lines_still_says_across_2_lines(monkeypatch):
+    """The 'omit when N is 1' rule is about N being 1, not about N being small."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    health = _health(days_out=30, unallocateds=(600, 400))
+    assert health["info"] == ["1,000 lb not allocated across 2 lines"]
+
+
+def test_unallocated_lines_below_the_epsilon_are_not_counted(monkeypatch):
+    """A rounding crumb is not a line. It must not inflate the count, and it
+    must not turn a one-line order into an 'across 2 lines' one."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    health = _health(days_out=30, unallocateds=(60, 0.0),
+                     products=("Granola SS Chocolate Chip", "Granola Maple"))
+    assert health["info"] == [
+        "60 lb not allocated on Granola SS Chocolate Chip (SKU-1)"]
+    assert [d["line_id"] for d in health["info_detail"]] == [1]
+
+
+# ── the not-enforced note is appended once, to the one entry ──────────────
+
+def test_not_enforced_note_is_appended_once_across_many_lines(monkeypatch):
+    """STATUS-011: the caveat is stated once where it first applies. Repeated
+    down a list it stops being read, including the time it mattered."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
+    health = _health(days_out=30, unallocateds=(10000, 6000, 4000, 3000, 1000))
+    assert health["info"] == [
+        "24,000 lb not allocated across 5 lines (allocations not enforced)"]
+    assert health["info"][0].count("allocations not enforced") == 1
+
+
+def test_enforced_on_carries_no_note(monkeypatch):
+    """Same pounds, same lines, flag on: the sentence ends at the count."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    health = _health(days_out=30, unallocateds=(10000, 6000, 4000, 3000, 1000))
+    assert health["info"] == ["24,000 lb not allocated across 5 lines"]
+    assert "not enforced" not in health["info"][0]
+
+
+def test_the_note_is_the_only_difference_between_enforced_and_not(monkeypatch):
+    """Stated as a pair so the suffix cannot drift into carrying meaning: the
+    pounds are unallocated either way, the flag only says whether that blocks a
+    shipment."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    on = _health(days_out=30, unallocateds=(600, 400))
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
+    off = _health(days_out=30, unallocateds=(600, 400))
+    assert off["info"][0] == on["info"][0] + " (allocations not enforced)"
+    assert off["level"] == on["level"] == "quiet"
+    assert off["info_detail"] == on["info_detail"]
+
+
+def test_the_not_enforced_note_never_raises_the_level(monkeypatch):
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
+    health = _health(days_out=30, unallocateds=(24000,))
+    assert health["level"] == "quiet", health
+    assert health["reasons"] == []
+
+
+# ── info_detail — the rows behind the sentence ────────────────────────────
+
+def test_info_detail_carries_one_row_per_unallocated_line():
+    """The per-line facts are not lost to aggregation, they move here: the
+    popover expands the sentence back into the lines that made it."""
+    health = _health(days_out=30, unallocateds=(10000, 14000),
+                     products=("Granola SS Chocolate Chip", "Granola Maple"))
+    assert health["info_detail"] == [
+        {"line_id": 1, "sku": "SKU-1",
+         "product_name": "Granola SS Chocolate Chip",
+         "unallocated_lb": 10000.0},
+        {"line_id": 2, "sku": "SKU-2", "product_name": "Granola Maple",
+         "unallocated_lb": 14000.0},
+    ]
+
+
+def test_info_detail_pounds_sum_to_the_pounds_in_the_sentence():
+    health = _health(days_out=30, unallocateds=(10000, 6000, 4000, 3000, 1000))
+    total = sum(d["unallocated_lb"] for d in health["info_detail"])
+    assert total == 24000.0
+    assert main._fmt_number(total) in health["info"][0]
+
+
+def test_info_detail_is_always_present_and_empty_when_there_is_nothing():
+    """Shape is the contract: a caller may read `info_detail` without checking
+    whether the key is there."""
+    for health in (_health(days_out=30),
+                   _health(days_out=3, shortages=(500,)),
+                   _health(days_out=-12, state="closed")):
+        assert health["info_detail"] == [], health
+
+
+def test_info_detail_is_unaffected_by_the_enforcement_flag(monkeypatch):
+    """The note is wording. The rows are facts."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
+    assert _health(days_out=30, unallocateds=(60,))["info_detail"] == [
+        {"line_id": 1, "sku": "SKU-1", "product_name": None,
+         "unallocated_lb": 60.0}]
+
+
+# ── one number formatter — STATUS-006 ─────────────────────────────────────
+
+@pytest.mark.parametrize("value,expected", [
+    (999, "999"),                 # below the separator
+    (1000, "1,000"),              # the separator boundary
+    (999.4, "999"),               # rounds down, stays below
+    (999.5, "1,000"),             # rounds UP and gains a separator
+    (607.5, "608"),               # half rounds up, not to even (606.5 -> 607)
+    (606.5, "607"),               # the control: Python's own format gives 606
+    (12345.4, "12,345"),
+    (12345.5, "12,346"),
+    (13500.0000, "13,500"),       # the stored representation, formatted
+    (0, "0"),
+    (0.5, "1"),
+    (1000000, "1,000,000"),
+    (None, "0"),
+])
+def test_fmt_number_boundaries(value, expected):
+    """STATUS-006 in one table: separators always, pounds whole, no trailing
+    decimal, half rounds up. A shortage that prints smaller than it is reads as
+    less urgent than it is."""
+    assert main._fmt_number(value) == expected
+
+
+def test_no_health_string_ever_carries_a_decimal_point_or_a_bare_thousand(monkeypatch):
+    """The audit STATUS-006 names, run against the strings this module makes:
+    three or more decimal places anywhere, or a value of 1,000 or more without
+    a separator."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    health = _health(days_out=3, shortages=(1234.5, 6789.4),
+                     unallocateds=())
+    with_pounds = _health(days_out=30, unallocateds=(13500.0000, 2499.6))
+    for text in health["reasons"] + health["info"] + with_pounds["info"]:
+        assert not re.search(r"\d\.\d", text), text
+        assert not re.search(r"(?<![\d,])\d{4,}", text), text
+    assert health["reasons"] == ["Short 8,024 lb on 2 lines — ships in 3 days"]
+    assert with_pounds["info"] == ["16,000 lb not allocated across 2 lines"]
+
+
+def test_the_shortage_reason_is_formatted_the_same_in_reasons_and_in_info():
+    """Crossing the warning window changes which list the line lands in, not
+    how its number is written."""
+    near = _health(days_out=3, shortages=(1400,))
+    far = _health(days_out=90, shortages=(1400,))
+    assert near["reasons"] == ["Short 1,400 lb — ships in 3 days"]
+    assert far["info"] == ["Short 1,400 lb — ships in 90 days"]
+
+
+def test_a_four_figure_day_count_is_separated_too():
+    """Counts go through the same formatter as pounds — an order four years
+    overdue is a data problem, and it should read like one."""
+    health = _health(days_out=-1200)
+    assert health["reasons"] == ["1,200 days overdue — stock on hand"]
+
+
+# ── product name (SKU) ────────────────────────────────────────────────────
+
+def test_a_named_line_renders_name_then_code(monkeypatch):
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    health = _health(days_out=30, unallocateds=(24000,),
+                     products=("Granola SS Chocolate Chip",))
+    assert health["info"] == [
+        "24,000 lb not allocated on Granola SS Chocolate Chip (SKU-1)"]
+
+
+def test_a_line_with_no_product_name_falls_back_to_the_bare_code(monkeypatch):
+    """Degrade to whichever half exists — never print an empty parenthesis or
+    a dangling name."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    health = _health(days_out=30, unallocateds=(60,))
+    assert health["info"] == ["60 lb not allocated on SKU-1"]
+
+
+@pytest.mark.parametrize("line,expected", [
+    ({"product": "Granola SS Chocolate Chip", "sku": "70003"},
+     "Granola SS Chocolate Chip (70003)"),
+    ({"product": "Granola Maple", "sku": None}, "Granola Maple"),
+    ({"product": None, "sku": "70003"}, "70003"),
+    ({"product": "  Granola Maple  ", "sku": "  70003  "},
+     "Granola Maple (70003)"),
+    ({"product": None, "sku": None}, "line"),
+    ({"product": "", "sku": ""}, "line"),
+    ({}, "line"),
+])
+def test_so_line_label(line, expected):
+    assert main._so_line_label(line) == expected
+
+
+@pytest.mark.db
+def test_health_info_names_the_product_end_to_end(db_cursor, client, monkeypatch):
+    """The wiring: the name and the code come from the readiness query's own
+    columns, so naming the line costs no extra round trip."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    db_cursor.execute("SELECT name, odoo_code FROM products WHERE id = %s",
+                      (product_id,))
+    product = db_cursor.fetchone()
+    order_id, _ = _seed_order(db_cursor, customer_id, token,
+                              ship_date=main._factory_today() + timedelta(days=30))
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _allocate(db_cursor, order_id, line_id, product_id, 40, lot_id=lot_id)
+
+    health = client.get(f"/sales/orders/{order_id}").json()["health"]
+    assert health["info"] == [
+        f"60 lb not allocated on {product['name']} ({product['odoo_code']})"
+        " (allocations not enforced)"], health["info"]
+    assert health["info_detail"] == [{
+        "line_id": line_id,
+        "sku": product["odoo_code"],
+        "product_name": product["name"],
+        "unallocated_lb": 60.0,
+    }], health["info_detail"]
+
+
+@pytest.mark.db
+def test_health_info_aggregates_two_lines_end_to_end(db_cursor, client, monkeypatch):
+    """Two partially-allocated lines on one order: one sentence, both rows."""
+    monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
+    customer_id, token = _seed_customer(db_cursor)
+    first_id, first_lot = _seed_product(db_cursor, token, with_lot=True, stock=5000)
+    second_id, second_lot = _seed_product(db_cursor, token, with_lot=True, stock=5000)
+    order_id, _ = _seed_order(db_cursor, customer_id, token,
+                              ship_date=main._factory_today() + timedelta(days=30))
+    line_one = _add_line(db_cursor, order_id, first_id, 1000)
+    line_two = _add_line(db_cursor, order_id, second_id, 800)
+    _allocate(db_cursor, order_id, line_one, first_id, 400, lot_id=first_lot)
+    _allocate(db_cursor, order_id, line_two, second_id, 200, lot_id=second_lot)
+
+    health = client.get(f"/sales/orders/{order_id}").json()["health"]
+    assert health["info"] == ["1,200 lb not allocated across 2 lines"], \
+        health["info"]
+    assert sorted(d["line_id"] for d in health["info_detail"]) == sorted(
+        [line_one, line_two]), health["info_detail"]
+    assert sum(d["unallocated_lb"] for d in health["info_detail"]) == 1200.0
 
 
 # ── the Not-Ready reason yields to a shortage ─────────────────────────────
@@ -1514,6 +1800,7 @@ def test_health_info_for_unallocated_never_raises_the_level(db_cursor, client, m
     assert health["level"] == "quiet", "info must not escalate"
     assert health["reasons"] == []
     assert any("not allocated" in i for i in health["info"]), health["info"]
+    assert len(health["info_detail"]) == 1, health["info_detail"]
 
 
 @pytest.mark.db
@@ -1532,7 +1819,8 @@ def test_health_is_quiet_once_the_order_is_closed(db_cursor, client):
     assert closed.status_code == 200, closed.text
 
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
-    assert health == {"level": "quiet", "reasons": [], "info": []}
+    assert health == {"level": "quiet", "reasons": [], "info": [],
+                      "info_detail": []}
 
 
 @pytest.mark.db
@@ -1545,7 +1833,7 @@ def test_health_is_quiet_once_the_order_is_cancelled(db_cursor, client):
     client.post(f"/sales/orders/{order_id}/cancel",
                 json={"reason": "customer_cancelled", "mode": "commit"})
     assert client.get(f"/sales/orders/{order_id}").json()["health"] == {
-        "level": "quiet", "reasons": [], "info": []}
+        "level": "quiet", "reasons": [], "info": [], "info_detail": []}
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -2478,6 +2766,14 @@ def test_health_info_reports_partially_allocated_pounds(db_cursor, client, monke
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
     assert health["level"] == "quiet", "info never escalates"
     assert any("60 lb not allocated" in i for i in health["info"]), health["info"]
+    detail = health["info_detail"]
+    assert len(detail) == 1, detail
+    assert detail[0]["line_id"] == line_id
+    assert detail[0]["unallocated_lb"] == 60.0
+    assert detail[0]["sku"] and detail[0]["product_name"], detail
+    # The string names the line the same way, name-then-code.
+    assert (f"{detail[0]['product_name']} ({detail[0]['sku']})"
+            in health["info"][0]), health["info"]
 
 
 @pytest.mark.db
