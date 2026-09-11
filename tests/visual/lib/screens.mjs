@@ -72,8 +72,8 @@ async function openFirstOrder(page) {
 
 async function openOrderById(page, orderId) {
   await tab(page, 'orders');
-  // Fixture 109 is ledger-shipped and still open. Its unchanged detail fixture
-  // supplies the legacy edit-locked detail screen being measured here.
+  // Fixture 109 is ledger-shipped and still open. Header editing remains
+  // locked by effective fulfillment, while its Ready annotation is editable.
   await page.getByRole('tab', { name: /^Shipped\b/ }).click();
   await page.waitForSelector(`.order-row[data-order-id="${orderId}"]`, { timeout: 8000 }).catch(() => {});
   await page.locator(`.order-row[data-order-id="${orderId}"] .order-expand-toggle`).click({ timeout: 6000 });
@@ -235,9 +235,9 @@ export const SCREENS = [
       await page.locator('#orders-customer-search').press('Enter').catch(() => {});
       await sleep(T.med);
     } },
-  { id: 'S-30', name: 'Order Detail — header, status, dates, KPI row', page: 'index', mobile: 'yes', region: '#order-detail-view',
+  { id: 'S-30', name: 'Order Detail — case summary and four dimensions', page: 'index', mobile: 'yes', region: '#order-detail-view',
     setup: openFirstOrder },
-  { id: 'S-31', name: 'Order Detail — line readiness table', page: 'index', mobile: 'yes', region: '.order-detail-table-wrap',
+  { id: 'S-31', name: 'Order Detail — line quantities and Health table', page: 'index', mobile: 'yes', region: '.order-detail-table-wrap',
     setup: openFirstOrder },
   { id: 'S-32', name: 'Order Detail — per-line inventory expander', page: 'index', mobile: 'yes', region: '#order-detail-container',
     setup: async page => { await openFirstOrder(page); await clickIf(page, '.order-inventory-toggle'); await sleep(T.med); } },
@@ -249,8 +249,8 @@ export const SCREENS = [
     } },
   { id: 'S-34', name: 'Order Detail — edit-locked notice', page: 'index', mobile: 'yes', region: '#order-detail-view',
     setup: async page => { await openOrderById(page, 109); } },
-  { id: 'S-35', name: 'Dialog — Order status change confirmation', page: 'index', mobile: 'yes', capturable: false,
-    note: 'Browser-native window.confirm.' },
+  { id: 'S-35', name: 'Dialog — Order Close / Cancel / Reopen', page: 'index', mobile: 'yes', capturable: false,
+    note: 'Shared native exit dialog covered by run-so-detail-interactions.mjs; no baseline capture for this ID.' },
   { id: 'S-36', name: 'Form — Reservations / allocation section', page: 'index', mobile: 'yes', region: '.order-allocation-card',
     setup: openFirstOrder },
   { id: 'S-37', name: 'Reservations — allocation history table', page: 'index', mobile: 'yes', region: '.allocation-table-wrap',

@@ -150,6 +150,13 @@ export async function installApiStub(context, tokens, state) {
       return;
     }
 
+    // This POST is a read-only preview. Return its representative line data
+    // before the generic write acknowledgement so S-39 measures actual copy.
+    if (request.method() === 'POST' && /^\/sales\/orders\/\d+\/ship\/preview$/.test(url.pathname)) {
+      await route.fulfill({ json: await loadFixture('ship-preview.json', tokens) });
+      return;
+    }
+
     // Writes are acknowledged, never applied — this harness never mutates.
     if (request.method() !== 'GET') {
       await route.fulfill({
@@ -184,17 +191,21 @@ export async function installApiStub(context, tokens, state) {
 
     let payload = await loadFixture(fixtureName, tokens);
     if (select != null) {
-      if (fixtureName === 'sales-order-detail.json' && ['110', '111'].includes(select)) {
-        // New terminal-state list rows need matching identities when expanded.
-        // Existing detail-screen payloads remain byte-for-byte unchanged.
-        const list = await loadFixture('sales-orders-list.json', tokens);
-        payload = { ...list.orders.find(order => String(order.order_id) === select), lines: [] };
+      if (fixtureName === 'allocations.json' && ['109', '110', '111'].includes(select)) {
+        // Shipped/exited examples have no active reservations. Keep line IDs
+        // and effective quantities aligned with their authoritative detail.
+        const details = await loadFixture('sales-order-detail.json', tokens);
+        payload = { order_id: Number(select), allocations: [], lines: details[select].lines.map(line => ({
+          line_id: line.line_id, sales_order_id: Number(select), product: line.product,
+          sku: line.sku, is_service: Boolean(line.is_non_weight),
+          ordered_lb: line.quantity_lb, shipped_recorded_lb: line.quantity_shipped_lb,
+          readiness: line.readiness,
+        })) };
       } else {
         payload = payload[select] ?? payload[Object.keys(payload)[0]];
       }
     }
-    // Match the list API's query semantics. The detail fixture is intentionally
-    // unchanged: this redesign covers the list, not the detail page.
+    // Match the list API's query semantics. Ready is the client-side tab filter.
     if (url.pathname === '/sales/orders' && Array.isArray(payload.orders)) {
       const stateFilter = url.searchParams.get('state');
       const fulfillment = url.searchParams.get('fulfillment');

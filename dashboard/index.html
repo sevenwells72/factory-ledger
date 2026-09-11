@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="shell-layout.css?v=6">
   <link rel="stylesheet" href="so-list.css?v=2">
   <link rel="stylesheet" href="so-list-actions.css?v=1">
+  <link rel="stylesheet" href="so-detail.css?v=1">
   <script src="design-controls.js?v=3"></script>
 </head>
 <body>
@@ -387,7 +388,7 @@
           <option value="all">All</option>
         </select>
         <input type="text" id="er-text-filter" placeholder="Filter by product / supplier / reference..." autocomplete="off">
-        <label class="orders-overdue-toggle">
+        <label class="filter-checkbox">
           <input type="checkbox" id="er-overdue-only"> Overdue only
         </label>
         <span id="er-summary" class="er-summary"></span>
@@ -443,7 +444,7 @@
       <div class="section-header supplies-requests-header">
         <h2>Supply Requests <span class="supplies-count-badge" id="supply-requests-open-count" aria-label="0 open supply requests">0</span></h2>
         <div class="supplies-request-controls">
-          <label class="orders-overdue-toggle">
+          <label class="filter-checkbox">
             <input type="checkbox" id="supply-requests-show-done"> Show completed
           </label>
           <button id="supply-requests-refresh-btn" class="btn-sm" type="button">Refresh</button>

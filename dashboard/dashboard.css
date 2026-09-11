@@ -1428,6 +1428,18 @@ body {
 #orders-customer-search:focus, #er-text-filter:focus { border-color: var(--primary-text); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 
 
+/* Shared checkbox refinements on Expected Receipts and Supplies. */
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size:var(--fl-caption, 14px);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.filter-checkbox input { cursor: pointer; accent-color: var(--primary); }
+
 .orders-dispatch-summary {
   color: var(--text-muted);
   font-size:var(--fl-caption, 14px);

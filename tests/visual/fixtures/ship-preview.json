@@ -3,10 +3,46 @@
   "order_number": "SO-1421",
   "preview": true,
   "lines": [
-    { "line_id": 1010, "sku": "CQ-25", "product": "Classic Granola 25 LB", "requested_lb": 1000.0, "takeable_lb": 1000.0, "shortfall_lb": 0.0, "lots": [ { "lot_code": "CQ25-2609-A", "quantity_lb": 1000.0 } ] },
-    { "line_id": 1011, "sku": "CQ-10", "product": "Classic Granola 10 LB", "requested_lb": 1500.0, "takeable_lb": 1240.0, "shortfall_lb": 260.0, "lots": [ { "lot_code": "CQ10-2609-A", "quantity_lb": 1240.0 } ] }
+    {
+      "line_id": 1010,
+      "sku": "CQ-25",
+      "product": "Classic Granola 25 LB",
+      "requested_lb": 1000.0,
+      "takeable_lb": 1000.0,
+      "shortfall_lb": 0.0,
+      "lots": [
+        {
+          "lot_code": "CQ25-2609-A",
+          "quantity_lb": 1000.0
+        }
+      ],
+      "requested_ship_lb": 1000.0,
+      "can_ship_lb": 1000.0,
+      "reserved_others_lb": 0.0,
+      "reserved_by_orders": []
+    },
+    {
+      "line_id": 1011,
+      "sku": "CQ-10",
+      "product": "Classic Granola 10 LB",
+      "requested_lb": 1500.0,
+      "takeable_lb": 1240.0,
+      "shortfall_lb": 260.0,
+      "lots": [
+        {
+          "lot_code": "CQ10-2609-A",
+          "quantity_lb": 1240.0
+        }
+      ],
+      "requested_ship_lb": 1500.0,
+      "can_ship_lb": 1240.0,
+      "reserved_others_lb": 0.0,
+      "reserved_by_orders": []
+    }
   ],
   "total_requested_lb": 2500.0,
   "total_takeable_lb": 2240.0,
-  "total_shortfall_lb": 260.0
+  "total_shortfall_lb": 260.0,
+  "mode": "preview",
+  "warnings": []
 }

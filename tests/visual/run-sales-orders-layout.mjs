@@ -37,7 +37,7 @@ try {
    await page.getByRole('tab',{name:new RegExp(`^${state}\\b`,'i')}).click();
    await page.locator(`.order-row[data-state="${state}"]`).first().waitFor({state:'visible'});
   }
-  const controls = page.locator('#orders-table-container .table-tools');
+  const controls = page.locator('#section-orders .table-tools');
   const sort = controls.locator('select');
   // The table enhancement observer runs after the tab's rows are attached.
   await sort.waitFor({state:'visible'});
@@ -49,7 +49,7 @@ try {
   await page.waitForTimeout(300);
   const result = await page.evaluate(() => {
    const table=document.querySelector('#orders-table-container table');
-   const tools=document.querySelector('#orders-table-container .table-tools');
+   const tools=document.querySelector('#section-orders .table-tools');
    const desktop=innerWidth>768, fitted=innerWidth>1100;
    const stack=['.site-nav','.app-header','.tab-bar'].map(s=>document.querySelector(s)).filter(e=>['sticky','fixed'].includes(getComputedStyle(e).position)&&e.getBoundingClientRect().height).reduce((n,e)=>Math.max(n,e.getBoundingClientRect().bottom),0);
    const r=tools.getBoundingClientRect();
@@ -65,6 +65,8 @@ try {
    const controlsVisible=!desktop||r.top>=stack-1;
    return {width:innerWidth,desktop,fitted,stack,controlsTop:r.top,tableWidth:t.width,containerWidth:bounds.width,scrollWidth:scroller.scrollWidth,headers,
     controlsVisible,
+    controlsInHeader:Boolean(tools.closest('#section-orders > .section-header')),
+    legacyHideReadyRemoved:!document.querySelector('#orders-hide-ready'),
     eightOrthogonalColumns:headers.length===8&&headers.every((h,i)=>h.toLowerCase()===expected[i].toLowerCase())&&rows.every(row=>row.children.length===8),
     expanderInOrderCell:rows.every(row=>row.children[1].querySelector('.order-expand-toggle')),
     allColumnsFit:!fitted||(t.right<=bounds.right+1&&t.left>=bounds.left-1&&scroller.scrollWidth<=scroller.clientWidth+1&&cells.every(e=>{const b=e.getBoundingClientRect();return b.left>=bounds.left-1&&b.right<=bounds.right+1&&e.scrollWidth<=e.clientWidth+1;})),
@@ -92,5 +94,5 @@ try {
 } finally { await browser.close();await server.close(); }
 await fs.writeFile(path.join(out,'results.json'),JSON.stringify(results,null,2));
 console.log(JSON.stringify(results,null,2));
-const checks=['controlsVisible','eightOrthogonalColumns','expanderInOrderCell','allColumnsFit','compactDesktopRows','scrollAffordance','pageContained','mobileCards','visibleLastColumn','lastColumnReachable'];
+const checks=['controlsVisible','controlsInHeader','legacyHideReadyRemoved','eightOrthogonalColumns','expanderInOrderCell','allColumnsFit','compactDesktopRows','scrollAffordance','pageContained','mobileCards','visibleLastColumn','lastColumnReachable'];
 if(results.some(r=>checks.some(k=>!r[k])))process.exitCode=1;

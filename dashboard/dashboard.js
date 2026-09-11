@@ -495,14 +495,6 @@
     return palletsForCases(caseSizeLb, cases);
   }
 
-  function formatInventoryUnits(units, pallets) {
-    if (units == null) return '\u2014';
-    const unitText = fmtInt(units) + ' units';
-    if (pallets == null) return unitText;
-    const label = pallets === 1 ? 'pallet' : 'pallets';
-    return unitText + ' \u00b7 ' + fmtInt(pallets) + ' ' + label;
-  }
-
   function caseBadgeClass(cases) {
     if (cases >= 100) return 'stock-healthy';
     if (cases >= 20) return 'stock-low';
@@ -2073,24 +2065,7 @@
 
   const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
   const SALES_API_KEY = 'dashboard-key-2026';
-  const SALES_ORDER_OPEN_STATUSES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship'];
-  const SALES_ORDER_ALLOCATABLE_STATUSES = ['confirmed', 'in_production', 'ready', 'partial_ship'];
-  const SALES_ORDER_CLOSED_STATUSES = ['shipped', 'invoiced', 'cancelled'];
   const ALLOCATION_INVENTORY_LIMIT = 500;
-  const SALES_ORDER_STATUS_VALUES = ['new', 'confirmed', 'in_production', 'ready', 'partial_ship', 'shipped', 'invoiced', 'cancelled'];
-  const SALES_ORDER_HEADER_EDIT_STATUSES = ['new', 'confirmed'];
-  const READINESS_BLOCKER_LABELS = {
-    shortage: 'Stock shortage',
-    unallocated: 'Not allocated',
-    partial_allocation: 'Partially allocated',
-    unstaged: 'Lot pin required',
-    missing_lot_dates: 'Lot date missing',
-    not_floor_ready: 'Factory Ready not set',
-    fulfillment_diverged: 'Shipment totals diverged',
-    no_ship_date: 'No ship date',
-    inbound_cover: 'Inbound stock pending',
-    service_only: 'Service-only order'
-  };
 
   // Orders sub-state
   state.ordersData = [];
@@ -2125,42 +2100,6 @@
     if (payload.detail && typeof payload.detail === 'object') return payload.detail;
     return payload;
   }
-
-  function blockerLabel(code) {
-    return READINESS_BLOCKER_LABELS[code] || String(code || 'Unknown blocker').replaceAll('_', ' ');
-  }
-
-  function renderBlockerChips(blockers, showDetail = false) {
-    const items = Array.isArray(blockers) ? blockers : [];
-    if (!items.length) return '<span class="readiness-none">No blockers</span>';
-    return '<div class="readiness-chips">' + items.map(blocker => {
-      const severity = ['block', 'warn', 'info'].includes(blocker.severity) ? blocker.severity : 'info';
-      const detail = showDetail && blocker.detail ? `<span class="readiness-chip-detail">${escHtml(blocker.detail)}</span>` : '';
-      return `<span class="readiness-chip severity-${severity}" title="${escAttr(blocker.detail || blockerLabel(blocker.code))}"><span class="readiness-chip-label">${escHtml(blockerLabel(blocker.code))}</span>${detail}</span>`;
-    }).join('') + '</div>';
-  }
-
-  function renderDispatchState(order) {
-    if (SALES_ORDER_CLOSED_STATUSES.includes(order.status) && !order.fulfillment_diverged) return 'Not applicable';
-    if (typeof order.dispatch_ready !== 'boolean') return 'Not checked';
-    return order.dispatch_ready
-      ? '<span class="dispatch-pill dispatch-ready">Checks passed</span>'
-      : '<span class="dispatch-pill dispatch-blocked">Needs review</span>';
-  }
-
-  function renderOrderBlockers(order, showDetail = false) {
-    if (SALES_ORDER_CLOSED_STATUSES.includes(order.status) && !order.fulfillment_diverged) return 'Not applicable';
-    return renderBlockerChips(order.blockers, showDetail);
-  }
-
-  function renderLineReadiness(line, showDetail = false) {
-    if (line.line_status === 'cancelled') return '<span class="readiness-none">Cancelled</span>';
-    const readiness = line.readiness || {};
-    if (readiness.ordered_lb == null) return '<span class="readiness-none">Service</span>';
-    return renderBlockerChips(readiness.blockers, showDetail);
-  }
-
-
 
   function formatDateShort(dateStr) {
     if (!dateStr) return '—';
@@ -2201,25 +2140,6 @@
       minute: '2-digit',
       timeZone: 'America/New_York', timeZoneName: 'short'
     });
-  }
-
-  function fmtLbs(n) {
-    if (n == null) return '—';
-    return Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' lb';
-  }
-
-  function soStatusLabel(status) {
-    const labels = {
-      'new': 'New',
-      'confirmed': 'Confirmed',
-      'in_production': 'In Production',
-      'ready': 'Ready to Ship',
-      'partial_ship': 'Partial Ship',
-      'shipped': 'Shipped',
-      'invoiced': 'Invoiced',
-      'cancelled': 'Cancelled'
-    };
-    return labels[status] || status;
   }
 
   function getFilteredOrders() {
@@ -2648,19 +2568,7 @@
     state.orderDetailEditMode = false;
     state.orderLinesCache[orderId] = data;
     const existing = state.ordersData.find(order => String(order.order_id) === String(orderId));
-    if (existing) {
-      existing.status = data.status;
-      existing.requested_ship_date = data.requested_ship_date;
-      existing.customer = data.customer;
-      existing.order_number = data.order_number;
-      existing.inventory_ready = data.inventory_ready;
-      existing.dispatch_ready = data.dispatch_ready;
-      existing.fulfillment_diverged = data.fulfillment_diverged;
-      existing.shortage_lb = data.shortage_lb;
-      existing.allocated_lb = data.allocated_lb;
-      existing.remaining_effective_lb = data.remaining_effective_lb;
-      existing.blockers = data.blockers;
-    }
+    if (existing) Object.assign(existing, data, { ready: Boolean(data.ready ?? data.floor_ready ?? existing.ready) });
     renderOrderDetail(data, container, false, successMessage || '');
   }
 
@@ -2696,31 +2604,27 @@
     return state.salesOrderInventory.promise;
   }
 
-  function renderOrderInventoryContent(line, inventoryByProduct) {
-    if (!line) return '<div class="loading-indicator order-inventory-message">Unable to load inventory</div>';
-    const productName = line.product || line.name || '';
-    const inventory = inventoryByProduct[(productName || '').toLowerCase()];
-    const caseWeight = inventory ? inventory.caseWeightLb : (line.case_size_lb || null);
-    const onHandLbs = inventory ? inventory.onHandLbs : 0;
-    const lineReadiness = line.readiness || {};
-    const remainingLbs = lineReadiness.remaining_lb != null
-      ? lineReadiness.remaining_lb
-      : (line.remaining_lb != null ? line.remaining_lb : ((line.quantity_lb || 0) - (line.quantity_shipped_lb || 0)));
-    const onHandUnits = inventoryUnitCount(onHandLbs, caseWeight);
-    const remainingUnits = line.remaining_units != null ? line.remaining_units : inventoryUnitCount(remainingLbs, caseWeight);
-    const deltaUnits = onHandUnits != null && remainingUnits != null ? onHandUnits - remainingUnits : null;
-    const onHandPallets = salesOrderLinePallets(line, onHandUnits);
-    const remainingPallets = salesOrderLinePallets(line, remainingUnits);
-    const deltaPallets = salesOrderLinePallets(line, deltaUnits == null ? null : Math.abs(deltaUnits));
-    const deltaClass = deltaUnits < 0 ? 'inventory-delta-negative' : 'inventory-delta-positive';
-    const deltaPrefix = deltaUnits > 0 ? '+' : (deltaUnits < 0 ? '\u2212' : '');
-    const deltaValue = deltaUnits == null ? '\u2014' : deltaPrefix + formatInventoryUnits(Math.abs(deltaUnits), deltaPallets);
+  function orderLineQuantities(line) {
+    const readiness = line.readiness || {};
+    const service = Boolean(line.is_non_weight || line.is_service || readiness.ordered_lb === null);
+    const ordered = Number(line.quantity_lb ?? readiness.ordered_lb ?? 0);
+    const shipped = Number(readiness.shipped_effective_lb ?? line.shipped_effective_lb ?? 0);
+    const remaining = Number(readiness.remaining_lb ?? line.remaining_effective_lb ?? Math.max(0, ordered - shipped));
+    return { service, ordered, shipped, remaining, allocated: Number(readiness.allocated_lb ?? line.allocated_lb ?? 0), unallocated: Number(readiness.unallocated_need_lb ?? line.unallocated_lb ?? 0) };
+  }
 
-    return '<table class="order-inventory-table"><tbody>' +
-      `<tr><th>On Hand</th><td>${formatInventoryUnits(onHandUnits, onHandPallets)}</td></tr>` +
-      `<tr><th>Remaining</th><td>${formatInventoryUnits(remainingUnits, remainingPallets)}</td></tr>` +
-      `<tr><th>Delta</th><td class="${deltaClass}">${deltaValue}</td></tr>` +
-      '</tbody></table>';
+  function renderOrderInventoryContent(line, inventoryByProduct) {
+    if (!line) return '<p class="order-inventory-message">Inventory could not be matched to this line. Refresh the order and try again.</p>';
+    const inventory = inventoryByProduct[(line.product || line.name || '').toLowerCase()];
+    const caseWeight = inventory?.caseWeightLb || getSalesOrderLineCaseSizeLb(line);
+    const onHand = inventory?.onHandLbs ?? 0;
+    const remaining = orderLineQuantities(line).remaining;
+    const quantities = [['On hand', onHand], ['Remaining', remaining], ['Stock after remaining demand', onHand - remaining]];
+    return '<table class="order-inventory-table"><thead><tr><th>Inventory</th><th class="num">Pounds</th><th class="num">Units</th><th class="num">Pallets</th></tr></thead><tbody>' + quantities.map(([label, pounds]) => {
+      const units = caseWeight ? pounds / caseWeight : null;
+      const pallets = salesOrderLinePallets(line, units);
+      return `<tr><th>${label}</th><td class="num">${SOList.number(pounds)} lb</td><td class="num">${SOList.number(units)}</td><td class="num">${SOList.number(pallets, 'pallets')}</td></tr>`;
+    }).join('') + '</tbody></table>';
   }
 
   function bindOrderInventoryToggles(container, lines) {
@@ -2733,7 +2637,7 @@
         if (!detailRow || !detailCell) return;
 
         const expanding = detailRow.classList.contains('hidden');
-        if(expanding)FLDesign.setRecord({type:'order',id:orderId});
+        if(expanding)FLDesign.setRecord({type:'order',id:state.currentOrderDetail?.order_id});
         detailRow.classList.toggle('hidden', !expanding);
         btn.setAttribute('aria-expanded', expanding ? 'true' : 'false');
         if (!expanding || detailRow.dataset.loaded === 'true') return;
@@ -2751,26 +2655,19 @@
   }
 
   function canEditOrderHeader(order) {
-    return SALES_ORDER_HEADER_EDIT_STATUSES.includes(order.status);
+    return order.state === 'open' && order.fulfillment === 'unshipped';
   }
 
   function parseApiErrorMessage(error) {
-    const raw = error && error.message ? error.message : String(error);
-    const match = raw.match(/^HTTP\s+\d+:\s*([\s\S]*)$/);
-    if (!match) return raw;
-    const body = match[1];
-    try {
-      const payload = JSON.parse(body);
-      if (payload && payload.detail) {
-        if (typeof payload.detail === 'string') return payload.detail;
-        if (payload.detail.message) return payload.detail.message;
-      }
-      if (payload && payload.error) return payload.error;
-      if (payload && payload.error_detail && payload.error_detail.message) return payload.error_detail.message;
-    } catch (_) {
-      // Fall through to the raw response body.
-    }
-    return body;
+    const detail = apiErrorDetail(error) || {};
+    const messages = {
+      ORDER_HEADER_LOCKED: 'The ledger has locked this order’s header. Close this edit and ask the office to update the ship-by date or notes.',
+      QTY_BELOW_SHIPPED_EFFECTIVE: 'The quantity cannot be lower than the pounds already shipped. Check the line’s shipment total and try again.',
+      INVALID_LINE_QUANTITY: 'Enter a line quantity greater than zero.',
+      LINE_NOT_FOUND: 'This line changed or can no longer be edited. Refresh the order before trying again.',
+      ORDER_NOT_OPEN: 'This order is no longer open. Refresh the order to see its current state.'
+    };
+    return messages[detail.error_code] || (error?.status === 403 ? 'You do not have permission to change this order. Ask the office for access.' : 'The change could not be confirmed. Refresh the order and try again.');
   }
 
   function setOrderDetailMessage(container, message, kind) {
@@ -2781,24 +2678,19 @@
     if (message) el.classList.add(kind === 'success' ? 'success' : 'error');
   }
 
-  function renderStatusOptions(currentStatus) {
-    return SALES_ORDER_STATUS_VALUES.map(status => (
-      `<option value="${escAttr(status)}"${status === currentStatus ? ' selected' : ''}>${escHtml(soStatusLabel(status))}</option>`
-    )).join('');
+  function canEditOrderLines(order) {
+    return order.state === 'open' && (order.lines || []).some(line => !['fulfilled', 'cancelled'].includes(line.line_status));
   }
 
   function renderOrderEditActions(order, editMode) {
-    if (!canEditOrderHeader(order)) {
-      return `<div class="order-edit-locked">Editing opens only while the order is New or Confirmed. Current status: ${escHtml(soStatusLabel(order.status))}.</div>`;
-    }
+    if (!canEditOrderHeader(order) && !canEditOrderLines(order)) return '';
     if (editMode) {
       return '<div class="order-detail-actions">' +
-        '<button type="button" class="btn-refresh order-save-header-btn">Save Header</button>' +
-        '<button type="button" class="btn-refresh order-save-lines-btn">Save Lines</button>' +
-        '<button type="button" class="btn-secondary order-cancel-edit-btn">Done</button>' +
-        '</div>';
+        (canEditOrderHeader(order) ? '<button type="button" class="btn-secondary order-save-header-btn">Save header</button>' : '') +
+        (canEditOrderLines(order) ? '<button type="button" class="btn-secondary order-save-lines-btn">Save lines</button>' : '') +
+        '<button type="button" class="btn-secondary order-cancel-edit-btn">Done</button></div>';
     }
-    return '<div class="order-detail-actions"><button type="button" class="btn-refresh order-edit-toggle-btn">Edit Order</button></div>';
+    return '<div class="order-detail-actions"><button type="button" class="btn-secondary order-edit-toggle-btn">Edit order</button></div>';
   }
 
   async function saveOrderHeader(container) {
@@ -2899,35 +2791,6 @@
     }
   }
 
-  async function saveOrderStatus(container) {
-    const order = state.currentOrderDetail;
-    if (!order) return;
-    const select = container.querySelector('.order-status-select');
-    const nextStatus = select ? select.value : order.status;
-    if (nextStatus === order.status) return;
-    const ok = window.confirm(`Change ${order.order_number} status from ${soStatusLabel(order.status)} to ${soStatusLabel(nextStatus)}?`);
-    if (!ok) {
-      select.value = order.status;
-      return;
-    }
-    select.disabled = true;
-    setOrderDetailMessage(container, '', 'success');
-    hideError('order-detail-error');
-    try {
-      await fetchSalesAPI('/sales/orders/' + order.order_id + '/status', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus })
-      });
-      await refreshOrderDetail(order.order_id, 'Status updated.');
-    } catch (e) {
-      select.value = order.status;
-      setOrderDetailMessage(container, parseApiErrorMessage(e), 'error');
-    } finally {
-      select.disabled = false;
-    }
-  }
-
   function bindOrderDetailEditControls(container) {
     const editBtn = container.querySelector('.order-edit-toggle-btn');
     if (editBtn) {
@@ -2947,8 +2810,6 @@
     if (headerBtn) headerBtn.addEventListener('click', () => saveOrderHeader(container));
     const linesBtn = container.querySelector('.order-save-lines-btn');
     if (linesBtn) linesBtn.addEventListener('click', () => saveOrderLines(container));
-    const statusSelect = container.querySelector('.order-status-select');
-    if (statusSelect) statusSelect.addEventListener('change', () => saveOrderStatus(container));
   }
 
   function allocationSourceLabel(source) {
@@ -2974,18 +2835,9 @@
     const totalMinutes = Math.ceil(remainingMs / 60000);
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    if (hours >= 24) return `${Math.floor(hours / 24)}d ${hours % 24}h remaining`;
-    if (hours > 0) return `${hours}h ${minutes}m remaining`;
-    return `${minutes}m remaining`;
-  }
-
-  function renderOrderReadinessSummary(order) {
-    return '<section class="order-readiness-card" aria-label="Computed dispatch readiness">' +
-      '<div class="order-readiness-heading"><div>' + renderDispatchState(order) +
-      `<span class="readiness-caption">Factory Ready is the team’s preparation mark. Dispatch checks review shipments, stock and reservations; they do not prevent shipping.</span></div>` +
-      `<div class="readiness-metrics"><span><strong>${fmtLbs(order.allocated_lb || 0)}</strong> allocated</span><span><strong>${fmtLbs(order.shortage_lb || 0)}</strong> shortage</span></div></div>` +
-      renderOrderBlockers(order, true) +
-      '</section>';
+    if (hours >= 24) return `${SOList.number(Math.floor(hours / 24))}d ${SOList.number(hours % 24)}h remaining`;
+    if (hours > 0) return `${SOList.number(hours)}h ${SOList.number(minutes)}m remaining`;
+    return `${SOList.number(minutes)}m remaining`;
   }
 
   function allocatableOrderLines(order) {
@@ -3002,17 +2854,17 @@
     let html = '<section class="order-allocation-card">';
     html += '<div class="order-section-heading"><div><h3>Reservations</h3><p>Allocations reserve finished goods for this order. They do not move, ship, or adjust physical inventory.</p></div></div>';
 
-    if (SALES_ORDER_ALLOCATABLE_STATUSES.includes(order.status) && lines.length) {
+    if (order.state === 'open' && lines.length) {
       html += '<form class="allocation-form" novalidate>';
       html += '<label>Order line<select class="allocation-line-select">' + lines.map(line => {
         const readiness = line.readiness || {};
-        return `<option value="${escAttr(line.line_id)}">${escHtml(line.sku || '')}${line.sku ? ' · ' : ''}${escHtml(line.product || line.name || 'Line')} · ${fmtWt(readiness.unallocated_need_lb || 0)} lb unallocated</option>`;
+        return `<option value="${escAttr(line.line_id)}">${escHtml(line.sku || '')}${line.sku ? ' · ' : ''}${escHtml(line.product || line.name || 'Line')} · ${SOList.number(readiness.unallocated_need_lb || 0)} lb unallocated</option>`;
       }).join('') + '</select></label>';
-      html += '<label>Method<select class="allocation-mode-select"><option value="manual_sku">Manual · SKU level</option><option value="manual_lot">Manual · specific lot</option><option value="auto_fifo">Auto FIFO · 48h TTL</option></select></label>';
+      html += '<label>Method<select class="allocation-mode-select"><option value="manual_sku">Manual · SKU level</option><option value="manual_lot">Manual · specific lot</option><option value="auto_fifo">Auto FIFO · earliest stock first</option></select></label>';
       html += '<label class="allocation-quantity-field">Quantity (lb)<input class="allocation-quantity-input" type="number" min="0.0001" step="0.0001" inputmode="decimal" required></label>';
       html += '<label class="allocation-lot-field hidden">Lot<select class="allocation-lot-select"><option value="">Choose a lot…</option></select><span class="allocation-field-hint">Only positive on-hand lots for the selected product are shown.</span><span class="allocation-lot-limit-warning hidden" role="status">Lot list may be incomplete — only the first 500 inventory lots were loaded.</span></label>';
       html += '<label class="allocation-note-field">Note (optional)<input class="allocation-note-input" type="text" maxlength="500" placeholder="Why this stock is reserved"></label>';
-      html += '<div class="allocation-form-actions"><button type="submit" class="btn-refresh allocation-submit-btn">Allocate</button><span class="allocation-form-note">Auto FIFO expires after 48 hours unless the API returns a different expiry.</span></div>';
+      html += '<div class="allocation-form-actions"><button type="submit" class="btn-refresh allocation-submit-btn">Allocate</button><span class="allocation-form-note">Auto FIFO reserves stock first in, first out. Each reservation shows its recorded expiry.</span></div>';
       html += '</form>';
     } else {
       html += '<div class="allocation-form-unavailable">Allocation controls are available only for open physical lines with effective remaining demand.</div>';
@@ -3022,24 +2874,21 @@
     if (!allocations.length) {
       html += '<div class="allocation-empty">No allocation history for this order.</div>';
     } else {
-      html += '<div class="allocation-table-wrap"><table class="allocation-table"><thead><tr><th>Product / line</th><th>Level</th><th class="num">Reserved</th><th>Source</th><th>Status / TTL</th><th></th></tr></thead><tbody>';
+      html += '<div class="allocation-table-wrap"><table class="allocation-table"><thead><tr><th>Product / line</th><th>Level</th><th class="num">Reserved lb</th><th>Source</th><th>Reservation state</th><th>Actions</th></tr></thead><tbody>';
       for (const allocation of allocations) {
         const effectiveStatus = allocation.effective_status || allocation.status;
         const active = effectiveStatus === 'active';
-        const level = allocation.lot_id
-          ? `<strong>Lot</strong><span>${escHtml(allocation.lot_code || '#' + allocation.lot_id)}</span>`
-          : '<strong>SKU level</strong><span>Any eligible lot at ship time</span>';
-        const expiry = allocation.source === 'auto_fifo'
-          ? `<span class="allocation-expiry" data-expires-at="${escAttr(allocation.expires_at || '')}">${escHtml(allocationExpiryText(allocation.expires_at))}</span>`
-          : '<span class="allocation-no-expiry">No expiry</span>';
+        const product = [allocation.sku, allocation.product_name].filter(Boolean).join(' · ') || 'Product not recorded';
+        const level = allocation.lot_id ? allocation.lot_code || 'Lot ' + SOList.number(allocation.lot_id) : 'SKU level';
+        const source = allocationSourceLabel(allocation.source);
+        const expiry = allocation.expires_at ? SOList.stamp(allocation.expires_at) : 'No expiry recorded';
+        const stateContent = SOList.paragraph(`Reserved ${SOList.number(allocation.quantity_lb)} lb for line ${SOList.number(allocation.sales_order_line_id)}.`) + SOList.paragraph(expiry) + (allocation.release_reason ? SOList.paragraph(allocation.release_reason.replaceAll('_', ' ')) : '');
         html += `<tr class="allocation-row allocation-status-${escAttr(effectiveStatus || 'unknown')}">`;
-        html += `<td><strong>${escHtml(allocation.sku || '—')} · ${escHtml(allocation.product_name || 'Product')}</strong><span>Line #${escHtml(allocation.sales_order_line_id)}</span></td>`;
-        html += `<td class="allocation-level">${level}</td>`;
-        html += `<td class="num">${fmtWt(allocation.quantity_lb)} lb</td>`;
-        html += `<td><span class="allocation-source source-${escAttr(allocation.source || 'unknown')}">${escHtml(allocationSourceLabel(allocation.source))}</span></td>`;
-        html += `<td><span class="allocation-status">${escHtml(allocationStatusLabel(allocation))}</span>${expiry}${allocation.release_reason ? `<span class="allocation-reason">${escHtml(allocation.release_reason.replaceAll('_', ' '))}</span>` : ''}</td>`;
-        html += `<td>${active ? `<button type="button" class="btn-sm allocation-release-btn" data-allocation-id="${allocation.id}" data-quantity="${escAttr(allocation.quantity_lb)}">Release</button>` : ''}</td>`;
-        html += '</tr>';
+        html += `<td>${SOList.trigger('reservation-product-' + allocation.id, escHtml(product), 'The order line supported by this stock reservation.', SOList.paragraph('Line ' + SOList.number(allocation.sales_order_line_id)), 'so-reservation-product')}</td>`;
+        html += `<td>${escHtml(level)}</td><td class="num">${SOList.number(allocation.quantity_lb)} lb</td>`;
+        html += `<td>${SOList.trigger('reservation-source-' + allocation.id, escHtml(source), 'How this stock was reserved for the order.', SOList.paragraph(allocation.source === 'auto_fifo' ? 'The earliest available stock was selected first.' : allocation.lot_id ? 'This reservation is tied to a specific lot.' : 'This reservation can use any eligible lot.'), 'so-reservation-source')}</td>`;
+        html += `<td>${SOList.trigger('reservation-state-' + allocation.id, escHtml(allocationStatusLabel(allocation)), 'Whether this stock reservation is still held for the order.', stateContent, 'so-reservation-state')}${allocation.expires_at ? `<span class="allocation-expiry" data-expires-at="${escAttr(allocation.expires_at)}">${escHtml(allocationExpiryText(allocation.expires_at))}</span>` : ''}</td>`;
+        html += `<td>${active && order.state === 'open' ? `<button type="button" class="btn-sm allocation-release-btn" data-allocation-id="${allocation.id}" data-quantity="${escAttr(allocation.quantity_lb)}">Release</button>` : ''}</td></tr>`;
       }
       html += '</tbody></table></div>';
     }
@@ -3048,8 +2897,8 @@
   }
 
   function renderShippingPreviewSection(order) {
-    if (!SALES_ORDER_ALLOCATABLE_STATUSES.includes(order.status)) return '';
-    return '<section class="order-preview-card"><div class="order-section-heading"><div><h3>Shipping capacity preview</h3><p>Read-only preview of what is takeable now. Previewing does not ship inventory, and dispatch checks are advisory.</p></div><button type="button" class="btn-secondary order-preview-btn">Preview all remaining lines</button></div><div class="order-ship-preview-results" aria-live="polite"></div></section>';
+    if (order.state !== 'open') return '';
+    return '<section class="order-preview-card"><div class="order-section-heading"><div><h3>Shipping capacity preview</h3><p>Shows the quantity available to ship now. Previewing does not record a shipment.</p></div><button type="button" class="btn-secondary order-preview-btn">Preview all remaining lines</button></div><div class="order-ship-preview-results" aria-live="polite"></div></section>';
   }
 
   function setAllocationFeedback(container, message, kind = 'error') {
@@ -3065,12 +2914,12 @@
     const code = detail.error_code || detail.code;
     if (code === 'OVER_ALLOCATION') {
       const coverable = Number(detail.coverable_lb || 0);
-      return `Only ${fmtWt(coverable)} lb is coverable. Reduce the request to ${fmtWt(coverable)} lb or release a competing reservation.`;
+      return `Only ${SOList.number(coverable)} lb is coverable. Reduce the request to ${SOList.number(coverable)} lb or release a competing reservation.`;
     }
     if (code === 'LOT_PRODUCT_MISMATCH') return 'That lot belongs to a different product. Choose a lot listed for this line.';
     if (code === 'ALLOCATION_NOT_ACTIVE') return 'That reservation is no longer active. Refresh the order before trying again.';
     if (code === 'INVALID_AUTO_FIFO_REQUEST') return 'Auto FIFO chooses its own lots. Clear the manual lot selection and try again.';
-    return detail.message || parseApiErrorMessage(error);
+    return parseApiErrorMessage(error);
   }
 
   async function loadAllocationInventory() {
@@ -3102,7 +2951,7 @@
       const lots = inventory.filter(item => item.product_name === (line && (line.product || line.name)) && Number(item.quantity_on_hand || 0) > 0.0001);
       if (limitWarning) limitWarning.classList.toggle('hidden', !state.allocationInventoryMayBeIncomplete);
       lotSelect.innerHTML = '<option value="">Choose a lot…</option>' + lots.map(lot =>
-        `<option value="${escAttr(lot.lot_id)}">${escHtml(lot.lot_code)} · ${fmtWt(lot.quantity_on_hand)} lb on hand</option>`
+        `<option value="${escAttr(lot.lot_id)}">${escHtml(lot.lot_code)} · ${SOList.number(lot.quantity_on_hand)} lb on hand</option>`
       ).join('');
       if (!lots.length) {
         lotSelect.innerHTML = state.allocationInventoryMayBeIncomplete
@@ -3182,7 +3031,7 @@
   async function releaseAllocation(container, button) {
     const allocationId = button.dataset.allocationId;
     const quantity = button.dataset.quantity;
-    if (!window.confirm(`Release this ${quantity} lb reservation? This makes it available to other orders but does not move physical inventory.`)) return;
+    if (!window.confirm(`Release this ${SOList.number(quantity)} lb reservation? This makes it available to other orders but does not move physical inventory.`)) return;
     button.disabled = true;
     setAllocationFeedback(container, '');
     try {
@@ -3206,14 +3055,14 @@
     let html = warnings.map(message => `<div class="preview-general-warning">${escHtml(message)}</div>`).join('');
     html += '<div class="preview-lines">';
     for (const line of (preview.lines || [])) {
-      const owners = (line.reserved_by_orders || []).map(item => `${item.order_number} (${fmtWt(item.quantity_lb)} lb)`).join(', ');
+      const owners = (line.reserved_by_orders || []).map(item => `${item.order_number} (${SOList.number(item.quantity_lb)} lb)`).join(', ');
       html += '<div class="preview-line">';
-      html += `<div class="preview-line-main"><strong>${escHtml(line.product)}</strong><span>Requested ${fmtWt(line.requested_ship_lb)} lb · Can ship ${fmtWt(line.can_ship_lb)} lb</span></div>`;
+      html += `<div class="preview-line-main"><strong>${escHtml(line.product)}</strong><span>Requested ${SOList.number(line.requested_ship_lb)} lb · Can ship ${SOList.number(line.can_ship_lb)} lb</span></div>`;
       if (!line.is_service) {
-        html += `<div class="preview-reservations">Reserved for other orders: ${fmtWt(line.reserved_others_lb || 0)} lb${owners ? ` · ${escHtml(owners)}` : ''}</div>`;
+        html += `<div class="preview-reservations">Reserved for other orders: ${SOList.number(line.reserved_others_lb || 0)} lb${owners ? ` · ${escHtml(owners)}` : ''}</div>`;
       }
       if (line.allocation_warning && line.allocation_warning.message) {
-        html += `<div class="preview-allocation-warning"><strong>${escHtml(line.allocation_warning.warning_code || 'Allocation warning')}</strong><span>${escHtml(line.allocation_warning.message)}</span></div>`;
+        html += `<div class="preview-allocation-warning"><strong>${'Reservation review'}</strong><span>${escHtml(line.allocation_warning.message)}</span></div>`;
       }
       html += '</div>';
     }
@@ -3266,135 +3115,145 @@
     state.allocationCountdownTimer = setInterval(() => updateAllocationCountdowns(container), 60000);
   }
 
-  function renderOrderDetail(data, container, editMode = state.orderDetailEditMode, successMessage = '') {
-    let html = '';
-    const editable = canEditOrderHeader(data);
-    editMode = Boolean(editMode && editable);
+  function orderDetailFlag(order) {
+    const cached = state.ordersData.find(item => String(item.order_id) === String(order.order_id)) || {};
+    return { ready: Boolean(order.ready ?? order.floor_ready ?? cached.ready), ready_at: order.ready_at ?? cached.ready_at, ready_by: order.ready_by ?? cached.ready_by, note: order.ready_note ?? cached.note };
+  }
 
-    // Header
-    html += '<div class="order-detail-header">';
-    html += '<div class="order-detail-top">';
-    html += `<span class="order-number">${escHtml(data.order_number)}</span>`;
-    if (editMode) {
-      html += `<select class="order-status-select" aria-label="Order status">${renderStatusOptions(data.status)}</select>`;
-    } else {
-      html += `<span class="so-badge status-${data.status}">${soStatusLabel(data.status)}</span>`;
-    }
-    html += '</div>';
-    html += `<div class="order-detail-top"><span class="order-customer">${escHtml(data.customer)}</span></div>`;
-    html += '<div class="order-detail-dates">';
-    html += `<span><strong>Order Date:</strong> ${formatDateShort(data.order_date)}</span>`;
-    if (editMode) {
-      html += '<label class="order-edit-field"><strong>Ship By:</strong> ' +
-        `<input type="date" class="order-edit-input order-edit-ship-date" value="${escAttr(data.requested_ship_date || '')}">` +
-        '</label>';
-    } else {
-      html += `<span><strong>Ship By:</strong> ${formatDateShort(data.requested_ship_date)}</span>`;
-    }
-    html += '</div>';
-    html += renderOrderEditActions(data, editMode);
-    html += `<div class="order-edit-message${successMessage ? ' success' : ''}">${escHtml(successMessage)}</div>`;
-    html += '</div>';
-    html += renderOrderReadinessSummary(data);
+  function orderDetailShipDate(order) {
+    if (!order.requested_ship_date) return 'Ship-by date not set';
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    const days = Math.round((Date.parse(order.requested_ship_date + 'T12:00:00Z') - Date.parse(today + 'T12:00:00Z')) / 86400000);
+    const relative = days < 0 ? `${SOList.number(-days)} ${days === -1 ? 'day' : 'days'} ${order.state === 'open' && order.fulfillment !== 'shipped' ? 'overdue' : 'ago'}` : days === 0 ? 'today' : `in ${SOList.number(days)} ${days === 1 ? 'day' : 'days'}`;
+    return `${escHtml(SOList.date(order.requested_ship_date))} <span class="so-relative">${relative}</span>`;
+  }
 
-    // KPI row — readiness totals use effective posted shipments, never the
-    // mutable recorded shipment counter.
-    const totals = data.totals || {};
-    const totalOrdered = data.ordered_lb != null ? data.ordered_lb : (totals.total_ordered_lb != null ? totals.total_ordered_lb : data.total_ordered_lb);
-    const totalShipped = data.shipped_effective_lb != null ? data.shipped_effective_lb : (totals.total_shipped_lb != null ? totals.total_shipped_lb : data.total_shipped_lb);
-    const totalRemaining = data.remaining_effective_lb != null ? data.remaining_effective_lb : (totals.remaining_lb != null ? totals.remaining_lb : data.remaining_lb);
-    const lines = data.lines || [];
-    const effectiveLines = lines.map(line => ({
-      ...line,
-      remaining_effective_units: line.case_size_lb && line.readiness && line.readiness.remaining_lb != null
-        ? Math.round(Number(line.readiness.remaining_lb) / Number(line.case_size_lb))
-        : line.remaining_units
-    }));
-    const orderedPallets = calculateOrderPallets(lines, 'unit_count');
-    const remainingPallets = calculateOrderPallets(effectiveLines, 'remaining_effective_units');
-    let summaryHtml = '<div class="order-kpi-row">';
-    summaryHtml += `<div class="order-kpi"><div class="kpi-label">Total Ordered</div><div class="kpi-value">${fmtLbs(totalOrdered)}</div></div>`;
-    summaryHtml += `<div class="order-kpi"><div class="kpi-label">Shipped Effective</div><div class="kpi-value">${fmtLbs(totalShipped)}</div></div>`;
-    summaryHtml += `<div class="order-kpi"><div class="kpi-label">Remaining Effective</div><div class="kpi-value">${fmtLbs(totalRemaining)}</div></div>`;
-    summaryHtml += `<div class="order-kpi order-kpi-pallets"><div class="kpi-label">Pallets</div><div class="kpi-value">${escHtml(orderedPallets.display)}<br><small>Remaining: ${escHtml(remainingPallets.display)}</small></div></div>`;
-    summaryHtml += '</div>';
-
-    // Line items
-    if (lines.length > 0) {
-      html += '<div class="order-detail-table-wrap"><table class="orders-table order-readiness-table"><thead><tr>';
-      html += '<th>Product</th><th class="num">Ordered</th>';
-      if (editMode) html += '<th class="num">Price</th>';
-      html += '<th class="num">Shipped Effective</th><th class="num">Remaining</th><th class="num">Allocated</th><th class="num">Shortage</th><th>Blockers</th><th>Status</th>';
-      html += '</tr></thead><tbody>';
-      for (const l of lines) {
-        const readiness = l.readiness || {};
-        const isServiceReadiness = readiness.ordered_lb == null;
-        const remaining = readiness.remaining_lb != null ? readiness.remaining_lb : (l.remaining_lb != null ? l.remaining_lb : ((l.quantity_lb || 0) - (l.quantity_shipped_lb || 0)));
-        const shippedEffective = readiness.shipped_effective_lb != null ? readiness.shipped_effective_lb : l.quantity_shipped_lb;
-        const productName = l.product || l.name || '\u2014';
-        const lineStatusClass = l.line_status === 'fulfilled' ? 'status-shipped'
-          : l.line_status === 'partial' ? 'status-partial_ship'
-          : l.line_status === 'cancelled' ? 'status-cancelled'
-          : 'status-new';
-        const isNw = l.is_non_weight;
-        const lineFmt = (lb, units) => isNw ? (Number.isInteger(lb) ? lb : lb) + ' units' : (units != null ? fmtWt(lb) + ' lb &middot; ' + fmtInt(units) + ' units' : fmtLbs(lb));
-        const orderedLinePallets = calculateLinePallets(l, l.unit_count);
-        const effectiveRemainingUnits = l.case_size_lb ? Math.round(Number(remaining) / Number(l.case_size_lb)) : l.remaining_units;
-        const remainingLinePallets = calculateLinePallets(l, effectiveRemainingUnits);
-        const lineEditable = editMode && !['fulfilled', 'cancelled'].includes(l.line_status);
-        html += `<tr class="${lineEditable ? 'order-line-edit-row' : ''}" data-line-id="${escAttr(l.line_id)}">`;
-        html += `<td><div class="order-product-cell"><span>${escHtml(productName)}</span><button type="button" class="btn-sm order-inventory-toggle" data-line-id="${l.line_id}" aria-expanded="false" aria-controls="order-inventory-${l.line_id}">Inventory</button></div></td>`;
-        if (lineEditable) {
-          html += '<td class="num order-edit-num-cell">' +
-            `<input type="number" class="order-edit-input order-line-qty-input" min="0" step="0.01" value="${escAttr(String(l.quantity_lb == null ? '' : l.quantity_lb))}">` +
-            `<small class="pallet-secondary">${escHtml(l.uom || 'lb')} · ${escHtml(orderedLinePallets.display)}</small>` +
-            '</td>';
-          html += '<td class="num order-edit-num-cell">' +
-            `<input type="number" class="order-edit-input order-line-price-input" min="0" step="0.01" value="${escAttr(String(l.case_price == null ? '' : l.case_price))}">` +
-            `<small class="pallet-secondary">${escHtml((l.price_basis || 'price').replace('_', ' '))}</small>` +
-            '</td>';
-        } else {
-          html += `<td class="num">${lineFmt(l.quantity_lb, l.unit_count)}<small class="pallet-secondary">${escHtml(orderedLinePallets.display)}</small></td>`;
-          if (editMode) {
-            html += `<td class="num">${l.case_price == null ? '\u2014' : '$' + Number(l.case_price).toFixed(2)}<small class="pallet-secondary">${escHtml((l.price_basis || '').replace('_', ' '))}</small></td>`;
-          }
+  function bindOrderDetailActions(container, order) {
+    container.querySelectorAll('.so-detail-exit-action').forEach(button => button.addEventListener('click', () => {
+      SOList.closeExplanation();
+      SOListActions.open(order, {
+        action: button.dataset.action, request: fetchSalesAPI, format: SOList.number, trigger: button,
+        getFocusTarget: () => container.querySelector('.so-detail-exit-action'),
+        onCommitted: async () => {
+          await Promise.all([refreshOrderDetail(order.order_id, 'Order updated.'), refreshOrders()]);
         }
-        html += `<td class="num">${lineFmt(shippedEffective, null)}</td>`;
-        html += `<td class="num">${lineFmt(remaining, effectiveRemainingUnits)}<small class="pallet-secondary">${escHtml(remainingLinePallets.display)}</small></td>`;
-        html += `<td class="num">${isServiceReadiness ? '—' : fmtLbs(readiness.allocated_lb || 0)}</td>`;
-        html += `<td class="num ${Number(readiness.shortage_lb || 0) > 0.0001 ? 'readiness-shortage' : ''}">${isServiceReadiness ? '—' : fmtLbs(readiness.shortage_lb || 0)}</td>`;
-        html += `<td class="line-blockers-cell">${renderLineReadiness(l, true)}</td>`;
-        html += `<td><span class="so-badge ${lineStatusClass}">${escHtml(l.line_status || 'pending')}</span></td>`;
-        html += '</tr>';
-        html += `<tr id="order-inventory-${l.line_id}" class="order-inventory-row hidden"><td colspan="${editMode ? 10 : 9}"></td></tr>`;
+      });
+    }));
+    container.querySelectorAll('.so-related-order').forEach(link => link.addEventListener('click', event => {
+      event.preventDefault();
+      SOList.closeExplanation();
+      openOrderDetail(link.dataset.orderId);
+    }));
+    const checkbox = container.querySelector('.so-detail-ready-checkbox');
+    checkbox?.addEventListener('change', async () => {
+      const key = String(order.order_id);
+      const flag = orderDetailFlag(order);
+      if (order.state !== 'open' || state.orderReadyWrites.has(key)) { checkbox.checked = flag.ready; return; }
+      state.orderReadyWrites.add(key);
+      checkbox.disabled = true;
+      const restoreFocus = document.activeElement === checkbox;
+      try {
+        const saved = await postOrderReady(order, checkbox.checked, flag.note || null);
+        Object.assign(order, { ready: Boolean(saved.ready), floor_ready: Boolean(saved.ready), ready_at: saved.ready_at, ready_by: saved.ready_by, ready_note: saved.note });
+        updateCachedOrderReady(order.order_id, saved);
+        await Promise.all([refreshOrderDetail(order.order_id, 'Ready to ship updated.'), refreshOrders()]);
+      } catch (_) {
+        checkbox.checked = flag.ready;
+        setOrderDetailMessage(container, 'Ready to ship could not be confirmed. Refresh the order before trying again.', 'error');
+      } finally {
+        state.orderReadyWrites.delete(key);
+        const replacement = container.querySelector('.so-detail-ready-checkbox');
+        if (replacement) replacement.disabled = state.currentOrderDetail?.state !== 'open';
+        if (restoreFocus && replacement && !replacement.disabled) replacement.focus({ preventScroll: true });
+      }
+    });
+  }
+
+  function renderOrderDetail(data, container, editMode = state.orderDetailEditMode, successMessage = '') {
+    SOList.closeExplanation();
+    const editableHeader = canEditOrderHeader(data);
+    editMode = Boolean(editMode && (editableHeader || canEditOrderLines(data)));
+    const lines = data.lines || [];
+    const physical = lines.filter(line => line.line_status !== 'cancelled' && !orderLineQuantities(line).service);
+    const ordered = data.ordered_lb ?? physical.reduce((sum, line) => sum + orderLineQuantities(line).ordered, 0);
+    const shipped = data.shipped_effective_lb ?? physical.reduce((sum, line) => sum + orderLineQuantities(line).shipped, 0);
+    const flag = orderDetailFlag(data);
+    const stateLabel = { open: 'Open', closed: 'Closed', cancelled: 'Cancelled' }[data.state] || 'State unavailable';
+    const fulfillmentLabel = { unshipped: 'Unshipped', partial: 'Partial', shipped: 'Shipped' }[data.fulfillment] || 'Fulfillment unavailable';
+    const stateContent = (data.state_reason ? SOList.paragraph('Reason: ' + (SOList.reasons[data.state_reason] || data.state_reason.replaceAll('_', ' '))) : '') + SOList.paragraph(data.state_note || 'No note recorded.');
+    const readyContent = SOList.paragraph(flag.ready ? [flag.ready_by ? 'Marked by ' + flag.ready_by : 'Marked', flag.ready_at ? SOList.stamp(flag.ready_at) : ''].filter(Boolean).join(' · ') : 'Not marked') + (flag.note ? SOList.paragraph(flag.note) : '') + (data.state !== 'open' ? SOList.paragraph('Reopen the order to change this mark.') : '');
+    const readyExplanation = SOList.explanation('detail-ready-' + data.order_id, 'Everything on this order is produced, packed, and staged for pickup.', readyContent);
+    const level = ['critical', 'warning'].includes(data.health?.level) ? data.health.level : 'quiet';
+    const healthLabel = level === 'critical' ? 'Critical' : level === 'warning' ? 'Warning' : 'Details';
+    const allocationNote = [...(data.health?.reasons || []), ...(data.health?.info || [])].some(copy => /allocations not enforced/i.test(copy));
+    let html = '<article id="so-detail-content">';
+    html += '<header class="order-detail-header so-case-summary"><div class="so-case-heading"><div>';
+    html += `<h2 class="order-number">${escHtml(data.order_number || 'Sales order')}</h2>`;
+    if (data.customer) html += `<p class="order-customer">${escHtml(data.customer)}</p>`;
+    html += '</div><div class="so-case-actions">';
+    for (const action of (data.state === 'open' ? ['close', 'cancel'] : ['reopen'])) html += `<button type="button" class="btn-secondary so-detail-exit-action so-exit-action" data-action="${action}" data-order-id="${escAttr(data.order_id)}">${action[0].toUpperCase() + action.slice(1)}</button>`;
+    html += '</div></div><div class="so-case-facts">';
+    html += `<span class="so-ordered-total">${SOList.number(ordered)} lb ordered</span>`;
+    html += editMode && editableHeader ? `<label class="order-edit-field">Ship by <input type="date" class="order-edit-input order-edit-ship-date" value="${escAttr(data.requested_ship_date || '')}"></label>` : `<span class="so-case-ship-date"><span class="so-fact-label">Ship by</span> ${orderDetailShipDate(data)}</span>`;
+    if (data.order_date) html += `<span class="so-order-date">Ordered ${escHtml(formatDateShort(data.order_date))}</span>`;
+    if (data.customer_po) html += `<span class="so-customer-po">Customer PO ${escHtml(data.customer_po)}</span>`;
+    html += '</div><div class="so-dimensions">';
+    html += `<div class="so-dimension" data-dimension="state"><span class="so-dimension-label">State</span>${SOList.trigger('detail-state-' + data.order_id, escHtml(stateLabel), 'State records whether the order remains open for work or has been closed or cancelled.', stateContent, 'so-state-chip')}</div>`;
+    html += `<div class="so-dimension" data-dimension="ready"><span class="so-dimension-label">Ready to ship</span><div class="so-detail-ready-control"><label class="so-ready-target"><input type="checkbox" class="order-ready-checkbox so-detail-ready-checkbox" data-order-id="${escAttr(data.order_id)}" aria-label="Ready to ship: ${escAttr(data.order_number)}" ${readyExplanation.attrs}${flag.ready ? ' checked' : ''}${data.state !== 'open' || state.orderReadyWrites.has(String(data.order_id)) ? ' disabled' : ''}></label><button type="button" class="so-explain-trigger so-ready-explanation" ${readyExplanation.attrs} aria-label="Ready to ship explanation">${flag.ready ? 'Marked' : 'Not marked'}</button>${readyExplanation.content}</div></div>`;
+    html += `<div class="so-dimension" data-dimension="fulfillment"><span class="so-dimension-label">Fulfillment</span>${SOList.trigger('detail-fulfillment-' + data.order_id, fulfillmentLabel, 'Fulfillment measures shipments recorded in the ledger.', SOList.paragraph(`Ledger shows ${SOList.number(shipped)} of ${SOList.number(ordered)} lb shipped; excludes voided shipments and cancelled lines.`), 'so-fulfillment-chip')}</div>`;
+    html += `<div class="so-dimension" data-dimension="health"><span class="so-dimension-label">Health</span>${SOList.trigger('detail-health-' + data.order_id, (level === 'quiet' ? '' : '⚠ ') + healthLabel, 'Health highlights work that needs attention based on stock and the ship-by date.', SOList.healthContent(data, { omitAllocationNote: true }) || SOList.paragraph('No attention needed.'), 'so-health so-health-' + level, 'Health details: ' + healthLabel)}</div></div>`;
+    if (data.state !== 'open') {
+      const changed = [data.state_changed_at ? SOList.stamp(data.state_changed_at) : '', data.state_changed_by ? 'by ' + data.state_changed_by : ''].filter(Boolean).join(' ');
+      if (changed || data.related_so_id) html += `<p class="so-state-provenance">${changed ? escHtml(stateLabel + ' ' + changed) : ''}${data.related_so_id ? ` <a class="so-related-order" data-related-so-id="${escAttr(data.related_so_id)}" href="#sales-order-${encodeURIComponent(data.related_so_id)}" data-order-id="${escAttr(data.related_so_id)}">Related SO ${escHtml(data.related_so_number || SOList.number(data.related_so_id))}</a>` : ''}</p>`;
+    }
+    if (allocationNote) html += '<p class="so-allocation-note">Allocations not enforced: reservations do not prevent shipping.</p>';
+    if (!editableHeader) html += `<p class="order-edit-locked">${data.state === 'open' ? 'Header editing is unavailable after pounds have shipped.' : 'Reopen the order before editing its header.'}</p>`;
+    html += renderOrderEditActions(data, editMode);
+    html += `<div class="order-edit-message${successMessage ? ' success' : ''}" role="status" aria-live="polite">${escHtml(successMessage)}</div></header>`;
+
+    if (lines.length) {
+      html += '<div class="order-detail-table-wrap"><table class="orders-table so-detail-lines-table"><thead><tr><th>Product</th><th class="num">Ordered lb</th>';
+      if (editMode) html += '<th class="num">Price</th>';
+      html += '<th class="num">Shipped effective lb</th><th class="num">Remaining lb</th><th class="num">Allocated lb</th><th class="num">Unallocated lb</th><th>Health</th><th>Line status</th></tr></thead><tbody>';
+      for (const line of lines) {
+        const q = orderLineQuantities(line);
+        const unit = q.service ? 'units' : 'lb';
+        const suffix = q.service ? ' units' : '';
+        const product = line.product || line.product_name || line.name || 'Product not recorded';
+        const lineEditable = editMode && data.state === 'open' && !['fulfilled', 'cancelled'].includes(line.line_status);
+        const lineDetails = (data.health?.info_detail || []).filter(item => String(item.line_id) === String(line.line_id));
+        const health = lineDetails.length ? SOList.trigger('line-health-' + line.line_id, 'Allocation details', 'Reservation information for this line.', lineDetails.map(item => SOList.paragraph(`${item.product_name || item.sku || product}: ${SOList.number(item.unallocated_lb)} lb not allocated.`)).join(''), 'so-line-health') : '';
+        const statusText = { pending: 'Pending', confirmed: 'Confirmed', partial: 'Partial', fulfilled: 'Fulfilled', cancelled: 'Cancelled' }[line.line_status] || 'Pending';
+        const status = SOList.trigger('line-state-' + line.line_id, statusText, 'Line status tracks work on this individual order line.', SOList.paragraph(line.line_status === 'cancelled' ? 'This cancelled line stays in the order history and is excluded from physical totals.' : `${product}: ${SOList.number(q.remaining)} ${unit} remains on this line.`), 'so-line-status');
+        const palletResult = PalletCalculations.calculateLinePallets(line, line.unit_count);
+        const productContent = (line.sku ? SOList.paragraph('SKU: ' + line.sku) : '') + (q.service ? SOList.paragraph('This service or non-weight line uses units and is excluded from physical-weight totals.') : SOList.paragraph(palletResult.calculatedPallets == null ? 'Pallet estimate unavailable.' : SOList.number(palletResult.calculatedPallets, 'pallets') + ' pallets ordered.'));
+        html += `<tr class="${lineEditable ? 'order-line-edit-row ' : ''}${line.line_status === 'cancelled' ? 'so-line-cancelled' : ''}" data-line-id="${escAttr(line.line_id)}">`;
+        html += `<td data-label="Product"><div class="order-product-cell">${SOList.trigger('line-product-' + line.line_id, escHtml(product), 'The product or service ordered on this line.', productContent, 'so-line-product')}${q.service ? '' : `<button type="button" class="btn-sm order-inventory-toggle" data-line-id="${escAttr(line.line_id)}" aria-expanded="false" aria-controls="order-inventory-${escAttr(line.line_id)}">Inventory</button>`}</div></td>`;
+        if (lineEditable) {
+          html += `<td class="num order-edit-num-cell" data-label="Ordered ${unit}"><input type="number" class="order-edit-input order-line-qty-input" aria-label="Ordered ${unit}: ${escAttr(product)}" min="0.0001" step="0.0001" value="${escAttr(line.quantity_lb ?? '')}"></td><td class="num order-edit-num-cell" data-label="Price"><input type="number" class="order-edit-input order-line-price-input" aria-label="Price: ${escAttr(product)}" min="0" step="0.01" value="${escAttr(line.case_price ?? '')}"></td>`;
+        } else {
+          html += `<td class="num" data-label="Ordered ${unit}">${SOList.number(q.ordered)}${suffix}</td>`;
+          if (editMode) html += `<td class="num" data-label="Price">${line.case_price == null ? '' : SOList.number(line.case_price, 'money')}</td>`;
+        }
+        html += `<td class="num" data-label="Shipped effective ${unit}">${SOList.number(q.shipped)}${suffix}</td><td class="num" data-label="Remaining ${unit}">${SOList.number(q.remaining)}${suffix}</td>`;
+        html += `<td class="num" data-label="Allocated lb">${q.service ? '' : SOList.number(q.allocated)}</td><td class="num" data-label="Unallocated lb">${q.service ? '' : SOList.number(q.unallocated)}</td><td data-label="Health">${health}</td><td data-label="Line status">${status}</td></tr>`;
+        html += `<tr id="order-inventory-${escAttr(line.line_id)}" class="order-inventory-row hidden"><td colspan="${editMode ? 9 : 8}"></td></tr>`;
       }
       html += '</tbody></table></div>';
-    }
-
-    html += summaryHtml;
-    html += renderAllocationSection(data);
-    html += renderShippingPreviewSection(data);
-
-    // Notes
-    if (editMode) {
-      html += '<div class="order-notes-card order-notes-edit">';
-      html += '<h4>Notes</h4>';
-      html += `<textarea class="order-edit-input order-edit-notes" rows="4">${escHtml(data.notes || '')}</textarea>`;
-      html += '</div>';
-    } else if (data.notes && data.notes.trim()) {
-      html += '<div class="order-notes-card">';
-      html += '<h4>Notes</h4>';
-      html += `<p>${escHtml(data.notes)}</p>`;
-      html += '</div>';
-    }
-
-    container.innerHTML = html;
+    } else html += '<p class="so-detail-empty">No line items on this order.</p>';
+    html += renderAllocationSection(data) + renderShippingPreviewSection(data);
+    if (editMode && editableHeader) html += `<section class="order-notes-card order-notes-edit"><h3>Notes</h3><textarea class="order-edit-input order-edit-notes" aria-label="Order notes" rows="4">${escHtml(data.notes || '')}</textarea></section>`;
+    else if (data.notes?.trim()) html += `<section class="order-notes-card"><h3>Notes</h3><p>${escHtml(data.notes)}</p></section>`;
+    container.innerHTML = html + '</article>';
+    SOList.bindExplanations(container);
     bindOrderInventoryToggles(container, lines);
     bindOrderDetailEditControls(container);
+    bindOrderDetailActions(container, data);
     bindAllocationControls(container);
   }
 
   function closeOrderDetail() {
+    SOList.closeExplanation();
     FLDesign.setRecord(null);
     const listView = document.getElementById('orders-list-view');
     const detailView = document.getElementById('order-detail-view');

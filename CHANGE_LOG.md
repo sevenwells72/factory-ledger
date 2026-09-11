@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-11 — Implement Sales Order detail case summary and shared exit actions (NOT DEPLOYED)
+
+- **Files changed:** `dashboard/dashboard.js`, `dashboard/so-list.js`, `dashboard/so-list-actions.js`, `dashboard/so-detail.css`, dashboard styles and asset versions, visual fixtures/scripts, and `tests/test_batch_a_ui.js`.
+- **What changed:** Separated State, Ready to ship, Fulfillment, and Health; added shared explanations, effective line quantities, neutral allocation information, exit provenance and related-order navigation. Reused preview/commit exits with detail and list-count refresh. Removed legacy sales-order status readers and repeated copy; shared SOList.number formats quantities and pallets. Kept Expected Receipts/Supplies checkbox styling under a generic class while deleting the removed list control CSS.
+- **Validation:** First rendered review in progress; 848 Python and 62 JavaScript tests pass. Visual fixtures now carry authoritative state/fulfillment/health; README records the shipped-order inconsistency correction and stronger shipping-preview coverage.
+- **Why:** Make the detail page explain the same independent facts as the list without backend changes. Existing backend header-edit status gating remains a documented limitation.
+
+---
+
 ## 2026-09-11 — Restore full Python regression coverage for additive pallet line state
 
 - **File changed:** `tests/test_sales_order_line_fields.py`.

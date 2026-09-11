@@ -76,14 +76,18 @@ test('rolling-deploy unit labels normalize weight packages and retain count-base
 });
 
 
-test('factory preparation never masks advisory blockers or diverged closed shipments', () => {
-  const ctx=context(dashboard,['renderDispatchState','renderOrderBlockers'],{
-    SALES_ORDER_CLOSED_STATUSES:['shipped','invoiced','cancelled'],renderBlockerChips:()=> 'Shipment totals diverged',
-  });
-  assert.match(ctx.renderDispatchState({ready:true,status:'confirmed',dispatch_ready:false}),/Needs review/);
-  assert.equal(ctx.renderDispatchState({status:'shipped',fulfillment_diverged:false}),'Not applicable');
-  const diverged={status:'shipped',fulfillment_diverged:true,dispatch_ready:false};
-  assert.match(ctx.renderDispatchState(diverged),/Needs review/);
-  assert.equal(ctx.renderOrderBlockers(diverged),'Shipment totals diverged');
-  assert.equal(ctx.renderDispatchState({status:'confirmed'}),'Not checked');
+test('sales order edit gates use administrative state and effective fulfillment independently', () => {
+  const ctx=context(dashboard,['canEditOrderHeader','canEditOrderLines'],{});
+  const makeOrder=(state,fulfillment,line_status='pending')=>({state,fulfillment,lines:[{line_status}],
+    get status(){throw new Error('Legacy order status must never drive detail controls');}});
+  assert.equal(ctx.canEditOrderHeader(makeOrder('open','unshipped')),true);
+  for(const state of ['closed','cancelled']) for(const fulfillment of ['unshipped','partial','shipped']) {
+    assert.equal(ctx.canEditOrderHeader(makeOrder(state,fulfillment)),false);
+    assert.equal(ctx.canEditOrderLines(makeOrder(state,fulfillment)),false);
+  }
+  for(const fulfillment of ['partial','shipped'])assert.equal(ctx.canEditOrderHeader(makeOrder('open',fulfillment)),false);
+  assert.equal(ctx.canEditOrderLines(makeOrder('open','partial')),true);
+  assert.equal(ctx.canEditOrderLines(makeOrder('open','shipped','fulfilled')),false);
+  assert.equal(ctx.canEditOrderLines(makeOrder('open','unshipped','cancelled')),false);
+  assert.equal(ctx.canEditOrderHeader({}),false);
 });

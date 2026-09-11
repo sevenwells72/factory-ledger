@@ -329,8 +329,8 @@
       dialog.remove();
       if (currentDialog !== dialog) return;
       currentDialog = null;
-      const focusTarget = trigger && trigger.isConnected ? trigger
-        : document.querySelector('[data-orders-tab][aria-selected="true"]') || document.getElementById('refresh-btn');
+      const focusTarget = options.getFocusTarget?.() || (trigger && trigger.isConnected ? trigger
+        : document.querySelector('[data-orders-tab][aria-selected="true"]') || document.getElementById('refresh-btn'));
       if (focusTarget && !focusTarget.disabled) focusTarget.focus({ preventScroll: true });
     }, { once: true });
     updateLabels();

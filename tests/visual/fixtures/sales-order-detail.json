@@ -185,7 +185,43 @@
       "total_shipped_lb": 0.0,
       "remaining_lb": 4500.0
     },
-    "floor_ready": false
+    "floor_ready": false,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "critical",
+      "reasons": [
+        "Short 2,250 lb on 3 lines — 3 days overdue"
+      ],
+      "info": [
+        "2,250 lb not allocated across 3 lines (allocations not enforced)"
+      ],
+      "info_detail": [
+        {
+          "line_id": 1010,
+          "sku": "CQ-25",
+          "product_name": "Classic Granola 25 LB",
+          "unallocated_lb": 500
+        },
+        {
+          "line_id": 1011,
+          "sku": "CQ-10",
+          "product_name": "Classic Granola 10 LB",
+          "unallocated_lb": 750
+        },
+        {
+          "line_id": 1012,
+          "sku": "SS-12",
+          "product_name": "Sunshine Granola 12/1 LB",
+          "unallocated_lb": 1000
+        }
+      ]
+    }
   },
   "102": {
     "order_id": 102,
@@ -289,7 +325,22 @@
       "total_shipped_lb": 0.0,
       "remaining_lb": 2500.0
     },
-    "floor_ready": true
+    "floor_ready": true,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "warning",
+      "reasons": [
+        "2 days overdue — stock on hand"
+      ],
+      "info": [],
+      "info_detail": []
+    }
   },
   "103": {
     "order_id": 103,
@@ -398,7 +449,23 @@
       "total_shipped_lb": 0.0,
       "remaining_lb": 2500.0
     },
-    "floor_ready": false
+    "floor_ready": false,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "warning",
+      "reasons": [
+        "1 day overdue — stock on hand",
+        "Not Ready to Ship — 1 day overdue"
+      ],
+      "info": [],
+      "info_detail": []
+    }
   },
   "104": {
     "order_id": 104,
@@ -563,7 +630,41 @@
       "total_shipped_lb": 0.0,
       "remaining_lb": 4500.0
     },
-    "floor_ready": true
+    "floor_ready": true,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "quiet",
+      "reasons": [],
+      "info": [
+        "2,250 lb not allocated across 3 lines (allocations not enforced)"
+      ],
+      "info_detail": [
+        {
+          "line_id": 1040,
+          "sku": "TC-6",
+          "product_name": "Toasted Coconut 6/2 LB",
+          "unallocated_lb": 500
+        },
+        {
+          "line_id": 1041,
+          "sku": "BS-6",
+          "product_name": "Blue Stripes Granola 6/2 LB",
+          "unallocated_lb": 750
+        },
+        {
+          "line_id": 1042,
+          "sku": "SS-25",
+          "product_name": "Sunshine Granola 25 LB",
+          "unallocated_lb": 1000
+        }
+      ]
+    }
   },
   "105": {
     "order_id": 105,
@@ -672,7 +773,22 @@
       "total_shipped_lb": 1000.0,
       "remaining_lb": 1500.0
     },
-    "floor_ready": false
+    "floor_ready": false,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "partial",
+    "health": {
+      "level": "warning",
+      "reasons": [
+        "Not Ready to Ship — ships tomorrow"
+      ],
+      "info": [],
+      "info_detail": []
+    }
   },
   "106": {
     "order_id": 106,
@@ -791,7 +907,22 @@
       "total_shipped_lb": 0.0,
       "remaining_lb": 2500.0
     },
-    "floor_ready": false
+    "floor_ready": false,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "warning",
+      "reasons": [
+        "Not Ready to Ship — ships in 2 days"
+      ],
+      "info": [],
+      "info_detail": []
+    }
   },
   "107": {
     "order_id": 107,
@@ -983,7 +1114,41 @@
       "total_shipped_lb": 0.0,
       "remaining_lb": 4500.0
     },
-    "floor_ready": true
+    "floor_ready": true,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "quiet",
+      "reasons": [],
+      "info": [
+        "2,250 lb not allocated across 3 lines (allocations not enforced)"
+      ],
+      "info_detail": [
+        {
+          "line_id": 1070,
+          "sku": "CQ-25",
+          "product_name": "Classic Granola 25 LB",
+          "unallocated_lb": 500
+        },
+        {
+          "line_id": 1071,
+          "sku": "CQ-10",
+          "product_name": "Classic Granola 10 LB",
+          "unallocated_lb": 750
+        },
+        {
+          "line_id": 1072,
+          "sku": "SS-12",
+          "product_name": "Sunshine Granola 12/1 LB",
+          "unallocated_lb": 1000
+        }
+      ]
+    }
   },
   "108": {
     "order_id": 108,
@@ -1092,7 +1257,20 @@
       "total_shipped_lb": 0.0,
       "remaining_lb": 2500.0
     },
-    "floor_ready": false
+    "floor_ready": false,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "quiet",
+      "reasons": [],
+      "info": [],
+      "info_detail": []
+    }
   },
   "109": {
     "order_id": 109,
@@ -1101,19 +1279,19 @@
     "order_date": "{{TODAY-12}}",
     "requested_ship_date": "{{TODAY-3}}",
     "status": "shipped",
-    "inventory_ready": false,
-    "dispatch_ready": false,
+    "inventory_ready": true,
+    "dispatch_ready": true,
     "fulfillment_diverged": false,
-    "shortage_lb": 2250.0,
-    "allocated_lb": 2250.0,
-    "remaining_effective_lb": 4500.0,
+    "shortage_lb": 0.0,
+    "allocated_lb": 0.0,
+    "remaining_effective_lb": 0.0,
     "blockers": [],
     "notes": "Closed out after the final BOL posted.",
     "created_date": "{{TODAY-12}}",
     "created_time": "10:15 AM",
     "lines": [
       {
-        "line_id": 1010,
+        "line_id": 1090,
         "product": "Classic Granola 25 LB",
         "sku": "CQ-25",
         "uom": "lb",
@@ -1122,47 +1300,36 @@
         "cases": 40,
         "case_size_lb": 25,
         "unit_count": 40,
-        "quantity_shipped_lb": 0.0,
-        "shipped_units": 0,
-        "remaining_lb": 1000.0,
-        "remaining_units": 40,
+        "quantity_shipped_lb": 1000.0,
+        "shipped_units": 40,
+        "remaining_lb": 0.0,
+        "remaining_units": 0,
         "case_price": 38.5,
         "price_basis": "per_case",
         "line_value": 1540.0,
-        "line_status": "pending",
+        "line_status": "fulfilled",
         "notes": null,
         "readiness": {
           "ordered_lb": 1000.0,
-          "shipped_recorded_lb": 0.0,
-          "shipped_effective_lb": 0.0,
-          "remaining_lb": 1000.0,
+          "shipped_recorded_lb": 1000.0,
+          "shipped_effective_lb": 1000.0,
+          "remaining_lb": 0.0,
           "on_hand_lb": 1200.0,
-          "allocated_lb": 500.0,
-          "allocated_sku_lb": 500.0,
+          "allocated_lb": 0.0,
+          "allocated_sku_lb": 0.0,
           "allocated_lot_lb": 0.0,
           "available_lb": 1200.0,
-          "coverable_lb": 500.0,
-          "shortage_lb": 500.0,
-          "unallocated_need_lb": 500.0,
+          "coverable_lb": 0.0,
+          "shortage_lb": 0.0,
+          "unallocated_need_lb": 0.0,
           "inbound_open_lb": 0.0,
-          "inventory_ready": false,
+          "inventory_ready": true,
           "fulfillment_diverged": false,
-          "blockers": [
-            {
-              "code": "shortage",
-              "severity": "block",
-              "detail": "500.0 lb of the remaining 1000.0 lb is not coverable from posted stock"
-            },
-            {
-              "code": "partial_allocation",
-              "severity": "warn",
-              "detail": "500.0 lb of 1000.0 lb is reserved"
-            }
-          ]
+          "blockers": []
         }
       },
       {
-        "line_id": 1011,
+        "line_id": 1091,
         "product": "Classic Granola 10 LB",
         "sku": "CQ-10",
         "uom": "lb",
@@ -1171,47 +1338,36 @@
         "cases": 150,
         "case_size_lb": 10,
         "unit_count": 150,
-        "quantity_shipped_lb": 0.0,
-        "shipped_units": 0,
-        "remaining_lb": 1500.0,
-        "remaining_units": 150,
+        "quantity_shipped_lb": 1500.0,
+        "shipped_units": 150,
+        "remaining_lb": 0.0,
+        "remaining_units": 0,
         "case_price": 42.75,
         "price_basis": "per_case",
         "line_value": 6412.5,
-        "line_status": "pending",
+        "line_status": "fulfilled",
         "notes": null,
         "readiness": {
           "ordered_lb": 1500.0,
-          "shipped_recorded_lb": 0.0,
-          "shipped_effective_lb": 0.0,
-          "remaining_lb": 1500.0,
+          "shipped_recorded_lb": 1500.0,
+          "shipped_effective_lb": 1500.0,
+          "remaining_lb": 0.0,
           "on_hand_lb": 1800.0,
-          "allocated_lb": 750.0,
-          "allocated_sku_lb": 750.0,
+          "allocated_lb": 0.0,
+          "allocated_sku_lb": 0.0,
           "allocated_lot_lb": 0.0,
           "available_lb": 1800.0,
-          "coverable_lb": 750.0,
-          "shortage_lb": 750.0,
-          "unallocated_need_lb": 750.0,
+          "coverable_lb": 0.0,
+          "shortage_lb": 0.0,
+          "unallocated_need_lb": 0.0,
           "inbound_open_lb": 0.0,
-          "inventory_ready": false,
+          "inventory_ready": true,
           "fulfillment_diverged": false,
-          "blockers": [
-            {
-              "code": "shortage",
-              "severity": "block",
-              "detail": "750.0 lb of the remaining 1500.0 lb is not coverable from posted stock"
-            },
-            {
-              "code": "partial_allocation",
-              "severity": "warn",
-              "detail": "750.0 lb of 1500.0 lb is reserved"
-            }
-          ]
+          "blockers": []
         }
       },
       {
-        "line_id": 1012,
+        "line_id": 1092,
         "product": "Sunshine Granola 12/1 LB",
         "sku": "SS-12",
         "uom": "lb",
@@ -1220,53 +1376,289 @@
         "cases": 166,
         "case_size_lb": 12,
         "unit_count": 166,
-        "quantity_shipped_lb": 0.0,
-        "shipped_units": 0,
-        "remaining_lb": 2000.0,
-        "remaining_units": 166,
+        "quantity_shipped_lb": 2000.0,
+        "shipped_units": 166,
+        "remaining_lb": 0.0,
+        "remaining_units": 0,
         "case_price": 47.0,
         "price_basis": "per_case",
         "line_value": 7833.33,
-        "line_status": "pending",
+        "line_status": "fulfilled",
         "notes": null,
         "readiness": {
           "ordered_lb": 2000.0,
-          "shipped_recorded_lb": 0.0,
-          "shipped_effective_lb": 0.0,
-          "remaining_lb": 2000.0,
+          "shipped_recorded_lb": 2000.0,
+          "shipped_effective_lb": 2000.0,
+          "remaining_lb": 0.0,
           "on_hand_lb": 2400.0,
-          "allocated_lb": 1000.0,
-          "allocated_sku_lb": 1000.0,
+          "allocated_lb": 0.0,
+          "allocated_sku_lb": 0.0,
           "allocated_lot_lb": 0.0,
           "available_lb": 2400.0,
-          "coverable_lb": 1000.0,
-          "shortage_lb": 1000.0,
-          "unallocated_need_lb": 1000.0,
+          "coverable_lb": 0.0,
+          "shortage_lb": 0.0,
+          "unallocated_need_lb": 0.0,
           "inbound_open_lb": 0.0,
-          "inventory_ready": false,
+          "inventory_ready": true,
           "fulfillment_diverged": false,
-          "blockers": [
-            {
-              "code": "shortage",
-              "severity": "block",
-              "detail": "1000.0 lb of the remaining 2000.0 lb is not coverable from posted stock"
-            },
-            {
-              "code": "partial_allocation",
-              "severity": "warn",
-              "detail": "1000.0 lb of 2000.0 lb is reserved"
-            }
-          ]
+          "blockers": []
         }
       }
     ],
     "ordered_lb": 4500.0,
-    "shipped_effective_lb": 0.0,
+    "shipped_effective_lb": 4500.0,
     "totals": {
       "total_ordered_lb": 4500.0,
-      "total_shipped_lb": 0.0,
-      "remaining_lb": 4500.0
+      "total_shipped_lb": 4500.0,
+      "remaining_lb": 0.0
     },
-    "floor_ready": false
+    "floor_ready": true,
+    "state": "open",
+    "state_reason": null,
+    "state_note": null,
+    "state_changed_at": null,
+    "state_changed_by": null,
+    "related_so_id": null,
+    "fulfillment": "shipped",
+    "health": {
+      "level": "quiet",
+      "reasons": [],
+      "info": [],
+      "info_detail": []
+    }
+  },
+  "110": {
+    "order_id": 110,
+    "order_number": "SO-1430",
+    "customer": "Cedar Grove Foods",
+    "order_date": "{{TODAY-5}}",
+    "requested_ship_date": "{{TODAY+4}}",
+    "status": "closed",
+    "inventory_ready": true,
+    "dispatch_ready": true,
+    "fulfillment_diverged": false,
+    "shortage_lb": 0.0,
+    "allocated_lb": 0.0,
+    "remaining_effective_lb": 2500.0,
+    "blockers": [],
+    "notes": "",
+    "created_date": "{{TODAY-11}}",
+    "created_time": "10:15 AM",
+    "lines": [
+      {
+        "line_id": 1100,
+        "product": "Classic Granola 10 LB",
+        "sku": "CQ-10",
+        "uom": "lb",
+        "no_production": false,
+        "quantity_lb": 1000.0,
+        "cases": 100,
+        "case_size_lb": 10,
+        "unit_count": 100,
+        "quantity_shipped_lb": 0.0,
+        "shipped_units": 0,
+        "remaining_lb": 1000.0,
+        "remaining_units": 100,
+        "case_price": 38.5,
+        "price_basis": "per_case",
+        "line_value": 3850.0,
+        "line_status": "pending",
+        "notes": null,
+        "readiness": {
+          "ordered_lb": 1000.0,
+          "shipped_recorded_lb": 0.0,
+          "shipped_effective_lb": 0.0,
+          "remaining_lb": 1000.0,
+          "on_hand_lb": 1200.0,
+          "allocated_lb": 0.0,
+          "allocated_sku_lb": 0.0,
+          "allocated_lot_lb": 0.0,
+          "available_lb": 1200.0,
+          "coverable_lb": 1000.0,
+          "shortage_lb": 0.0,
+          "unallocated_need_lb": 1000.0,
+          "inbound_open_lb": 0.0,
+          "inventory_ready": true,
+          "fulfillment_diverged": false,
+          "blockers": []
+        }
+      },
+      {
+        "line_id": 1101,
+        "product": "Sunshine Granola 12/1 LB",
+        "sku": "SS-12",
+        "uom": "lb",
+        "no_production": false,
+        "quantity_lb": 1500.0,
+        "cases": 125,
+        "case_size_lb": 12,
+        "unit_count": 125,
+        "quantity_shipped_lb": 0.0,
+        "shipped_units": 0,
+        "remaining_lb": 1500.0,
+        "remaining_units": 125,
+        "case_price": 42.75,
+        "price_basis": "per_case",
+        "line_value": 5343.75,
+        "line_status": "pending",
+        "notes": null,
+        "readiness": {
+          "ordered_lb": 1500.0,
+          "shipped_recorded_lb": 0.0,
+          "shipped_effective_lb": 0.0,
+          "remaining_lb": 1500.0,
+          "on_hand_lb": 1800.0,
+          "allocated_lb": 0.0,
+          "allocated_sku_lb": 0.0,
+          "allocated_lot_lb": 0.0,
+          "available_lb": 1800.0,
+          "coverable_lb": 1500.0,
+          "shortage_lb": 0.0,
+          "unallocated_need_lb": 1500.0,
+          "inbound_open_lb": 0.0,
+          "inventory_ready": true,
+          "fulfillment_diverged": false,
+          "blockers": []
+        }
+      }
+    ],
+    "ordered_lb": 2500.0,
+    "shipped_effective_lb": 0.0,
+    "totals": {
+      "total_ordered_lb": 2500.0,
+      "total_shipped_lb": 0.0,
+      "remaining_lb": 2500.0
+    },
+    "floor_ready": false,
+    "state": "closed",
+    "state_reason": "shipped_not_recorded",
+    "state_note": "Customer confirmed receipt.",
+    "state_changed_at": "{{TODAY-1}}T14:05:00-04:00",
+    "state_changed_by": "floor",
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "quiet",
+      "reasons": [],
+      "info": [],
+      "info_detail": []
+    }
+  },
+  "111": {
+    "order_id": 111,
+    "order_number": "SO-1431",
+    "customer": "Stonebridge Foods",
+    "order_date": "{{TODAY-5}}",
+    "requested_ship_date": "{{TODAY+4}}",
+    "status": "cancelled",
+    "inventory_ready": true,
+    "dispatch_ready": true,
+    "fulfillment_diverged": false,
+    "shortage_lb": 0.0,
+    "allocated_lb": 0.0,
+    "remaining_effective_lb": 2500.0,
+    "blockers": [],
+    "notes": "",
+    "created_date": "{{TODAY-11}}",
+    "created_time": "10:15 AM",
+    "lines": [
+      {
+        "line_id": 1110,
+        "product": "Classic Granola 10 LB",
+        "sku": "CQ-10",
+        "uom": "lb",
+        "no_production": false,
+        "quantity_lb": 1000.0,
+        "cases": 100,
+        "case_size_lb": 10,
+        "unit_count": 100,
+        "quantity_shipped_lb": 0.0,
+        "shipped_units": 0,
+        "remaining_lb": 1000.0,
+        "remaining_units": 100,
+        "case_price": 38.5,
+        "price_basis": "per_case",
+        "line_value": 3850.0,
+        "line_status": "pending",
+        "notes": null,
+        "readiness": {
+          "ordered_lb": 1000.0,
+          "shipped_recorded_lb": 0.0,
+          "shipped_effective_lb": 0.0,
+          "remaining_lb": 1000.0,
+          "on_hand_lb": 1200.0,
+          "allocated_lb": 0.0,
+          "allocated_sku_lb": 0.0,
+          "allocated_lot_lb": 0.0,
+          "available_lb": 1200.0,
+          "coverable_lb": 1000.0,
+          "shortage_lb": 0.0,
+          "unallocated_need_lb": 1000.0,
+          "inbound_open_lb": 0.0,
+          "inventory_ready": true,
+          "fulfillment_diverged": false,
+          "blockers": []
+        }
+      },
+      {
+        "line_id": 1111,
+        "product": "Sunshine Granola 12/1 LB",
+        "sku": "SS-12",
+        "uom": "lb",
+        "no_production": false,
+        "quantity_lb": 1500.0,
+        "cases": 125,
+        "case_size_lb": 12,
+        "unit_count": 125,
+        "quantity_shipped_lb": 0.0,
+        "shipped_units": 0,
+        "remaining_lb": 1500.0,
+        "remaining_units": 125,
+        "case_price": 42.75,
+        "price_basis": "per_case",
+        "line_value": 5343.75,
+        "line_status": "pending",
+        "notes": null,
+        "readiness": {
+          "ordered_lb": 1500.0,
+          "shipped_recorded_lb": 0.0,
+          "shipped_effective_lb": 0.0,
+          "remaining_lb": 1500.0,
+          "on_hand_lb": 1800.0,
+          "allocated_lb": 0.0,
+          "allocated_sku_lb": 0.0,
+          "allocated_lot_lb": 0.0,
+          "available_lb": 1800.0,
+          "coverable_lb": 1500.0,
+          "shortage_lb": 0.0,
+          "unallocated_need_lb": 1500.0,
+          "inbound_open_lb": 0.0,
+          "inventory_ready": true,
+          "fulfillment_diverged": false,
+          "blockers": []
+        }
+      }
+    ],
+    "ordered_lb": 2500.0,
+    "shipped_effective_lb": 0.0,
+    "totals": {
+      "total_ordered_lb": 2500.0,
+      "total_shipped_lb": 0.0,
+      "remaining_lb": 2500.0
+    },
+    "floor_ready": false,
+    "state": "cancelled",
+    "state_reason": "customer_cancelled",
+    "state_note": "Customer no longer needs this order.",
+    "state_changed_at": "{{TODAY-1}}T14:05:00-04:00",
+    "state_changed_by": "floor",
+    "related_so_id": null,
+    "fulfillment": "unshipped",
+    "health": {
+      "level": "quiet",
+      "reasons": [],
+      "info": [],
+      "info_detail": []
+    }
   }
 }
