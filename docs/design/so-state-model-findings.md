@@ -819,6 +819,11 @@ Suggested follow-up, in rough order of cost:
 * Sales Orders list: legacy Filter/Hide-ready-to-ship/Sort/Resize bar is
   redundant with tabs; remove Hide ready to ship, move Sort/Resize into table
   header, keep customer filter (Step 4 or 3.1).
+* Pallets column renders '—' for all retail SKUs (7.5 lb, 2.63 lb cases) —
+  cases-per-pallet exists only as a hardcoded 10 lb/25 lb table at
+  `dashboard/pallet-calculations.js:8-11`. Fix: migration 052
+  `products.cases_per_pallet`, expose in `pallet_lines`, dashboard prefers
+  payload then table then '—'. Needs Blubber's retail ti-hi numbers.
 
 ---
 
