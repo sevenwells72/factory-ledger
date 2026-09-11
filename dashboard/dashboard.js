@@ -2223,13 +2223,12 @@
   }
 
   function getFilteredOrders() {
-    const hideReady = document.getElementById('orders-hide-ready').checked;
     return state.ordersData.filter(order => {
       if (order.state !== (['closed', 'cancelled'].includes(state.ordersTab) ? state.ordersTab : 'open')) return false;
       if (state.ordersTab === 'ready_to_ship' && !order.ready) return false;
       if (state.ordersTab === 'shipped' && order.fulfillment !== 'shipped') return false;
       if (state.ordersTab === 'overdue' && !(order.requested_ship_date < plantToday() && order.fulfillment !== 'shipped')) return false;
-      return !hideReady || !order.ready;
+      return true;
     });
   }
 
@@ -2434,9 +2433,10 @@
     SOList.closeExplanation();
     const container = document.getElementById('orders-table-container');
     const orders = getFilteredOrders();
+    document.getElementById('orders-table-tools').replaceChildren();
     const cap = state.ordersData.length >= 200;
-    const refined = document.getElementById('orders-customer-search').value.trim() || document.getElementById('orders-hide-ready').checked;
-    const summary = cap ? `Showing ${SOList.number(orders.length)} from the first 200 loaded orders. Refine by customer to find more; tab counts include all orders.` : refined ? `Showing ${SOList.number(orders.length)} matching orders. Tab counts include all customers and ready-to-ship orders.` : '';
+    const refined = document.getElementById('orders-customer-search').value.trim();
+    const summary = cap ? `Showing ${SOList.number(orders.length)} from the first 200 loaded orders. Refine by customer to find more; tab counts include all orders.` : refined ? `Showing ${SOList.number(orders.length)} matching orders. Tab counts include all customers.` : '';
     document.getElementById('orders-refinement-summary').textContent = summary;
     if (!orders.length) {
       container.innerHTML = '<div class="orders-empty">No orders match this view.</div>';
@@ -3429,7 +3429,6 @@
       clearTimeout(searchTimer);
       searchTimer = setTimeout(refreshOrders, 250);
     });
-    document.getElementById('orders-hide-ready').addEventListener('change', () => { if (state.ordersLoaded) renderOrdersList(); });
     document.getElementById('orders-export-btn').addEventListener('click', exportOrdersCsv);
     document.getElementById('orders-matrix-export-btn').addEventListener('click', exportOrdersMatrix);
     document.getElementById('order-back-btn').addEventListener('click', closeOrderDetail);
@@ -4557,7 +4556,7 @@
     const dup = intake.match.duplicate_warning;
     const dupBanner = dup ? `
       <div class="er-dup-banner">&#9888;&#65039; Possible duplicate: this customer already has
-        ${dup.existing.map(x => `${escHtml(x.order_number)} (${escHtml(x.status)}, ${fmtWt(x.total_lb)} lb)`).join(', ')}
+        ${dup.existing.map(x => `${escHtml(x.order_number)} (${SOList.number(x.total_lb)} lb)`).join(', ')}
         with PO "${escHtml(intake.customerPo || '')}". Approving will ask you to confirm.
       </div>` : '';
 
@@ -5594,14 +5593,12 @@
     },
     ordersOverdue() {
       activateTab('orders');
-      document.getElementById('orders-hide-ready').checked = false;
       document.getElementById('orders-customer-search').value = '';
       selectOrdersTab('overdue');
       return 'section-orders';
     },
     dispatchBlocked() {
       activateTab('orders');
-      document.getElementById('orders-hide-ready').checked = false;
       document.getElementById('orders-customer-search').value = '';
       selectOrdersTab('open');
       return 'section-orders';

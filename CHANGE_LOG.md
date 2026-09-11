@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-11 — Sales Order detail specification and list Step 3.1 (NOT DEPLOYED)
+
+- **Files changed:** `docs/design/sales-order-detail-spec.md`, `dashboard/`, related test tooling and audit evidence.
+- **What changed:** Committed the design specification first; moved list sorting/resizing into its table heading, removed Hide ready to ship, and changed calendar order filtering to authoritative state. Detail implementation and validation are tracked in the entries below as completed.
+- **Why:** Keep state, fulfillment, readiness, and health independent across the Sales Orders screen family and make every condition explainable. Backend files and production deployment are outside scope.
+
+---
+
 ## 2026-09-11 — PR #46 backend deployed before PR #45 dashboard
 
 - **Deploy order:** PR #46, the backend half of #45, merged as `7947324` and deployed on Railway on 2026-09-11. PR #45 then merged as `fbe9c0d`, and the Sales Orders list redesign deployed on Netlify on 2026-09-11.
