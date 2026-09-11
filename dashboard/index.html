@@ -4,11 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css?v=42">
+  <link rel="stylesheet" href="dashboard.css?v=43">
   <link rel="stylesheet" href="mini-calendar.css?v=5">
   <link rel="stylesheet" href="interaction.css?v=2">
   <link rel="stylesheet" href="shell-layout.css?v=5">
-  <script src="design-controls.js?v=1"></script>
+  <link rel="stylesheet" href="so-list.css?v=1">
+  <link rel="stylesheet" href="so-list-actions.css?v=1">
+  <script src="design-controls.js?v=2"></script>
 </head>
 <body>
 
@@ -335,45 +337,28 @@
 
     <!-- Orders List View -->
     <div id="orders-list-view">
-      <p class="readiness-caption">Factory Ready is the team’s preparation mark. Dispatch checks are advisory; they do not prevent shipping.</p>
+      <div class="so-tabs" role="tablist" aria-label="Sales orders">
+        <button type="button" role="tab" id="so-tab-open" data-orders-tab="open" aria-controls="section-orders" aria-selected="true" tabindex="0">Open <span class="so-tab-count"></span></button>
+        <button type="button" role="tab" id="so-tab-ready_to_ship" data-orders-tab="ready_to_ship" aria-controls="section-orders" aria-selected="false" tabindex="-1">Ready to ship <span class="so-tab-count"></span></button>
+        <button type="button" role="tab" id="so-tab-overdue" data-orders-tab="overdue" aria-controls="section-orders" aria-selected="false" tabindex="-1">Overdue <span class="so-tab-count"></span></button>
+        <button type="button" role="tab" id="so-tab-shipped" data-orders-tab="shipped" aria-controls="section-orders" aria-selected="false" tabindex="-1">Shipped <span class="so-tab-count"></span></button>
+        <button type="button" role="tab" id="so-tab-closed" data-orders-tab="closed" aria-controls="section-orders" aria-selected="false" tabindex="-1">Closed <span class="so-tab-count"></span></button>
+        <button type="button" role="tab" id="so-tab-cancelled" data-orders-tab="cancelled" aria-controls="section-orders" aria-selected="false" tabindex="-1">Cancelled <span class="so-tab-count"></span></button>
+      </div>
       <div class="orders-toolbar">
         <div class="orders-filters">
-          <select id="orders-status-filter" class="orders-select">
-            <option value="dispatch_queue">Dispatch Queue</option>
-            <option value="open" selected>All Open Orders</option>
-            <option value="new">New</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="in_production">In Production</option>
-            <option value="ready">Ready to Ship</option>
-            <option value="partial_ship">Partial Ship</option>
-            <option value="shipped">Shipped</option>
-            <option value="invoiced">Invoiced</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="all">All Orders</option>
-          </select>
-          <select id="orders-dispatch-filter" class="orders-select hidden" aria-label="Dispatch readiness filter">
-            <option value="all">All Dispatch States</option>
-            <option value="ready">Checks passed</option>
-            <option value="blocked">Needs review</option>
-          </select>
-          <input type="text" id="orders-customer-search" placeholder="Filter by customer..." autocomplete="off">
-          <label class="orders-overdue-toggle">
-            <input type="checkbox" id="orders-overdue-only"> Overdue only
-          </label>
-          <label class="orders-overdue-toggle">
-            <input type="checkbox" id="orders-hide-ready"> Hide Factory Ready
-          </label>
-          <span id="orders-dispatch-summary" class="orders-dispatch-summary hidden" aria-live="polite"></span>
+          <input type="text" id="orders-customer-search" aria-label="Filter customers" placeholder="Filter by customer…" autocomplete="off">
+          <label class="orders-overdue-toggle"><input type="checkbox" id="orders-hide-ready"> Hide ready to ship</label>
         </div>
         <div class="orders-toolbar-actions">
           <button id="so-new-btn" class="btn-refresh" title="Create a sales order from a customer PO photo or PDF">New Sales Order</button>
           <button id="orders-export-btn" class="btn-refresh" title="Export displayed order lines as CSV">Export CSV</button>
           <button id="orders-matrix-export-btn" class="btn-refresh" title="Export open orders as a styled Excel matrix">Export Matrix (xlsx)</button>
-          <button id="orders-refresh-btn" class="btn-refresh" title="Refresh orders">Refresh</button>
         </div>
       </div>
 
-      <section class="section" id="section-orders">
+      <section class="section" id="section-orders" role="tabpanel" aria-labelledby="so-tab-open">
+        <p id="orders-refinement-summary" class="so-refinement-summary" aria-live="polite"></p>
         <div id="orders-table-container"></div>
         <div id="orders-error" class="error-msg hidden"></div>
       </section>
@@ -708,7 +693,9 @@
   <script src="mini-calendar.js?v=6"></script>
   <script src="pallet-calculations.js?v=1"></script>
   <script src="intake-logic.js?v=12"></script>
-  <script src="dashboard.js?v=59"></script>
+  <script src="so-list.js?v=1"></script>
+  <script src="so-list-actions.js?v=1"></script>
+  <script src="dashboard.js?v=60"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
   <script src="shell.js?v=2"></script>
 </body>

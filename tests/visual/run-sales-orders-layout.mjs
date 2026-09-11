@@ -1,5 +1,5 @@
-// Regression: all columns fit at desktop widths, with content-sized Status,
-// wrapped Blockers and sticky sorting. Narrow tablets scroll; phones use cards.
+// Regression: orthogonal columns fit desktop widths, compact rows, sticky sort
+// controls, narrow-tablet scrolling, and mobile cards.
 // node tests/visual/run-sales-orders-layout.mjs [dashboard-root] [output-dir]
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -14,23 +14,34 @@ const server = await startStaticServer(root);
 const browser = await chromium.launch();
 const results = [];
 try {
- for (const width of [1440,1385,1280,1101,1024,390]) for (const theme of ['light','dark']) {
+ for (const state of ['open','closed','cancelled']) for (const width of (state==='open'?[1440,1385,1280,1200,1101,1024,390]:[1440,1200,390])) for (const theme of ['light','dark']) {
   const context = await browser.newContext({viewport:{width,height:900},colorScheme:theme});
   await context.addInitScript(t=>localStorage.setItem('dashboard-theme',t),theme);
   const tokens = buildTokenTable();
   await installApiStub(context,tokens,{fail:[],overrides:{},status:{}});
-  // Production-length order numbers, an attachment, long customer names and
-  // ready stamps exercise minimum widths that the short SO-1421 fixture missed.
-  const orders = await loadFixture('sales-orders.json',tokens);
+  // Production-length identifiers, attachment, partial quantity, and long
+  // customers exercise content widths hidden by the short base identifiers.
+  const orders = await loadFixture('sales-orders-list.json',tokens);
   orders.orders.forEach((o,i)=>{o.order_number=`SO-260908-${String(i+1).padStart(3,'0')}`;if(o.ready)o.ready_by='floor';});
   orders.orders[0].source_document_id=3001;
   orders.orders[0].customer='International Gourmet Foods Inc';
-  await context.route(`https://${API_HOST}/sales/orders?*`,route=>route.fulfill({json:orders}));
+  await context.route(`https://${API_HOST}/sales/orders?*`,route=>{
+   const selected=new URL(route.request().url()).searchParams.get('state');
+   const rows=orders.orders.filter(o=>!selected||o.state===selected);
+   return route.fulfill({json:{orders:rows,count:rows.length}});
+  });
   const page = await context.newPage();
   await page.goto(server.origin);
   await SCREENS.find(s=>s.id==='S-25').setup(page);
+  if(state!=='open'){
+   await page.getByRole('tab',{name:new RegExp(`^${state}\\b`,'i')}).click();
+   await page.locator(`.order-row[data-state="${state}"]`).first().waitFor({state:'visible'});
+  }
   const controls = page.locator('#orders-table-container .table-tools');
-  await controls.locator('select').selectOption('3');
+  const sort = controls.locator('select');
+  const shipByOption = await sort.locator('option').evaluateAll(options=>options.find(o=>/ship by/i.test(o.textContent))?.value);
+  if(shipByOption===undefined)throw new Error('Ship by sorting option is missing');
+  await sort.selectOption(shipByOption);
   await page.evaluate(()=>window.scrollTo(0,600));
   await page.waitForTimeout(300);
   const result = await page.evaluate(() => {
@@ -42,37 +53,41 @@ try {
    const scroller=getComputedStyle(table).overflowX==='auto'?table:table.parentElement;
    const bounds=scroller.getBoundingClientRect(), t=table.getBoundingClientRect();
    const hint=getComputedStyle(tools,'::after').content;
-   const cells=[...table.querySelectorAll('.order-row > td')].filter(e=>e.getBoundingClientRect().width);
-   const statuses=[...table.querySelectorAll('.order-row > td:nth-child(7)')];
-   const widestBadge=Math.max(...statuses.flatMap(c=>[...c.children].map(e=>e.getBoundingClientRect().width)));
-   const statusWidth=statuses[0].getBoundingClientRect().width;
-   const chips=[...table.querySelectorAll('.order-blockers-cell .readiness-chip-label')];
-   return {width:innerWidth,desktop,fitted,stack,controlsTop:r.top,tableWidth:t.width,containerWidth:bounds.width,scrollWidth:scroller.scrollWidth,statusWidth,widestBadge,
-    controlsVisible: !desktop || r.top>=stack-1,
-    allColumnsFit:!fitted || (t.right<=bounds.right+1&&t.left>=bounds.left-1&&scroller.scrollWidth<=scroller.clientWidth+1&&cells.every(e=>{const b=e.getBoundingClientRect();return b.left>=bounds.left-1&&b.right<=bounds.right+1&&e.scrollWidth<=e.clientWidth+1;})),
-    statusContentSized:!fitted || statusWidth<=widestBadge+14,
-    blockersAtMostTwoLines:!fitted || chips.every(e=>e.getBoundingClientRect().height<=2*parseFloat(getComputedStyle(e).lineHeight)+1),
-    scrollAffordance: !desktop || (fitted ? !hint.includes('Scroll sideways') : hint.includes('Scroll sideways')&&scroller.scrollWidth>scroller.clientWidth),
+   const rows=[...table.querySelectorAll('.order-row')];
+   const cells=rows.flatMap(row=>[...row.children]).filter(e=>e.tagName==='TD'&&e.getBoundingClientRect().width);
+   const headers=[...table.querySelectorAll('thead th')].map(e=>e.textContent.replace(/[↑↓↕]/g,'').trim().replace(/\s+/g,' '));
+   const expected=['Ready to ship','SO #','Customer','Ship by','Fulfillment','Health','Left to ship','Pallets'];
+   const expanded=rows.filter(row=>!row.classList.contains('expanded'));
+   const farCells=rows.map(row=>row.children[7]).filter(Boolean);
+   const controlsVisible=!desktop||r.top>=stack-1;
+   return {width:innerWidth,desktop,fitted,stack,controlsTop:r.top,tableWidth:t.width,containerWidth:bounds.width,scrollWidth:scroller.scrollWidth,headers,
+    controlsVisible,
+    eightOrthogonalColumns:headers.length===8&&headers.every((h,i)=>h.toLowerCase()===expected[i].toLowerCase())&&rows.every(row=>row.children.length===8),
+    expanderInOrderCell:rows.every(row=>row.children[1].querySelector('.order-expand-toggle')),
+    allColumnsFit:!fitted||(t.right<=bounds.right+1&&t.left>=bounds.left-1&&scroller.scrollWidth<=scroller.clientWidth+1&&cells.every(e=>{const b=e.getBoundingClientRect();return b.left>=bounds.left-1&&b.right<=bounds.right+1&&e.scrollWidth<=e.clientWidth+1;})),
+    compactDesktopRows:innerWidth<1200||expanded.every(row=>row.getBoundingClientRect().height<=56.5),
+    tallestRow:Math.max(...expanded.map(row=>row.getBoundingClientRect().height)),
+    scrollAffordance:!desktop||(fitted?!hint.includes('Scroll sideways'):hint.includes('Scroll sideways')&&scroller.scrollWidth>scroller.clientWidth),
     pageContained:document.documentElement.scrollWidth<=innerWidth,
-    mobileCards:desktop || getComputedStyle(document.querySelector('.order-row')).display==='grid'};
+    mobileCards:desktop||rows.every(row=>getComputedStyle(row).display==='grid'),
+    visibleLastColumn:!fitted||farCells.every(e=>e.getBoundingClientRect().right<=bounds.right+1)};
   });
-  await page.screenshot({path:path.join(out,`${width}-${theme}-left.png`)});
-  const reachable = await page.evaluate(()=>{
+  await page.screenshot({path:path.join(out,`${state}-${width}-${theme}-left.png`)});
+  const lastColumnReachable = await page.evaluate(()=>{
    const table=document.querySelector('#orders-table-container table');
    const scroller=getComputedStyle(table).overflowX==='auto'?table:table.parentElement;
-   // Fitted tables must show Blockers BEFORE any horizontal scrolling.
    if(innerWidth>768&&innerWidth<=1100)scroller.scrollLeft=scroller.scrollWidth;
    const r=scroller.getBoundingClientRect();
-   return [...document.querySelectorAll('.order-row > .order-blockers-cell')].filter(e=>e.getBoundingClientRect().width).every(e=>{
-    const b=e.getBoundingClientRect();return b.left>=r.left-1&&b.right<=r.right+1&&[...e.querySelectorAll('.readiness-chip')].every(c=>c.scrollWidth<=c.clientWidth+1);
+   return [...table.querySelectorAll('.order-row > td:last-child')].filter(e=>e.getBoundingClientRect().width).every(e=>{
+    const b=e.getBoundingClientRect();return b.left>=r.left-1&&b.right<=r.right+1&&e.scrollWidth<=e.clientWidth+1;
    });
   });
-  await page.screenshot({path:path.join(out,`${width}-${theme}-right.png`)});
-  results.push({theme,...result,blockersReachable:reachable});
+  await page.screenshot({path:path.join(out,`${state}-${width}-${theme}-right.png`)});
+  results.push({state,theme,...result,lastColumnReachable});
   await context.close();
  }
 } finally { await browser.close();await server.close(); }
 await fs.writeFile(path.join(out,'results.json'),JSON.stringify(results,null,2));
 console.log(JSON.stringify(results,null,2));
-const checks=['controlsVisible','allColumnsFit','statusContentSized','blockersAtMostTwoLines','scrollAffordance','pageContained','mobileCards','blockersReachable'];
+const checks=['controlsVisible','eightOrthogonalColumns','expanderInOrderCell','allColumnsFit','compactDesktopRows','scrollAffordance','pageContained','mobileCards','visibleLastColumn','lastColumnReachable'];
 if(results.some(r=>checks.some(k=>!r[k])))process.exitCode=1;

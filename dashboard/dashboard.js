@@ -2094,6 +2094,7 @@
 
   // Orders sub-state
   state.ordersData = [];
+  state.orderReadyWrites = new Set();
   state.ordersLoaded = false;
   state.ordersScrollTop = 0;
   state.currentOrderDetail = null;
@@ -2109,9 +2110,10 @@
     const res = await FL.fetchWithTimeout(SALES_API_BASE + path, { ...options, headers });
     if (!res.ok) {
       const body = await res.text();
-      const error = new Error(`HTTP ${res.status}: ${body}`);
+      const error = new Error(res.status >= 500 ? "Couldn’t reach the ledger. Please try again." : res.status === 403 ? "You don’t have permission to make this change." : res.status === 404 ? "This record could not be found. Refresh and try again." : "This change could not be saved. Check the details and try again.");
       error.status = res.status;
       try { error.payload = JSON.parse(body); } catch (_) { error.payload = null; }
+      error.detail = error.payload?.detail || error.payload;
       throw error;
     }
     return res.json();
@@ -2158,9 +2160,7 @@
     return renderBlockerChips(readiness.blockers, showDetail);
   }
 
-  function isDispatchQueueMode() {
-    return document.getElementById('orders-status-filter').value === 'dispatch_queue';
-  }
+
 
   function formatDateShort(dateStr) {
     if (!dateStr) return '—';
@@ -2208,14 +2208,6 @@
     return Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' lb';
   }
 
-  function isOrderOverdue(order) {
-    if (!order.requested_ship_date) return false;
-    const closedStatuses = ['shipped', 'invoiced', 'cancelled'];
-    if (closedStatuses.includes(order.status)) return false;
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-    return order.requested_ship_date < today;
-  }
-
   function soStatusLabel(status) {
     const labels = {
       'new': 'New',
@@ -2231,46 +2223,13 @@
   }
 
   function getFilteredOrders() {
-    const statusFilter = document.getElementById('orders-status-filter').value;
-    const dispatchFilter = document.getElementById('orders-dispatch-filter').value;
-    const customerSearch = document.getElementById('orders-customer-search').value.trim().toLowerCase();
-    const overdueOnly = document.getElementById('orders-overdue-only').checked;
     const hideReady = document.getElementById('orders-hide-ready').checked;
-
-    const filtered = state.ordersData.filter(order => {
-      // Status filter
-      if (statusFilter === 'dispatch_queue') {
-        if (dispatchFilter === 'ready' && !order.dispatch_ready) return false;
-        if (dispatchFilter === 'blocked' && order.dispatch_ready) return false;
-      } else if (statusFilter === 'open') {
-        if (!SALES_ORDER_OPEN_STATUSES.includes(order.status)) return false;
-      } else if (statusFilter !== 'all') {
-        if (order.status !== statusFilter) return false;
-      }
-
-      // Customer search
-      if (customerSearch && !(order.customer || '').toLowerCase().includes(customerSearch)) {
-        return false;
-      }
-
-      // Overdue only
-      if (overdueOnly && !isOrderOverdue(order)) {
-        return false;
-      }
-
-      if (hideReady && order.ready) {
-        return false;
-      }
-
-      return true;
-    });
-    if (statusFilter !== 'dispatch_queue') return filtered;
-    return filtered.sort((a, b) => {
-      if (Boolean(a.dispatch_ready) !== Boolean(b.dispatch_ready)) return a.dispatch_ready ? -1 : 1;
-      const aDate = a.requested_ship_date || '9999-12-31';
-      const bDate = b.requested_ship_date || '9999-12-31';
-      if (aDate !== bDate) return aDate.localeCompare(bDate);
-      return Number(a.order_id || 0) - Number(b.order_id || 0);
+    return state.ordersData.filter(order => {
+      if (order.state !== (['closed', 'cancelled'].includes(state.ordersTab) ? state.ordersTab : 'open')) return false;
+      if (state.ordersTab === 'ready_to_ship' && !order.ready) return false;
+      if (state.ordersTab === 'shipped' && order.fulfillment !== 'shipped') return false;
+      if (state.ordersTab === 'overdue' && !(order.requested_ship_date < plantToday() && order.fulfillment !== 'shipped')) return false;
+      return !hideReady || !order.ready;
     });
   }
 
@@ -2291,30 +2250,6 @@
   function getExportLineQuantity(line) {
     if (line.unit_count != null) return line.unit_count;
     return Number(line.quantity_lb) || 0;
-  }
-
-  function deriveOrderRemainingUnits(order) {
-    const palletLines = Array.isArray(order.pallet_lines) ? order.pallet_lines : [];
-    if (order.remaining_units != null && palletLines.some(line => getSalesOrderLineCaseSizeLb(line))) {
-      return Number(order.remaining_units);
-    }
-    let units = 0;
-    let derivedAny = false;
-    for (const line of (Array.isArray(order.lines) ? order.lines : [])) {
-      const caseSizeLb = getSalesOrderLineCaseSizeLb(line);
-      const readiness = line.readiness || {};
-      const remainingLb = readiness.remaining_lb != null ? readiness.remaining_lb : line.remaining_lb;
-      if (!caseSizeLb || remainingLb == null) continue;
-      units += Math.round(Number(remainingLb) / caseSizeLb);
-      derivedAny = true;
-    }
-    return derivedAny ? units : null;
-  }
-
-  function formatOrderRemaining(order) {
-    const remainingLb = order.remaining_effective_lb != null ? order.remaining_effective_lb : order.remaining_lb;
-    const units = deriveOrderRemainingUnits(order);
-    return fmtLbs(remainingLb) + (units == null ? '' : ' &middot; ' + fmtInt(units) + ' units');
   }
 
   async function loadOrderDetails(orders) {
@@ -2381,7 +2316,7 @@
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (e) {
-      showError('orders-error', 'Failed to export sales orders: ' + e.message);
+      showError('orders-error', 'Couldn’t export sales orders. Please try again.');
     } finally {
       button.textContent = originalText;
       button.classList.remove('loading');
@@ -2420,7 +2355,7 @@
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (e) {
-      showError('orders-error', 'Failed to export orders matrix: ' + e.message);
+      showError('orders-error', 'Couldn’t export the orders matrix. Please try again.');
     } finally {
       button.textContent = originalText;
       button.classList.remove('loading');
@@ -2428,221 +2363,135 @@
     }
   }
 
-  function orderReadyPill(order) {
-    if (!order.ready) return '';
-    const parts = ['&#10003; Factory Ready'];
-    if (order.ready_by) parts.push(escHtml(order.ready_by));
-    if (order.ready_at) parts.push(escHtml(formatReadyTime(order.ready_at)));
-    return `<span class="so-ready-pill">${parts.join(' &middot; ')}</span>`;
-  }
-
   async function refreshOrders() {
+    const generation = state.ordersGeneration = (state.ordersGeneration || 0) + 1;
     hideError('orders-error');
     const container = document.getElementById('orders-table-container');
-    container.innerHTML = '<div class="loading-indicator">Loading sales orders...</div>';
+    container.setAttribute('aria-busy', 'true');
+    if (!state.ordersLoaded) container.innerHTML = '<div class="loading-indicator">Loading sales orders…</div>';
+    const params = new URLSearchParams({ limit: '200', state: ['closed', 'cancelled'].includes(state.ordersTab) ? state.ordersTab : 'open' });
+    if (state.ordersTab === 'overdue') params.set('overdue_only', 'true');
+    const customer = document.getElementById('orders-customer-search').value.trim();
+    if (customer) params.set('customer', customer);
+    const scope = state.ordersTab + ':' + customer;
+    if (scope !== state.ordersScope) {
+      state.ordersScope = scope;
+      state.ordersLoaded = false;
+      state.ordersData = [];
+      SOList.closeExplanation();
+      container.innerHTML = '<div class="loading-indicator">Loading sales orders…</div>';
+    }
     try {
-      const statusFilter = document.getElementById('orders-status-filter').value;
-      let data;
-      if (statusFilter === 'dispatch_queue') {
-        const [dispatchData, listData] = await Promise.all([
-          fetchSalesAPI('/sales/orders/fulfillment-check'),
-          fetchSalesAPI('/sales/orders?limit=200')
-        ]);
-        data = dispatchData;
-        const listOrdersById = new Map((listData.orders || []).map(order => [String(order.order_id), order]));
-        state.ordersData = (data.orders || []).map(order => ({
-          ...order,
-          ready: Boolean(order.floor_ready),
-          order_date: null,
-          pallet_lines: (listOrdersById.get(String(order.order_id)) || {}).pallet_lines || [],
-          remaining_units: (listOrdersById.get(String(order.order_id)) || {}).remaining_units,
-          remaining_lb: order.remaining_effective_lb,
-          is_dispatch_queue: true
-        }));
-      } else {
-        const params = new URLSearchParams({ limit: '200' });
-        if (statusFilter !== 'all') params.set('status', statusFilter);
-        data = await fetchSalesAPI('/sales/orders?' + params.toString());
-        state.ordersData = data.orders || [];
-      }
+      const [data, counts] = await Promise.all([fetchSalesAPI('/sales/orders?' + params), fetchSalesAPI('/sales/orders/counts')]);
+      if (generation !== state.ordersGeneration) return;
+      state.ordersData = (data.orders || []).map(order => ({ ...order, readyInFlight: state.orderReadyWrites.has(String(order.order_id)) }));
+      state.ordersCounts = counts;
       state.ordersLoaded = true;
-      updateDispatchQueueControls(data.summary || null);
+      state.orderLinesCache = {};
+      updateOrdersTabs();
       updateShipByCalendarIndicators();
       renderOrdersList();
-      // Both branches above land here, so this is the single point that sees
-      // every change to ordersData — including the dispatch-queue swap.
       renderAttentionStrip();
     } catch (e) {
+      if (generation !== state.ordersGeneration) return;
       container.innerHTML = '';
-      showLoadError('orders-error', 'Failed to load sales orders', e, refreshOrders);
+      state.ordersData = [];
+      state.ordersLoaded = false;
+      showError('orders-error', 'Couldn’t load sales orders. Please try Refresh.');
+    } finally {
+      if (generation === state.ordersGeneration) container.removeAttribute('aria-busy');
     }
   }
 
-  function updateDispatchQueueControls(summary) {
-    const dispatchMode = isDispatchQueueMode();
-    const filter = document.getElementById('orders-dispatch-filter');
-    const summaryEl = document.getElementById('orders-dispatch-summary');
-    filter.classList.toggle('hidden', !dispatchMode);
-    summaryEl.classList.toggle('hidden', !dispatchMode);
-    if (!dispatchMode) {
-      summaryEl.textContent = '';
-      return;
-    }
-    const total = summary ? Number(summary.total_orders_checked || 0) : state.ordersData.length;
-    const ready = state.ordersData.filter(order => order.dispatch_ready).length;
-    summaryEl.textContent = `${ready} checks passed · ${Math.max(0, total - ready)} need review (advisory)`;
+  function updateOrdersTabs() {
+    document.querySelectorAll('[data-orders-tab]').forEach(button => {
+      const selected = button.dataset.ordersTab === state.ordersTab;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      const count = state.ordersCounts?.[button.dataset.ordersTab];
+      button.querySelector('.so-tab-count').textContent = count == null ? '' : SOList.number(count);
+    });
+    document.getElementById('section-orders').setAttribute('aria-labelledby', 'so-tab-' + state.ordersTab);
+  }
+
+  function selectOrdersTab(tab) {
+    state.ordersTab = tab;
+    updateOrdersTabs();
+    SOList.closeExplanation();
+    refreshOrders();
   }
 
   function updateShipByCalendarIndicators() {
     const counts = {};
     for (const order of state.ordersData) {
-      if (!order.requested_ship_date || !SALES_ORDER_OPEN_STATUSES.includes(order.status)) continue;
+      if (!order.requested_ship_date || order.state !== 'open') continue;
       counts[order.requested_ship_date] = (counts[order.requested_ship_date] || 0) + 1;
     }
     window.dispatchEvent(new CustomEvent('factory-ledger:ship-dates', { detail: { counts } }));
   }
 
   function renderOrdersList() {
+    SOList.closeExplanation();
     const container = document.getElementById('orders-table-container');
     const orders = getFilteredOrders();
-
-    if (orders.length === 0) {
-      container.innerHTML = `<div class="orders-empty">
-
-        No orders match your filters.
-      </div>`;
+    const cap = state.ordersData.length >= 200;
+    const refined = document.getElementById('orders-customer-search').value.trim() || document.getElementById('orders-hide-ready').checked;
+    const summary = cap ? `Showing ${SOList.number(orders.length)} from the first 200 loaded orders. Refine by customer to find more; tab counts include all orders.` : refined ? `Showing ${SOList.number(orders.length)} matching orders. Tab counts include all customers and ready-to-ship orders.` : '';
+    document.getElementById('orders-refinement-summary').textContent = summary;
+    if (!orders.length) {
+      container.innerHTML = '<div class="orders-empty">No orders match this view.</div>';
       return;
     }
-
-    let html = '<div class="table-scroll"><table class="orders-table"><thead><tr>';
-    html += '<th class="order-expand-col" aria-label="Expand"></th><th class="order-ready-col" aria-label="Factory Ready">Factory<br>Ready</th><th>SO #</th><th>Customer</th><th>Order Date</th><th>Ship By</th><th>Status</th><th>Dispatch checks</th><th>Blockers / Warnings</th><th class="num">Pallets</th><th class="num">Left to ship</th>';
-    html += '</tr></thead><tbody>';
-
-    for (const o of orders) {
-      const overdue = isOrderOverdue(o);
-      const readyReadOnly = Boolean(o.is_dispatch_queue);
-      html += `<tr class="order-row ${o.ready ? 'so-ready' : ''}" data-order-id="${o.order_id}">`;
-      html += `<td class="order-expand-cell"><button type="button" class="order-expand-toggle" data-order-id="${o.order_id}" aria-expanded="false" aria-controls="order-lines-${o.order_id}" aria-label="Show line items for ${escAttr(o.order_number)}" title="Show line items"><span class="order-expand-caret">&#9656;</span></button></td>`;
-      // A Factory Ready write re-renders this table, so carry the in-flight
-      // state through the re-render and keep the control disabled (IMP-004).
-      const readyBusy = Boolean(o.readyInFlight);
-      html += `<td class="order-ready-cell"${readyReadOnly ? ' title="Toggle Factory Ready from All Open Orders"' : ''}><label class="check-hit"><input type="checkbox" class="order-ready-checkbox" aria-label="Factory Ready: ${escAttr(o.order_number)} — ${escAttr(o.customer)}" data-order-id="${o.order_id}" ${o.ready ? 'checked' : ''} ${readyBusy ? 'disabled' : ''} ${readyReadOnly ? 'disabled title="Toggle Factory Ready from All Open Orders"' : `title="${readyBusy ? 'Saving\u2026' : 'Factory Ready'}"`}></label></td>`;
-      // Orders created from a customer PO document (SO intake) get a
-      // paperclip → signed URL, same pattern as sourced expected receipts.
-      const soDocLink = o.source_document_id
-        ? ` <button type="button" class="er-doc-link so-doc-link" data-doc-id="${o.source_document_id}" title="View the customer PO this order came from${o.customer_po ? ` (PO ${escAttr(o.customer_po)})` : ''}">&#128206;</button>`
-        : '';
-      html += `<td class="order-identity-cell" data-sort-value="${escAttr(o.order_number)}"><button type="button" class="order-link">${escHtml(o.order_number)}</button>${soDocLink}</td>`;
-      html += `<td>${escHtml(o.customer)}</td>`;
-      html += `<td data-sort-value="${escAttr(o.order_date || '')}">${formatDateShort(o.order_date)}</td>`;
-      html += `<td data-sort-value="${escAttr(o.requested_ship_date || '')}" class="ship-by-cell ${overdue ? 'date-overdue' : ''}">${formatShipByDate(o.requested_ship_date, overdue)}</td>`;
-      html += `<td><span class="so-badge status-${o.status}">${soStatusLabel(o.status)}</span>${orderReadyPill(o)}</td>`;
-      html += `<td>${renderDispatchState(o)}</td>`;
-      html += `<td class="order-blockers-cell">${renderOrderBlockers(o)}</td>`;
-      html += `<td class="num order-pallet-total">${escHtml(calculateOrderPallets(o.pallet_lines || [], 'unit_count').display)}</td>`;
-      html += `<td class="num">${formatOrderRemaining(o)}</td>`;
-      html += `</tr>`;
-      // Hidden inline detail row — line items loaded on demand when expanded
-      html += `<tr id="order-lines-${o.order_id}" class="order-lines-row hidden" data-order-id="${o.order_id}"><td colspan="11"><div class="order-lines-content"></div></td></tr>`;
+    let html = '<div class="table-scroll"><table class="orders-table so-list-table"><thead><tr>';
+    html += '<th class="order-ready-col">Ready to ship</th><th>SO #</th><th>Customer</th><th>Ship by</th><th>Fulfillment</th><th>Health</th><th class="num">Left to ship</th><th class="num">Pallets</th></tr></thead><tbody>';
+    for (const order of orders) {
+      html += SOList.row(order);
+      html += `<tr id="order-lines-${order.order_id}" class="order-lines-row hidden" data-order-id="${order.order_id}"><td colspan="8"><div class="order-lines-content"></div></td></tr>`;
     }
-
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-
-    container.querySelectorAll('.order-row').forEach(row => {
-      const labels = ['Line items','Factory Ready','Order','Customer','Order date','Ship by','Status','Dispatch checks','Issues','Pallets','Left to ship'];
-      Array.from(row.children).forEach((cell, i) => cell.dataset.label = labels[i]);
-    });
-
-    // Bind row clicks — clicking the row (incl. the SO number) opens the full detail page
-    container.querySelectorAll('.order-row').forEach(row => {
-      row.addEventListener('click', () => {
-        const orderId = row.dataset.orderId;
-        // Save scroll position
-        state.ordersScrollTop = document.getElementById('tab-orders').scrollTop || window.scrollY;
-        openOrderDetail(orderId);
-      });
-    });
-
-    // Bind the separate inline expand/collapse controls
+    container.innerHTML = html + '</tbody></table></div>';
+    // The identifier explains the record; the expansion has an explicit detail link.
     bindOrderExpandToggles(container);
     bindOrderReadyToggles(container);
-
-    // Paperclip → signed URL for the source customer PO. stopPropagation so
-    // the row click doesn't also open the order detail view.
-    container.querySelectorAll('.so-doc-link').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        btn.disabled = true;
-        try {
-          const data = await fetchSalesAPI(`/purchase-documents/${btn.dataset.docId}/url`);
-          window.open(data.url, '_blank', 'noopener');
-        } catch (err) {
-          showError('orders-error', `Could not open the source document: ${err.message}`);
-        } finally {
-          btn.disabled = false;
-        }
-      });
-    });
+    SOList.bindExplanations(container);
   }
 
   function renderOrderLinesContent(order) {
-    const lines = (order && order.lines) || [];
-    const listOrder = state.ordersData.find(o => String(o.order_id) === String(order.order_id)) || order;
-    const readyNote = listOrder.note || '';
-    const readyReadOnly = Boolean(listOrder.is_dispatch_queue);
-    const readyTooltip = 'Toggle Factory Ready from All Open Orders';
-    let html = `<div class="order-ready-drawer"${readyReadOnly ? ` title="${readyTooltip}"` : ''}>`;
-    html += '<label>Factory Ready note</label>';
-    html += `<div class="order-ready-note-row"><input type="text" class="order-ready-note-input" data-order-id="${order.order_id}" value="${escAttr(readyNote)}" placeholder="Optional note for the floor" ${readyReadOnly ? `disabled title="${readyTooltip}"` : ''}>`;
-    html += `<button type="button" class="btn-sm order-ready-note-save" data-order-id="${order.order_id}" ${readyReadOnly ? `disabled title="${readyTooltip}"` : ''}>Save Factory Ready Note</button></div>`;
-    if (readyNote) html += `<div class="order-ready-note-text">${escHtml(readyNote)}</div>`;
+    const summary = state.ordersData.find(o => String(o.order_id) === String(order.order_id)) || order;
+    const open = summary.state === 'open';
+    let html = `<div class="so-row-actions"><button type="button" class="btn-sm so-open-detail" data-order-id="${order.order_id}">Open order details</button>`;
+    if (summary.source_document_id) html += `<button type="button" class="btn-sm so-source-document" data-doc-id="${summary.source_document_id}">View customer PO</button>`;
+    for (const action of (open ? ['close', 'cancel'] : ['reopen'])) html += `<button type="button" class="btn-sm so-exit-action" data-action="${action}" data-order-id="${order.order_id}">${action[0].toUpperCase() + action.slice(1)} order</button>`;
     html += '</div>';
-    html += '<div class="order-inline-readiness">';
-    html += `<div><strong>${renderDispatchState(order)}</strong><span class="readiness-caption">Factory Ready is the team’s preparation mark. Dispatch checks are advisory; they do not prevent shipping.</span></div>`;
-    html += renderOrderBlockers(order);
-    html += '</div>';
-
-    if (lines.length === 0) {
-      return html + '<div class="order-lines-empty">No line items on this order.</div>';
+    if (open) html += `<div class="order-ready-drawer"><label for="ready-note-${order.order_id}">Ready to ship note</label><div class="order-ready-note-row"><input id="ready-note-${order.order_id}" type="text" class="order-ready-note-input" data-order-id="${order.order_id}" value="${escAttr(summary.note || '')}" placeholder="Optional note for the floor"><button type="button" class="btn-sm order-ready-note-save" data-order-id="${order.order_id}">Save note</button></div></div>`;
+    const lines = order.lines || [];
+    if (!lines.length) return html + '<div class="order-lines-empty">No line items on this order.</div>';
+    html += '<div class="so-lines-scroll"><table class="order-lines-table"><thead><tr><th>SKU</th><th>Product</th><th class="num">Ordered</th><th class="num">Left to ship</th></tr></thead><tbody>';
+    for (const line of lines) {
+      const unit = line.is_non_weight || line.is_service ? 'units' : 'lb';
+      const remaining = line.readiness?.remaining_lb ?? line.remaining_lb;
+      html += `<tr><td>${escHtml(line.sku || '')}</td><td>${escHtml(line.product || line.name || '')}${line.line_status === 'cancelled' ? ' (cancelled)' : ''}</td><td class="num">${SOList.number(line.quantity_lb)} ${unit}</td><td class="num">${SOList.number(remaining)} ${unit}</td></tr>`;
     }
+    return html + '</tbody></table></div>';
+  }
 
-    const totalPallets = calculateOrderPallets(lines, 'unit_count');
-    html += `<div class="order-pallet-summary"><span>Order pallets</span><strong>${escHtml(totalPallets.display)}</strong></div>`;
-    html += '<table class="order-lines-table"><thead><tr>';
-    html += '<th>SKU</th><th>Product</th><th class="num">Ordered</th><th class="num">Pallets</th><th>UoM</th><th class="num">Left to ship</th><th>Readiness</th>';
-    html += '</tr></thead><tbody>';
-    for (const l of lines) {
-      const nonWeight = l.is_non_weight;
-      const uom = nonWeight ? 'units' : (l.uom || 'lb');
-      const orderedQty = nonWeight
-        ? fmtInt(l.unit_quantity != null ? l.unit_quantity : l.quantity_lb)
-        : fmtWt(l.quantity_lb) + (l.unit_count != null ? ` <small>(${fmtInt(l.unit_count)} cs)</small>` : '');
-      const readiness = l.readiness || {};
-      const remVal = readiness.remaining_lb != null ? readiness.remaining_lb : (l.remaining_lb != null ? l.remaining_lb : ((l.quantity_lb || 0) - (l.quantity_shipped_lb || 0)));
-      const effectiveRemainingUnits = l.case_size_lb ? Math.round(Number(remVal) / Number(l.case_size_lb)) : l.remaining_units;
-      const remaining = remVal == null ? '&mdash;' : (nonWeight
-        ? fmtInt(remVal)
-        : fmtWt(remVal) + (effectiveRemainingUnits != null ? ` <small>(${fmtInt(effectiveRemainingUnits)} cs)</small>` : ''));
-      const linePallets = calculateLinePallets(l, l.unit_count);
-      html += '<tr>';
-      html += `<td class="order-line-sku">${escHtml(l.sku || '—')}</td>`;
-      html += `<td>${escHtml(l.product || l.name || '—')}</td>`;
-      html += `<td class="num">${orderedQty}</td>`;
-      html += `<td class="num order-line-pallets">${escHtml(linePallets.display)}</td>`;
-      html += `<td>${escHtml(uom)}</td>`;
-      html += `<td class="num">${remaining}</td>`;
-      html += `<td>${renderLineReadiness(l)}</td>`;
-      html += '</tr>';
-    }
-    html += '</tbody></table>';
-    return html;
+  function bindOrderRowActions(container) {
+    container.querySelectorAll('.so-open-detail').forEach(button => button.addEventListener('click', () => openOrderDetail(button.dataset.orderId)));
+    container.querySelectorAll('.so-exit-action').forEach(button => button.addEventListener('click', () => {
+      const order = state.ordersData.find(o => String(o.order_id) === button.dataset.orderId);
+      SOList.closeExplanation();
+      SOListActions.open(order, { action: button.dataset.action, request: fetchSalesAPI, format: SOList.number, onCommitted: refreshOrders, trigger: button });
+    }));
+    container.querySelectorAll('.so-source-document').forEach(button => button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        const data = await fetchSalesAPI('/purchase-documents/' + button.dataset.docId + '/url');
+        window.open(data.url, '_blank', 'noopener');
+      } catch (_) { showError('orders-error', 'Couldn’t open the customer PO. Please try again.'); }
+      finally { button.disabled = false; }
+    }));
   }
 
   async function postOrderReady(order, ready, note) {
-    if (order.is_dispatch_queue) {
-      throw new Error('Toggle Factory Ready from All Open Orders');
-    }
     return fetchSalesAPI('/sales-orders/' + encodeURIComponent(order.order_number) + '/ready', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2666,18 +2515,24 @@
         const orderId = btn.dataset.orderId;
         const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
         const input = container.querySelector(`.order-ready-note-input[data-order-id="${orderId}"]`);
-        if (!order || !input || order.is_dispatch_queue) return;
+        if (!order || !input || order.state !== 'open' || state.orderReadyWrites.has(String(orderId))) return;
+        state.orderReadyWrites.add(String(orderId));
+        order.readyInFlight = true;
         const oldNote = order.note || null;
         order.note = input.value.trim() || null;
         btn.disabled = true;
         try {
           const saved = await postOrderReady(order, Boolean(order.ready), order.note);
           updateCachedOrderReady(orderId, saved);
+          state.orderReadyWrites.delete(String(orderId));
+          order.readyInFlight = false;
           renderOrdersList();
         } catch (e) {
           order.note = oldNote;
-          showError('orders-error', 'Factory Ready note save failed: ' + e.message);
+          showError('orders-error', 'Couldn’t save the ready-to-ship note. Please try again.');
         } finally {
+          order.readyInFlight = false;
+          state.orderReadyWrites.delete(String(orderId));
           btn.disabled = false;
         }
       });
@@ -2685,55 +2540,30 @@
   }
 
   function bindOrderReadyToggles(container) {
-    container.querySelectorAll('.order-ready-checkbox').forEach(cb => {
-      // The row opens the order detail on click. The guard sits on the
-      // wrapping .check-hit label, not the checkbox alone: a click anywhere in
-      // the label's 44px hit region bubbles to the row before the label's
-      // activation behaviour dispatches the synthetic click on the input.
-      (cb.closest('.check-hit') || cb).addEventListener('click', ev => ev.stopPropagation());
-      cb.addEventListener('change', async (ev) => {
-        ev.stopPropagation();
-        if (cb.disabled) return;
-        const orderId = cb.dataset.orderId;
-        const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
-        if (!order || order.is_dispatch_queue) return;
-        // The list is re-rendered below, which replaces this checkbox, so the
-        // in-flight guard also lives on the order record (IMP-004).
-        if (order.readyInFlight) { cb.checked = Boolean(order.ready); return; }
+    container.querySelectorAll('.order-ready-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', async () => {
+        const order = state.ordersData.find(o => String(o.order_id) === checkbox.dataset.orderId);
+        if (!order || state.orderReadyWrites.has(String(order.order_id))) { if (order) checkbox.checked = Boolean(order.ready); return; }
+        state.orderReadyWrites.add(String(order.order_id));
+        const restoreFocus = checkbox === document.activeElement;
+        const previous = Boolean(order.ready);
         order.readyInFlight = true;
-        cb.disabled = true;
-
-        const oldFlag = {
-          ready: Boolean(order.ready),
-          ready_at: order.ready_at || null,
-          ready_by: order.ready_by || 'floor',
-          note: order.note || null
-        };
-        const nextReady = cb.checked;
-        order.ready = nextReady;
-        order.ready_at = nextReady ? (order.ready_at || new Date().toISOString()) : null;
-        order.ready_by = 'floor';
-
-        renderOrdersList();
+        checkbox.disabled = true;
         try {
-          const saved = await postOrderReady(order, nextReady, order.note || null);
-          updateCachedOrderReady(orderId, saved);
-          // Clear before the render below so the replacement checkbox comes
-          // back enabled — no extra re-render is added for the busy state.
-          order.readyInFlight = false;
-          if (isDispatchQueueMode()) {
-            await refreshOrders();
-          } else {
-            renderOrdersList();
-          }
-        } catch (e) {
-          Object.assign(order, oldFlag);
-          order.readyInFlight = false;
-          renderOrdersList();
-          showError('orders-error', 'Factory Ready update failed: ' + e.message);
+          const saved = await postOrderReady(order, checkbox.checked, order.note || null);
+          updateCachedOrderReady(order.order_id, saved);
+          await refreshOrders();
+        } catch (_) {
+          checkbox.checked = previous;
+          showError('orders-error', 'Couldn’t update Ready to ship. Please try again.');
         } finally {
           order.readyInFlight = false;
-          if (cb.isConnected) cb.disabled = false;
+          state.orderReadyWrites.delete(String(order.order_id));
+          const updated = state.ordersData.find(o => String(o.order_id) === String(order.order_id));
+          if (updated) updated.readyInFlight = false;
+          const replacement = document.querySelector(`.order-ready-checkbox[data-order-id="${order.order_id}"]`);
+          if (replacement) replacement.disabled = false;
+          if (restoreFocus) (replacement || document.querySelector('[data-orders-tab][aria-selected="true"]'))?.focus({ preventScroll: true });
         }
       });
     });
@@ -2768,9 +2598,13 @@
           }
           contentCell.innerHTML = renderOrderLinesContent(data);
           bindOrderReadyNoteControls(contentCell);
+          bindOrderRowActions(contentCell);
           detailRow.dataset.loaded = 'true';
         } catch (e) {
-          contentCell.innerHTML = `<div class="order-lines-error">Failed to load line items: ${escHtml(e.message)}</div>`;
+          const summary = state.ordersData.find(o => String(o.order_id) === orderId);
+          contentCell.innerHTML = renderOrderLinesContent({ ...summary, lines: [] }) + '<p class="order-lines-error">Couldn’t load line items. Collapse and reopen to try again.</p>';
+          bindOrderRowActions(contentCell);
+          bindOrderReadyNoteControls(contentCell);
         }
       });
     });
@@ -3572,42 +3406,32 @@
 
     // Restore scroll position
     window.scrollTo(0, state.ordersScrollTop);
+    refreshOrders();
   }
 
   function initOrders() {
-    // Status filter
-    document.getElementById('orders-status-filter').addEventListener('change', () => {
-      refreshOrders();
+    state.ordersTab = 'open';
+    document.querySelectorAll('[data-orders-tab]').forEach(button => {
+      button.addEventListener('click', () => selectOrdersTab(button.dataset.ordersTab));
+      button.addEventListener('keydown', event => {
+        const tabs = [...document.querySelectorAll('[data-orders-tab]')];
+        const index = tabs.indexOf(button);
+        let next;
+        if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+        if (event.key === 'ArrowLeft') next = tabs[(index + tabs.length - 1) % tabs.length];
+        if (event.key === 'Home') next = tabs[0];
+        if (event.key === 'End') next = tabs.at(-1);
+        if (next) { event.preventDefault(); next.focus(); next.click(); next.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+      });
     });
-
-    document.getElementById('orders-dispatch-filter').addEventListener('change', () => {
-      if (state.ordersLoaded && isDispatchQueueMode()) renderOrdersList();
-    });
-
-    // Customer search (debounced)
-    let orderSearchTimeout;
+    let searchTimer;
     document.getElementById('orders-customer-search').addEventListener('input', () => {
-      clearTimeout(orderSearchTimeout);
-      orderSearchTimeout = setTimeout(() => {
-        if (state.ordersLoaded) renderOrdersList();
-      }, 200);
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(refreshOrders, 250);
     });
-
-    // Overdue toggle
-    document.getElementById('orders-overdue-only').addEventListener('change', () => {
-      if (state.ordersLoaded) renderOrdersList();
-    });
-
-    document.getElementById('orders-hide-ready').addEventListener('change', () => {
-      if (state.ordersLoaded) renderOrdersList();
-    });
-
-    // Refresh button
-    document.getElementById('orders-refresh-btn').addEventListener('click', refreshOrders);
+    document.getElementById('orders-hide-ready').addEventListener('change', () => { if (state.ordersLoaded) renderOrdersList(); });
     document.getElementById('orders-export-btn').addEventListener('click', exportOrdersCsv);
     document.getElementById('orders-matrix-export-btn').addEventListener('click', exportOrdersMatrix);
-
-    // Back button
     document.getElementById('order-back-btn').addEventListener('click', closeOrderDetail);
   }
 
@@ -5647,13 +5471,9 @@
     return state.erData.filter(r => r.is_overdue && r.status === 'open').length;
   }
 
-  // Overdue sales orders — the count behind Tab 5's "Overdue only" checkbox.
-  // Dispatch-queue mode replaces ordersData with the fulfillment-check subset,
-  // so it cannot answer this question.
+  // The global bucket remains accurate while list refinements change.
   function attnOverdueOrders() {
-    const scope = document.getElementById('orders-status-filter').value;
-    if (!state.ordersLoaded || (scope !== 'open' && scope !== 'all')) return null;
-    return state.ordersData.filter(isOrderOverdue).length;
+    return state.ordersCounts?.overdue ?? null;
   }
 
   // Independent of list filters: always count the complete fulfillment-check set.
@@ -5774,27 +5594,16 @@
     },
     ordersOverdue() {
       activateTab('orders');
-      const status = document.getElementById('orders-status-filter');
-      // The overdue toggle filters the loaded list, so the list has to contain
-      // open orders for it to mean anything.
-      if (status.value !== 'open' && status.value !== 'all') {
-        status.value = 'open';
-        refreshOrders();
-      }
-      document.getElementById('orders-overdue-only').checked = true;
-      if (state.ordersLoaded) renderOrdersList();
+      document.getElementById('orders-hide-ready').checked = false;
+      document.getElementById('orders-customer-search').value = '';
+      selectOrdersTab('overdue');
       return 'section-orders';
     },
     dispatchBlocked() {
       activateTab('orders');
-      const status = document.getElementById('orders-status-filter');
-      const needsLoad = status.value !== 'dispatch_queue';
-      status.value = 'dispatch_queue';
-      document.getElementById('orders-overdue-only').checked = false;
-      document.getElementById('orders-dispatch-filter').value = 'blocked';
-      refreshDispatchAttention();
-      if (needsLoad || !state.ordersLoaded) refreshOrders();
-      else renderOrdersList();
+      document.getElementById('orders-hide-ready').checked = false;
+      document.getElementById('orders-customer-search').value = '';
+      selectOrdersTab('open');
       return 'section-orders';
     },
     lowStock() {

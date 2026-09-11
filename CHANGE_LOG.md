@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-11 08:28 — Sales Orders list redesign (Step 3)
+
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/design-controls.js`, `dashboard/so-list.js`, `dashboard/so-list.css`, `dashboard/so-list-actions.js`, `dashboard/so-list-actions.css`, `main.py`, `tests/test_sales_order_state_model.py`, `tests/visual/`, `docs/design/sales-orders-redesign-spec.md`, `docs/design/audit/`, `FACTORY_LEDGER_CHANGELOG.md`.
+- **What changed:** Committed the specification first on `feat/so-list-redesign` from `origin/main` (`e772e36`). Replaced primary filters with counted state tabs; rendered eight independent compact columns, one Health alarm, accessible explanations with expandable info, and preview-first Close/Cancel/Reopen dialogs. Standardized list quantities and added mobile scrolling tabs. Updated the API's effective totals, overdue semantics, pallet line state and Ready flag state guard. Removed legacy dispatch reads from the list and mapped request failures to plain-language messages. Bumped dashboard assets. Recorded before/after audit evidence and added interaction regressions.
+- **Why:** Make state, physical fulfillment, floor readiness and health independently readable without opening each order. Owner confirmed that overdue dates remain muted so Health is the only alarm. The detail page remains Step 4. Branch changes are not deployed to production.
+
+---
+
 ## 2026-09-10 23:05 — Sales-order health strings: aggregated `info`, one number format, product names
 
 - **File(s) changed:** `main.py`, `tests/test_sales_order_state_model.py`, `docs/design/so-state-model-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`

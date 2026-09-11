@@ -12204,6 +12204,7 @@ def list_sales_orders(
                        COALESCE((
                            SELECT jsonb_agg(jsonb_build_object(
                                'line_id', pallet_sol.id,
+                               'line_status', pallet_sol.line_status,
                                'product', pallet_p.name,
                                'sku', pallet_p.odoo_code,
                                'uom', COALESCE(pallet_p.uom, 'lb'),
@@ -12241,16 +12242,22 @@ def list_sales_orders(
                 query += " AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))"
                 params.append(f"%{customer}%")
                 params.append(f"%{customer}%")
+            today = _factory_today()
             if overdue_only:
                 # Parameterised with the factory's date rather than
                 # CURRENT_DATE: Postgres resolves that on the server's clock,
                 # which would let ?overdue_only=true return an order this same
                 # response then reports as "overdue": false.
-                query += " AND so.requested_ship_date < %s AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')"
-                params.append(_factory_today())
+                query += " AND so.requested_ship_date < %s AND so.state = 'open'"
+                params.append(today)
 
-            query += " GROUP BY so.id, c.name, sof.ready, sof.ready_at, sof.ready_by, sof.note ORDER BY so.requested_ship_date ASC NULLS LAST LIMIT %s"
-            params.append(limit)
+            query += " GROUP BY so.id, c.name, sof.ready, sof.ready_at, sof.ready_by, sof.note ORDER BY so.requested_ship_date ASC NULLS LAST, so.id ASC"
+            # Fulfillment is derived from effective ledger rows, not status.
+            # Apply the overdue limit after that shared derivation so already
+            # shipped orders cannot consume slots in the overdue result.
+            if not overdue_only:
+                query += " LIMIT %s"
+                params.append(limit)
             cur.execute(query, params)
             rows = cur.fetchall()
             readiness_by_order, readiness_by_line = _load_sales_order_readiness(cur, rows)
@@ -12260,7 +12267,13 @@ def list_sales_orders(
                 total = float(r['total_lb'] or 0)
                 shipped = float(r['shipped_lb'] or 0)
                 ship_date = r['requested_ship_date']
-                is_open = r['status'] not in ('shipped', 'invoiced', 'cancelled')
+                readiness = readiness_by_order[r['id']]
+                derived = _so_derived_fields(r, readiness, readiness_by_line)
+                is_open = derived['state'] == 'open'
+                overdue = (ship_date is not None and ship_date < today
+                           and is_open and derived['fulfillment'] != 'shipped')
+                if overdue_only and not overdue:
+                    continue
 
                 # Proactive warnings for open orders
                 order_warnings = []
@@ -12295,11 +12308,12 @@ def list_sales_orders(
                     "ready_at": r['ready_at'].isoformat() if r['ready_at'] else None,
                     "ready_by": r['ready_by'],
                     "note": r['ready_note'],
-                    "overdue": ship_date is not None and ship_date < _factory_today() and is_open
+                    "overdue": overdue
                 }
-                readiness = readiness_by_order[r['id']]
-                order.update(_so_derived_fields(r, readiness, readiness_by_line))
+                order.update(derived)
                 order.update({
+                    "ordered_lb": readiness["ordered_lb"],
+                    "shipped_effective_lb": readiness["shipped_effective_lb"],
                     "inventory_ready": readiness["inventory_ready"],
                     "dispatch_ready": readiness["dispatch_ready"],
                     "fulfillment_diverged": readiness["fulfillment_diverged"],
@@ -12311,6 +12325,8 @@ def list_sales_orders(
                 if order_warnings:
                     order["warnings"] = order_warnings
                 orders.append(order)
+                if len(orders) == limit:
+                    break
             return {"orders": orders, "count": len(orders)}
     except Exception as e:
         logger.error(f"List sales orders failed: {e}")
@@ -12333,17 +12349,21 @@ def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest, 
         with get_transaction() as cur:
             cur.execute(
                 """
-                SELECT order_number, status
+                SELECT order_number, state
                 FROM sales_orders
                 WHERE order_number = %s
+                FOR NO KEY UPDATE
                 """,
                 (so_number,)
             )
             order = cur.fetchone()
             if not order:
                 return JSONResponse(status_code=404, content={"error": "Sales order not found"})
-            if order["status"] in ("shipped", "invoiced", "cancelled"):
-                return JSONResponse(status_code=400, content={"error": "Factory Ready can only be set on open sales orders"})
+            # Physically shipped orders stay administratively open until an
+            # explicit exit; their Ready to ship annotation remains editable.
+            # The row lock keeps an exit from racing this state check.
+            if order["state"] != "open":
+                return JSONResponse(status_code=400, content={"error": "Ready to ship can only be set on open sales orders"})
 
             ready_by = (req.by or "floor").strip() or "floor"
             note = req.note.strip() if isinstance(req.note, str) else req.note
