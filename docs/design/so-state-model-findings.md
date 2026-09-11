@@ -811,50 +811,107 @@ Suggested follow-up, in rough order of cost:
 
 ---
 
-## Health v2 — time-aware tiers (2026-09-11)
+## Health v2.1 — factory-local dates, a warning window, reason suppression (2026-09-10)
 
-Branch: `feat/so-health-v2` (off `origin/main` @ e8a8aa2). Code and docs only —
-no migration, no `dashboard/` change. `compute_so_health()` is still the single
-place tiers are decided, still fed by `SALES_ORDER_READINESS_SQL`, and still
-issues no SQL of its own.
+Branch: `feat/so-health-v2-1` (off `origin/main` @ 7613af3, which carries v2).
+Code, tests and docs only — no migration, no `dashboard/` change.
+`compute_so_health()` is still the single place tiers are decided, still fed by
+`SALES_ORDER_READINESS_SQL`, and still issues no SQL of its own.
 
-### Why v1 was replaced
+### Why v1 was replaced (v2)
 
 v1 made **any** stock shortage critical. The same 500 lb short is a different
 fact at three days out than at three months, and painting both red meant the
 red said nothing — the board read as a list of orders rather than a queue of
-work. v2 makes the ship date half of every reason and half of every tier.
+work. v2 made the ship date half of every reason and half of every tier.
+
+### What v2.1 changes
+
+Three things, each fixing a way v2 still cried wolf or got the day wrong:
+
+1. **`today` is the factory's date, not the server's.** The API runs UTC, so
+   from 20:00 Eastern onward `date.today()` had already rolled over and an
+   order due *today* was reported as *1 day overdue* — on the shift most likely
+   to be looking at the board. Every date-vs-today comparison in the health and
+   counts paths now goes through `_factory_today()`.
+2. **A shortage past the warning window is `info`, not `warning`.** On a
+   make-to-order book, an unproduced order with a month of runway is not a
+   problem — it is the normal state of the work. v2 spent a warning badge on
+   every one of them, which taught the board to be ignored a second time.
+3. **The "Not Ready to Ship" reason yields to a shortage.** An order that
+   cannot ship for want of material is not also news for want of a flag, and
+   two reasons on one order read as two problems.
+
+### The clock
+
+`FACTORY_TZ` — the timezone the factory's calendar is kept in.
+
+* **Default `America/New_York`.** Read on **every call**, like the day windows,
+  so a move or a mistake is fixable without a deploy.
+* An unknown zone (`KeyError`/`ZoneInfoNotFoundError`) or a malformed one
+  (`ValueError`) falls back to the default rather than raising. Same rule as the
+  windows: this is a read path, and a bad env var must not 500 the board.
+* Deliberately **separate from module-level `PLANT_TIMEZONE`**, which the
+  ledger, shipment and production paths read. Same value today; retuning the
+  sales-order health clock must not silently retune theirs.
+
+What it governs, and nothing else:
+
+| Site | Before | After |
+|---|---|---|
+| `compute_so_health()` default `today` | `date.today()` (UTC on Railway) | `_factory_today()` |
+| `GET /sales/orders/counts` → `overdue` bucket | `date.today()` | `_factory_today()` |
+| `GET /sales/orders` → each order's `overdue` field | `date.today()` | `_factory_today()` |
+| `GET /sales/orders?overdue_only=true` filter | SQL `CURRENT_DATE` (server clock) | parameterised `_factory_today()` |
+
+That last row was its own latent bug: a SQL `CURRENT_DATE` filter and a Python
+`date.today()` field could disagree inside a single response, so at 20:00 ET
+`?overdue_only=true` would return an order the same payload labelled
+`"overdue": false`.
+
+**Out of scope, deliberately unchanged:** the expected-receipts overdue flag
+(already on `get_plant_now()`), `GET /sales/dashboard`'s overdue/due-this-week
+lists, the production planner's demand horizon, and every ledger, shipment and
+allocation path.
 
 ### The tiers
 
 Evaluated on **open orders only**. Highest tier wins; every applicable reason is
-listed.
+listed; `today` is always the factory's date.
 
 | Level | Condition | Example reason |
 |---|---|---|
 | `critical` | Stock shortage on any non-cancelled line **and** `ship_by <= today + SO_HEALTH_CRITICAL_DAYS` (a past `ship_by` is inside that window by definition) | `Short 735 lb on 2 lines — ships in 3 days` |
-| `warning` | Stock shortage with `ship_by` further out than `SO_HEALTH_CRITICAL_DAYS` (or no ship date at all) | `Short 500 lb — ships in 14 days` |
+| `warning` | Stock shortage with `ship_by <= today + SO_HEALTH_WARNING_DAYS` but outside the critical window, **or** with no ship date at all | `Short 500 lb — ships in 8 days` |
 | `warning` | Overdue (`ship_by < today`, `fulfillment != 'shipped'`) with **no** shortage | `12 days overdue — stock on hand` |
-| `warning` | Ready to Ship not set and `ship_by <= today + 2` | `Not Ready to Ship — ships tomorrow` |
+| `warning` | Ready to Ship not set, `ship_by <= today + 2`, and **nothing short** | `Not Ready to Ship — ships tomorrow` |
+| `info` | Stock shortage with `ship_by` further out than `SO_HEALTH_WARNING_DAYS` — stated, never tiered | `Short 1400 lb — ships in 13 days` |
 | `info` | `unallocated_need_lb > 0` on a line — reported, **never** affects the level | `60 lb not allocated on SKU-1 (line #12)` |
 | `quiet` | Nothing above applies | — |
 | `quiet` | The order is `closed` or `cancelled` — off the board, so no reasons and no info at all | — |
 
-### The knob
+### The knobs
 
-`SO_HEALTH_CRITICAL_DAYS` — how close the ship date has to be before a shortage
-stops being a thing to plan around and becomes a thing to fix today.
+Both are day counts read from the environment on **every call**, the same way
+`ALLOCATIONS_ENFORCED` and `FACTORY_READY_REQUIRED` are, so either window can be
+retuned without a deploy. Anything that is not a non-negative integer — a typo,
+a float, a negative — falls back to its default rather than raising.
 
-* **Default 5.** Read from the environment on **every call**, the same way
-  `ALLOCATIONS_ENFORCED` and `FACTORY_READY_REQUIRED` are, so the window can be
-  retuned without a deploy.
-* Anything that is not a non-negative integer — a typo, a float, a negative —
-  falls back to 5 rather than raising. This runs inside a read path; an env-var
-  typo must not 500 the Sales Orders board.
-* The **Ready to Ship** window is a separate constant (`SO_HEALTH_READY_DAYS`,
-  2) and deliberately *not* tied to the env var: the floor's flag is a
-  same-week concern, not a supply one, and moving the shortage window should
-  not silently move it too.
+| Env var | Default | Question it answers |
+|---|---|---|
+| `SO_HEALTH_CRITICAL_DAYS` | 5 | How close before a shortage stops being a thing to plan around and becomes a thing to fix today? |
+| `SO_HEALTH_WARNING_DAYS` | 10 | How close before it is worth mentioning as a tier at all? Beyond this it is `info`. |
+| `FACTORY_TZ` | `America/New_York` | Which calendar are all of those days counted on? |
+
+They are independent: moving one never moves the other. The **Ready to Ship**
+window is a separate in-code constant (`SO_HEALTH_READY_DAYS`, 2), deliberately
+*not* env-tunable and *not* tied to either day window — the floor's flag is a
+same-week concern, not a supply one.
+
+If the two day windows are ever set inverted (`critical > warning`), the level
+still cannot outrun its reasons: `critical` is gated on the shortage having
+earned a place in `reasons`, so a misconfiguration produces a quiet order with
+an `info` line rather than a red badge with nothing to act on.
 
 ### Reason wording
 
@@ -864,32 +921,68 @@ half comes from one helper, `_so_ship_phrase()`: `ships in 14 days` ·
 `ships tomorrow` · `ships today` · `12 days overdue`, and nothing at all when
 the order carries no ship date.
 
-Two deliberate details:
+Three deliberate details:
 
 * Shortages are **aggregated to one reason**, not one per line (v1 emitted one
   each). Ten per-line reasons bury both numbers the operator needs. `on N
   lines` is omitted when N is 1.
-* The overdue-with-no-shortage reason is guarded on there being no shortage:
-  when there *is* one, the shortage reason already carries the overdue phrase,
-  and saying it twice reads as two problems.
+* Crossing the warning window changes **which list** the shortage line lands in,
+  not what it says: the `info` wording is character-for-character the `reasons`
+  wording, `on N lines` rule included.
+* Two reasons are suppressed rather than stacked, both on the same `not
+  short_lines` guard and for the same reason — when there *is* a shortage its
+  reason already carries the date, and a second line reads as a second problem:
+  * **overdue-with-stock-on-hand**, suppressed since v2;
+  * **Not Ready to Ship**, suppressed as of v2.1. With the stock on hand the
+    flag *is* what stands in the way, so there it is kept. Suppressed means
+    gone, not demoted — it does not reappear in `info`.
 
 ### What did not change
 
 The response shape `{level, reasons, info}` — owner ruling 4 — is untouched, and
-so is every caller. The `info` tier now reports unallocated pounds whether or
-not `ALLOCATIONS_ENFORCED` is set (the pounds are unallocated either way; the
-flag only decides whether that blocks a shipment, which the note records) —
-v1 suppressed the whole observation while the flag was off, which is backwards.
+so is every caller. Overdue-with-stock-on-hand is still `warning`. Not-Ready
+within two days is still `warning`. A shortage with no ship date is still
+`warning` — no deadline means nothing to be inside of, and it stays visible
+either way. `closed`/`cancelled` are still silent. The `info` tier still reports
+unallocated pounds whether or not `ALLOCATIONS_ENFORCED` is set.
 
 ### Tests
 
-`tests/test_sales_order_state_model.py` carries a 24-row tier matrix driven
-straight against `compute_so_health()` with a pinned `today`, covering every row
-of the table above and **both sides of each boundary**: `today + 5` critical vs
-`today + 6` warning, `today` critical, `today - 1` critical, `today + 2`
-Not-Ready warning vs `today + 3` quiet. Plus multi-reason orders, closed and
-cancelled quiet, and the env var widened, narrowed, defaulted and fed garbage.
-The DB-backed tests that follow it prove the endpoint is wired to the function
-rather than re-proving the arithmetic. The `<=` in the critical-window
-comparison is mutation-verified: changing it to `<` fails
+`tests/test_sales_order_state_model.py`: 192 tests in the file, 40 of them new.
+
+* **Tier matrix** — 29 rows driven straight against `compute_so_health()` with a
+  pinned `today`, covering every row of the table above and **both sides of all
+  three boundaries**: `today + 5` critical vs `today + 6` warning, `today + 10`
+  warning vs `today + 11` info, `today + 2` Not-Ready warning vs `today + 3`
+  quiet. Rows may now assert expected `info` as well as `reasons`.
+* **The clock** — pins an *instant* rather than a date, via a `_freeze()` helper
+  that stands the process up as a UTC server (`datetime.now(tz)` honours the
+  zone it is handed; `date.today()` returns the UTC day). An order due Sep 10
+  evaluated at 20:00 Eastern is **not** overdue and reads `ships today`; the
+  same order at 00:30 Eastern the next morning is `1 day overdue — stock on
+  hand`. Both day windows are also proven to count from the factory date, and
+  `FACTORY_TZ` is proven to move the calendar (one instant, `America/New_York`
+  and `America/Los_Angeles`, two different "today"s) and to fall back on
+  garbage.
+* **Suppression** — stated as a pair so the rule cannot be half-reverted:
+  identical inputs apart from the shortage, and the flag reason appears in
+  exactly one of them. Plus an end-to-end pair through the endpoint.
+* **Windows as env vars** — each widened, narrowed, defaulted, fed garbage, and
+  proven independent of the other; plus the inverted-pair guard.
+* **Counts and list on the same clock** — the `overdue` bucket, an order's
+  health badge, the list's `overdue` field and the `?overdue_only=true` filter
+  are all checked at both frozen instants, including a test whose whole point is
+  that the bucket and the badge agree.
+
+Mutation-verified, all four changes:
+
+| Mutation | Result |
+|---|---|
+| `_factory_today()` → `date.today()` in `compute_so_health()` | **5 fail**, incl. `test_an_order_due_today_is_not_overdue_at_8pm_eastern`. The 00:30 test still passes — at that instant both clocks agree, which is what makes it the control. |
+| `_factory_today()` → `date.today()` in the counts endpoint | **2 fail**, both counts-clock tests |
+| drop the `not short_lines` suppression guard | **6 fail**, 3 matrix rows + 3 suppression tests |
+| warning window `<=` → `<` | **2 fail**, `shortage-exactly-the-warning-boundary` and the narrowed-env-var test |
+
+The v2 mutation check on the critical window still holds: `<=` → `<` fails
 `shortage-exactly-the-boundary` and the narrowed-env-var test, and nothing else.
+Full suite: **798 passed** (758 before this branch).

@@ -11830,34 +11830,85 @@ def derive_fulfillment(readiness: dict) -> str:
     return "shipped"
 
 
-# ── Sales-order health v2 (time-aware) ──────────────────────────────────────
+# ── Sales-order health v2.1 (time-aware, factory-local) ─────────────────────
+
+# The calendar the floor actually works on. Every "is this overdue" and "how
+# many days out is this" question below is answered on this clock, never the
+# server's: the API runs UTC, so from 20:00 Eastern onward `date.today()` has
+# already rolled over and an order due today was reported as one day overdue.
+# Env-tunable because the factory, not the code, decides where it is.
+FACTORY_TZ_DEFAULT = "America/New_York"
 
 # How close the ship date has to be before a stock shortage stops being a
 # thing to plan around and starts being a thing to fix today. Operator-tunable
 # because the right window is a function of lead time, not of code.
 SO_HEALTH_CRITICAL_DAYS_DEFAULT = 5
 
+# And how close before it is worth mentioning at all. Beyond this, a shortage
+# on a make-to-order book is not a problem — it is the normal state of work not
+# started yet — so it is reported as info and changes no tier.
+SO_HEALTH_WARNING_DAYS_DEFAULT = 10
+
 # Readiness gets its own, deliberately tighter window: the floor's flag is a
-# same-week concern, not a supply one, so it is NOT tied to the env var above.
+# same-week concern, not a supply one, so it is NOT tied to the env vars above.
 SO_HEALTH_READY_DAYS = 2
 
 
-def _so_health_critical_days() -> int:
-    """The shortage-urgency window in days, from SO_HEALTH_CRITICAL_DAYS.
+def _factory_tz() -> ZoneInfo:
+    """The factory's timezone, from FACTORY_TZ (default America/New_York).
 
-    Read on every call so the window can be retuned without a deploy, matching
+    Read on every call, like the health windows, so it can be corrected without
+    a deploy. An unknown or malformed zone falls back to the default instead of
+    raising — ZoneInfo raises KeyError (ZoneInfoNotFoundError) for a name the
+    tzdata does not carry and ValueError for a malformed one, and neither may
+    500 the Sales Orders board.
+
+    Deliberately separate from module-level PLANT_TIMEZONE, which the ledger,
+    shipment and production paths read. Same default today; this one is the
+    sales-order health knob and moving it must not move theirs.
+    """
+    raw = (os.getenv("FACTORY_TZ") or "").strip()
+    if not raw:
+        return ZoneInfo(FACTORY_TZ_DEFAULT)
+    try:
+        return ZoneInfo(raw)
+    except (KeyError, ValueError):
+        return ZoneInfo(FACTORY_TZ_DEFAULT)
+
+
+def _factory_today() -> date:
+    """Today on the factory's calendar — the only `today` health may use."""
+    return datetime.now(_factory_tz()).date()
+
+
+def _so_health_window_days(env_name: str, default: int) -> int:
+    """A health window in days, read from `env_name` on every call.
+
+    Read per call so the windows can be retuned without a deploy, matching
     _allocations_enforced() and _factory_ready_required(). Anything that is not
     a non-negative integer falls back to the default rather than raising: this
     runs inside a read path, and a typo in an env var must not 500 the board.
     """
-    raw = (os.getenv("SO_HEALTH_CRITICAL_DAYS") or "").strip()
+    raw = (os.getenv(env_name) or "").strip()
     if not raw:
-        return SO_HEALTH_CRITICAL_DAYS_DEFAULT
+        return default
     try:
         days = int(raw)
     except ValueError:
-        return SO_HEALTH_CRITICAL_DAYS_DEFAULT
-    return days if days >= 0 else SO_HEALTH_CRITICAL_DAYS_DEFAULT
+        return default
+    return days if days >= 0 else default
+
+
+def _so_health_critical_days() -> int:
+    """The fix-it-today window, from SO_HEALTH_CRITICAL_DAYS (default 5)."""
+    return _so_health_window_days("SO_HEALTH_CRITICAL_DAYS",
+                                  SO_HEALTH_CRITICAL_DAYS_DEFAULT)
+
+
+def _so_health_warning_days() -> int:
+    """The worth-mentioning window, from SO_HEALTH_WARNING_DAYS (default 10)."""
+    return _so_health_window_days("SO_HEALTH_WARNING_DAYS",
+                                  SO_HEALTH_WARNING_DAYS_DEFAULT)
 
 
 def _so_ship_phrase(requested_ship_date, today) -> Optional[str]:
@@ -11889,7 +11940,7 @@ def compute_so_health(
     line_readiness: list,
     today=None,
 ) -> dict:
-    """v2 — time-aware. Shape is the contract.
+    """v2.1 — time-aware. Shape is the contract.
 
     Callers may depend on {level, reasons, info}; they may NOT depend on which
     facts land in which tier. Returns:
@@ -11898,21 +11949,29 @@ def compute_so_health(
       reasons  strings that justify the level
       info     strings that never affect the level
 
-    What changed from v1: a shortage is no longer critical on its own. The same
-    shortage means something different at three days out than at three months,
-    and v1 painted both red — so the red meant nothing and the board was read
-    as a list rather than a queue. The date is now half of every reason.
+    What v2 changed from v1: a shortage is no longer critical on its own. The
+    same shortage means something different at three days out than at three
+    months, and v1 painted both red — so the red meant nothing and the board was
+    read as a list rather than a queue. The date is now half of every reason.
+
+    What v2.1 changes: `today` is the FACTORY's date, not the server's (see
+    _factory_today() — v2 called a Sep 10 order one day overdue from 20:00
+    Eastern onward), a shortage past the warning window is info rather than
+    warning, and the Ready-to-Ship reason yields to a shortage.
 
     Evaluated on OPEN orders only. Tiers:
 
       critical  a stock shortage on a non-cancelled line AND the ship date is
                 inside the SO_HEALTH_CRITICAL_DAYS window (default 5) or
                 already past
-      warning   a stock shortage with the ship date further out than that
-                window; OR overdue and not fully shipped with the stock
-                actually on hand; OR Ready to Ship unset with the ship date
-                two days out or less
-      info      unallocated pounds — reported, never escalated
+      warning   a stock shortage inside SO_HEALTH_WARNING_DAYS (default 10) but
+                outside the critical window, or with no ship date at all; OR
+                overdue and not fully shipped with the stock actually on hand;
+                OR Ready to Ship unset with the ship date two days out or less
+                and nothing short
+      info      a shortage further out than the warning window — on a
+                make-to-order book that is work not started yet, not a problem;
+                plus unallocated pounds. Never escalates.
       quiet     nothing applies; or the order is closed or cancelled, which is
                 off the board and stops asking for attention entirely
 
@@ -11922,7 +11981,7 @@ def compute_so_health(
     if state in ("closed", "cancelled"):
         return {"level": "quiet", "reasons": [], "info": []}
 
-    today = today or date.today()
+    today = today or _factory_today()
     reasons: list = []
     info: list = []
 
@@ -11930,7 +11989,7 @@ def compute_so_health(
                 else (requested_ship_date - today).days)
     phrase = _so_ship_phrase(requested_ship_date, today)
 
-    # ── shortage: critical or warning depending only on the date ───────────
+    # ── shortage: critical, warning or info depending only on the date ─────
     #
     # Aggregated to one reason, not one per line: the operator's question is
     # "how short am I and when is it due", and ten per-line reasons bury both.
@@ -11943,14 +12002,26 @@ def compute_so_health(
     if short_lines:
         total_short = sum(float(line["readiness"]["shortage_lb"])
                           for line in short_lines)
-        # `<= today + N` already subsumes `< today`; both halves of the rule
+        # `<= today + N` already subsumes `< today`; both halves of each rule
         # are spelled out in the docstring, one comparison implements them.
         # No ship date means no deadline to be inside of — that is a warning,
         # not a crisis, and it stays visible either way.
-        critical = days_out is not None and days_out <= _so_health_critical_days()
+        speaks_up = (days_out is None
+                     or days_out <= _so_health_warning_days())
+        # `and speaks_up` keeps the invariant that the level is always
+        # justified by a listed reason. It is a no-op whenever the windows are
+        # ordered sanely (critical <= warning) and stops an inverted pair from
+        # producing a red order with an empty `reasons`.
+        critical = (speaks_up
+                    and days_out is not None
+                    and days_out <= _so_health_critical_days())
         where = f" on {len(short_lines)} lines" if len(short_lines) > 1 else ""
         tail = f" — {phrase}" if phrase else ""
-        reasons.append(f"Short {total_short:g} lb{where}{tail}")
+        text = f"Short {total_short:g} lb{where}{tail}"
+        # Past the warning window the shortage is stated and nothing more. An
+        # unproduced order with a month of runway is the normal state of a
+        # make-to-order book; tiering it taught the board to be ignored.
+        (reasons if speaks_up else info).append(text)
 
     # ── overdue with nothing missing ───────────────────────────────────────
     #
@@ -11968,7 +12039,14 @@ def compute_so_health(
     # The floor's flag, stored as sales_order_flags.ready (historically
     # "Factory Ready"). No lower bound: an overdue order that was never
     # flagged is exactly the one this is for.
+    #
+    # Suppressed when anything is short, the same way and for the same reason
+    # as the overdue reason above: an order that cannot ship for want of
+    # material is not also news for want of a flag, and two reasons read as two
+    # problems. With stock on hand the flag IS the thing standing in the way,
+    # so it is kept.
     if (not floor_ready
+            and not short_lines
             and days_out is not None
             and days_out <= SO_HEALTH_READY_DAYS):
         reasons.append(f"Not Ready to Ship — {phrase}")
@@ -12095,7 +12173,12 @@ def list_sales_orders(
                 params.append(f"%{customer}%")
                 params.append(f"%{customer}%")
             if overdue_only:
-                query += " AND so.requested_ship_date < CURRENT_DATE AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')"
+                # Parameterised with the factory's date rather than
+                # CURRENT_DATE: Postgres resolves that on the server's clock,
+                # which would let ?overdue_only=true return an order this same
+                # response then reports as "overdue": false.
+                query += " AND so.requested_ship_date < %s AND so.status NOT IN ('shipped', 'invoiced', 'cancelled')"
+                params.append(_factory_today())
 
             query += " GROUP BY so.id, c.name, sof.ready, sof.ready_at, sof.ready_by, sof.note ORDER BY so.requested_ship_date ASC NULLS LAST LIMIT %s"
             params.append(limit)
@@ -12143,7 +12226,7 @@ def list_sales_orders(
                     "ready_at": r['ready_at'].isoformat() if r['ready_at'] else None,
                     "ready_by": r['ready_by'],
                     "note": r['ready_note'],
-                    "overdue": ship_date is not None and ship_date < date.today() and is_open
+                    "overdue": ship_date is not None and ship_date < _factory_today() and is_open
                 }
                 readiness = readiness_by_order[r['id']]
                 order.update(_so_derived_fields(r, readiness, readiness_by_line))
@@ -12430,7 +12513,9 @@ def sales_order_counts(_: bool = Depends(verify_api_key)):
             open_rows = cur.fetchall()
             readiness_by_order, _lines = _load_sales_order_readiness(cur, open_rows)
 
-            today = date.today()
+            # The same factory clock health uses — the overdue bucket and the
+            # per-order health badge must never disagree about what day it is.
+            today = _factory_today()
             ready_to_ship = overdue = shipped = 0
             for row in open_rows:
                 fulfillment = derive_fulfillment(readiness_by_order[row["id"]])
