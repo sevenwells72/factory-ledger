@@ -13,9 +13,10 @@ sales_orders.status in step with state.
 """
 
 from contextlib import contextmanager
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import HTTPException
@@ -807,15 +808,19 @@ def test_fulfillment_partial_and_unshipped(db_cursor, client):
 
 
 # ═════════════════════════════════════════════════════════════════
-# Tiered health — v2, time-aware
+# Tiered health — v2.1, time-aware and factory-local
 #
 # The tier matrix below drives compute_so_health() directly, with a pinned
 # `today` and synthetic line readiness. That is deliberate: the tier rules are
 # a pure function of (shortage, ship date, readiness flag, fulfillment), and
-# proving all sixteen rows plus the boundaries through the database would cost
-# sixteen seeded orders to test arithmetic no database is involved in. The
+# proving every row plus the boundaries through the database would cost a
+# seeded order apiece to test arithmetic no database is involved in. The
 # DB-backed tests that follow prove the WIRING — that the endpoint feeds this
 # function real readiness and returns what it produces.
+#
+# The clock tests below the matrix are the exception: they pin an instant
+# instead of a date, because what they are proving is which timezone the
+# unpinned `today` comes from.
 # ═════════════════════════════════════════════════════════════════
 
 _TODAY = date(2026, 6, 15)
@@ -904,16 +909,48 @@ _TIER_MATRIX = [
         ["Short 500 lb — ships in 6 days"],
     ),
     (
-        "shortage-14-days-out",
-        dict(days_out=14, shortages=(500,)),
+        "shortage-exactly-the-warning-boundary",   # ship_by == today + 10
+        dict(days_out=10, shortages=(500,)),
         "warning",
-        ["Short 500 lb — ships in 14 days"],
+        ["Short 500 lb — ships in 10 days"],
     ),
     (
         "shortage-with-no-ship-date",              # no deadline to be inside of
         dict(days_out=None, shortages=(500,)),
         "warning",
         ["Short 500 lb"],
+    ),
+    # ── info: a shortage further out than the warning window ───────────────
+    #
+    # The level does not move and `reasons` stays empty: an unproduced order
+    # with time to spare is the normal state of a make-to-order book.
+    (
+        "shortage-one-day-past-the-warning-boundary",   # ship_by == today + 11
+        dict(days_out=11, shortages=(500,)),
+        "quiet",
+        [],
+        ["Short 500 lb — ships in 11 days"],
+    ),
+    (
+        "shortage-13-days-out",
+        dict(days_out=13, shortages=(1400,)),
+        "quiet",
+        [],
+        ["Short 1400 lb — ships in 13 days"],
+    ),
+    (
+        "shortage-14-days-out",
+        dict(days_out=14, shortages=(500,)),
+        "quiet",
+        [],
+        ["Short 500 lb — ships in 14 days"],
+    ),
+    (
+        "shortage-months-away",
+        dict(days_out=90, shortages=(500, 235)),
+        "quiet",
+        [],
+        ["Short 735 lb on 2 lines — ships in 90 days"],
     ),
     # ── warning: overdue with the stock on hand ───────────────────────────
     (
@@ -967,14 +1004,15 @@ _TIER_MATRIX = [
     ),
     # ── several reasons on one order: highest tier wins, all are listed ────
     (
+        # v2.1: the Not-Ready reason is suppressed by the shortage. The order
+        # cannot ship for want of material; the missing flag is not news.
         "shortage-and-not-ready",
         dict(days_out=2, shortages=(500,), floor_ready=False),
         "critical",
-        ["Short 500 lb — ships in 2 days",
-         "Not Ready to Ship — ships in 2 days"],
+        ["Short 500 lb — ships in 2 days"],
     ),
     (
-        "overdue-and-not-ready",
+        "overdue-and-not-ready",                   # stock on hand: flag kept
         dict(days_out=-3, floor_ready=False),
         "warning",
         ["3 days overdue — stock on hand",
@@ -984,8 +1022,13 @@ _TIER_MATRIX = [
         "shortage-and-not-ready-both-due-today",
         dict(days_out=0, shortages=(500,), floor_ready=False),
         "critical",
-        ["Short 500 lb — ships today",
-         "Not Ready to Ship — ships today"],
+        ["Short 500 lb — ships today"],
+    ),
+    (
+        "overdue-shortage-and-not-ready",          # only the shortage speaks
+        dict(days_out=-4, shortages=(500,), floor_ready=False),
+        "critical",
+        ["Short 500 lb — 4 days overdue"],
     ),
     # ── quiet ─────────────────────────────────────────────────────────────
     (
@@ -1018,15 +1061,23 @@ _TIER_MATRIX = [
 
 
 @pytest.mark.parametrize(
-    "kwargs,expected_level,expected_reasons",
-    [case[1:] for case in _TIER_MATRIX],
+    "kwargs,expected_level,expected_reasons,expected_info",
+    # Rows carry an expected-`info` list only when they have one to assert;
+    # the rest keep the three-column shape they have always had.
+    [(case[1], case[2], case[3], case[4] if len(case) > 4 else [])
+     for case in _TIER_MATRIX],
     ids=[case[0] for case in _TIER_MATRIX],
 )
-def test_health_tier_matrix(kwargs, expected_level, expected_reasons):
-    """Every row of the v2 tier table, plus both boundary days on each window."""
+def test_health_tier_matrix(kwargs, expected_level, expected_reasons,
+                            expected_info):
+    """Every row of the v2.1 tier table, plus both boundary days on all three
+    windows: critical at today+5 vs warning at today+6, warning at today+10 vs
+    info at today+11, Not-Ready at today+2 vs quiet at today+3."""
     health = _health(**kwargs)
     assert health["level"] == expected_level, health
     assert health["reasons"] == expected_reasons, health
+    if expected_info:
+        assert health["info"] == expected_info, health
 
 
 def test_health_reasons_carry_the_pounds_the_lines_and_the_date():
@@ -1037,8 +1088,17 @@ def test_health_reasons_carry_the_pounds_the_lines_and_the_date():
 
 
 def test_health_single_short_line_does_not_say_on_1_lines():
-    health = _health(days_out=14, shortages=(500,))
-    assert health["reasons"] == ["Short 500 lb — ships in 14 days"]
+    health = _health(days_out=8, shortages=(500,))
+    assert health["reasons"] == ["Short 500 lb — ships in 8 days"]
+
+
+def test_the_info_only_shortage_is_worded_exactly_like_the_reason():
+    """Crossing the warning window changes which list the line lands in, not
+    what it says — including the 'on N lines' rule."""
+    one = _health(days_out=14, shortages=(500,))
+    assert one["info"] == ["Short 500 lb — ships in 14 days"]
+    two = _health(days_out=14, shortages=(500, 235))
+    assert two["info"] == ["Short 735 lb on 2 lines — ships in 14 days"]
 
 
 def test_health_closed_and_cancelled_carry_no_info_either():
@@ -1048,6 +1108,39 @@ def test_health_closed_and_cancelled_carry_no_info_either():
         health = _health(days_out=-12, shortages=(500,), unallocated=60,
                          state=state)
         assert health == {"level": "quiet", "reasons": [], "info": []}, state
+
+
+# ── the Not-Ready reason yields to a shortage ─────────────────────────────
+
+def test_not_ready_is_suppressed_when_the_same_order_is_short():
+    """An order that cannot ship for want of material is not also news for
+    want of a flag. The shortage reason stays; the flag reason goes."""
+    short = _health(days_out=1, shortages=(500,), floor_ready=False)
+    assert short["reasons"] == ["Short 500 lb — ships tomorrow"]
+    assert not any("Not Ready" in r for r in short["reasons"]), short
+
+
+def test_not_ready_is_kept_when_the_stock_is_on_hand():
+    """Same order, same date, nothing short: now the flag IS the blocker."""
+    stocked = _health(days_out=1, shortages=(), floor_ready=False)
+    assert stocked["reasons"] == ["Not Ready to Ship — ships tomorrow"]
+
+
+def test_suppression_is_the_only_difference_between_the_two():
+    """Stated as a pair so the rule cannot be half-reverted: identical inputs
+    apart from the shortage, and the flag reason appears in exactly one."""
+    kwargs = dict(days_out=2, floor_ready=False)
+    short = _health(shortages=(500,), **kwargs)["reasons"]
+    stocked = _health(shortages=(), **kwargs)["reasons"]
+    assert [r for r in short if "Not Ready" in r] == []
+    assert [r for r in stocked if "Not Ready" in r] == [
+        "Not Ready to Ship — ships in 2 days"]
+
+
+def test_a_suppressed_not_ready_does_not_reappear_as_info():
+    """Suppressed means gone, not demoted: `info` carries pounds, not flags."""
+    health = _health(days_out=1, shortages=(500,), floor_ready=False)
+    assert not any("Not Ready" in i for i in health["info"]), health["info"]
 
 
 # ── the critical window is an env var ─────────────────────────────────────
@@ -1078,10 +1171,217 @@ def test_health_critical_window_falls_back_on_a_bad_value(monkeypatch, bad):
     assert _health(days_out=3, shortages=(500,))["level"] == "critical"
 
 
-def test_health_function_is_labelled_v2_and_the_shape_is_the_contract():
-    """Owner ruling 4 survives v2: the shape is the contract, the tiers are not."""
+# ── the warning window is an env var too ──────────────────────────────────
+
+def test_health_warning_window_widens_with_the_env_var(monkeypatch):
+    """A shortage 14 days out is info at the default and a warning at 20."""
+    assert _health(days_out=14, shortages=(500,))["level"] == "quiet"
+    monkeypatch.setenv("SO_HEALTH_WARNING_DAYS", "20")
+    assert _health(days_out=14, shortages=(500,))["level"] == "warning"
+
+
+def test_health_warning_window_narrows_with_the_env_var(monkeypatch):
+    monkeypatch.setenv("SO_HEALTH_WARNING_DAYS", "7")
+    assert _health(days_out=8, shortages=(500,))["level"] == "quiet"
+    assert _health(days_out=7, shortages=(500,))["level"] == "warning"
+
+
+def test_health_warning_window_defaults_to_ten(monkeypatch):
+    monkeypatch.delenv("SO_HEALTH_WARNING_DAYS", raising=False)
+    assert main._so_health_warning_days() == 10
+
+
+@pytest.mark.parametrize("bad", ["", "   ", "later", "10.5", "-3"])
+def test_health_warning_window_falls_back_on_a_bad_value(monkeypatch, bad):
+    """Same rule as the critical window: a typo must not 500 a read path."""
+    monkeypatch.setenv("SO_HEALTH_WARNING_DAYS", bad)
+    assert main._so_health_warning_days() == 10
+    assert _health(days_out=8, shortages=(500,))["level"] == "warning"
+
+
+def test_the_two_windows_are_independent(monkeypatch):
+    """Moving one must not move the other — they answer different questions."""
+    monkeypatch.setenv("SO_HEALTH_CRITICAL_DAYS", "2")
+    assert main._so_health_warning_days() == 10
+    monkeypatch.setenv("SO_HEALTH_WARNING_DAYS", "30")
+    assert main._so_health_critical_days() == 2
+    assert _health(days_out=3, shortages=(500,))["level"] == "warning"
+    assert _health(days_out=2, shortages=(500,))["level"] == "critical"
+    assert _health(days_out=29, shortages=(500,))["level"] == "warning"
+
+
+def test_inverted_windows_never_produce_a_level_without_a_reason(monkeypatch):
+    """A misconfiguration must not paint an order red with an empty `reasons`
+    list — a badge the operator cannot act on is worse than no badge."""
+    monkeypatch.setenv("SO_HEALTH_CRITICAL_DAYS", "20")
+    monkeypatch.setenv("SO_HEALTH_WARNING_DAYS", "5")
+    health = _health(days_out=10, shortages=(500,))
+    assert health["level"] == "quiet", health
+    assert health["reasons"] == []
+    assert health["info"] == ["Short 500 lb — ships in 10 days"]
+
+
+def test_health_function_is_labelled_v2_1_and_the_shape_is_the_contract():
+    """Owner ruling 4 survives v2.1: the shape is the contract, tiers are not."""
     doc = main.compute_so_health.__doc__ or ""
-    assert "v2 — time-aware. Shape is the contract." in doc
+    assert "v2.1 — time-aware. Shape is the contract." in doc
+
+
+# ═════════════════════════════════════════════════════════════════
+# The clock — "today" is the FACTORY's date, never the server's
+#
+# These pin an INSTANT rather than a date, because what is under test is which
+# timezone the unpinned `today` is read in. `_freeze()` stands the process up as
+# a UTC server: datetime.now(tz) honours the tz it is handed, and date.today()
+# returns the UTC calendar date — which is exactly what v2 used and what these
+# tests exist to keep out. Reverting compute_so_health() to date.today() makes
+# the 20:00 test below fail; that is the mutation check, and it is asserted
+# directly in test_the_utc_clock_and_the_factory_clock_actually_disagree.
+# ═════════════════════════════════════════════════════════════════
+
+# 20:00 Eastern on 2026-09-10 — the UTC calendar has already rolled to the 11th.
+_EVENING_ET = datetime(2026, 9, 11, 0, 0, tzinfo=timezone.utc)
+# 00:30 Eastern on 2026-09-11 — four and a half hours later, next factory day.
+_AFTER_MIDNIGHT_ET = datetime(2026, 9, 11, 4, 30, tzinfo=timezone.utc)
+
+_SHIP_DAY = date(2026, 9, 10)
+
+
+def _freeze(monkeypatch, instant):
+    """Pin the process clock at `instant`, UTC-server style.
+
+    Both names are patched on `main` because both are ways to ask what day it
+    is: datetime.now(tz) is the factory-local route, date.today() the server
+    route. Subclasses, so every isinstance(x, date) check in main.py still holds.
+    """
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return instant.astimezone(tz) if tz else instant.replace(tzinfo=None)
+
+    class _FrozenDate(date):
+        @classmethod
+        def today(cls):
+            return instant.date()          # the UTC day, as a UTC server sees it
+
+    monkeypatch.setattr(main, "datetime", _FrozenDatetime)
+    monkeypatch.setattr(main, "date", _FrozenDate)
+
+
+def _unpinned_health(**kwargs):
+    """compute_so_health() with NO `today` argument — the point of these tests
+    is which date it reaches for when the caller does not supply one."""
+    kwargs.setdefault("state", "open")
+    kwargs.setdefault("fulfillment", "unshipped")
+    kwargs.setdefault("floor_ready", True)
+    kwargs.setdefault("line_readiness", [])
+    kwargs.setdefault("requested_ship_date", _SHIP_DAY)
+    return main.compute_so_health(**kwargs)
+
+
+def test_the_utc_clock_and_the_factory_clock_actually_disagree(monkeypatch):
+    """The premise of every test below: at this instant the two answers differ.
+    If this ever stops being true the rest of the clock tests prove nothing."""
+    _freeze(monkeypatch, _EVENING_ET)
+    assert main.date.today() == date(2026, 9, 11)      # the server's answer
+    assert main._factory_today() == date(2026, 9, 10)  # the factory's answer
+
+
+def test_an_order_due_today_is_not_overdue_at_8pm_eastern(monkeypatch):
+    """The v2 bug, stated as a test: at 20:00 ET on the ship date the API called
+    a Sep 10 order '1 day overdue' because UTC had already turned over."""
+    _freeze(monkeypatch, _EVENING_ET)
+    health = _unpinned_health()
+    assert health["level"] == "quiet", health
+    assert health["reasons"] == [], health
+
+
+def test_the_same_order_is_one_day_overdue_at_half_past_midnight(monkeypatch):
+    """And the factory clock does turn over — four and a half hours later."""
+    _freeze(monkeypatch, _AFTER_MIDNIGHT_ET)
+    health = _unpinned_health()
+    assert health["level"] == "warning", health
+    assert health["reasons"] == ["1 day overdue — stock on hand"], health
+
+
+def test_the_ship_phrase_follows_the_factory_clock_too(monkeypatch):
+    """Not just the tier — the words. 'ships today' must not read 'overdue'."""
+    _freeze(monkeypatch, _EVENING_ET)
+    evening = _unpinned_health(line_readiness=[_fake_line(shortage=500)])
+    assert evening["reasons"] == ["Short 500 lb — ships today"], evening
+    assert evening["level"] == "critical"
+
+    _freeze(monkeypatch, _AFTER_MIDNIGHT_ET)
+    after = _unpinned_health(line_readiness=[_fake_line(shortage=500)])
+    assert after["reasons"] == ["Short 500 lb — 1 day overdue"], after
+
+
+def test_the_shortage_windows_are_measured_from_the_factory_date(monkeypatch):
+    """The windows count days from the factory's today, so at 20:00 ET a ship
+    date five days out is still inside the critical window — under the UTC
+    clock it would already have been counted as four."""
+    _freeze(monkeypatch, _EVENING_ET)
+    lines = [_fake_line(shortage=500)]
+    inside = _unpinned_health(requested_ship_date=_SHIP_DAY + timedelta(days=5),
+                              line_readiness=lines)
+    assert inside["reasons"] == ["Short 500 lb — ships in 5 days"], inside
+    assert inside["level"] == "critical"
+    outside = _unpinned_health(requested_ship_date=_SHIP_DAY + timedelta(days=6),
+                               line_readiness=lines)
+    assert outside["reasons"] == ["Short 500 lb — ships in 6 days"], outside
+    assert outside["level"] == "warning"
+
+
+def test_not_ready_window_is_measured_from_the_factory_date(monkeypatch):
+    """Two days out on the factory's calendar, not the server's."""
+    _freeze(monkeypatch, _EVENING_ET)
+    health = _unpinned_health(requested_ship_date=_SHIP_DAY + timedelta(days=2),
+                             floor_ready=False)
+    assert health["reasons"] == ["Not Ready to Ship — ships in 2 days"], health
+
+
+def test_an_explicit_today_still_wins(monkeypatch):
+    """The pinned-`today` argument the tier matrix relies on is not broken by
+    the new default — a caller that supplies a date gets that date."""
+    _freeze(monkeypatch, _AFTER_MIDNIGHT_ET)
+    health = main.compute_so_health(
+        state="open", fulfillment="unshipped", requested_ship_date=_SHIP_DAY,
+        floor_ready=True, line_readiness=[], today=_SHIP_DAY)
+    assert health["level"] == "quiet", health
+
+
+# ── FACTORY_TZ is the knob ────────────────────────────────────────────────
+
+def test_factory_tz_defaults_to_eastern(monkeypatch):
+    monkeypatch.delenv("FACTORY_TZ", raising=False)
+    assert main._factory_tz() == ZoneInfo("America/New_York")
+
+
+def test_factory_tz_env_var_moves_the_calendar(monkeypatch):
+    """01:00 Eastern on the 11th is 22:00 Pacific on the 10th: one instant,
+    two factory dates, and the env var decides which one is 'today'."""
+    _freeze(monkeypatch, datetime(2026, 9, 11, 5, 0, tzinfo=timezone.utc))
+    monkeypatch.setenv("FACTORY_TZ", "America/New_York")
+    assert main._factory_today() == date(2026, 9, 11)
+    monkeypatch.setenv("FACTORY_TZ", "America/Los_Angeles")
+    assert main._factory_today() == date(2026, 9, 10)
+
+
+@pytest.mark.parametrize("bad", ["", "   ", "Mars/Olympus_Mons", "EST5EDT/nope",
+                                 "../../etc/passwd"])
+def test_factory_tz_falls_back_on_a_bad_value(monkeypatch, bad):
+    """Same rule as the windows: a bad env var must not 500 the board."""
+    monkeypatch.setenv("FACTORY_TZ", bad)
+    assert main._factory_tz() == ZoneInfo("America/New_York")
+
+
+def test_factory_today_is_not_the_module_level_plant_timezone(monkeypatch):
+    """PLANT_TIMEZONE belongs to the ledger paths. Health reads FACTORY_TZ, and
+    retuning one must not retune the other."""
+    _freeze(monkeypatch, datetime(2026, 9, 11, 5, 0, tzinfo=timezone.utc))
+    monkeypatch.setenv("FACTORY_TZ", "America/Los_Angeles")
+    assert main._factory_today() == date(2026, 9, 10)
+    assert main.datetime.now(main.PLANT_TIMEZONE).date() == date(2026, 9, 11)
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -1093,7 +1393,7 @@ def test_health_critical_on_a_stock_shortage_with_the_date_closing_in(db_cursor,
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=10)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() + timedelta(days=3))
+                              ship_date=main._factory_today() + timedelta(days=3))
     _add_line(db_cursor, order_id, product_id, 100)
 
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
@@ -1103,18 +1403,62 @@ def test_health_critical_on_a_stock_shortage_with_the_date_closing_in(db_cursor,
 
 
 @pytest.mark.db
-def test_health_only_warns_on_a_shortage_that_is_months_away(db_cursor, client):
+def test_health_only_warns_on_a_shortage_inside_the_warning_window(db_cursor, client):
     """The v1 rule that made this critical is what v2 exists to fix."""
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=10)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() + timedelta(days=30))
+                              ship_date=main._factory_today() + timedelta(days=8))
     _add_line(db_cursor, order_id, product_id, 100)
 
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
     assert health["level"] == "warning"
-    assert any("Short 90 lb" in r and "ships in 30 days" in r
+    assert any("Short 90 lb" in r and "ships in 8 days" in r
                for r in health["reasons"]), health["reasons"]
+
+
+@pytest.mark.db
+def test_health_reports_a_shortage_months_away_as_info_only(db_cursor, client):
+    """v2.1: a real shortage, a real reason to look at it eventually, and no
+    tier at all — on a make-to-order book this is what 'not made yet' looks
+    like, and v2 spent a warning badge on every one of them."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=10)
+    order_id, _ = _seed_order(db_cursor, customer_id, token,
+                              ship_date=main._factory_today() + timedelta(days=30))
+    _add_line(db_cursor, order_id, product_id, 100)
+
+    health = client.get(f"/sales/orders/{order_id}").json()["health"]
+    assert health["level"] == "quiet", health
+    assert health["reasons"] == [], health
+    assert any("Short 90 lb" in i and "ships in 30 days" in i
+               for i in health["info"]), health["info"]
+
+
+@pytest.mark.db
+def test_health_suppresses_not_ready_on_a_short_order_end_to_end(db_cursor, client):
+    """The suppression rule through the endpoint: same order, same date, and
+    the only difference is whether the stock is there."""
+    customer_id, token = _seed_customer(db_cursor)
+    soon = main._factory_today() + timedelta(days=1)
+
+    short_product, _ = _seed_product(db_cursor, token, with_lot=True, stock=0)
+    short_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=False,
+                              ship_date=soon)
+    _add_line(db_cursor, short_id, short_product, 100)
+    short_health = client.get(f"/sales/orders/{short_id}").json()["health"]
+    assert short_health["level"] == "critical", short_health
+    assert not any("Not Ready" in r for r in short_health["reasons"]), short_health
+
+    stocked_product, _ = _seed_product(db_cursor, token, with_lot=True, stock=500)
+    stocked_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=False,
+                                ship_date=soon)
+    line_id = _add_line(db_cursor, stocked_id, stocked_product, 100)
+    _allocate(db_cursor, stocked_id, line_id, stocked_product, 100)
+    stocked_health = client.get(f"/sales/orders/{stocked_id}").json()["health"]
+    assert stocked_health["level"] == "warning", stocked_health
+    assert "Not Ready to Ship — ships tomorrow" in stocked_health["reasons"], \
+        stocked_health
 
 
 @pytest.mark.db
@@ -1122,7 +1466,7 @@ def test_health_warning_when_overdue_and_not_shipped(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() - timedelta(days=3))
+                              ship_date=main._factory_today() - timedelta(days=3))
     line_id = _add_line(db_cursor, order_id, product_id, 100)
     _allocate(db_cursor, order_id, line_id, product_id, 100)
 
@@ -1136,7 +1480,7 @@ def test_health_warning_when_ready_to_ship_unset_and_ship_date_is_close(db_curso
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=False,
-                              ship_date=date.today() + timedelta(days=2))
+                              ship_date=main._factory_today() + timedelta(days=2))
     line_id = _add_line(db_cursor, order_id, product_id, 100)
     _allocate(db_cursor, order_id, line_id, product_id, 100)
 
@@ -1150,7 +1494,7 @@ def test_health_quiet_when_nothing_is_wrong(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() + timedelta(days=30))
+                              ship_date=main._factory_today() + timedelta(days=30))
     line_id = _add_line(db_cursor, order_id, product_id, 100)
     _allocate(db_cursor, order_id, line_id, product_id, 100)
 
@@ -1163,7 +1507,7 @@ def test_health_info_for_unallocated_never_raises_the_level(db_cursor, client, m
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() + timedelta(days=30))
+                              ship_date=main._factory_today() + timedelta(days=30))
     _add_line(db_cursor, order_id, product_id, 100)
 
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
@@ -1178,7 +1522,7 @@ def test_health_is_quiet_once_the_order_is_closed(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=0)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() - timedelta(days=10))
+                              ship_date=main._factory_today() - timedelta(days=10))
     _add_line(db_cursor, order_id, product_id, 100)
 
     assert client.get(f"/sales/orders/{order_id}").json()["health"]["level"] == "critical"
@@ -1196,7 +1540,7 @@ def test_health_is_quiet_once_the_order_is_cancelled(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=0)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() - timedelta(days=10))
+                              ship_date=main._factory_today() - timedelta(days=10))
     _add_line(db_cursor, order_id, product_id, 100)
     client.post(f"/sales/orders/{order_id}/cancel",
                 json={"reason": "customer_cancelled", "mode": "commit"})
@@ -1283,12 +1627,12 @@ def test_counts_endpoint_buckets(db_cursor, client):
 
     # open + Factory Ready, ship date in the future
     ready_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=True,
-                              ship_date=date.today() + timedelta(days=5))
+                              ship_date=main._factory_today() + timedelta(days=5))
     _add_line(db_cursor, ready_id, product_id, 10)
 
     # open + overdue + not shipped
     overdue_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=False,
-                                ship_date=date.today() - timedelta(days=2))
+                                ship_date=main._factory_today() - timedelta(days=2))
     _add_line(db_cursor, overdue_id, product_id, 10)
 
     # open but physically shipped (the mirror never touched status: still open)
@@ -1314,6 +1658,82 @@ def test_counts_endpoint_buckets(db_cursor, client):
     assert after["shipped"] - before["shipped"] == 1
     assert after["closed"] - before["closed"] == 1
     assert after["cancelled"] - before["cancelled"] == 1
+
+
+@pytest.mark.db
+def test_counts_overdue_bucket_is_on_the_factory_clock(db_cursor, client,
+                                                      monkeypatch):
+    """The board's overdue COUNT and an order's overdue BADGE must never
+    disagree about what day it is. Seeded due on the factory's today, then
+    counted at 20:00 Eastern (UTC already on the next day) and again at 00:30
+    Eastern the morning after."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    due_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=False,
+                            ship_date=_SHIP_DAY)
+    _add_line(db_cursor, due_id, product_id, 10)
+
+    _freeze(monkeypatch, _EVENING_ET)
+    evening = client.get("/sales/orders/counts").json()
+    _freeze(monkeypatch, _AFTER_MIDNIGHT_ET)
+    after_midnight = client.get("/sales/orders/counts").json()
+
+    assert after_midnight["overdue"] - evening["overdue"] == 1, (
+        evening, after_midnight)
+    # Nothing else moved: only the calendar did.
+    assert evening["open"] == after_midnight["open"]
+
+
+@pytest.mark.db
+def test_the_counts_bucket_and_the_order_badge_agree_at_8pm(db_cursor, client,
+                                                            monkeypatch):
+    """Stated as a pair, because a mismatch between them is the bug the factory
+    clock exists to prevent: one order, one instant, two endpoints."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    due_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=True,
+                            ship_date=_SHIP_DAY)
+    line_id = _add_line(db_cursor, due_id, product_id, 10)
+    _allocate(db_cursor, due_id, line_id, product_id, 10)
+
+    _freeze(monkeypatch, _EVENING_ET)
+    before = client.get("/sales/orders/counts").json()["overdue"]
+    order = client.get(f"/sales/orders/{due_id}").json()
+    assert order["health"]["reasons"] == [], order["health"]
+
+    _freeze(monkeypatch, _AFTER_MIDNIGHT_ET)
+    after = client.get("/sales/orders/counts").json()["overdue"]
+    order = client.get(f"/sales/orders/{due_id}").json()
+    assert after - before == 1
+    assert order["health"]["reasons"] == ["1 day overdue — stock on hand"], \
+        order["health"]
+
+
+@pytest.mark.db
+def test_the_list_overdue_field_and_filter_share_the_factory_clock(
+        db_cursor, client, monkeypatch):
+    """?overdue_only=true is a SQL filter and `overdue` is computed in Python;
+    before v2.1 the filter ran on the server's CURRENT_DATE, so the two could
+    disagree inside a single response."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    due_id, due_number = _seed_order(db_cursor, customer_id, token,
+                                     ship_date=_SHIP_DAY)
+    _add_line(db_cursor, due_id, product_id, 10)
+
+    _freeze(monkeypatch, _EVENING_ET)
+    listed = client.get("/sales/orders?limit=200").json()["orders"]
+    mine = [o for o in listed if o["order_number"] == due_number]
+    assert mine and mine[0]["overdue"] is False, mine
+    filtered = client.get("/sales/orders?overdue_only=true&limit=200").json()
+    assert due_number not in [o["order_number"] for o in filtered["orders"]]
+
+    _freeze(monkeypatch, _AFTER_MIDNIGHT_ET)
+    listed = client.get("/sales/orders?limit=200").json()["orders"]
+    mine = [o for o in listed if o["order_number"] == due_number]
+    assert mine and mine[0]["overdue"] is True, mine
+    filtered = client.get("/sales/orders?overdue_only=true&limit=200").json()
+    assert due_number in [o["order_number"] for o in filtered["orders"]]
 
 
 @pytest.mark.db
@@ -2051,7 +2471,7 @@ def test_health_info_reports_partially_allocated_pounds(db_cursor, client, monke
     customer_id, token = _seed_customer(db_cursor)
     product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() + timedelta(days=30))
+                              ship_date=main._factory_today() + timedelta(days=30))
     line_id = _add_line(db_cursor, order_id, product_id, 100)
     _allocate(db_cursor, order_id, line_id, product_id, 40, lot_id=lot_id)
 
@@ -2066,7 +2486,7 @@ def test_health_info_is_silent_when_fully_allocated(db_cursor, client, monkeypat
     customer_id, token = _seed_customer(db_cursor)
     product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
-                              ship_date=date.today() + timedelta(days=30))
+                              ship_date=main._factory_today() + timedelta(days=30))
     line_id = _add_line(db_cursor, order_id, product_id, 100)
     _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
 
