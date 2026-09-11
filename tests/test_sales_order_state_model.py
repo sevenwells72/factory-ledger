@@ -807,20 +807,314 @@ def test_fulfillment_partial_and_unshipped(db_cursor, client):
 
 
 # ═════════════════════════════════════════════════════════════════
-# Tiered health
+# Tiered health — v2, time-aware
+#
+# The tier matrix below drives compute_so_health() directly, with a pinned
+# `today` and synthetic line readiness. That is deliberate: the tier rules are
+# a pure function of (shortage, ship date, readiness flag, fulfillment), and
+# proving all sixteen rows plus the boundaries through the database would cost
+# sixteen seeded orders to test arithmetic no database is involved in. The
+# DB-backed tests that follow prove the WIRING — that the endpoint feeds this
+# function real readiness and returns what it produces.
+# ═════════════════════════════════════════════════════════════════
+
+_TODAY = date(2026, 6, 15)
+
+
+def _fake_line(shortage=0.0, unallocated=0.0, line_id=1, sku="SKU-1"):
+    """One entry shaped like `_line_readiness()` yields, with only the two
+    fields health reads populated."""
+    return {
+        "line_id": line_id,
+        "sku": sku,
+        "readiness": {
+            "shortage_lb": shortage,
+            "unallocated_need_lb": unallocated,
+        },
+    }
+
+
+def _health(*, days_out=None, shortages=(), floor_ready=True, state="open",
+            fulfillment="unshipped", unallocated=0.0, today=_TODAY):
+    """compute_so_health() addressed in the vocabulary of the matrix."""
+    lines = [
+        _fake_line(shortage=shortage, line_id=i + 1, sku=f"SKU-{i + 1}")
+        for i, shortage in enumerate(shortages)
+    ]
+    if unallocated:
+        if lines:
+            lines[0]["readiness"]["unallocated_need_lb"] = unallocated
+        else:
+            lines = [_fake_line(unallocated=unallocated)]
+    return main.compute_so_health(
+        state=state,
+        fulfillment=fulfillment,
+        requested_ship_date=(None if days_out is None
+                             else today + timedelta(days=days_out)),
+        floor_ready=floor_ready,
+        line_readiness=lines,
+        today=today,
+    )
+
+
+# (case id, kwargs, expected level, exact reasons)
+_TIER_MATRIX = [
+    # ── critical: a shortage inside the 5-day window, or already past ──────
+    (
+        "shortage-3-days-out",
+        dict(days_out=3, shortages=(500, 235)),
+        "critical",
+        ["Short 735 lb on 2 lines — ships in 3 days"],
+    ),
+    (
+        "shortage-exactly-the-boundary",           # ship_by == today + 5
+        dict(days_out=5, shortages=(500,)),
+        "critical",
+        ["Short 500 lb — ships in 5 days"],
+    ),
+    (
+        "shortage-exactly-today",                  # ship_by == today
+        dict(days_out=0, shortages=(500,)),
+        "critical",
+        ["Short 500 lb — ships today"],
+    ),
+    (
+        "shortage-yesterday",                      # ship_by == today - 1
+        dict(days_out=-1, shortages=(500,)),
+        "critical",
+        ["Short 500 lb — 1 day overdue"],
+    ),
+    (
+        "shortage-long-overdue",
+        dict(days_out=-12, shortages=(500, 235)),
+        "critical",
+        ["Short 735 lb on 2 lines — 12 days overdue"],
+    ),
+    (
+        "shortage-tomorrow",
+        dict(days_out=1, shortages=(500,)),
+        "critical",
+        ["Short 500 lb — ships tomorrow"],
+    ),
+    # ── warning: a shortage further out than the window ───────────────────
+    (
+        "shortage-one-day-past-the-boundary",      # ship_by == today + 6
+        dict(days_out=6, shortages=(500,)),
+        "warning",
+        ["Short 500 lb — ships in 6 days"],
+    ),
+    (
+        "shortage-14-days-out",
+        dict(days_out=14, shortages=(500,)),
+        "warning",
+        ["Short 500 lb — ships in 14 days"],
+    ),
+    (
+        "shortage-with-no-ship-date",              # no deadline to be inside of
+        dict(days_out=None, shortages=(500,)),
+        "warning",
+        ["Short 500 lb"],
+    ),
+    # ── warning: overdue with the stock on hand ───────────────────────────
+    (
+        "overdue-12-days-no-shortage",
+        dict(days_out=-12),
+        "warning",
+        ["12 days overdue — stock on hand"],
+    ),
+    (
+        "overdue-yesterday-no-shortage",
+        dict(days_out=-1),
+        "warning",
+        ["1 day overdue — stock on hand"],
+    ),
+    (
+        "overdue-but-fully-shipped",               # nothing left to chase
+        dict(days_out=-12, fulfillment="shipped"),
+        "quiet",
+        [],
+    ),
+    # ── warning: Ready to Ship unset with the date closing in ─────────────
+    (
+        "not-ready-tomorrow",
+        dict(days_out=1, floor_ready=False),
+        "warning",
+        ["Not Ready to Ship — ships tomorrow"],
+    ),
+    (
+        "not-ready-exactly-the-boundary",          # ship_by == today + 2
+        dict(days_out=2, floor_ready=False),
+        "warning",
+        ["Not Ready to Ship — ships in 2 days"],
+    ),
+    (
+        "not-ready-today",
+        dict(days_out=0, floor_ready=False),
+        "warning",
+        ["Not Ready to Ship — ships today"],
+    ),
+    (
+        "not-ready-one-day-past-the-boundary",     # ship_by == today + 3
+        dict(days_out=3, floor_ready=False),
+        "quiet",
+        [],
+    ),
+    (
+        "not-ready-with-no-ship-date",
+        dict(days_out=None, floor_ready=False),
+        "quiet",
+        [],
+    ),
+    # ── several reasons on one order: highest tier wins, all are listed ────
+    (
+        "shortage-and-not-ready",
+        dict(days_out=2, shortages=(500,), floor_ready=False),
+        "critical",
+        ["Short 500 lb — ships in 2 days",
+         "Not Ready to Ship — ships in 2 days"],
+    ),
+    (
+        "overdue-and-not-ready",
+        dict(days_out=-3, floor_ready=False),
+        "warning",
+        ["3 days overdue — stock on hand",
+         "Not Ready to Ship — 3 days overdue"],
+    ),
+    (
+        "shortage-and-not-ready-both-due-today",
+        dict(days_out=0, shortages=(500,), floor_ready=False),
+        "critical",
+        ["Short 500 lb — ships today",
+         "Not Ready to Ship — ships today"],
+    ),
+    # ── quiet ─────────────────────────────────────────────────────────────
+    (
+        "nothing-wrong",
+        dict(days_out=30),
+        "quiet",
+        [],
+    ),
+    (
+        "no-ship-date-nothing-wrong",
+        dict(days_out=None),
+        "quiet",
+        [],
+    ),
+    # ── closed and cancelled are quiet no matter what is wrong ────────────
+    (
+        "closed-with-an-overdue-shortage",
+        dict(days_out=-12, shortages=(500,), floor_ready=False, state="closed"),
+        "quiet",
+        [],
+    ),
+    (
+        "cancelled-with-an-overdue-shortage",
+        dict(days_out=-12, shortages=(500,), floor_ready=False,
+             state="cancelled"),
+        "quiet",
+        [],
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "kwargs,expected_level,expected_reasons",
+    [case[1:] for case in _TIER_MATRIX],
+    ids=[case[0] for case in _TIER_MATRIX],
+)
+def test_health_tier_matrix(kwargs, expected_level, expected_reasons):
+    """Every row of the v2 tier table, plus both boundary days on each window."""
+    health = _health(**kwargs)
+    assert health["level"] == expected_level, health
+    assert health["reasons"] == expected_reasons, health
+
+
+def test_health_reasons_carry_the_pounds_the_lines_and_the_date():
+    """The reason is the whole instruction: how short, over how many lines,
+    and by when. A bare 'Short' tells the operator to go open the order."""
+    health = _health(days_out=3, shortages=(500, 235))
+    assert health["reasons"] == ["Short 735 lb on 2 lines — ships in 3 days"]
+
+
+def test_health_single_short_line_does_not_say_on_1_lines():
+    health = _health(days_out=14, shortages=(500,))
+    assert health["reasons"] == ["Short 500 lb — ships in 14 days"]
+
+
+def test_health_closed_and_cancelled_carry_no_info_either():
+    """Quiet means silent: an order off the board reports nothing at all,
+    not even the unallocated pounds it still nominally has."""
+    for state in ("closed", "cancelled"):
+        health = _health(days_out=-12, shortages=(500,), unallocated=60,
+                         state=state)
+        assert health == {"level": "quiet", "reasons": [], "info": []}, state
+
+
+# ── the critical window is an env var ─────────────────────────────────────
+
+def test_health_critical_window_widens_with_the_env_var(monkeypatch):
+    """A shortage 7 days out is a warning at the default and critical at 10."""
+    assert _health(days_out=7, shortages=(500,))["level"] == "warning"
+    monkeypatch.setenv("SO_HEALTH_CRITICAL_DAYS", "10")
+    assert _health(days_out=7, shortages=(500,))["level"] == "critical"
+
+
+def test_health_critical_window_narrows_with_the_env_var(monkeypatch):
+    monkeypatch.setenv("SO_HEALTH_CRITICAL_DAYS", "1")
+    assert _health(days_out=3, shortages=(500,))["level"] == "warning"
+    assert _health(days_out=1, shortages=(500,))["level"] == "critical"
+
+
+def test_health_critical_window_defaults_to_five(monkeypatch):
+    monkeypatch.delenv("SO_HEALTH_CRITICAL_DAYS", raising=False)
+    assert main._so_health_critical_days() == 5
+
+
+@pytest.mark.parametrize("bad", ["", "   ", "soon", "5.5", "-3"])
+def test_health_critical_window_falls_back_on_a_bad_value(monkeypatch, bad):
+    """A typo in an env var must not 500 a read path — it falls back."""
+    monkeypatch.setenv("SO_HEALTH_CRITICAL_DAYS", bad)
+    assert main._so_health_critical_days() == 5
+    assert _health(days_out=3, shortages=(500,))["level"] == "critical"
+
+
+def test_health_function_is_labelled_v2_and_the_shape_is_the_contract():
+    """Owner ruling 4 survives v2: the shape is the contract, the tiers are not."""
+    doc = main.compute_so_health.__doc__ or ""
+    assert "v2 — time-aware. Shape is the contract." in doc
+
+
+# ═════════════════════════════════════════════════════════════════
+# Tiered health — the endpoint is wired to it
 # ═════════════════════════════════════════════════════════════════
 
 @pytest.mark.db
-def test_health_critical_on_a_stock_shortage_and_names_the_line_and_pounds(db_cursor, client):
+def test_health_critical_on_a_stock_shortage_with_the_date_closing_in(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=10)
+    order_id, _ = _seed_order(db_cursor, customer_id, token,
+                              ship_date=date.today() + timedelta(days=3))
+    _add_line(db_cursor, order_id, product_id, 100)
+
+    health = client.get(f"/sales/orders/{order_id}").json()["health"]
+    assert health["level"] == "critical"
+    assert any("Short 90 lb" in r and "ships in 3 days" in r
+               for r in health["reasons"]), health["reasons"]
+
+
+@pytest.mark.db
+def test_health_only_warns_on_a_shortage_that_is_months_away(db_cursor, client):
+    """The v1 rule that made this critical is what v2 exists to fix."""
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=10)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
                               ship_date=date.today() + timedelta(days=30))
-    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _add_line(db_cursor, order_id, product_id, 100)
 
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
-    assert health["level"] == "critical"
-    assert any("90" in r and str(line_id) in r for r in health["reasons"]), health["reasons"]
+    assert health["level"] == "warning"
+    assert any("Short 90 lb" in r and "ships in 30 days" in r
+               for r in health["reasons"]), health["reasons"]
 
 
 @pytest.mark.db
@@ -834,11 +1128,11 @@ def test_health_warning_when_overdue_and_not_shipped(db_cursor, client):
 
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
     assert health["level"] == "warning"
-    assert any("3 days overdue" in r for r in health["reasons"]), health["reasons"]
+    assert "3 days overdue — stock on hand" in health["reasons"], health["reasons"]
 
 
 @pytest.mark.db
-def test_health_warning_when_factory_ready_unset_and_ship_date_is_close(db_cursor, client):
+def test_health_warning_when_ready_to_ship_unset_and_ship_date_is_close(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=False,
@@ -848,7 +1142,7 @@ def test_health_warning_when_factory_ready_unset_and_ship_date_is_close(db_curso
 
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
     assert health["level"] == "warning"
-    assert any("Factory Ready not set" in r for r in health["reasons"]), health["reasons"]
+    assert "Not Ready to Ship — ships in 2 days" in health["reasons"], health["reasons"]
 
 
 @pytest.mark.db
@@ -908,13 +1202,6 @@ def test_health_is_quiet_once_the_order_is_cancelled(db_cursor, client):
                 json={"reason": "customer_cancelled", "mode": "commit"})
     assert client.get(f"/sales/orders/{order_id}").json()["health"] == {
         "level": "quiet", "reasons": [], "info": []}
-
-
-def test_health_function_is_labelled_provisional():
-    """Owner ruling 4: the shape is the contract, the tier rules are not."""
-    doc = main.compute_so_health.__doc__ or ""
-    assert "v1 — provisional" in doc
-    assert "response shape is the contract" in doc
 
 
 # ═════════════════════════════════════════════════════════════════

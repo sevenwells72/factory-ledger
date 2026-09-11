@@ -11830,6 +11830,56 @@ def derive_fulfillment(readiness: dict) -> str:
     return "shipped"
 
 
+# ── Sales-order health v2 (time-aware) ──────────────────────────────────────
+
+# How close the ship date has to be before a stock shortage stops being a
+# thing to plan around and starts being a thing to fix today. Operator-tunable
+# because the right window is a function of lead time, not of code.
+SO_HEALTH_CRITICAL_DAYS_DEFAULT = 5
+
+# Readiness gets its own, deliberately tighter window: the floor's flag is a
+# same-week concern, not a supply one, so it is NOT tied to the env var above.
+SO_HEALTH_READY_DAYS = 2
+
+
+def _so_health_critical_days() -> int:
+    """The shortage-urgency window in days, from SO_HEALTH_CRITICAL_DAYS.
+
+    Read on every call so the window can be retuned without a deploy, matching
+    _allocations_enforced() and _factory_ready_required(). Anything that is not
+    a non-negative integer falls back to the default rather than raising: this
+    runs inside a read path, and a typo in an env var must not 500 the board.
+    """
+    raw = (os.getenv("SO_HEALTH_CRITICAL_DAYS") or "").strip()
+    if not raw:
+        return SO_HEALTH_CRITICAL_DAYS_DEFAULT
+    try:
+        days = int(raw)
+    except ValueError:
+        return SO_HEALTH_CRITICAL_DAYS_DEFAULT
+    return days if days >= 0 else SO_HEALTH_CRITICAL_DAYS_DEFAULT
+
+
+def _so_ship_phrase(requested_ship_date, today) -> Optional[str]:
+    """The time half of a health reason, in the floor's words.
+
+    'ships in 14 days' | 'ships tomorrow' | 'ships today' | '12 days overdue'.
+    None when the order carries no ship date — the reason then states the fact
+    without inventing a deadline for it.
+    """
+    if requested_ship_date is None:
+        return None
+    days = (requested_ship_date - today).days
+    if days < 0:
+        late = -days
+        return f"{late} day{'s' if late != 1 else ''} overdue"
+    if days == 0:
+        return "ships today"
+    if days == 1:
+        return "ships tomorrow"
+    return f"ships in {days} days"
+
+
 def compute_so_health(
     *,
     state: str,
@@ -11839,7 +11889,7 @@ def compute_so_health(
     line_readiness: list,
     today=None,
 ) -> dict:
-    """v1 — provisional. Tier rules under review; response shape is the contract.
+    """v2 — time-aware. Shape is the contract.
 
     Callers may depend on {level, reasons, info}; they may NOT depend on which
     facts land in which tier. Returns:
@@ -11848,14 +11898,26 @@ def compute_so_health(
       reasons  strings that justify the level
       info     strings that never affect the level
 
-    critical  a stock shortage on any open line (the existing readiness
-              shortage math, verbatim)
-    warning   overdue and not fully shipped, or Factory Ready unset with the
-              ship date two days out or less
-    info      unallocated pounds while ALLOCATIONS_ENFORCED is off — a real
-              observation, but not something to escalate while the flag is off
-    quiet     any order that is closed or cancelled: it is off the board, so it
-              stops asking for attention regardless of its physical state
+    What changed from v1: a shortage is no longer critical on its own. The same
+    shortage means something different at three days out than at three months,
+    and v1 painted both red — so the red meant nothing and the board was read
+    as a list rather than a queue. The date is now half of every reason.
+
+    Evaluated on OPEN orders only. Tiers:
+
+      critical  a stock shortage on a non-cancelled line AND the ship date is
+                inside the SO_HEALTH_CRITICAL_DAYS window (default 5) or
+                already past
+      warning   a stock shortage with the ship date further out than that
+                window; OR overdue and not fully shipped with the stock
+                actually on hand; OR Ready to Ship unset with the ship date
+                two days out or less
+      info      unallocated pounds — reported, never escalated
+      quiet     nothing applies; or the order is closed or cancelled, which is
+                off the board and stops asking for attention entirely
+
+    Highest tier wins, and every applicable reason is listed — the tier says
+    how loudly to speak, the reasons say what to do.
     """
     if state in ("closed", "cancelled"):
         return {"level": "quiet", "reasons": [], "info": []}
@@ -11864,48 +11926,72 @@ def compute_so_health(
     reasons: list = []
     info: list = []
 
-    # critical — stock shortage on an open line
+    days_out = (None if requested_ship_date is None
+                else (requested_ship_date - today).days)
+    phrase = _so_ship_phrase(requested_ship_date, today)
+
+    # ── shortage: critical or warning depending only on the date ───────────
+    #
+    # Aggregated to one reason, not one per line: the operator's question is
+    # "how short am I and when is it due", and ten per-line reasons bury both.
+    # Cancelled and service lines are already excluded upstream.
+    short_lines = [
+        line for line in line_readiness
+        if float(line["readiness"].get("shortage_lb") or 0) > BALANCE_EPSILON
+    ]
     critical = False
-    for line in line_readiness:
-        shortage = float(line["readiness"].get("shortage_lb") or 0)
-        if shortage > BALANCE_EPSILON:
-            critical = True
-            label = line.get("sku") or line.get("product") or "line"
-            reasons.append(
-                f"Short {shortage:g} lb on {label} (line #{line['line_id']})"
-            )
+    if short_lines:
+        total_short = sum(float(line["readiness"]["shortage_lb"])
+                          for line in short_lines)
+        # `<= today + N` already subsumes `< today`; both halves of the rule
+        # are spelled out in the docstring, one comparison implements them.
+        # No ship date means no deadline to be inside of — that is a warning,
+        # not a crisis, and it stays visible either way.
+        critical = days_out is not None and days_out <= _so_health_critical_days()
+        where = f" on {len(short_lines)} lines" if len(short_lines) > 1 else ""
+        tail = f" — {phrase}" if phrase else ""
+        reasons.append(f"Short {total_short:g} lb{where}{tail}")
 
-    # warning — overdue, or Factory Ready still unset with the date closing in
-    if (requested_ship_date is not None
-            and requested_ship_date < today
+    # ── overdue with nothing missing ───────────────────────────────────────
+    #
+    # Guarded on `not short_lines` on purpose: when there IS a shortage the
+    # reason above already carries the overdue phrase, and saying it twice
+    # makes the list look like two problems.
+    if (not short_lines
+            and days_out is not None
+            and days_out < 0
             and fulfillment != "shipped"):
-        days = (today - requested_ship_date).days
-        reasons.append(
-            f"Ship date {requested_ship_date} is {days} day{'s' if days != 1 else ''} overdue"
-        )
-    elif (not floor_ready
-            and requested_ship_date is not None
-            and 0 <= (requested_ship_date - today).days <= 2):
-        days = (requested_ship_date - today).days
-        when = "today" if days == 0 else f"in {days} day{'s' if days != 1 else ''}"
-        reasons.append(f"Factory Ready not set and ship date is {when}")
+        reasons.append(f"{phrase} — stock on hand")
 
-    # info — never escalates
+    # ── Ready to Ship unset with the date closing in ───────────────────────
+    #
+    # The floor's flag, stored as sales_order_flags.ready (historically
+    # "Factory Ready"). No lower bound: an overdue order that was never
+    # flagged is exactly the one this is for.
+    if (not floor_ready
+            and days_out is not None
+            and days_out <= SO_HEALTH_READY_DAYS):
+        reasons.append(f"Not Ready to Ship — {phrase}")
+
+    # ── info — never escalates ─────────────────────────────────────────────
     #
     # unallocated_need_lb, not "allocated is zero": a line with 100 lb
     # remaining and 40 lb allocated has 60 lb unallocated, and reporting
     # nothing for it hid exactly the partially-covered lines most worth
     # seeing. The readiness query already computes this as
-    # max(0, remaining - allocated).
-    if not _allocations_enforced():
-        for line in line_readiness:
-            unallocated = float(line["readiness"].get("unallocated_need_lb") or 0)
-            if unallocated > BALANCE_EPSILON:
-                label = line.get("sku") or line.get("product") or "line"
-                info.append(
-                    f"{unallocated:g} lb not allocated on {label} "
-                    f"(line #{line['line_id']}); allocations not enforced"
-                )
+    # max(0, remaining - allocated). Reported whether or not allocations are
+    # enforced — the pounds are unallocated either way; the flag only changes
+    # whether that blocks a shipment, which the note records.
+    enforced = _allocations_enforced()
+    for line in line_readiness:
+        unallocated = float(line["readiness"].get("unallocated_need_lb") or 0)
+        if unallocated > BALANCE_EPSILON:
+            label = line.get("sku") or line.get("product") or "line"
+            note = "" if enforced else "; allocations not enforced"
+            info.append(
+                f"{unallocated:g} lb not allocated on {label} "
+                f"(line #{line['line_id']}){note}"
+            )
 
     level = "critical" if critical else ("warning" if reasons else "quiet")
     return {"level": level, "reasons": reasons, "info": info}
