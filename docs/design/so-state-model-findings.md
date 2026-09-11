@@ -581,6 +581,7 @@ P1 and waited for P2 — both forever.
 | A22 | `_void_ship_allocations()` (`:1062`, `:1072`) | `sales_order_allocations` | `FOR UPDATE` | 3, inherited |
 | A23 | `_prepare_restore_ship_allocations()` (`:1327`) | `sales_order_allocations` | `FOR UPDATE` | 3, inherited |
 | A24 | `ship_order` **preview** | *no lock* — read-only | — | n/a; the `state='open'` check still runs |
+| A25 | `set_sales_order_ready_flag()` (`main.py`) | `sales_orders`, one row (`SELECT ... state FROM sales_orders FOR NO KEY UPDATE`) | `FOR NO KEY UPDATE` | 1 only; writes `sales_order_flags` (no FK to `sales_orders`); no ordering edge added |
 
 Locks outside the sales-order graph, listed so the table is exhaustive rather
 than because they interact: `find_open_expected_receipt` (`:5036`, optional),
@@ -808,6 +809,16 @@ Suggested follow-up, in rough order of cost:
 2. Then delete `_operator_id()` and its shim docstring.
 3. FR-15 proper — real per-user attribution — supersedes all of the above and
    is the only thing that makes any of these columns trustworthy.
+
+### Sales Orders list follow-ups
+
+* `overdue_only` path in `list_sales_orders` has no SQL `LIMIT` and
+  `_so_derived_fields` scans all `line_readiness_by_line` per order —
+  O(orders × lines). Fix: group `line_readiness_by_line` by `sales_order_id`
+  once in `_load_sales_order_readiness`. Fine at current volume.
+* Sales Orders list: legacy Filter/Hide-ready-to-ship/Sort/Resize bar is
+  redundant with tabs; remove Hide ready to ship, move Sort/Resize into table
+  header, keep customer filter (Step 4 or 3.1).
 
 ---
 

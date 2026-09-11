@@ -806,7 +806,7 @@ paths:
             maximum: 200
       responses:
         '200':
-          description: "Sales orders with packaged-unit totals plus additive inventory_ready, dispatch_ready, fulfillment_diverged, shortage_lb, allocated_lb, remaining_effective_lb, and blockers readiness fields."
+          description: "Sales orders with packaged-unit totals plus additive inventory_ready, dispatch_ready, fulfillment_diverged, shortage_lb, allocated_lb, remaining_effective_lb, and blockers readiness fields. Rows also carry state, fulfillment, health, ordered_lb, and shipped_effective_lb."
     post:
       operationId: createOrder
       summary: Create a new sales order
