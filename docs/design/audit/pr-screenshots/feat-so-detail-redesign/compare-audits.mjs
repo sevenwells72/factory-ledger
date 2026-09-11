@@ -1,0 +1,13 @@
+import fs from 'node:fs/promises';
+const [outDir] = process.argv.slice(2);
+const before = JSON.parse(await fs.readFile(outDir+'/before-summary.json','utf8'));
+const after = JSON.parse(await fs.readFile(outDir+'/after-summary.json','utf8'));
+const key = c => [c.id,c.variant,c.rule].join('|');
+const oldCells = new Map(before.cells.map(c=>[key(c),c]));
+const newCells = new Map(after.cells.map(c=>[key(c),c]));
+const changes = after.cells.filter(c=>oldCells.get(key(c))?.status !== c.status).map(c=>({...c,before:oldCells.get(key(c))?.status || 'MISSING',after:c.status}));
+const newFailures = changes.filter(c=>c.status==='FAIL');
+const removedFailures = before.cells.filter(c=>c.status==='FAIL'&&newCells.get(key(c))?.status!=='FAIL');
+const result = {beforeGeneratedAt:before.generatedAt,afterGeneratedAt:after.generatedAt,beforeCaptures:before.totalCaptures,afterCaptures:after.totalCaptures,beforeErrors:before.errors,afterErrors:after.errors,newFailures,removedFailures,changes};
+await fs.writeFile(outDir+'/comparison.json',JSON.stringify(result,null,2));
+console.log(JSON.stringify({beforeCaptures:result.beforeCaptures,afterCaptures:result.afterCaptures,beforeErrors:result.beforeErrors,afterErrors:result.afterErrors,newFailures:newFailures.map(({id,variant,rule,scope,before,after,detail})=>({id,variant,rule,scope,before,after,detail})),removedFailures:removedFailures.length},null,2));

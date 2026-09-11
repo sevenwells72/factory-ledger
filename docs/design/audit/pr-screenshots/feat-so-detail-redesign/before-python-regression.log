@@ -1,0 +1,124 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_order_list_exposes_compact_case_line_data_for_pallet_display _______
+
+client = <starlette.testclient.TestClient object at 0x108010d40>
+_db_connection = <connection object at 0x107fe67a0; dsn: 'postgresql://localhost:5432/factory_ledger_test', closed: 0>
+
+    @pytest.mark.db
+    def test_order_list_exposes_compact_case_line_data_for_pallet_display(client, _db_connection):
+        """The list response carries case counts so the UI never derives pallets from pounds."""
+        _seed_customer(_db_connection, "Pallet Summary Test Customer")
+        _seed_product(
+            _db_connection,
+            "PALLET SUMMARY GRANOLA 25 LB ZQX",
+            "70997",
+            uom="25 lb case",
+            case_size_lb=25,
+        )
+    
+        created = client.post("/sales/orders", json={
+            "customer_name": "Pallet Summary Test Customer",
+            "lines": [{"product_name": "PALLET SUMMARY GRANOLA 25 LB ZQX", "quantity_lb": 600}],
+        })
+        assert created.status_code == 200, created.text
+        order_id = created.json()["order_id"]
+    
+        resp = client.get("/sales/orders", params={"customer": "Pallet Summary Test Customer"})
+        assert resp.status_code == 200, resp.text
+        order = next(item for item in resp.json()["orders"] if item["order_id"] == order_id)
+>       assert order["pallet_lines"] == [{
+            "line_id": order["pallet_lines"][0]["line_id"],
+            "product": "PALLET SUMMARY GRANOLA 25 LB ZQX",
+            "sku": "70997",
+            "uom": "25 lb case",
+            "case_size_lb": 25.0,
+            "unit_count": 24,
+            "shipped_units": 0,
+            "remaining_units": 24,
+            "is_non_weight": False,
+        }]
+E       AssertionError: assert [{'sku': '709...LB ZQX', ...}] == [{'line_id': ...b case', ...}]
+E         
+E         At index 0 diff: {'sku': '70997', 'uom': '25 lb case', 'line_id': 11529, 'product': 'PALLET SUMMARY GRANOLA 25 LB ZQX', 'unit_count': 24, 'line_status': 'pending', 'case_size_lb': 25.0, 'is_non_weight': False, 'shipped_units': 0, 'remaining_units': 24} != {'line_id': 11529, 'product': 'PALLET SUMMARY GRANOLA 25 LB ZQX', 'sku': '70997', 'uom': '25 lb case', 'case_size_lb': 25.0, 'unit_count': 24, 'shipped_units': 0, 'remaining_units': 24, 'is_non_weight': False}
+E         Use -v to get more diff
+
+tests/test_sales_order_line_fields.py:185: AssertionError
+=============================== warnings summary ===============================
+main.py:2080
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:2080: SyntaxWarning: invalid escape sequence '\d'
+    (substring(name FROM '(\d+)\s*x\s*\d+'))::numeric
+
+main.py:2306
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:2306: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../../../Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/fastapi/applications.py:4547
+../../../Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/fastapi/applications.py:4547
+  /Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/fastapi/applications.py:4547: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+main.py:2330
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:2330: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+main.py:3222
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:3222: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("category")
+
+main.py:3228
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:3228: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("priority")
+
+main.py:3243
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:3243: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("priority")
+
+main.py:3249
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:3249: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("status")
+
+main.py:3339
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:3339: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator('unit', pre=True, always=True)
+
+main.py:3343
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:3343: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator('quantity_lb', always=True, pre=True)
+
+main.py:3325
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:3325: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderLineInput(BaseModel):
+
+../../../Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/pydantic/_internal/_config.py:386
+  /Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/pydantic/_internal/_config.py:386: UserWarning: Valid config keys have changed in V2:
+  * 'underscore_attrs_are_private' has been removed
+    warnings.warn(message, UserWarning)
+
+main.py:3411
+  /private/tmp/factory-ledger-so-detail-baseline/main.py:3411: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CommitShipOrderRequest(InventoryWriteRequest):
+
+tests/test_sales_order_line_fields.py::test_order_list_exposes_compact_case_line_data_for_pallet_display
+  /Users/michaelgross/dev/factory-ledger/.venv-test/lib/python3.12/site-packages/httpx/_client.py:690: DeprecationWarning: The 'app' shortcut is now deprecated. Use the explicit style 'transport=WSGITransport(app=...)' instead.
+    warnings.warn(message, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_sales_order_line_fields.py::test_order_list_exposes_compact_case_line_data_for_pallet_display
+1 failed, 15 warnings in 0.76s

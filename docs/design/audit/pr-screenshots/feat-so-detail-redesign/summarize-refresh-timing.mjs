@@ -1,0 +1,27 @@
+import fs from 'node:fs/promises';
+import vm from 'node:vm';
+const [root,dir,phase,outputPrefix=phase] = process.argv.slice(2);
+const runner=await fs.readFile(root+'/tests/visual/run-visual-audit.mjs','utf8');
+const verdict=vm.runInNewContext('('+runner.slice(runner.indexOf('function verdict('),runner.indexOf('\nasync function main()'))+')');
+const read=async name=>JSON.parse(await fs.readFile(dir+'/'+name,'utf8'));
+const before=await read('before-visual-results.json');
+const after=await read(phase+'-visual-results.json');
+const diagnosticNames=(await fs.readdir(dir)).filter(n=>/^before-refresh-diagnostic-\d+\.json$/.test(n)).sort((a,b)=>Number(a.match(/\d+/)[0])-Number(b.match(/\d+/)[0]));
+const diagnostics=await Promise.all(diagnosticNames.map(async file=>({file,...await read(file)})));
+const key=r=>r.id+'|'+r.variant;
+const old=new Map(before.results.map(r=>[key(r),r]));
+const geometryKeys=['anchorsBefore','anchorsAfter','moved','vanished','maxDeltaPx','worst'];
+const geometryChanges=(b,a)=>geometryKeys.filter(k=>JSON.stringify(b?.[k])!==JSON.stringify(a?.[k]));
+const targets=after.results.filter(r=>{const n=Number(r.id.slice(2));return !(n>=24&&n<=40)&&verdict('LAYOUT-020',r.rules['LAYOUT-020']).status==='FAIL'&&verdict('LAYOUT-020',old.get(key(r))?.rules['LAYOUT-020']).status!=='FAIL';});
+const rows=targets.map(t=>{
+ const b=old.get(key(t)).rules['LAYOUT-020'],a=t.rules['LAYOUT-020'];
+ const samples=diagnostics.flatMap(d=>{const match=d.results.find(r=>key(r)===key(t));if(!match)return[];const data=match.rules['LAYOUT-020'];return[{file:d.file,...verdict('LAYOUT-020',data),data,geometryChangesFromAfter:geometryChanges(data,a)}];});
+ return{id:t.id,variant:t.variant,before:b,after:a,canonicalGeometryChanges:geometryChanges(b,a),reproduced:samples.some(s=>s.status==='FAIL'),reproducedWithIdenticalGeometry:samples.some(s=>s.status==='FAIL'&&!s.geometryChangesFromAfter.length),samples};
+});
+const result={phase,baselineHead:'12b01b6be30c194af2de60fcb50d47a5ed32780a',canonicalBeforeGeneratedAt:before.generatedAt,afterGeneratedAt:after.generatedAt,diagnostics:diagnostics.map(({file,generatedAt,results})=>({file,generatedAt,captures:results.length,errors:results.filter(r=>r.error).map(({id,variant,error})=>({id,variant,error}))})),newTimingFailureCells:rows.length,reproduced:rows.filter(r=>r.reproduced).length,unreproduced:rows.filter(r=>!r.reproduced).map(({id,variant})=>({id,variant})),rows};
+await fs.writeFile(dir+'/'+outputPrefix+'-refresh-reproduction.json',JSON.stringify(result,null,2));
+const lines=[`# ${outputPrefix} refresh timing diagnostic comparison`,'',`Frozen baseline: 12b01b6. Exact new LAYOUT-020 failure cells reproduced: ${result.reproduced}/${rows.length}. Canonical matrices are unchanged; all diagnostic samples remain separate. No measurement code, threshold, fixture, application code, or response latency changed.`, '', '| Screen | Variant | Canonical before CLS | Current CLS | Diagnostic CLS values (FAIL marked) | Failure reproduced |', '|---|---|---:|---:|---|---|'];
+for(const r of rows)lines.push(`| ${r.id} | ${r.variant} | ${r.before.cls} | ${r.after.cls} | ${r.samples.map(s=>`${s.file.match(/\d+/)[0]}: ${s.data?.cls}${s.status==='FAIL'?' FAIL':''}`).join('; ')} | ${r.reproduced?'Yes':'No'} |`);
+lines.push('',`${rows.filter(r=>!r.canonicalGeometryChanges.length).length}/${rows.length} current new failure cells have byte-identical settled anchor geometry to their canonical baseline counterparts.`, '', `${rows.filter(r=>r.reproducedWithIdenticalGeometry).length}/${rows.length} current new failure cells have at least one frozen-baseline diagnostic FAIL with byte-identical settled anchor geometry to the current capture.`, '', 'Geometry comparison includes anchors before/after, moved/vanished counts, maximum displacement, and the full worst-anchor list. Changed geometry and each diagnostic sample are recorded in the companion JSON; a reproduced failure is not automatically presented as identical geometry.', '');
+await fs.writeFile(dir+'/'+outputPrefix+'-refresh-reproduction.md',lines.join('\n'));
+console.log(JSON.stringify({phase,newTimingFailureCells:rows.length,reproduced:result.reproduced,unreproduced:result.unreproduced,canonicalIdenticalGeometry:rows.filter(r=>!r.canonicalGeometryChanges.length).length,diagnosticIdenticalGeometry:rows.filter(r=>r.reproducedWithIdenticalGeometry).length},null,2));

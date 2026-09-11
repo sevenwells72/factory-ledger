@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-11 10:49 — Complete Sales Order detail final audit (NOT DEPLOYED)
+
+- **Files changed:** `docs/design/audit/06-browser-check.md` and `docs/design/audit/pr-screenshots/feat-so-detail-redesign/`.
+- **What changed:** Saved canonical full before/after audits (388 captures each, zero runner errors), both implementation review passes, targeted interactions, screenshots, raw measurements, and comparison tables. Final list/detail have zero failures across all 13 rules. All 22 new other-screen LAYOUT-020 cells reproduce on frozen `12b01b6` with matching settled geometry in separate diagnostics; there are no other new failures. Canonical matrices and every diagnostic sample are retained.
+- **Validation:** 848 Python tests, 64 JavaScript tests, 36 detail interactions, 70 shared-exit checks, 26 list layout cases, and both list interaction widths pass. Exactly two implementation review passes were used; application changes stopped at `c0eed1c`. Blubber’s Netlify preview approval remains pending.
+- **Why:** Supply the requested merge evidence without hiding existing refresh-paint timing noise or changing audit thresholds. No backend files changed and production is not deployed.
+
+---
+
 ## 2026-09-11 — Correct detail interaction edge cases before final rendered review (NOT DEPLOYED)
 
 - **Files changed:** `dashboard/dashboard.js`, `dashboard/so-detail.css`, browser asset references, `tests/test_batch_a_ui.js`, detail interaction tests and shipping-preview fixture.

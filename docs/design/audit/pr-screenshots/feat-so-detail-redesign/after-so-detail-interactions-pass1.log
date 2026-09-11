@@ -1,0 +1,85 @@
+PASS 1440-light: Four independent dimensions; keyboard explanations and single-popover dismissal
+PASS 1440-light: Line explanations use matching line IDs and effective ledger pounds through SOList.number
+PASS 1440-light: Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts
+PASS 1440-light: Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus
+PASS 1440-light: Partial shipment 409 offers Close and previews the suggested reason before commit
+PASS 1440-light: Open/shipped Ready remains editable while header edits are locked
+PASS 1440-light: Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable
+1440-light: AssertionError [ERR_ASSERTION]: A detail response without Ready metadata must not erase a note on an unloaded list page
++ actual - expected
+
++ null
+- 'Keep the staged pallets together.'
+    at file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:331:16
+    at async check (file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:161:42)
+    at async file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:322:7 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: 'Keep the staged pallets together.',
+  operator: 'strictEqual'
+}
+PASS 1440-dark: Four independent dimensions; keyboard explanations and single-popover dismissal
+PASS 1440-dark: Line explanations use matching line IDs and effective ledger pounds through SOList.number
+PASS 1440-dark: Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts
+PASS 1440-dark: Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus
+PASS 1440-dark: Partial shipment 409 offers Close and previews the suggested reason before commit
+PASS 1440-dark: Open/shipped Ready remains editable while header edits are locked
+PASS 1440-dark: Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable
+1440-dark: AssertionError [ERR_ASSERTION]: A detail response without Ready metadata must not erase a note on an unloaded list page
++ actual - expected
+
++ null
+- 'Keep the staged pallets together.'
+    at file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:331:16
+    at async check (file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:161:42)
+    at async file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:322:7 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: 'Keep the staged pallets together.',
+  operator: 'strictEqual'
+}
+PASS 390-light: Four independent dimensions; keyboard explanations and single-popover dismissal
+PASS 390-light: Line explanations use matching line IDs and effective ledger pounds through SOList.number
+PASS 390-light: Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts
+PASS 390-light: Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus
+PASS 390-light: Partial shipment 409 offers Close and previews the suggested reason before commit
+PASS 390-light: Open/shipped Ready remains editable while header edits are locked
+PASS 390-light: Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable
+390-light: AssertionError [ERR_ASSERTION]: A detail response without Ready metadata must not erase a note on an unloaded list page
++ actual - expected
+
++ null
+- 'Keep the staged pallets together.'
+    at file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:331:16
+    at async check (file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:161:42)
+    at async file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:322:7 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: 'Keep the staged pallets together.',
+  operator: 'strictEqual'
+}
+PASS 390-dark: Four independent dimensions; keyboard explanations and single-popover dismissal
+PASS 390-dark: Line explanations use matching line IDs and effective ledger pounds through SOList.number
+PASS 390-dark: Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts
+PASS 390-dark: Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus
+PASS 390-dark: Partial shipment 409 offers Close and previews the suggested reason before commit
+PASS 390-dark: Open/shipped Ready remains editable while header edits are locked
+PASS 390-dark: Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable
+390-dark: AssertionError [ERR_ASSERTION]: A detail response without Ready metadata must not erase a note on an unloaded list page
++ actual - expected
+
++ null
+- 'Keep the staged pallets together.'
+    at file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:331:16
+    at async check (file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:161:42)
+    at async file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:322:7 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: 'Keep the staged pallets together.',
+  operator: 'strictEqual'
+}
+28 Sales Order detail interaction checks passed.

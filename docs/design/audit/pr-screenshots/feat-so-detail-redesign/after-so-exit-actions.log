@@ -1,0 +1,7 @@
+PASS 1440-light: 17 exit-action checks
+PASS 1440-dark: 17 exit-action checks
+PASS 390-light: 17 exit-action checks
+PASS 390-dark: 17 exit-action checks
+PASS 1440-integrated: commit rerender restores selected-tab focus
+PASS 390-integrated: commit rerender restores selected-tab focus
+PASS: 70 Sales Orders exit-action checks; all API calls stubbed in memory.

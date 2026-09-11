@@ -1,0 +1,11 @@
+Factory Ledger visual audit — 14 screens, 4 variants, 56 captures.
+  10/56 captures
+  20/56 captures
+  30/56 captures
+  40/56 captures
+  50/56 captures
+  56/56 captures
+
+Rule results across all captures: { PASS: 414, FAIL: 94, WARN: 14, 'N/A': 206, ERROR: 0 }
+Matrix:      docs/design/audit/06-browser-check.md
+Screenshots: docs/design/audit/screenshots/<variant>/<S-id>.png

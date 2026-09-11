@@ -1,0 +1,191 @@
+[
+  {
+    "id": "S-01",
+    "name": "Site navigation bar",
+    "variant": "1440-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2893, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-01",
+    "name": "Site navigation bar",
+    "variant": "1440-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2958, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-02",
+    "name": "Mini-calendar strip (3-month)",
+    "variant": "390-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.4003, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-03",
+    "name": "App header",
+    "variant": "390-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.4075, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-03",
+    "name": "App header",
+    "variant": "1440-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2892, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-03",
+    "name": "App header",
+    "variant": "1440-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2893, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-04",
+    "name": "Global search field + results dropdown",
+    "variant": "390-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.4003, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-04",
+    "name": "Global search field + results dropdown",
+    "variant": "1440-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2975, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-06",
+    "name": "Today So Far tile",
+    "variant": "390-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.4003, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-06",
+    "name": "Today So Far tile",
+    "variant": "390-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.4075, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-08",
+    "name": "Production Calendar (rolling 5-day)",
+    "variant": "390-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.4003, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-11",
+    "name": "Finished Goods \u2014 per-product lot breakdown",
+    "variant": "390-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.4075, 6 element(s) moved, max 54px"
+  },
+  {
+    "id": "S-11",
+    "name": "Finished Goods \u2014 per-product lot breakdown",
+    "variant": "1440-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2958, 16 element(s) moved, max 105px"
+  },
+  {
+    "id": "S-12",
+    "name": "Batch Inventory On-Hand",
+    "variant": "1440-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2958, 4 element(s) moved, max 65px"
+  },
+  {
+    "id": "S-13",
+    "name": "On-Hand Ingredients",
+    "variant": "1440-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2892, 6 element(s) moved, max 3px"
+  },
+  {
+    "id": "S-16",
+    "name": "Daily Entries + day/mode toolbar",
+    "variant": "390-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.5606, 0 element(s) moved, max 0px"
+  },
+  {
+    "id": "S-17",
+    "name": "Shipping log",
+    "variant": "390-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.5606, 1 element(s) moved, max 105px"
+  },
+  {
+    "id": "S-18",
+    "name": "Receiving log",
+    "variant": "390-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.5736, 1 element(s) moved, max 106px"
+  },
+  {
+    "id": "S-55",
+    "name": "Lot disambiguation view",
+    "variant": "1440-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2892, 21 element(s) moved, max 105px"
+  },
+  {
+    "id": "S-55",
+    "name": "Lot disambiguation view",
+    "variant": "1440-dark",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2958, 15 element(s) moved, max 105px"
+  },
+  {
+    "id": "S-56",
+    "name": "Product Detail panel (active + depleted lots)",
+    "variant": "1440-light",
+    "rule": "LAYOUT-020",
+    "scope": "other",
+    "status": "FAIL",
+    "detail": "CLS 0.2901, 0 element(s) moved, max 0px"
+  }
+]

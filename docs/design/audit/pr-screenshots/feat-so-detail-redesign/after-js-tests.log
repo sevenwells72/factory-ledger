@@ -1,0 +1,330 @@
+TAP version 13
+# Subtest: receipt gate requires explicit product, supplier, finite positive pounds; edit and in-flight stay distinct
+ok 1 - receipt gate requires explicit product, supplier, finite positive pounds; edit and in-flight stay distinct
+  ---
+  duration_ms: 5.010833
+  ...
+# Subtest: dispatch attention counts the full response independently of order-list filters and fails honestly
+ok 2 - dispatch attention counts the full response independently of order-list filters and fails honestly
+  ---
+  duration_ms: 1.316667
+  ...
+# Subtest: idle production is zero, missing run input is unavailable, known input computes yield
+ok 3 - idle production is zero, missing run input is unavailable, known input computes yield
+  ---
+  duration_ms: 45.208792
+  ...
+# Subtest: rolling-deploy unit labels normalize weight packages and retain count-based supplies
+ok 4 - rolling-deploy unit labels normalize weight packages and retain count-based supplies
+  ---
+  duration_ms: 1.075834
+  ...
+# Subtest: sales order edit gates use administrative state and effective fulfillment independently
+ok 5 - sales order edit gates use administrative state and effective fulfillment independently
+  ---
+  duration_ms: 0.696125
+  ...
+# Subtest: order line quantities use effective pounds and do not invent effective service shipments
+ok 6 - order line quantities use effective pounds and do not invent effective service shipments
+  ---
+  duration_ms: 0.477125
+  ...
+# Subtest: shipping preview formats structured warning quantities and does not repeat raw backend decimals
+ok 7 - shipping preview formats structured warning quantities and does not repeat raw backend decimals
+  ---
+  duration_ms: 1.68275
+  ...
+# Subtest: business dates do not shift zones; timestamp instants use the plant day across UTC midnight and DST
+ok 8 - business dates do not shift zones; timestamp instants use the plant day across UTC midnight and DST
+  ---
+  duration_ms: 52.524792
+  ...
+# Subtest: trace and product URLs preserve literal date-shaped codes and product identity
+ok 9 - trace and product URLs preserve literal date-shaped codes and product identity
+  ---
+  duration_ms: 1.618125
+  ...
+# Subtest: Other flow contributors reconcile to their displayed relationship values, without mixing stages
+ok 10 - Other flow contributors reconcile to their displayed relationship values, without mixing stages
+  ---
+  duration_ms: 2.388667
+  ...
+# Subtest: unconfirmed or edited note references cannot pass the save gate; unchanged legacy references remain editable
+ok 11 - unconfirmed or edited note references cannot pass the save gate; unchanged legacy references remain editable
+  ---
+  duration_ms: 2.060791
+  ...
+# Subtest: production run day accepts explicit offsets and legacy UTC without appending a second timezone
+ok 12 - production run day accepts explicit offsets and legacy UTC without appending a second timezone
+  ---
+  duration_ms: 1.04975
+  ...
+# Subtest: activity sort keys compare noon and midnight in chronological order
+ok 13 - activity sort keys compare noon and midnight in chronological order
+  ---
+  duration_ms: 0.470459
+  ...
+# Subtest: alias match arrives chosen with computed lb
+ok 14 - alias match arrives chosen with computed lb
+  ---
+  duration_ms: 3.02075
+  ...
+# Subtest: exact match arrives chosen
+ok 15 - exact match arrives chosen
+  ---
+  duration_ms: 0.109375
+  ...
+# Subtest: fuzzy match is a suggestion, not a selection
+ok 16 - fuzzy match is a suggestion, not a selection
+  ---
+  duration_ms: 0.16275
+  ...
+# Subtest: quantity change never computes lb for an unconfirmed (fuzzy) line
+ok 17 - quantity change never computes lb for an unconfirmed (fuzzy) line
+  ---
+  duration_ms: 0.098292
+  ...
+# Subtest: typing pounds directly does not make a product-less line approvable
+ok 18 - typing pounds directly does not make a product-less line approvable
+  ---
+  duration_ms: 0.078834
+  ...
+# Subtest: explicit pick confirms the product and computes text-derived lb
+ok 19 - explicit pick confirms the product and computes text-derived lb
+  ---
+  duration_ms: 0.638292
+  ...
+# Subtest: live case: fuzzy 43% honey line cannot enable Approve untouched
+ok 20 - live case: fuzzy 43% honey line cannot enable Approve untouched
+  ---
+  duration_ms: 0.285583
+  ...
+# Subtest: Change restores the server badge; re-picking sets chosen again
+ok 21 - Change restores the server badge; re-picking sets chosen again
+  ---
+  duration_ms: 0.117375
+  ...
+# Subtest: Change on an exact line restores Exact, not Chosen
+ok 22 - Change on an exact line restores Exact, not Chosen
+  ---
+  duration_ms: 0.1785
+  ...
+# Subtest: editing lb/unit never marks the untouched expected-lb field manual
+ok 23 - editing lb/unit never marks the untouched expected-lb field manual
+  ---
+  duration_ms: 1.064
+  ...
+# Subtest: qty/unit source starts as document and flips to edited on a real change
+ok 24 - qty/unit source starts as document and flips to edited on a real change
+  ---
+  duration_ms: 0.326083
+  ...
+# Subtest: a failed re-match never leaves a Chosen badge on a product-less line
+ok 25 - a failed re-match never leaves a Chosen badge on a product-less line
+  ---
+  duration_ms: 0.195833
+  ...
+# Subtest: clearing the chosen product de-confirms the line
+ok 26 - clearing the chosen product de-confirms the line
+  ---
+  duration_ms: 0.265542
+  ...
+# Subtest: unit change invalidates lb_per_unit and expected lb
+ok 27 - unit change invalidates lb_per_unit and expected lb
+  ---
+  duration_ms: 0.418459
+  ...
+# Subtest: cosmetic unit edit (same normalized unit) keeps the conversion
+ok 28 - cosmetic unit edit (same normalized unit) keeps the conversion
+  ---
+  duration_ms: 0.311
+  ...
+# Subtest: product change drops product-derived conversions and stale pounds
+ok 29 - product change drops product-derived conversions and stale pounds
+  ---
+  duration_ms: 0.186167
+  ...
+# Subtest: product change keeps text-derived conversion and recomputes pounds
+ok 30 - product change keeps text-derived conversion and recomputes pounds
+  ---
+  duration_ms: 0.291875
+  ...
+# Subtest: save_alias defaults on; overriding expected lb flips it off
+ok 31 - save_alias defaults on; overriding expected lb flips it off
+  ---
+  duration_ms: 0.639875
+  ...
+# Subtest: an explicit save_alias choice survives a later lb override
+ok 32 - an explicit save_alias choice survives a later lb override
+  ---
+  duration_ms: 0.335542
+  ...
+# Subtest: approve payload sends the conversion only when it explains the pounds
+ok 33 - approve payload sends the conversion only when it explains the pounds
+  ---
+  duration_ms: 0.490542
+  ...
+# Subtest: save_alias false sends no conversion
+ok 34 - save_alias false sends no conversion
+  ---
+  duration_ms: 0.132875
+  ...
+# Subtest: manual lb-per-unit correction stays teachable and consistent
+ok 35 - manual lb-per-unit correction stays teachable and consistent
+  ---
+  duration_ms: 0.07275
+  ...
+# Subtest: no-match line starts fully unconfirmed
+ok 36 - no-match line starts fully unconfirmed
+  ---
+  duration_ms: 0.051125
+  ...
+# Subtest: mergeRematch preserves exclusions
+ok 37 - mergeRematch preserves exclusions
+  ---
+  duration_ms: 0.092875
+  ...
+# Subtest: mergeRematch keeps a user pick the new alias/exact result agrees with
+ok 38 - mergeRematch keeps a user pick the new alias/exact result agrees with
+  ---
+  duration_ms: 0.067708
+  ...
+# Subtest: mergeRematch resets a pick the new result does not confirm
+ok 39 - mergeRematch resets a pick the new result does not confirm
+  ---
+  duration_ms: 0.075209
+  ...
+# Subtest: mergeRematch resets a pick when the new result names a different product
+ok 40 - mergeRematch resets a pick when the new result names a different product
+  ---
+  duration_ms: 0.068083
+  ...
+# Subtest: mergeRematch keeps an explicit save_alias choice, resets defaults
+ok 41 - mergeRematch keeps an explicit save_alias choice, resets defaults
+  ---
+  duration_ms: 0.260542
+  ...
+# Subtest: applyRematchFailure: old product and 200 lb are not approvable after a failed rematch
+ok 42 - applyRematchFailure: old product and 200 lb are not approvable after a failed rematch
+  ---
+  duration_ms: 0.109583
+  ...
+# Subtest: applyRematchFailure keeps exclusions and explicit save_alias choices
+ok 43 - applyRematchFailure keeps exclusions and explicit save_alias choices
+  ---
+  duration_ms: 0.070875
+  ...
+# Subtest: edits are rejected while matching=true
+ok 44 - edits are rejected while matching=true
+  ---
+  duration_ms: 0.115958
+  ...
+# Subtest: unlockLines re-enables edits; applyRematchFailure also unlocks
+ok 45 - unlockLines re-enables edits; applyRematchFailure also unlocks
+  ---
+  duration_ms: 0.165292
+  ...
+# Subtest: clipboardImageFile picks the first PNG/JPEG and ignores everything else
+ok 46 - clipboardImageFile picks the first PNG/JPEG and ignores everything else
+  ---
+  duration_ms: 0.149625
+  ...
+# Subtest: clipboardFilename stamps clipboard-YYYYMMDD-HHMMSS with the right extension
+ok 47 - clipboardFilename stamps clipboard-YYYYMMDD-HHMMSS with the right extension
+  ---
+  duration_ms: 1.632916
+  ...
+# Subtest: forceKey binds the override to the normalized (supplier, reference) pair
+ok 48 - forceKey binds the override to the normalized (supplier, reference) pair
+  ---
+  duration_ms: 0.133667
+  ...
+# Subtest: soNormalizeMatchLine maps sales fields onto the shared shape
+ok 49 - soNormalizeMatchLine maps sales fields onto the shared shape
+  ---
+  duration_ms: 0.092125
+  ...
+# Subtest: so alias/exact match arrives chosen with computed lb; fuzzy stays a suggestion
+ok 50 - so alias/exact match arrives chosen with computed lb; fuzzy stays a suggestion
+  ---
+  duration_ms: 0.096625
+  ...
+# Subtest: so lb-unit line converts at 1 lb/unit; a pick computes and a re-pick restores
+ok 51 - so lb-unit line converts at 1 lb/unit; a pick computes and a re-pick restores
+  ---
+  duration_ms: 0.118625
+  ...
+# Subtest: soMergeRematch preserves exclusions and agreeing picks like the ER merge
+ok 52 - soMergeRematch preserves exclusions and agreeing picks like the ER merge
+  ---
+  duration_ms: 1.66575
+  ...
+# Subtest: soMergeRematch preserveResolved: a PO-number re-match keeps human picks, re-matches only unresolved lines
+ok 53 - soMergeRematch preserveResolved: a PO-number re-match keeps human picks, re-matches only unresolved lines
+  ---
+  duration_ms: 0.227667
+  ...
+# Subtest: applyProductPick pulls the product-master case size so cases→lb converts without typing
+ok 54 - applyProductPick pulls the product-master case size so cases→lb converts without typing
+  ---
+  duration_ms: 0.217042
+  ...
+# Subtest: applyProductPick never applies a master case size to a line whose unit is now LB (Codex review of PR \#36)
+ok 55 - applyProductPick never applies a master case size to a line whose unit is now LB (Codex review of PR \#36)
+  ---
+  duration_ms: 0.310417
+  ...
+# Subtest: soPriceBasis: per-case on cases, per-lb on lb, unclear otherwise (ruling 5)
+ok 56 - soPriceBasis: per-case on cases, per-lb on lb, unclear otherwise (ruling 5)
+  ---
+  duration_ms: 0.048709
+  ...
+# Subtest: soApproveLinePayload sends the price only when the basis is unambiguous
+ok 57 - soApproveLinePayload sends the price only when the basis is unambiguous
+  ---
+  duration_ms: 0.081583
+  ...
+# Subtest: soApproveLinePayload teaches the conversion only when it explains the pounds
+ok 58 - soApproveLinePayload teaches the conversion only when it explains the pounds
+  ---
+  duration_ms: 0.067375
+  ...
+# Subtest: applyUnitPriceChange edits and clears the price, locked while matching
+ok 59 - applyUnitPriceChange edits and clears the price, locked while matching
+  ---
+  duration_ms: 0.378084
+  ...
+# Subtest: soPrivateLabelWarning: warn only on a known first sale (rulings 2/3)
+ok 60 - soPrivateLabelWarning: warn only on a known first sale (rulings 2/3)
+  ---
+  duration_ms: 0.322709
+  ...
+# Subtest: 3,640 cases of a 10-lb product is 26 pallets
+ok 61 - 3,640 cases of a 10-lb product is 26 pallets
+  ---
+  duration_ms: 42.943334
+  ...
+# Subtest: 24 cases of a 25-lb UOM is 0.4 pallet
+ok 62 - 24 cases of a 25-lb UOM is 0.4 pallet
+  ---
+  duration_ms: 0.238625
+  ...
+# Subtest: seven 25-lb lines total 2.8 calculated and 3 physical mixed pallets
+ok 63 - seven 25-lb lines total 2.8 calculated and 3 physical mixed pallets
+  ---
+  duration_ms: 0.605917
+  ...
+# Subtest: unknown product and UOM do not crash or invent a pallet value
+ok 64 - unknown product and UOM do not crash or invent a pallet value
+  ---
+  duration_ms: 0.394292
+  ...
+1..64
+# tests 64
+# suites 0
+# pass 64
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 157.800167

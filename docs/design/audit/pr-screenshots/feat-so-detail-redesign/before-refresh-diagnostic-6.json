@@ -1,0 +1,1165 @@
+{
+  "generatedAt": "2026-09-11T14:46:56.335Z",
+  "variants": [
+    {
+      "key": "390-dark",
+      "label": "390px · dark",
+      "width": 390,
+      "height": 844,
+      "dsf": 3,
+      "theme": "dark",
+      "tier": "mobile"
+    },
+    {
+      "key": "1440-light",
+      "label": "1440px · light",
+      "width": 1440,
+      "height": 900,
+      "dsf": 1,
+      "theme": "light",
+      "tier": "desktop"
+    },
+    {
+      "key": "1440-dark",
+      "label": "1440px · dark",
+      "width": 1440,
+      "height": 900,
+      "dsf": 1,
+      "theme": "dark",
+      "tier": "desktop"
+    }
+  ],
+  "rules": [
+    "TOUCH-003",
+    "ACCESS-008",
+    "LAYOUT-003/ACCESS-001",
+    "LAYOUT-011",
+    "LAYOUT-020",
+    "STATUS-002",
+    "STATUS-004",
+    "STATUS-005",
+    "STATUS-006",
+    "STATUS-007",
+    "STATUS-008",
+    "STATUS-010",
+    "STATUS-011"
+  ],
+  "results": [
+    {
+      "id": "S-02",
+      "name": "Mini-calendar strip (3-month)",
+      "variant": "390-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 1,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 4,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 4,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.4003,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 89,
+          "anchorsAfter": 90,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-02.png"
+    },
+    {
+      "id": "S-02",
+      "name": "Mini-calendar strip (3-month)",
+      "variant": "1440-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 2,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 118,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 118,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 138,
+              "height": 90
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 138,
+              "bottom": 182,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3157,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 97,
+          "anchorsAfter": 100,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-02.png"
+    },
+    {
+      "id": "S-02",
+      "name": "Mini-calendar strip (3-month)",
+      "variant": "1440-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 2,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 118,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 118,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 138,
+              "height": 90
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 138,
+              "bottom": 182,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3157,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 97,
+          "anchorsAfter": 100,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-02.png"
+    },
+    {
+      "id": "S-02b",
+      "name": "Mini-calendar — expanded month (phone)",
+      "variant": "390-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 33,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 45,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 45,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 1,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 121,
+          "anchorsAfter": 122,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-02b.png"
+    },
+    {
+      "id": "S-02b",
+      "name": "Mini-calendar — expanded month (phone)",
+      "variant": "1440-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 2,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 118,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 118,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 138,
+              "height": 90
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 138,
+              "bottom": 182,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3451,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 97,
+          "anchorsAfter": 100,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-02b.png"
+    },
+    {
+      "id": "S-02b",
+      "name": "Mini-calendar — expanded month (phone)",
+      "variant": "1440-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 2,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 118,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 118,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 138,
+              "height": 90
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 138,
+              "bottom": 182,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0047,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 97,
+          "anchorsAfter": 100,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-02b.png"
+    },
+    {
+      "id": "S-05",
+      "name": "Tab bar (7 tabs)",
+      "variant": "390-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 0,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 0,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.4075,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 89,
+          "anchorsAfter": 90,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [
+        "Region `.tab-bar` was not visible; captured the page as it stood."
+      ],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": false,
+      "screenshot": "screenshots/390-dark/S-05.png"
+    },
+    {
+      "id": "S-05",
+      "name": "Tab bar (7 tabs)",
+      "variant": "1440-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 7,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 7,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 7,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 138,
+              "height": 90
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 138,
+              "bottom": 182,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2241,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 97,
+          "anchorsAfter": 100,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-05.png"
+    },
+    {
+      "id": "S-05",
+      "name": "Tab bar (7 tabs)",
+      "variant": "1440-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 7,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 7,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 7,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 138,
+              "height": 90
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 138,
+              "bottom": 182,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.001,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 97,
+          "anchorsAfter": 100,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-05.png"
+    }
+  ],
+  "unmatchedEndpoints": []
+}

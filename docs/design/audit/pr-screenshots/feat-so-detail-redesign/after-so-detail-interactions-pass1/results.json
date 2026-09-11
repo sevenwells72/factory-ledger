@@ -1,0 +1,162 @@
+[
+  {
+    "variant": "1440-light",
+    "check": "Four independent dimensions; keyboard explanations and single-popover dismissal",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Line explanations use matching line IDs and effective ledger pounds through SOList.number",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Partial shipment 409 offers Close and previews the suggested reason before commit",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Open/shipped Ready remains editable while header edits are locked",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "check": "Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable",
+    "passed": true
+  },
+  {
+    "variant": "1440-light",
+    "passed": false,
+    "error": "AssertionError [ERR_ASSERTION]: A detail response without Ready metadata must not erase a note on an unloaded list page\n+ actual - expected\n\n+ null\n- 'Keep the staged pallets together.'\n    at file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:331:16\n    at async check (file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:161:42)\n    at async file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:322:7"
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Four independent dimensions; keyboard explanations and single-popover dismissal",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Line explanations use matching line IDs and effective ledger pounds through SOList.number",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Partial shipment 409 offers Close and previews the suggested reason before commit",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Open/shipped Ready remains editable while header edits are locked",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "check": "Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable",
+    "passed": true
+  },
+  {
+    "variant": "1440-dark",
+    "passed": false,
+    "error": "AssertionError [ERR_ASSERTION]: A detail response without Ready metadata must not erase a note on an unloaded list page\n+ actual - expected\n\n+ null\n- 'Keep the staged pallets together.'\n    at file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:331:16\n    at async check (file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:161:42)\n    at async file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:322:7"
+  },
+  {
+    "variant": "390-light",
+    "check": "Four independent dimensions; keyboard explanations and single-popover dismissal",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Line explanations use matching line IDs and effective ledger pounds through SOList.number",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Partial shipment 409 offers Close and previews the suggested reason before commit",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Open/shipped Ready remains editable while header edits are locked",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "check": "Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable",
+    "passed": true
+  },
+  {
+    "variant": "390-light",
+    "passed": false,
+    "error": "AssertionError [ERR_ASSERTION]: A detail response without Ready metadata must not erase a note on an unloaded list page\n+ actual - expected\n\n+ null\n- 'Keep the staged pallets together.'\n    at file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:331:16\n    at async check (file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:161:42)\n    at async file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:322:7"
+  },
+  {
+    "variant": "390-dark",
+    "check": "Four independent dimensions; keyboard explanations and single-popover dismissal",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Line explanations use matching line IDs and effective ledger pounds through SOList.number",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Partial shipment 409 offers Close and previews the suggested reason before commit",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Open/shipped Ready remains editable while header edits are locked",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "check": "Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable",
+    "passed": true
+  },
+  {
+    "variant": "390-dark",
+    "passed": false,
+    "error": "AssertionError [ERR_ASSERTION]: A detail response without Ready metadata must not erase a note on an unloaded list page\n+ actual - expected\n\n+ null\n- 'Keep the staged pallets together.'\n    at file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:331:16\n    at async check (file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:161:42)\n    at async file:///Users/michaelgross/Documents/factory-ledger/tests/visual/run-so-detail-interactions.mjs:322:7"
+  }
+]

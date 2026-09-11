@@ -1,0 +1,37 @@
+PASS 1440-light: Four independent dimensions; keyboard explanations and single-popover dismissal
+PASS 1440-light: Line explanations use matching line IDs and effective ledger pounds through SOList.number
+PASS 1440-light: Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts
+PASS 1440-light: Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus
+PASS 1440-light: Partial shipment 409 offers Close and previews the suggested reason before commit
+PASS 1440-light: Open/shipped Ready remains editable while header edits are locked
+PASS 1440-light: Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable
+PASS 1440-light: Direct detail links preserve an off-page Ready note and provenance
+PASS 1440-light: Detail page stays in the viewport without browser errors
+PASS 1440-dark: Four independent dimensions; keyboard explanations and single-popover dismissal
+PASS 1440-dark: Line explanations use matching line IDs and effective ledger pounds through SOList.number
+PASS 1440-dark: Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts
+PASS 1440-dark: Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus
+PASS 1440-dark: Partial shipment 409 offers Close and previews the suggested reason before commit
+PASS 1440-dark: Open/shipped Ready remains editable while header edits are locked
+PASS 1440-dark: Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable
+PASS 1440-dark: Direct detail links preserve an off-page Ready note and provenance
+PASS 1440-dark: Detail page stays in the viewport without browser errors
+PASS 390-light: Four independent dimensions; keyboard explanations and single-popover dismissal
+PASS 390-light: Line explanations use matching line IDs and effective ledger pounds through SOList.number
+PASS 390-light: Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts
+PASS 390-light: Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus
+PASS 390-light: Partial shipment 409 offers Close and previews the suggested reason before commit
+PASS 390-light: Open/shipped Ready remains editable while header edits are locked
+PASS 390-light: Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable
+PASS 390-light: Direct detail links preserve an off-page Ready note and provenance
+PASS 390-light: Detail page stays in the viewport without browser errors
+PASS 390-dark: Four independent dimensions; keyboard explanations and single-popover dismissal
+PASS 390-dark: Line explanations use matching line IDs and effective ledger pounds through SOList.number
+PASS 390-dark: Open Ready checkbox persists, blocks in-flight duplicates, and refreshes counts
+PASS 390-dark: Shared Close preview invalidates on edits; commit refreshes detail and list counts and focus
+PASS 390-dark: Partial shipment 409 offers Close and previews the suggested reason before commit
+PASS 390-dark: Open/shipped Ready remains editable while header edits are locked
+PASS 390-dark: Closed/cancelled Ready is gated; Reopen uses preview/commit; cancelled lines and related SO stay reachable
+PASS 390-dark: Direct detail links preserve an off-page Ready note and provenance
+PASS 390-dark: Detail page stays in the viewport without browser errors
+36 Sales Order detail interaction checks passed.
