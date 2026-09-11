@@ -14371,12 +14371,13 @@ def update_order_line(
                 if quantity_lb is not None:
                     product_id = int(row['product_id'])
                     # released_by comes from caller_source_tag, the same source
-                    # every other allocation writer uses. It used to be
-                    # _operator_id(_), which is the constant 'legacy-shared-key'
-                    # on 100% of calls — a second, incompatible vocabulary in
-                    # one column. This handler was the last of the four to be
-                    # fixed; see docs/design/so-state-model-findings.md,
-                    # "Follow-up: _operator_id() is a no-op placeholder".
+                    # every other allocation writer uses. It used to come from
+                    # the operator-id placeholder, which is the constant
+                    # 'legacy-shared-key' on 100% of calls — a second,
+                    # incompatible vocabulary in one column. This handler was
+                    # the last of the four to be fixed; see the "no-op
+                    # placeholder" follow-up in
+                    # docs/design/so-state-model-findings.md.
                     released_by = caller_source_tag(request)
                     _lock_allocation_product(cur, product_id)
                     _expire_auto_fifo_allocations(cur, product_id, released_by)
