@@ -2595,6 +2595,10 @@ def _capture_readonly_diagnostics() -> dict:
 # ship/receive endpoints. Anything not listed here (admin/*, /make, /pack,
 # /adjust, /void, deletes, migrations, etc.) is master-key only.
 DASHBOARD_KEY_ALLOWLIST = frozenset({
+    # Who am I (FR-15). Read-only, returns nothing but the caller's own
+    # identity, and is how the dashboard will learn whether it is holding an
+    # actor key or the shared one. Deliberately NOT in openapi-gpt-v3.yaml.
+    ("GET", "/auth/whoami"),
     # Legacy dashboard summaries
     ("GET", "/dashboard/inventory"),
     ("GET", "/dashboard/low-stock"),
@@ -2693,14 +2697,212 @@ def _route_key(request: Request):
     return (request.method.upper(), path)
 
 
+# ─────────────────────────────────────────────────────────────────
+# FR-15 step 5a: per-actor keys (migration 052)
+#
+# A third kind of key, resolved from the `actors` table by sha256, that names
+# a PERSON. It exists so the attribution columns can hold "Arturo" instead of
+# the surface tag 'dashboard'.
+#
+# RESOLUTION ORDER IS LOAD-BEARING. The two legacy keys are compared FIRST, so
+# their behaviour — including which routes they reach and which status code a
+# rejection carries — is untouched by anything below. An actor key is only
+# considered once both legacy comparisons have failed, which means this whole
+# mechanism is invisible to every existing caller.
+#
+# SCOPE. An actor key is authorized on exactly DASHBOARD_KEY_ALLOWLIST — the
+# same routes the scoped dashboard key reaches, no more. It is a replacement
+# for that key, not an upgrade of it: handing a named person master-key reach
+# would be a privilege escalation this PR has no mandate for. Role
+# ('owner' | 'floor' | 'office') is recorded and returned by /auth/whoami but
+# does not yet gate anything.
+#
+# CACHING. The active actor set is small (one row per employee) and is cached
+# whole, so a request costs a dict lookup and no query. Consequences, both
+# deliberate:
+#   * a key minted less than ACTOR_CACHE_TTL_S ago may 401 until the cache
+#     turns over — mint, then wait a minute, then hand it out;
+#   * a key deactivated less than ACTOR_CACHE_TTL_S ago keeps working for up
+#     to that long. Deactivation is not an incident-response control. If a key
+#     must die NOW, rotate DASHBOARD_API_KEY/API_KEY and restart the instance.
+# An UNKNOWN key never forces a refresh: letting an unauthenticated caller
+# trigger a DB round-trip per request is a free denial-of-service lever.
+# ─────────────────────────────────────────────────────────────────
+
+ACTOR_CACHE_TTL_S = 60
+# One last_used_at write per key per 10 minutes. The column answers "is this
+# key still in use", which does not need per-request resolution, and a write
+# on every authenticated request would put a pointless UPDATE in front of
+# every read endpoint.
+ACTOR_LAST_USED_THROTTLE_S = 600
+
+_actor_lock = threading.Lock()
+_actor_cache: dict = {}              # key_hash -> {"id", "name", "role"}
+_actor_cache_loaded_at: float = 0.0  # time.monotonic(); 0.0 = never loaded
+_actor_last_used_seen: dict = {}     # key_hash -> time.monotonic() of last write
+# Incremented on every actual DB load. Exposed for tests, which assert that a
+# burst of authenticated requests costs exactly one.
+_actor_cache_loads = 0
+
+
+def _hash_api_key(provided_key: str) -> str:
+    """sha256 hex of the plaintext key — the form stored in actors.key_hash."""
+    return hashlib.sha256(provided_key.encode("utf-8")).hexdigest()
+
+
+def _reset_actor_cache() -> None:
+    """Drop the cache so the next resolution reloads. Tests and startup only."""
+    global _actor_cache, _actor_cache_loaded_at, _actor_cache_loads
+    with _actor_lock:
+        _actor_cache = {}
+        _actor_cache_loaded_at = 0.0
+        _actor_last_used_seen.clear()
+        _actor_cache_loads = 0
+
+
+def _load_actors() -> dict:
+    """Read every active actor. One query, whole table, no parameters."""
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id, name, role, key_hash FROM actors WHERE active ORDER BY id"
+            )
+            rows = cur.fetchall()
+    return {
+        row["key_hash"]: {
+            "id": int(row["id"]),
+            "name": row["name"],
+            "role": row["role"],
+            "key_hash": row["key_hash"],
+        }
+        for row in rows
+    }
+
+
+def _actors_by_hash() -> dict:
+    """The cached active actor set, reloaded once its TTL has elapsed.
+
+    A failed load (most likely: migration 052 not applied yet on this
+    database) caches EMPTY for a full TTL rather than raising. That is the
+    correct degradation — with no actors resolvable, every key falls through
+    to exactly the pre-FR-15 behaviour, and the legacy keys never reach this
+    code at all.
+    """
+    global _actor_cache, _actor_cache_loaded_at, _actor_cache_loads
+    with _actor_lock:
+        age = time.monotonic() - _actor_cache_loaded_at
+        if _actor_cache_loaded_at and age < ACTOR_CACHE_TTL_S:
+            return _actor_cache
+
+    # Loaded OUTSIDE the lock: a slow database must not serialise every
+    # in-flight request behind one refresh. Two threads racing the expiry
+    # both load and the second wins; the query is idempotent and cheap.
+    try:
+        loaded = _load_actors()
+        failed = None
+    except Exception as e:
+        loaded = {}
+        failed = f"{type(e).__name__}: {e}"
+
+    with _actor_lock:
+        _actor_cache = loaded
+        _actor_cache_loaded_at = time.monotonic()
+        _actor_cache_loads += 1
+    if failed:
+        logger.warning(
+            f"Actor cache load failed ({failed}); actor keys are unresolvable "
+            f"for up to {ACTOR_CACHE_TTL_S}s. The two legacy keys are unaffected. "
+            f"If migration 052 has not been applied yet, this is expected."
+        )
+    return loaded
+
+
+def _touch_actor_last_used(actor: dict) -> None:
+    """Best-effort last_used_at stamp, throttled per key.
+
+    Never raises: this is telemetry attached to an auth check, and a failed
+    UPDATE must not turn a valid request into a 500. The throttle stamp is
+    taken BEFORE the write so a slow or failing database cannot produce a
+    write per request; it is given back on failure so the next request retries.
+    """
+    key_hash = actor["key_hash"]
+    now = time.monotonic()
+    with _actor_lock:
+        last = _actor_last_used_seen.get(key_hash)
+        if last is not None and (now - last) < ACTOR_LAST_USED_THROTTLE_S:
+            return
+        _actor_last_used_seen[key_hash] = now
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE actors SET last_used_at = now() WHERE id = %s",
+                    (actor["id"],),
+                )
+    except Exception as e:
+        with _actor_lock:
+            _actor_last_used_seen.pop(key_hash, None)
+        logger.warning(f"actors.last_used_at update failed for actor "
+                       f"#{actor['id']} ({type(e).__name__}: {e})")
+
+
+def _resolve_actor(provided_key: str) -> Optional[dict]:
+    """The actor this key names, or None. Inactive actors resolve to None
+    because _load_actors filters on `active` — a deactivated key is
+    indistinguishable from a key that was never minted, which is what
+    deactivation is supposed to mean."""
+    if not provided_key:
+        return None
+    return _actors_by_hash().get(_hash_api_key(provided_key))
+
+
+def request_actor(request: Optional[Request]) -> Optional[dict]:
+    """The actor resolved for this request, or None for a legacy key.
+
+    getattr-with-default rather than direct access: a handler may be called
+    with a Request that never passed through an auth dependency (the ship
+    preview/commit wrappers pass theirs straight through, and tests call
+    handler functions directly), and 'no actor' is the correct answer there.
+    """
+    if request is None:
+        return None
+    return getattr(request.state, "actor", None)
+
+
+def actor_name(request: Optional[Request]) -> Optional[str]:
+    """The actor's name for the attribution columns, or None for a legacy key."""
+    actor = request_actor(request)
+    return actor["name"] if actor else None
+
+
 def _authorize_api_key(provided_key: str, request: Request, invalid_status: int = 403) -> bool:
-    """Shared check for both dependencies. Master key -> always OK. Dashboard
-    key -> OK only if the matched route is on DASHBOARD_KEY_ALLOWLIST."""
+    """Shared check for all dependencies. Master key -> always OK. Dashboard
+    key and actor keys -> OK only if the matched route is on
+    DASHBOARD_KEY_ALLOWLIST.
+
+    Status codes are unchanged from before FR-15, deliberately: a missing key
+    is 401, and an unrecognised key is `invalid_status` (403 on the header
+    dependency, 401 on the packing-slip query-param one). An unrecognised key
+    now includes a deactivated actor's key, which is the same answer the
+    caller got before that actor existed.
+    """
+    request.state.actor = None
+    request.state.key_kind = None
     if not provided_key:
         raise HTTPException(status_code=401, detail="API key required")
     if secrets.compare_digest(provided_key, API_KEY):
+        request.state.key_kind = "legacy_ledger"
         return True
     if DASHBOARD_API_KEY and secrets.compare_digest(provided_key, DASHBOARD_API_KEY):
+        request.state.key_kind = "legacy_dashboard"
+        if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
+            return True
+        raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
+    actor = _resolve_actor(provided_key)
+    if actor is not None:
+        request.state.actor = actor
+        request.state.key_kind = "actor"
+        _touch_actor_last_used(actor)
         if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
@@ -2718,6 +2920,29 @@ def verify_api_key_flexible(
 ):
     """Accept API key from either header or query parameter (packing slip browser access)."""
     return _authorize_api_key(x_api_key or key, request, invalid_status=401)
+
+
+@app.get("/auth/whoami")
+def auth_whoami(request: Request, _: bool = Depends(verify_api_key)):
+    """Who does the key on this request name?
+
+    The dashboard's own check for whether it is holding a personal key or the
+    shared one, and the one-command verification after minting keys:
+
+        curl -sH "X-API-Key: <actor key>" $API/auth/whoami
+
+    `actor` is null for both legacy keys — that is the honest answer, not a
+    gap: those keys name a surface, not a person. Nothing secret is returned;
+    the caller already holds the key whose identity is being echoed back.
+
+    Deliberately NOT in openapi-gpt-v3.yaml — that file is at its hard
+    30-operation ceiling and no GPT needs this route.
+    """
+    actor = request_actor(request)
+    return {
+        "actor": {"name": actor["name"], "role": actor["role"]} if actor else None,
+        "key_kind": getattr(request.state, "key_kind", None),
+    }
 
 
 def resolve_order_id(order_id: str = Path(...)) -> int:
