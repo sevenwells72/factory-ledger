@@ -78,7 +78,8 @@ const ROUTES = [
   { test: u => u.pathname === '/audit/integrity', fixture: 'audit-integrity.json' },
   { test: u => u.pathname === '/ledger/recent', fixture: 'ledger-recent.json' },
   { test: u => u.pathname === '/sales/orders/fulfillment-check', fixture: 'fulfillment-check.json' },
-  { test: u => u.pathname === '/sales/orders', fixture: 'sales-orders.json' },
+  { test: u => u.pathname === '/sales/orders/counts', fixture: 'sales-order-counts.json' },
+  { test: u => u.pathname === '/sales/orders', fixture: 'sales-orders-list.json' },
   {
     test: u => /^\/sales\/orders\/\d+\/allocations$/.test(u.pathname),
     fixture: 'allocations.json',
@@ -169,7 +170,7 @@ export async function installApiStub(context, tokens, state) {
     } else {
       const rule = matchRoute(url);
       if (!rule) {
-        state.unmatched.add(url.pathname);
+        state.unmatched?.add(url.pathname);
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
@@ -183,7 +184,28 @@ export async function installApiStub(context, tokens, state) {
 
     let payload = await loadFixture(fixtureName, tokens);
     if (select != null) {
-      payload = payload[select] ?? payload[Object.keys(payload)[0]];
+      if (fixtureName === 'sales-order-detail.json' && ['110', '111'].includes(select)) {
+        // New terminal-state list rows need matching identities when expanded.
+        // Existing detail-screen payloads remain byte-for-byte unchanged.
+        const list = await loadFixture('sales-orders-list.json', tokens);
+        payload = { ...list.orders.find(order => String(order.order_id) === select), lines: [] };
+      } else {
+        payload = payload[select] ?? payload[Object.keys(payload)[0]];
+      }
+    }
+    // Match the list API's query semantics. The detail fixture is intentionally
+    // unchanged: this redesign covers the list, not the detail page.
+    if (url.pathname === '/sales/orders' && Array.isArray(payload.orders)) {
+      const stateFilter = url.searchParams.get('state');
+      const fulfillment = url.searchParams.get('fulfillment');
+      const overdue = url.searchParams.get('overdue_only') === 'true';
+      const customer = (url.searchParams.get('customer') || '').toLowerCase();
+      const orders = payload.orders.filter(order =>
+        (!stateFilter || order.state === stateFilter) &&
+        (!fulfillment || order.fulfillment === fulfillment) &&
+        (!overdue || (order.state === 'open' && order.overdue && order.fulfillment !== 'shipped')) &&
+        (!customer || order.customer.toLowerCase().includes(customer)));
+      payload = { ...payload, orders, count: orders.length };
     }
 
     await route.fulfill({

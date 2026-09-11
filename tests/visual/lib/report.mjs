@@ -127,10 +127,9 @@ export function writeReport({ results, screens, variants, rules, verdict, zoomSc
   out.push('chip without the hook, one mis-formatted number, one orphan dash, one row over 56 px, one denylisted term,');
   out.push('one repeated sentence.');
   out.push('');
-  out.push('**STATUS-005 fails everywhere by design.** The `data-explain` hook the rule defines is not in the product');
-  out.push('yet. The check is written against the markup the Sales Orders redesign will introduce, so today it reports');
-  out.push('the size of that work — how many chips need the hook, and how many currently rely on a `title` tooltip that');
-  out.push('a touch device never shows.');
+  out.push('**STATUS-005 checks the MASTER-defined `data-explain` hook.** The Sales Orders list implements it;');
+  out.push('screens that have not yet adopted the hook still report failures, including chips that currently rely');
+  out.push('only on a `title` tooltip that a touch device never shows.');
   out.push('');
 
   out.push('## Results at a glance');

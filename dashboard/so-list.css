@@ -1,0 +1,122 @@
+/* Step 3: scoped list styling; shared detail view keeps its established layout. */
+#orders-list-view { font-variant-numeric: tabular-nums; }
+#orders-list-view .so-tabs { display:flex; gap:4px; overflow-x:auto; flex-wrap:nowrap; border-bottom:1px solid var(--border); padding:0 0 8px; margin-bottom:16px; scrollbar-width:thin; }
+.so-tabs button { flex:none; min-height:44px; padding:8px 14px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--text-secondary); font:inherit; cursor:pointer; white-space:nowrap; }
+.so-tabs button[aria-selected="true"] { background:var(--surface); color:var(--text); border-color:var(--border); box-shadow:inset 0 -3px var(--primary-text); }
+.so-tab-count { font-variant-numeric:tabular-nums; margin-left:5px; color:var(--text-muted); }
+.so-refinement-summary { color:var(--text-muted); margin:0 0 8px; font-size:14px; }
+.so-refinement-summary:empty { display:none; }
+#orders-list-view .orders-filters { align-items:flex-end; }
+#orders-list-view .orders-overdue-toggle { min-height:44px; }
+#orders-list-view .so-explain-trigger { font:inherit; color:inherit; background:transparent; border:0; border-radius:4px; padding:0 3px; min-height:44px; min-width:44px; max-width:100%; text-align:inherit; cursor:help; vertical-align:middle; white-space:nowrap; }
+#orders-list-view .so-explain-trigger::before { content:none; }
+#orders-list-view .order-link { color:var(--primary-text); }
+#orders-list-view :is(button,input,summary):focus-visible, .so-explanation summary:focus-visible { outline:2px solid var(--primary-text); outline-offset:2px; }
+#orders-list-view .so-relative { color:var(--text-muted); font-size:12px; margin-left:4px; }
+#orders-list-view .so-health { min-width:44px; font-size:24px; line-height:1; }
+#orders-list-view .so-health-critical { color:var(--danger); }
+#orders-list-view .so-health-warning { color:var(--warning); }
+#orders-list-view .so-exit-chip { font-size:12px; border-radius:5px; border:1px solid var(--border); padding-inline:6px; margin-left:4px; color:var(--text-secondary); }
+#orders-list-view .so-ready-target { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; cursor:pointer; }
+#orders-list-view .order-ready-checkbox { width:20px; height:20px; margin:0; accent-color:var(--primary); }
+#orders-list-view .order-expand-toggle { width:44px; min-width:44px; height:44px; margin:0; padding:0; border:0; vertical-align:middle; }
+#orders-list-view .order-expand-toggle::before { content:none; }
+#orders-list-view .table-sort::after { display:none; content:none; }
+#orders-list-view .table-sort { white-space:nowrap; }
+#orders-list-view .table-sort .fl-icon { display:none; }
+#orders-list-view th[aria-sort="ascending"] .table-sort::after { display:inline; content:' ↑'; }
+#orders-list-view th[aria-sort="descending"] .table-sort::after { display:inline; content:' ↓'; }
+#orders-list-view .so-row-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+#orders-list-view .so-row-actions button, #orders-list-view .order-ready-note-save { min-height:44px; }
+#orders-list-view .so-lines-scroll { overflow-x:auto; }
+#orders-list-view .order-lines-table { font-size:14px; }
+#orders-list-view .order-lines-table td { white-space:nowrap; height:44px; padding:4px 8px; }
+.so-explanation { position:fixed; z-index:1100; box-sizing:border-box; width:360px; max-width:calc(100vw - 16px); max-height:min(480px,70vh); overflow:auto; padding:14px 16px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); box-shadow:0 8px 28px var(--overlay-bg); font:14px/1.5 var(--font); font-variant-numeric:tabular-nums; white-space:normal; text-align:left; cursor:auto; }
+.so-explanation[hidden] { display:none; }
+.so-explanation p { margin:0 0 10px; }
+.so-explanation p:first-child { color:var(--text-secondary); }
+.so-explanation p:last-child { margin-bottom:0; }
+.so-explanation summary { min-height:44px; display:list-item; align-content:center; cursor:pointer; }
+.so-explanation ul { padding-left:18px; margin:6px 0 0; }
+.so-explanation li { margin-bottom:8px; }
+@media (min-width:769px) {
+  #orders-table-container > .table-scroll > .so-list-table { display:table; width:100%; min-width:1060px; table-layout:fixed; border-collapse:collapse; }
+  #orders-table-container > .table-scroll { overflow-x:auto; }
+  #orders-table-container > .table-scroll > .table-tools { position:sticky; top:calc(var(--site-nav-h) + var(--header-h) + 52px); z-index:4; background:var(--surface); }
+  #orders-table-container .so-list-table .order-row > td { box-sizing:border-box; height:52px; padding:3px 5px; white-space:nowrap; overflow-wrap:normal; }
+  #orders-table-container .so-list-table th { padding:5px; font-size:12px; text-transform:none; letter-spacing:0; }
+  #orders-table-container .so-list-table th:nth-child(1) { width:96px; min-width:96px; }
+  #orders-table-container .so-list-table th:nth-child(2) { width:195px; }
+  #orders-table-container .so-list-table th:nth-child(3) { width:auto; }
+  #orders-table-container .so-list-table th:nth-child(4) { width:180px; }
+  #orders-table-container .so-list-table th:nth-child(5) { width:210px; }
+  #orders-table-container .so-list-table th:nth-child(6) { width:56px; }
+  #orders-table-container .so-list-table th:nth-child(7) { width:105px; }
+  #orders-table-container .so-list-table th:nth-child(8) { width:120px; }
+  #orders-table-container .so-list-table .order-row > td:nth-child(7) { width:auto; }
+  #orders-table-container .so-list-table .order-identity-cell { white-space:nowrap; }
+  #orders-list-view .so-customer { display:block; width:100%; overflow:hidden; text-overflow:ellipsis; }
+  #orders-list-view .so-list-table { font-size:13px; }
+  #orders-list-view .so-exit-chip { max-width:calc(100% - 32px); overflow:hidden; text-overflow:ellipsis; }
+  #orders-list-view .order-row[data-state="closed"] .order-identity-cell, #orders-list-view .order-row[data-state="cancelled"] .order-identity-cell { position:relative; }
+  #orders-list-view .order-row[data-state="closed"] .order-link, #orders-list-view .order-row[data-state="cancelled"] .order-link { max-width:calc(100% - 34px); }
+}
+@media (min-width:1101px) {
+  #orders-table-container > .table-scroll { overflow:visible; }
+  #orders-table-container > .table-scroll > .so-list-table { min-width:0; }
+  #orders-table-container > .table-scroll > .table-tools::after { content:none; }
+}
+@media (min-width:769px) and (max-width:1100px) {
+  #orders-table-container > .table-scroll { overflow:visible; }
+  #orders-table-container > .table-scroll > .so-list-table { display:block; min-width:0; overflow-x:auto; }
+  #orders-table-container > .table-scroll > .table-tools::after { content:'Scroll sideways to see all columns →'; }
+}
+@media (max-width:768px) {
+  #orders-list-view .so-tabs { margin-inline:-4px; padding-inline:4px; }
+  #orders-list-view .so-tabs button { padding-inline:12px; }
+  #orders-list-view .orders-toolbar-actions { display:flex; flex-wrap:wrap; }
+  #orders-list-view .orders-toolbar-actions button { flex:1 1 auto; }
+  #orders-table-container > .table-scroll > .so-list-table { min-width:0; display:block; }
+  #orders-list-view .so-list-table .order-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4px 8px; padding:10px; }
+  #orders-list-view .so-list-table .order-row > td:nth-child(n) { display:block; grid-row:auto; grid-column:auto; padding:0; text-align:left; white-space:normal; }
+  #orders-list-view .so-list-table .order-row > td:nth-child(2) { grid-column:1/-1; grid-row:1; }
+  #orders-list-view .so-list-table .order-row > td:nth-child(3) { grid-column:1/-1; grid-row:2; }
+  #orders-list-view .so-list-table .order-row > td:nth-child(4) { grid-column:1/-1; grid-row:3; }
+  #orders-list-view .so-list-table .order-row > td:nth-child(5) { grid-column:1/-1; grid-row:4; }
+  #orders-list-view .so-list-table .order-row > td:nth-child(1) { grid-row:6; }
+  #orders-list-view .so-list-table .order-row > td:nth-child(6) { grid-row:6; }
+  #orders-list-view .so-list-table .order-row > td:nth-child(2)::before, #orders-list-view .so-list-table .order-row > td:nth-child(3)::before { display:none; }
+  #orders-list-view .so-explain-trigger { white-space:normal; }
+  #orders-list-view .order-link { font-weight:700; }
+  #orders-list-view .order-expand-toggle { width:44px; min-width:44px; }
+  #orders-list-view .so-exit-chip { margin:4px 0; display:block; }
+  #orders-list-view .so-lines-scroll { max-width:calc(100vw - 76px); }
+  #orders-list-view .order-lines-row > td { padding:10px; display:block; }
+}
+
+#orders-list-view .so-list-table .num { font-family:var(--font); font-variant-numeric:tabular-nums; }
+
+#orders-list-view .so-empty-explained { cursor:help; }
+#orders-list-view .so-empty-explained:focus-visible { outline:2px solid var(--primary-text); outline-offset:-2px; }
+@media (max-width:768px) { #orders-list-view .so-empty-explained { min-height:64px; } }
+#orders-list-view .table-sort { min-width:44px; }
+/* Exited rows leave the readiness and health dimensions silent, including
+   their headings, so the complete reason can be read beside the identifier. */
+@media (min-width:769px) {
+  #orders-list-view .so-list-table:has(.order-row[data-state="closed"]) th:nth-child(1),
+  #orders-list-view .so-list-table:has(.order-row[data-state="cancelled"]) th:nth-child(1),
+  #orders-list-view .so-list-table:has(.order-row[data-state="closed"]) th:nth-child(6),
+  #orders-list-view .so-list-table:has(.order-row[data-state="cancelled"]) th:nth-child(6) { width:24px; min-width:24px; visibility:hidden; }
+  #orders-list-view .so-list-table:has(.order-row[data-state="closed"]) th:nth-child(2),
+  #orders-list-view .so-list-table:has(.order-row[data-state="cancelled"]) th:nth-child(2) { width:400px; }
+  #orders-list-view .so-list-table:has(.order-row[data-state="closed"]) th:nth-child(4),
+  #orders-list-view .so-list-table:has(.order-row[data-state="cancelled"]) th:nth-child(4) { width:170px; }
+  #orders-list-view .order-row[data-state="closed"] .so-exit-chip,
+  #orders-list-view .order-row[data-state="cancelled"] .so-exit-chip { max-width:none; }
+}
+@media (max-width:768px) {
+  #orders-list-view .order-row[data-state="closed"] > td:nth-child(1),
+  #orders-list-view .order-row[data-state="cancelled"] > td:nth-child(1),
+  #orders-list-view .order-row[data-state="closed"] > td:nth-child(6),
+  #orders-list-view .order-row[data-state="cancelled"] > td:nth-child(6) { display:none; }
+}

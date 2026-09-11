@@ -1,0 +1,8 @@
+{
+  "open": 9,
+  "ready_to_ship": 4,
+  "overdue": 3,
+  "shipped": 1,
+  "closed": 1,
+  "cancelled": 1
+}

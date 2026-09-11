@@ -378,25 +378,28 @@ async function main() {
   let cursor = 0;
   let done = 0;
   const worker = async () => {
-    const stubState = { fail: [], overrides: {}, status: {}, unmatched };
-    const contexts = new Map();
     while (true) {
       const index = cursor++;
       if (index >= jobs.length) break;
       const { screen, variant } = jobs[index];
-      if (!contexts.has(variant.key)) {
-        const ctx = await newContext(browser, variant);
+      // Each screen starts with its own storage and page state. Reusing a
+      // context accumulated scheduler sample orders and table preferences,
+      // making results depend on worker assignment and concurrency.
+      const stubState = { fail: [], overrides: {}, status: {}, unmatched };
+      const ctx = await newContext(browser, variant);
+      let res;
+      try {
         await installApiStub(ctx, tokens, stubState);
-        contexts.set(variant.key, ctx);
+        res = await runCapture(ctx, server.origin, screen, variant, tokens, stubState);
+      } finally {
+        await ctx.close().catch(() => {});
       }
-      const res = await runCapture(contexts.get(variant.key), server.origin, screen, variant, tokens, stubState);
       results.push(res);
       done++;
       if (done % 10 === 0 || done === jobs.length) {
         process.stdout.write(`  ${done}/${jobs.length} captures\n`);
       }
     }
-    for (const ctx of contexts.values()) await ctx.close().catch(() => {});
   };
 
   await Promise.all(Array.from({ length: Math.max(1, args.concurrency) }, worker));

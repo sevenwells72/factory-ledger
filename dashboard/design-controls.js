@@ -50,7 +50,7 @@
     const eligible=headers.map((h,i)=>({h,i,name:h.textContent.trim()})).filter(x=>x.name&&!x.h.classList.contains('order-ready-col'));
     if(!eligible.length)return;
     const owner=table.closest('[id]') || document.body;
-    const preferenceKey='fl-table:'+location.pathname+':'+owner.id+':'+[...owner.querySelectorAll('table')].indexOf(table)+(salesList?':'+document.getElementById('orders-status-filter').value:'');
+    const preferenceKey='fl-table:'+location.pathname+':'+owner.id+':'+[...owner.querySelectorAll('table')].indexOf(table)+(salesList?':so-list-v3:'+(document.querySelector('[data-orders-tab][aria-selected="true"]')?.dataset.ordersTab || 'open'):'');
     let preferences={};try{preferences=JSON.parse(localStorage.getItem(preferenceKey)||'{}');}catch(_){}
     const persist=()=>{try{localStorage.setItem(preferenceKey,JSON.stringify(preferences));}catch(_){}};
     const bar=document.createElement('div');bar.className='table-tools';
@@ -92,7 +92,7 @@
     select.addEventListener('change',()=>{descending=false;sort();});direction.addEventListener('click',()=>{descending=!descending;sort();});
     const resize=document.createElement('details');resize.className='table-resize';const summary=document.createElement('summary');summary.textContent='Resize columns';resize.append(summary);
     const widths=document.createElement('div');eligible.forEach(({h,i,name})=>{const l=document.createElement('label');l.textContent=name+' ';const range=document.createElement('input');range.type='range';range.min=80;range.max=640;range.step=16;range.value=preferences.widths?.[i] || Math.max(80,h.getBoundingClientRect().width||160);if(preferences.widths?.[i]){h.style.width=range.value+'px';h.style.minWidth=range.value+'px';}range.setAttribute('aria-label',name+' column width');range.addEventListener('input',()=>{h.style.width=range.value+'px';h.style.minWidth=range.value+'px';preferences.widths={...preferences.widths,[i]:Number(range.value)};persist();});l.append(range);widths.append(l);});resize.append(widths);bar.append(resize);table.before(bar);
-    if(preferences.sort===undefined && salesList && document.getElementById('orders-status-filter').value!=='dispatch_queue'){select.value='5';descending=false;sort();}
+    if(preferences.sort===undefined && salesList){select.value='3';descending=false;sort();}
     else if(preferences.sort!==undefined && [...select.options].some(o=>o.value===String(preferences.sort))){select.value=preferences.sort;sort();}
   }
   function init(){

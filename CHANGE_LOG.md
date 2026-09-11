@@ -1,5 +1,29 @@
 # Change Log
 
+## 2026-09-11 08:57 — Completed Sales Orders PR validation with explicit refresh-audit qualification
+
+- **File(s) changed:** `docs/design/audit/pr-screenshots/feat-so-list-redesign/`, `docs/design/audit/06-browser-check.md`.
+- **What changed:** Preserved canonical before/after runs of 388 captures each with zero runner errors. Sales Orders list has zero failures across all 13 rules; detail findings are unchanged and other-screen STATUS failures only improve. Layout passes 12/12 before and 26/26 after. API tests (294), existing JavaScript tests (62), list interactions and 70 exit checks passed; Netlify preview assets and browser startup verified. Documented 16 added and 16 cleared LAYOUT-020 cells: controlled DOM traces reproduce the same 0.258 CLS failure in the frozen baseline, caused by existing refresh paint sequencing. The literal all-rule zero-new-cell gate is not claimed.
+- **Why:** Make PR #45 reviewable with complete evidence and an honest distinction between the completed STATUS target and the remaining full-audit timing limitation. Production remains undeployed; additive API fields and Ready guard must precede production use.
+
+---
+
+## 2026-09-11 08:41 — Isolated Sales Orders audit evidence and terminal-state layout checks
+
+- **File(s) changed:** `tests/visual/run-visual-audit.mjs`, `tests/visual/run-sales-orders-layout.mjs`, `tests/visual/README.md`, `docs/design/audit/06-browser-check.md`, `docs/design/audit/pr-screenshots/feat-so-list-redesign/`.
+- **What changed:** Each visual capture now starts in a fresh browser context, preventing scheduler sample orders and table preferences from leaking across screen recipes. Applied the identical harness correction to the frozen before snapshot for comparable full runs. Waited for table enhancement before layout assertions; all 26 Open/Closed/Cancelled layout cases pass. Preserved audit measurements and 1440/390 light/dark screenshots for PR #45.
+- **Why:** Reused storage made unrelated screen findings depend on worker scheduling. Rule definitions, verdict thresholds and the frozen baseline application are unchanged. The Netlify deploy preview is available; production is not deployed by this task.
+
+---
+
+## 2026-09-11 08:28 — Sales Orders list redesign (Step 3)
+
+- **File(s) changed:** `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/design-controls.js`, `dashboard/so-list.js`, `dashboard/so-list.css`, `dashboard/so-list-actions.js`, `dashboard/so-list-actions.css`, `main.py`, `tests/test_sales_order_state_model.py`, `tests/visual/`, `docs/design/sales-orders-redesign-spec.md`, `docs/design/audit/`, `FACTORY_LEDGER_CHANGELOG.md`.
+- **What changed:** Committed the specification first on `feat/so-list-redesign` from `origin/main` (`e772e36`). Replaced primary filters with counted state tabs; rendered eight independent compact columns, one Health alarm, accessible explanations with expandable info, and preview-first Close/Cancel/Reopen dialogs. Standardized list quantities and added mobile scrolling tabs. Updated the API's effective totals, overdue semantics, pallet line state and Ready flag state guard. Removed legacy dispatch reads from the list and mapped request failures to plain-language messages. Bumped dashboard assets. Recorded before/after audit evidence and added interaction regressions.
+- **Why:** Make state, physical fulfillment, floor readiness and health independently readable without opening each order. Owner confirmed that overdue dates remain muted so Health is the only alarm. The detail page remains Step 4. Branch changes are not deployed to production.
+
+---
+
 ## 2026-09-10 23:05 — Sales-order health strings: aggregated `info`, one number format, product names
 
 - **File(s) changed:** `main.py`, `tests/test_sales_order_state_model.py`, `docs/design/so-state-model-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`

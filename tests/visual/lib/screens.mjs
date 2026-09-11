@@ -64,18 +64,20 @@ async function expandPanel(page, index = 0) {
 
 async function openFirstOrder(page) {
   await tab(page, 'orders');
-  await page.locator('.order-row').first().click({ timeout: 6000 }).catch(() => {});
+  await page.locator('.order-expand-toggle').first().click({ timeout: 6000 });
+  await page.locator('.so-open-detail').first().click({ timeout: 6000 });
   await page.waitForSelector('.order-detail-header', { timeout: 8000 }).catch(() => {});
   await sleep(T.med);
 }
 
 async function openOrderById(page, orderId) {
   await tab(page, 'orders');
-  // The default filter is "All Open Orders"; a closed order is only in the list
-  // once the filter is widened.
-  await page.selectOption('#orders-status-filter', 'all').catch(() => {});
+  // Fixture 109 is ledger-shipped and still open. Its unchanged detail fixture
+  // supplies the legacy edit-locked detail screen being measured here.
+  await page.getByRole('tab', { name: /^Shipped\b/ }).click();
   await page.waitForSelector(`.order-row[data-order-id="${orderId}"]`, { timeout: 8000 }).catch(() => {});
-  await page.locator(`.order-row[data-order-id="${orderId}"]`).first().click({ timeout: 6000 }).catch(() => {});
+  await page.locator(`.order-row[data-order-id="${orderId}"] .order-expand-toggle`).click({ timeout: 6000 });
+  await page.locator(`.so-open-detail[data-order-id="${orderId}"]`).click({ timeout: 6000 });
   await page.waitForSelector('.order-detail-header', { timeout: 8000 }).catch(() => {});
   await sleep(T.med);
 }
@@ -205,10 +207,10 @@ export const SCREENS = [
     setup: async page => { await tab(page, 'orders'); } },
   { id: 'S-25', name: 'Orders list table', page: 'index', mobile: 'partial', region: '#section-orders',
     setup: async page => { await tab(page, 'orders'); await page.waitForSelector('.order-row', { timeout: 8000 }).catch(() => {}); } },
-  { id: 'S-26', name: 'Orders list — Dispatch Queue mode', page: 'index', mobile: 'partial', region: '#orders-list-view',
+  { id: 'S-26', name: 'Orders list — Ready to ship tab', page: 'index', mobile: 'partial', region: '#orders-list-view',
     setup: async page => {
       await tab(page, 'orders');
-      await page.selectOption('#orders-status-filter', 'dispatch_queue');
+      await page.getByRole('tab', { name: /^Ready to ship\b/ }).click();
       await page.waitForSelector('.order-row', { timeout: 8000 }).catch(() => {});
       await sleep(T.med);
     } },
@@ -219,7 +221,7 @@ export const SCREENS = [
       await clickIf(page, '.order-expand-toggle');
       await sleep(T.med);
     } },
-  { id: 'S-28', name: 'Orders list — Factory Ready toggle + note', page: 'index', mobile: 'partial', region: '#section-orders',
+  { id: 'S-28', name: 'Orders list — Ready to ship toggle + note', page: 'index', mobile: 'partial', region: '#section-orders',
     setup: async page => {
       await tab(page, 'orders');
       await page.waitForSelector('.order-expand-toggle', { timeout: 8000 }).catch(() => {});
