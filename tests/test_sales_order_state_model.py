@@ -3741,7 +3741,7 @@ class TestStateRaces:
             monkeypatch,
             seed_kwargs={"status": "confirmed", "with_alloc": True},
             call=lambda i: main.update_order_line(
-                i["order_id"], i["line_id"], 10, None, True),
+                _StubRequest(), i["order_id"], i["line_id"], 10, None, True),
             conflicting_sql=self.CANCEL_SQL,
         )
         try:
@@ -4111,7 +4111,7 @@ class TestNoDeadlock:
 
             out = {}
             threads.append(_spawn("reduce", lambda: main.update_order_line(
-                ids["order_id"], ids["line_id"], 10, None, True), out))
+                _StubRequest(), ids["order_id"], ids["line_id"], 10, None, True), out))
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 reduce_q = _wait_until_reaches(sc, conns["reduce"].pid, holder.pid,
                                                participants=[conns["exit"].pid])

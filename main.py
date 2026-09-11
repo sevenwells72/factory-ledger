@@ -2859,14 +2859,17 @@ def _resolve_actor(provided_key: str) -> Optional[dict]:
 def request_actor(request: Optional[Request]) -> Optional[dict]:
     """The actor resolved for this request, or None for a legacy key.
 
-    getattr-with-default rather than direct access: a handler may be called
-    with a Request that never passed through an auth dependency (the ship
-    preview/commit wrappers pass theirs straight through, and tests call
-    handler functions directly), and 'no actor' is the correct answer there.
+    getattr-with-default at BOTH levels rather than direct access: a handler
+    may be called with a Request that never passed through an auth dependency,
+    or with a stand-in that has no `.state` at all (the concurrency tests call
+    handler functions directly with a stub that carries only headers). 'No
+    actor' is the correct answer in every one of those cases, and an
+    AttributeError raised from an attribution helper would turn a working
+    write path into a 500.
     """
     if request is None:
         return None
-    return getattr(request.state, "actor", None)
+    return getattr(getattr(request, "state", None), "actor", None)
 
 
 def actor_name(request: Optional[Request]) -> Optional[str]:
@@ -5363,12 +5366,30 @@ def supplier_candidates(cur, supplier_name: str, limit: int = 5) -> list:
 
 
 def caller_source_tag(request: Request, body_tag: Optional[str] = None) -> Optional[str]:
-    """Interim attribution until FR-15 (user attribution) exists: a plain-text
-    SOURCE tag, never a fake user id.
+    """Who or what to record for this write.
+
+      * an ACTOR key authenticated the call → that actor's name (FR-15 step
+        5a, migration 052). A real person, and the only branch here that is
+        an authenticated identity.
       * scoped dashboard key authenticated the call → 'dashboard' (body ignored)
       * master key → the caller-supplied tag if any (the office GPT schema
         defaults created_by to 'gpt-sales-admin'), else NULL
+
+    The actor wins over a caller-supplied body tag, for the same reason the
+    dashboard branch already ignores it: a self-reported identity must never
+    override an authenticated one. The body field stays accepted — it is what
+    the GPTs send, and they hold the master key, which reaches neither of the
+    first two branches.
+
+    Legacy keys reach exactly the code they reached before FR-15: the actor
+    lookup below is a request.state read of a value that is None unless
+    _authorize_api_key resolved one, so a call made with either legacy key
+    returns a byte-identical answer to the pre-FR-15 one.
+
     Deliberately NOT the 'legacy-shared-key' operator_id placeholder."""
+    name = actor_name(request)
+    if name:
+        return name
     key = request.headers.get("X-API-Key") or ""
     if DASHBOARD_API_KEY and key and secrets.compare_digest(key, DASHBOARD_API_KEY):
         return "dashboard"
@@ -12568,7 +12589,8 @@ def _sales_order_flag_row_to_dict(row):
 
 
 @app.post("/sales-orders/{so_number}/ready")
-def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest, _: bool = Depends(verify_api_key)):
+def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest,
+                               request: Request, _: bool = Depends(verify_api_key)):
     """Upsert the dashboard-only Factory Ready annotation for a sales order."""
     try:
         with get_transaction() as cur:
@@ -12590,7 +12612,11 @@ def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest, 
             if order["state"] != "open":
                 return JSONResponse(status_code=400, content={"error": "Ready to ship can only be set on open sales orders"})
 
-            ready_by = (req.by or "floor").strip() or "floor"
+            # FR-15: an actor key names the person who flipped the flag.
+            # Without one the legacy default is untouched — body `by`, else
+            # the literal 'floor' this column has defaulted to since
+            # migration 037.
+            ready_by = actor_name(request) or (req.by or "floor").strip() or "floor"
             note = req.note.strip() if isinstance(req.note, str) else req.note
 
             cur.execute(
@@ -13016,10 +13042,21 @@ def _state_changed_by(request: Request, changed_by, order_id: int) -> Optional[s
     when the caller said "jo.smith@example.com…" would be a quiet corruption of
     the one field whose entire purpose is saying who did this.
 
+    An ACTOR key outranks the body field (FR-15 step 5a): `changed_by` is
+    self-reported and the actor is authenticated, so letting the body win
+    would let anyone holding a personal key sign someone else's name to an
+    exit. The field stays ACCEPTED rather than rejected — the GPTs send it and
+    hold the master key, which resolves no actor — it is simply not consulted
+    when a real identity is available.
+
+    The length check runs FIRST, on every key kind, so an over-long
+    `changed_by` is still a 400 and not a value silently discarded because the
+    caller happened to be an actor.
+
     NEVER _operator_id(): that returns the constant 'legacy-shared-key' on
     every call (verify_api_key returns a bare True), which is a placeholder,
     not an actor. See SO_STATE_ATTRIBUTION_NOTE — nothing here is an
-    authenticated identity.
+    authenticated identity EXCEPT the actor branch.
     """
     supplied = (changed_by or "").strip()
     if len(supplied) > SO_CHANGED_BY_MAX:
@@ -13029,6 +13066,9 @@ def _state_changed_by(request: Request, changed_by, order_id: int) -> Optional[s
             f"(got {len(supplied)}); it is stored verbatim and is never truncated",
             status_code=400, order_id=order_id,
         )
+    name = actor_name(request)
+    if name:
+        return name
     if supplied:
         return supplied
     return caller_source_tag(request)
@@ -14248,6 +14288,7 @@ def cancel_order_line(
 
 @app.patch("/sales/orders/{order_id}/lines/{line_id}/update")
 def update_order_line(
+    request: Request,
     order_id: int = Depends(resolve_order_id),
     line_id: int = Path(...),
     quantity_lb: Optional[float] = Query(default=None),
@@ -14329,8 +14370,16 @@ def update_order_line(
                 row = cur.fetchone()
                 if quantity_lb is not None:
                     product_id = int(row['product_id'])
+                    # released_by comes from caller_source_tag, the same source
+                    # every other allocation writer uses. It used to be
+                    # _operator_id(_), which is the constant 'legacy-shared-key'
+                    # on 100% of calls — a second, incompatible vocabulary in
+                    # one column. This handler was the last of the four to be
+                    # fixed; see docs/design/so-state-model-findings.md,
+                    # "Follow-up: _operator_id() is a no-op placeholder".
+                    released_by = caller_source_tag(request)
                     _lock_allocation_product(cur, product_id)
-                    _expire_auto_fifo_allocations(cur, product_id, _operator_id(_))
+                    _expire_auto_fifo_allocations(cur, product_id, released_by)
                     remaining_effective = max(
                         0.0,
                         float(quantity_lb) - _line_shipped_effective(cur, line_id, product_id),
@@ -14351,7 +14400,7 @@ def update_order_line(
                             active_rows,
                             excess,
                             'line_quantity_reduced',
-                            _operator_id(_),
+                            released_by,
                         )
                 # Fetch case_size_lb for unit count
                 cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (row['product_id'],))
