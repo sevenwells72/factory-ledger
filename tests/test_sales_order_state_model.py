@@ -3741,7 +3741,7 @@ class TestStateRaces:
             monkeypatch,
             seed_kwargs={"status": "confirmed", "with_alloc": True},
             call=lambda i: main.update_order_line(
-                i["order_id"], i["line_id"], 10, None, True),
+                _StubRequest(), i["order_id"], i["line_id"], 10, None, True),
             conflicting_sql=self.CANCEL_SQL,
         )
         try:
@@ -4111,7 +4111,7 @@ class TestNoDeadlock:
 
             out = {}
             threads.append(_spawn("reduce", lambda: main.update_order_line(
-                ids["order_id"], ids["line_id"], 10, None, True), out))
+                _StubRequest(), ids["order_id"], ids["line_id"], 10, None, True), out))
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 reduce_q = _wait_until_reaches(sc, conns["reduce"].pid, holder.pid,
                                                participants=[conns["exit"].pid])
@@ -4300,3 +4300,119 @@ def test_ship_commit_takes_locks_in_the_normative_order():
     )
     assert i_products < i_preflight, "products pre-acquired before the preflight loop"
     assert i_products < i_plan, "products pre-acquired before the shipping loop"
+
+
+# ═════════════════════════════════════════════════════════════════
+# Lock-sequence fingerprint (added for FR-15 step 5a, migration 052)
+#
+# The two tests above pin the lock ORDER of two specific paths. This one pins
+# the lock SEQUENCE — which locks, how many, in what order — of every sales-
+# order write path, and exists because FR-15 touched all of them.
+#
+# FR-15 changed only the VALUES written into attribution columns. Its merge
+# criterion was that it adds, removes and reorders no lock anywhere. That is a
+# claim about eleven handlers at once, which is exactly the kind of claim that
+# rots: the next person to edit one of these functions has no way to know that
+# slipping a _lock_allocation_product() in one line earlier is a deadlock
+# surface, because the reason lives in a comment two thousand lines away.
+#
+# The expected lists below were generated from the source at 72b5546 — the
+# commit FR-15 branched from — and verified byte-identical afterwards. A
+# failure here means a lock was added, removed, or moved. That is sometimes
+# correct! But it is never incidental, so the list must be updated in the same
+# commit, by someone who has re-read the normative order at the top of main.py
+# and can say why the new sequence is still deadlock-free.
+#
+# Comments are stripped before scanning: several of these functions discuss
+# _lock_allocation_product by name in prose, and prose is not a lock.
+# ═════════════════════════════════════════════════════════════════
+
+# Ordered longest-first so "FOR NO KEY UPDATE" is never also counted as the
+# weaker "FOR UPDATE" it contains.
+_LOCK_TOKENS = (
+    "_load_so_for_state_change(",
+    "_load_allocatable_line(",
+    "_lock_sales_order_lines(",
+    "_lock_sales_order(",
+    "_release_order_reservations(",
+    "_lock_allocation_products(",
+    "_lock_allocation_product(",
+    "FOR NO KEY UPDATE",
+    "FOR UPDATE",
+)
+
+# handler name -> the locks it takes, in the order it takes them.
+#
+# The two helpers that lock as a side effect are listed as themselves rather
+# than expanded: _load_so_for_state_change takes the order row, and
+# _release_order_reservations takes the product locks, and inlining what they
+# do here would make this table lie the moment either one changed.
+EXPECTED_LOCK_SEQUENCE = {
+    # Ready flag: the order row only. It writes sales_order_flags, which no
+    # other writer contends for.
+    "set_sales_order_ready_flag": ["FOR NO KEY UPDATE"],
+    # The administrative exits: order row, then (for the two that release
+    # stock) the products.
+    "close_sales_order": ["_load_so_for_state_change(", "_release_order_reservations("],
+    "cancel_sales_order": ["_load_so_for_state_change(", "_release_order_reservations("],
+    "reopen_sales_order": ["_load_so_for_state_change("],
+    "update_order_status": ["_load_so_for_state_change(", "_release_order_reservations("],
+    # Allocation create: order row + line together, then the single product.
+    "create_sales_order_allocation": ["_load_allocatable_line(", "_lock_allocation_product("],
+    # Manual release: the product only. The allocation row is read unlocked
+    # and re-read FOR UPDATE inside _release_active_allocations.
+    "release_sales_order_allocation": ["_lock_allocation_product("],
+    # Add lines: the order row only — no allocation is touched.
+    "add_order_lines": ["_lock_sales_order("],
+    # Line cancel: the full three-step order -> line -> product walk.
+    "cancel_order_line": ["_lock_sales_order(", "_lock_sales_order_lines(",
+                          "_lock_allocation_product("],
+    # Line update: order row, the line inline, the product, then the line's
+    # own active allocations.
+    "update_order_line": ["_lock_sales_order(", "FOR NO KEY UPDATE",
+                          "_lock_allocation_product(", "FOR UPDATE"],
+    # Ship commit: order row -> lines -> all products, sorted, up front.
+    "ship_order": ["FOR NO KEY UPDATE", "_lock_sales_order_lines(",
+                   "_lock_allocation_products("],
+}
+
+
+def _strip_comments(src):
+    """Drop # comments so prose about a lock is not counted as a lock."""
+    out = []
+    for line in src.splitlines():
+        out.append("" if line.strip().startswith("#") else line.split("#")[0])
+    return "\n".join(out)
+
+
+def _lock_sequence(src):
+    src = _strip_comments(src)
+    hits = sorted(
+        (m.start(), token)
+        for token in _LOCK_TOKENS
+        for m in re.finditer(re.escape(token), src)
+    )
+    nku_spans = [(p, p + len("FOR NO KEY UPDATE"))
+                 for p, t in hits if t == "FOR NO KEY UPDATE"]
+    return [
+        token for pos, token in hits
+        if not (token == "FOR UPDATE" and any(a <= pos < b for a, b in nku_spans))
+    ]
+
+
+@pytest.mark.parametrize("handler_name", sorted(EXPECTED_LOCK_SEQUENCE))
+def test_so_write_paths_take_the_same_locks_in_the_same_order(handler_name):
+    import inspect
+
+    src = inspect.getsource(getattr(main, handler_name))
+    if handler_name == "ship_order":
+        # Only the commit branch takes locks; the preview branch deliberately
+        # takes none (see its comment) and has no sequence to pin.
+        src = src[src.index('# mode == "commit"'):]
+
+    assert _lock_sequence(src) == EXPECTED_LOCK_SEQUENCE[handler_name], (
+        f"{handler_name}'s lock sequence changed. This is a deadlock-surface "
+        f"change, not a refactor: re-read the normative lock order at the top "
+        f"of main.py, confirm the new sequence still agrees with every other "
+        f"writer, and update EXPECTED_LOCK_SEQUENCE in the same commit."
+    )

@@ -2595,6 +2595,10 @@ def _capture_readonly_diagnostics() -> dict:
 # ship/receive endpoints. Anything not listed here (admin/*, /make, /pack,
 # /adjust, /void, deletes, migrations, etc.) is master-key only.
 DASHBOARD_KEY_ALLOWLIST = frozenset({
+    # Who am I (FR-15). Read-only, returns nothing but the caller's own
+    # identity, and is how the dashboard will learn whether it is holding an
+    # actor key or the shared one. Deliberately NOT in openapi-gpt-v3.yaml.
+    ("GET", "/auth/whoami"),
     # Legacy dashboard summaries
     ("GET", "/dashboard/inventory"),
     ("GET", "/dashboard/low-stock"),
@@ -2693,14 +2697,215 @@ def _route_key(request: Request):
     return (request.method.upper(), path)
 
 
+# ─────────────────────────────────────────────────────────────────
+# FR-15 step 5a: per-actor keys (migration 052)
+#
+# A third kind of key, resolved from the `actors` table by sha256, that names
+# a PERSON. It exists so the attribution columns can hold "Arturo" instead of
+# the surface tag 'dashboard'.
+#
+# RESOLUTION ORDER IS LOAD-BEARING. The two legacy keys are compared FIRST, so
+# their behaviour — including which routes they reach and which status code a
+# rejection carries — is untouched by anything below. An actor key is only
+# considered once both legacy comparisons have failed, which means this whole
+# mechanism is invisible to every existing caller.
+#
+# SCOPE. An actor key is authorized on exactly DASHBOARD_KEY_ALLOWLIST — the
+# same routes the scoped dashboard key reaches, no more. It is a replacement
+# for that key, not an upgrade of it: handing a named person master-key reach
+# would be a privilege escalation this PR has no mandate for. Role
+# ('owner' | 'floor' | 'office') is recorded and returned by /auth/whoami but
+# does not yet gate anything.
+#
+# CACHING. The active actor set is small (one row per employee) and is cached
+# whole, so a request costs a dict lookup and no query. Consequences, both
+# deliberate:
+#   * a key minted less than ACTOR_CACHE_TTL_S ago may 401 until the cache
+#     turns over — mint, then wait a minute, then hand it out;
+#   * a key deactivated less than ACTOR_CACHE_TTL_S ago keeps working for up
+#     to that long. Deactivation is not an incident-response control. If a key
+#     must die NOW, rotate DASHBOARD_API_KEY/API_KEY and restart the instance.
+# An UNKNOWN key never forces a refresh: letting an unauthenticated caller
+# trigger a DB round-trip per request is a free denial-of-service lever.
+# ─────────────────────────────────────────────────────────────────
+
+ACTOR_CACHE_TTL_S = 60
+# One last_used_at write per key per 10 minutes. The column answers "is this
+# key still in use", which does not need per-request resolution, and a write
+# on every authenticated request would put a pointless UPDATE in front of
+# every read endpoint.
+ACTOR_LAST_USED_THROTTLE_S = 600
+
+_actor_lock = threading.Lock()
+_actor_cache: dict = {}              # key_hash -> {"id", "name", "role"}
+_actor_cache_loaded_at: float = 0.0  # time.monotonic(); 0.0 = never loaded
+_actor_last_used_seen: dict = {}     # key_hash -> time.monotonic() of last write
+# Incremented on every actual DB load. Exposed for tests, which assert that a
+# burst of authenticated requests costs exactly one.
+_actor_cache_loads = 0
+
+
+def _hash_api_key(provided_key: str) -> str:
+    """sha256 hex of the plaintext key — the form stored in actors.key_hash."""
+    return hashlib.sha256(provided_key.encode("utf-8")).hexdigest()
+
+
+def _reset_actor_cache() -> None:
+    """Drop the cache so the next resolution reloads. Tests and startup only."""
+    global _actor_cache, _actor_cache_loaded_at, _actor_cache_loads
+    with _actor_lock:
+        _actor_cache = {}
+        _actor_cache_loaded_at = 0.0
+        _actor_last_used_seen.clear()
+        _actor_cache_loads = 0
+
+
+def _load_actors() -> dict:
+    """Read every active actor. One query, whole table, no parameters."""
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id, name, role, key_hash FROM actors WHERE active ORDER BY id"
+            )
+            rows = cur.fetchall()
+    return {
+        row["key_hash"]: {
+            "id": int(row["id"]),
+            "name": row["name"],
+            "role": row["role"],
+            "key_hash": row["key_hash"],
+        }
+        for row in rows
+    }
+
+
+def _actors_by_hash() -> dict:
+    """The cached active actor set, reloaded once its TTL has elapsed.
+
+    A failed load (most likely: migration 052 not applied yet on this
+    database) caches EMPTY for a full TTL rather than raising. That is the
+    correct degradation — with no actors resolvable, every key falls through
+    to exactly the pre-FR-15 behaviour, and the legacy keys never reach this
+    code at all.
+    """
+    global _actor_cache, _actor_cache_loaded_at, _actor_cache_loads
+    with _actor_lock:
+        age = time.monotonic() - _actor_cache_loaded_at
+        if _actor_cache_loaded_at and age < ACTOR_CACHE_TTL_S:
+            return _actor_cache
+
+    # Loaded OUTSIDE the lock: a slow database must not serialise every
+    # in-flight request behind one refresh. Two threads racing the expiry
+    # both load and the second wins; the query is idempotent and cheap.
+    try:
+        loaded = _load_actors()
+        failed = None
+    except Exception as e:
+        loaded = {}
+        failed = f"{type(e).__name__}: {e}"
+
+    with _actor_lock:
+        _actor_cache = loaded
+        _actor_cache_loaded_at = time.monotonic()
+        _actor_cache_loads += 1
+    if failed:
+        logger.warning(
+            f"Actor cache load failed ({failed}); actor keys are unresolvable "
+            f"for up to {ACTOR_CACHE_TTL_S}s. The two legacy keys are unaffected. "
+            f"If migration 052 has not been applied yet, this is expected."
+        )
+    return loaded
+
+
+def _touch_actor_last_used(actor: dict) -> None:
+    """Best-effort last_used_at stamp, throttled per key.
+
+    Never raises: this is telemetry attached to an auth check, and a failed
+    UPDATE must not turn a valid request into a 500. The throttle stamp is
+    taken BEFORE the write so a slow or failing database cannot produce a
+    write per request; it is given back on failure so the next request retries.
+    """
+    key_hash = actor["key_hash"]
+    now = time.monotonic()
+    with _actor_lock:
+        last = _actor_last_used_seen.get(key_hash)
+        if last is not None and (now - last) < ACTOR_LAST_USED_THROTTLE_S:
+            return
+        _actor_last_used_seen[key_hash] = now
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE actors SET last_used_at = now() WHERE id = %s",
+                    (actor["id"],),
+                )
+    except Exception as e:
+        with _actor_lock:
+            _actor_last_used_seen.pop(key_hash, None)
+        logger.warning(f"actors.last_used_at update failed for actor "
+                       f"#{actor['id']} ({type(e).__name__}: {e})")
+
+
+def _resolve_actor(provided_key: str) -> Optional[dict]:
+    """The actor this key names, or None. Inactive actors resolve to None
+    because _load_actors filters on `active` — a deactivated key is
+    indistinguishable from a key that was never minted, which is what
+    deactivation is supposed to mean."""
+    if not provided_key:
+        return None
+    return _actors_by_hash().get(_hash_api_key(provided_key))
+
+
+def request_actor(request: Optional[Request]) -> Optional[dict]:
+    """The actor resolved for this request, or None for a legacy key.
+
+    getattr-with-default at BOTH levels rather than direct access: a handler
+    may be called with a Request that never passed through an auth dependency,
+    or with a stand-in that has no `.state` at all (the concurrency tests call
+    handler functions directly with a stub that carries only headers). 'No
+    actor' is the correct answer in every one of those cases, and an
+    AttributeError raised from an attribution helper would turn a working
+    write path into a 500.
+    """
+    if request is None:
+        return None
+    return getattr(getattr(request, "state", None), "actor", None)
+
+
+def actor_name(request: Optional[Request]) -> Optional[str]:
+    """The actor's name for the attribution columns, or None for a legacy key."""
+    actor = request_actor(request)
+    return actor["name"] if actor else None
+
+
 def _authorize_api_key(provided_key: str, request: Request, invalid_status: int = 403) -> bool:
-    """Shared check for both dependencies. Master key -> always OK. Dashboard
-    key -> OK only if the matched route is on DASHBOARD_KEY_ALLOWLIST."""
+    """Shared check for all dependencies. Master key -> always OK. Dashboard
+    key and actor keys -> OK only if the matched route is on
+    DASHBOARD_KEY_ALLOWLIST.
+
+    Status codes are unchanged from before FR-15, deliberately: a missing key
+    is 401, and an unrecognised key is `invalid_status` (403 on the header
+    dependency, 401 on the packing-slip query-param one). An unrecognised key
+    now includes a deactivated actor's key, which is the same answer the
+    caller got before that actor existed.
+    """
+    request.state.actor = None
+    request.state.key_kind = None
     if not provided_key:
         raise HTTPException(status_code=401, detail="API key required")
     if secrets.compare_digest(provided_key, API_KEY):
+        request.state.key_kind = "legacy_ledger"
         return True
     if DASHBOARD_API_KEY and secrets.compare_digest(provided_key, DASHBOARD_API_KEY):
+        request.state.key_kind = "legacy_dashboard"
+        if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
+            return True
+        raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
+    actor = _resolve_actor(provided_key)
+    if actor is not None:
+        request.state.actor = actor
+        request.state.key_kind = "actor"
+        _touch_actor_last_used(actor)
         if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
@@ -2718,6 +2923,29 @@ def verify_api_key_flexible(
 ):
     """Accept API key from either header or query parameter (packing slip browser access)."""
     return _authorize_api_key(x_api_key or key, request, invalid_status=401)
+
+
+@app.get("/auth/whoami")
+def auth_whoami(request: Request, _: bool = Depends(verify_api_key)):
+    """Who does the key on this request name?
+
+    The dashboard's own check for whether it is holding a personal key or the
+    shared one, and the one-command verification after minting keys:
+
+        curl -sH "X-API-Key: <actor key>" $API/auth/whoami
+
+    `actor` is null for both legacy keys — that is the honest answer, not a
+    gap: those keys name a surface, not a person. Nothing secret is returned;
+    the caller already holds the key whose identity is being echoed back.
+
+    Deliberately NOT in openapi-gpt-v3.yaml — that file is at its hard
+    30-operation ceiling and no GPT needs this route.
+    """
+    actor = request_actor(request)
+    return {
+        "actor": {"name": actor["name"], "role": actor["role"]} if actor else None,
+        "key_kind": getattr(request.state, "key_kind", None),
+    }
 
 
 def resolve_order_id(order_id: str = Path(...)) -> int:
@@ -5138,12 +5366,30 @@ def supplier_candidates(cur, supplier_name: str, limit: int = 5) -> list:
 
 
 def caller_source_tag(request: Request, body_tag: Optional[str] = None) -> Optional[str]:
-    """Interim attribution until FR-15 (user attribution) exists: a plain-text
-    SOURCE tag, never a fake user id.
+    """Who or what to record for this write.
+
+      * an ACTOR key authenticated the call → that actor's name (FR-15 step
+        5a, migration 052). A real person, and the only branch here that is
+        an authenticated identity.
       * scoped dashboard key authenticated the call → 'dashboard' (body ignored)
       * master key → the caller-supplied tag if any (the office GPT schema
         defaults created_by to 'gpt-sales-admin'), else NULL
+
+    The actor wins over a caller-supplied body tag, for the same reason the
+    dashboard branch already ignores it: a self-reported identity must never
+    override an authenticated one. The body field stays accepted — it is what
+    the GPTs send, and they hold the master key, which reaches neither of the
+    first two branches.
+
+    Legacy keys reach exactly the code they reached before FR-15: the actor
+    lookup below is a request.state read of a value that is None unless
+    _authorize_api_key resolved one, so a call made with either legacy key
+    returns a byte-identical answer to the pre-FR-15 one.
+
     Deliberately NOT the 'legacy-shared-key' operator_id placeholder."""
+    name = actor_name(request)
+    if name:
+        return name
     key = request.headers.get("X-API-Key") or ""
     if DASHBOARD_API_KEY and key and secrets.compare_digest(key, DASHBOARD_API_KEY):
         return "dashboard"
@@ -12343,7 +12589,8 @@ def _sales_order_flag_row_to_dict(row):
 
 
 @app.post("/sales-orders/{so_number}/ready")
-def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest, _: bool = Depends(verify_api_key)):
+def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest,
+                               request: Request, _: bool = Depends(verify_api_key)):
     """Upsert the dashboard-only Factory Ready annotation for a sales order."""
     try:
         with get_transaction() as cur:
@@ -12365,7 +12612,11 @@ def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest, 
             if order["state"] != "open":
                 return JSONResponse(status_code=400, content={"error": "Ready to ship can only be set on open sales orders"})
 
-            ready_by = (req.by or "floor").strip() or "floor"
+            # FR-15: an actor key names the person who flipped the flag.
+            # Without one the legacy default is untouched — body `by`, else
+            # the literal 'floor' this column has defaulted to since
+            # migration 037.
+            ready_by = actor_name(request) or (req.by or "floor").strip() or "floor"
             note = req.note.strip() if isinstance(req.note, str) else req.note
 
             cur.execute(
@@ -12791,10 +13042,21 @@ def _state_changed_by(request: Request, changed_by, order_id: int) -> Optional[s
     when the caller said "jo.smith@example.com…" would be a quiet corruption of
     the one field whose entire purpose is saying who did this.
 
+    An ACTOR key outranks the body field (FR-15 step 5a): `changed_by` is
+    self-reported and the actor is authenticated, so letting the body win
+    would let anyone holding a personal key sign someone else's name to an
+    exit. The field stays ACCEPTED rather than rejected — the GPTs send it and
+    hold the master key, which resolves no actor — it is simply not consulted
+    when a real identity is available.
+
+    The length check runs FIRST, on every key kind, so an over-long
+    `changed_by` is still a 400 and not a value silently discarded because the
+    caller happened to be an actor.
+
     NEVER _operator_id(): that returns the constant 'legacy-shared-key' on
     every call (verify_api_key returns a bare True), which is a placeholder,
     not an actor. See SO_STATE_ATTRIBUTION_NOTE — nothing here is an
-    authenticated identity.
+    authenticated identity EXCEPT the actor branch.
     """
     supplied = (changed_by or "").strip()
     if len(supplied) > SO_CHANGED_BY_MAX:
@@ -12804,6 +13066,9 @@ def _state_changed_by(request: Request, changed_by, order_id: int) -> Optional[s
             f"(got {len(supplied)}); it is stored verbatim and is never truncated",
             status_code=400, order_id=order_id,
         )
+    name = actor_name(request)
+    if name:
+        return name
     if supplied:
         return supplied
     return caller_source_tag(request)
@@ -14023,6 +14288,7 @@ def cancel_order_line(
 
 @app.patch("/sales/orders/{order_id}/lines/{line_id}/update")
 def update_order_line(
+    request: Request,
     order_id: int = Depends(resolve_order_id),
     line_id: int = Path(...),
     quantity_lb: Optional[float] = Query(default=None),
@@ -14104,8 +14370,17 @@ def update_order_line(
                 row = cur.fetchone()
                 if quantity_lb is not None:
                     product_id = int(row['product_id'])
+                    # released_by comes from caller_source_tag, the same source
+                    # every other allocation writer uses. It used to come from
+                    # the operator-id placeholder, which is the constant
+                    # 'legacy-shared-key' on 100% of calls — a second,
+                    # incompatible vocabulary in one column. This handler was
+                    # the last of the four to be fixed; see the "no-op
+                    # placeholder" follow-up in
+                    # docs/design/so-state-model-findings.md.
+                    released_by = caller_source_tag(request)
                     _lock_allocation_product(cur, product_id)
-                    _expire_auto_fifo_allocations(cur, product_id, _operator_id(_))
+                    _expire_auto_fifo_allocations(cur, product_id, released_by)
                     remaining_effective = max(
                         0.0,
                         float(quantity_lb) - _line_shipped_effective(cur, line_id, product_id),
@@ -14126,7 +14401,7 @@ def update_order_line(
                             active_rows,
                             excess,
                             'line_quantity_reduced',
-                            _operator_id(_),
+                            released_by,
                         )
                 # Fetch case_size_lb for unit count
                 cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (row['product_id'],))

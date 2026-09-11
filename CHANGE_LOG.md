@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-11 12:01 — FR-15 step 5a: per-user attribution for dashboard writes (NOT DEPLOYED)
+
+- **Files changed:** `migrations/052_actors.sql`, `main.py`, `scripts/mint_actor_keys.py`, `tests/test_actor_attribution.py`, `tests/test_sales_order_state_model.py`, `docs/design/so-state-model-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`, `.gitignore`.
+- **What changed:** New `actors` table (name, role owner|floor|office, sha256 key_hash, active, last_used_at) with no seed rows. `_authorize_api_key` resolves a third kind of key to an actor, but only after both legacy key comparisons have failed, and attaches it to `request.state`. `caller_source_tag()` and `_state_changed_by()` return the actor's name when one is resolved, so close, cancel, reopen, the legacy status exits, allocate, release and ship all attribute to a person; `ready_by` is stamped explicitly. Actor keys are scoped to `DASHBOARD_KEY_ALLOWLIST` and nothing wider. The active actor set is cached in-process for 60 s so authentication costs no query; `last_used_at` is written at most once per key per 10 minutes. New `GET /auth/whoami` returns `{actor, key_kind}`, allowlisted, and is NOT in `openapi-gpt-v3.yaml` (still exactly 30 operations). `scripts/mint_actor_keys.py` mints 32-byte keys, prints each plaintext once, and writes hash-only INSERT SQL for the Supabase SQL editor. Also fixed the last allocation writer still using the operator-id placeholder: `update_order_line` wrote `released_by = 'legacy-shared-key'` at both its expire and its shrink site.
+- **Validation:** 906 Python tests pass (848 baseline + 58 new: 47 in tests/test_actor_attribution.py, 11 parametrized lock-sequence cases). Migration 052 verified idempotent against the local test database — applied, re-applied, marker count unchanged. The ordered lock sequence of all eleven sales-order write paths was extracted from `72b5546` and from this branch and diffed: identical. No lock added, removed, or reordered.
+- **Why:** The attribution columns could only ever record a surface tag (`'dashboard'`) or NULL, so no write in the system could say who made it — the prerequisite for the per-order timeline. The dashboard still sends `dashboard-key-2026`, so production attribution is unchanged until the Codex UI step ships.
+
+---
+
 ## 2026-09-11 10:49 — Complete Sales Order detail final audit (NOT DEPLOYED)
 
 - **Files changed:** `docs/design/audit/06-browser-check.md` and `docs/design/audit/pr-screenshots/feat-so-detail-redesign/`.
