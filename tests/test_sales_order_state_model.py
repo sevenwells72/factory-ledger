@@ -2511,7 +2511,8 @@ class TestStateRaces:
             monkeypatch,
             seed_kwargs={"status": "ready", "with_alloc": True},
             call=lambda i: main.ship_order(
-                i["order_id"], main.ShipOrderRequest(mode="commit", ship_all=True), True),
+                _StubRequest(), i["order_id"],
+                main.ShipOrderRequest(mode="commit", ship_all=True), True),
             conflicting_sql=self.CANCEL_SQL,
         )
         try:
@@ -2609,7 +2610,8 @@ class TestStateRaces:
         result, ids, seed = self._run_race(
             monkeypatch,
             seed_kwargs={"status": "confirmed", "with_alloc": True},
-            call=lambda i: main.cancel_order_line(i["order_id"], i["line_id"], True),
+            call=lambda i: main.cancel_order_line(
+                _StubRequest(), i["order_id"], i["line_id"], True),
             conflicting_sql=self.CLOSE_SQL,
         )
         try:
@@ -2775,7 +2777,8 @@ class TestNoDeadlock:
             # parked do we start the close. "Both started" is not the same as
             # "both reached the step we need".
             threads.append(_spawn("ship", lambda: main.ship_order(
-                a_id, main.ShipOrderRequest(mode="commit", ship_all=True), True), out))
+                _StubRequest(), a_id,
+                main.ShipOrderRequest(mode="commit", ship_all=True), True), out))
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 ship_q = _wait_until_reaches(sc, conns["ship"].pid, h_low.pid,
                                              participants=[conns["close"].pid])

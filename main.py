@@ -1723,162 +1723,382 @@ def validate_lot_deduction(cur, lot_id: int, lot_code: str, requested_lb: float)
 db_pool = None
 
 
-@app.on_event("startup")
-async def startup():
-    global db_pool
-    if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")
-    if not API_KEY:
-        raise RuntimeError("API_KEY env var required — app cannot start without authentication")
-    if not DASHBOARD_API_KEY:
-        raise RuntimeError("DASHBOARD_API_KEY env var required — the dashboard's scoped key has no fallback")
-    if DASHBOARD_API_KEY == API_KEY:
-        logger.warning("DASHBOARD_API_KEY equals API_KEY — dashboard key scoping is ineffective")
-    try:
-        db_pool = pool.ThreadedConnectionPool(minconn=2, maxconn=20, dsn=DATABASE_URL)
-        logger.info("Database connection pool created")
-    except Exception as e:
-        logger.error(f"Failed to create connection pool: {e}")
-        raise
+# ─────────────────────────────────────────────────────────────────
+# In-app startup migrations — once per database, not once per boot
+# ─────────────────────────────────────────────────────────────────
+# The blocks below predate migrations/ and still ship DDL the app applies to
+# itself at boot: ALTER TABLE … ADD COLUMN IF NOT EXISTS, CREATE TABLE/INDEX
+# IF NOT EXISTS. IF NOT EXISTS makes them no-ops in EFFECT but not in COST —
+# an ALTER TABLE still takes ACCESS EXCLUSIVE on its target for the duration
+# of the statement, on every process start. When several processes start at
+# once (a deploy, an autoscale, a test suite standing up TestClients) those
+# locks queue behind each other and behind any open transaction, which is what
+# wedged the suite — see docs/design/so-state-model-findings.md, harness
+# fragility.
+#
+# So every DDL block is now gated on a durable marker row in
+# `migration_markers`, the table migration 051 introduced (deliberately
+# generic, for exactly this). First boot against a database with no marker
+# runs the DDL and records the marker IN THE SAME TRANSACTION; every later
+# boot reads one row and issues no DDL at all.
+#
+# Concurrent boots are serialised, not merely survivable. Every one of these
+# transactions opens with pg_advisory_xact_lock(STARTUP_MIGRATION_LOCK_KEY),
+# taken BEFORE the marker is read, so the whole check-DDL-insert sequence is
+# atomic against another booting instance: a second instance cannot observe
+# "no marker" while the first is still between its SELECT and its COMMIT. The
+# lock is transaction-scoped, so it releases on commit OR rollback — a crashed
+# or wedged boot cannot hold it. IF NOT EXISTS and ON CONFLICT DO NOTHING stay
+# in place underneath as a second line of defence for any path that reaches the
+# DDL without the lock (the ungated fallback below).
+#
+# `migration_markers` is referenced UNQUALIFIED here, the way every other table
+# in this module is, so it resolves through search_path. Migration 051 writes
+# `public.migration_markers` because a migration script has no search_path to
+# rely on; the app does.
+#
+# NOT gated, deliberately: the Migration 007 status sweep and the 051 cutover
+# reconciliation. Those are data fixes, not DDL — they take no ACCESS
+# EXCLUSIVE, they are idempotent by their own WHERE clause, and they must keep
+# running on every boot so rows that arrive later are still reconciled.
+# Migration 009 is likewise data-only and stays ungated for the same reason.
 
-    # Migration: Add label_type column for SKU protection
+STARTUP_MIGRATION_MARKERS_DDL = """
+    CREATE TABLE IF NOT EXISTS migration_markers (
+        name       text PRIMARY KEY,
+        applied_at timestamptz NOT NULL DEFAULT clock_timestamp()
+    )
+"""
+
+# The advisory-lock key that serialises the whole startup-migration sequence.
+#
+# Fixed and arbitrary, but not made up on the spot: it is the first 8 bytes of
+# sha256(b"factory_ledger.startup_migrations") read as a big-endian SIGNED
+# 64-bit integer (0x0300fb351bff4d7c), which is the single-argument form
+# pg_advisory_xact_lock takes. Reproduce it with:
+#
+#     python3 -c "import hashlib,struct; print(struct.unpack('>q',
+#         hashlib.sha256(b'factory_ledger.startup_migrations').digest()[:8])[0])"
+#
+# NEVER CHANGE IT. Advisory locks are keyed by value alone — two instances
+# using different keys do not exclude each other, so a changed constant during
+# a rolling deploy silently reopens exactly the race the lock closes. The key
+# is database-wide (pg_advisory_xact_lock, not the two-int variant), which is
+# what we want: one migration sequence at a time per database, whatever schema
+# search_path resolves to.
+#
+# It also has to not collide with the advisory locks this module already takes.
+# The other call sites use the small literals 1, 2 and 3, plus hashtext /
+# hashtextextended of a per-object string; a derived 64-bit value stays clear of
+# the literals by construction. If you add another advisory lock here, derive it
+# the same way rather than reaching for 4.
+STARTUP_MIGRATION_LOCK_KEY = 216448987635338620
+
+
+class _MarkerAccessError(Exception):
+    """`migration_markers` itself could not be read or written.
+
+    Distinct from a failure inside a migration body: the block's own work may
+    be perfectly applicable, it is only the bookkeeping that is unreachable.
+    The caller answers this by re-running the block ungated.
+    """
+
+
+def _lock_startup_migrations(cur) -> None:
+    """Serialise this transaction against any other booting instance.
+
+    Transaction-scoped on purpose: the lock releases on COMMIT *or* ROLLBACK,
+    so a block that raises cannot leave the next instance waiting forever, and
+    no explicit unlock is needed on any path.
+    """
+    cur.execute("SELECT pg_advisory_xact_lock(%s)", (STARTUP_MIGRATION_LOCK_KEY,))
+
+
+def _ensure_migration_markers() -> bool:
+    """Make the marker table exist before anything gates on it.
+
+    Migration 051 creates it and prod has it; this is for a database that
+    predates 051 or was built from an older schema dump. Returns False if the
+    table could not be established, in which case the caller runs the blocks
+    ungated — the pre-guard behaviour. Skipping schema work because the
+    bookkeeping table is missing would be strictly worse than the lock cost
+    the guard exists to avoid.
+
+    The advisory lock is taken INSIDE this transaction, before the CREATE:
+    two instances issuing `CREATE TABLE IF NOT EXISTS` at the same instant is
+    a known Postgres race (the loser can fail on a duplicate-key error against
+    pg_type/pg_class rather than being the promised no-op), and the whole point
+    of this table is that it is there before anything gates on it.
+
+    OWNERSHIP MATTERS: the application role must OWN `migration_markers`.
+    Row-level security is enabled on the public tables in prod with no policies
+    attached, and an owner bypasses RLS while a non-owner does not — a
+    non-owning role would see an empty SELECT (every marker invisible) and a
+    denied INSERT. That is survivable, because `_run_once_startup_migration`
+    degrades to the ungated every-boot path with a warning rather than
+    concluding "already applied", but it silently forfeits the guard. If the
+    startup log shows the ungated-fallback warning on every boot, check the
+    table's owner first.
+    """
     try:
         conn = db_pool.getconn()
         try:
             with conn.cursor() as cur:
-                # Add column if it doesn't exist
-                cur.execute("""
-                    ALTER TABLE products ADD COLUMN IF NOT EXISTS label_type TEXT DEFAULT 'house'
-                """)
+                _lock_startup_migrations(cur)
+                cur.execute(STARTUP_MIGRATION_MARKERS_DDL)
+            conn.commit()
+            return True
+        finally:
+            # putconn rolls back a connection handed back mid-transaction,
+            # which also releases the advisory lock if the CREATE failed.
+            db_pool.putconn(conn)
+    except Exception as e:
+        logger.warning(
+            f"migration_markers unavailable ({e}); startup migrations will run "
+            f"ungated this boot"
+        )
+        return False
 
-                # Set private-label flags on verified finished goods by odoo_code
-                cur.execute("""
-                    UPDATE products SET label_type = 'private_label'
-                    WHERE odoo_code = ANY(%s) AND COALESCE(label_type, 'house') != 'private_label'
-                """, (PRIVATE_LABEL_ODOO_CODES,))
-                updated_by_code = cur.rowcount
 
-                # Set private-label flags on Blue Stripes exclusive batch products
-                cur.execute("""
-                    UPDATE products SET label_type = 'private_label'
-                    WHERE name ILIKE 'Batch BS %%'
-                      AND COALESCE(label_type, 'house') != 'private_label'
-                """)
-                updated_by_name = cur.rowcount
+def _run_gated_startup_migration(name: str, body) -> None:
+    """The marker-gated path: lock, check, run, record — one transaction.
 
-                # Set private-label flags on Setton batch products
-                cur.execute("""
-                    UPDATE products SET label_type = 'private_label'
-                    WHERE name ILIKE 'Batch Setton %%'
-                      AND COALESCE(label_type, 'house') != 'private_label'
-                """)
-                updated_by_name += cur.rowcount
+    Raises `_MarkerAccessError` if the marker row could not be read or written,
+    so the caller can fall back to the ungated path. Any other exception is the
+    block's own failure and propagates as-is.
+    """
+    conn = db_pool.getconn()
+    try:
+        try:
+            with conn.cursor() as cur:
+                # BEFORE the SELECT, so check-DDL-insert is atomic against a
+                # concurrent booting instance rather than merely idempotent.
+                # A lock we cannot take is the guard failing, not the block —
+                # so it degrades to ungated like any other marker failure.
+                try:
+                    _lock_startup_migrations(cur)
+                except Exception as e:
+                    raise _MarkerAccessError(f"lock: {e}") from e
+                try:
+                    cur.execute(
+                        "SELECT 1 FROM migration_markers WHERE name = %s",
+                        (name,),
+                    )
+                    already_applied = cur.fetchone() is not None
+                except Exception as e:
+                    raise _MarkerAccessError(f"read: {e}") from e
+                if already_applied:
+                    conn.rollback()
+                    logger.info(f"{name}: marker present, already applied — skipping")
+                    return
+                body(cur)
+                try:
+                    cur.execute(
+                        "INSERT INTO migration_markers (name) VALUES (%s) "
+                        "ON CONFLICT (name) DO NOTHING",
+                        (name,),
+                    )
+                except Exception as e:
+                    raise _MarkerAccessError(f"write: {e}") from e
+            conn.commit()
+        except Exception:
+            # Includes the marker failures: the block's work is rolled back, so
+            # the ungated retry starts from a clean slate rather than half-done.
+            conn.rollback()
+            raise
+    finally:
+        db_pool.putconn(conn)
 
-                conn.commit()
-                if updated_by_code + updated_by_name > 0:
-                    logger.info(f"SKU protection migration: flagged {updated_by_code + updated_by_name} products as private_label")
-                else:
-                    logger.info("SKU protection: label_type column up to date")
+
+def _run_ungated_startup_migration(name: str, body) -> None:
+    """Run the block unconditionally, in its own transaction — pre-guard behaviour.
+
+    No marker is read and none is written, so this runs on every boot. That is
+    the deliberate degradation: every-boot DDL costs an ACCESS EXCLUSIVE lock,
+    while a mis-set gate would cost unapplied schema.
+    """
+    try:
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                body(cur)
+            conn.commit()
         finally:
             db_pool.putconn(conn)
     except Exception as e:
-        logger.warning(f"SKU protection migration warning (non-fatal): {e}")
+        logger.warning(f"{name} warning (non-fatal): {e}")
+
+
+def _run_once_startup_migration(name: str, body, gated: bool = True) -> None:
+    """Run one in-app startup migration, but only if its marker is absent.
+
+    ``body`` takes a cursor and does the block's work. On success the marker is
+    inserted and the whole thing commits together, so a crash part-way through
+    leaves no marker and the next boot retries. Failures stay non-fatal — the
+    app has always booted through them — and because the marker is written only
+    on success, a block that failed is retried rather than skipped forever.
+
+    A failure to READ OR WRITE THE MARKER ITSELF is treated differently from a
+    failure inside ``body``: the block's transaction is rolled back and the
+    block is re-run with ``gated=False`` in a fresh transaction, with a warning
+    naming the block and the error. A misconfigured `migration_markers`
+    (permissions, RLS, a missing table) therefore degrades to today's
+    every-boot behaviour — loud and visible — and never to silently unapplied
+    schema. See `_ensure_migration_markers` on why the app role must own the
+    table.
+    """
+    if gated:
+        try:
+            _run_gated_startup_migration(name, body)
+            return
+        except _MarkerAccessError as e:
+            logger.warning(
+                f"{name}: migration_markers could not be used ({e}); rolled back "
+                f"and re-running this block UNGATED — schema work still applies, "
+                f"but it will run on every boot until the table is fixed"
+            )
+        except Exception as e:
+            # The block's own failure. No marker was written, so the next boot
+            # retries it; do NOT re-run it ungated here, which would only run
+            # the same failing body a second time.
+            logger.warning(f"{name} warning (non-fatal): {e}")
+            return
+
+    _run_ungated_startup_migration(name, body)
+
+
+def _run_startup_migrations() -> None:
+    """Apply the in-app startup migrations against the module-level pool.
+
+    Split out of ``startup()`` so it can be driven directly — with a
+    connection that records every statement — instead of only through a
+    full app boot.
+    """
+    # Every DDL-bearing block below is gated on a migration_markers row — see
+    # the comment block above _run_once_startup_migration for why and for the
+    # concurrency argument. The data sweeps (Migration 007, Migration 009 and
+    # the 051 cutover reconciliation) are deliberately NOT gated.
+    gated = _ensure_migration_markers()
+
+    # Migration: Add label_type column for SKU protection
+    def _startup_migration_label_type(cur):
+        # Add column if it doesn't exist
+        cur.execute("""
+            ALTER TABLE products ADD COLUMN IF NOT EXISTS label_type TEXT DEFAULT 'house'
+        """)
+
+        # Set private-label flags on verified finished goods by odoo_code
+        cur.execute("""
+            UPDATE products SET label_type = 'private_label'
+            WHERE odoo_code = ANY(%s) AND COALESCE(label_type, 'house') != 'private_label'
+        """, (PRIVATE_LABEL_ODOO_CODES,))
+        updated_by_code = cur.rowcount
+
+        # Set private-label flags on Blue Stripes exclusive batch products
+        cur.execute("""
+            UPDATE products SET label_type = 'private_label'
+            WHERE name ILIKE 'Batch BS %%'
+              AND COALESCE(label_type, 'house') != 'private_label'
+        """)
+        updated_by_name = cur.rowcount
+
+        # Set private-label flags on Setton batch products
+        cur.execute("""
+            UPDATE products SET label_type = 'private_label'
+            WHERE name ILIKE 'Batch Setton %%'
+              AND COALESCE(label_type, 'house') != 'private_label'
+        """)
+        updated_by_name += cur.rowcount
+
+        if updated_by_code + updated_by_name > 0:
+            logger.info(f"SKU protection migration: flagged {updated_by_code + updated_by_name} products as private_label")
+        else:
+            logger.info("SKU protection: label_type column up to date")
+
+    _run_once_startup_migration(
+        "startup_migration_label_type", _startup_migration_label_type, gated)
 
     # Migration 004: Add exclude_from_inventory flag to batch_formulas
     # Allows utility ingredients (e.g. Water) to remain visible in formulas
     # without blocking production or creating phantom inventory shortages.
-    try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    ALTER TABLE batch_formulas
-                    ADD COLUMN IF NOT EXISTS exclude_from_inventory BOOLEAN DEFAULT false
-                """)
+    def _startup_migration_004(cur):
+        cur.execute("""
+            ALTER TABLE batch_formulas
+            ADD COLUMN IF NOT EXISTS exclude_from_inventory BOOLEAN DEFAULT false
+        """)
 
-                # Flag Water as excluded in all formulas
-                cur.execute("""
-                    UPDATE batch_formulas bf
-                    SET exclude_from_inventory = true
-                    FROM products p
-                    WHERE p.id = bf.ingredient_product_id
-                      AND LOWER(p.name) = 'water'
-                      AND bf.exclude_from_inventory = false
-                """)
-                water_rows = cur.rowcount
+        # Flag Water as excluded in all formulas
+        cur.execute("""
+            UPDATE batch_formulas bf
+            SET exclude_from_inventory = true
+            FROM products p
+            WHERE p.id = bf.ingredient_product_id
+              AND LOWER(p.name) = 'water'
+              AND bf.exclude_from_inventory = false
+        """)
+        water_rows = cur.rowcount
 
-                conn.commit()
-                if water_rows > 0:
-                    logger.info(f"Migration 004: flagged {water_rows} Water formula row(s) as exclude_from_inventory")
-                else:
-                    logger.info("Migration 004: exclude_from_inventory column up to date")
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"Migration 004 warning (non-fatal): {e}")
+        if water_rows > 0:
+            logger.info(f"Migration 004: flagged {water_rows} Water formula row(s) as exclude_from_inventory")
+        else:
+            logger.info("Migration 004: exclude_from_inventory column up to date")
+
+    _run_once_startup_migration("startup_migration_004", _startup_migration_004, gated)
 
     # Migration 005: Add yield_multiplier to products
     # Allows products that gain/lose weight during processing (e.g. coconut hydration)
     # to record an expected yield factor. Default 1.0 = no change.
-    try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    ALTER TABLE products
-                    ADD COLUMN IF NOT EXISTS yield_multiplier FLOAT DEFAULT 1.0
-                """)
-                conn.commit()
-                logger.info("Migration 005: yield_multiplier column up to date")
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"Migration 005 warning (non-fatal): {e}")
+    def _startup_migration_005(cur):
+        cur.execute("""
+            ALTER TABLE products
+            ADD COLUMN IF NOT EXISTS yield_multiplier FLOAT DEFAULT 1.0
+        """)
+        logger.info("Migration 005: yield_multiplier column up to date")
+
+    _run_once_startup_migration("startup_migration_005", _startup_migration_005, gated)
 
     # Migration 006: Add case_size_lb to products
     # Stores the weight per sellable unit (e.g., 25 for "25 LB" case, 10 for "10 LB" case).
     # Required for correct line_value calculation: cases * unit_price (not lb * unit_price).
-    try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    ALTER TABLE products
-                    ADD COLUMN IF NOT EXISTS case_size_lb NUMERIC(10,2)
-                """)
+    def _startup_migration_006(cur):
+        cur.execute("""
+            ALTER TABLE products
+            ADD COLUMN IF NOT EXISTS case_size_lb NUMERIC(10,2)
+        """)
 
-                # Auto-populate from product names — LB patterns
-                cur.execute("UPDATE products SET case_size_lb = 25 WHERE name LIKE '%25 LB%' AND case_size_lb IS NULL")
-                updated_25 = cur.rowcount
-                cur.execute("UPDATE products SET case_size_lb = 10 WHERE name LIKE '%10 LB%' AND case_size_lb IS NULL")
-                updated_10 = cur.rowcount
-                cur.execute("UPDATE products SET case_size_lb = 50 WHERE name LIKE '%50 LB%' AND case_size_lb IS NULL")
-                updated_50 = cur.rowcount
+        # Auto-populate from product names — LB patterns
+        cur.execute("UPDATE products SET case_size_lb = 25 WHERE name LIKE '%25 LB%' AND case_size_lb IS NULL")
+        updated_25 = cur.rowcount
+        cur.execute("UPDATE products SET case_size_lb = 10 WHERE name LIKE '%10 LB%' AND case_size_lb IS NULL")
+        updated_10 = cur.rowcount
+        cur.execute("UPDATE products SET case_size_lb = 50 WHERE name LIKE '%50 LB%' AND case_size_lb IS NULL")
+        updated_50 = cur.rowcount
 
-                # Auto-populate from product names — OZ patterns (e.g., "12x10 OZ", "6x7 OZ")
-                cur.execute("""
-                    UPDATE products SET case_size_lb = ROUND(
-                        (substring(name FROM '(\d+)\s*x\s*\d+'))::numeric
-                        * (substring(name FROM '\d+\s*x\s*(\d+\.?\d*)\s*OZ'))::numeric
-                        / 16.0, 2)
-                    WHERE name ~* '\d+\s*x\s*\d+\.?\d*\s*OZ'
-                      AND case_size_lb IS NULL
-                """)
-                updated_oz = cur.rowcount
+        # Auto-populate from product names — OZ patterns (e.g., "12x10 OZ", "6x7 OZ")
+        cur.execute("""
+            UPDATE products SET case_size_lb = ROUND(
+                (substring(name FROM '(\d+)\s*x\s*\d+'))::numeric
+                * (substring(name FROM '\d+\s*x\s*(\d+\.?\d*)\s*OZ'))::numeric
+                / 16.0, 2)
+            WHERE name ~* '\d+\s*x\s*\d+\.?\d*\s*OZ'
+              AND case_size_lb IS NULL
+        """)
+        updated_oz = cur.rowcount
 
-                conn.commit()
-                total = updated_25 + updated_10 + updated_50 + updated_oz
-                if total > 0:
-                    logger.info(f"Migration 006: case_size_lb populated for {total} products (25lb:{updated_25}, 10lb:{updated_10}, 50lb:{updated_50}, oz:{updated_oz})")
-                else:
-                    logger.info("Migration 006: case_size_lb column up to date")
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"Migration 006 warning (non-fatal): {e}")
+        total = updated_25 + updated_10 + updated_50 + updated_oz
+        if total > 0:
+            logger.info(f"Migration 006: case_size_lb populated for {total} products (25lb:{updated_25}, 10lb:{updated_10}, 50lb:{updated_50}, oz:{updated_oz})")
+        else:
+            logger.info("Migration 006: case_size_lb column up to date")
+
+    _run_once_startup_migration("startup_migration_006", _startup_migration_006, gated)
 
     # Migration 007: Migrate legacy 'new' orders to 'confirmed'
     # Phase 3 changed default status to 'confirmed', but pre-existing orders may still be 'new'.
+    #
+    # NOT marker-gated: a data fix, not DDL. It takes no ACCESS EXCLUSIVE, it is
+    # idempotent by its WHERE clause, and an order that arrives as 'new' after
+    # the first boot still needs migrating.
     try:
         conn = db_pool.getconn()
         try:
@@ -1908,6 +2128,10 @@ async def startup():
     # Idempotent by construction: the WHERE clause stops matching once a row is
     # reconciled, and a row later reopened on purpose has status restored from
     # status_before_exit, so it no longer reads status='cancelled' either.
+    #
+    # NOT marker-gated, for the same reason as Migration 007: it is a data fix,
+    # it takes no ACCESS EXCLUSIVE, and it must keep running every boot to
+    # catch rows written to status directly after the cutover.
     try:
         conn = db_pool.getconn()
         try:
@@ -1939,24 +2163,21 @@ async def startup():
     # Migration 008: Lot merge support columns
     # Adds status, merged_into_lot_id, merged_at, merge_reason to lots table
     # for controlled lot merge operations (POST /admin/lots/merge).
-    try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'")
-                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merged_into_lot_id INTEGER REFERENCES lots(id)")
-                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merged_at TIMESTAMPTZ")
-                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merge_reason TEXT")
-                conn.commit()
-                logger.info("Migration 008: lot merge columns up to date")
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"Migration 008 warning (non-fatal): {e}")
+    def _startup_migration_008(cur):
+        cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'")
+        cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merged_into_lot_id INTEGER REFERENCES lots(id)")
+        cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merged_at TIMESTAMPTZ")
+        cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS merge_reason TEXT")
+        logger.info("Migration 008: lot merge columns up to date")
+
+    _run_once_startup_migration("startup_migration_008", _startup_migration_008, gated)
 
     # Migration 009: Reclassify internal packing transactions
     # Before /pack/commit existed, internal packing was done via /ship/commit
     # with customer_name='Internal Packaging'. Fix those to type='pack'.
+    #
+    # NOT marker-gated: data-only, no DDL, no ACCESS EXCLUSIVE. It already
+    # short-circuits once the append-only ledger is installed.
     try:
         conn = db_pool.getconn()
         try:
@@ -1985,120 +2206,125 @@ async def startup():
         logger.warning(f"Migration 009 warning (non-fatal): {e}")
 
     # Migration 010: Customer aliases table
-    try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS customer_aliases (
-                        id SERIAL PRIMARY KEY,
-                        customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-                        alias TEXT NOT NULL,
-                        created_at TIMESTAMPTZ DEFAULT now()
-                    )
-                """)
-                cur.execute("""
-                    CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_aliases_lower_alias
-                        ON customer_aliases (LOWER(alias))
-                """)
-                # Seed known customer aliases
-                cur.execute("""
-                    INSERT INTO customer_aliases (customer_id, alias)
-                    SELECT c.id, alias_name
-                    FROM customers c,
-                         (VALUES ('Setton Farms', 'Setton International'),
-                                 ('Setton Farms', 'Setton Intl'),
-                                 ('QUALI-PACK USA', 'Quali-Pack'),
-                                 ('QUALI-PACK USA', 'Quali Pack'),
-                                 ('QUALI-PACK USA', 'QualiPack')
-                         ) AS seed(canonical, alias_name)
-                    WHERE LOWER(c.name) = LOWER(seed.canonical)
-                      AND NOT EXISTS (
-                          SELECT 1 FROM customer_aliases ca
-                          WHERE ca.customer_id = c.id AND LOWER(ca.alias) = LOWER(seed.alias_name)
-                      )
-                """)
-                seeded = cur.rowcount
-                conn.commit()
-                if seeded > 0:
-                    logger.info(f"Migration 010: customer_aliases table up to date, seeded {seeded} alias(es)")
-                else:
-                    logger.info("Migration 010: customer_aliases table up to date")
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"Migration 010 warning (non-fatal): {e}")
+    def _startup_migration_010(cur):
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS customer_aliases (
+                id SERIAL PRIMARY KEY,
+                customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+                alias TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )
+        """)
+        cur.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_aliases_lower_alias
+                ON customer_aliases (LOWER(alias))
+        """)
+        # Seed known customer aliases
+        cur.execute("""
+            INSERT INTO customer_aliases (customer_id, alias)
+            SELECT c.id, alias_name
+            FROM customers c,
+                 (VALUES ('Setton Farms', 'Setton International'),
+                         ('Setton Farms', 'Setton Intl'),
+                         ('QUALI-PACK USA', 'Quali-Pack'),
+                         ('QUALI-PACK USA', 'Quali Pack'),
+                         ('QUALI-PACK USA', 'QualiPack')
+                 ) AS seed(canonical, alias_name)
+            WHERE LOWER(c.name) = LOWER(seed.canonical)
+              AND NOT EXISTS (
+                  SELECT 1 FROM customer_aliases ca
+                  WHERE ca.customer_id = c.id AND LOWER(ca.alias) = LOWER(seed.alias_name)
+              )
+        """)
+        seeded = cur.rowcount
+        if seeded > 0:
+            logger.info(f"Migration 010: customer_aliases table up to date, seeded {seeded} alias(es)")
+        else:
+            logger.info("Migration 010: customer_aliases table up to date")
 
+    _run_once_startup_migration("startup_migration_010", _startup_migration_010, gated)
 
     # Migration 011: Supplier lot code fields + lot_supplier_codes table
     # Adds supplier_lot_code, lot_type, received_at to lots table
     # Creates lot_supplier_codes table for commingled receipt breakdowns
-    try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS supplier_lot_code TEXT")
-                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS lot_type TEXT")
-                cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS received_at TIMESTAMPTZ")
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS lot_supplier_codes (
-                        id SERIAL PRIMARY KEY,
-                        lot_id INTEGER NOT NULL REFERENCES lots(id) ON DELETE CASCADE,
-                        supplier_lot_code TEXT,
-                        supplier_name TEXT,
-                        quantity_lb NUMERIC,
-                        notes TEXT,
-                        created_at TIMESTAMPTZ DEFAULT now()
-                    )
-                """)
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_lot_supplier_codes_lot_id
-                        ON lot_supplier_codes (lot_id)
-                """)
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_lot_supplier_codes_supplier_lot
-                        ON lot_supplier_codes (LOWER(supplier_lot_code))
-                """)
-                cur.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_lots_supplier_lot_code
-                        ON lots (LOWER(supplier_lot_code))
-                """)
-                conn.commit()
-                logger.info("Migration 011: supplier lot columns and lot_supplier_codes table up to date")
-        finally:
-            db_pool.putconn(conn)
-    except Exception as e:
-        logger.warning(f"Migration 011 warning (non-fatal): {e}")
+    def _startup_migration_011(cur):
+        cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS supplier_lot_code TEXT")
+        cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS lot_type TEXT")
+        cur.execute("ALTER TABLE lots ADD COLUMN IF NOT EXISTS received_at TIMESTAMPTZ")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS lot_supplier_codes (
+                id SERIAL PRIMARY KEY,
+                lot_id INTEGER NOT NULL REFERENCES lots(id) ON DELETE CASCADE,
+                supplier_lot_code TEXT,
+                supplier_name TEXT,
+                quantity_lb NUMERIC,
+                notes TEXT,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_lot_supplier_codes_lot_id
+                ON lot_supplier_codes (lot_id)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_lot_supplier_codes_supplier_lot
+                ON lot_supplier_codes (LOWER(supplier_lot_code))
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_lots_supplier_lot_code
+                ON lots (LOWER(supplier_lot_code))
+        """)
+        logger.info("Migration 011: supplier lot columns and lot_supplier_codes table up to date")
+
+    _run_once_startup_migration("startup_migration_011", _startup_migration_011, gated)
 
     # Migration 012: Add parent_batch_product_id to products table for pack safeguard
     # Links FG products to their expected source batch product
+    def _startup_migration_012(cur):
+        cur.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS parent_batch_product_id INTEGER REFERENCES products(id)")
+        # Populate known FG → batch mappings
+        mappings = [
+            (152, 123),   # BS Almond Butter 6x7 OZ (70079) → Batch BS Almond Butter (95001)
+            (207, 123),   # BS Almond Butter 6x8 OZ (70086) → Batch BS Almond Butter (95001)
+            (150, 121),   # BS Dark Chocolate 6x7 OZ (70074) → Batch BS Dark Chocolate (95002)
+            (208, 121),   # BS Dark Chocolate 6x8 OZ (70087) → Batch BS Dark Chocolate (95002)
+            (153, 124),   # BS Hazelnut Butter 6x7 OZ (70080) → Batch BS Hazelnut Butter (95003)
+            (206, 124),   # BS Hazelnut Butter 6x8 OZ (70085) → Batch BS Hazelnut Butter (95003)
+            (151, 122),   # BS PB Banana 6x7 OZ (70073) → Batch BS PB Banana (95005)
+            (209, 122),   # BS PB Banana 6x8 OZ (70088) → Batch BS PB Banana (95005)
+        ]
+        for fg_id, batch_id in mappings:
+            cur.execute(
+                "UPDATE products SET parent_batch_product_id = %s WHERE id = %s AND parent_batch_product_id IS NULL",
+                (batch_id, fg_id)
+            )
+        logger.info("Migration 012: parent_batch_product_id column and FG→batch mappings up to date")
+
+    _run_once_startup_migration("startup_migration_012", _startup_migration_012, gated)
+
+
+@app.on_event("startup")
+async def startup():
+    global db_pool
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")
+    if not API_KEY:
+        raise RuntimeError("API_KEY env var required — app cannot start without authentication")
+    if not DASHBOARD_API_KEY:
+        raise RuntimeError("DASHBOARD_API_KEY env var required — the dashboard's scoped key has no fallback")
+    if DASHBOARD_API_KEY == API_KEY:
+        logger.warning("DASHBOARD_API_KEY equals API_KEY — dashboard key scoping is ineffective")
     try:
-        conn = db_pool.getconn()
-        try:
-            with conn.cursor() as cur:
-                cur.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS parent_batch_product_id INTEGER REFERENCES products(id)")
-                # Populate known FG → batch mappings
-                mappings = [
-                    (152, 123),   # BS Almond Butter 6x7 OZ (70079) → Batch BS Almond Butter (95001)
-                    (207, 123),   # BS Almond Butter 6x8 OZ (70086) → Batch BS Almond Butter (95001)
-                    (150, 121),   # BS Dark Chocolate 6x7 OZ (70074) → Batch BS Dark Chocolate (95002)
-                    (208, 121),   # BS Dark Chocolate 6x8 OZ (70087) → Batch BS Dark Chocolate (95002)
-                    (153, 124),   # BS Hazelnut Butter 6x7 OZ (70080) → Batch BS Hazelnut Butter (95003)
-                    (206, 124),   # BS Hazelnut Butter 6x8 OZ (70085) → Batch BS Hazelnut Butter (95003)
-                    (151, 122),   # BS PB Banana 6x7 OZ (70073) → Batch BS PB Banana (95005)
-                    (209, 122),   # BS PB Banana 6x8 OZ (70088) → Batch BS PB Banana (95005)
-                ]
-                for fg_id, batch_id in mappings:
-                    cur.execute(
-                        "UPDATE products SET parent_batch_product_id = %s WHERE id = %s AND parent_batch_product_id IS NULL",
-                        (batch_id, fg_id)
-                    )
-                conn.commit()
-                logger.info("Migration 012: parent_batch_product_id column and FG→batch mappings up to date")
-        finally:
-            db_pool.putconn(conn)
+        db_pool = pool.ThreadedConnectionPool(minconn=2, maxconn=20, dsn=DATABASE_URL)
+        logger.info("Database connection pool created")
     except Exception as e:
-        logger.warning(f"Migration 012 warning (non-fatal): {e}")
+        logger.error(f"Failed to create connection pool: {e}")
+        raise
+
+    # In-app startup migrations. Every DDL-bearing block is gated on a
+    # migration_markers row so its ALTER TABLE / CREATE TABLE runs once per
+    # database instead of once per process start.
+    _run_startup_migrations()
 
 
 @app.on_event("shutdown")
@@ -13487,7 +13713,12 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
 
 
 @app.patch("/sales/orders/{order_id}/lines/{line_id}/cancel")
-def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = Path(...), _: bool = Depends(verify_api_key)):
+def cancel_order_line(
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    line_id: int = Path(...),
+    _: bool = Depends(verify_api_key),
+):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -13508,12 +13739,17 @@ def cancel_order_line(order_id: int = Depends(resolve_order_id), line_id: int = 
                 if not row:
                     raise HTTPException(404, "Line not found or already fulfilled")
                 _lock_allocation_product(cur, int(row['product_id']))
-                _expire_auto_fifo_allocations(cur, int(row['product_id']), _operator_id(_))
+                # released_by comes from caller_source_tag, the same source the
+                # manual release endpoint uses — never the shared-key operator
+                # placeholder, which is the constant 'legacy-shared-key' on 100%
+                # of calls and puts a second, incompatible kind of value in this
+                # column.
+                _expire_auto_fifo_allocations(cur, int(row['product_id']), caller_source_tag(request))
                 released = _release_active_allocations(
                     cur,
                     line_id=line_id,
                     reason='line_cancelled',
-                    released_by=_operator_id(_),
+                    released_by=caller_source_tag(request),
                 )
                 return {"order_id": order_id, "line_id": line_id, "line_status": "cancelled",
                         "allocations_released": released, "message": "Line cancelled"}
@@ -13653,7 +13889,12 @@ def update_order_line(
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/sales/orders/{order_id}/ship")
-def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+def ship_order(
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    req: Optional[ShipOrderRequest] = None,
+    _: bool = Depends(verify_api_key),
+):
     """Ship against a sales order. mode=preview returns feasibility; mode=commit executes and creates shipment record."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at if req else None,
@@ -13834,12 +14075,15 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                         for item in lines_to_ship:
                             if item["is_service"]:
                                 continue
+                            # As on every other allocation write: a surface
+                            # tag, never the 'legacy-shared-key' placeholder.
+                            # See caller_source_tag()'s docstring.
                             plan = _sales_order_ship_plan(
                                 cur,
                                 int(item["product_id"]),
                                 int(item["line_id"]),
                                 float(item["quantity_lb"]),
-                                released_by=_operator_id(_),
+                                released_by=caller_source_tag(request),
                                 lock=True,
                                 persist_expired=False,
                             )
@@ -13914,7 +14158,7 @@ def ship_order(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrde
                             int(item["product_id"]),
                             int(item["line_id"]),
                             qty_to_ship,
-                            released_by=_operator_id(_),
+                            released_by=caller_source_tag(request),
                         )
                         actual_ship = float(plan["actual_ship_lb"])
                         if actual_ship <= BALANCE_EPSILON:
@@ -14087,14 +14331,24 @@ def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
     return adjust(req, _)
 
 @app.post("/sales/orders/{order_id}/ship/preview", include_in_schema=False)
-def ship_order_preview(order_id: int = Depends(resolve_order_id), req: Optional[ShipOrderRequest] = None, _: bool = Depends(verify_api_key)):
+def ship_order_preview(
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    req: Optional[ShipOrderRequest] = None,
+    _: bool = Depends(verify_api_key),
+):
     if req is None:
         req = ShipOrderRequest()
     req.mode = "preview"
-    return ship_order(order_id, req, _)
+    return ship_order(request, order_id, req, _)
 
 @app.post("/sales/orders/{order_id}/ship/commit", operation_id="commitShipOrder")
-def commit_ship_order(req: CommitShipOrderRequest, order_id: int = Depends(resolve_order_id), _: bool = Depends(verify_api_key)):
+def commit_ship_order(
+    req: CommitShipOrderRequest,
+    request: Request,
+    order_id: int = Depends(resolve_order_id),
+    _: bool = Depends(verify_api_key),
+):
     """Always commit a sales-order shipment through the shared ship_order service."""
     commit_req = ShipOrderRequest(
         mode="commit",
@@ -14103,7 +14357,7 @@ def commit_ship_order(req: CommitShipOrderRequest, order_id: int = Depends(resol
         occurred_at=req.occurred_at,
         backfill=req.backfill,
     )
-    return ship_order(order_id, commit_req, _)
+    return ship_order(request, order_id, commit_req, _)
 
 
 # ═══════════════════════════════════════════════════════════════
