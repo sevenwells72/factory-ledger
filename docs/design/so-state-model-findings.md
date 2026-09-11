@@ -361,10 +361,20 @@ labelled **"v1 — provisional. Tier rules under review; response shape is the
 contract."** Callers may depend on the shape of
 `{level, reasons, info}`; they may not depend on the specific tier rules.
 
+**Exercised 2026-09-11:** the tier rules were rewritten (see § Health v2 below)
+and the shape was not touched. The label is now **"v2 — time-aware. Shape is
+the contract."** — the ruling stands, it is the version number that moved.
+
 ### 5. Counts endpoint key
-The Factory-Ready bucket is keyed **`ready_to_ship`**, not `ready`, to avoid
-colliding with the `ready` legacy *status* value and the `ready` flag on
-`sales_order_flags`.
+The Readiness bucket — **Ready to Ship — the floor's flag, currently stored as
+Factory Ready** (`sales_order_flags.ready`, migration 037) — is keyed
+**`ready_to_ship`**, not `ready`, to avoid colliding with the `ready` legacy
+*status* value and the `ready` flag on `sales_order_flags`. The key was the
+first place the floor's own words for this dimension were used; as of design
+standards v1.2 the label follows everywhere, STATUS-001 and STATUS-012
+included, and `compute_so_health()` says `Not Ready to Ship` in its reasons.
+The stored name is kept in the parenthetical, never dropped — a reader still
+has to be able to find the column.
 
 ### 6. A6
 Confirmed to hold. Fulfillment and Health are built on
@@ -798,3 +808,88 @@ Suggested follow-up, in rough order of cost:
 2. Then delete `_operator_id()` and its shim docstring.
 3. FR-15 proper — real per-user attribution — supersedes all of the above and
    is the only thing that makes any of these columns trustworthy.
+
+---
+
+## Health v2 — time-aware tiers (2026-09-11)
+
+Branch: `feat/so-health-v2` (off `origin/main` @ e8a8aa2). Code and docs only —
+no migration, no `dashboard/` change. `compute_so_health()` is still the single
+place tiers are decided, still fed by `SALES_ORDER_READINESS_SQL`, and still
+issues no SQL of its own.
+
+### Why v1 was replaced
+
+v1 made **any** stock shortage critical. The same 500 lb short is a different
+fact at three days out than at three months, and painting both red meant the
+red said nothing — the board read as a list of orders rather than a queue of
+work. v2 makes the ship date half of every reason and half of every tier.
+
+### The tiers
+
+Evaluated on **open orders only**. Highest tier wins; every applicable reason is
+listed.
+
+| Level | Condition | Example reason |
+|---|---|---|
+| `critical` | Stock shortage on any non-cancelled line **and** `ship_by <= today + SO_HEALTH_CRITICAL_DAYS` (a past `ship_by` is inside that window by definition) | `Short 735 lb on 2 lines — ships in 3 days` |
+| `warning` | Stock shortage with `ship_by` further out than `SO_HEALTH_CRITICAL_DAYS` (or no ship date at all) | `Short 500 lb — ships in 14 days` |
+| `warning` | Overdue (`ship_by < today`, `fulfillment != 'shipped'`) with **no** shortage | `12 days overdue — stock on hand` |
+| `warning` | Ready to Ship not set and `ship_by <= today + 2` | `Not Ready to Ship — ships tomorrow` |
+| `info` | `unallocated_need_lb > 0` on a line — reported, **never** affects the level | `60 lb not allocated on SKU-1 (line #12)` |
+| `quiet` | Nothing above applies | — |
+| `quiet` | The order is `closed` or `cancelled` — off the board, so no reasons and no info at all | — |
+
+### The knob
+
+`SO_HEALTH_CRITICAL_DAYS` — how close the ship date has to be before a shortage
+stops being a thing to plan around and becomes a thing to fix today.
+
+* **Default 5.** Read from the environment on **every call**, the same way
+  `ALLOCATIONS_ENFORCED` and `FACTORY_READY_REQUIRED` are, so the window can be
+  retuned without a deploy.
+* Anything that is not a non-negative integer — a typo, a float, a negative —
+  falls back to 5 rather than raising. This runs inside a read path; an env-var
+  typo must not 500 the Sales Orders board.
+* The **Ready to Ship** window is a separate constant (`SO_HEALTH_READY_DAYS`,
+  2) and deliberately *not* tied to the env var: the floor's flag is a
+  same-week concern, not a supply one, and moving the shortage window should
+  not silently move it too.
+
+### Reason wording
+
+Each reason is a whole instruction — how short, over how many lines, and by
+when — because a bare `Short` sends the operator to open the order. The time
+half comes from one helper, `_so_ship_phrase()`: `ships in 14 days` ·
+`ships tomorrow` · `ships today` · `12 days overdue`, and nothing at all when
+the order carries no ship date.
+
+Two deliberate details:
+
+* Shortages are **aggregated to one reason**, not one per line (v1 emitted one
+  each). Ten per-line reasons bury both numbers the operator needs. `on N
+  lines` is omitted when N is 1.
+* The overdue-with-no-shortage reason is guarded on there being no shortage:
+  when there *is* one, the shortage reason already carries the overdue phrase,
+  and saying it twice reads as two problems.
+
+### What did not change
+
+The response shape `{level, reasons, info}` — owner ruling 4 — is untouched, and
+so is every caller. The `info` tier now reports unallocated pounds whether or
+not `ALLOCATIONS_ENFORCED` is set (the pounds are unallocated either way; the
+flag only decides whether that blocks a shipment, which the note records) —
+v1 suppressed the whole observation while the flag was off, which is backwards.
+
+### Tests
+
+`tests/test_sales_order_state_model.py` carries a 24-row tier matrix driven
+straight against `compute_so_health()` with a pinned `today`, covering every row
+of the table above and **both sides of each boundary**: `today + 5` critical vs
+`today + 6` warning, `today` critical, `today - 1` critical, `today + 2`
+Not-Ready warning vs `today + 3` quiet. Plus multi-reason orders, closed and
+cancelled quiet, and the env var widened, narrowed, defaulted and fed garbage.
+The DB-backed tests that follow it prove the endpoint is wired to the function
+rather than re-proving the arithmetic. The `<=` in the critical-window
+comparison is mutation-verified: changing it to `<` fails
+`shortage-exactly-the-boundary` and the narrowed-env-var test, and nothing else.
