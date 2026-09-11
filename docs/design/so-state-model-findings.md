@@ -1164,3 +1164,176 @@ Mutation-verified, every new rule:
 | drop the not-enforced note | **3 fail** |
 | `across N lines` boundary `> 1` → `>= 1` | **6 fail** |
 | drop `info_detail` from the returned shape | **10 fail** |
+
+---
+
+## FR-15 attribution — per-actor keys (step 5a, migration 052, 2026-09-11)
+
+This is the follow-up the section above calls "FR-15 proper", delivered
+narrowly: the **backend** half. It gives the attribution columns something
+truthful to hold. It does not yet change what the dashboard sends, so in
+production nothing is attributed differently until the Codex UI step ships.
+
+### What was added
+
+`actors(id, name, role, key_hash, active, created_at, last_used_at)` —
+migration 052, one row per human who writes through the ledger. `role` is
+`owner | floor | office`, CHECK-constrained. `key_hash` is
+`sha256(plaintext)`; the plaintext is never stored, so a database dump is not
+a set of credentials. Keys are minted out of band by
+`scripts/mint_actor_keys.py`, which prints each plaintext once and writes
+hash-only INSERT SQL for the Supabase SQL editor. There are no seed rows.
+
+### Resolution order
+
+`_authorize_api_key()` is the single choke point for every authenticated
+route, and its order is load-bearing:
+
+1. **No key** → 401 `API key required`. Unchanged.
+2. **`API_KEY`** (master) → authorized everywhere, `actor = None`,
+   `key_kind = 'legacy_ledger'`. Unchanged.
+3. **`DASHBOARD_API_KEY`** (scoped) → authorized only on
+   `DASHBOARD_KEY_ALLOWLIST`, `actor = None`,
+   `key_kind = 'legacy_dashboard'`. Unchanged.
+4. **`sha256(key)` in `actors` where `active`** → `actor` attached to
+   `request.state`, `key_kind = 'actor'`, authorized on exactly
+   `DASHBOARD_KEY_ALLOWLIST`.
+5. **Anything else** → the historical rejection, verbatim: 403 on the header
+   dependency, 401 on the packing-slip query-param one.
+
+Steps 1–3 return before step 4 runs. That is the whole legacy-key policy in
+one sentence: **a call made with either legacy key never reaches the actor
+code at all**, so it cannot be affected by the table's contents, its absence,
+or a failed load. `caller_source_tag()` and `_state_changed_by()` read
+`request.state.actor`, which is `None` for those calls, and fall into exactly
+the branches they had before — `'dashboard'` for the scoped key, the body tag
+or NULL for the master key.
+
+A deactivated actor resolves to nothing, because the cache query filters on
+`active`. Its key is then rejected identically to a key that was never
+minted — which is what deactivation is meant to mean.
+
+**On the rejection status code.** FR-15's brief asked for "unknown key → 401
+exactly as today". Those two clauses disagree: today an unknown key is **403**
+on the header dependency (`tests/test_dashboard_api_key.py::
+test_missing_key_401_and_wrong_key_403` pins it) and 401 only on the
+packing-slip query-param path. "Exactly as today" won, because the merge
+criterion was that every existing caller keeps working unchanged. Changing it
+is a one-line edit to `verify_api_key`'s `invalid_status` and a separate
+decision.
+
+### Scope of an actor key
+
+Exactly `DASHBOARD_KEY_ALLOWLIST` — the same routes the shared dashboard key
+reaches, no more. An actor key **replaces** that key; it does not upgrade it.
+Handing a named person master-key reach (`/make`, `/adjust`, `/void`,
+`/admin/*`, `POST /sales/orders`) would be a privilege escalation this step
+has no mandate for. `role` is recorded and returned by `/auth/whoami` but
+gates nothing yet; per-role scoping is a later decision, not an oversight.
+
+### Caching
+
+The active actor set is small and is cached whole for **60 seconds**
+(`ACTOR_CACHE_TTL_S`), so authentication costs a dict lookup and no query. Two
+consequences, both deliberate and both tested:
+
+* a key minted less than a TTL ago may be rejected until the cache turns
+  over — mint, wait a minute, then hand it out;
+* a key deactivated less than a TTL ago keeps working for up to that long.
+  **Deactivation is not an incident-response control.** If a key must die
+  immediately, rotate `API_KEY`/`DASHBOARD_API_KEY` and restart the instance.
+
+An **unknown** key never forces a refresh. Letting an unauthenticated caller
+trigger a database round-trip per request is a free denial-of-service lever,
+and the 60-second staleness is the price of not having one.
+
+`last_used_at` is stamped at most once per key per 10 minutes
+(`ACTOR_LAST_USED_THROTTLE_S`), best-effort: the column answers "is this key
+still in use", which does not need per-request resolution, and a failed UPDATE
+must never turn a valid request into a 500.
+
+A failed load — most plausibly migration 052 not yet applied on this
+database — caches **empty** for a full TTL and logs once, rather than raising.
+With no actor resolvable, every key falls through to precisely the pre-FR-15
+behaviour.
+
+### Attribution, path by path
+
+`caller_source_tag()` and `_state_changed_by()` each gained one branch at the
+top: if an actor is resolved, return its name. Every sales-order write path
+already routed its attribution through one of those two, so the following pick
+it up without a handler change:
+
+| Path | Column | Legacy key (unchanged) | Actor key |
+|---|---|---|---|
+| `POST .../close` | `sales_orders.state_changed_by` + released rows' `released_by` | `'dashboard'` / NULL | actor name |
+| `POST .../cancel` | same | `'dashboard'` / NULL | actor name |
+| `POST .../reopen` | `state_changed_by` | `'dashboard'` / NULL | actor name |
+| `PATCH .../status` → cancelled/invoiced | same | `'dashboard'` / NULL | actor name |
+| `POST .../allocations` | `sales_order_allocations.created_by` | `'dashboard'` / NULL | actor name |
+| `POST .../allocations/{id}/release` | `released_by` | `'dashboard'` / NULL | actor name |
+| `POST .../ship/commit` | `released_by` on expired auto-FIFO rows | `'dashboard'` / NULL | actor name |
+| `PATCH .../lines/{id}/cancel` | `released_by` | NULL (master-only route) | — |
+| `PATCH .../lines/{id}/update` | `released_by` | **was `'legacy-shared-key'`** | actor name |
+| `POST /sales-orders/{so}/ready` | `sales_order_flags.ready_by` | body `by`, default `'floor'` | actor name |
+
+Two paths are deliberately absent:
+
+* **`POST .../lines`** (add lines) writes no attribution at all, because
+  `sales_order_lines` has no attribution column. Adding one is a schema change
+  this migration has no mandate for.
+* **`PATCH /sales/orders/{id}`** (header update) likewise writes none.
+
+### The `_operator_id` follow-up, finished
+
+The section above lists three call sites to fix and says the manual release
+path was already correct. It missed a fourth: `update_order_line()` wrote
+`released_by` from the placeholder at **both** its expire and its shrink site,
+and was overlooked precisely because it had no `request: Request` parameter to
+route through the shared helper. It has one now. `sales_order_allocations.
+released_by` finally holds one vocabulary on every path that writes it.
+
+`_operator_id()` itself stays: other subsystems (void, adjust, certifications,
+ledger corrections) still call it, and removing it is a separate change.
+
+### The actor outranks a self-reported identity
+
+`changed_by` on the exit request bodies is still **accepted** — the GPTs send
+it and hold the master key, which resolves no actor — but when an actor is
+resolved, the actor wins. A self-reported identity must not override an
+authenticated one, or anyone holding a personal key could sign someone else's
+name to an exit. The over-length `CHANGED_BY_TOO_LONG` 400 still fires first,
+for every key kind, so an over-long value is never silently discarded.
+
+### Locks
+
+**No lock was added, removed, or reordered by any of this.** The change is to
+the values passed into already-existing attribution parameters, plus one
+dependency that runs before any handler opens a transaction and uses its own
+short-lived connection. `test_so_write_paths_take_the_same_locks_in_the_same_
+order` (in `tests/test_sales_order_state_model.py`, appended to the existing
+concurrency harness) freezes the ordered lock sequence of all eleven
+sales-order write paths; the expected lists were generated from the source at
+72b5546 and verified byte-identical afterwards.
+
+### `GET /auth/whoami`
+
+Returns `{"actor": {"name", "role"} | null, "key_kind":
+"legacy_dashboard" | "legacy_ledger" | "actor"}`. Allowlisted, so both the
+dashboard key and actor keys reach it. **Deliberately not in
+`openapi-gpt-v3.yaml`** — that file is at its hard 30-operation ceiling and no
+GPT needs this route.
+
+### Deliberately deferred
+
+* **The dashboard still sends `dashboard-key-2026`** (`dashboard/dashboard.js`
+  line 2067, injected by `fetchSalesAPI`). Nothing in `dashboard/` was touched
+  by this step, so **production attribution stays unattributed until the Codex
+  UI step ships**. This PR makes per-user attribution possible; it does not
+  make it happen.
+* **Per-user GPT keys are a follow-up.** The office and floor GPTs hold
+  `API_KEY` and would each need their own actor key, which means deciding
+  whether a GPT is an actor at all or a surface acting for one. Until then the
+  GPTs' writes keep recording their self-reported `created_by` tag.
+* **Per-role authorization.** `role` is stored and reported, gates nothing.
+* **Revocation latency.** Bounded by the cache TTL, as above.
