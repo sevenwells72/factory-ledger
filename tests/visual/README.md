@@ -143,7 +143,9 @@ shared preview/commit dialog, field-edit invalidation, the 409 suggested Close,
 both Reopen states, cancelled-line visibility, related-order navigation, and
 detail/list/count refresh with header focus restoration. Its isolated in-memory
 scenarios add a stale recorded shipment to 101 and a cancelled line/related SO
-to 111; those cases never change the full visual audit's inputs.
+to 111, and keep 102 beyond the initial list page with an existing Ready note;
+those cases never change the full visual audit's inputs. The deep-link regression
+checks that a metadata lookup preserves this note when Ready is changed.
 
 S-30 and S-31 names describe the independent dimensions and Health table.
 S-35 remains uncaptured to preserve its absent baseline cell; its removed native
@@ -156,6 +158,11 @@ The fixture retains its two original example lines and requested/takeable
 amounts; additive `requested_ship_lb`, `can_ship_lb`, and reservation fields
 match the current API. This strengthens AFTER coverage of the preview content;
 the frozen BEFORE capture did not exercise that content.
+The final fixture also supplies the backend's decimal warning for the existing
+260 lb shortage and an observe-only warning for 500.5 lb reserved to another
+order, retaining the same requested and shippable amounts. These cases verify
+that rendered warning quantities use the shared whole-pound formatter and
+plain action copy instead of raw backend warning strings.
 
 ## Output
 

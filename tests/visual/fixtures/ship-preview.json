@@ -18,8 +18,30 @@
       ],
       "requested_ship_lb": 1000.0,
       "can_ship_lb": 1000.0,
-      "reserved_others_lb": 0.0,
-      "reserved_by_orders": []
+      "reserved_others_lb": 500.5,
+      "reserved_by_orders": [
+        {
+          "order_id": 102,
+          "order_number": "SO-1422",
+          "quantity_lb": 500.5
+        }
+      ],
+      "short": 0.0,
+      "allocation_warning": {
+        "warning_code": "RESERVED_STOCK_OBSERVE_ONLY",
+        "message": "Sales-order ship would use 500.5000 lb reserved for other sales orders. Allocations are not enforced, so this warning does not block commit.",
+        "requested_lb": 1000.0,
+        "can_take_lb": 499.5,
+        "reserved_taken_lb": 500.5,
+        "reserved_others_lb": 500.5,
+        "reserved_by_orders": [
+          {
+            "order_id": 102,
+            "order_number": "SO-1422",
+            "quantity_lb": 500.5
+          }
+        ]
+      }
     },
     {
       "line_id": 1011,
@@ -37,12 +59,15 @@
       "requested_ship_lb": 1500.0,
       "can_ship_lb": 1240.0,
       "reserved_others_lb": 0.0,
-      "reserved_by_orders": []
+      "reserved_by_orders": [],
+      "short": 260.0
     }
   ],
   "total_requested_lb": 2500.0,
   "total_takeable_lb": 2240.0,
   "total_shortfall_lb": 260.0,
   "mode": "preview",
-  "warnings": []
+  "warnings": [
+    "Classic Granola 10 LB: only 1240.0 lb currently takeable, need 1500.0 lb"
+  ]
 }

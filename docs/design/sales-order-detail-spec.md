@@ -49,3 +49,9 @@ Run the unchanged full audit on frozen baseline and final implementation with th
 Add `tests/visual/run-so-detail-interactions.mjs` for keyboard popover open/close, the real shared exit dialog's preview/commit on stub orders, field-edit preview invalidation, the 409 offer, Ready checkbox gating, and detail/list-count refreshes. Run existing Python and JavaScript suites plus list layout/interactions and shared exit-dialog checks. Two review passes comprise complete rendered audits and review of the accompanying interaction/test results; corrections occur only between the two passes.
 
 Bump each changed browser asset's `?v=` in `dashboard/index.html`. Add newest-first FACTORY_LEDGER_CHANGELOG row 141 marked **NOT DEPLOYED**, and a dated CHANGE_LOG entry. Push the branch, create a PR with before/after failure tables and the verified Netlify preview link, and report the PR URL. No merge or production deployment is authorized. Keep human-review instructions concrete and free of angle-bracket placeholders.
+
+## First-review reconciliations
+
+The detail endpoint omits Ready actor/time/note metadata. Detail navigation uses the matching loaded list record or a customer/state-scoped list read to preserve the existing floor note. If a matching note cannot be loaded within the 200-order result limit, the page remains readable and the Ready change explains that it could not be confirmed; it does not overwrite an unknown note. A known empty note remains distinct from an unavailable note.
+
+Service lines have no effective ledger shipment quantity. They show “Not tracked” for that field and retain supplied remaining unit demand. Shipping-preview warnings are reconstructed from their structured quantity fields using SOList.number, because the older server messages contain stored decimal precision. The final interaction tests exercise both cases and off-page Ready-note preservation.

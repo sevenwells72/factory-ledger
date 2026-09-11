@@ -23,12 +23,19 @@ async function installStatefulDetail(context) {
   const { orders } = await loadFixture('sales-orders-list.json', tokens);
   const details = await loadFixture('sales-order-detail.json', tokens);
   const reads = [], writes = [];
+  const offPageOrder = orders.find(order => order.order_id === 102);
+  Object.assign(offPageOrder, { note: 'Keep the staged pallets together.', ready_by: 'packing-lead' });
   let releaseReady = null, holdReady = false;
   // These exceptional line/exit facts belong only to the interaction scenario;
   // the full visual audit keeps its documented baseline fixture quantities.
   details[101].lines[0].quantity_shipped_lb = 999;
   details[101].lines[0].readiness.shipped_recorded_lb = 999;
   details[111].lines[1].line_status = 'cancelled';
+  details[111].ordered_lb = details[111].lines[0].quantity_lb;
+  details[111].remaining_effective_lb = details[111].lines[0].readiness.remaining_lb;
+  Object.assign(orders.find(order => order.order_id === 111), {
+    ordered_lb: details[111].ordered_lb, remaining_effective_lb: details[111].remaining_effective_lb,
+  });
   details[111].related_so_id = 102;
   details[111].state_reason = 'duplicate';
   await context.route(`**://${API_HOST}/**`, async route => {
@@ -39,7 +46,10 @@ async function installStatefulDetail(context) {
         (!url.searchParams.has('state') || order.state === url.searchParams.get('state')) &&
         (!url.searchParams.has('fulfillment') || order.fulfillment === url.searchParams.get('fulfillment')) &&
         (!url.searchParams.has('overdue_only') || (order.state === 'open' && order.overdue && order.fulfillment !== 'shipped')) &&
-        (!url.searchParams.has('customer') || order.customer.toLowerCase().includes(url.searchParams.get('customer').toLowerCase())));
+        (!url.searchParams.has('customer') || order.customer.toLowerCase().includes(url.searchParams.get('customer').toLowerCase())) &&
+        // The target exists beyond the first loaded page. A focused customer
+        // lookup can retrieve its flag metadata, while initial lists cannot.
+        (url.searchParams.has('customer') || order.order_id !== 102));
       return route.fulfill({ json: { orders: rows, count: rows.length } });
     }
     if (pathname === '/sales/orders/counts') {
@@ -255,8 +265,8 @@ try {
         assert.equal(await page.locator('.so-detail-exit-action[data-action="reopen"]').count(), 1);
         assert(await page.locator('.order-detail-header').evaluate(node => node.contains(document.activeElement)), 'Focus returns to an available detail header action');
         for (const kind of ['detail', 'list', 'counts']) assert(api.reads.filter(read => read.kind === kind).length > readsBefore[kind], `${kind} refresh after exit`);
-        assert.match(await page.getByRole('tab', { name: /^Open\b/ }).textContent(), /\b8\b/);
-        assert.match(await page.getByRole('tab', { name: /^Closed\b/ }).textContent(), /\b2\b/);
+        assert.match(await page.locator('[data-orders-tab="open"]').textContent(), /\b8\b/);
+        assert.match(await page.locator('[data-orders-tab="closed"]').textContent(), /\b2\b/);
         assert.deepEqual(api.writes.filter(write => write.id === 101 && write.action === 'close').map(write => write.body.mode), ['preview', 'preview', 'preview', 'commit']);
       });
 
@@ -314,12 +324,42 @@ try {
         }
       });
 
+      await check('Direct detail links preserve an off-page Ready note and provenance', async () => {
+        const direct = new URL(server.origin);
+        direct.searchParams.set('searchRecord', JSON.stringify({ type: 'order', id: 102 }));
+        await page.goto(direct.href, { waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => document.querySelector('.so-detail-exit-action')?.dataset.orderId === '102');
+        const before = api.writes.length;
+        await page.locator('.so-detail-ready-checkbox').uncheck();
+        await waitForWrites(api, before + 1);
+        await page.waitForFunction(() => { const input = document.querySelector('.so-detail-ready-checkbox'); return input && !input.checked && !input.disabled; });
+        assert.equal(api.writes.at(-1).body.note, 'Keep the staged pallets together.', 'A detail response without Ready metadata must not erase a note on an unloaded list page');
+        await page.locator('.so-ready-explanation').focus();
+        const panelId = await page.locator('.so-ready-explanation').getAttribute('data-explain');
+        assert.match(await page.locator(`[id="${panelId}"]`).innerText(), /Keep the staged pallets together/);
+        await page.keyboard.press('Escape');
+        // Reopened orders omit exited provenance, so inspect a fresh exited
+        // record with the same related-order metadata for native link behavior.
+        api.details[111].state = 'cancelled';
+        api.orders.find(order => order.order_id === 111).state = 'cancelled';
+        api.details[111].related_so_id = 102;
+        await navigateDetail(page, 111, 'Cancelled');
+        const related = page.locator('.so-related-order[data-related-so-id="102"]');
+        await related.waitFor({ state: 'visible' });
+        const href = new URL(await related.getAttribute('href'), server.origin);
+        assert.deepEqual(JSON.parse(href.searchParams.get('searchRecord')), { type: 'order', id: 102 });
+      });
+
       await check('Detail page stays in the viewport without browser errors', async () => {
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         assert.deepEqual(pageErrors, []);
         assert.equal(api.writes.some(write => Object.hasOwn(write.body, 'changed_by')), false);
         await page.screenshot({ path: path.join(out, `${variant}.png`), fullPage: true });
       });
+    } catch (error) {
+      results.push({ variant, passed: false, error: error.stack });
+      process.exitCode = 1;
+      console.error(`${variant}:`, error);
     } finally { api.releaseReady(); await context.close(); }
   }
 } catch (error) {

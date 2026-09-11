@@ -2070,6 +2070,7 @@
   // Orders sub-state
   state.ordersData = [];
   state.orderReadyWrites = new Set();
+  state.orderReadyFlags = new Map();
   state.ordersLoaded = false;
   state.ordersScrollTop = 0;
   state.currentOrderDetail = null;
@@ -2420,6 +2421,7 @@
   }
 
   function updateCachedOrderReady(orderId, flag) {
+    state.orderReadyFlags.set(String(orderId), { ...flag });
     const order = state.ordersData.find(o => String(o.order_id) === String(orderId));
     if (!order) return;
     order.ready = Boolean(flag.ready);
@@ -2546,6 +2548,7 @@
         fetchSalesAPI('/sales/orders/' + orderId),
         fetchSalesAPI('/sales/orders/' + orderId + '/allocations')
       ]);
+      await ensureOrderDetailFlag(data).catch(() => {});
       state.currentOrderDetail = data;
       state.currentOrderAllocations = allocations;
       state.orderDetailEditMode = false;
@@ -2563,6 +2566,7 @@
       fetchSalesAPI('/sales/orders/' + orderId),
       fetchSalesAPI('/sales/orders/' + orderId + '/allocations')
     ]);
+    await ensureOrderDetailFlag(data).catch(() => {});
     state.currentOrderDetail = data;
     state.currentOrderAllocations = allocations;
     state.orderDetailEditMode = false;
@@ -2607,9 +2611,11 @@
   function orderLineQuantities(line) {
     const readiness = line.readiness || {};
     const service = Boolean(line.is_non_weight || line.is_service || readiness.ordered_lb === null);
-    const ordered = Number(line.quantity_lb ?? readiness.ordered_lb ?? 0);
-    const shipped = Number(readiness.shipped_effective_lb ?? line.shipped_effective_lb ?? 0);
-    const remaining = Number(readiness.remaining_lb ?? line.remaining_effective_lb ?? Math.max(0, ordered - shipped));
+    const ordered = Number((service ? line.unit_quantity : null) ?? line.quantity_lb ?? readiness.ordered_lb ?? 0);
+    const effectiveShipped = readiness.shipped_effective_lb ?? line.shipped_effective_lb;
+    const shipped = effectiveShipped == null && service ? null : Number(effectiveShipped ?? 0);
+    const serviceRemaining = line.remaining_units ?? line.remaining_lb;
+    const remaining = service ? (serviceRemaining == null ? null : Number(serviceRemaining)) : Number(readiness.remaining_lb ?? line.remaining_effective_lb ?? Math.max(0, ordered - shipped));
     return { service, ordered, shipped, remaining, allocated: Number(readiness.allocated_lb ?? line.allocated_lb ?? 0), unallocated: Number(readiness.unallocated_need_lb ?? line.unallocated_lb ?? 0) };
   }
 
@@ -2622,7 +2628,8 @@
     const quantities = [['On hand', onHand], ['Remaining', remaining], ['Stock after remaining demand', onHand - remaining]];
     return '<table class="order-inventory-table"><thead><tr><th>Inventory</th><th class="num">Pounds</th><th class="num">Units</th><th class="num">Pallets</th></tr></thead><tbody>' + quantities.map(([label, pounds]) => {
       const units = caseWeight ? pounds / caseWeight : null;
-      const pallets = salesOrderLinePallets(line, units);
+      const palletEstimate = PalletCalculations.calculateLinePallets(line, units == null ? null : Math.abs(units)).calculatedPallets;
+      const pallets = palletEstimate == null ? null : Math.sign(units) * palletEstimate;
       return `<tr><th>${label}</th><td class="num">${SOList.number(pounds)} lb</td><td class="num">${SOList.number(units)}</td><td class="num">${SOList.number(pallets, 'pallets')}</td></tr>`;
     }).join('') + '</tbody></table>';
   }
@@ -3051,23 +3058,32 @@
   }
 
   function renderShippingPreview(preview) {
-    const warnings = Array.isArray(preview.warnings) ? preview.warnings : [];
-    let html = warnings.map(message => `<div class="preview-general-warning">${escHtml(message)}</div>`).join('');
-    html += '<div class="preview-lines">';
+    let html = '<div class="preview-lines">';
     for (const line of (preview.lines || [])) {
       const owners = (line.reserved_by_orders || []).map(item => `${item.order_number} (${SOList.number(item.quantity_lb)} lb)`).join(', ');
+      const unit = line.is_service ? 'units' : 'lb';
+      const requested = Number(line.requested_ship_lb);
+      const available = Number(line.can_ship_lb);
       html += '<div class="preview-line">';
-      html += `<div class="preview-line-main"><strong>${escHtml(line.product)}</strong><span>Requested ${SOList.number(line.requested_ship_lb)} lb · Can ship ${SOList.number(line.can_ship_lb)} lb</span></div>`;
-      if (!line.is_service) {
-        html += `<div class="preview-reservations">Reserved for other orders: ${SOList.number(line.reserved_others_lb || 0)} lb${owners ? ` · ${escHtml(owners)}` : ''}</div>`;
-      }
-      if (line.allocation_warning && line.allocation_warning.message) {
-        html += `<div class="preview-allocation-warning"><strong>${'Reservation review'}</strong><span>${escHtml(line.allocation_warning.message)}</span></div>`;
+      html += `<div class="preview-line-main"><strong>${escHtml(line.product)}</strong><span>Requested ${SOList.number(requested)} ${unit} · Can ship ${SOList.number(available)} ${unit}</span></div>`;
+      if (!line.is_service) html += `<div class="preview-reservations">Reserved for other orders: ${SOList.number(line.reserved_others_lb || 0)} lb${owners ? ` · ${escHtml(owners)}` : ''}</div>`;
+      if (Number.isFinite(requested) && Number.isFinite(available) && available < requested) html += `<p class="preview-general-warning">Short ${SOList.number(requested - available)} ${unit} for this request.</p>`;
+      const warning = line.allocation_warning;
+      if (warning) {
+        const taken = Number(warning.reserved_taken_lb || 0);
+        const reserved = Number(warning.reserved_others_lb ?? line.reserved_others_lb ?? 0);
+        const copy = warning.warning_code === 'STOCK_ALLOCATED'
+          ? taken > 0
+            ? `This request would use ${SOList.number(taken)} lb reserved for other orders. Shipping is blocked until the request is reduced or those reservations are released.`
+            : `${SOList.number(reserved)} lb is reserved for other orders. This preview uses available stock; requesting more may be blocked.`
+          : warning.warning_code === 'RESERVED_STOCK_OBSERVE_ONLY'
+            ? `This request would use ${SOList.number(taken)} lb reserved for other orders. This advisory does not prevent shipping.`
+            : 'Review reservations before shipping this line.';
+        html += `<div class="preview-allocation-warning"><strong>Reservation review</strong><span>${escHtml(copy)}</span></div>`;
       }
       html += '</div>';
     }
-    html += '</div>';
-    return html;
+    return html + '</div>';
   }
 
   async function previewOrderShipping(container, button) {
@@ -3116,8 +3132,31 @@
   }
 
   function orderDetailFlag(order) {
-    const cached = state.ordersData.find(item => String(item.order_id) === String(order.order_id)) || {};
-    return { ready: Boolean(order.ready ?? order.floor_ready ?? cached.ready), ready_at: order.ready_at ?? cached.ready_at, ready_by: order.ready_by ?? cached.ready_by, note: order.ready_note ?? cached.note };
+    const key = String(order.order_id);
+    const cached = state.ordersData.find(item => String(item.order_id) === key);
+    const metadata = Object.prototype.hasOwnProperty.call(order, 'ready_note')
+      ? { ready_at: order.ready_at, ready_by: order.ready_by, note: order.ready_note }
+      : cached && Object.prototype.hasOwnProperty.call(cached, 'note') ? cached : state.orderReadyFlags.get(key);
+    if (metadata) state.orderReadyFlags.set(key, { ready_at: metadata.ready_at, ready_by: metadata.ready_by, note: metadata.note });
+    return { ready: Boolean(order.ready ?? order.floor_ready ?? cached?.ready), ready_at: metadata?.ready_at, ready_by: metadata?.ready_by, note: metadata?.note, metadataKnown: Boolean(metadata) };
+  }
+
+  async function ensureOrderDetailFlag(order) {
+    const flag = orderDetailFlag(order);
+    if (flag.metadataKnown) return flag;
+    const params = new URLSearchParams({ state: order.state, limit: '200' });
+    if (order.customer) params.set('customer', order.customer);
+    const result = await fetchSalesAPI('/sales/orders?' + params);
+    const match = (result.orders || []).find(item => String(item.order_id) === String(order.order_id));
+    // The detail endpoint omits the floor note. A missing record in the bounded
+    // list is not a known empty note: never send a write that would erase it.
+    if (!match || !Object.prototype.hasOwnProperty.call(match, 'note')) {
+      const error = new Error('Ready details unavailable');
+      error.code = 'READY_DETAILS_UNAVAILABLE';
+      throw error;
+    }
+    state.orderReadyFlags.set(String(order.order_id), { ready_at: match.ready_at, ready_by: match.ready_by, note: match.note });
+    return orderDetailFlag(order);
   }
 
   function orderDetailShipDate(order) {
@@ -3140,6 +3179,7 @@
       });
     }));
     container.querySelectorAll('.so-related-order').forEach(link => link.addEventListener('click', event => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       SOList.closeExplanation();
       openOrderDetail(link.dataset.orderId);
@@ -3149,17 +3189,19 @@
       const key = String(order.order_id);
       const flag = orderDetailFlag(order);
       if (order.state !== 'open' || state.orderReadyWrites.has(key)) { checkbox.checked = flag.ready; return; }
+      const requestedReady = checkbox.checked;
       state.orderReadyWrites.add(key);
       checkbox.disabled = true;
       const restoreFocus = document.activeElement === checkbox;
       try {
-        const saved = await postOrderReady(order, checkbox.checked, flag.note || null);
+        const metadata = await ensureOrderDetailFlag(order);
+        const saved = await postOrderReady(order, requestedReady, metadata.note ?? null);
         Object.assign(order, { ready: Boolean(saved.ready), floor_ready: Boolean(saved.ready), ready_at: saved.ready_at, ready_by: saved.ready_by, ready_note: saved.note });
         updateCachedOrderReady(order.order_id, saved);
         await Promise.all([refreshOrderDetail(order.order_id, 'Ready to ship updated.'), refreshOrders()]);
-      } catch (_) {
+      } catch (error) {
         checkbox.checked = flag.ready;
-        setOrderDetailMessage(container, 'Ready to ship could not be confirmed. Refresh the order before trying again.', 'error');
+        setOrderDetailMessage(container, error.code === 'READY_DETAILS_UNAVAILABLE' ? 'The ready-to-ship note could not be loaded. Refresh the order before changing this mark.' : 'Ready to ship could not be confirmed. Refresh the order before trying again.', 'error');
       } finally {
         state.orderReadyWrites.delete(key);
         const replacement = container.querySelector('.so-detail-ready-checkbox');
@@ -3181,7 +3223,7 @@
     const stateLabel = { open: 'Open', closed: 'Closed', cancelled: 'Cancelled' }[data.state] || 'State unavailable';
     const fulfillmentLabel = { unshipped: 'Unshipped', partial: 'Partial', shipped: 'Shipped' }[data.fulfillment] || 'Fulfillment unavailable';
     const stateContent = (data.state_reason ? SOList.paragraph('Reason: ' + (SOList.reasons[data.state_reason] || data.state_reason.replaceAll('_', ' '))) : '') + SOList.paragraph(data.state_note || 'No note recorded.');
-    const readyContent = SOList.paragraph(flag.ready ? [flag.ready_by ? 'Marked by ' + flag.ready_by : 'Marked', flag.ready_at ? SOList.stamp(flag.ready_at) : ''].filter(Boolean).join(' · ') : 'Not marked') + (flag.note ? SOList.paragraph(flag.note) : '') + (data.state !== 'open' ? SOList.paragraph('Reopen the order to change this mark.') : '');
+    const readyContent = SOList.paragraph(flag.ready ? [flag.ready_by ? 'Marked by ' + flag.ready_by : 'Marked', flag.ready_at ? SOList.stamp(flag.ready_at) : ''].filter(Boolean).join(' · ') : 'Not marked') + (flag.note ? SOList.paragraph(flag.note) : '') + (!flag.metadataKnown ? SOList.paragraph('The recorded mark details could not be loaded. Changing the mark will try to load them again.') : '') + (data.state !== 'open' ? SOList.paragraph('Reopen the order to change this mark.') : '');
     const readyExplanation = SOList.explanation('detail-ready-' + data.order_id, 'Everything on this order is produced, packed, and staged for pickup.', readyContent);
     const level = ['critical', 'warning'].includes(data.health?.level) ? data.health.level : 'quiet';
     const healthLabel = level === 'critical' ? 'Critical' : level === 'warning' ? 'Warning' : 'Details';
@@ -3204,7 +3246,7 @@
     html += `<div class="so-dimension" data-dimension="health"><span class="so-dimension-label">Health</span>${SOList.trigger('detail-health-' + data.order_id, (level === 'quiet' ? '' : '⚠ ') + healthLabel, 'Health highlights work that needs attention based on stock and the ship-by date.', SOList.healthContent(data, { omitAllocationNote: true }) || SOList.paragraph('No attention needed.'), 'so-health so-health-' + level, 'Health details: ' + healthLabel)}</div></div>`;
     if (data.state !== 'open') {
       const changed = [data.state_changed_at ? SOList.stamp(data.state_changed_at) : '', data.state_changed_by ? 'by ' + data.state_changed_by : ''].filter(Boolean).join(' ');
-      if (changed || data.related_so_id) html += `<p class="so-state-provenance">${changed ? escHtml(stateLabel + ' ' + changed) : ''}${data.related_so_id ? ` <a class="so-related-order" data-related-so-id="${escAttr(data.related_so_id)}" href="#sales-order-${encodeURIComponent(data.related_so_id)}" data-order-id="${escAttr(data.related_so_id)}">Related SO ${escHtml(data.related_so_number || SOList.number(data.related_so_id))}</a>` : ''}</p>`;
+      if (changed || data.related_so_id) html += `<p class="so-state-provenance">${changed ? escHtml(stateLabel + ' ' + changed) : ''}${data.related_so_id ? ` <a class="so-related-order" data-related-so-id="${escAttr(data.related_so_id)}" href="${escAttr(FLDesign.recordURL({ type: 'order', id: data.related_so_id }))}" data-order-id="${escAttr(data.related_so_id)}">Related SO ${escHtml(data.related_so_number || SOList.number(data.related_so_id))}</a>` : ''}</p>`;
     }
     if (allocationNote) html += '<p class="so-allocation-note">Allocations not enforced: reservations do not prevent shipping.</p>';
     if (!editableHeader) html += `<p class="order-edit-locked">${data.state === 'open' ? 'Header editing is unavailable after pounds have shipped.' : 'Reopen the order before editing its header.'}</p>`;
@@ -3224,7 +3266,7 @@
         const lineDetails = (data.health?.info_detail || []).filter(item => String(item.line_id) === String(line.line_id));
         const health = lineDetails.length ? SOList.trigger('line-health-' + line.line_id, 'Allocation details', 'Reservation information for this line.', lineDetails.map(item => SOList.paragraph(`${item.product_name || item.sku || product}: ${SOList.number(item.unallocated_lb)} lb not allocated.`)).join(''), 'so-line-health') : '';
         const statusText = { pending: 'Pending', confirmed: 'Confirmed', partial: 'Partial', fulfilled: 'Fulfilled', cancelled: 'Cancelled' }[line.line_status] || 'Pending';
-        const status = SOList.trigger('line-state-' + line.line_id, statusText, 'Line status tracks work on this individual order line.', SOList.paragraph(line.line_status === 'cancelled' ? 'This cancelled line stays in the order history and is excluded from physical totals.' : `${product}: ${SOList.number(q.remaining)} ${unit} remains on this line.`), 'so-line-status');
+        const status = SOList.trigger('line-state-' + line.line_id, statusText, 'Line status tracks work on this individual order line.', SOList.paragraph(line.line_status === 'cancelled' ? 'This cancelled line stays in the order history and is excluded from physical totals.' : q.remaining == null ? 'A remaining quantity is not recorded for this line.' : `${product}: ${SOList.number(q.remaining)} ${unit} remains on this line.`), 'so-line-status');
         const palletResult = PalletCalculations.calculateLinePallets(line, line.unit_count);
         const productContent = (line.sku ? SOList.paragraph('SKU: ' + line.sku) : '') + (q.service ? SOList.paragraph('This service or non-weight line uses units and is excluded from physical-weight totals.') : SOList.paragraph(palletResult.calculatedPallets == null ? 'Pallet estimate unavailable.' : SOList.number(palletResult.calculatedPallets, 'pallets') + ' pallets ordered.'));
         html += `<tr class="${lineEditable ? 'order-line-edit-row ' : ''}${line.line_status === 'cancelled' ? 'so-line-cancelled' : ''}" data-line-id="${escAttr(line.line_id)}">`;
@@ -3235,7 +3277,7 @@
           html += `<td class="num" data-label="Ordered ${unit}">${SOList.number(q.ordered)}${suffix}</td>`;
           if (editMode) html += `<td class="num" data-label="Price">${line.case_price == null ? '' : SOList.number(line.case_price, 'money')}</td>`;
         }
-        html += `<td class="num" data-label="Shipped effective ${unit}">${SOList.number(q.shipped)}${suffix}</td><td class="num" data-label="Remaining ${unit}">${SOList.number(q.remaining)}${suffix}</td>`;
+        html += `<td class="num" data-label="Shipped effective ${unit}">${q.shipped == null ? 'Not tracked' : SOList.number(q.shipped) + suffix}</td><td class="num" data-label="Remaining ${unit}">${q.remaining == null ? 'Not tracked' : SOList.number(q.remaining) + suffix}</td>`;
         html += `<td class="num" data-label="Allocated lb">${q.service ? '' : SOList.number(q.allocated)}</td><td class="num" data-label="Unallocated lb">${q.service ? '' : SOList.number(q.unallocated)}</td><td data-label="Health">${health}</td><td data-label="Line status">${status}</td></tr>`;
         html += `<tr id="order-inventory-${escAttr(line.line_id)}" class="order-inventory-row hidden"><td colspan="${editMode ? 9 : 8}"></td></tr>`;
       }

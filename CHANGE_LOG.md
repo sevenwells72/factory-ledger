@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-11 — Correct detail interaction edge cases before final rendered review (NOT DEPLOYED)
+
+- **Files changed:** `dashboard/dashboard.js`, `dashboard/so-detail.css`, browser asset references, `tests/test_batch_a_ui.js`, detail interaction tests and shipping-preview fixture.
+- **What changed:** Preserve existing Ready notes when opening an order directly or through a related-order link, loading missing flag metadata before writing. Related links now have real record URLs and preserve modified-click navigation. Service effective shipments show “Not tracked”; inventory pallet differences retain sign and fractions. Shipping warnings use structured quantities through SOList.number. Detail quantity/price edit inputs meet the 44px touch target.
+- **Validation:** Final targeted checks pass: **64 JavaScript tests, 36 detail interaction checks, 70 shared-exit checks, 26 list layout cases, and both list interaction widths**. The full second visual audit is running. The first 388-capture audit had zero requested STATUS failures in list/detail; baseline timing diagnostics remain separate from canonical results.
+- **Why:** Address the complete first-review findings in one correction window; no third implementation pass. Asset references are refreshed on index and auxiliary pages.
+
+---
+
 ## 2026-09-11 — Implement Sales Order detail case summary and shared exit actions (NOT DEPLOYED)
 
 - **Files changed:** `dashboard/dashboard.js`, `dashboard/so-list.js`, `dashboard/so-list-actions.js`, `dashboard/so-detail.css`, dashboard styles and asset versions, visual fixtures/scripts, and `tests/test_batch_a_ui.js`.
