@@ -1886,6 +1886,152 @@ def test_list_keeps_every_pre_existing_field(db_cursor, client):
 
 
 @pytest.mark.db
+def test_list_exposes_effective_quantities_without_cancelled_or_voided_pounds(
+        db_cursor, client):
+    """The list's fulfillment explanation must describe the same ledger facts
+    as its fulfillment value, even when recorded quantities have diverged."""
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    service_id, _ = _seed_product(db_cursor, token, service=True)
+    order_id, _ = _seed_order(db_cursor, customer_id, token)
+    active_line = _add_line(db_cursor, order_id, product_id, 100)
+    _post_ship(db_cursor, active_line, product_id, lot_id, 40, recorded=40)
+    voided_txn = _post_ship(db_cursor, active_line, product_id, lot_id, 60,
+                            recorded=100)
+    _void_shipment(client, voided_txn, "list must exclude voided shipment")
+    cancelled_line = _add_line(db_cursor, order_id, product_id, 900,
+                               shipped=200, status="cancelled")
+    _post_ship(db_cursor, cancelled_line, product_id, lot_id, 200)
+    _add_line(db_cursor, order_id, service_id, 10)
+
+    response = client.get("/sales/orders", params={"customer": token})
+    assert response.status_code == 200, response.text
+    row = response.json()["orders"][0]
+    assert row["order_id"] == order_id
+    assert row["ordered_lb"] == pytest.approx(100)
+    assert row["shipped_effective_lb"] == pytest.approx(40)
+    assert row["remaining_effective_lb"] == pytest.approx(60)
+    assert row["fulfillment"] == "partial"
+    # Preserve the legacy line list, but give the list's pallet calculation
+    # the state it needs to exclude cancelled case quantities from its total.
+    pallet_lines = {line["line_id"]: line for line in row["pallet_lines"]}
+    assert pallet_lines[active_line]["line_status"] == "fulfilled"
+    assert pallet_lines[cancelled_line]["line_status"] == "cancelled"
+    # Existing fields retain their recorded meaning for legacy callers.
+    assert row["total_lb"] == pytest.approx(1000)
+    assert row["shipped_lb"] == pytest.approx(300)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("state,reason,status,shipped,expected_overdue", [
+    ("open", None, "shipped", 0, True),
+    ("open", None, "confirmed", 100, False),
+    ("open", None, "partial_ship", 40, True),
+    ("closed", "short_closed", "confirmed", 0, False),
+    ("cancelled", "customer_cancelled", "confirmed", 0, False),
+])
+def test_list_overdue_uses_state_and_effective_fulfillment_like_counts(
+        db_cursor, client, state, reason, status, shipped, expected_overdue):
+    """Legacy status can disagree with either dimension; it is not the board's
+    definition of overdue. The list field, filter, and count must agree."""
+    before = client.get("/sales/orders/counts").json()["overdue"]
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    order_id, _ = _seed_order(
+        db_cursor, customer_id, token, state=state, reason=reason, status=status,
+        ship_date=main._factory_today() - timedelta(days=2))
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    if shipped:
+        _post_ship(db_cursor, line_id, product_id, lot_id, shipped, recorded=shipped)
+
+    listed = client.get("/sales/orders", params={"customer": token})
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["orders"][0]["overdue"] is expected_overdue
+    filtered = client.get("/sales/orders", params={
+        "customer": token, "overdue_only": True})
+    assert filtered.status_code == 200, filtered.text
+    assert [row["order_id"] for row in filtered.json()["orders"]] == (
+        [order_id] if expected_overdue else [])
+    after = client.get("/sales/orders/counts").json()["overdue"]
+    assert after - before == int(expected_overdue)
+
+
+@pytest.mark.db
+def test_overdue_filter_preserves_explicit_legacy_status_filter(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, _ = _seed_product(db_cursor, token)
+    order_id, _ = _seed_order(
+        db_cursor, customer_id, token, status="shipped", state="open",
+        ship_date=main._factory_today() - timedelta(days=2))
+    _add_line(db_cursor, order_id, product_id, 100)
+
+    for status, expected_ids in (("open", []), ("shipped", [order_id])):
+        response = client.get("/sales/orders", params={
+            "customer": token, "overdue_only": True, "status": status})
+        assert response.status_code == 200, response.text
+        assert [row["order_id"] for row in response.json()["orders"]] == expected_ids
+
+
+@pytest.mark.db
+def test_overdue_filter_applies_limit_after_excluding_effectively_shipped(
+        db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    shipped_id, _ = _seed_order(
+        db_cursor, customer_id, token,
+        ship_date=main._factory_today() - timedelta(days=3))
+    line_id = _add_line(db_cursor, shipped_id, product_id, 100)
+    _post_ship(db_cursor, line_id, product_id, lot_id, 100, recorded=100)
+    overdue_id, _ = _seed_order(
+        db_cursor, customer_id, token,
+        ship_date=main._factory_today() - timedelta(days=2))
+    _add_line(db_cursor, overdue_id, product_id, 100)
+
+    response = client.get("/sales/orders", params={
+        "customer": token, "overdue_only": True, "limit": 1})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["count"] == 1
+    assert [row["order_id"] for row in body["orders"]] == [overdue_id]
+
+
+@pytest.mark.db
+def test_ready_flag_remains_editable_on_open_physically_shipped_order(db_cursor, client):
+    customer_id, token = _seed_customer(db_cursor)
+    product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=1000)
+    order_id, order_number = _seed_order(
+        db_cursor, customer_id, token, status="shipped", state="open", floor_ready=False)
+    line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _post_ship(db_cursor, line_id, product_id, lot_id, 100, recorded=100)
+
+    for ready in (True, False):
+        response = client.post(f"/sales-orders/{order_number}/ready", json={"ready": ready})
+        assert response.status_code == 200, response.text
+        assert response.json()["ready"] is ready
+        row = client.get("/sales/orders", params={"customer": token}).json()["orders"][0]
+        assert row["ready"] is ready
+        assert row["state"] == "open"
+        assert row["fulfillment"] == "shipped"
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("state,reason", [
+    ("closed", "short_closed"), ("cancelled", "customer_cancelled"),
+])
+def test_ready_flag_rejects_exited_orders_even_with_open_legacy_status(
+        db_cursor, client, state, reason):
+    customer_id, token = _seed_customer(db_cursor)
+    _, order_number = _seed_order(
+        db_cursor, customer_id, token, status="confirmed", state=state,
+        reason=reason, floor_ready=False)
+
+    response = client.post(f"/sales-orders/{order_number}/ready", json={"ready": True})
+    assert response.status_code == 400, response.text
+    db_cursor.execute("SELECT ready FROM sales_order_flags WHERE so_number = %s", (order_number,))
+    assert db_cursor.fetchone() is None, "an exited order must not gain a ready flag"
+
+
+@pytest.mark.db
 def test_state_filter_selects_by_state(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     open_id, open_number = _seed_order(db_cursor, customer_id, token)
