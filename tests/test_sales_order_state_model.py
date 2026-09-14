@@ -1179,16 +1179,16 @@ def test_unallocated_lines_below_the_epsilon_are_not_counted(monkeypatch):
     assert [d["line_id"] for d in health["info_detail"]] == [1]
 
 
-# ── the not-enforced note is appended once, to the one entry ──────────────
+# ── the enforcement flag no longer touches the wording (S2 / Health v3) ────
 
-def test_not_enforced_note_is_appended_once_across_many_lines(monkeypatch):
-    """STATUS-011: the caveat is stated once where it first applies. Repeated
-    down a list it stops being read, including the time it mattered."""
+def test_not_enforced_carries_no_note_either(monkeypatch):
+    """S2: allocations are optional reservations and drive no alarm, so the
+    v2.1 enforcement caveat is gone. Same sentence with the
+    flag off as with it on."""
     monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
     health = _health(days_out=30, unallocateds=(10000, 6000, 4000, 3000, 1000))
-    assert health["info"] == [
-        "24,000 lb not allocated across 5 lines (allocations not enforced)"]
-    assert health["info"][0].count("allocations not enforced") == 1
+    assert health["info"] == ["24,000 lb not allocated across 5 lines"]
+    assert "not enforced" not in health["info"][0]
 
 
 def test_enforced_on_carries_no_note(monkeypatch):
@@ -1199,20 +1199,20 @@ def test_enforced_on_carries_no_note(monkeypatch):
     assert "not enforced" not in health["info"][0]
 
 
-def test_the_note_is_the_only_difference_between_enforced_and_not(monkeypatch):
-    """Stated as a pair so the suffix cannot drift into carrying meaning: the
-    pounds are unallocated either way, the flag only says whether that blocks a
-    shipment."""
+def test_the_enforcement_flag_makes_no_difference_to_health(monkeypatch):
+    """Stated as a pair so the suffix cannot creep back: identical health
+    with the flag on and off — the pounds are unallocated either way, and
+    since S2 the flag says nothing Health repeats."""
     monkeypatch.setattr(main, "_allocations_enforced", lambda: True)
     on = _health(days_out=30, unallocateds=(600, 400))
     monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
     off = _health(days_out=30, unallocateds=(600, 400))
-    assert off["info"][0] == on["info"][0] + " (allocations not enforced)"
-    assert off["level"] == on["level"] == "quiet"
-    assert off["info_detail"] == on["info_detail"]
+    assert off == on
+    assert off["info"] == ["1,000 lb not allocated across 2 lines"]
+    assert off["level"] == "quiet"
 
 
-def test_the_not_enforced_note_never_raises_the_level(monkeypatch):
+def test_unallocated_pounds_never_raise_the_level_with_the_flag_off(monkeypatch):
     monkeypatch.setattr(main, "_allocations_enforced", lambda: False)
     health = _health(days_out=30, unallocateds=(24000,))
     assert health["level"] == "quiet", health
@@ -1365,7 +1365,7 @@ def test_health_info_names_the_product_end_to_end(db_cursor, client, monkeypatch
     health = client.get(f"/sales/orders/{order_id}").json()["health"]
     assert health["info"] == [
         f"60 lb not allocated on {product['name']} ({product['odoo_code']})"
-        " (allocations not enforced)"], health["info"]
+    ], health["info"]
     assert health["info_detail"] == [{
         "line_id": line_id,
         "sku": product["odoo_code"],
@@ -1507,10 +1507,10 @@ def test_inverted_windows_never_produce_a_level_without_a_reason(monkeypatch):
     assert health["info"] == ["Short 500 lb — ships in 10 days"]
 
 
-def test_health_function_is_labelled_v2_1_and_the_shape_is_the_contract():
-    """Owner ruling 4 survives v2.1: the shape is the contract, tiers are not."""
+def test_health_function_is_labelled_v3_and_the_shape_is_the_contract():
+    """Owner ruling 4 survives v3: the shape is the contract, tiers are not."""
     doc = main.compute_so_health.__doc__ or ""
-    assert "v2.1 — time-aware. Shape is the contract." in doc
+    assert "v3 — availability and coverage. Shape is the contract." in doc
 
 
 # ═════════════════════════════════════════════════════════════════

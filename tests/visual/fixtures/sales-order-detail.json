@@ -199,7 +199,7 @@
         "Short 2,250 lb on 3 lines — 3 days overdue"
       ],
       "info": [
-        "2,250 lb not allocated across 3 lines (allocations not enforced)"
+        "2,250 lb not allocated across 3 lines"
       ],
       "info_detail": [
         {
@@ -642,7 +642,7 @@
       "level": "quiet",
       "reasons": [],
       "info": [
-        "2,250 lb not allocated across 3 lines (allocations not enforced)"
+        "2,250 lb not allocated across 3 lines"
       ],
       "info_detail": [
         {
@@ -1126,7 +1126,7 @@
       "level": "quiet",
       "reasons": [],
       "info": [
-        "2,250 lb not allocated across 3 lines (allocations not enforced)"
+        "2,250 lb not allocated across 3 lines"
       ],
       "info_detail": [
         {

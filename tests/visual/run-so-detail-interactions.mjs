@@ -224,7 +224,7 @@ try {
         await page.keyboard.press('Escape');
         assert.equal(await page.evaluate(() => SOList.number(1499.5)), '1,500');
         const copy = await page.locator('#so-detail-content').textContent();
-        assert.equal((copy.match(/allocations not enforced/gi) || []).length, 1);
+        assert.doesNotMatch(copy, /allocations not\s+enforced/i);
         assert.doesNotMatch(copy, /unless the API returns|\bdispatch_ready\b|RAW_DATABASE_SECRET/);
       });
 

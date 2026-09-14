@@ -23,10 +23,9 @@
     if (text === '—') return { attrs: info.attrs, content: '—' + info.content };
     return `<button type="button" class="so-explain-trigger ${className}" ${info.attrs}${label ? ` aria-label="${escape(label)}"` : ''}>${text}</button>${info.content}`;
   }
-  function healthContent(order, { omitAllocationNote = false } = {}) {
+  function healthContent(order) {
     const health = order.health || {};
-    const copy = value => omitAllocationNote ? String(value).replace(/\s*\(allocations not enforced\)/gi, '') : value;
-    let html = (health.reasons || []).map(copy).map(paragraph).join('') + (health.info || []).map(copy).map(paragraph).join('');
+    let html = (health.reasons || []).map(paragraph).join('') + (health.info || []).map(paragraph).join('');
     if (health.info_detail?.length) html += '<details><summary>Show allocation details</summary><ul>' + health.info_detail.map(line => `<li>${escape(line.product_name || line.sku || 'Line')}${line.product_name && line.sku ? ' (' + escape(line.sku) + ')' : ''}: ${pounds(line.unallocated_lb)} not allocated</li>`).join('') + '</ul></details>';
     return html;
   }
