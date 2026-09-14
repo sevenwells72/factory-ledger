@@ -1231,6 +1231,54 @@ Handing a named person master-key reach (`/make`, `/adjust`, `/void`,
 has no mandate for. `role` is recorded and returned by `/auth/whoami` but
 gates nothing yet; per-role scoping is a later decision, not an oversight.
 
+**Stated against the floor GPT's schema, the claim is: floor-EXCLUSIVE
+endpoints denied; SHARED allowlisted endpoints accepted.** Not "actor keys
+are denied the floor schema" — `gpt-configs/schemas/openapi-floor.yaml` and
+`DASHBOARD_KEY_ALLOWLIST` overlap, and an actor key reaches the overlap by
+design, because the shared dashboard key it replaces already reaches exactly
+those routes. Of the floor schema's 22 operations, 13 are shared and 9 are
+floor-exclusive.
+
+`test_every_floor_schema_operation_obeys_the_allowlist` walks all 22 and
+asserts the allowlist decides each one, so this table cannot drift out of
+agreement with the code without the suite saying so.
+
+| Accepted — shared with the dashboard allowlist | Denied — floor-exclusive |
+|---|---|
+| `GET /bom/batches/{batch_id}/formula` | `PATCH /lots/{lot_code}/supplier-lot` |
+| `GET /bom/products` | `PATCH /lots/{lot_id}/rename` |
+| `GET /inventory/lookup` | `POST /adjust` |
+| `GET /lots/by-code/{lot_code}` | `POST /make` |
+| `GET /lots/by-supplier-lot/{supplier_lot_code}` | `POST /pack` |
+| `GET /production/day-summary` | `POST /receive` |
+| `GET /products/search` | `POST /sales/orders/{order_id}/ship` |
+| `GET /sales/orders` | `POST /ship` |
+| `GET /sales/orders/{order_id}` | `POST /void/{transaction_id}` |
+| `GET /trace/supplier-lot/{supplier_lot_code}` | |
+| `GET /transactions/history` | |
+| `PATCH /sales/orders/{order_id}/status` | |
+| `POST /sales/orders/{order_id}/ship/commit` | |
+
+Eleven of the thirteen accepted are reads. The two writes are the ones the
+dashboard already performs with its own shared key, so nothing an actor key
+can do here is anything `'dashboard'` could not already do — the only change
+is that the row now says who.
+
+Note the pair that looks inconsistent and is not: `POST .../ship` is denied
+while `POST .../ship/commit` is accepted. They are different routes.
+`.../ship` is the GPT's preview-or-commit entry point and has never been on
+the allowlist; `.../ship/preview` and `.../ship/commit` are the dashboard's
+own two-stage pair and always have been.
+
+Two sales-order line writers stay master-key only and are pinned separately,
+because they sit next door to `PATCH .../lines/{id}/update`, which **is**
+allowlisted — "the line endpoints" is not a group anyone can reason about:
+
+* `POST .../lines` — adding a line writes no attribution column at all
+  (`sales_order_lines` has none), so an actor key reaching it would be reach
+  without a record.
+* `PATCH .../lines/{id}/cancel` — releases reservations, master-key only.
+
 ### Caching
 
 The active actor set is small and is cached whole for **60 seconds**
@@ -1247,15 +1295,23 @@ An **unknown** key never forces a refresh. Letting an unauthenticated caller
 trigger a database round-trip per request is a free denial-of-service lever,
 and the 60-second staleness is the price of not having one.
 
-`last_used_at` is stamped at most once per key per 10 minutes
-(`ACTOR_LAST_USED_THROTTLE_S`), best-effort: the column answers "is this key
-still in use", which does not need per-request resolution, and a failed UPDATE
-must never turn a valid request into a 500.
+**60 seconds is an upper BOUND on revocation, not an average.** That only
+holds if the cache accounts for both clocks a refresh has — when it started
+and when it landed — and the first cut of this code accounted for neither
+(cross-review R1, fixed 2026-09-14; see the fix-pass section below).
 
 A failed load — most plausibly migration 052 not yet applied on this
 database — caches **empty** for a full TTL and logs once, rather than raising.
 With no actor resolvable, every key falls through to precisely the pre-FR-15
 behaviour.
+
+`last_used_at` is stamped at most once per key per 10 minutes
+(`ACTOR_LAST_USED_THROTTLE_S`), best-effort: the column answers "is this key
+still in use", which does not need per-request resolution, and a failed UPDATE
+must never turn a valid request into a 500. The bound is enforced by a
+predicate in the UPDATE's own `WHERE` clause, with the in-memory map kept as
+a shortcut in front of it — the in-memory map alone is per process and cannot
+hold a bound across workers (cross-review R2).
 
 ### Attribution, path by path
 
@@ -1295,6 +1351,145 @@ released_by` finally holds one vocabulary on every path that writes it.
 
 `_operator_id()` itself stays: other subsystems (void, adjust, certifications,
 ledger corrections) still call it, and removing it is a separate change.
+
+**This is an intentional behaviour change, by owner ruling (2026-09-14).**
+Cross-review flagged it as a regression, because what `update_order_line()`
+writes to `released_by` is genuinely different after this PR for all three key
+kinds, not just for actor keys:
+
+| Key | `released_by` before | `released_by` after |
+|---|---|---|
+| actor key | `'legacy-shared-key'` | the actor's name |
+| dashboard key | `'legacy-shared-key'` | `'dashboard'` |
+| master key | `'legacy-shared-key'` | `NULL` |
+
+The ruling is to KEEP it. `'legacy-shared-key'` was a placeholder, not data —
+it was the constant `_operator_id()` returned on 100% of calls, it is
+explicitly banned elsewhere in the test suite, and fixing this writer was a
+logged follow-up in the section above, not a change smuggled in here. The
+`NULL` for the master key is the point of the whole exercise: it is the honest
+answer for a key that names a surface rather than a person, and it is what the
+other three allocation writers have recorded since they were fixed.
+
+Both sites are pinned with the full three-key matrix, separately, because they
+release different rows for different reasons and a fix reaching only one of
+them would still leave the column holding two vocabularies:
+`test_update_line_records_the_actor_at_the_shrink_site` and
+`test_update_line_records_the_actor_at_the_expiry_site`.
+
+
+### Cross-review fix pass (2026-09-14)
+
+Codex returned REQUEST CHANGES on PR #49 with five items. All five are fixed
+below; the sixth thing it raised — `update_order_line`'s changed attribution —
+was ruled intentional and is written up immediately above.
+
+**R1 — the actor cache could keep a revoked key alive past its TTL.** The 60
+second TTL is a revocation *bound*, and the first cut of `_actors_by_hash()`
+did not deliver one. Three separate holes, all about the two clocks a refresh
+has:
+
+1. *The freshness stamp was taken AFTER the load.* The rows a query returns
+   are as old as the moment it began, so a load taking 90 seconds produced a
+   90-second-old answer that was then published as brand new. The effective
+   staleness bound was `TTL + load duration`, not `TTL`. The stamp is now
+   taken before the load.
+2. *An older refresh could overwrite a newer snapshot.* Two refreshes can
+   overlap, and the one that started first can finish last — holding the
+   staler rows. Publishing it walked a deactivation back and reopened the
+   window for another full TTL. Refreshes now take a monotonic generation
+   number under the lock, and only a generation newer than what is published
+   may publish.
+3. *A snapshot older than the TTL could be returned — including the one the
+   current refresh had just produced.* If a load outlives the TTL its result
+   is expired on arrival; it is now stored (it is still the best known state)
+   but not served, and the caller refreshes again. After
+   `ACTOR_CACHE_REFRESH_ATTEMPTS` (3) the request gives up and returns EMPTY,
+   which fails every actor key **closed**. That is the correct degradation: an
+   actor table that cannot be read inside the bound must not authenticate
+   anybody. Bounded rather than unbounded so a permanently slow database
+   degrades instead of spinning.
+
+Tested by `test_a_refresh_slower_than_the_ttl_is_never_served`,
+`test_an_older_refresh_never_overwrites_a_newer_snapshot` and
+`test_a_refresh_that_cannot_beat_the_ttl_fails_closed`. All three fail against
+the pre-fix implementation. In each, a deactivated key fails auth on the next
+request. A fourth, `test_a_slow_FAILING_load_is_not_retried`, pins the other
+side of the bound: the retry is for a load that was slow, not one that FAILED
+slowly, because three connection timeouts inside one request would be a
+multi-minute hang bolted onto an auth check — and the empty snapshot such a
+load publishes is already the right answer.
+
+**R2 — `last_used_at`'s throttle was only in memory.** The in-memory map is
+per PROCESS. Railway runs more than one worker, workers restart, and a fresh
+one starts with an empty map — so "one write per key per 10 minutes" actually
+meant "one per key per worker per 10 minutes, plus one per restart". The
+interval is now a predicate the database evaluates:
+
+```sql
+UPDATE actors SET last_used_at = now()
+ WHERE id = $1
+   AND (last_used_at IS NULL OR last_used_at < now() - interval '10 minutes')
+```
+
+The in-memory map stays, with its job narrowed to what it is actually good
+for: keeping the bound from costing an UPDATE on every authenticated request
+(`test_the_in_memory_shortcut_keeps_the_hot_path_query_free` — six requests,
+one query). The bound itself is proved by
+`test_the_last_used_throttle_is_enforced_by_the_database`: two real
+connections, each with a throttle map of its own, racing the same row, exactly
+one write. Remove the `WHERE` predicate and both write.
+`test_the_sql_throttle_interval_matches_the_in_memory_one` asks Postgres what
+the SQL literal means and pins it to `ACTOR_LAST_USED_THROTTLE_S`, so the two
+cannot drift.
+
+The write is best-effort and still cannot fail a request: it is isolated
+behind `_write_actor_last_used()` — its own function so failure injection has
+a seam that is exactly the database write — and
+`test_a_failing_last_used_write_never_fails_the_request` injects a raise there
+and asserts both a read and an administrative exit still return 200.
+
+**R4 — the test matrix had gaps.** Added: the three-key matrix on the legacy
+`PATCH .../status` exits for both `cancelled` and `invoiced`, asserting the
+persisted `(status, state)` pair, `state_changed_by` and the released rows'
+`released_by` — read back from the row, not from the response body;
+actor-key rejection tests for `POST .../lines` and
+`PATCH .../lines/{id}/cancel`, each checking that the rejected call wrote
+nothing; and the exhaustive scope test described under **Scope of an actor
+key** above.
+
+**R5 — the packing slip's `?key=` reached the access log in plaintext.**
+`GET /sales/orders/{id}/packing-slip` takes its key as a query parameter,
+because a browser following a printable link cannot set a header. Uvicorn's
+access logger writes the request line including the query string, so every
+fetch deposited a live credential into the platform log — and a **rejected**
+fetch deposited the key someone tried, which is the worse half: it makes log
+access and key material the same thing.
+
+Fixed with a `logging.Filter` (`RedactKeyQueryParam`) on `uvicorn.access` and
+`uvicorn.error`, installed idempotently at import. A filter rather than
+anything in the request path, deliberately: the rejection happens in a
+dependency, so there is no response-side hook that runs in every case, and the
+access line is emitted by Uvicorn's protocol layer from the raw ASGI scope
+after the app is done with it. Rewriting `scope["query_string"]` in middleware
+would reach the log but would also break the very `key` parameter the endpoint
+has to read. Filters mutate the record in place and run ahead of every
+handler, so one filter on one logger covers stdout, files, and anything the
+platform attaches later.
+
+Only the parameter's VALUE is replaced (`?key=[REDACTED]`); path, method,
+status and other parameters survive, because a redaction that ate the log line
+would trade one problem for another.
+`test_the_packing_slip_query_key_never_reaches_the_access_log` captures the
+access logger and asserts the key string is absent;
+`test_uvicorn_still_logs_the_query_string_it_is_being_filtered_for` pins the
+assumption the filter rests on, so a future Uvicorn that stopped logging query
+strings would say so rather than let the redaction test pass on a string that
+no longer carries a key.
+
+**Locks.** Re-verified after this pass by the same mechanical extraction, run
+against `origin/main` (`72b5546`) rather than a remembered baseline:
+**identical**, all eleven write paths.
 
 ### The actor outranks a self-reported identity
 

@@ -45,6 +45,77 @@ def to_decimal(value) -> Decimal:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# ═══════════════════════════════════════════════════════════════
+# ACCESS-LOG REDACTION — the packing slip's ?key= query parameter
+#
+# GET /sales/orders/{id}/packing-slip accepts its API key as a query
+# parameter, because a browser following a printable link cannot set a
+# header. Uvicorn's access logger writes the request line INCLUDING the
+# query string, so without this every packing-slip fetch deposits a live
+# credential in plaintext into the platform log — and a REJECTED one
+# deposits the wrong-but-guessable key that was tried, which is worse: log
+# access and key material should not be the same thing.
+#
+# Done as a logging filter rather than in the request path on purpose. The
+# rejection happens in a dependency, so there is no response-side hook that
+# runs for every case; the access line is emitted by Uvicorn's protocol
+# layer from the raw ASGI scope, after the app is done with it. Rewriting
+# the scope's query_string in middleware would reach the log, but it would
+# also break the very `key` parameter the endpoint has to read. Filters
+# mutate the record in place and run before every handler, so one filter on
+# one logger covers stdout, files, and anything a platform attaches later.
+# ═══════════════════════════════════════════════════════════════
+
+_KEY_QUERY_PARAM_RE = re.compile(r"((?:\?|&)key=)[^&\s]*", re.IGNORECASE)
+_KEY_REDACTION = "[REDACTED]"
+
+
+def _redact_key_query_param(text: str) -> str:
+    """Replace the VALUE of a `key=` query parameter, leaving the rest of the
+    URL — path, other parameters, their order — exactly as it was, so the log
+    line stays useful for debugging."""
+    return _KEY_QUERY_PARAM_RE.sub(r"\1" + _KEY_REDACTION, text)
+
+
+class RedactKeyQueryParam(logging.Filter):
+    """Strips `key=<credential>` out of a log record before any handler sees it.
+
+    Returns True always: this filter redacts, it never drops a record. It
+    rewrites `args` (where Uvicorn puts the path-with-query-string, as the
+    third argument of its `%s - "%s %s HTTP/%s" %d` access line) and `msg`
+    (for anything that logs an already-formatted URL).
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple):
+            record.args = tuple(
+                _redact_key_query_param(a) if isinstance(a, str) and "key=" in a else a
+                for a in args
+            )
+        elif isinstance(args, dict):
+            record.args = {
+                k: (_redact_key_query_param(v) if isinstance(v, str) and "key=" in v else v)
+                for k, v in args.items()
+            }
+        elif isinstance(args, str) and "key=" in args:
+            record.args = _redact_key_query_param(args)
+        if isinstance(record.msg, str) and "key=" in record.msg:
+            record.msg = _redact_key_query_param(record.msg)
+        return True
+
+
+def _install_access_log_redaction() -> None:
+    """Idempotent: importing main twice must not stack duplicate filters."""
+    for name in ("uvicorn.access", "uvicorn.error"):
+        target = logging.getLogger(name)
+        if not any(isinstance(f, RedactKeyQueryParam) for f in target.filters):
+            target.addFilter(RedactKeyQueryParam())
+
+
+_install_access_log_redaction()
+
 # Custom JSON encoder to handle Decimal from NUMERIC columns
 class DecimalSafeEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -2736,9 +2807,27 @@ ACTOR_CACHE_TTL_S = 60
 # every read endpoint.
 ACTOR_LAST_USED_THROTTLE_S = 600
 
+# A refresh is allowed to fail to beat the TTL a bounded number of times
+# before the request gives up and fails every actor key CLOSED. Unbounded
+# retrying would spin forever against a database that is permanently slower
+# than the TTL; returning the stale snapshot instead would reopen exactly the
+# revocation hole this bound exists to close.
+ACTOR_CACHE_REFRESH_ATTEMPTS = 3
+
 _actor_lock = threading.Lock()
 _actor_cache: dict = {}              # key_hash -> {"id", "name", "role"}
-_actor_cache_loaded_at: float = 0.0  # time.monotonic(); 0.0 = never loaded
+# time.monotonic() at which the snapshot in _actor_cache STARTED loading, not
+# at which it arrived. 0.0 = never loaded. Stamping the start is what makes
+# the TTL an upper bound on staleness: the rows are as old as the moment the
+# query began, and a load that takes 90s has produced a 90-second-old answer,
+# not a fresh one.
+_actor_cache_loaded_at: float = 0.0
+# Refreshes STARTED, and the generation of the snapshot currently published.
+# A refresh only publishes if its generation is the newest one to have
+# finished, so an older refresh that returns late cannot overwrite a newer
+# snapshot with staler rows.
+_actor_cache_generation = 0
+_actor_cache_stored_generation = 0
 _actor_last_used_seen: dict = {}     # key_hash -> time.monotonic() of last write
 # Incremented on every actual DB load. Exposed for tests, which assert that a
 # burst of authenticated requests costs exactly one.
@@ -2753,9 +2842,12 @@ def _hash_api_key(provided_key: str) -> str:
 def _reset_actor_cache() -> None:
     """Drop the cache so the next resolution reloads. Tests and startup only."""
     global _actor_cache, _actor_cache_loaded_at, _actor_cache_loads
+    global _actor_cache_generation, _actor_cache_stored_generation
     with _actor_lock:
         _actor_cache = {}
         _actor_cache_loaded_at = 0.0
+        _actor_cache_generation = 0
+        _actor_cache_stored_generation = 0
         _actor_last_used_seen.clear()
         _actor_cache_loads = 0
 
@@ -2782,46 +2874,146 @@ def _load_actors() -> dict:
 def _actors_by_hash() -> dict:
     """The cached active actor set, reloaded once its TTL has elapsed.
 
+    ACTOR_CACHE_TTL_S is a REVOCATION BOUND, not a hint: deactivating an
+    actor must fail auth on the next request made more than a TTL later, in
+    every interleaving. Three things are needed for that, and all three are
+    about the two clocks a refresh has — when it started and when it landed.
+
+      1. THE STAMP IS TAKEN BEFORE THE LOAD. The rows a query returns are as
+         old as the moment it began, so a load that takes 90 seconds has
+         produced a 90-second-old answer. Stamping completion instead would
+         let a slow load re-publish rows read before the deactivation and
+         call them fresh, and the effective staleness bound would be
+         TTL + load duration rather than TTL.
+
+      2. AN OLDER REFRESH NEVER OVERWRITES A NEWER SNAPSHOT. Two refreshes
+         can overlap, and the one that started first can finish last. It
+         holds the staler rows, so publishing it "because it finished most
+         recently" would walk a deactivation back. Generations are handed
+         out under the lock in start order; only a refresh newer than what
+         is published gets to publish.
+
+      3. NOTHING OLDER THAN THE TTL IS EVER RETURNED — including the
+         snapshot the current refresh just produced. If a load outlives the
+         TTL, its own result is already expired on arrival and is stored (it
+         is still the best known state) but not served; the loop refreshes
+         again. After ACTOR_CACHE_REFRESH_ATTEMPTS the request gives up and
+         returns EMPTY, which fails every actor key closed. That is a
+         degradation, and it is the correct one: an unreachable-in-time
+         actor table must not authenticate anybody. A load that FAILED is
+         never retried here, however slow it was — a connection timeout
+         three times over is a multi-minute hang, and the empty snapshot it
+         published is already the right answer.
+
     A failed load (most likely: migration 052 not applied yet on this
     database) caches EMPTY for a full TTL rather than raising. That is the
-    correct degradation — with no actors resolvable, every key falls through
-    to exactly the pre-FR-15 behaviour, and the legacy keys never reach this
-    code at all.
+    correct degradation too — with no actors resolvable, every key falls
+    through to exactly the pre-FR-15 behaviour, and the legacy keys never
+    reach this code at all.
     """
     global _actor_cache, _actor_cache_loaded_at, _actor_cache_loads
-    with _actor_lock:
-        age = time.monotonic() - _actor_cache_loaded_at
-        if _actor_cache_loaded_at and age < ACTOR_CACHE_TTL_S:
-            return _actor_cache
+    global _actor_cache_generation, _actor_cache_stored_generation
 
-    # Loaded OUTSIDE the lock: a slow database must not serialise every
-    # in-flight request behind one refresh. Two threads racing the expiry
-    # both load and the second wins; the query is idempotent and cheap.
-    try:
-        loaded = _load_actors()
-        failed = None
-    except Exception as e:
-        loaded = {}
-        failed = f"{type(e).__name__}: {e}"
+    for _attempt in range(ACTOR_CACHE_REFRESH_ATTEMPTS):
+        with _actor_lock:
+            started_at = time.monotonic()
+            if _actor_cache_loaded_at and (started_at - _actor_cache_loaded_at) < ACTOR_CACHE_TTL_S:
+                return _actor_cache
+            _actor_cache_generation += 1
+            generation = _actor_cache_generation
 
-    with _actor_lock:
-        _actor_cache = loaded
-        _actor_cache_loaded_at = time.monotonic()
-        _actor_cache_loads += 1
-    if failed:
-        logger.warning(
-            f"Actor cache load failed ({failed}); actor keys are unresolvable "
-            f"for up to {ACTOR_CACHE_TTL_S}s. The two legacy keys are unaffected. "
-            f"If migration 052 has not been applied yet, this is expected."
-        )
-    return loaded
+        # Loaded OUTSIDE the lock: a slow database must not serialise every
+        # in-flight request behind one refresh.
+        try:
+            loaded = _load_actors()
+            failed = None
+        except Exception as e:
+            loaded = {}
+            failed = f"{type(e).__name__}: {e}"
+
+        with _actor_lock:
+            _actor_cache_loads += 1
+            if generation > _actor_cache_stored_generation:
+                _actor_cache = loaded
+                _actor_cache_loaded_at = started_at
+                _actor_cache_stored_generation = generation
+            snapshot = _actor_cache
+            fresh = (time.monotonic() - _actor_cache_loaded_at) < ACTOR_CACHE_TTL_S
+
+        if failed:
+            logger.warning(
+                f"Actor cache load failed ({failed}); actor keys are unresolvable "
+                f"for up to {ACTOR_CACHE_TTL_S}s. The two legacy keys are unaffected. "
+                f"If migration 052 has not been applied yet, this is expected."
+            )
+        if fresh:
+            return snapshot
+        if failed:
+            # Retry only a load that was slow, never one that FAILED slowly.
+            # A connection timeout is the likely shape of a failure here, and
+            # three of those inside one request is a multi-minute hang. The
+            # empty snapshot this attempt just published is already the
+            # documented fail-closed degradation; take it and leave.
+            return {}
+
+    logger.error(
+        f"Actor cache could not be refreshed inside its {ACTOR_CACHE_TTL_S}s TTL "
+        f"after {ACTOR_CACHE_REFRESH_ATTEMPTS} attempts. Failing every actor key "
+        f"closed for this request rather than authenticating against a snapshot "
+        f"old enough to have missed a deactivation. The two legacy keys are "
+        f"unaffected."
+    )
+    return {}
 
 
-def _touch_actor_last_used(actor: dict) -> None:
-    """Best-effort last_used_at stamp, throttled per key.
+# The throttle, written as a predicate the DATABASE evaluates.
+#
+# The in-memory map below is per PROCESS. Railway runs more than one worker,
+# workers restart, and a fresh one starts with an empty map — so an in-memory
+# throttle alone degrades to "one write per key per worker per 10 minutes,
+# plus one per restart", which is not the bound this column's comment claims.
+# Putting the same interval in the WHERE clause makes the bound hold across
+# every connection that can reach the row, whatever any process believes.
+#
+# The interval is ACTOR_LAST_USED_THROTTLE_S expressed in SQL; the two are
+# pinned to each other by
+# test_the_sql_throttle_interval_matches_the_in_memory_one.
+_ACTOR_LAST_USED_SQL = (
+    "UPDATE actors SET last_used_at = now() "
+    "      WHERE id = %s "
+    "        AND (last_used_at IS NULL "
+    "             OR last_used_at < now() - interval '10 minutes')"
+)
+
+
+def _write_actor_last_used(actor_id: int) -> int:
+    """Run the throttled UPDATE; return the number of rows it actually wrote
+    (1, or 0 when the database's own throttle predicate refused it).
+
+    Its own function so that failure injection in the tests has a seam that is
+    exactly the database write and nothing else.
+    """
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(_ACTOR_LAST_USED_SQL, (actor_id,))
+            return cur.rowcount
+
+
+def _touch_actor_last_used(actor: dict) -> bool:
+    """Best-effort last_used_at stamp, throttled per key. Returns True only if
+    this call actually wrote the row.
+
+    TWO throttles, deliberately, doing different jobs:
+
+      * the in-memory map is a SHORTCUT — it keeps the hot path from issuing
+        a query at all on the overwhelming majority of authenticated
+        requests;
+      * the WHERE clause in _ACTOR_LAST_USED_SQL is the BOUND — it is what
+        actually holds "one write per key per 10 minutes" when several
+        workers, none of which can see each other's map, race the same row.
 
     Never raises: this is telemetry attached to an auth check, and a failed
-    UPDATE must not turn a valid request into a 500. The throttle stamp is
+    UPDATE must not turn a valid request into a 500. The in-memory stamp is
     taken BEFORE the write so a slow or failing database cannot produce a
     write per request; it is given back on failure so the next request retries.
     """
@@ -2830,20 +3022,16 @@ def _touch_actor_last_used(actor: dict) -> None:
     with _actor_lock:
         last = _actor_last_used_seen.get(key_hash)
         if last is not None and (now - last) < ACTOR_LAST_USED_THROTTLE_S:
-            return
+            return False
         _actor_last_used_seen[key_hash] = now
     try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "UPDATE actors SET last_used_at = now() WHERE id = %s",
-                    (actor["id"],),
-                )
+        return _write_actor_last_used(actor["id"]) > 0
     except Exception as e:
         with _actor_lock:
             _actor_last_used_seen.pop(key_hash, None)
         logger.warning(f"actors.last_used_at update failed for actor "
                        f"#{actor['id']} ({type(e).__name__}: {e})")
+        return False
 
 
 def _resolve_actor(provided_key: str) -> Optional[dict]:
