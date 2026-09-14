@@ -582,6 +582,11 @@ P1 and waited for P2 — both forever.
 | A23 | `_prepare_restore_ship_allocations()` (`:1327`) | `sales_order_allocations` | `FOR UPDATE` | 3, inherited |
 | A24 | `ship_order` **preview** | *no lock* — read-only | — | n/a; the `state='open'` check still runs |
 | A25 | `set_sales_order_ready_flag()` (`main.py`) | `sales_orders`, one row (`SELECT ... state FROM sales_orders FOR NO KEY UPDATE`) | `FOR NO KEY UPDATE` | 1 only; writes `sales_order_flags` (no FK to `sales_orders`); no ordering edge added |
+| A26 | `create_production_run()` (scheduling S1, migration 053) | *no explicit lock* — plain INSERT into `production_runs`; FK `KEY SHARE` on `products`, `production_lines` | — | n/a; never enters the SO graph (no inline coverage on POST) |
+| A27 | `update_production_run()` via `_lock_production_run()` | `production_runs`, one row | `FOR NO KEY UPDATE` | **2b** only; reads the run's `run_coverage` SUM under that lock and never reaches back for an order or line (the A16 pattern) |
+| A28 | `cancel_production_run()` via `_lock_production_run()` | `production_runs`, one row | `FOR NO KEY UPDATE` | 2b only; coverage rows left in place |
+| A29 | `complete_production_run()` via `_lock_production_run()` | `production_runs`, one row | `FOR NO KEY UPDATE` | 2b only; the ledger evidence is read unlocked through `POSTED_LINES`; writes no SO row, flag, allocation or ledger line |
+| A30 | `put_production_run_coverage()` | every distinct `sales_orders` row of the listed lines, **ascending id** (A1, state check under each lock) → each order's listed `sales_order_lines`, per order in that order, ascending id (A2) → the `production_runs` row (`_lock_production_run`) | `FOR NO KEY UPDATE` throughout | 1 → 2 → **2b**; the only S1 path in the SO graph. Never step 3. |
 
 Locks outside the sales-order graph, listed so the table is exhaustive rather
 than because they interact: `find_open_expected_receipt` (`:5036`, optional),
@@ -592,6 +597,22 @@ than because they interact: `find_open_expected_receipt` (`:5036`, optional),
 `correct_certification` (`:9313`), `verify_product` (`:10293`), and the
 out-of-scope `make` (`:7683`, `:7701`), `pack` (`:8165`) and `reassign_lot`
 (`:9912`).
+
+**Note on A26–A30 — `production_runs` as step 2b (scheduling S1).** The run
+row is a new lock target that sits *after* the order's lines and *before*
+products in the normative order — "2b". Every writer that holds a run lock
+either holds nothing else (A27–A29) or acquired it strictly after its order
+and line locks (A30). No writer holds a run lock and then waits on an order,
+line, product or lot; the existing 1→2→3 writers never wait on a run; so no
+cycle can pass through 2b. Locking several orders ascending in A30 cannot
+cycle with a single-order 1→2→3 writer (which wants only its own order) nor
+with another A30 (both take orders in the same global order and serialize at
+the first shared one before reaching any line). `/make`, `/pack`, the SO
+exits, `ship_order` and every allocation writer are untouched and never read
+or write `production_runs` / `run_coverage`. Pinned mechanically: the five
+handlers are rows in `EXPECTED_LOCK_SEQUENCE` with a `_lock_production_run(`
+token, and `tests/test_production_runs.py` asserts none of their sources
+contains a step-3 lock.
 
 **Note on A6 — `_load_allocatable_line`.** It selects
 `FROM sales_orders so JOIN sales_order_lines sol JOIN products p` and locks

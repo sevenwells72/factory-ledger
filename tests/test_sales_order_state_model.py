@@ -4334,6 +4334,7 @@ _LOCK_TOKENS = (
     "_load_allocatable_line(",
     "_lock_sales_order_lines(",
     "_lock_sales_order(",
+    "_lock_production_run(",
     "_release_order_reservations(",
     "_lock_allocation_products(",
     "_lock_allocation_product(",
@@ -4374,6 +4375,20 @@ EXPECTED_LOCK_SEQUENCE = {
     # Ship commit: order row -> lines -> all products, sorted, up front.
     "ship_order": ["FOR NO KEY UPDATE", "_lock_sales_order_lines(",
                    "_lock_allocation_products("],
+    # ── Scheduling S1 (migration 053) ─────────────────────────────────
+    # production_runs is step "2b": taken strictly AFTER any order and line
+    # lock, never before one, and no run path ever reaches step 3 (products,
+    # lots, allocations). Create is a plain INSERT with no explicit lock.
+    "create_production_run": [],
+    # Run-only writes: the run row, nothing else (the A16 pattern — never
+    # reaching back for an order or line).
+    "update_production_run": ["_lock_production_run("],
+    "cancel_production_run": ["_lock_production_run("],
+    "complete_production_run": ["_lock_production_run("],
+    # Coverage replace: every order ascending, then their lines ascending,
+    # then the run. The only run path that enters the sales-order graph.
+    "put_production_run_coverage": ["_lock_sales_order(", "_lock_sales_order_lines(",
+                                    "_lock_production_run("],
 }
 
 

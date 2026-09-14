@@ -2723,6 +2723,16 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("GET", "/production/requirements"),
     ("GET", "/production/day-summary"),
     ("GET", "/production/today-tile"),
+    # Production scheduling S1 (migration 053; dashboard-only, not in any GPT
+    # yaml). Runs + coverage. Any allowlisted key may write; attribution is
+    # caller_source_tag(). Nothing here is read by Health until S2.
+    ("GET", "/production/runs"),
+    ("POST", "/production/runs"),
+    ("PATCH", "/production/runs/{run_id}"),
+    ("POST", "/production/runs/{run_id}/cancel"),
+    ("POST", "/production/runs/{run_id}/complete"),
+    ("GET", "/production/runs/{run_id}/evidence"),
+    ("PUT", "/production/runs/{run_id}/coverage"),
     # Dashboard notes (the dashboard's own CRUD; GET is public)
     ("POST", "/dashboard/api/notes"),
     ("PUT", "/dashboard/api/notes/{note_id}"),
@@ -17846,6 +17856,724 @@ def production_day_summary(
     except Exception as e:
         logger.error(f"Production day-summary failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════
+# PRODUCTION RUNS — scheduling S1 (migration 053)
+# docs/design/scheduling-spec-draft.md
+#
+# A run is one FINISHED SKU, one planned quantity, on one day. Coverage links
+# pounds of a run to individual sales_order_lines. That is the whole model:
+# no shifts, no capacity, no batch→finished routing, no run_kind/stage.
+#
+# Hard rules enforced here:
+#   * Nothing in this block is read by Health, readiness, availability or any
+#     existing endpoint. S1 changes nothing the dashboard sees; S2 reads
+#     run_coverage into SALES_ORDER_READINESS_SQL.
+#   * Completing a run creates NO inventory, satisfies NO sales order and sets
+#     NO Ready-to-Ship flag. It is a human's statement that the run happened;
+#     the posted ledger is the only evidence of production, and once a run is
+#     done, actual ledger data governs (S2). A completed run never masks a
+#     shortage.
+#   * Units: planned_qty_lb is canonical (owner ruling 2026-09-14, option 3).
+#     The run also records planned_qty + planned_unit ('cases' | 'lb') as the
+#     floor stated it, and case_size_lb_used — the products.case_size_lb the
+#     conversion multiplied by, exactly as order intake does. A SKU with no
+#     case size must be planned in lb. run_coverage is pounds only.
+#   * Locks: coverage writes take sales_orders (ascending id) → those orders'
+#     sales_order_lines (ascending) → the production_runs row, all FOR NO KEY
+#     UPDATE. Run-only writes take only the run row. NO path here locks a
+#     products, lots or sales_order_allocations row. The run is step "2b" of
+#     the normative order at the top of main.py: acquired strictly after any
+#     order/line lock and never before one, so it cannot cycle with the
+#     existing 1→2→3 writers, which never wait on a run.
+#   * Attribution: caller_source_tag(request) on every write (actor name →
+#     'dashboard' → NULL). No body tag is accepted — these routes are
+#     dashboard-allowlist only and never appear in a GPT yaml.
+#   * production_schedule / POST /schedule (migration 004) are untouched.
+# ═══════════════════════════════════════════════════════════════
+
+PRODUCTION_RUN_STATUSES = ("planned", "in_progress", "done", "cancelled")
+PRODUCTION_RUN_ACTIVE_STATUSES = ("planned", "in_progress")
+PRODUCTION_RUN_UNITS = ("cases", "lb")
+# Evidence window: posted make/pack output for the run's product with
+# business_date within this many days either side of planned_date.
+PRODUCTION_RUN_EVIDENCE_WINDOW_DAYS = 1
+
+
+class ProductionRunCreate(BaseModel):
+    """POST /production/runs. planned_qty is in planned_unit; the API stores
+    the canonical pounds alongside the native quantity."""
+    product_id: int
+    planned_qty: float
+    planned_unit: str = "lb"
+    planned_date: date
+    line_id: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class ProductionRunUpdate(BaseModel):
+    """PATCH body. Omitted fields are untouched; line_id / notes sent as null
+    are cleared. status may only move between 'planned' and 'in_progress' —
+    done and cancelled have their own endpoints."""
+    planned_qty: Optional[float] = None
+    planned_unit: Optional[str] = None
+    planned_date: Optional[date] = None
+    line_id: Optional[int] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ProductionRunCancel(BaseModel):
+    reason: Optional[str] = None
+
+
+class ProductionRunComplete(BaseModel):
+    note: Optional[str] = None
+
+
+class RunCoverageLineIn(BaseModel):
+    sales_order_line_id: int
+    qty_lb: float
+
+
+class RunCoverageReplace(BaseModel):
+    """PUT .../coverage: the run's complete coverage list. An empty list
+    clears it."""
+    coverage: List[RunCoverageLineIn]
+
+
+def _run_error(code: str, message: str, status_code: int = 409, **fields):
+    raise HTTPException(status_code=status_code,
+                        detail={"error_code": code, "message": message, **fields})
+
+
+def _run_lb(value) -> Decimal:
+    """A pound quantity at the precision production_runs / run_coverage store
+    it: Decimal quantized to 4 places, ROUND_HALF_UP — exactly what the
+    numeric(14,4) columns do on INSERT. Every quantity in this block is
+    normalized through here BEFORE it is validated, and the normalized value
+    is what gets stored, so the validated plan and the stored plan (and the
+    validated coverage and the stored coverage) can never differ. Validating
+    the unrounded floats let ten lines of 10.00006 lb (raw Σ 100.0006) pass a
+    100.0006 lb plan and then land as 10.0001 each = 100.0010 lb."""
+    return to_decimal(value)
+
+
+def _run_quantity_lb(product: dict, planned_qty, planned_unit: str) -> tuple:
+    """(planned_qty_lb, case_size_lb_used) for a quantity in the given unit.
+
+    'lb' passes through. 'cases' multiplies by products.case_size_lb — the
+    same lookup order intake performs (CASE_WEIGHT_REQUIRED when the product
+    has none) — and records the multiplier so the conversion is auditable.
+    planned_qty_lb comes back as a Decimal at database precision (_run_lb);
+    the product is multiplied in Decimal so no float dust enters before the
+    quantize.
+    """
+    try:
+        qty = float(planned_qty)
+    except (TypeError, ValueError):
+        qty = float("nan")
+    if not math.isfinite(qty) or qty <= 0:
+        _run_error("INVALID_QUANTITY", "planned_qty must be a positive number",
+                   status_code=422)
+    unit = (planned_unit or "lb").strip().lower()
+    if unit not in PRODUCTION_RUN_UNITS:
+        _run_error("INVALID_UNIT",
+                   f"planned_unit must be one of {', '.join(PRODUCTION_RUN_UNITS)}",
+                   status_code=422, input=str(planned_unit))
+    if unit == "lb":
+        planned_lb, case_size = _run_lb(qty), None
+    else:
+        case_size = float(product.get("case_size_lb") or 0)
+        if case_size <= 0:
+            _run_error(
+                "CASE_WEIGHT_REQUIRED",
+                f"'{product.get('name')}' has no case_size_lb; plan this SKU in lb",
+                status_code=400, product_id=product.get("id"),
+            )
+        planned_lb = _run_lb(Decimal(str(qty)) * Decimal(str(case_size)))
+    if planned_lb <= 0:
+        _run_error("INVALID_QUANTITY",
+                   "planned_qty is below 0.0001 lb, the smallest quantity a run can store",
+                   status_code=422)
+    return planned_lb, case_size
+
+
+def _load_schedulable_product(cur, product_id: int) -> dict:
+    """The product a run may yield: an active finished SKU that the factory
+    produces. 404 when missing, 400 PRODUCT_NOT_SCHEDULABLE otherwise, with
+    the reason spelled out. Read unlocked — a product row is reference data
+    here and is never locked by this block."""
+    cur.execute(
+        """SELECT id, name, odoo_code, type, case_size_lb,
+                  COALESCE(active, true) AS active,
+                  COALESCE(no_production, false) AS no_production,
+                  COALESCE(is_service, false) AS is_service
+             FROM products WHERE id = %s""",
+        (product_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        _run_error("PRODUCT_NOT_FOUND", f"Product id {product_id} not found",
+                   status_code=404, product_id=product_id)
+    product = dict(row)
+    reason = None
+    if not product["active"]:
+        reason = "is inactive"
+    elif product["is_service"]:
+        reason = "is a service item, not inventory"
+    elif product["type"] != "finished":
+        reason = f"is type '{product['type']}'; a run is one finished SKU"
+    elif product["no_production"]:
+        reason = "is flagged no_production (resale, not made here)"
+    if reason:
+        _run_error("PRODUCT_NOT_SCHEDULABLE",
+                   f"'{product['name']}' {reason}", status_code=400,
+                   product_id=product_id)
+    return product
+
+
+def _resolve_run_line_id(cur, product_id: int, line_id) -> Optional[int]:
+    """An explicit line_id must exist; otherwise default from
+    product_line_assignments when the product has exactly one, else NULL. A
+    label for the board, not a capacity input."""
+    if line_id is not None:
+        cur.execute("SELECT id FROM production_lines WHERE id = %s", (int(line_id),))
+        if not cur.fetchone():
+            _run_error("PRODUCTION_LINE_NOT_FOUND",
+                       f"Production line {line_id} not found",
+                       status_code=404, line_id=line_id)
+        return int(line_id)
+    cur.execute(
+        "SELECT line_id FROM product_line_assignments WHERE product_id = %s",
+        (product_id,),
+    )
+    rows = cur.fetchall()
+    if len(rows) == 1:
+        return int(rows[0]["line_id"])
+    return None
+
+
+def _lock_production_run(cur, run_id: int) -> dict:
+    """Step 2b: the run row, FOR NO KEY UPDATE. Nothing rekeys or deletes a
+    run, and run_coverage's FK takes KEY SHARE on it, so the weaker mode is
+    the right one for the same reason it is on sales_orders."""
+    cur.execute(
+        """SELECT id, product_id, planned_qty_lb, planned_qty, planned_unit,
+                  case_size_lb_used, planned_date, line_id, status, notes
+             FROM production_runs WHERE id = %s
+              FOR NO KEY UPDATE""",
+        (run_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        _run_error("RUN_NOT_FOUND", f"Production run {run_id} not found",
+                   status_code=404, run_id=run_id)
+    return dict(row)
+
+
+def _require_active_run(run: dict, action: str):
+    if run["status"] not in PRODUCTION_RUN_ACTIVE_STATUSES:
+        _run_error("RUN_NOT_ACTIVE",
+                   f"Production run {run['id']} is '{run['status']}'; {action} "
+                   f"requires a planned or in-progress run",
+                   run_id=run["id"], status=run["status"])
+
+
+def _run_coverage_total(cur, run_id: int) -> Decimal:
+    """Σ run_coverage.qty_lb for the run, as stored (numeric(14,4) rows sum
+    exactly; the quantize is a no-op that pins the type)."""
+    cur.execute(
+        "SELECT COALESCE(SUM(qty_lb), 0) AS total FROM run_coverage WHERE run_id = %s",
+        (run_id,),
+    )
+    return _run_lb(cur.fetchone()["total"] or 0)
+
+
+def _fmt_run_ts(value):
+    return value.isoformat() if value else None
+
+
+def _serialize_production_run(row: dict, coverage: list) -> dict:
+    covered = sum(float(c["qty_lb"] or 0) for c in coverage)
+    return {
+        "id": row["id"],
+        "product_id": row["product_id"],
+        "product_name": row.get("product_name"),
+        "sku": row.get("sku"),
+        "planned_qty_lb": float(row["planned_qty_lb"]),
+        "planned_qty": (float(row["planned_qty"]) if row.get("planned_qty") is not None else None),
+        "planned_unit": row.get("planned_unit"),
+        "case_size_lb_used": (float(row["case_size_lb_used"])
+                              if row.get("case_size_lb_used") is not None else None),
+        "planned_date": row["planned_date"].isoformat(),
+        "line_id": row.get("line_id"),
+        "line_code": row.get("line_code"),
+        "line_name": row.get("line_name"),
+        "status": row["status"],
+        "notes": row.get("notes"),
+        "covered_lb": covered,
+        "coverage": [
+            {
+                "coverage_id": c["id"],
+                "sales_order_line_id": c["sales_order_line_id"],
+                "sales_order_id": c["sales_order_id"],
+                "order_number": c["order_number"],
+                "qty_lb": float(c["qty_lb"]),
+            }
+            for c in coverage
+        ],
+        "created_at": _fmt_run_ts(row.get("created_at")),
+        "created_by": row.get("created_by"),
+        "updated_at": _fmt_run_ts(row.get("updated_at")),
+        "updated_by": row.get("updated_by"),
+        "completed_at": _fmt_run_ts(row.get("completed_at")),
+        "completed_by": row.get("completed_by"),
+    }
+
+
+PRODUCTION_RUN_SELECT_SQL = """
+    SELECT r.*, p.name AS product_name, p.odoo_code AS sku,
+           pl.line_code, pl.name AS line_name
+      FROM production_runs r
+      JOIN products p ON p.id = r.product_id
+      LEFT JOIN production_lines pl ON pl.id = r.line_id
+"""
+
+RUN_COVERAGE_SELECT_SQL = """
+    SELECT rc.id, rc.run_id, rc.sales_order_line_id, rc.qty_lb,
+           sol.sales_order_id, so.order_number
+      FROM run_coverage rc
+      JOIN sales_order_lines sol ON sol.id = rc.sales_order_line_id
+      JOIN sales_orders so ON so.id = sol.sales_order_id
+     WHERE rc.run_id = ANY(%s)
+     ORDER BY rc.run_id, sol.sales_order_id, rc.sales_order_line_id
+"""
+
+
+def _fetch_production_runs(cur, where_sql: str, params: list) -> list:
+    """Runs matching `where_sql`, each with its coverage, unlocked."""
+    cur.execute(
+        PRODUCTION_RUN_SELECT_SQL + where_sql + " ORDER BY r.planned_date, r.id",
+        params,
+    )
+    runs = [dict(r) for r in cur.fetchall()]
+    if not runs:
+        return []
+    cur.execute(RUN_COVERAGE_SELECT_SQL, ([r["id"] for r in runs],))
+    by_run: dict = defaultdict(list)
+    for c in cur.fetchall():
+        by_run[c["run_id"]].append(dict(c))
+    return [_serialize_production_run(r, by_run.get(r["id"], [])) for r in runs]
+
+
+def _fetch_production_run(cur, run_id: int) -> dict:
+    runs = _fetch_production_runs(cur, " WHERE r.id = %s", [run_id])
+    if not runs:
+        _run_error("RUN_NOT_FOUND", f"Production run {run_id} not found",
+                   status_code=404, run_id=run_id)
+    return runs[0]
+
+
+def _append_run_note(existing, addition) -> Optional[str]:
+    addition = re.sub(r"\s+", " ", (addition or "").strip())
+    if not addition:
+        return existing
+    return f"{existing}\n{addition}" if existing else addition
+
+
+@app.get("/production/runs")
+def list_production_runs(
+    from_date: Optional[date] = Query(None, alias="from", description="planned_date >= (YYYY-MM-DD)"),
+    to_date: Optional[date] = Query(None, alias="to", description="planned_date <= (YYYY-MM-DD)"),
+    status: Optional[str] = Query(None, description="planned | in_progress | done | cancelled"),
+    product: Optional[int] = Query(None, description="product id"),
+    _: bool = Depends(verify_api_key),
+):
+    """Runs in planned_date order, each with its coverage rows. Read-only, no
+    locks. Derived Health/coverage fields belong to S2, not here."""
+    clauses, params = [], []
+    if from_date is not None:
+        clauses.append("r.planned_date >= %s"); params.append(from_date)
+    if to_date is not None:
+        clauses.append("r.planned_date <= %s"); params.append(to_date)
+    if status is not None:
+        if status not in PRODUCTION_RUN_STATUSES:
+            _run_error("INVALID_STATUS",
+                       f"status must be one of {', '.join(PRODUCTION_RUN_STATUSES)}",
+                       status_code=422, input=status)
+        clauses.append("r.status = %s"); params.append(status)
+    if product is not None:
+        clauses.append("r.product_id = %s"); params.append(product)
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    with get_transaction() as cur:
+        runs = _fetch_production_runs(cur, where, params)
+    return {"runs": runs, "count": len(runs)}
+
+
+@app.post("/production/runs", status_code=201)
+def create_production_run(req: ProductionRunCreate, request: Request,
+                          _: bool = Depends(verify_api_key)):
+    """Create a run. No locks: a plain INSERT whose FKs take KEY SHARE on
+    products and production_lines. Coverage is set separately by PUT
+    .../coverage so that this path never enters the sales-order lock graph."""
+    tag = caller_source_tag(request)
+    with get_transaction() as cur:
+        product = _load_schedulable_product(cur, req.product_id)
+        planned_lb, case_size_used = _run_quantity_lb(product, req.planned_qty, req.planned_unit)
+        line_id = _resolve_run_line_id(cur, product["id"], req.line_id)
+        notes = _append_run_note(None, req.notes)
+        cur.execute(
+            """INSERT INTO production_runs
+                   (product_id, planned_qty_lb, planned_qty, planned_unit,
+                    case_size_lb_used, planned_date, line_id, status, notes,
+                    created_by, updated_by)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, 'planned', %s, %s, %s)
+               RETURNING id""",
+            (product["id"], planned_lb, float(req.planned_qty),
+             (req.planned_unit or "lb").strip().lower(), case_size_used,
+             req.planned_date, line_id, notes, tag, tag),
+        )
+        run_id = cur.fetchone()["id"]
+        run = _fetch_production_run(cur, run_id)
+    logger.info(f"Production run {run_id} created: {planned_lb} lb {product['name']} on {req.planned_date} by {tag}")
+    return {"run_id": run_id, "run": run,
+            "message": f"Planned {_fmt_number(planned_lb)} lb of {product['name']} for {req.planned_date.isoformat()}"}
+
+
+@app.patch("/production/runs/{run_id}")
+def update_production_run(run_id: int, req: ProductionRunUpdate, request: Request,
+                          _: bool = Depends(verify_api_key)):
+    """Edit quantity / date / line / notes, or move between planned and
+    in_progress. Locks the run row only and reads its coverage total under
+    that lock; never reaches back for an order or line (the A16 pattern)."""
+    data = req.dict(exclude_unset=True)
+    if not data:
+        _run_error("NO_FIELDS", "No fields to update", status_code=422)
+    tag = caller_source_tag(request)
+    with get_transaction() as cur:
+        run = _lock_production_run(cur, run_id)
+        if run["status"] not in PRODUCTION_RUN_ACTIVE_STATUSES:
+            _run_error("RUN_NOT_EDITABLE",
+                       f"Production run {run_id} is '{run['status']}' and can no longer be edited",
+                       run_id=run_id, status=run["status"])
+        sets, params = [], []
+        new_status = data.get("status")
+        if new_status is not None:
+            if new_status not in PRODUCTION_RUN_ACTIVE_STATUSES:
+                _run_error(
+                    "INVALID_STATUS_TRANSITION",
+                    "PATCH may only set status to 'planned' or 'in_progress'. "
+                    f"Use POST /production/runs/{run_id}/complete or "
+                    f"POST /production/runs/{run_id}/cancel.",
+                    status_code=422, input=str(new_status))
+            sets.append("status = %s"); params.append(new_status)
+        if "planned_qty" in data or "planned_unit" in data:
+            cur.execute("SELECT id, name, case_size_lb FROM products WHERE id = %s",
+                        (run["product_id"],))
+            product = dict(cur.fetchone())
+            qty = data.get("planned_qty", run["planned_qty"])
+            unit = data.get("planned_unit", run["planned_unit"]) or "lb"
+            planned_lb, case_size_used = _run_quantity_lb(product, qty, unit)
+            # Both sides are at numeric(14,4) precision, so the comparison
+            # is exact: the plan that is validated is the plan that is stored.
+            covered = _run_coverage_total(cur, run_id)
+            if planned_lb < covered:
+                _run_error("RUN_OVERCOVERED",
+                           f"Coverage on run {run_id} is {_fmt_number(covered)} lb; "
+                           f"planned quantity cannot drop below it "
+                           f"(requested {_fmt_number(planned_lb)} lb)",
+                           run_id=run_id, covered_lb=float(covered),
+                           planned_qty_lb=float(planned_lb))
+            sets += ["planned_qty_lb = %s", "planned_qty = %s", "planned_unit = %s",
+                     "case_size_lb_used = %s"]
+            params += [planned_lb, float(qty), unit.strip().lower(), case_size_used]
+        if "planned_date" in data:
+            if data["planned_date"] is None:
+                _run_error("INVALID_DATE", "planned_date cannot be null", status_code=422)
+            sets.append("planned_date = %s"); params.append(data["planned_date"])
+        if "line_id" in data:
+            line_id = data["line_id"]
+            if line_id is not None:
+                line_id = _resolve_run_line_id(cur, run["product_id"], line_id)
+            sets.append("line_id = %s"); params.append(line_id)
+        if "notes" in data:
+            sets.append("notes = %s"); params.append(_append_run_note(None, data["notes"]))
+        sets += ["updated_at = clock_timestamp()", "updated_by = %s"]
+        params += [tag, run_id]
+        cur.execute(f"UPDATE production_runs SET {', '.join(sets)} WHERE id = %s", params)
+        out = _fetch_production_run(cur, run_id)
+    return {"run_id": run_id, "run": out, "changed_fields": sorted(data.keys()),
+            "message": f"Production run {run_id} updated"}
+
+
+@app.post("/production/runs/{run_id}/cancel")
+def cancel_production_run(run_id: int, req: ProductionRunCancel, request: Request,
+                          _: bool = Depends(verify_api_key)):
+    """status → cancelled (terminal). Reason is appended to notes. Coverage
+    rows are left in place; S2 filters them at read time. Run row only."""
+    tag = caller_source_tag(request)
+    with get_transaction() as cur:
+        run = _lock_production_run(cur, run_id)
+        _require_active_run(run, "cancel")
+        notes = _append_run_note(run["notes"], f"Cancelled: {req.reason}" if req.reason else None)
+        cur.execute(
+            """UPDATE production_runs
+                  SET status = 'cancelled', notes = %s,
+                      updated_at = clock_timestamp(), updated_by = %s
+                WHERE id = %s""",
+            (notes, tag, run_id),
+        )
+        out = _fetch_production_run(cur, run_id)
+    return {"run_id": run_id, "run": out, "message": f"Production run {run_id} cancelled"}
+
+
+def _run_evidence(cur, run: dict) -> dict:
+    """Posted make/pack output of the run's product with business_date in
+    [planned_date − W, planned_date + W]. Read through POSTED_LINES so a
+    voided transaction disappears on its own. Nothing is stored."""
+    window = timedelta(days=PRODUCTION_RUN_EVIDENCE_WINDOW_DAYS)
+    planned_date = run["planned_date"] if isinstance(run["planned_date"], date) \
+        else date.fromisoformat(str(run["planned_date"]))
+    win_from, win_to = planned_date - window, planned_date + window
+    cur.execute(
+        f"""SELECT t.id AS transaction_id, t.type, t.business_date,
+                   SUM(tl.quantity_lb) AS output_lb
+              FROM {POSTED_LINES} tl
+              JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+             WHERE tl.product_id = %s
+               AND tl.quantity_lb > 0
+               AND t.type IN ('make', 'pack')
+               AND t.business_date BETWEEN %s AND %s
+             GROUP BY t.id, t.type, t.business_date
+             ORDER BY t.business_date, t.id""",
+        (run["product_id"], win_from, win_to),
+    )
+    transactions = [
+        {"transaction_id": r["transaction_id"], "type": r["type"],
+         "business_date": r["business_date"].isoformat(),
+         "output_lb": float(r["output_lb"] or 0)}
+        for r in cur.fetchall()
+    ]
+    recorded = sum(t["output_lb"] for t in transactions)
+    planned = float(run["planned_qty_lb"])
+    if recorded <= BALANCE_EPSILON:
+        suggested = "none"
+    elif recorded + BALANCE_EPSILON >= planned:
+        suggested = "looks_complete"
+    else:
+        suggested = "partial"
+    case_size = run.get("case_size_lb_used")
+    return {
+        "run_id": run["id"],
+        "product_id": run["product_id"],
+        "status": run["status"],
+        "window": {"from": win_from.isoformat(), "to": win_to.isoformat()},
+        "planned_qty_lb": planned,
+        "recorded_lb": recorded,
+        "planned_qty": (float(run["planned_qty"]) if run.get("planned_qty") is not None else None),
+        "planned_unit": run.get("planned_unit"),
+        "recorded_qty": (recorded / float(case_size) if case_size else recorded),
+        "suggested_state": suggested,
+        "transactions": transactions,
+    }
+
+
+@app.get("/production/runs/{run_id}/evidence")
+def production_run_evidence(run_id: int, _: bool = Depends(verify_api_key)):
+    """What the ledger recorded for this run's product around its date, and a
+    suggested state: looks_complete (recorded ≥ planned), partial, or none.
+    A suggestion only — completion is the explicit POST below. No locks."""
+    with get_transaction() as cur:
+        cur.execute(PRODUCTION_RUN_SELECT_SQL + " WHERE r.id = %s", (run_id,))
+        row = cur.fetchone()
+        if not row:
+            _run_error("RUN_NOT_FOUND", f"Production run {run_id} not found",
+                       status_code=404, run_id=run_id)
+        return _run_evidence(cur, dict(row))
+
+
+@app.post("/production/runs/{run_id}/complete")
+def complete_production_run(run_id: int, req: ProductionRunComplete, request: Request,
+                            _: bool = Depends(verify_api_key)):
+    """Human-confirmed completion: status → done, completed_at/by stamped.
+
+    Writes the run row and NOTHING else. No inventory is created, no sales
+    order or line is touched, no Ready-to-Ship flag is set. The evidence
+    summary rides along in the response so the caller can see what the
+    ledger says, but it neither gates nor is changed by this call: a run
+    completed with nothing posted is a data gap the board surfaces, and a
+    completed run never masks a shortage — once done, actual ledger data
+    governs Health (S2)."""
+    tag = caller_source_tag(request)
+    with get_transaction() as cur:
+        run = _lock_production_run(cur, run_id)
+        _require_active_run(run, "completion")
+        notes = _append_run_note(run["notes"], req.note)
+        cur.execute(
+            """UPDATE production_runs
+                  SET status = 'done', notes = %s,
+                      completed_at = clock_timestamp(), completed_by = %s,
+                      updated_at = clock_timestamp(), updated_by = %s
+                WHERE id = %s""",
+            (notes, tag, tag, run_id),
+        )
+        out = _fetch_production_run(cur, run_id)
+        cur.execute(PRODUCTION_RUN_SELECT_SQL + " WHERE r.id = %s", (run_id,))
+        evidence = _run_evidence(cur, dict(cur.fetchone()))
+    logger.info(f"Production run {run_id} completed by {tag}")
+    return {"run_id": run_id, "run": out, "evidence": evidence,
+            "message": f"Production run {run_id} marked done"}
+
+
+RUN_COVERAGE_LINE_SQL = f"""
+    SELECT sol.id AS line_id, sol.sales_order_id, sol.product_id,
+           sol.quantity_lb AS ordered_lb, sol.line_status,
+           COALESCE(p.is_service, false) AS is_service,
+           p.name AS product_name, so.order_number, so.state AS order_state,
+           COALESCE((
+               SELECT SUM(ABS(tl.quantity_lb))
+                 FROM sales_order_shipments sos
+                 JOIN {POSTED_LINES} tl
+                   ON tl.transaction_id = sos.transaction_id
+                  AND tl.product_id = sol.product_id
+                 JOIN ledger_current_transactions ct
+                   ON ct.id = tl.transaction_id AND ct.type = 'ship'
+                WHERE sos.sales_order_line_id = sol.id
+           ), 0) AS shipped_effective_lb
+      FROM sales_order_lines sol
+      JOIN sales_orders so ON so.id = sol.sales_order_id
+      JOIN products p ON p.id = sol.product_id
+     WHERE sol.id = ANY(%s)
+"""
+
+
+@app.put("/production/runs/{run_id}/coverage")
+def put_production_run_coverage(run_id: int, req: RunCoverageReplace, request: Request,
+                                _: bool = Depends(verify_api_key)):
+    """Replace the run's coverage list atomically.
+
+    Validated under lock: every line is on an open order (state = 'open'),
+    is itself open (not cancelled or fulfilled, not a service line), yields
+    the run's product, is covered for no more than its effective remaining
+    pounds, and the list sums to no more than planned_qty_lb.
+
+    Lock order — the ONLY path in this block that enters the sales-order
+    graph: (1) every distinct sales_orders row, ascending id; (2) the listed
+    sales_order_lines rows, per order in that same order, ascending id;
+    (2b) the production_runs row, every one no-key-update strength. Two coverage
+    writers that share an order serialize at that order's lock before either
+    reaches a line, and no existing 1→2→3 writer ever waits on a run, so no
+    cycle passes through step 2b. Never locks products, lots or allocations.
+    """
+    tag = caller_source_tag(request)
+    requested: dict = {}
+    for item in req.coverage:
+        qty = float(item.qty_lb)
+        if not math.isfinite(qty) or qty <= 0:
+            _run_error("INVALID_QUANTITY", "qty_lb must be a positive number",
+                       status_code=422, sales_order_line_id=item.sales_order_line_id)
+        # Normalize to the precision run_coverage.qty_lb stores BEFORE any
+        # check, and insert exactly this value below.
+        qty = _run_lb(qty)
+        if qty <= 0:
+            _run_error("INVALID_QUANTITY",
+                       "qty_lb is below 0.0001 lb, the smallest quantity coverage can store",
+                       status_code=422, sales_order_line_id=item.sales_order_line_id)
+        if item.sales_order_line_id in requested:
+            _run_error("DUPLICATE_LINE",
+                       f"Line #{item.sales_order_line_id} appears more than once",
+                       status_code=422, sales_order_line_id=item.sales_order_line_id)
+        requested[int(item.sales_order_line_id)] = qty
+    line_ids = sorted(requested)
+
+    with get_transaction() as cur:
+        # Resolve which orders the lines belong to BEFORE taking any lock, so
+        # the order locks can be taken ascending in one pass.
+        order_of_line: dict = {}
+        if line_ids:
+            cur.execute(
+                "SELECT id, sales_order_id FROM sales_order_lines WHERE id = ANY(%s)",
+                (line_ids,),
+            )
+            order_of_line = {int(r["id"]): int(r["sales_order_id"]) for r in cur.fetchall()}
+            missing = [lid for lid in line_ids if lid not in order_of_line]
+            if missing:
+                _run_error("LINE_NOT_FOUND",
+                           f"Sales order line(s) not found: {missing}",
+                           status_code=404, sales_order_line_ids=missing)
+        lines_by_order: dict = defaultdict(list)
+        for lid, oid in order_of_line.items():
+            lines_by_order[oid].append(lid)
+
+        # (1) orders, ascending; the state check runs under each order lock.
+        for order_id in sorted(lines_by_order):
+            order = _lock_sales_order(cur, order_id)
+            _require_open_state(order["state"], order["order_number"], order_id,
+                                "scheduling coverage")
+        # (2) lines, per order in the same ascending order, ascending id.
+        for order_id in sorted(lines_by_order):
+            locked = _lock_sales_order_lines(cur, order_id, sorted(lines_by_order[order_id]))
+            if len(locked) != len(lines_by_order[order_id]):
+                _run_error("LINE_NOT_FOUND",
+                           f"Sales order line(s) not found on order #{order_id}",
+                           status_code=404, order_id=order_id)
+        # (2b) the run.
+        run = _lock_production_run(cur, run_id)
+        _require_active_run(run, "setting coverage")
+
+        total = Decimal("0")
+        if line_ids:
+            cur.execute(RUN_COVERAGE_LINE_SQL, (line_ids,))
+            details = {int(r["line_id"]): dict(r) for r in cur.fetchall()}
+            for lid in line_ids:
+                line = details[lid]
+                qty = requested[lid]
+                if line["is_service"]:
+                    _run_error("SERVICE_LINE_NOT_COVERABLE",
+                               f"Line #{lid} is a service line and does not represent inventory",
+                               status_code=422, sales_order_line_id=lid)
+                if line["line_status"] in ("cancelled", "fulfilled"):
+                    _run_error("LINE_NOT_OPEN",
+                               f"Line #{lid} on order {line['order_number']} is '{line['line_status']}'",
+                               sales_order_line_id=lid, line_status=line["line_status"])
+                if int(line["product_id"]) != int(run["product_id"]):
+                    _run_error("LINE_PRODUCT_MISMATCH",
+                               f"Line #{lid} is for '{line['product_name']}', not the run's product",
+                               sales_order_line_id=lid, line_product_id=line["product_id"],
+                               run_product_id=run["product_id"])
+                remaining = max(0.0, float(line["ordered_lb"] or 0) - float(line["shipped_effective_lb"] or 0))
+                if float(qty) > remaining + BALANCE_EPSILON:
+                    _run_error("COVERAGE_EXCEEDS_REMAINING",
+                               f"Line #{lid} has {_fmt_number(remaining)} lb remaining; "
+                               f"cannot cover {_fmt_number(qty)} lb",
+                               sales_order_line_id=lid, remaining_lb=remaining, qty_lb=float(qty))
+                total += qty
+        # Σ of the values that will be stored vs the plan as stored: both at
+        # numeric(14,4) precision, so no epsilon — the invariant
+        # Σ run_coverage.qty_lb ≤ planned_qty_lb holds exactly in the table.
+        planned = _run_lb(run["planned_qty_lb"])
+        if total > planned:
+            _run_error("RUN_OVERCOVERED",
+                       f"Coverage totals {_fmt_number(total)} lb but run {run_id} plans "
+                       f"{_fmt_number(planned)} lb",
+                       run_id=run_id, covered_lb=float(total), planned_qty_lb=float(planned))
+
+        cur.execute("DELETE FROM run_coverage WHERE run_id = %s", (run_id,))
+        for lid in line_ids:
+            cur.execute(
+                """INSERT INTO run_coverage (run_id, sales_order_line_id, qty_lb, created_by)
+                   VALUES (%s, %s, %s, %s)""",
+                (run_id, lid, requested[lid], tag),
+            )
+        cur.execute(
+            "UPDATE production_runs SET updated_at = clock_timestamp(), updated_by = %s WHERE id = %s",
+            (tag, run_id),
+        )
+        out = _fetch_production_run(cur, run_id)
+    return {"run_id": run_id, "run": out,
+            "message": f"Coverage on run {run_id} set: {_fmt_number(total)} lb across {len(line_ids)} line(s)"}
 
 
 # ═══════════════════════════════════════════════════════════════
