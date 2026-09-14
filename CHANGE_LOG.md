@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-14 12:50 — Scheduling S1: Codex cross-review fix pass, coverage precision (PR #52, NOT DEPLOYED)
+
+- **Files changed:** `main.py`, `tests/test_production_runs.py`, `FACTORY_LEDGER_CHANGELOG.md`.
+- **What changed:** Codex P2 on PR #52: `PUT /production/runs/{id}/coverage` validated Σ coverage ≤ plan on the unrounded request floats while each row was stored as `numeric(14,4)`, so a 100.0006 lb run accepted ten lines of 10.00006 lb (raw Σ 100.0006) that landed as 10.0001 each = 100.0010 lb, 0.0004 over the plan. New `_run_lb()` quantizes a pound quantity to 4 places ROUND_HALF_UP (via the existing `to_decimal`), matching the column type. `_run_quantity_lb` now returns the plan at that precision for both units (cases multiply in Decimal before quantizing) and rejects a plan that rounds to 0.0000 lb with 422 `INVALID_QUANTITY` instead of tripping the DB CHECK; `_run_coverage_total` returns the stored sum as a Decimal; PUT coverage quantizes every `qty_lb` before any check and inserts exactly those values; the Σ ≤ plan comparison on PUT coverage and on PATCH `planned_qty` is an exact Decimal comparison with no epsilon (both sides are at storage precision, so there is no float dust to absorb). The per-line effective-remaining cap, all locks, every other endpoint and the schema are unchanged. Two regression tests: Codex's exact case → 409 `RUN_OVERCOVERED` with nothing written, and the rounded sum exactly equal to the plan → 200 with the stored rows summing to the stored plan; plus the same boundary on PATCH in lb and in cases.
+- **Validation:** `./scripts/run_tests.sh`: 1006 passed, 0 failed (1004 + 2 new). Both new tests fail against the pre-fix `main.py` (200 where 409 is expected) and pass with it.
+- **Why:** The validated plan and the stored plan must be the same number, or the invariant `Σ run_coverage.qty_lb ≤ planned_qty_lb` that S2's Health coverage reads is only approximately true.
+
+---
+
 ## 2026-09-14 12:35 — Production scheduling S1: production_runs + run_coverage (NOT DEPLOYED)
 
 - **Files changed:** `migrations/053_production_runs.sql`, `main.py`, `tests/test_production_runs.py`, `tests/test_sales_order_state_model.py`, `docs/design/scheduling-spec-draft.md`, `docs/design/so-state-model-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`.

@@ -17948,12 +17948,27 @@ def _run_error(code: str, message: str, status_code: int = 409, **fields):
                         detail={"error_code": code, "message": message, **fields})
 
 
+def _run_lb(value) -> Decimal:
+    """A pound quantity at the precision production_runs / run_coverage store
+    it: Decimal quantized to 4 places, ROUND_HALF_UP — exactly what the
+    numeric(14,4) columns do on INSERT. Every quantity in this block is
+    normalized through here BEFORE it is validated, and the normalized value
+    is what gets stored, so the validated plan and the stored plan (and the
+    validated coverage and the stored coverage) can never differ. Validating
+    the unrounded floats let ten lines of 10.00006 lb (raw Σ 100.0006) pass a
+    100.0006 lb plan and then land as 10.0001 each = 100.0010 lb."""
+    return to_decimal(value)
+
+
 def _run_quantity_lb(product: dict, planned_qty, planned_unit: str) -> tuple:
     """(planned_qty_lb, case_size_lb_used) for a quantity in the given unit.
 
     'lb' passes through. 'cases' multiplies by products.case_size_lb — the
     same lookup order intake performs (CASE_WEIGHT_REQUIRED when the product
     has none) — and records the multiplier so the conversion is auditable.
+    planned_qty_lb comes back as a Decimal at database precision (_run_lb);
+    the product is multiplied in Decimal so no float dust enters before the
+    quantize.
     """
     try:
         qty = float(planned_qty)
@@ -17968,15 +17983,21 @@ def _run_quantity_lb(product: dict, planned_qty, planned_unit: str) -> tuple:
                    f"planned_unit must be one of {', '.join(PRODUCTION_RUN_UNITS)}",
                    status_code=422, input=str(planned_unit))
     if unit == "lb":
-        return qty, None
-    case_size = float(product.get("case_size_lb") or 0)
-    if case_size <= 0:
-        _run_error(
-            "CASE_WEIGHT_REQUIRED",
-            f"'{product.get('name')}' has no case_size_lb; plan this SKU in lb",
-            status_code=400, product_id=product.get("id"),
-        )
-    return qty * case_size, case_size
+        planned_lb, case_size = _run_lb(qty), None
+    else:
+        case_size = float(product.get("case_size_lb") or 0)
+        if case_size <= 0:
+            _run_error(
+                "CASE_WEIGHT_REQUIRED",
+                f"'{product.get('name')}' has no case_size_lb; plan this SKU in lb",
+                status_code=400, product_id=product.get("id"),
+            )
+        planned_lb = _run_lb(Decimal(str(qty)) * Decimal(str(case_size)))
+    if planned_lb <= 0:
+        _run_error("INVALID_QUANTITY",
+                   "planned_qty is below 0.0001 lb, the smallest quantity a run can store",
+                   status_code=422)
+    return planned_lb, case_size
 
 
 def _load_schedulable_product(cur, product_id: int) -> dict:
@@ -18060,12 +18081,14 @@ def _require_active_run(run: dict, action: str):
                    run_id=run["id"], status=run["status"])
 
 
-def _run_coverage_total(cur, run_id: int) -> float:
+def _run_coverage_total(cur, run_id: int) -> Decimal:
+    """Σ run_coverage.qty_lb for the run, as stored (numeric(14,4) rows sum
+    exactly; the quantize is a no-op that pins the type)."""
     cur.execute(
         "SELECT COALESCE(SUM(qty_lb), 0) AS total FROM run_coverage WHERE run_id = %s",
         (run_id,),
     )
-    return float(cur.fetchone()["total"] or 0)
+    return _run_lb(cur.fetchone()["total"] or 0)
 
 
 def _fmt_run_ts(value):
@@ -18253,13 +18276,16 @@ def update_production_run(run_id: int, req: ProductionRunUpdate, request: Reques
             qty = data.get("planned_qty", run["planned_qty"])
             unit = data.get("planned_unit", run["planned_unit"]) or "lb"
             planned_lb, case_size_used = _run_quantity_lb(product, qty, unit)
+            # Both sides are at numeric(14,4) precision, so the comparison
+            # is exact: the plan that is validated is the plan that is stored.
             covered = _run_coverage_total(cur, run_id)
-            if planned_lb + BALANCE_EPSILON < covered:
+            if planned_lb < covered:
                 _run_error("RUN_OVERCOVERED",
                            f"Coverage on run {run_id} is {_fmt_number(covered)} lb; "
                            f"planned quantity cannot drop below it "
                            f"(requested {_fmt_number(planned_lb)} lb)",
-                           run_id=run_id, covered_lb=covered, planned_qty_lb=planned_lb)
+                           run_id=run_id, covered_lb=float(covered),
+                           planned_qty_lb=float(planned_lb))
             sets += ["planned_qty_lb = %s", "planned_qty = %s", "planned_unit = %s",
                      "case_size_lb_used = %s"]
             params += [planned_lb, float(qty), unit.strip().lower(), case_size_used]
@@ -18448,6 +18474,13 @@ def put_production_run_coverage(run_id: int, req: RunCoverageReplace, request: R
         if not math.isfinite(qty) or qty <= 0:
             _run_error("INVALID_QUANTITY", "qty_lb must be a positive number",
                        status_code=422, sales_order_line_id=item.sales_order_line_id)
+        # Normalize to the precision run_coverage.qty_lb stores BEFORE any
+        # check, and insert exactly this value below.
+        qty = _run_lb(qty)
+        if qty <= 0:
+            _run_error("INVALID_QUANTITY",
+                       "qty_lb is below 0.0001 lb, the smallest quantity coverage can store",
+                       status_code=422, sales_order_line_id=item.sales_order_line_id)
         if item.sales_order_line_id in requested:
             _run_error("DUPLICATE_LINE",
                        f"Line #{item.sales_order_line_id} appears more than once",
@@ -18490,7 +18523,7 @@ def put_production_run_coverage(run_id: int, req: RunCoverageReplace, request: R
         run = _lock_production_run(cur, run_id)
         _require_active_run(run, "setting coverage")
 
-        total = 0.0
+        total = Decimal("0")
         if line_ids:
             cur.execute(RUN_COVERAGE_LINE_SQL, (line_ids,))
             details = {int(r["line_id"]): dict(r) for r in cur.fetchall()}
@@ -18511,18 +18544,21 @@ def put_production_run_coverage(run_id: int, req: RunCoverageReplace, request: R
                                sales_order_line_id=lid, line_product_id=line["product_id"],
                                run_product_id=run["product_id"])
                 remaining = max(0.0, float(line["ordered_lb"] or 0) - float(line["shipped_effective_lb"] or 0))
-                if qty > remaining + BALANCE_EPSILON:
+                if float(qty) > remaining + BALANCE_EPSILON:
                     _run_error("COVERAGE_EXCEEDS_REMAINING",
                                f"Line #{lid} has {_fmt_number(remaining)} lb remaining; "
                                f"cannot cover {_fmt_number(qty)} lb",
-                               sales_order_line_id=lid, remaining_lb=remaining, qty_lb=qty)
+                               sales_order_line_id=lid, remaining_lb=remaining, qty_lb=float(qty))
                 total += qty
-        planned = float(run["planned_qty_lb"])
-        if total > planned + BALANCE_EPSILON:
+        # Σ of the values that will be stored vs the plan as stored: both at
+        # numeric(14,4) precision, so no epsilon — the invariant
+        # Σ run_coverage.qty_lb ≤ planned_qty_lb holds exactly in the table.
+        planned = _run_lb(run["planned_qty_lb"])
+        if total > planned:
             _run_error("RUN_OVERCOVERED",
                        f"Coverage totals {_fmt_number(total)} lb but run {run_id} plans "
                        f"{_fmt_number(planned)} lb",
-                       run_id=run_id, covered_lb=total, planned_qty_lb=planned)
+                       run_id=run_id, covered_lb=float(total), planned_qty_lb=float(planned))
 
         cur.execute("DELETE FROM run_coverage WHERE run_id = %s", (run_id,))
         for lid in line_ids:

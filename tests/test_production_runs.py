@@ -711,6 +711,71 @@ def test_over_coverage_is_rejected(client, schema):
 
 
 @pytest.mark.db
+def test_over_coverage_is_judged_at_database_precision(client, schema):
+    """Codex cross-review P2 on PR #52. The sum was validated on the unrounded
+    floats while each row was stored as numeric(14,4): a 100.0006 lb run
+    accepted ten lines of 10.00006 lb (raw Σ 100.0006), which landed as
+    10.0001 each = 100.0010 lb, over the plan by 0.0004. Every quantity is now
+    quantized to 4 places (ROUND_HALF_UP) BEFORE validation and the same
+    values are inserted, so Σ stored coverage ≤ stored plan holds exactly."""
+    seeded = _seed(schema, qty=20)
+    lines = [seeded["line_id"]] + [
+        _line(schema, seeded["order_id"], seeded["product_id"], 20) for _ in range(9)]
+    run = _create(client, seeded, qty=100.0006, unit="lb")
+    assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.0006
+
+    # Codex's exact case: ten open lines at 10.00006 lb each.
+    resp = _cover(client, run["id"], [{"sales_order_line_id": lid, "qty_lb": 10.00006} for lid in lines])
+    assert resp.status_code == 409, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "RUN_OVERCOVERED"
+    assert detail["covered_lb"] == 100.001 and detail["planned_qty_lb"] == 100.0006
+    assert _coverage_rows(schema, run["id"]) == [], "a rejected PUT changes nothing"
+
+    # The rounded sum exactly equals the plan: ten × 10.0001 = 100.0010 on a
+    # plan whose input 100.00095 quantizes (half up) to 100.0010.
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00095}, headers=DASH)
+    assert resp.status_code == 200, resp.text
+    assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.001
+    resp = _cover(client, run["id"], [{"sales_order_line_id": lid, "qty_lb": 10.00006} for lid in lines])
+    assert resp.status_code == 200, resp.text
+    rows = _coverage_rows(schema, run["id"])
+    assert [float(r["qty_lb"]) for r in rows] == [10.0001] * 10
+    assert sum(float(r["qty_lb"]) for r in rows) == pytest.approx(100.001)
+    assert resp.json()["run"]["covered_lb"] == pytest.approx(100.001)
+    assert float(_run_row(schema, run["id"])["planned_qty_lb"]) >= sum(
+        r["qty_lb"] for r in rows), "Σ stored coverage ≤ stored plan, exactly"
+
+
+@pytest.mark.db
+def test_patch_planned_quantity_is_judged_at_database_precision(client, schema):
+    """Same policy on PATCH: the plan is quantized before it is compared to
+    the stored coverage, so a value that rounds to exactly the covered total
+    is accepted and one that rounds below it is not — in both units."""
+    seeded = _seed(schema, qty=200, case_size_lb=7.5)
+    run = _create(client, seeded, qty=200, unit="lb")
+    assert _cover(client, run["id"], [{"sales_order_line_id": seeded["line_id"], "qty_lb": 100.001}]).status_code == 200
+    # 100.00095 → 100.0010 == covered: accepted, stored at exactly the plan validated.
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00095}, headers=DASH)
+    assert resp.status_code == 200, resp.text
+    assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.001
+    # 100.00094 → 100.0009 < covered: rejected, plan unchanged.
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00094}, headers=DASH)
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["detail"]["error_code"] == "RUN_OVERCOVERED"
+    assert resp.json()["detail"]["planned_qty_lb"] == 100.0009
+    assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.001
+    # Cases convert in Decimal and quantize the same way: 13.33346 × 7.5 =
+    # 100.00095 → 100.0010 (accepted); 13.33345 × 7.5 = 100.001875 → 100.0019.
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 13.33346, "planned_unit": "cases"}, headers=DASH)
+    assert resp.status_code == 200, resp.text
+    assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.001
+    # A quantity that rounds to 0.0000 lb cannot be stored (CHECK > 0): 422, not 500.
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 0.00004, "planned_unit": "lb"}, headers=DASH)
+    assert resp.status_code == 422 and resp.json()["detail"]["error_code"] == "INVALID_QUANTITY"
+
+
+@pytest.mark.db
 def test_coverage_cannot_exceed_the_lines_effective_remaining(client, schema):
     seeded = _seed(schema, qty=100)
     run = _create(client, seeded, qty=500, unit="lb")
