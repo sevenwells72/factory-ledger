@@ -12218,10 +12218,13 @@ def _line_readiness(row: dict) -> dict:
     if shortage > BALANCE_EPSILON:
         blockers.append(_blocker("shortage", "block", f"Short {shortage:.4f} lb of posted cover"))
     if remaining > BALANCE_EPSILON and allocated <= BALANCE_EPSILON:
-        blockers.append(_blocker("unallocated", "block", f"{remaining:.4f} lb remains with no allocation"))
+        # Allocation is a reservation, not a readiness or dispatch gate
+        # (owner ruling, S2 fix pass): informational only, never flips
+        # dispatch_ready.
+        blockers.append(_blocker("unallocated", "info", f"{remaining:.4f} lb remains with no allocation"))
     elif (allocated > BALANCE_EPSILON
           and allocated < remaining - BALANCE_EPSILON):
-        blockers.append(_blocker("partial_allocation", "block", f"{unallocated_need:.4f} lb remains unallocated"))
+        blockers.append(_blocker("partial_allocation", "info", f"{unallocated_need:.4f} lb remains unallocated"))
     if unstaged_lots:
         blockers.append(_blocker("unstaged", "block", "Incomplete FIFO stock must be lot-pinned: " + ", ".join(unstaged_lots)))
     if incomplete_pins:

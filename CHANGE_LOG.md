@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-14 13:44 — Scheduling S2 fix pass: allocation blockers are informational, not dispatch gates (PR #54, NOT DEPLOYED)
+
+- **Files changed:** `main.py`, `tests/test_health_v3.py`, `tests/test_sales_order_readiness.py`, `docs/design/so-state-model-findings.md`.
+- **What changed:** `_line_readiness()` emits `unallocated` and `partial_allocation` with severity `info` (the existing non-blocking severity already used by `service_only`) instead of `block`. They still appear in `blockers` on all three readiness GETs but no longer flip `dispatch_ready`. Every other dispatch blocker and all shipment enforcement unchanged. Tests: the reservation-only dispatch test in `test_health_v3.py` and the two-orders/partial-allocation cases in `test_sales_order_readiness.py` now assert `dispatch_ready` true with the blocker present as `info` (seven `"unallocated": "block"` literals flipped). Findings doc Health v3 section states the new policy. `dashboard/dashboard.js` needs no change (consumes the `dispatch_ready` boolean only).
+- **Validation:** `./scripts/run_tests.sh`: 1076 passed, 0 failed.
+- **Why:** Codex cross-review of PR #54; owner ruling that allocation is a reservation, not a readiness or dispatch gate.
+
+---
+
 ## 2026-09-14 13:32 — Scheduling S2: Health v3 — availability waterfall, run coverage, allocation gate removed (branch `feat/scheduling-s2`, NOT DEPLOYED)
 
 - **Files changed:** `main.py`, `dashboard/so-list.js`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_health_v3.py` (new), `tests/test_sales_order_readiness.py`, `tests/test_sales_order_state_model.py`, `tests/visual/fixtures/sales-order-detail.json`, `tests/visual/run-so-detail-interactions.mjs`, `tests/schema/schema.sql`, `docs/design/so-state-model-findings.md`, `docs/design/scheduling-spec-draft.md`, `docs/design/FL-Design-Standards-MASTER.md`, `FACTORY_LEDGER_CHANGELOG.md`.

@@ -779,8 +779,9 @@ def test_a_reservation_beyond_on_hand_is_capped_at_the_stock(db_cursor, client):
 @pytest.mark.db
 def test_inventory_ready_no_longer_requires_an_allocation(db_cursor, client):
     """S2 removes the `allocated >= remaining` gate: stock available under the
-    waterfall is inventory-ready. The `unallocated` dispatch blocker is
-    unchanged and still blocks dispatch_ready."""
+    waterfall is inventory-ready. The `unallocated` blocker is informational
+    (allocation is a reservation, not a dispatch gate) and dispatch_ready
+    is true."""
     customer_id, customer_name, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, stock=100)
     order_id, _ = _seed_order(db_cursor, customer_id, token,
@@ -791,8 +792,8 @@ def test_inventory_ready_no_longer_requires_an_allocation(db_cursor, client):
     assert body["inventory_ready"] is True
     assert body["lines"][0]["readiness"]["inventory_ready"] is True
     assert body["shortage_lb"] == pytest.approx(0)
-    assert _codes(body) == {"unallocated": "block"}
-    assert body["dispatch_ready"] is False
+    assert _codes(body) == {"unallocated": "info"}
+    assert body["dispatch_ready"] is True
     assert body["health"]["level"] == "quiet"
     assert _listed(client, customer_name)[order_id]["inventory_ready"] is True
 

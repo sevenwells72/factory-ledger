@@ -1630,12 +1630,16 @@ now — so nothing that read the v2.1 key breaks. `unallocated_need_lb`,
 `missing_lot_dates` FIFO logic are unchanged.
 
 **`inventory_ready` = `remaining ≤ ε OR shortage ≤ ε`.** The
-`allocated >= remaining` gate is gone. The `unallocated` and
-`partial_allocation` dispatch blockers are **unchanged** (still `block`,
-still feed `dispatch_ready` and `GET /sales/orders/fulfillment-check`): an
-order can now be inventory-ready and dispatch-blocked for want of a
-reservation, which is the policy those blockers encode and this step was not
-asked to change.
+`allocated >= remaining` gate is gone. **Allocation is neither a readiness
+nor a dispatch gate** (owner ruling, S2 fix pass): the `unallocated` and
+`partial_allocation` blockers are now severity `info`. They still appear in
+`blockers` on all three readiness GETs (including
+`GET /sales/orders/fulfillment-check`) so the board can see what is
+unreserved, but they never flip `dispatch_ready`. An order with stock
+available under the waterfall is inventory-ready and dispatch-ready without
+a reservation; only `shortage`, `unstaged`, `missing_lot_dates`,
+`fulfillment_diverged` and (when factory-ready is required)
+`not_floor_ready` block dispatch. Shipment enforcement is unchanged.
 
 **Consequence on the board:** later-priority orders show a larger shortage
 than before for the same stock. Intended.

@@ -195,7 +195,8 @@ def test_two_unallocated_orders_share_one_pool_first_by_priority_on_all_gets(db_
     same pounds and gated inventory_ready on an allocation neither had. Now
     the waterfall gives the pool to the earlier order (tie → lower id), which
     is inventory-ready without an allocation; the later one is short by the
-    whole 100. The `unallocated` blocker still blocks dispatch on both."""
+    whole 100. The `unallocated` blocker is informational: the first order is
+    dispatch-ready without a reservation, the second is blocked by shortage."""
     customer_id, customer_name, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=100)
     order_ids = []
@@ -211,12 +212,12 @@ def test_two_unallocated_orders_share_one_pool_first_by_priority_on_all_gets(db_
     assert set(by_id) == set(order_ids)
     assert by_id[first]["inventory_ready"] is True
     assert by_id[first]["shortage_lb"] == pytest.approx(0)
-    assert _codes(by_id[first]) == {"unallocated": "block"}
+    assert _codes(by_id[first]) == {"unallocated": "info"}
     assert by_id[second]["inventory_ready"] is False
     assert by_id[second]["shortage_lb"] == pytest.approx(100)
-    assert _codes(by_id[second]) == {"shortage": "block", "unallocated": "block"}
-    for order in by_id.values():
-        assert order["dispatch_ready"] is False
+    assert _codes(by_id[second]) == {"shortage": "block", "unallocated": "info"}
+    assert by_id[first]["dispatch_ready"] is True
+    assert by_id[second]["dispatch_ready"] is False
 
     listed = client.get("/sales/orders", params={"customer": customer_name, "limit": 10})
     assert listed.status_code == 200, listed.text
@@ -233,7 +234,7 @@ def test_two_unallocated_orders_share_one_pool_first_by_priority_on_all_gets(db_
     assert readiness["available_lb"] == pytest.approx(100)
     assert readiness["unallocated_need_lb"] == pytest.approx(100)
     assert readiness["inventory_ready"] is True
-    assert _codes(readiness) == {"unallocated": "block"}
+    assert _codes(readiness) == {"unallocated": "info"}
     readiness = client.get(f"/sales/orders/{second}").json()["lines"][0]["readiness"]
     assert readiness["available_lb"] == pytest.approx(0)
     assert readiness["shortage_lb"] == pytest.approx(100)
@@ -255,7 +256,7 @@ def test_shortage_and_inbound_cover_warn_never_fill_the_hole(db_cursor, client):
     assert readiness["inventory_ready"] is False
     assert _codes(readiness) == {
         "shortage": "block",
-        "unallocated": "block",
+        "unallocated": "info",
         "inbound_cover": "warn",
     }
 
@@ -290,7 +291,7 @@ def test_partial_allocation_and_sibling_lines_compete_for_same_sku(db_cursor, cl
     assert by_id[line_a]["inventory_ready"] is True
     assert by_id[line_b]["coverable_lb"] == pytest.approx(20)
     assert by_id[line_b]["shortage_lb"] == pytest.approx(60)
-    assert _codes(by_id[line_b]) == {"shortage": "block", "unallocated": "block"}
+    assert _codes(by_id[line_b]) == {"shortage": "block", "unallocated": "info"}
 
     db_cursor.execute(
         "UPDATE sales_order_allocations SET quantity_lb = 40 WHERE sales_order_line_id = %s",
@@ -468,7 +469,7 @@ def test_cross_order_allocation_leaves_competing_order_short(db_cursor, client):
     assert orders[order_b]["shortage_lb"] == pytest.approx(100)
     assert _codes(orders[order_b]) == {
         "shortage": "block",
-        "unallocated": "block",
+        "unallocated": "info",
     }
 
 
@@ -570,7 +571,7 @@ def test_expired_allocation_is_formula_only_and_all_gets_never_write(db_cursor, 
         client.get("/sales/orders/fulfillment-check", params={"order_id": order_id}),
     ]
     assert all(response.status_code == 200 for response in responses)
-    assert _codes(responses[0].json()) == {"unallocated": "block"}
+    assert _codes(responses[0].json()) == {"unallocated": "info"}
 
     db_cursor.execute(
         "SELECT status, released_at, release_reason FROM sales_order_allocations WHERE id=%s",
