@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-14 12:35 — Production scheduling S1: production_runs + run_coverage (NOT DEPLOYED)
+
+- **Files changed:** `migrations/053_production_runs.sql`, `main.py`, `tests/test_production_runs.py`, `tests/test_sales_order_state_model.py`, `docs/design/scheduling-spec-draft.md`, `docs/design/so-state-model-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`.
+- **What changed:** Migration 053 creates `production_runs` (one finished SKU + quantity on one day; `planned_qty_lb` canonical plus `planned_qty` / `planned_unit` / `case_size_lb_used` as entered per the owner's units ruling; nullable `line_id` defaulted from a single `product_line_assignments` row; status planned → in_progress → done | cancelled; created/updated/completed attribution) and `run_coverage` (run → sales-order line, pounds only, unique pair). Seven routes under `/production/runs` — list, create, patch, cancel, complete, evidence, coverage — added to `DASHBOARD_KEY_ALLOWLIST` only; no GPT yaml touched (`openapi-gpt-v3.yaml` still exactly 30 operations); every write records `caller_source_tag(request)`. `PUT …/coverage` is a validated full replace (open order, open non-service line, same product, ≤ the line's effective remaining, Σ ≤ planned) that locks orders ascending → lines ascending → the run; the other writes lock only the run row; no new path locks products, lots or allocations. `GET …/evidence` derives posted make/pack output in a ±1-day `business_date` window and suggests `looks_complete` / `partial` / `none`; `POST …/complete` is the explicit human confirmation and writes nothing but the run row. The spec gains Part 4 (five owner decisions, the units ruling with cited evidence, the S2 competing-orders waterfall rule with its five qualifications, schema/endpoints/locks as built, S1 done / S2 next); the findings doc gains lock-site rows A26–A30; regression changelog row 143.
+- **Validation:** `tests/test_production_runs.py` (CRUD + validation, over-coverage, closed-line / exited-order rejection, effective-remaining cap, evidence exact/partial/none with window/void/other-SKU exclusions, completion touching no SO row / flag / allocation / ledger line, three-key attribution matrix on every write, migration 053 rerun no-op and no transaction control, allowlist shape, step-3 lock ban) plus the five S1 handlers in the mechanical lock-sequence test. Full suite run recorded in the PR body.
+- **Why:** The live production schedule exists only in WhatsApp. S1 is the smallest data model and write surface that lets S2's Health say "short and nobody is making it" vs "short but scheduled" — without changing anything the dashboard or Health reads today.
+
+---
+
 ## 2026-09-14 — FR-15 step 5a: Codex cross-review fix pass (NOT DEPLOYED)
 
 - **Files changed:** `main.py`, `tests/test_actor_attribution.py`, `docs/design/so-state-model-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`.
