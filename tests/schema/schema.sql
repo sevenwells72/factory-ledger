@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict vmW0tagYxyo0MSLGL1kDXBKzUPqd67IUT9nFhT9RFfUebPCon61qQRhmbAFAmqM
+\restrict KLNSFdWg7frmO03XiLpucGIzzXfu6Ghs2JeCJ8KzxjbsUJgKFlKeb1gHjauvIdv
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -469,6 +469,42 @@ CREATE TABLE public._backup_20260305_transactions (
     adjust_reason text,
     adjust_reason_es text
 );
+
+
+--
+-- Name: actors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.actors (
+    id integer NOT NULL,
+    name text NOT NULL,
+    role text NOT NULL,
+    key_hash text NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_used_at timestamp with time zone,
+    CONSTRAINT actors_role_check CHECK ((role = ANY (ARRAY['owner'::text, 'floor'::text, 'office'::text])))
+);
+
+
+--
+-- Name: actors_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.actors_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: actors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.actors_id_seq OWNED BY public.actors.id;
 
 
 --
@@ -1248,6 +1284,16 @@ SELECT
 
 
 --
+-- Name: migration_markers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.migration_markers (
+    name text NOT NULL,
+    applied_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+
+--
 -- Name: notes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1434,6 +1480,16 @@ CREATE TABLE public.sales_orders (
     created_at_source text DEFAULT 'database'::text NOT NULL,
     customer_po text,
     source_document_id integer,
+    state text DEFAULT 'open'::text NOT NULL,
+    state_reason text,
+    state_note text,
+    state_changed_at timestamp with time zone,
+    state_changed_by text,
+    related_so_id integer,
+    status_before_exit text,
+    CONSTRAINT sales_orders_state_check CHECK ((state = ANY (ARRAY['open'::text, 'closed'::text, 'cancelled'::text]))),
+    CONSTRAINT sales_orders_state_reason_check CHECK (((state_reason IS NULL) OR (state_reason = ANY (ARRAY['shipped_recorded'::text, 'shipped_not_recorded'::text, 'short_closed'::text, 'customer_cancelled'::text, 'cns_declined'::text, 'duplicate'::text, 'superseded'::text, 'other'::text])))),
+    CONSTRAINT sales_orders_state_reason_matches_state CHECK (((((state = 'open'::text) AND (state_reason IS NULL)) OR ((state = 'closed'::text) AND (state_reason IS NOT NULL) AND (state_reason = ANY (ARRAY['shipped_recorded'::text, 'shipped_not_recorded'::text, 'short_closed'::text]))) OR ((state = 'cancelled'::text) AND (state_reason IS NOT NULL) AND (state_reason = ANY (ARRAY['customer_cancelled'::text, 'cns_declined'::text, 'duplicate'::text, 'superseded'::text, 'other'::text])))) IS TRUE)),
     CONSTRAINT sales_orders_status_check CHECK ((status = ANY (ARRAY['new'::text, 'confirmed'::text, 'in_production'::text, 'ready'::text, 'shipped'::text, 'partial_ship'::text, 'invoiced'::text, 'cancelled'::text])))
 );
 
@@ -2455,6 +2511,13 @@ CREATE VIEW public.v_test_batches_for_review AS
 
 
 --
+-- Name: actors id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.actors ALTER COLUMN id SET DEFAULT nextval('public.actors_id_seq'::regclass);
+
+
+--
 -- Name: allergens id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2651,6 +2714,30 @@ ALTER TABLE ONLY public.transactions ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: actors actors_key_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.actors
+    ADD CONSTRAINT actors_key_hash_key UNIQUE (key_hash);
+
+
+--
+-- Name: actors actors_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.actors
+    ADD CONSTRAINT actors_name_key UNIQUE (name);
+
+
+--
+-- Name: actors actors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.actors
+    ADD CONSTRAINT actors_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: adjustment_reason_codes adjustment_reason_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2824,6 +2911,14 @@ ALTER TABLE ONLY public.lots
 
 ALTER TABLE ONLY public.lots
     ADD CONSTRAINT lots_product_id_lot_code_key UNIQUE (product_id, lot_code);
+
+
+--
+-- Name: migration_markers migration_markers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.migration_markers
+    ADD CONSTRAINT migration_markers_pkey PRIMARY KEY (name);
 
 
 --
@@ -3461,6 +3556,13 @@ CREATE INDEX idx_sales_orders_ship_date ON public.sales_orders USING btree (requ
 --
 
 CREATE INDEX idx_sales_orders_source_doc ON public.sales_orders USING btree (source_document_id) WHERE (source_document_id IS NOT NULL);
+
+
+--
+-- Name: idx_sales_orders_state; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sales_orders_state ON public.sales_orders USING btree (state);
 
 
 --
@@ -4343,6 +4445,14 @@ ALTER TABLE ONLY public.sales_orders
 
 
 --
+-- Name: sales_orders sales_orders_related_so_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_related_so_id_fkey FOREIGN KEY (related_so_id) REFERENCES public.sales_orders(id);
+
+
+--
 -- Name: sales_orders sales_orders_source_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4511,8 +4621,14 @@ ALTER TABLE ONLY public.transactions
 
 
 --
+-- Name: migration_markers; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.migration_markers ENABLE ROW LEVEL SECURITY;
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict vmW0tagYxyo0MSLGL1kDXBKzUPqd67IUT9nFhT9RFfUebPCon61qQRhmbAFAmqM
+\unrestrict KLNSFdWg7frmO03XiLpucGIzzXfu6Ghs2JeCJ8KzxjbsUJgKFlKeb1gHjauvIdv
 
