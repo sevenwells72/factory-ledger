@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-14 13:49 — Merge origin/main (#53) into feat/scheduling-s2; S2 changelog row renumbered 144 → 145
+
+- **Files changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md` (conflict resolution only; `.gitignore` auto-merged with both rule sets).
+- **What changed:** PR #53 (Production Runs screen) merged to main first and took changelog row 144. Kept #53's row 144 verbatim and renumbered the S2 Health v3 row to 145; the S2 entry below and the PR #54 body now say row 145. Both branches' `CHANGE_LOG.md` entries kept, newest first. No conflicts in `main.py`, `dashboard/*.js`, or any test file.
+- **Validation:** `./scripts/run_tests.sh` on the merged tree: 1076 passed, 0 failed.
+- **Why:** Bring `feat/scheduling-s2` (PR #54) up to date with main before merge.
+
+---
+
 ## 2026-09-14 — Production Runs screen (NOT DEPLOYED)
 
 - Standalone `/runs.html` against the seven S1 routes: factory-local week, range-scoped counted tabs, native quantity explanations, finished-product search, editing, reasoned cancellation, human-confirmed completion and full-replacement coverage.
@@ -7,6 +16,24 @@
 - Validation stopped at the requested two-pass limit: 64 existing JavaScript tests and all interaction scenarios pass; STATUS-011 has four repeated-caveat failures (one per viewport/theme), all other targeted STATUS counts are zero. No push or PR.
 - Spec committed before code. Shared STATUS checks, stateful interaction scenarios, before/after 1440/390 light/dark captures and JavaScript test logs are in `docs/design/audit/pr-screenshots/feat-runs-screen/`. Blubber reviews the Netlify preview independently and merges manually.
 - Original checkout stalled reading tracked files; work is in an isolated clone of the same repository, synced and verified at `7c183e0`. All protected files remain unchanged. Changelog row 144 may need renumbering on merge.
+
+---
+
+## 2026-09-14 13:44 — Scheduling S2 fix pass: allocation blockers are informational, not dispatch gates (PR #54, NOT DEPLOYED)
+
+- **Files changed:** `main.py`, `tests/test_health_v3.py`, `tests/test_sales_order_readiness.py`, `docs/design/so-state-model-findings.md`.
+- **What changed:** `_line_readiness()` emits `unallocated` and `partial_allocation` with severity `info` (the existing non-blocking severity already used by `service_only`) instead of `block`. They still appear in `blockers` on all three readiness GETs but no longer flip `dispatch_ready`. Every other dispatch blocker and all shipment enforcement unchanged. Tests: the reservation-only dispatch test in `test_health_v3.py` and the two-orders/partial-allocation cases in `test_sales_order_readiness.py` now assert `dispatch_ready` true with the blocker present as `info` (seven `"unallocated": "block"` literals flipped). Findings doc Health v3 section states the new policy. `dashboard/dashboard.js` needs no change (consumes the `dispatch_ready` boolean only).
+- **Validation:** `./scripts/run_tests.sh`: 1076 passed, 0 failed.
+- **Why:** Codex cross-review of PR #54; owner ruling that allocation is a reservation, not a readiness or dispatch gate.
+
+---
+
+## 2026-09-14 13:32 — Scheduling S2: Health v3 — availability waterfall, run coverage, allocation gate removed (branch `feat/scheduling-s2`, NOT DEPLOYED)
+
+- **Files changed:** `main.py`, `dashboard/so-list.js`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_health_v3.py` (new), `tests/test_sales_order_readiness.py`, `tests/test_sales_order_state_model.py`, `tests/visual/fixtures/sales-order-detail.json`, `tests/visual/run-so-detail-interactions.mjs`, `tests/schema/schema.sql`, `docs/design/so-state-model-findings.md`, `docs/design/scheduling-spec-draft.md`, `docs/design/FL-Design-Standards-MASTER.md`, `FACTORY_LEDGER_CHANGELOG.md`.
+- **What changed:** `SALES_ORDER_READINESS_SQL` now computes availability under the spec §4c competing-orders waterfall (open orders only, cancelled lines excluded, effective remaining, `requested_ship_date ASC NULLS LAST` → order id → line id, explicit allocations first, foreign reservations off the pool, no pound attributed twice, orders off the page included) and planned-run coverage (`run_coverage` over runs in `planned`/`in_progress` only; `done` and `cancelled` cover nothing). `_line_readiness()`: `available_lb` (new meaning), `coverable_lb` alias, `covered_lb`, `uncovered_lb`, `coverage_runs`; `inventory_ready` no longer requires `allocated >= remaining`. List and detail rows gain `available_lb`/`covered_lb`/`uncovered_lb`. `compute_so_health()` v3: only uncovered pounds tier; covered shortage is info with the run date(s); late run and run overdue are warnings; the `(allocations not enforced)` suffix is gone. Dashboard: string removal only, cache-bust bumped. Schema dump refreshed after 053. Docs: Health v3 section (findings), STATUS-012 Factory Ledger line (standards 1.3), spec Part 4 marks S2 done / S3 next; changelog row 145.
+- **Validation:** `./scripts/run_tests.sh`: 1076 passed, 0 failed (1006 + 70 new in `tests/test_health_v3.py`). `openapi-gpt-v3.yaml` untouched (30 ops). Health takes no lock; no existing lock path changed.
+- **Why:** Two open orders for one SKU both read as covered by the same pounds, and a shortage the floor had already scheduled looked exactly like one nobody was making. Owner decision 3 keeps Inventory, Ready to Ship and Scheduling separate; S2 implements the first and third.
 
 ---
 

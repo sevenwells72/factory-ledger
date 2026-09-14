@@ -637,8 +637,8 @@ person including Codex cross-review; the migration apply itself is minutes.
 | # | PR | Contents | Merge criterion | Est. |
 |---|---|---|---|---|
 | S1 ✅ **DONE** (`feat/scheduling-s1`, see Part 4) | `feat/053-production-runs` — schema + endpoints | Migration 053; `production_runs`/`run_coverage` models; the six run/coverage routes from §2j; allowlist entries; `caller_source_tag` attribution; lock sequence R1–R6; tests: CRUD, invariants (409s), attribution (dashboard key → `'dashboard'`, actor key → name), lock fingerprint, one deadlock race, allowlist shape. **No Health change.** | 053 applied to prod via psql and schema dump refreshed before merge; all new routes 403 for master-key-less callers and 200 for dashboard + actor keys; `grep -c operationId openapi-gpt-v3.yaml` still 30; full suite green. | 2 days (~500 lines, half tests) |
-| S2 ⏭ **NEXT** | `feat/so-health-v3` — coverage replaces allocations | `coverage` CTE in `SALES_ORDER_READINESS_SQL`; new `_line_readiness` fields; `compute_so_health()` rules 1–7 of §2h; `info_detail` re-shaped; dashboard string/popover changes at the six sites in §1b; tier-matrix tests for every row and both sides of each boundary; mutation check on the `, not scheduled` split; findings-doc section "Health v3" in the v2.1 format. | `grep -rn "allocations not enforced"` empty; tier matrix green; existing v2.1 clock/window tests untouched and green; dashboard list + detail render the new info sentences. | 2 days (~700 lines) |
-| S3 | `feat/run-materials` — materials derived field | `?include=materials` on `GET /production/runs`; routing/`unknown` rules of §2i; inbound from open expected receipts; tests for the three routing cases (product_bom, parent_batch_product_id, none), `exclude_from_inventory`, expected receipts before/after `planned_date`. | Every active finished product returns `ok`/`short`/`unknown`, never 4xx/5xx; numbers match `/production/requirements` where that endpoint works. | 1 day |
+| S2 ✅ **DONE** (`feat/scheduling-s2`, see Part 4 §4h) | `feat/so-health-v3` — coverage replaces allocations | `coverage` CTE in `SALES_ORDER_READINESS_SQL`; new `_line_readiness` fields; `compute_so_health()` rules 1–7 of §2h; `info_detail` re-shaped; dashboard string/popover changes at the six sites in §1b; tier-matrix tests for every row and both sides of each boundary; mutation check on the `, not scheduled` split; findings-doc section "Health v3" in the v2.1 format. | `grep -rn "allocations not enforced"` empty; tier matrix green; existing v2.1 clock/window tests untouched and green; dashboard list + detail render the new info sentences. | 2 days (~700 lines) |
+| S3 ⏭ **NEXT** | `feat/run-materials` — materials derived field | `?include=materials` on `GET /production/runs`; routing/`unknown` rules of §2i; inbound from open expected receipts; tests for the three routing cases (product_bom, parent_batch_product_id, none), `exclude_from_inventory`, expected receipts before/after `planned_date`. | Every active finished product returns `ok`/`short`/`unknown`, never 4xx/5xx; numbers match `/production/requirements` where that endpoint works. | 1 day |
 | S4a | `feat/production-board-api` | `GET /production/board` per §2j, reusing the today-tile day window and `_factory_today()`. | Three lists agree with `/production/runs`, `/sales/orders?…`, `/expected-receipts?…` for a fixed date in tests. | 0.5 day |
 | S4b | `feat/production-board-ui` — dashboard | Runs list + create/edit/cancel modal; coverage picker from an open order's short lines; daily board tab; Health chips unchanged (server-owned). Static assets only. | Visual audit passes the STATUS rules for the new screens; asset versions bumped. | 2 days |
 | S5 (later) | `chore/retire-schedule-engine` | Remove `POST /schedule`, the 7-day engine, `production_schedule` (drop after export), `scheduling_config`; keep `production_lines` and `product_line_assignments`. Separate owner decision. | — | 0.5 day |
@@ -854,8 +854,43 @@ mechanically in `EXPECTED_LOCK_SEQUENCE`.
 
 ### 4g. Status
 
-**S1 done** on `feat/scheduling-s1` (not deployed until 053 is applied to prod
-and the PR merges; nothing visible changes until S2/S4). **S2 next**: the
-`coverage` CTE, §2h rules 1–7 with `done` runs excluded, the §4c waterfall in
-`SALES_ORDER_READINESS_SQL`, removal of the `allocated >= remaining` gate on
-`inventory_ready`, and the dashboard string changes.
+**S1 merged** (#52, `7c183e0`) and migration 053 applied in production.
+**S2 done** on `feat/scheduling-s2` (2026-09-14, §4h; not deployed until the
+PR merges — no migration, Railway + Netlify together). **S3 next**:
+`?include=materials` on `GET /production/runs` per §2i. S4a/S4b unchanged.
+
+### 4h. S2 as built (2026-09-14) — NORMATIVE where it differs from §2h
+
+Normative text: `docs/design/so-state-model-findings.md` § "Health v3".
+Differences from the §2h draft, all per the owner's S2 rules:
+
+* **Availability first, then coverage.** §4c is implemented inside
+  `SALES_ORDER_READINESS_SQL` (CTEs `competing` → `waterfall` →
+  `waterfall_alloc` → `waterfall_need` → `availability`), so `shortage_lb`
+  is measured against the line's waterfall availability, not the whole
+  unallocated pool. Orders off the requested page still compete. A line's own
+  explicit allocation is honoured first but capped at physical stock once
+  foreign reservations and higher-priority allocations are off. The
+  `allocated >= remaining` gate on `inventory_ready` is removed. The
+  `unallocated` / `partial_allocation` dispatch blockers are unchanged.
+* **Run overdue is a warning on the order**, not info (§2h rule 4 said info).
+  The run-side `flag: overdue` on `GET /production/runs` is not in S2.
+* **Uncovered wording is v2.1's exactly** — the `, not scheduled` addition
+  from §2h rule 1 was not adopted; the covered sentence carries the run
+  date(s) instead: `Short 500 lb — covered by run on Sep 16`.
+* **The unallocated `info` sentence and `info_detail` stay** (§2h rule 6
+  had suppressed the sentence and re-shaped `info_detail`). Only the
+  ` (allocations not enforced)` suffix is gone, and `_allocations_enforced()`
+  is no longer read by Health. `info_detail` keeps
+  `{line_id, sku, product_name, unallocated_lb}`; the dashboard popovers are
+  unchanged.
+* **Per-line readiness gains** `available_lb` (meaning changed to the
+  waterfall availability), `covered_lb`, `uncovered_lb`, `coverage_runs`;
+  `coverable_lb` is kept as an alias of `available_lb`. Per-order readiness,
+  list rows and detail gain `available_lb`, `covered_lb`, `uncovered_lb`.
+  Nothing removed.
+* **Dashboard change is string removal only** (`so-list.js` regex,
+  `dashboard.js` detection + banner; cache-bust v3 / v63).
+* **No lock.** Health and readiness remain one SELECT with no `FOR …`
+  clause and no DML; no existing lock path changed. `openapi-gpt-v3.yaml`
+  untouched at 30 operations.

@@ -189,7 +189,14 @@ def _codes(payload):
 
 
 @pytest.mark.db
-def test_two_unallocated_coverable_orders_are_both_blocked_on_all_gets(db_cursor, client):
+def test_two_unallocated_orders_share_one_pool_first_by_priority_on_all_gets(db_cursor, client):
+    """S2 (Health v3): 100 lb on hand, two open orders of 100 lb each, same
+    ship date, no allocations. v2.1 let both read `coverable 100` from the
+    same pounds and gated inventory_ready on an allocation neither had. Now
+    the waterfall gives the pool to the earlier order (tie → lower id), which
+    is inventory-ready without an allocation; the later one is short by the
+    whole 100. The `unallocated` blocker is informational: the first order is
+    dispatch-ready without a reservation, the second is blocked by shortage."""
     customer_id, customer_name, token = _seed_customer(db_cursor)
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=100)
     order_ids = []
@@ -197,28 +204,40 @@ def test_two_unallocated_coverable_orders_are_both_blocked_on_all_gets(db_cursor
         order_id, _ = _seed_order(db_cursor, customer_id, token)
         _add_line(db_cursor, order_id, product_id, 100)
         order_ids.append(order_id)
+    first, second = order_ids
 
     dispatch = client.get("/sales/orders/fulfillment-check", params={"customer_name": customer_name})
     assert dispatch.status_code == 200, dispatch.text
-    matching = [row for row in dispatch.json()["orders"] if row["order_id"] in order_ids]
-    assert len(matching) == 2
-    for order in matching:
-        assert order["inventory_ready"] is False
-        assert order["dispatch_ready"] is False
-        assert _codes(order) == {"unallocated": "block"}
-        assert order["shortage_lb"] == pytest.approx(0)
+    by_id = {row["order_id"]: row for row in dispatch.json()["orders"] if row["order_id"] in order_ids}
+    assert set(by_id) == set(order_ids)
+    assert by_id[first]["inventory_ready"] is True
+    assert by_id[first]["shortage_lb"] == pytest.approx(0)
+    assert _codes(by_id[first]) == {"unallocated": "info"}
+    assert by_id[second]["inventory_ready"] is False
+    assert by_id[second]["shortage_lb"] == pytest.approx(100)
+    assert _codes(by_id[second]) == {"shortage": "block", "unallocated": "info"}
+    assert by_id[first]["dispatch_ready"] is True
+    assert by_id[second]["dispatch_ready"] is False
 
     listed = client.get("/sales/orders", params={"customer": customer_name, "limit": 10})
     assert listed.status_code == 200, listed.text
-    assert {row["order_id"] for row in listed.json()["orders"]} == set(order_ids)
-    assert all(_codes(row) == {"unallocated": "block"} for row in listed.json()["orders"])
+    rows = {row["order_id"]: row for row in listed.json()["orders"]}
+    assert set(rows) == set(order_ids)
+    assert rows[first]["available_lb"] == pytest.approx(100)
+    assert rows[second]["available_lb"] == pytest.approx(0)
+    assert rows[first]["available_lb"] + rows[second]["available_lb"] == pytest.approx(100)
 
-    detail = client.get(f"/sales/orders/{order_ids[0]}")
+    detail = client.get(f"/sales/orders/{first}")
     assert detail.status_code == 200, detail.text
     readiness = detail.json()["lines"][0]["readiness"]
     assert readiness["coverable_lb"] == pytest.approx(100)
+    assert readiness["available_lb"] == pytest.approx(100)
     assert readiness["unallocated_need_lb"] == pytest.approx(100)
-    assert _codes(readiness) == {"unallocated": "block"}
+    assert readiness["inventory_ready"] is True
+    assert _codes(readiness) == {"unallocated": "info"}
+    readiness = client.get(f"/sales/orders/{second}").json()["lines"][0]["readiness"]
+    assert readiness["available_lb"] == pytest.approx(0)
+    assert readiness["shortage_lb"] == pytest.approx(100)
 
 
 @pytest.mark.db
@@ -237,7 +256,7 @@ def test_shortage_and_inbound_cover_warn_never_fill_the_hole(db_cursor, client):
     assert readiness["inventory_ready"] is False
     assert _codes(readiness) == {
         "shortage": "block",
-        "unallocated": "block",
+        "unallocated": "info",
         "inbound_cover": "warn",
     }
 
@@ -272,7 +291,7 @@ def test_partial_allocation_and_sibling_lines_compete_for_same_sku(db_cursor, cl
     assert by_id[line_a]["inventory_ready"] is True
     assert by_id[line_b]["coverable_lb"] == pytest.approx(20)
     assert by_id[line_b]["shortage_lb"] == pytest.approx(60)
-    assert _codes(by_id[line_b]) == {"shortage": "block", "unallocated": "block"}
+    assert _codes(by_id[line_b]) == {"shortage": "block", "unallocated": "info"}
 
     db_cursor.execute(
         "UPDATE sales_order_allocations SET quantity_lb = 40 WHERE sales_order_line_id = %s",
@@ -450,7 +469,7 @@ def test_cross_order_allocation_leaves_competing_order_short(db_cursor, client):
     assert orders[order_b]["shortage_lb"] == pytest.approx(100)
     assert _codes(orders[order_b]) == {
         "shortage": "block",
-        "unallocated": "block",
+        "unallocated": "info",
     }
 
 
@@ -552,7 +571,7 @@ def test_expired_allocation_is_formula_only_and_all_gets_never_write(db_cursor, 
         client.get("/sales/orders/fulfillment-check", params={"order_id": order_id}),
     ]
     assert all(response.status_code == 200 for response in responses)
-    assert _codes(responses[0].json()) == {"unallocated": "block"}
+    assert _codes(responses[0].json()) == {"unallocated": "info"}
 
     db_cursor.execute(
         "SELECT status, released_at, release_reason FROM sales_order_allocations WHERE id=%s",
@@ -571,7 +590,11 @@ def test_readiness_cte_explains_for_a_page_of_orders(db_cursor):
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=10)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
     _add_line(db_cursor, order_id, product_id, 10)
-    db_cursor.execute("EXPLAIN (FORMAT TEXT) " + main.SALES_ORDER_READINESS_SQL, ([order_id],))
+    db_cursor.execute("EXPLAIN (FORMAT TEXT) " + main.SALES_ORDER_READINESS_SQL,
+                      ([order_id], main.BALANCE_EPSILON))
     plan = "\n".join(row["QUERY PLAN"] for row in db_cursor.fetchall())
     assert "sales_order_allocations" in plan
     assert "sales_order_shipments" in plan
+    # S2: planned-run coverage rides on the same single SELECT.
+    assert "run_coverage" in plan
+    assert "production_runs" in plan

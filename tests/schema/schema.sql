@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict KLNSFdWg7frmO03XiLpucGIzzXfu6Ghs2JeCJ8KzxjbsUJgKFlKeb1gHjauvIdv
+\restrict RzKislu2ofB4o1XiV26XMpEswieuXvDRXZGaRguJehgARPCshb9FcB4t9f3cjWK
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -1701,6 +1701,55 @@ ALTER SEQUENCE public.production_lines_id_seq OWNED BY public.production_lines.i
 
 
 --
+-- Name: production_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.production_runs (
+    id integer NOT NULL,
+    product_id integer NOT NULL,
+    planned_qty_lb numeric(14,4) NOT NULL,
+    planned_qty numeric(14,4),
+    planned_unit text,
+    case_size_lb_used numeric(14,4),
+    planned_date date NOT NULL,
+    line_id integer,
+    status text DEFAULT 'planned'::text NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    updated_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    completed_at timestamp with time zone,
+    created_by text,
+    updated_by text,
+    completed_by text,
+    CONSTRAINT production_runs_case_size_lb_used_check CHECK (((case_size_lb_used IS NULL) OR (case_size_lb_used > (0)::numeric))),
+    CONSTRAINT production_runs_planned_qty_check CHECK (((planned_qty IS NULL) OR (planned_qty > (0)::numeric))),
+    CONSTRAINT production_runs_planned_qty_lb_check CHECK ((planned_qty_lb > (0)::numeric)),
+    CONSTRAINT production_runs_planned_unit_check CHECK (((planned_unit IS NULL) OR (planned_unit = ANY (ARRAY['cases'::text, 'lb'::text])))),
+    CONSTRAINT production_runs_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'in_progress'::text, 'done'::text, 'cancelled'::text])))
+);
+
+
+--
+-- Name: production_runs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.production_runs_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: production_runs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.production_runs_id_seq OWNED BY public.production_runs.id;
+
+
+--
 -- Name: production_schedule; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1814,6 +1863,41 @@ CREATE TABLE public.reassignment_reason_codes (
     description text NOT NULL,
     active boolean DEFAULT true
 );
+
+
+--
+-- Name: run_coverage; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.run_coverage (
+    id integer NOT NULL,
+    run_id integer NOT NULL,
+    sales_order_line_id integer NOT NULL,
+    qty_lb numeric(14,4) NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    created_by text,
+    CONSTRAINT run_coverage_qty_lb_check CHECK ((qty_lb > (0)::numeric))
+);
+
+
+--
+-- Name: run_coverage_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.run_coverage_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: run_coverage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.run_coverage_id_seq OWNED BY public.run_coverage.id;
 
 
 --
@@ -2651,6 +2735,13 @@ ALTER TABLE ONLY public.production_lines ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: production_runs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_runs ALTER COLUMN id SET DEFAULT nextval('public.production_runs_id_seq'::regclass);
+
+
+--
 -- Name: production_schedule id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2662,6 +2753,13 @@ ALTER TABLE ONLY public.production_schedule ALTER COLUMN id SET DEFAULT nextval(
 --
 
 ALTER TABLE ONLY public.products ALTER COLUMN id SET DEFAULT nextval('public.products_id_seq'::regclass);
+
+
+--
+-- Name: run_coverage id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.run_coverage ALTER COLUMN id SET DEFAULT nextval('public.run_coverage_id_seq'::regclass);
 
 
 --
@@ -3026,6 +3124,14 @@ ALTER TABLE ONLY public.production_lines
 
 
 --
+-- Name: production_runs production_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_runs
+    ADD CONSTRAINT production_runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: production_schedule production_schedule_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3079,6 +3185,22 @@ ALTER TABLE ONLY public.purchase_documents
 
 ALTER TABLE ONLY public.reassignment_reason_codes
     ADD CONSTRAINT reassignment_reason_codes_pkey PRIMARY KEY (code);
+
+
+--
+-- Name: run_coverage run_coverage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.run_coverage
+    ADD CONSTRAINT run_coverage_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: run_coverage run_coverage_run_id_sales_order_line_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.run_coverage
+    ADD CONSTRAINT run_coverage_run_id_sales_order_line_id_key UNIQUE (run_id, sales_order_line_id);
 
 
 --
@@ -3468,6 +3590,20 @@ CREATE INDEX idx_product_verification_history_product ON public.product_verifica
 
 
 --
+-- Name: idx_production_runs_planned_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_production_runs_planned_date ON public.production_runs USING btree (planned_date);
+
+
+--
+-- Name: idx_production_runs_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_production_runs_status ON public.production_runs USING btree (status);
+
+
+--
 -- Name: idx_products_name_trgm; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3500,6 +3636,13 @@ CREATE INDEX idx_purchase_documents_kind ON public.purchase_documents USING btre
 --
 
 CREATE INDEX idx_purchase_documents_sha256 ON public.purchase_documents USING btree (file_sha256);
+
+
+--
+-- Name: idx_run_coverage_sales_order_line_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_run_coverage_sales_order_line_id ON public.run_coverage USING btree (sales_order_line_id);
 
 
 --
@@ -4301,6 +4444,22 @@ ALTER TABLE ONLY public.product_line_assignments
 
 
 --
+-- Name: production_runs production_runs_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_runs
+    ADD CONSTRAINT production_runs_line_id_fkey FOREIGN KEY (line_id) REFERENCES public.production_lines(id);
+
+
+--
+-- Name: production_runs production_runs_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.production_runs
+    ADD CONSTRAINT production_runs_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
 -- Name: production_schedule production_schedule_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4322,6 +4481,22 @@ ALTER TABLE ONLY public.production_schedule
 
 ALTER TABLE ONLY public.products
     ADD CONSTRAINT products_parent_batch_product_id_fkey FOREIGN KEY (parent_batch_product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: run_coverage run_coverage_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.run_coverage
+    ADD CONSTRAINT run_coverage_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.production_runs(id);
+
+
+--
+-- Name: run_coverage run_coverage_sales_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.run_coverage
+    ADD CONSTRAINT run_coverage_sales_order_line_id_fkey FOREIGN KEY (sales_order_line_id) REFERENCES public.sales_order_lines(id);
 
 
 --
@@ -4630,5 +4805,5 @@ ALTER TABLE public.migration_markers ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict KLNSFdWg7frmO03XiLpucGIzzXfu6Ghs2JeCJ8KzxjbsUJgKFlKeb1gHjauvIdv
+\unrestrict RzKislu2ofB4o1XiV26XMpEswieuXvDRXZGaRguJehgARPCshb9FcB4t9f3cjWK
 

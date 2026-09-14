@@ -1553,3 +1553,248 @@ GPT needs this route.
   GPTs' writes keep recording their self-reported `created_by` tag.
 * **Per-role authorization.** `role` is stored and reported, gates nothing.
 * **Revocation latency.** Bounded by the cache TTL, as above.
+
+---
+
+## Health v3 — availability and coverage (scheduling S2, 2026-09-14)
+
+Branch: `feat/scheduling-s2` (off `main` @ `7c183e0`, which carries S1 and
+migration 053). Code, tests, docs and a string-removal-only dashboard change —
+no migration. `compute_so_health()` is still the single place tiers are
+decided, still fed by `SALES_ORDER_READINESS_SQL`, still issues no SQL of its
+own, and still takes no lock: the readiness query is one SELECT with no
+`FOR …` clause and no DML (pinned by
+`test_health_is_read_only_no_lock_clause_no_dml`). Spec:
+`docs/design/scheduling-spec-draft.md` Part 4, §4c.
+
+### Why v2.1 was replaced
+
+Two things v2.1 could not say. (1) Two open orders for the same SKU each saw
+the whole unallocated pool (`coverable = on_hand − allocated_others`), so both
+read as covered by the same pounds, and the only way to make the board honest
+was an allocation — which is why `inventory_ready` was gated on
+`allocated >= remaining`, turning an optional reservation into a
+precondition. (2) A shortage that the floor had already scheduled looked
+exactly like one nobody was making. Owner decision 3 (spec §4a) keeps three
+concepts apart: **Inventory** — do we physically have enough available;
+**Ready to Ship** — the floor's flag; **Scheduling** — is a shortage covered
+by planned production. v3 computes the first and third; the second is
+unchanged.
+
+### Availability — the competing-orders rule (spec §4c)
+
+Computed once per page inside `SALES_ORDER_READINESS_SQL` (CTEs `competing`
+→ `waterfall` → `waterfall_alloc` → `waterfall_need` → `availability`) and
+read by `_line_readiness()` as `alloc_avail_lb` + `share_lb`. Parameters are
+now `(order ids, BALANCE_EPSILON)`.
+
+**Who competes:** every line of a relevant SKU on an order with
+`state = 'open'`, `line_status <> 'cancelled'`, non-service, with effective
+remaining pounds `> BALANCE_EPSILON` — whether or not its order is on the
+requested page (`shipped_eff` is therefore computed for every line of a
+relevant product, not just the page's). Closed and cancelled orders do not
+compete; fulfilled lines do not compete.
+
+**Priority:** `requested_ship_date ASC NULLS LAST`, then `sales_order_id
+ASC`, then `line_id ASC` — the list's own sort. Overdue orders go first by
+arithmetic, undated orders last, ties in creation order.
+
+**The walk, per SKU:**
+
+```
+foreign_alloc    = Σ active allocations NOT held by a competing line
+                   (closed orders, fulfilled lines — still off the pool first,
+                    the v2.1 rule that another order's reservation reduces
+                    this order's pool)
+alloc_avail_i    = min(A_i, max(0, on_hand − foreign_alloc − Σ_{j<i} A_j))
+                   — the line's own explicit allocation, honoured first, but
+                     only as far as stock physically exists
+pool             = max(0, on_hand − Σ all active allocations)
+need_i           = max(0, remaining_i − alloc_avail_i)
+share_i          = min(need_i, max(0, pool − Σ_{j<i} need_j))
+available_i      = alloc_avail_i + share_i
+shortage_i       = max(0, remaining_i − available_i)
+```
+
+Normally `alloc_avail_i = A_i`; it is smaller only when the SKU is reserved
+beyond its on-hand (a stale 100 lb allocation on 0 lb reads as 0 available,
+as v2.1's `coverable` bound did). `Σ available_i` over the competing lines
+never exceeds `on_hand − foreign_alloc`: the same pound is never attributed
+to two lines. A page line that is *not* competing (its order is closed or
+cancelled, or nothing remains) gets `alloc_avail = min(A, max(0, on_hand −
+allocated_others))` and no share.
+
+`coverable_lb` is kept as an alias of `available_lb` — they are one number
+now — so nothing that read the v2.1 key breaks. `unallocated_need_lb`,
+`allocated_*`, `on_hand_lb`, `inbound_open_lb` and the `unstaged` /
+`missing_lot_dates` FIFO logic are unchanged.
+
+**`inventory_ready` = `remaining ≤ ε OR shortage ≤ ε`.** The
+`allocated >= remaining` gate is gone. **Allocation is neither a readiness
+nor a dispatch gate** (owner ruling, S2 fix pass): the `unallocated` and
+`partial_allocation` blockers are now severity `info`. They still appear in
+`blockers` on all three readiness GETs (including
+`GET /sales/orders/fulfillment-check`) so the board can see what is
+unreserved, but they never flip `dispatch_ready`. An order with stock
+available under the waterfall is inventory-ready and dispatch-ready without
+a reservation; only `shortage`, `unstaged`, `missing_lot_dates`,
+`fulfillment_diverged` and (when factory-ready is required)
+`not_floor_ready` block dispatch. Shipment enforcement is unchanged.
+
+**Consequence on the board:** later-priority orders show a larger shortage
+than before for the same stock. Intended.
+
+### Coverage
+
+`coverage` CTE: for each page line, `covered_lb = Σ run_coverage.qty_lb`
+over runs with `status IN ('planned', 'in_progress')`, plus
+`coverage_runs = [{run_id, planned_date, status, qty_lb}]` ordered by
+`planned_date, run_id`. **Runs with status `done` or `cancelled` contribute
+nothing** — once a pack posts, `on_hand` rises and the shortage shrinks by
+itself; a run marked done with nothing posted is a data error the board must
+surface, not paper over. A cancelled run's coverage rows stay in the table
+and are filtered here.
+
+```
+shortage_lb   = max(0, remaining_lb − available_lb)     (availability alone)
+uncovered_lb  = max(0, shortage_lb − covered_lb)
+covered_short = min(shortage_lb, covered_lb)            (health only)
+```
+
+Coverage is **not** availability: a fully covered line still has its
+`shortage_lb`, still carries the `shortage` blocker and is still not
+inventory-ready. It answers "is the shortage scheduled", never "is there
+stock".
+
+### The tiers
+
+Evaluated on **open orders only**; highest tier wins; every applicable reason
+is listed; `today` is `_factory_today()`; `ship_by` is
+`requested_ship_date`.
+
+| Level | Condition | Example reason |
+|---|---|---|
+| `critical` | `uncovered_lb > 0` on any line **and** `ship_by ≤ today + SO_HEALTH_CRITICAL_DAYS` (past due included) | `Short 735 lb on 2 lines — ships in 3 days` |
+| `warning` | `uncovered_lb > 0` with `ship_by ≤ today + SO_HEALTH_WARNING_DAYS` outside the critical window, **or** no ship date | `Short 500 lb — ships in 8 days` · `Short 50 lb` |
+| `warning` | **Late run:** a covering run has `planned_date > ship_by` | `Run for 500 lb planned Sep 20 — after ship date Sep 18` |
+| `warning` | **Run overdue:** a covering run has `status = 'planned'` and `planned_date < today` | `Run for 500 lb planned Sep 12 has not started` |
+| `warning` | Overdue (`ship_by < today`, `fulfillment ≠ shipped`) with **nothing short on paper** (as v2.1) | `12 days overdue — stock on hand` |
+| `warning` | Ready to Ship not set, `ship_by ≤ today + 2`, and **nothing short on paper** (as v2.1) | `Not Ready to Ship — ships tomorrow` |
+| `info` | **Covered shortage:** `covered_short > 0`, stated with the run date(s) | `Short 500 lb — covered by run on Sep 16` · `Short 700 lb on 2 lines — covered by runs on Sep 16 and Sep 18` |
+| `info` | `uncovered_lb > 0` with `ship_by` beyond the warning window | `Short 1,400 lb — ships in 13 days` |
+| `info` | Unallocated pounds, aggregated as step 2d, **without** the enforcement suffix | `60 lb not allocated on Granola SS Chocolate Chip (70003)` |
+| `quiet` | Nothing above applies, or the order is closed or cancelled | — |
+
+Precise rules:
+
+1. **Only uncovered pounds tier.** The uncovered sentence is v2.1's
+   shortage sentence character for character — `on N lines` when N > 1, the
+   `_so_ship_phrase()` tail, identical whether it lands in `reasons` or
+   `info` — with N and the pounds counted over the lines whose
+   `uncovered_lb > ε`. The `critical` gate, the `speaks_up` invariant and the
+   inverted-windows guard are unchanged.
+2. **The covered sentence is `info` and never moves the level.** It is
+   emitted even when an uncovered remainder exists on the same order: a
+   half-covered order reads as two facts (`Short 300 lb — ships in 3 days`
+   critical; `Short 200 lb — covered by run on Sep 16` info). Its pounds are
+   `Σ min(shortage, covered)` — a run that covers more than the line is short
+   does not invent pounds. `run` / `runs` follows the number of distinct
+   runs; the dates are the distinct `planned_date`s ascending, joined
+   `Sep 16` · `Sep 16 and Sep 18` · `Sep 16, Sep 18 and Sep 20`.
+3. **Late run is `warning`, never `critical`**, even inside the critical
+   window — the critical window belongs to "nobody is making it". An order
+   that is also uncovered inside that window is critical from rule 1 and
+   lists the late-run reason as well. A run planned *on* the ship date is not
+   late; with no ship date nothing is late. Aggregated to one reason per
+   order: `Run for 500 lb planned Sep 20 — after ship date Sep 18` /
+   `Runs for 700 lb planned Sep 20 and Sep 22 — after ship date Sep 18`. The
+   pounds are the coverage on **this order's** lines, not the run's plan.
+4. **Run overdue is `warning` on the order** (the owner's S2 rule; the spec
+   §2h draft had said info) and applies to status `planned` only —
+   `in_progress` past its date is normal. `Run for 500 lb planned Sep 12 has
+   not started` / `Runs for … have not started`. A run planned today is not
+   overdue. Measured on the factory date like everything else.
+5. **A run is "covering" only on a line that is short on paper**
+   (`shortage_lb > ε`). Coverage attached to a line whose stock is already
+   there does no work Health can be late about, so it is neither late nor
+   overdue.
+6. **The `not short_lines` guards keep their v2.1 meaning on the shortage
+   on paper**, covered or not: an order short but fully scheduled is still
+   not "stock on hand", and Not Ready to Ship still yields to it.
+7. **Suppressed:** the ` (allocations not enforced)` suffix.
+   `_allocations_enforced()` is no longer read by `compute_so_health()`
+   (pinned by a test that makes the flag raise). The unallocated sentence,
+   its aggregation and `info_detail` (`{line_id, sku, product_name,
+   unallocated_lb}`) are otherwise exactly step 2d.
+8. **A readiness row without coverage keys** (older fixtures) is wholly
+   uncovered — coverage can only shrink what tiers, never grow it.
+9. Unchanged: the clock, both env windows, `SO_HEALTH_READY_DAYS`,
+   `_fmt_number` (STATUS-006, `ROUND_HALF_UP`, separators), `product name
+   (SKU)` labels, closed and cancelled orders silent with `info_detail: []`.
+
+### Dates
+
+`_so_run_date()` renders `Sep 16`, adding the year only when it is not this
+year (`Jan 5, 2027`). It formats the run's `planned_date` and the ship date
+in the late-run reason, so both halves of that sentence are in one voice.
+The ship phrase (`ships in 3 days`) is still `_so_ship_phrase()`.
+
+### Response shape — additive only
+
+`{level, reasons, info, info_detail}` is untouched. Nothing is removed. Added:
+
+| Where | Field | Meaning |
+|---|---|---|
+| list row (`GET /sales/orders`) and detail (`GET /sales/orders/{id}`), per order | `available_lb` | Σ over physical lines of the waterfall availability |
+| same | `covered_lb` | Σ planned/in_progress coverage |
+| same | `uncovered_lb` | Σ `max(0, shortage − covered)` |
+| detail, `lines[].readiness` (and every other reader of `_line_readiness()`: fulfillment-check, allocation responses) | `available_lb` | **meaning changed**: was `on_hand − allocated_product` (informational, could be negative); now the line's availability, ≥ 0 |
+| same | `covered_lb`, `uncovered_lb` | as above, per line |
+| same | `coverage_runs` | `[{run_id, planned_date (ISO), status, qty_lb}]`, planned/in_progress only, ascending by date |
+
+`coverable_lb` remains and equals `available_lb`.
+
+### Dashboard
+
+String removal only, in the same PR so Netlify and Railway move together:
+the regex strip in `so-list.js` `healthContent()` (and its
+`omitAllocationNote` option), the phrase detection and the
+"Allocations not enforced: reservations do not prevent shipping." banner in
+`dashboard.js` `renderOrderDetail()`. Cache-bust: `so-list.js?v=3`,
+`dashboard.js?v=63`. If Netlify lands first the old suffix simply stops
+being stripped for the minutes until Railway follows; if Railway lands first
+the suffix is gone and the old regex matches nothing. Neither order breaks a
+render. The Allocated / Unallocated columns and the per-line "Allocation
+details" popover still read `info_detail` and are unchanged.
+
+### Tests
+
+`tests/test_health_v3.py` (new, 70 tests): covered-shortage strings (one
+line, two lines, one day, three dates, coverage beyond shortage, half
+covered); every window boundary uncovered vs covered; late run (warning,
+never critical, on the ship date, with an uncovered remainder, aggregated,
+coverage pounds, no ship date); run overdue (planned only, today, aggregated,
+also late, factory date); a run on a line that is not short; the v2.1-shaped
+row; the two suppression guards kept on the paper shortage; closed/cancelled
+silent; `ROUND_HALF_UP`, separators, years, `_so_join`, the STATUS-006 audit;
+no enforcement suffix with the flag on and off, the flag never read, the
+consumer grep; the read-only SQL check. End to end: the competing-orders
+fixture (closed order's foreign reservation, dated A/B, undated C, cancelled
+line, then an explicit allocation on A — Σ available stays 90), ties on
+date, an order off the page still competing, a reservation beyond on-hand,
+inventory-ready without an allocation, planned and in_progress runs
+covering, done and cancelled runs not covering, a done run beside a live
+one, late run, run overdue, coverage not changing availability, and the
+additive shape on list and detail.
+
+Existing tests changed only where the rule changed:
+
+| Test | Change | Why |
+|---|---|---|
+| `test_two_unallocated_coverable_orders_are_both_blocked_on_all_gets` → `…share_one_pool_first_by_priority_on_all_gets` | first order inventory-ready with the whole pool, second short by 100 | rule 1: waterfall + allocation gate removed |
+| `test_readiness_cte_explains_for_a_page_of_orders` | second query parameter; asserts `run_coverage`/`production_runs` in the plan | the SQL takes `BALANCE_EPSILON` |
+| `test_not_enforced_note_is_appended_once_across_many_lines` → `test_not_enforced_carries_no_note_either` | no suffix | rule 7 |
+| `test_the_note_is_the_only_difference_between_enforced_and_not` → `test_the_enforcement_flag_makes_no_difference_to_health` | on == off | rule 7 |
+| `test_health_info_names_the_product_end_to_end` | no suffix | rule 7 |
+| `test_health_function_is_labelled_v2_1…` → `…v3…` | docstring label | version |
+| `tests/visual/fixtures/sales-order-detail.json`, `run-so-detail-interactions.mjs` | suffix removed from the fixture; the interaction check asserts its absence | rule 7 |

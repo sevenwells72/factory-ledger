@@ -11856,7 +11856,10 @@ _READINESS_BLOCKER_ORDER = {
 # Shared by all three readiness GETs. requested_orders is the complete page/set,
 # so shipped/on-hand/allocation inputs are aggregated once rather than queried
 # per order or line. Expired auto allocations are ignored by formula only: this
-# SELECT deliberately contains no UPDATE.
+# SELECT deliberately contains no UPDATE and takes no row lock — Health and
+# readiness are read-only (scheduling S2 added the competing-orders waterfall
+# and the run-coverage CTE below; both are plain SELECTs).
+# Parameters, in order: (requested order ids, BALANCE_EPSILON).
 SALES_ORDER_READINESS_SQL = """
     WITH requested_orders AS (
         SELECT unnest(%s::integer[]) AS sales_order_id
@@ -11901,14 +11904,19 @@ SALES_ORDER_READINESS_SQL = """
         GROUP BY product_id
     ),
     shipped_eff AS (
+        -- Effective shipped pounds for EVERY line of a relevant product, not
+        -- only the requested page: the competing-orders waterfall below needs
+        -- the remaining pounds of open orders that are not on this page.
+        -- Service lines are excluded because their products never enter
+        -- relevant_products.
         SELECT sos.sales_order_line_id AS line_id,
                SUM(ABS(posted.quantity_lb)) AS shipped_effective_lb
-        FROM line_base lb
-        JOIN sales_order_shipments sos ON sos.sales_order_line_id = lb.line_id
+        FROM sales_order_lines sol
+        JOIN relevant_products rp ON rp.product_id = sol.product_id
+        JOIN sales_order_shipments sos ON sos.sales_order_line_id = sol.id
         JOIN posted ON posted.transaction_id = sos.transaction_id
-                   AND posted.product_id = lb.product_id
+                   AND posted.product_id = sol.product_id
                    AND posted.transaction_type = 'ship'
-        WHERE NOT lb.is_service
         GROUP BY sos.sales_order_line_id
     ),
     live_alloc AS (
@@ -11971,6 +11979,100 @@ SALES_ORDER_READINESS_SQL = """
         LEFT JOIN alloc_by_lot abl
                ON abl.product_id = lb.product_id AND abl.lot_id = lb.lot_id
         GROUP BY lb.product_id
+    ),
+    competing AS (
+        -- S2 competing-orders rule (scheduling spec §4c): every non-cancelled,
+        -- non-service line on an OPEN order that still owes pounds of a
+        -- relevant product — whether or not its order is on this page.
+        -- Remaining is EFFECTIVE (ledger-posted shipments), as everywhere.
+        SELECT sol.id AS line_id, sol.sales_order_id, sol.product_id,
+               so.requested_ship_date,
+               GREATEST(0, sol.quantity_lb - COALESCE(se.shipped_effective_lb, 0))
+                   AS remaining_lb,
+               COALESCE(abl.allocated_lb, 0) AS allocated_lb
+        FROM relevant_products rp
+        JOIN sales_order_lines sol ON sol.product_id = rp.product_id
+        JOIN sales_orders so ON so.id = sol.sales_order_id
+        LEFT JOIN shipped_eff se ON se.line_id = sol.id
+        LEFT JOIN alloc_by_line abl
+               ON abl.line_id = sol.id AND abl.product_id = sol.product_id
+        WHERE so.state = 'open'
+          AND sol.line_status <> 'cancelled'
+          AND sol.quantity_lb - COALESCE(se.shipped_effective_lb, 0) > %s
+    ),
+    waterfall AS (
+        -- Priority: requested_ship_date ASC NULLS LAST, then order id, then
+        -- line id — the list's own sort. Overdue orders go first by
+        -- arithmetic; undated orders go last; ties break on creation order.
+        SELECT c.*,
+               COALESCE(oh.on_hand_lb, 0) AS on_hand_lb,
+               COALESCE(abp.allocated_product_lb, 0) AS allocated_product_lb,
+               SUM(c.allocated_lb) OVER (PARTITION BY c.product_id)
+                   AS competing_alloc_lb,
+               COALESCE(SUM(c.allocated_lb) OVER (
+                   by_priority ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+               ), 0) AS prior_alloc_lb,
+               ROW_NUMBER() OVER by_priority AS priority_rank
+        FROM competing c
+        LEFT JOIN on_hand_sku oh ON oh.product_id = c.product_id
+        LEFT JOIN alloc_by_product abp ON abp.product_id = c.product_id
+        WINDOW by_priority AS (
+            PARTITION BY c.product_id
+            ORDER BY c.requested_ship_date ASC NULLS LAST,
+                     c.sales_order_id ASC, c.line_id ASC)
+    ),
+    waterfall_alloc AS (
+        -- Explicit allocations win first — but only as far as stock physically
+        -- exists once reservations held OUTSIDE the competing set (closed
+        -- orders, fulfilled lines) and higher-priority reservations are taken
+        -- off. Normally alloc_avail_lb = allocated_lb; it is less only when the
+        -- product is reserved beyond its on-hand. pool_lb is what is left for
+        -- everyone after ALL active reservations, the same subtraction v2.1's
+        -- coverable made (another order's reservation reduces this order's pool).
+        SELECT w.*,
+               LEAST(w.allocated_lb, GREATEST(0,
+                   w.on_hand_lb
+                   - (w.allocated_product_lb - w.competing_alloc_lb)
+                   - w.prior_alloc_lb)) AS alloc_avail_lb,
+               GREATEST(0, w.on_hand_lb - w.allocated_product_lb) AS pool_lb
+        FROM waterfall w
+    ),
+    waterfall_need AS (
+        SELECT wa.*,
+               GREATEST(0, wa.remaining_lb - wa.alloc_avail_lb) AS need_lb
+        FROM waterfall_alloc wa
+    ),
+    availability AS (
+        -- The unallocated pool is handed out in priority order; each line takes
+        -- min(its need, what is left). The same pound is never given twice.
+        SELECT wn.line_id, wn.priority_rank, wn.alloc_avail_lb,
+               LEAST(wn.need_lb, GREATEST(0, wn.pool_lb - COALESCE(SUM(wn.need_lb) OVER (
+                   by_priority ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+               ), 0))) AS share_lb
+        FROM waterfall_need wn
+        WINDOW by_priority AS (
+            PARTITION BY wn.product_id
+            ORDER BY wn.requested_ship_date ASC NULLS LAST,
+                     wn.sales_order_id ASC, wn.line_id ASC)
+    ),
+    coverage AS (
+        -- S2: planned production against this page's lines. Only planned and
+        -- in_progress runs count. done and cancelled contribute NOTHING: a
+        -- completed run never masks a shortage — once the pack posts, on_hand
+        -- rises and the shortage shrinks by itself; the ledger governs.
+        SELECT rc.sales_order_line_id AS line_id,
+               SUM(rc.qty_lb) AS covered_lb,
+               jsonb_agg(jsonb_build_object(
+                   'run_id', r.id,
+                   'planned_date', r.planned_date,
+                   'status', r.status,
+                   'qty_lb', rc.qty_lb
+               ) ORDER BY r.planned_date, r.id) AS coverage_runs
+        FROM line_base lb
+        JOIN run_coverage rc ON rc.sales_order_line_id = lb.line_id
+        JOIN production_runs r ON r.id = rc.run_id
+        WHERE r.status IN ('planned', 'in_progress')
+        GROUP BY rc.sales_order_line_id
     )
     SELECT lb.*,
            COALESCE(se.shipped_effective_lb, 0) AS shipped_effective_lb,
@@ -11982,7 +12084,12 @@ SALES_ORDER_READINESS_SQL = """
            COALESCE(abp.allocated_product_sku_lb, 0) AS allocated_product_sku_lb,
            COALESCE(i.inbound_open_lb, 0) AS inbound_open_lb,
            COALESCE(lp.lots, '[]'::jsonb) AS lots,
-           COALESCE(llp.line_lot_allocations, '[]'::jsonb) AS line_lot_allocations
+           COALESCE(llp.line_lot_allocations, '[]'::jsonb) AS line_lot_allocations,
+           av.alloc_avail_lb,
+           av.share_lb,
+           av.priority_rank,
+           COALESCE(cov.covered_lb, 0) AS covered_lb,
+           COALESCE(cov.coverage_runs, '[]'::jsonb) AS coverage_runs
     FROM line_base lb
     LEFT JOIN shipped_eff se ON se.line_id = lb.line_id
     LEFT JOIN on_hand_sku oh ON oh.product_id = lb.product_id
@@ -11992,6 +12099,8 @@ SALES_ORDER_READINESS_SQL = """
     LEFT JOIN inbound i ON i.product_id = lb.product_id
     LEFT JOIN lot_payload lp ON lp.product_id = lb.product_id
     LEFT JOIN line_lot_payload llp ON llp.line_id = lb.line_id
+    LEFT JOIN availability av ON av.line_id = lb.line_id
+    LEFT JOIN coverage cov ON cov.line_id = lb.line_id
     ORDER BY lb.sales_order_id, lb.line_id
 """
 
@@ -12017,7 +12126,15 @@ def _lot_is_incomplete(lot: dict) -> bool:
 
 
 def _line_readiness(row: dict) -> dict:
-    """Apply the PR-2 readiness formula to one physical line input row."""
+    """Apply the readiness formula to one physical line input row.
+
+    S2 (Health v3) availability: an open line's available pounds are its own
+    explicit active allocations (honoured first) plus its share of the SKU's
+    unallocated on-hand under the competing-orders waterfall computed in
+    SALES_ORDER_READINESS_SQL (`alloc_avail_lb`, `share_lb`). The same pound
+    is never attributed to two lines. Coverage (`covered_lb`) is planned
+    production against the line from runs in status planned/in_progress only.
+    """
     ordered = float(row["ordered_lb"] or 0)
     shipped_recorded = float(row["shipped_recorded_lb"] or 0)
     shipped_effective = float(row["shipped_effective_lb"] or 0)
@@ -12028,10 +12145,33 @@ def _line_readiness(row: dict) -> dict:
     allocated_lot = float(row["allocated_lot_lb"] or 0)
     allocated_product = float(row["allocated_product_lb"] or 0)
     allocated_others = max(0.0, allocated_product - allocated)
-    available = on_hand - allocated_product
-    coverable = max(0.0, on_hand - allocated_others)
-    shortage = max(0.0, remaining - coverable)
+    if row.get("alloc_avail_lb") is None:
+        # Not a competing line: its order is not open, or nothing remains.
+        # Only its own reservation counts, capped at what is physically there
+        # once every other reservation is taken off — v2.1's `coverable`
+        # bound. Such a line gets no share of the unallocated pool.
+        alloc_avail = min(allocated, max(0.0, on_hand - allocated_others))
+        share = 0.0
+    else:
+        alloc_avail = float(row["alloc_avail_lb"] or 0)
+        share = float(row.get("share_lb") or 0)
+    available = alloc_avail + share
+    # `coverable_lb` is kept as an alias of the S2 availability so nothing
+    # that read the v2.1 key breaks; the two are one number now.
+    coverable = available
+    shortage = max(0.0, remaining - available)
     unallocated_need = max(0.0, remaining - allocated)
+    covered = float(row.get("covered_lb") or 0)
+    uncovered = max(0.0, shortage - covered)
+    coverage_runs = [
+        {
+            "run_id": int(run["run_id"]),
+            "planned_date": run.get("planned_date"),
+            "status": run.get("status"),
+            "qty_lb": float(run.get("qty_lb") or 0),
+        }
+        for run in (row.get("coverage_runs") or [])
+    ]
     inbound_open = float(row["inbound_open_lb"] or 0)
     diverged = abs(shipped_recorded - shipped_effective) > BALANCE_EPSILON
 
@@ -12078,10 +12218,13 @@ def _line_readiness(row: dict) -> dict:
     if shortage > BALANCE_EPSILON:
         blockers.append(_blocker("shortage", "block", f"Short {shortage:.4f} lb of posted cover"))
     if remaining > BALANCE_EPSILON and allocated <= BALANCE_EPSILON:
-        blockers.append(_blocker("unallocated", "block", f"{remaining:.4f} lb remains with no allocation"))
+        # Allocation is a reservation, not a readiness or dispatch gate
+        # (owner ruling, S2 fix pass): informational only, never flips
+        # dispatch_ready.
+        blockers.append(_blocker("unallocated", "info", f"{remaining:.4f} lb remains with no allocation"))
     elif (allocated > BALANCE_EPSILON
           and allocated < remaining - BALANCE_EPSILON):
-        blockers.append(_blocker("partial_allocation", "block", f"{unallocated_need:.4f} lb remains unallocated"))
+        blockers.append(_blocker("partial_allocation", "info", f"{unallocated_need:.4f} lb remains unallocated"))
     if unstaged_lots:
         blockers.append(_blocker("unstaged", "block", "Incomplete FIFO stock must be lot-pinned: " + ", ".join(unstaged_lots)))
     if incomplete_pins:
@@ -12091,10 +12234,10 @@ def _line_readiness(row: dict) -> dict:
     if remaining > BALANCE_EPSILON and inbound_open > BALANCE_EPSILON:
         blockers.append(_blocker("inbound_cover", "warn", f"{inbound_open:.4f} lb is expected inbound and is not on-hand"))
 
-    inventory_ready = (
-        remaining <= BALANCE_EPSILON
-        or (allocated + BALANCE_EPSILON >= remaining and shortage <= BALANCE_EPSILON)
-    )
+    # S2: inventory readiness is derived from availability only. The v2.1
+    # `allocated >= remaining` gate is gone — allocations are optional
+    # reservations (owner decision 3), not a precondition for having stock.
+    inventory_ready = remaining <= BALANCE_EPSILON or shortage <= BALANCE_EPSILON
     return {
         "ordered_lb": ordered,
         "shipped_recorded_lb": shipped_recorded,
@@ -12107,6 +12250,9 @@ def _line_readiness(row: dict) -> dict:
         "available_lb": available,
         "coverable_lb": coverable,
         "shortage_lb": shortage,
+        "covered_lb": covered,
+        "uncovered_lb": uncovered,
+        "coverage_runs": coverage_runs,
         "unallocated_need_lb": unallocated_need,
         "inbound_open_lb": inbound_open,
         "inventory_ready": inventory_ready,
@@ -12120,7 +12266,7 @@ def _load_sales_order_readiness(cur, order_rows: list) -> tuple[dict, dict]:
     if not order_rows:
         return {}, {}
     order_ids = [int(row["id"]) for row in order_rows]
-    cur.execute(SALES_ORDER_READINESS_SQL, (order_ids,))
+    cur.execute(SALES_ORDER_READINESS_SQL, (order_ids, BALANCE_EPSILON))
     inputs = cur.fetchall()
 
     order_meta = {int(row["id"]): row for row in order_rows}
@@ -12155,6 +12301,9 @@ def _load_sales_order_readiness(cur, order_rows: list) -> tuple[dict, dict]:
         remaining = sum(line["remaining_lb"] for line in physical)
         allocated = sum(line["allocated_lb"] for line in physical)
         shortage = sum(line["shortage_lb"] for line in physical)
+        available = sum(line["available_lb"] for line in physical)
+        covered = sum(line["covered_lb"] for line in physical)
+        uncovered = sum(line["uncovered_lb"] for line in physical)
         inventory_ready = all(line["inventory_ready"] for line in physical)
 
         blockers_by_code = {}
@@ -12192,6 +12341,9 @@ def _load_sales_order_readiness(cur, order_rows: list) -> tuple[dict, dict]:
             "remaining_effective_lb": remaining,
             "allocated_lb": allocated,
             "shortage_lb": shortage,
+            "available_lb": available,
+            "covered_lb": covered,
+            "uncovered_lb": uncovered,
             "inventory_ready": inventory_ready,
             "dispatch_ready": dispatch_ready,
             "floor_ready": floor_ready,
@@ -12274,7 +12426,7 @@ def derive_fulfillment(readiness: dict) -> str:
     return "shipped"
 
 
-# ── Sales-order health v2.1 (time-aware, factory-local) ─────────────────────
+# ── Sales-order health v3 (availability + coverage, factory-local) ──────────
 
 # The calendar the floor actually works on. Every "is this overdue" and "how
 # many days out is this" question below is answered on this clock, never the
@@ -12409,6 +12561,39 @@ def _so_ship_phrase(requested_ship_date, today) -> Optional[str]:
     return f"ships in {_fmt_number(days)} days"
 
 
+def _so_run_date(value, today) -> str:
+    """'Sep 16' — a run or ship date in the floor's words.
+
+    The year is added only when it is not this year (`Jan 5, 2027`), so a
+    date never reads as ambiguous and never carries digits it does not need.
+    Accepts the ISO string the readiness query's jsonb carries or a date.
+    """
+    if isinstance(value, str):
+        value = date.fromisoformat(value)
+    if value.year != today.year:
+        return f"{value:%b} {value.day}, {value.year}"
+    return f"{value:%b} {value.day}"
+
+
+def _so_join(items: list) -> str:
+    """'Sep 16' · 'Sep 16 and Sep 18' · 'Sep 16, Sep 18 and Sep 20'."""
+    if len(items) <= 1:
+        return "".join(items)
+    return ", ".join(items[:-1]) + f" and {items[-1]}"
+
+
+def _so_runs_phrase(runs: list, today) -> tuple:
+    """(pounds, 'Run'|'Runs', 'Sep 16 and Sep 18') for a set of coverage rows
+    — the head of the late-run and run-overdue reasons."""
+    pounds = sum(float(run.get("qty_lb") or 0) for run in runs)
+    run_ids = {run.get("run_id") for run in runs}
+    dates = sorted({date.fromisoformat(run["planned_date"])
+                    if isinstance(run["planned_date"], str)
+                    else run["planned_date"] for run in runs})
+    noun = "Runs" if len(run_ids) > 1 else "Run"
+    return pounds, noun, _so_join([_so_run_date(d, today) for d in dates])
+
+
 def compute_so_health(
     *,
     state: str,
@@ -12418,7 +12603,7 @@ def compute_so_health(
     line_readiness: list,
     today=None,
 ) -> dict:
-    """v2.1 — time-aware. Shape is the contract.
+    """v3 — availability and coverage. Shape is the contract.
 
     Callers may depend on {level, reasons, info, info_detail}; they may NOT
     depend on which facts land in which tier. Returns:
@@ -12426,39 +12611,43 @@ def compute_so_health(
       level        'critical' | 'warning' | 'quiet'
       reasons      strings that justify the level
       info         strings that never affect the level
-      info_detail  the rows behind an aggregated info string, for a popover to
-                   expand: {line_id, sku, product_name, unallocated_lb} each.
-                   Always present, `[]` when there is nothing to expand.
+      info_detail  the rows behind the aggregated unallocated string, for a
+                   popover to expand: {line_id, sku, product_name,
+                   unallocated_lb} each. Always present, `[]` when empty.
 
     Every number in `reasons` and `info` goes through _fmt_number() — one
-    formatter, STATUS-006 — and every SKU through _so_line_label().
+    formatter, STATUS-006 — every SKU through _so_line_label(), every date
+    through _so_run_date().
 
-    What v2 changed from v1: a shortage is no longer critical on its own. The
-    same shortage means something different at three days out than at three
-    months, and v1 painted both red — so the red meant nothing and the board was
-    read as a list rather than a queue. The date is now half of every reason.
+    What v3 changes (scheduling S2): a line's shortage is now measured
+    against its AVAILABILITY — its own explicit allocations plus its share of
+    the SKU's unallocated stock under the competing-orders waterfall (see
+    SALES_ORDER_READINESS_SQL) — so two orders can no longer both read as
+    covered by the same pounds; and a shortage is split into what planned
+    production covers (`covered_lb`, runs in status planned/in_progress
+    only) and what nothing covers (`uncovered_lb`). Only the UNCOVERED part
+    tiers. A done or cancelled run covers nothing: the ledger governs.
 
-    What v2.1 changes: `today` is the FACTORY's date, not the server's (see
-    _factory_today() — v2 called a Sep 10 order one day overdue from 20:00
-    Eastern onward), a shortage past the warning window is info rather than
-    warning, and the Ready-to-Ship reason yields to a shortage.
+    Kept from v2.1: `today` is the FACTORY's date (_factory_today()); both
+    env windows; the 2-day Ready-to-Ship window; the aggregation, wording and
+    suppression rules; closed and cancelled orders silent.
 
     Evaluated on OPEN orders only. Tiers:
 
-      critical  a stock shortage on a non-cancelled line AND the ship date is
-                inside the SO_HEALTH_CRITICAL_DAYS window (default 5) or
-                already past
-      warning   a stock shortage inside SO_HEALTH_WARNING_DAYS (default 10) but
-                outside the critical window, or with no ship date at all; OR
-                overdue and not fully shipped with the stock actually on hand;
-                OR Ready to Ship unset with the ship date two days out or less
-                and nothing short
-      info      a shortage further out than the warning window — on a
-                make-to-order book that is work not started yet, not a problem;
-                plus unallocated pounds, aggregated to one entry per order with
-                the per-line rows in `info_detail`. Never escalates.
-      quiet     nothing applies; or the order is closed or cancelled, which is
-                off the board and stops asking for attention entirely
+      critical  uncovered shortage on a non-cancelled line AND the ship date
+                is inside SO_HEALTH_CRITICAL_DAYS (default 5) or already past
+      warning   uncovered shortage inside SO_HEALTH_WARNING_DAYS (default 10)
+                but outside the critical window, or with no ship date; OR a
+                covering run planned AFTER the ship date ("late run"); OR a
+                covering run still `planned` past its planned date ("run
+                overdue"); OR overdue and not fully shipped with the stock
+                actually available; OR Ready to Ship unset with the ship date
+                two days out or less and nothing short
+      info      a shortage fully covered by planned runs, stated with the run
+                date(s); an uncovered shortage further out than the warning
+                window; unallocated pounds, aggregated to one entry per order
+                with the per-line rows in `info_detail`. Never escalates.
+      quiet     nothing applies; or the order is closed or cancelled
 
     Highest tier wins, and every applicable reason is listed — the tier says
     how loudly to speak, the reasons say what to do.
@@ -12475,19 +12664,42 @@ def compute_so_health(
                 else (requested_ship_date - today).days)
     phrase = _so_ship_phrase(requested_ship_date, today)
 
-    # ── shortage: critical, warning or info depending only on the date ─────
-    #
-    # Aggregated to one reason, not one per line: the operator's question is
-    # "how short am I and when is it due", and ten per-line reasons bury both.
+    def _lb(line: dict, key: str) -> float:
+        return float(line["readiness"].get(key) or 0)
+
+    # `short_lines` is the shortage ON PAPER (availability alone), covered or
+    # not. It guards the overdue-with-stock and Not-Ready reasons below: an
+    # order short on paper but fully scheduled is still not "stock on hand".
     # Cancelled and service lines are already excluded upstream.
     short_lines = [
         line for line in line_readiness
-        if float(line["readiness"].get("shortage_lb") or 0) > BALANCE_EPSILON
+        if _lb(line, "shortage_lb") > BALANCE_EPSILON
     ]
+    # A readiness row without coverage fields (older fixtures) is wholly
+    # uncovered: coverage can only ever shrink what tiers, never grow it.
+    uncovered_lines = []
+    covered_lines = []
+    for line in short_lines:
+        shortage = _lb(line, "shortage_lb")
+        covered = min(shortage, _lb(line, "covered_lb"))
+        if "uncovered_lb" in line["readiness"]:
+            uncovered = _lb(line, "uncovered_lb")
+        else:
+            uncovered = max(0.0, shortage - covered)
+        if uncovered > BALANCE_EPSILON:
+            uncovered_lines.append((line, uncovered))
+        if covered > BALANCE_EPSILON:
+            covered_lines.append((line, covered))
+
+    # ── uncovered shortage: critical, warning or info depending on the date ─
+    #
+    # Aggregated to one reason, not one per line: the operator's question is
+    # "how short am I and when is it due", and ten per-line reasons bury both.
+    # The wording is v2.1's exactly; only the pounds changed meaning — they
+    # are the pounds nobody is making.
     critical = False
-    if short_lines:
-        total_short = sum(float(line["readiness"]["shortage_lb"])
-                          for line in short_lines)
+    if uncovered_lines:
+        total_uncovered = sum(pounds for _, pounds in uncovered_lines)
         # `<= today + N` already subsumes `< today`; both halves of each rule
         # are spelled out in the docstring, one comparison implements them.
         # No ship date means no deadline to be inside of — that is a warning,
@@ -12501,14 +12713,53 @@ def compute_so_health(
         critical = (speaks_up
                     and days_out is not None
                     and days_out <= _so_health_critical_days())
-        where = (f" on {_fmt_number(len(short_lines))} lines"
-                 if len(short_lines) > 1 else "")
+        where = (f" on {_fmt_number(len(uncovered_lines))} lines"
+                 if len(uncovered_lines) > 1 else "")
         tail = f" — {phrase}" if phrase else ""
-        text = f"Short {_fmt_number(total_short)} lb{where}{tail}"
+        text = f"Short {_fmt_number(total_uncovered)} lb{where}{tail}"
         # Past the warning window the shortage is stated and nothing more. An
         # unproduced order with a month of runway is the normal state of a
         # make-to-order book; tiering it taught the board to be ignored.
         (reasons if speaks_up else info).append(text)
+
+    # ── covering runs that are late, or have not started ───────────────────
+    #
+    # Only runs on lines that are actually short are "covering"; a run
+    # attached to a line whose stock is already there is not doing any work
+    # Health can be late about. done/cancelled runs never reach here: the
+    # readiness query drops them from `coverage_runs`.
+    late_runs: list = []
+    overdue_runs: list = []
+    for line in short_lines:
+        for run in line["readiness"].get("coverage_runs") or []:
+            if not run.get("planned_date"):
+                continue
+            planned = (date.fromisoformat(run["planned_date"])
+                       if isinstance(run["planned_date"], str)
+                       else run["planned_date"])
+            if requested_ship_date is not None and planned > requested_ship_date:
+                late_runs.append(run)
+            if run.get("status") == "planned" and planned < today:
+                overdue_runs.append(run)
+    # Late run is a warning, never critical, even inside the critical window:
+    # the critical window belongs to "nobody is making it". An order that is
+    # also uncovered inside that window is critical from the rule above and
+    # lists this reason as well.
+    if late_runs:
+        pounds, noun, dates = _so_runs_phrase(late_runs, today)
+        reasons.append(
+            f"{noun} for {_fmt_number(pounds)} lb planned {dates}"
+            f" — after ship date {_so_run_date(requested_ship_date, today)}"
+        )
+    # Run overdue applies to status `planned` only; an in_progress run past
+    # its date is normal — it is being made.
+    if overdue_runs:
+        pounds, noun, dates = _so_runs_phrase(overdue_runs, today)
+        verb = "have" if noun == "Runs" else "has"
+        reasons.append(
+            f"{noun} for {_fmt_number(pounds)} lb planned {dates}"
+            f" {verb} not started"
+        )
 
     # ── overdue with nothing missing ───────────────────────────────────────
     #
@@ -12540,13 +12791,32 @@ def compute_so_health(
 
     # ── info — never escalates ─────────────────────────────────────────────
     #
+    # Covered shortage: the pounds planned production will make, with the run
+    # date(s), so the board can tell "short but scheduled" from "short and
+    # nobody is making it". Emitted even when an uncovered remainder exists on
+    # the same order — a half-covered order reads as two facts.
+    if covered_lines:
+        total_covered = sum(pounds for _, pounds in covered_lines)
+        covering = [
+            run for line, _ in covered_lines
+            for run in (line["readiness"].get("coverage_runs") or [])
+            if run.get("planned_date")
+        ]
+        where = (f" on {_fmt_number(len(covered_lines))} lines"
+                 if len(covered_lines) > 1 else "")
+        _, noun, dates = _so_runs_phrase(covering, today)
+        info.append(
+            f"Short {_fmt_number(total_covered)} lb{where}"
+            f" — covered by {noun.lower()} on {dates}"
+        )
+
     # unallocated_need_lb, not "allocated is zero": a line with 100 lb
     # remaining and 40 lb allocated has 60 lb unallocated, and reporting
     # nothing for it hid exactly the partially-covered lines most worth
     # seeing. The readiness query already computes this as
-    # max(0, remaining - allocated). Reported whether or not allocations are
-    # enforced — the pounds are unallocated either way; the flag only changes
-    # whether that blocks a shipment, which the note records.
+    # max(0, remaining - allocated). Reported regardless of the allocation
+    # enforcement flag, and — since S2 — with no enforcement caveat: allocations
+    # are optional reservations and no longer drive any alarm.
     #
     # Aggregated to ONE entry per order, for the same reason the shortage
     # reason is: a twelve-line order emitted twelve near-identical sentences,
@@ -12554,12 +12824,10 @@ def compute_so_health(
     # nowhere in the list. The per-line facts are not lost, they move to
     # `info_detail` for the popover to expand. With a single line there is no
     # "across N lines" to say, so the line names itself instead.
-    enforced = _allocations_enforced()
     unallocated_lines = [
-        (line, float(line["readiness"].get("unallocated_need_lb") or 0))
+        (line, _lb(line, "unallocated_need_lb"))
         for line in line_readiness
-        if float(line["readiness"].get("unallocated_need_lb") or 0)
-        > BALANCE_EPSILON
+        if _lb(line, "unallocated_need_lb") > BALANCE_EPSILON
     ]
     info_detail: list = [
         {
@@ -12576,11 +12844,8 @@ def compute_so_health(
             where = f" across {_fmt_number(len(unallocated_lines))} lines"
         else:
             where = f" on {_so_line_label(unallocated_lines[0][0])}"
-        # Once per order, not once per line: STATUS-011 — a caveat repeated
-        # down a screen stops being read, including the time it mattered.
-        note = "" if enforced else " (allocations not enforced)"
         info.append(
-            f"{_fmt_number(total_unallocated)} lb not allocated{where}{note}"
+            f"{_fmt_number(total_unallocated)} lb not allocated{where}"
         )
 
     level = "critical" if critical else ("warning" if reasons else "quiet")
@@ -12765,6 +13030,10 @@ def list_sales_orders(
                     "allocated_lb": readiness["allocated_lb"],
                     "remaining_effective_lb": readiness["remaining_effective_lb"],
                     "blockers": readiness["blockers"],
+                    # S2 additive: availability and planned-run coverage
+                    "available_lb": readiness["available_lb"],
+                    "covered_lb": readiness["covered_lb"],
+                    "uncovered_lb": readiness["uncovered_lb"],
                 })
                 if order_warnings:
                     order["warnings"] = order_warnings
