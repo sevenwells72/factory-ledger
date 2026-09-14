@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-14 — Runs navigation and audit status (NOT DEPLOYED)
+
+- **Files changed:** `dashboard/index.html`, `dashboard/runs.html`, `docs/design/audit/pr-screenshots/feat-runs-screen/delivery-status.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`.
+- **What changed:** Added `/runs.html` to the dashboard top navigation using the existing link markup and styles. Added the same navigation to Runs with Runs active, a Dashboard return link, and the existing mobile menu toggle. Reserved space for the fixed navigation on Runs. The top navigation is inline HTML; no shared script changed, and neither HTML page has its own cache-bust version.
+- **Audit correction:** Delivery status and changelog row 144 now report 0 STATUS-011 failures, as recorded by review pass 3. This supersedes the stale pass-2 count in the original entry below. Added row 146, NOT DEPLOYED.
+- **Validation:** `node --test tests/test_*.js`: 64 passed, 0 failed. Focused Playwright checks at 1440/390 verified both navigation lists, active Runs link, mobile toggles, and Dashboard/Runs destinations with application scripts stubbed.
+
+---
+
 ## 2026-09-14 13:49 — Merge origin/main (#53) into feat/scheduling-s2; S2 changelog row renumbered 144 → 145
 
 - **Files changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md` (conflict resolution only; `.gitignore` auto-merged with both rule sets).

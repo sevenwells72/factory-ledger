@@ -1,4 +1,4 @@
-# Delivery stopped after review pass 2
+# Delivery status after review pass 3
 
 Base main: 7c183e0093eb253b64ce3bbb92e8c4eab9e99541. Spec-first commit: fcaa286.
 
@@ -7,10 +7,9 @@ The original checkout stalled reading tracked files during checkout. This isolat
 ## Validation
 
 - Pass 1: eight STATUS rules showed zero failures in the captured views, but interaction execution stopped on the disabled-cases assertion; its Playwright option assertion was replaced with the actual DOM disabled-property check. Run rows were also given explicit row/cell/table semantics so shared row-height checks measure them.
-- Pass 2: all interaction scenarios pass at 1440/390 in light/dark. STATUS-002/004/005/006/007/008/010 each have zero failures. STATUS-011 has four failures, one per variant: the retained-coverage sentence “Existing link; remaining quantity unavailable.” repeats twice in the narrowed coverage editor.
+- Pass 3: all interaction scenarios pass at 1440/390 in light/dark. STATUS-002/004/005/006/007/008/010/011 each have 0 failures. Pass 3 cleared the four repeated-caveat failures from pass 2; see [review-pass3.md](review-pass3.md) (68 captures).
 - Existing JavaScript tests: 64 passed, zero failed.
-- No third pass, no further implementation fix, no push or PR. The explicit two-pass stop condition applies. No Netlify preview or Blubber approval is claimed.
-- Likely next correction, not performed: move the retained-link availability caveat once above the list, leaving per-line details in their quantity explanations.
+- No Netlify preview or Blubber approval is claimed.
 
 ## Boundary
 
