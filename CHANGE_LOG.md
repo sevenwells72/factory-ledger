@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-14 13:32 — Scheduling S2: Health v3 — availability waterfall, run coverage, allocation gate removed (branch `feat/scheduling-s2`, NOT DEPLOYED)
+
+- **Files changed:** `main.py`, `dashboard/so-list.js`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_health_v3.py` (new), `tests/test_sales_order_readiness.py`, `tests/test_sales_order_state_model.py`, `tests/visual/fixtures/sales-order-detail.json`, `tests/visual/run-so-detail-interactions.mjs`, `tests/schema/schema.sql`, `docs/design/so-state-model-findings.md`, `docs/design/scheduling-spec-draft.md`, `docs/design/FL-Design-Standards-MASTER.md`, `FACTORY_LEDGER_CHANGELOG.md`.
+- **What changed:** `SALES_ORDER_READINESS_SQL` now computes availability under the spec §4c competing-orders waterfall (open orders only, cancelled lines excluded, effective remaining, `requested_ship_date ASC NULLS LAST` → order id → line id, explicit allocations first, foreign reservations off the pool, no pound attributed twice, orders off the page included) and planned-run coverage (`run_coverage` over runs in `planned`/`in_progress` only; `done` and `cancelled` cover nothing). `_line_readiness()`: `available_lb` (new meaning), `coverable_lb` alias, `covered_lb`, `uncovered_lb`, `coverage_runs`; `inventory_ready` no longer requires `allocated >= remaining`. List and detail rows gain `available_lb`/`covered_lb`/`uncovered_lb`. `compute_so_health()` v3: only uncovered pounds tier; covered shortage is info with the run date(s); late run and run overdue are warnings; the `(allocations not enforced)` suffix is gone. Dashboard: string removal only, cache-bust bumped. Schema dump refreshed after 053. Docs: Health v3 section (findings), STATUS-012 Factory Ledger line (standards 1.3), spec Part 4 marks S2 done / S3 next; changelog row 144.
+- **Validation:** `./scripts/run_tests.sh`: 1076 passed, 0 failed (1006 + 70 new in `tests/test_health_v3.py`). `openapi-gpt-v3.yaml` untouched (30 ops). Health takes no lock; no existing lock path changed.
+- **Why:** Two open orders for one SKU both read as covered by the same pounds, and a shortage the floor had already scheduled looked exactly like one nobody was making. Owner decision 3 keeps Inventory, Ready to Ship and Scheduling separate; S2 implements the first and third.
+
+---
+
 ## 2026-09-14 12:50 — Scheduling S1: Codex cross-review fix pass, coverage precision (PR #52, NOT DEPLOYED)
 
 - **Files changed:** `main.py`, `tests/test_production_runs.py`, `FACTORY_LEDGER_CHANGELOG.md`.

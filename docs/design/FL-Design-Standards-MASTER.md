@@ -1,6 +1,6 @@
 # Factory Ledger — UX/UI Design Standards (Master)
 
-**Version:** 1.2 · **Date:** 2026-09-11 · *(1.0 consolidated 2026-09-07; 1.1 adds category 17, Status & Data Display; 1.2 relabels the Readiness dimension "Ready to Ship" in STATUS-001 and STATUS-012 — wording only, no rule added, renumbered or removed)*
+**Version:** 1.3 · **Date:** 2026-09-14 · *(1.0 consolidated 2026-09-07; 1.1 adds category 17, Status & Data Display; 1.2 relabels the Readiness dimension "Ready to Ship" in STATUS-001 and STATUS-012; 1.3 rewrites the STATUS-012 Factory Ledger line for Health v3 — both wording only, no rule added, renumbered or removed)*
 **Status:** Standards under construction. No evaluation of the current Factory Ledger has been made.
 
 ## How this document was built
@@ -1630,7 +1630,7 @@ Eight of the fourteen have a clause a rendered page can settle without judgement
 ### STATUS-012 — Health has exactly three visual levels and no fourth tone
 - **Rule:** Health renders in three levels only: **critical** (the danger token), **warning** (the warning token), and **quiet** (no colour at all). No other tone, tint, weight or icon is used for health — no informational blue, no positive green, no fourth severity.
 - **Meaning:** Three levels can be learned at a glance and ranked without a legend. A fourth makes the operator ask which of two colours is worse.
-- **Factory Ledger:** Overdue and short-inventory are critical. Due today and partially allocated are warnings. Everything else is quiet — no chip (STATUS-002). Positive green is not a health tone; Ready to Ship — the floor's flag, currently stored as Factory Ready — is Readiness, and it renders as a readiness marker.
+- **Factory Ledger:** Short with nobody making it — pounds no planned run covers — inside the critical window or past the ship date is critical. Short and uncovered inside the warning window, a covering run planned after the ship date, a planned run that has not started, overdue with stock on hand, and Not Ready to Ship within two days are warnings. A shortage covered by a planned run, an uncovered one further out, and unallocated pounds are stated in the details and are quiet: allocations are reservations and drive no health tone. Everything else is quiet — no chip (STATUS-002). Positive green is not a health tone; Ready to Ship — the floor's flag, currently stored as Factory Ready — is Readiness, and it renders as a readiness marker.
 - **Platform:** Both · **Importance:** High · **Type:** Hard rule
 - **Audit:** List every tone health takes on any screen. Are there exactly three, and does the third have no colour?
 - **Sources:** FL-SO-2026-09 · Related: FEEDBACK-012, OTHER-010, STATUS-001
@@ -1815,3 +1815,17 @@ the counts endpoint uses (`ready_to_ship`, owner ruling 5). The stored name is k
 rather than dropped, so the rule still points at the column a reader has to go find.
 
 The health reason strings in `compute_so_health()` use the same words: `Not Ready to Ship — ships tomorrow`.
+
+---
+
+## Appendix F — Version 1.3 changelog (STATUS-012 Factory Ledger line, Health v3)
+
+**Date:** 2026-09-14 · **Source:** scheduling S2 / Health v3 (`docs/design/so-state-model-findings.md` § "Health v3").
+
+**Wording only. No rule was added, renumbered or removed; STATUS-012 keeps its ID and its three levels.**
+
+The STATUS-012 Factory Ledger line had said "partially allocated are warnings" — an allocation-driven
+tone. Since Health v3 allocations are optional reservations and drive no alarm: what tiers is the
+shortage no planned production covers, measured against availability under the competing-orders rule;
+a scheduled shortage, a shortage further out and unallocated pounds are details, not tones. The line now
+says that. Critical, warning and quiet are still the only three levels.
