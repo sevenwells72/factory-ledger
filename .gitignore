@@ -29,3 +29,11 @@ docs/design/audit/screenshots/
 # output tied to one minting run, not source. Paste it into the Supabase SQL
 # editor and delete it.
 actors_insert.sql
+
+# Production Runs evidence: commit only small PNG, Markdown and log files.
+docs/design/audit/pr-screenshots/feat-runs-screen/*
+!docs/design/audit/pr-screenshots/feat-runs-screen/*.png
+!docs/design/audit/pr-screenshots/feat-runs-screen/*.md
+!docs/design/audit/pr-screenshots/feat-runs-screen/*.log
+docs/design/audit/pr-screenshots/feat-runs-screen/*-results.json
+docs/design/audit/pr-screenshots/feat-runs-screen/*-summary.json

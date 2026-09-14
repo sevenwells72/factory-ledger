@@ -1,0 +1,30 @@
+{
+  "week": "2026-09-14",
+  "products": [
+    {"id": 70001, "name": "Granola Classic 25 LB", "odoo_code": "70001", "type": "finished", "active": true, "case_size_lb": 25},
+    {"id": 70004, "name": "Coconut Bulk", "odoo_code": "70004", "type": "finished", "active": true, "case_size_lb": null},
+    {"id": 201, "name": "Rolled Oats", "type": "ingredient", "active": true, "case_size_lb": null}
+  ],
+  "runs": [
+    {"id": 1, "product_id": 70001, "product_name": "Granola Classic 25 LB", "sku": "70001", "planned_qty": 40, "planned_unit": "cases", "planned_qty_lb": 1000, "case_size_lb_used": 25, "planned_date": "2026-09-14", "line_id": 1, "line_name": "Line A", "status": "planned", "notes": "Pack after the morning bake.", "covered_lb": 700, "coverage": [{"sales_order_line_id": 1101, "sales_order_id": 101, "order_number": "SO-101", "qty_lb": 600}, {"sales_order_line_id": 9901, "sales_order_id": 199, "order_number": "SO-199", "qty_lb": 100}]},
+    {"id": 2, "product_id": 70004, "product_name": "Coconut Bulk", "sku": "70004", "planned_qty": 13500, "planned_unit": "lb", "planned_qty_lb": 13500, "case_size_lb_used": null, "planned_date": "2026-09-15", "line_id": null, "status": "in_progress", "covered_lb": 0, "coverage": []},
+    {"id": 3, "product_id": 70001, "product_name": "Granola Classic 25 LB", "sku": "70001", "planned_qty": 40, "planned_unit": "cases", "planned_qty_lb": 1000, "case_size_lb_used": 25, "planned_date": "2026-09-16", "line_id": 1, "line_name": "Line A", "status": "planned", "covered_lb": 0, "coverage": []},
+    {"id": 4, "product_id": 70001, "product_name": "Granola Classic 25 LB", "sku": "70001", "planned_qty": 40, "planned_unit": "cases", "planned_qty_lb": 1000, "case_size_lb_used": 25, "planned_date": "2026-09-17", "status": "done", "covered_lb": 1000, "coverage": [{"sales_order_line_id": 1101, "sales_order_id": 101, "order_number": "SO-101", "qty_lb": 1000}]},
+    {"id": 5, "product_id": 70004, "product_name": "Coconut Bulk", "sku": "70004", "planned_qty": 2000, "planned_unit": "lb", "planned_qty_lb": 2000, "case_size_lb_used": null, "planned_date": "2026-09-18", "status": "cancelled", "notes": "Cancelled: moved to next week.", "covered_lb": 0, "coverage": []}
+  ],
+  "orders": [
+    {"order_id": 101, "order_number": "SO-101", "customer": "North Market", "state": "open", "pallet_lines": [{"line_id": 1101, "sku": "70001", "product": "Granola Classic 25 LB", "remaining_units": 32}, {"line_id": 1102, "sku": "70001", "product": "Granola Classic 25 LB"}]},
+    {"order_id": 102, "order_number": "SO-102", "customer": "South Market", "state": "open", "pallet_lines": [{"line_id": 1201, "sku": "70001", "product": "Granola Classic 25 LB"}]},
+    {"order_id": 103, "order_number": "SO-103", "customer": "East Market", "state": "open", "pallet_lines": [{"line_id": 1301, "sku": "70004", "product": "Coconut Bulk"}]}
+  ],
+  "details": {
+    "101": {"order_id": 101, "order_number": "SO-101", "state": "open", "lines": [{"line_id": 1101, "sku": "70001", "product": "Granola Classic 25 LB", "quantity_lb": 1000, "remaining_lb": 999, "readiness": {"remaining_lb": 800.25}, "line_status": "open"}, {"line_id": 1102, "sku": "70001", "product": "Granola Classic 25 LB", "readiness": {"remaining_lb": 2000}, "line_status": "cancelled"}, {"line_id": 1103, "sku": "70001", "product": "Granola Classic 25 LB", "readiness": {"remaining_lb": 2000}, "line_status": "fulfilled"}, {"line_id": 1104, "sku": "70001", "product": "Service", "is_non_weight": true, "readiness": {"remaining_lb": 1000}, "line_status": "open"}]},
+    "102": {"order_id": 102, "order_number": "SO-102", "state": "open", "lines": [{"line_id": 1201, "sku": "70001", "product": "Granola Classic 25 LB", "readiness": {"remaining_lb": 900}, "line_status": "open"}]},
+    "103": {"order_id": 103, "order_number": "SO-103", "state": "open", "lines": [{"line_id": 1301, "sku": "70004", "product": "Coconut Bulk", "readiness": {"remaining_lb": 3000}, "line_status": "open"}]}
+  },
+  "evidence": {
+    "1": {"run_id": 1, "planned_qty_lb": 1000, "recorded_lb": 750, "planned_qty": 40, "planned_unit": "cases", "recorded_qty": 30, "suggested_state": "partial", "window": {"from": "2026-09-13", "to": "2026-09-15"}, "transactions": [{"transaction_id": 501, "output_lb": 750, "business_date": "2026-09-14", "type": "pack"}]},
+    "2": {"run_id": 2, "planned_qty_lb": 13500, "recorded_lb": 0, "planned_qty": 13500, "planned_unit": "lb", "recorded_qty": 0, "suggested_state": "none", "window": {"from": "2026-09-14", "to": "2026-09-16"}, "transactions": []},
+    "3": {"run_id": 3, "planned_qty_lb": 1000, "recorded_lb": 1000, "planned_qty": 40, "planned_unit": "cases", "recorded_qty": 40, "suggested_state": "looks_complete", "window": {"from": "2026-09-15", "to": "2026-09-17"}, "transactions": []}
+  }
+}
