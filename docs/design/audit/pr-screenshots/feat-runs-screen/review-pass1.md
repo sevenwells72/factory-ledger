@@ -1,0 +1,54 @@
+# Production Runs review pass 1
+
+| Rule | Before | After failures |
+|---|---|---:|
+| STATUS-002 | N/A — absent page | 0 |
+| STATUS-004 | N/A — absent page | 0 |
+| STATUS-005 | N/A — absent page | 0 |
+| STATUS-006 | N/A — absent page | 0 |
+| STATUS-007 | N/A — absent page | 0 |
+| STATUS-008 | N/A — absent page | 0 |
+| STATUS-010 | N/A — absent page | 0 |
+| STATUS-011 | N/A — absent page | 0 |
+
+
+
+28 captures checked with the existing shared STATUS implementation. Baseline is an absent page; zero is not claimed for it.
+
+## Failures
+
+```
+1440-light interaction: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+false !== true
+
+    at auditRuns (file:///Users/cns/Documents/Codex/2026-09-14/repo-documents-factory-ledger-sync-first/work/factory-ledger/tests/visual/run-runs-interactions.mjs:133:63)
+    at async file:///Users/cns/Documents/Codex/2026-09-14/repo-documents-factory-ledger-sync-first/work/factory-ledger/tests/visual/run-runs-interactions.mjs:26:12
+```
+
+```
+1440-dark interaction: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+false !== true
+
+    at auditRuns (file:///Users/cns/Documents/Codex/2026-09-14/repo-documents-factory-ledger-sync-first/work/factory-ledger/tests/visual/run-runs-interactions.mjs:133:63)
+    at async file:///Users/cns/Documents/Codex/2026-09-14/repo-documents-factory-ledger-sync-first/work/factory-ledger/tests/visual/run-runs-interactions.mjs:26:12
+```
+
+```
+390-light interaction: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+false !== true
+
+    at auditRuns (file:///Users/cns/Documents/Codex/2026-09-14/repo-documents-factory-ledger-sync-first/work/factory-ledger/tests/visual/run-runs-interactions.mjs:133:63)
+    at async file:///Users/cns/Documents/Codex/2026-09-14/repo-documents-factory-ledger-sync-first/work/factory-ledger/tests/visual/run-runs-interactions.mjs:26:12
+```
+
+```
+390-dark interaction: AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+false !== true
+
+    at auditRuns (file:///Users/cns/Documents/Codex/2026-09-14/repo-documents-factory-ledger-sync-first/work/factory-ledger/tests/visual/run-runs-interactions.mjs:133:63)
+    at async file:///Users/cns/Documents/Codex/2026-09-14/repo-documents-factory-ledger-sync-first/work/factory-ledger/tests/visual/run-runs-interactions.mjs:26:12
+```

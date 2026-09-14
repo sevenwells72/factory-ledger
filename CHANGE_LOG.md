@@ -1,5 +1,15 @@
 # Change Log
 
+## 2026-09-14 — Production Runs screen (NOT DEPLOYED)
+
+- Standalone `/runs.html` against the seven S1 routes: factory-local week, range-scoped counted tabs, native quantity explanations, finished-product search, editing, reasoned cancellation, human-confirmed completion and full-replacement coverage.
+- Coverage finds candidate open orders through the existing list and reads their detail for exact effective remaining pounds; customer narrowing retains off-page links. Completion sends no SO or inventory writes. Uses the current dashboard key without a key-entry field.
+- Validation stopped at the requested two-pass limit: 64 existing JavaScript tests and all interaction scenarios pass; STATUS-011 has four repeated-caveat failures (one per viewport/theme), all other targeted STATUS counts are zero. No push or PR.
+- Spec committed before code. Shared STATUS checks, stateful interaction scenarios, before/after 1440/390 light/dark captures and JavaScript test logs are in `docs/design/audit/pr-screenshots/feat-runs-screen/`. Blubber reviews the Netlify preview independently and merges manually.
+- Original checkout stalled reading tracked files; work is in an isolated clone of the same repository, synced and verified at `7c183e0`. All protected files remain unchanged. Changelog row 144 may need renumbering on merge.
+
+---
+
 ## 2026-09-14 12:50 — Scheduling S1: Codex cross-review fix pass, coverage precision (PR #52, NOT DEPLOYED)
 
 - **Files changed:** `main.py`, `tests/test_production_runs.py`, `FACTORY_LEDGER_CHANGELOG.md`.

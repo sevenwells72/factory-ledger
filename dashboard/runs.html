@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Production Runs — Factory Ledger</title>
+  <script>document.documentElement.dataset.theme=localStorage.getItem('dashboard-theme')||'dark';</script>
+  <link rel="stylesheet" href="dashboard.css?v=44">
+  <link rel="stylesheet" href="runs.css?v=1">
+  <script src="fetch-timeout.js?v=1"></script>
+</head>
+<body class="runs-page">
+  <header class="runs-header"><a href="index.html">Factory Ledger</a><button id="theme-toggle" type="button">Switch theme</button></header>
+  <main id="runs-screen">
+    <div class="runs-heading"><div><p class="eyebrow">PRODUCTION</p><h1>Production Runs</h1></div><button id="new-run" class="primary" type="button">New run</button></div>
+    <div class="week-toolbar"><div class="week-controls"><button id="previous-week" type="button" aria-label="Previous week">←</button><button id="current-week" type="button">This week</button><button id="next-week" type="button" aria-label="Next week">→</button></div><h2 id="week-range"></h2></div>
+    <p id="range-note" class="muted"></p>
+    <div id="run-tabs" role="tablist" aria-label="Run status"></div>
+    <p id="load-status" role="status"></p><button id="retry-load" type="button" hidden>Retry loading runs</button>
+    <div id="week-board" role="tabpanel" aria-label="Production runs for the displayed week"></div>
+  </main>
+  <dialog id="run-dialog" aria-labelledby="dialog-title">
+    <form id="run-form">
+      <div class="dialog-heading"><h2 id="dialog-title"></h2><button id="close-dialog" type="button" aria-label="Close dialog">×</button></div>
+      <div id="dialog-content"></div>
+      <p id="dialog-error" class="error" role="alert"></p>
+      <footer><button id="dismiss-dialog" type="button">Go back</button><button id="save-run" class="primary" type="submit">Save</button></footer>
+    </form>
+  </dialog>
+  <script src="so-list.js?v=2"></script>
+  <script src="runs.js?v=1"></script>
+</body>
+</html>
