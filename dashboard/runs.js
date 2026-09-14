@@ -197,9 +197,9 @@
       panel('Edit coverage',p(r.product_name)+
         '<label>Find customer (optional)<input id="coverage-customer" type="search" value="'+esc(customer)+'"></label><button type="button" id="coverage-reload">Reload available lines</button>'+
         ((data.orders||[]).length>=200?p('Showing the first '+n(200)+' open orders by ship date. Narrow by customer to find additional lines.'):'')+
-        (retained.length?p('Existing links outside these available lines are preserved. Set their covered pounds to zero to remove them.'):'')+
+        (retained.length?p('Existing links outside these available lines are preserved; their remaining quantities are unavailable. Set their covered pounds to zero to remove them.'):'')+
         (items.length?items.map(item=>`<div class="coverage-item" data-line-id="${item.id}"><label><span>${esc(item.order)} · Line ${n(item.id)}</span><input aria-label="Covered pounds for ${esc(item.order)} line ${item.id}" data-cover="${item.id}" type="number" min="0" step="any" value="${item.qty}"></label>
-          ${item.remaining===null?p('Existing link; remaining quantity unavailable.'):explain('remaining',`${n(item.remaining)} lb remaining`,'Pounds this open sales order line still needs.',`${item.order}, line ${n(item.id)}; effective shipments are deducted.`)}
+          ${item.remaining===null?'':explain('remaining',`${n(item.remaining)} lb remaining`,'Pounds this open sales order line still needs.',`${item.order}, line ${n(item.id)}; effective shipments are deducted.`)}
           <p class="error line-error" role="alert"></p></div>`).join(''):p('No open lines for this product in the loaded orders.'))+
         '<div id="coverage-total"></div>','Save coverage',async()=>{
           const values=items.map(item=>({sales_order_line_id:item.id,qty_lb:Number(document.querySelector(`[data-cover="${item.id}"]`).value)}));
