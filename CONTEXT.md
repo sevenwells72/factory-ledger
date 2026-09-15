@@ -84,7 +84,7 @@ All queries use `RealDictCursor` for dict-style row access. Write operations use
 - `default_batch_lb` NUMERIC (standard batch weight for batch products)
 - `default_case_weight_lb` NUMERIC (weight per case for finished goods)
 - `case_size_lb` NUMERIC(10,2) (sellable unit weight, e.g., 25 for "25 LB" case)
-- `yield_multiplier` FLOAT DEFAULT 1.0 (weight change during processing)
+- `yield_multiplier` FLOAT DEFAULT 1.0 (legitimate processing weight changes; sweetened coconut 90003/90004/90005 must use 1.0, 360 lb/pan)
 - `label_type` TEXT DEFAULT 'house' ('house'|'private_label') — SKU protection flag
 - `storage_type` TEXT ('ambient'|'refrigerated')
 - `verification_status` TEXT ('unverified'|'verified')
@@ -182,7 +182,7 @@ Inventory is **ledger-based** (not snapshot-based). Current stock = SUM of all `
 
 1. **label_type column** — Adds `label_type` to products, flags private-label SKUs by odoo_code and name patterns ('Batch BS %', 'Batch Setton %')
 2. **exclude_from_inventory** — Adds to batch_formulas, auto-flags Water entries
-3. **yield_multiplier** — Adds to products (DEFAULT 1.0)
+3. **yield_multiplier** — Adds to products (DEFAULT 1.0). Sweetened coconut 90003/90004/90005 is corrected to 1.0 through the existing admin path, forward only; no migration or historical rebasing.
 4. **case_size_lb** — Adds to products, auto-populates from product names (25 LB → 25, 10 LB → 10, 50 LB → 50)
 5. **Legacy order status** — Migrates 'new' orders to 'confirmed'
 6. (Plus migration files 003 and 004 for notes and scheduling tables)
@@ -260,7 +260,7 @@ class MakeRequest(BaseModel):
 - **Excluded ingredients:** List of ingredient IDs to skip (for partial batches or substitutions)
 - **Auto-excluded ingredients:** Ingredients flagged `exclude_from_inventory=true` in batch_formulas (e.g., Water) are automatically skipped
 - **Output:** Creates batch lot (code format: `BYYMM-DD-###`), positive line for output, negative lines for each consumed ingredient lot
-- **Yield multiplier:** Output weight = formula_weight * yield_multiplier
+- **Yield multiplier:** Output weight = formula_weight * yield_multiplier. Sweetened coconut 90003/90004/90005 uses 360 lb and multiplier 1.0 (owner ruling 2026-09-15). The admin update is prepared, not executed: see `docs/scheduling/coconut-yield-forward-only.md`. Future makes output 360 lb/pan after application; current-metadata readers divide posted lb by 360. Historical pounds, lots and trace data stay unchanged; old displayed pan counts may change. Retain legitimate multipliers for other products.
 - Records ingredient lot consumption in `ingredient_lot_consumption` table for traceability
 - Returns `daily_production_summary` in response
 

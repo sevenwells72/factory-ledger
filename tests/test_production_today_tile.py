@@ -104,11 +104,11 @@ def test_today_tile_scopes_to_requested_plant_day(db_cursor, tile_call):
 
 
 @pytest.mark.db
-def test_today_tile_coconut_pans_apply_yield_adjustment(db_cursor, tile_call):
-    _insert_row(db_cursor, sku="TT-CO", name="Batch Coconut Tile", kind="make", qty=799.2,
-                day="2026-08-05", batch_lb=360, yield_multiplier=1.11)
+def test_today_tile_coconut_pans_use_360_lb(db_cursor, tile_call):
+    _insert_row(db_cursor, sku="TT-CO", name="Batch Coconut Tile", kind="make", qty=720,
+                day="2026-08-05", batch_lb=360, yield_multiplier=1.0)
     result = tile_call(date="2026-08-05", _=True)
-    assert result["made"]["coconut_pans"] == pytest.approx(2.0)  # not 799.2 / 360
+    assert result["made"]["coconut_pans"] == pytest.approx(2.0)  # 720 posted lb / 360 lb per pan
 
 
 @pytest.mark.db

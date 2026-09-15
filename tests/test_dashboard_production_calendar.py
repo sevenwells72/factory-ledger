@@ -64,10 +64,11 @@ def test_calendar_response_exposes_pack_format_and_accurate_made_counts(
 ):
     products = [
         dict(sku="CAL-M-C", name="Batch Coconut Calendar Test", product_type="batch",
-             quantity_lb=4795.2, transaction_type="make", default_batch_lb=360,
-             yield_multiplier=1.11),
+             quantity_lb=4320, transaction_type="make", default_batch_lb=360,
+             yield_multiplier=1.0),
         dict(sku="CAL-M-GR", name="Batch Granola Calendar Test", product_type="batch",
-             quantity_lb=200, transaction_type="make", default_batch_lb=50),
+             quantity_lb=240, transaction_type="make", default_batch_lb=50,
+             yield_multiplier=1.2),
         dict(sku="CAL-M-GH", name="Batch Graham Calendar Test", product_type="batch",
              quantity_lb=150, transaction_type="make", default_batch_lb=75),
         dict(sku="CAL-P-10", name="Granola Calendar Test 10 LB", product_type="finished",
@@ -108,8 +109,8 @@ def test_calendar_response_exposes_pack_format_and_accurate_made_counts(
 
     assert batches["CAL-M-C"]["transaction_type"] == "make"
     assert batches["CAL-M-C"]["standard_batch_size_lbs"] == 360
-    assert batches["CAL-M-C"]["yield_multiplier"] == 1.11
-    assert batches["CAL-M-C"]["made_unit_size_lbs"] == pytest.approx(399.6)
+    assert batches["CAL-M-C"]["yield_multiplier"] == 1.0
+    assert batches["CAL-M-C"]["made_unit_size_lbs"] == pytest.approx(360)
     assert batches["CAL-M-C"]["batch_count"] == 12
     assert batches["CAL-M-GR"]["batch_count"] == 4
     assert batches["CAL-M-GH"]["batch_count"] == 2
