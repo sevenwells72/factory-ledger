@@ -1,6 +1,8 @@
 # S1 amendment — bake runs vs pack runs
 
 Date: 2026-09-15. Status: **DRAFT for owner review. No code, no migration, nothing applied.**
+Updated 2026-09-15 (same day): coconut pan weight ruled **360 lb** by the owner; §2b, §2d and
+open questions 2 and 11 reflect it.
 Base: `main` @ `22b606d` (S1 merged in #52, S2 merged in #54, Runs screen in #53/#55;
 migration 053 applied to production 2026-09-14 17:07 UTC).
 
@@ -40,13 +42,14 @@ so bake-run coverage flows into `covered_lb` with **zero S2 code change**. See �
 | `run_type` | Item (`product_id`) | Native unit(s) | `planned_qty_lb` means | Line (inferred, §6) | Evidence (`GET …/evidence`) | Coverage rule (§4) |
 |---|---|---|---|---|---|---|
 | `bake` | `products.type = 'batch'`, granola family | `pans` (or `lb`) | **expected WIP lb** = pans × per-pan yield | `granola` | posted `make` of the batch product | line's finished SKU routes to this batch |
-| `coconut` | `products.type = 'batch'`, coconut family (90003, 90004, 90005, 90007) | `pans` (or `lb`) | expected WIP lb, **hydrated** (yield_multiplier 1.11 on the sweetened three) | `coconut` | posted `make` of the batch product | same as bake |
+| `coconut` | `products.type = 'batch'`, coconut family (90003, 90004, 90005, 90007) | `pans` (or `lb`) | expected WIP lb = pans × **360** (sweetened) / 300 (toasted); the stored `yield_multiplier = 1.11` is **not** applied (§2d) | `coconut` | posted `make` of the batch product | same as bake |
 | `pack` | `products.type = 'finished'`, not `no_production`, not service — **exactly S1 today** | `cases` or `lb` | finished lb (cases × `case_size_lb`) | `pouch` if `pack_format = 'bagged'`, else `bulk_pack` | posted `pack` of the finished SKU | `line.product_id = run.product_id` (unchanged) |
 | `other` | any active, non-service product the factory handles (graham repack 31012, chips 25013/25014, Kookies & Kreme 10301, coconut chips 70051 — the five active producible finished SKUs with no batch routing) | `lb` (or `cases` when `case_size_lb` exists) | lb | none (NULL) | posted `make` **or** `pack` of the product (today's rule) | equality, as pack |
 
 Why `coconut` is its own value and not `bake`: same mechanics (pans of a batch
-product, `make` evidence) but a different line, a hydration yield (`yield_multiplier =
-1.11` on 90003/90004/90005, `1.0` on toasted 90007), two cycles a day, and toasted pans
+product, `make` evidence) but a different line, a stored hydration multiplier that the
+owner has ruled must not be applied (`yield_multiplier = 1.11` on 90003/90004/90005, §2d),
+two cycles a day, and toasted pans
 that stay locked until emptied the next workday
 (`dashboard/scheduler/seven-wells-production-board.html:290-302`). Health never looks
 at `run_type`; the board and the line inference do. Collapsing it into `bake` would
@@ -99,10 +102,16 @@ converts to canonical pounds exactly as `_run_quantity_lb` (`main.py:18232`) con
 cases today:
 
 ```
-per_pan_lb      = products.default_batch_lb × COALESCE(products.yield_multiplier, 1.0)
+per_pan_lb      = products.default_batch_lb                            -- yield_multiplier NOT applied, see §2d
 planned_qty_lb  = _run_lb(Decimal(pans) × Decimal(per_pan_lb))        -- numeric(14,4), ROUND_HALF_UP
 pan_yield_lb_used = per_pan_lb                                        -- stored, audit trail
 ```
+
+`yield_multiplier` is deliberately left out. For every granola batch it is `1.0`, so the
+result is identical to what `/make` posts; for the three sweetened-coconut batches it is
+`1.11`, and the owner has ruled (2026-09-15) that **360 lb is the real pan weight**, so a
+run must plan 360 per pan even though `/make` currently posts 399.6 (§2d). When `/make`
+is corrected, the two agree again without touching this rule.
 
 `planned_qty_lb` keeps its column name (canonical pounds, the thing coverage sums
 against). The API response adds `expected_lb` as an alias of `planned_qty_lb` on
@@ -135,19 +144,18 @@ table. The one addition is per-run: `production_runs.pan_yield_lb_used`, the val
 API multiplied by, for the same reason `case_size_lb_used` exists — a later change to
 `default_batch_lb` must not silently re-price an existing plan.
 
-Live per-pan values the API would use today (batch → `default_batch_lb × yield`):
+Live per-pan values the API would use (batch → `default_batch_lb`):
 90002 Classic #9 **323**; 90001 Classic Choc Chip #9 **348**; 90010 Vanilla Almond
 **380**; 90024 Vanilla Crisp #16 **370**; 90016 SS Original #1 **350**; 90011 SS Choc
-Chip #2 **393**; 90003/90004/90005 sweetened coconut **399.6** (360 × 1.11); 90007
-toasted coconut **300**; 95005 BS PB Banana **452**; 90008 Fruit Nut **384.52**.
+Chip #2 **393**; 90003/90004/90005 sweetened coconut **360** (owner ruling; the stored
+1.11 multiplier is not applied, §2d); 90007 toasted coconut **300**; 95005 BS PB Banana
+**452**; 90008 Fruit Nut **384.52**.
 
-Two data facts to settle, neither blocking (open questions 2–3): the matrix dict's
-322.6 vs the stored 323 is a 0.1 % disagreement about the same pan; and for coconut
-the stored basis is **hydrated output** (what `/make` posts and `/pack` consumes),
-while the floor's "360 lb pan" is the dry input. The amendment uses the ledger's basis
-because `GET …/evidence` compares against posted `make` lines and coverage compares
-against finished pounds; using 360 would make every coconut run read 10 % short of
-its own evidence.
+One data fact still to settle, not blocking (open question 3): the matrix dict's 322.6
+vs the stored 323 is a 0.1 % disagreement about the same pan. The coconut basis was
+settled the same day this draft was written: **360 lb per pan** (open question 2,
+resolved). What that means for the ledger, and the caveat it leaves on coconut
+evidence, is §2d.
 
 Known anomaly carried forward unchanged: 90008 Granola Fruit Nut Batch has formula
 rows totalling 25 lb against `default_batch_lb = 384.52` (`SYSTEM_KNOWLEDGE.md:517`).
@@ -163,6 +171,70 @@ only `make` ever posts a positive line, so it works unchanged; pin it anyway: fi
 when the unit is pans (today it divides by `case_size_lb_used`). `suggested_state`
 thresholds unchanged. Completion stays human-confirmed, writes the run row only
 (Part 4 §4a decision 4 stands).
+
+**Coconut caveat until `/make` is corrected (§2d):** a sweetened-coconut run planned at
+12 pans expects 4,320 lb, but a 12-batch `/make` posts 4,795.2 lb today. Evidence will
+therefore read `looks_complete` at 11 pans posted and `recorded_qty` will show 13.3 pans
+for a 12-pan make. This is a display artefact of the ledger's multiplier, not of the
+run; it disappears once the three products' `yield_multiplier` is set to 1.0 (open
+question 11). Do not "fix" it by dividing evidence by 1.11 in the run code — that
+would hard-code the error the owner has just ruled against.
+
+### 2d. Coconut pan weight — what the ledger shows (read-only, 2026-09-15)
+
+Owner ruling: **360 lb is the real weight of one sweetened-coconut pan.** Findings that
+sit behind the rule and behind open question 11:
+
+* **As stored:** 90003, 90004, 90005 have `default_batch_lb = 360`, `yield_multiplier =
+  1.11` (product of 399.6); 90007 toasted has 300 and 1.0. The 1.11 is entered data,
+  not a column default (`FACTORY_LEDGER_CHANGELOG.md` row 70 confirms it "is entered
+  data on the three sweetened-coconut batches"). The formulas total 389.5 lb including
+  65 lb of `exclude_from_inventory` water, 324.5 lb without it.
+* **What `/make` posts:** `default_batch_lb × batches × yield_multiplier`
+  (`main.py:8252-8254`); `formula_weight_lb` there is `default_batch_lb × batches`, not
+  the formula rows. So every sweetened-coconut make since the multiplier was entered
+  posts **399.6 lb per pan**.
+* **Lots and pounds, all time, posted:** 90003 20 lots / 21 makes / 32,368 lb; 90004
+  107 lots / 107 makes / 397,238 lb; 90005 13 lots / 14 makes / 15,185 lb; 90007 26
+  lots / 25 makes / 41,400 lb (one void). 131 of the 142 sweetened makes are exact
+  multiples of 399.6; the other 11 are 90004's first makes, 2026-02-05 to 02-16, exact
+  multiples of 360 (32,400 lb) — the multiplier was entered around 2026-02-16/17. All 25
+  toasted makes are exact multiples of 300.
+* **Pounds booked above the 360 basis:** 90003 3,208 lb; 90004 36,155 lb; 90005 1,505 lb;
+  **40,868 lb in total** (posted at 399.6 ÷ 1.11).
+* **Pan counts are right; pounds are not.** Every dashboard reader that shows "pans"
+  divides posted pounds by `default_batch_lb × yield_multiplier` (`_made_unit_size_lbs`
+  `main.py:15990`; production calendar `:16069-16076`; batch-inventory tile
+  `:16265-16266`; today-tile `:17847`), so 4,795.2 lb reads as 12 pans — which is why the
+  2026-08-24 baseline found every coconut day from Aug 3 matching the floor's form
+  pan-for-pan (`docs/data-health-baseline-2026-08-24.md:1201`). Nothing anywhere
+  reconciles the **pounds** against 360: the Aug 14 physical count explicitly excluded
+  the coconut batch silos (`docs/audits/physical-count-2026-08-14.md:6`), and the
+  variance recon held them as "no floor, no consume"
+  (`docs/audits/inventory-variance-recon-plan.md:278`). The board catalog is the one
+  artefact on the 360 basis: `cpp: 36` cases of 10 lb per pan = 360 lb
+  (`seven-wells-production-board.html:291-299`).
+* **Where 399.6 / 1.11 appear:** code — `/make` output (`main.py:8091-8093`, `:8252-8254`),
+  `_made_unit_size_lbs` and its four callers above, `PUT /admin/products` accepts
+  `yield_multiplier` (`:17084-17086`), the startup migration-005 block (`:2119-2127`);
+  tests — `tests/test_dashboard_b2.py:96-100` and
+  `tests/test_dashboard_production_calendar.py:110-113` pin `1.11 → 399.6 → 12 pans`
+  on fixture data; docs — `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md:481, :620, :1003-1016,
+  :1094, :1155`, `FACTORY_LEDGER_CHANGELOG.md` rows 54 and 70, `CONTEXT.md:87, :185,
+  :263`; board catalog — none (it is on 360). `_ORDERS_MATRIX_PAN_YIELD` says 360.
+* **A caution for the correction (open question 11).** Coconut batch stock is
+  consumed by `/pack` at real case weights (10 lb × 36 per pan = 360), so the pack side
+  is already on the 360 basis. Re-basing the historical makes to 360 without touching
+  anything else would drive two products' cumulative balance negative: 90004 to about
+  **−10,300 lb** (328,683 re-based + 32,400 early makes − 30,780 net adjustments
+  − 340,595 packed) and 90005 to about **−740 lb**; 90003 stays positive (+560). The
+  30,780 lb of net adjustments on 90004 are all February go-live cleanup
+  ("Adjustment: −3600.0 lb" style, `legacy-unattributed`) plus one 60 lb audit fix,
+  none of them yield corrections. Current posted on-hand is 90003 3,768 lb, 90004
+  25,863 lb, 90005 762 lb, 90007 500 lb. So either the floor has been under-counting
+  pans into `/make`, or more was packed than the 360 basis allows, or the silos hold
+  less than the ledger says — a physical count of the coconut silos is the only thing
+  that settles which, and it should come before any historical re-basing.
 
 ---
 
@@ -443,9 +515,10 @@ production to convert, and a rollback of the code is safe at any point.
 1. **Should the finished-SKU (`pack`) run stay creatable in this step?** It is what the
    Runs screen ships with today; keeping it means the floor can plan either level now.
    The alternative is to hide `pack` in the form until S2 wires WIP consumption.
-2. **Pan yield basis for coconut:** hydrated output (399.6 lb, what `/make` posts — this
-   draft) or dry input (360 lb, the floor's number and the matrix dict's)? The choice
-   changes the expected pounds on every coconut run by 11 %.
+2. ~~**Pan yield basis for coconut:** hydrated output (399.6 lb, what `/make` posts) or
+   dry input (360 lb, the floor's number and the matrix dict's)?~~ **Resolved
+   2026-09-15: 360 lb is the real pan weight.** Runs plan 360 per pan; `yield_multiplier`
+   is not applied (§2a, §2d). See question 11 for the history it leaves behind.
 3. **322.6 vs 323 lb for Classic #9** (and 380.12/380, 370.12/370): which is right, and
    should `products.default_batch_lb` be corrected? Not blocking; the run stores the
    value used.
@@ -465,5 +538,19 @@ production to convert, and a rollback of the code is safe at any point.
    as a separate data fix?
 9. **Keep `line_id` as an optional API override**, or remove it from the bodies so the
    inference is the only writer?
-10. **Retire `_ORDERS_MATRIX_PAN_YIELD`** in favour of `default_batch_lb × yield_multiplier`
-    in a later chore, so there is one pan number in the codebase?
+10. **Retire `_ORDERS_MATRIX_PAN_YIELD`** in favour of `default_batch_lb` in a later chore,
+    so there is one pan number in the codebase?
+11. **How to correct the historical coconut batches booked at 399.6 per pan** (§2d:
+    131 sweetened makes since ~2026-02-17, 40,868 lb above the 360 basis, plus the
+    forward fix). Choices, not exclusive: (a) **forward only** — set `yield_multiplier`
+    to 1.0 on 90003/90004/90005 via `PUT /admin/products` so every make from that day
+    posts 360 per pan, leave history as is, and let a physical count of the silos plus
+    one `adjust` per product true up the balance; (b) **re-base history** — one
+    `adjust` per product for the 11 % overstatement (−3,208 / −36,155 / −1,505 lb),
+    which as §2d shows would push 90004 and 90005 negative and therefore cannot be
+    done blind; (c) **amend the 131 makes** through the void/amend layer, which is the
+    only route that also fixes `trace_event_lots` and the lot records but is 131
+    corrections and changes numbers on every historical production report. Whichever
+    is chosen, the two tests that pin `1.11 → 399.6` and the SYSTEM_KNOWLEDGE / CONTEXT
+    passages need the same change, and the correction is its own PR with its own
+    changelog row — not part of this amendment.
