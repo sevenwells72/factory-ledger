@@ -1,5 +1,20 @@
 # Change Log
 
+## 2026-09-15 15:33 — Inventory-summary void audit report (read-only, no code or data changes)
+- **File(s) changed:** `audits/reports/inventory-summary-void-audit.md` (new)
+- **What changed:** Wrote the audit of every reader of `inventory_summary` and the other eight views that sum raw `transaction_lines` without excluding voided/amended events. Maps each to its route (five legacy `GET /dashboard/*` endpoints, none called by the dashboard or GPT), shows the live view definitions, the missing `ledger_current_* ... effective_status = 'posted'` filter, and live side-by-side numbers (product 128: view 3,600 lb vs correct 0 lb = voided make #1699; 10 products differ; 57 voided transactions). Ranks the fix: migration 055 redefining the views, schema re-dump, tests, docs. No changelog row in FACTORY_LEDGER_CHANGELOG.md yet; the fix PR takes row #154.
+- **Why:** Blubber asked for a read-only audit before drafting the Codex fix prompt, after the coconut investigation was misled by `inventory_summary`.
+
+---
+
+## 2026-09-15 15:25 — #153 Coconut batch WIP reconciliation EXECUTED in production
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, resolved iCloud global log; production data via API.
+- **What changed:** Posted 88 per-lot inventory adjustment events via Railway production POST /adjust (gleaming-solace / FastAPI), transactions 2275–2362, effective 2026-09-15. DB product 126 Flake −25,863.4 lb; 125 Fancy −3,767.6 lb; 127 Medium −762.4 lb; 128 Toasted −500.0 lb; total −30,893.4 lb. Verified all lots for these products and all four product balances are exactly 0.0 in ledger_current_transaction_lines joined to ledger_current_transactions with effective_status=posted. Every reason has prefix COCONUT-WIP-RECON-2026-09-15: and its approved per-product reason plus Actor: Blubber. Owner approved note-only attribution: operator_id remains legacy-shared-key because the API cannot set a named actor. No direct SQL writes, deletes, voids, migrations, code changes or PR; no full 40,510.8 lb bug reversal and no pack #647 reassignment.
+- **Why:** Blubber approved clearing the specified CSV lot balances to physical zero after the dry run.
+- **Evidence:** [Coconut inventory investigation](/Users/cns/Documents/Codex/2026-09-15/read-only-investigation-no-code-changes/outputs/coconut-inventory-investigation.md); [Adjustment receipts](/Users/cns/Documents/Codex/2026-09-15/read-only-investigation-no-code-changes/outputs/coconut-adjustment-receipts.json).
+
+---
+
 ## 2026-09-15 15:10 — 6x8 OZ Case write-off and archive EXECUTED in prod; PR #59 merged and deployed
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (data change in prod, no code)
 - **What changed:** Posted adjust transaction **2274** (confirmation TXN-9AB28E, business date 2026-09-15, operator_id `legacy-shared-key`, master key) of −2,406 lb on lot **SW2607708** (lot id 343) for product 209 / odoo 70088, via `POST /adjust` mode=commit; new balance 0 lb / 0 cases. Verified products 206, 207, 208, 209 all read 0 posted lb. Then set `active = false` on all four via `PUT /admin/products/{id}`; verified in DB. PR #59 squash-merged as `203d8cc` on main; Railway deployment 38fdf2f8 SUCCESS, Netlify production serving dashboard.js?v=64. Live `/dashboard/api/inventory/finished-goods` no longer returns the "6x8 OZ Retail Cases (BS Line)" panel and no 6x8 name appears in any panel (the all-archived panel is dropped whole, so its `archived_skus` list is not in the response). Master key was held only in the shell for each call and unset after; scratch DB URL file removed.
