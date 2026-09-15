@@ -400,7 +400,7 @@ Key/value configuration used by the API scheduler for workforce, horizon, Friday
 
 ## Legacy views and duplicated meanings
 
-The nine legacy views (`inventory_summary`, `lot_balances`, `low_stock_alerts`, `production_history`, `todays_transactions`, `v_lot_quantities`, `v_batch_products_needing_setup`, `v_products_missing_boms`, and `v_test_batches_for_review`) are correction-aware as of migration 055: they use `ledger_current_*` and only posted events. Migration 055 is NOT YET APPLIED to production. Their only application readers remain the five legacy `/dashboard/*` endpoints; the static dashboard and GPT do not call those endpoints. The three helper views retain obsolete `production` / `finished_good` predicates where present. `todays_transactions` uses the New York business date (Part B).
+The nine legacy views (`inventory_summary`, `lot_balances`, `low_stock_alerts`, `production_history`, `todays_transactions`, `v_lot_quantities`, `v_batch_products_needing_setup`, `v_products_missing_boms`, and `v_test_batches_for_review`) are correction-aware as of migration 055: they use `ledger_current_*` and only posted events. Migration 055 was applied to production 2026-09-15 21:51:42 UTC (17:51:42 ET). Their only application readers remain the five legacy `/dashboard/*` endpoints; the static dashboard and GPT do not call those endpoints. The three helper views retain obsolete `production` / `finished_good` predicates where present. `todays_transactions` uses the New York business date (Part B).
 
 Duplicated concepts that require care:
 

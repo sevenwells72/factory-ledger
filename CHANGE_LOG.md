@@ -1,10 +1,18 @@
 # Change Log
 
-## 2026-09-15 15:38 — Migration 055: correction-aware legacy views (NOT YET APPLIED TO PROD)
+## 2026-09-15 17:51 — 055 applied to production; schema refreshed
+- **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`, `CHANGE_LOG.md`; both global logs.
+- **What changed:** APPLIED TO PROD 2026-09-15 21:51:42 UTC (17:51:42 ET), following owner approval. Nine views replaced, marker recorded. Read-only verification: product 128 changed from 3,600 to 0 lb; zero inventory_summary discrepancies versus posted-only balances; marker present. Production schema re-dumped with zero data rows.
+- **Validation:** `scripts/setup_test_db.sh --fresh` succeeded; post-apply full suite: 1,140 passed. All nine dumped views use posted correction-aware sources; no data statements. GPT files unchanged, 30 operations. Pre-apply focused suite: 27 passed; full suite: 1,140 passed.
+- **Why:** Legacy inventory views counted voided events and original quantities. No ledger data was modified.
+
+---
+
+## 2026-09-15 15:38 — Migration 055: correction-aware legacy views (APPLIED TO PROD)
 - **File(s) changed:** `migrations/055_void_aware_views.sql`, `migrations/down/055_void_aware_views_down.sql`, `tests/test_void_aware_views.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`, `FACTORY_LEDGER_CHANGELOG.md`.
 - **What changed:** Nine views now read posted correction-aware ledger views, retaining output shapes and legacy helper predicates. Idempotent marker and before/after notice; exact rollback definitions. Part B uses New York business_date for today. Tests cover voids, amendments, shapes, rollback, reapply and legacy endpoint keys.
 - **Validation:** Focused tests: 27 passed. Full suite: 1,140 passed. Exact rollback definitions and column names/order/types (including numeric precision/scale) verified. `openapi-gpt-v3.yaml` and `gpt-instructions-v3.md` unchanged; 30 operations before/after. Historical helper tests preserve obsolete predicates and relax the catalog constraint only inside rolled-back local tests.
-- **Why:** Voided make 1699 leaves product 128 at 3,600 lb in the old inventory_summary despite posted-only stock of 0. Production apply awaits owner approval.
+- **Why:** Voided make 1699 leaves product 128 at 3,600 lb in the old inventory_summary despite posted-only stock of 0. Owner approved `apply 055`; applied 2026-09-15 21:51:42 UTC (17:51:42 ET) through port 5432. Product 128 verified 3,600 → 0 lb; balance comparison returned zero rows; migration marker present.
 
 ---
 
