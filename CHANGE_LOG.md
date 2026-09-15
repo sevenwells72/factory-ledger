@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-15 15:38 — Migration 055: correction-aware legacy views (NOT YET APPLIED TO PROD)
+- **File(s) changed:** `migrations/055_void_aware_views.sql`, `migrations/down/055_void_aware_views_down.sql`, `tests/test_void_aware_views.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`, `FACTORY_LEDGER_CHANGELOG.md`.
+- **What changed:** Nine views now read posted correction-aware ledger views, retaining output shapes and legacy helper predicates. Idempotent marker and before/after notice; exact rollback definitions. Part B uses New York business_date for today. Tests cover voids, amendments, shapes, rollback, reapply and legacy endpoint keys.
+- **Validation:** Focused tests: 27 passed. Full suite: 1,140 passed. Exact rollback definitions and column names/order/types (including numeric precision/scale) verified. `openapi-gpt-v3.yaml` and `gpt-instructions-v3.md` unchanged; 30 operations before/after. Historical helper tests preserve obsolete predicates and relax the catalog constraint only inside rolled-back local tests.
+- **Why:** Voided make 1699 leaves product 128 at 3,600 lb in the old inventory_summary despite posted-only stock of 0. Production apply awaits owner approval.
+
+---
+
 ## 2026-09-15 15:33 — Inventory-summary void audit report (read-only, no code or data changes)
 - **File(s) changed:** `audits/reports/inventory-summary-void-audit.md` (new)
 - **What changed:** Wrote the audit of every reader of `inventory_summary` and the other eight views that sum raw `transaction_lines` without excluding voided/amended events. Maps each to its route (five legacy `GET /dashboard/*` endpoints, none called by the dashboard or GPT), shows the live view definitions, the missing `ledger_current_* ... effective_status = 'posted'` filter, and live side-by-side numbers (product 128: view 3,600 lb vs correct 0 lb = voided make #1699; 10 products differ; 57 voided transactions). Ranks the fix: migration 055 redefining the views, schema re-dump, tests, docs. No changelog row in FACTORY_LEDGER_CHANGELOG.md yet; the fix PR takes row #154.
