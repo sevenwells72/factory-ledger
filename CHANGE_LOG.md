@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-15 12:28 — #147 Sweetened coconut pan yield = 360 lb (forward only; NOT DEPLOYED)
+- **File(s) changed:** `main.py`, `tests/test_dashboard_b2.py`, `tests/test_dashboard_production_calendar.py`, `tests/test_production_today_tile.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`, `CONTEXT.md`, `scripts/set_sweetened_coconut_yield.py`, `docs/scheduling/coconut-yield-forward-only.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Calendar now uses the shared per-pan helper; documented multiplier 1.0 for coconut while retaining legitimate yield changes. Replaced coconut fixtures in calendar, batch and today tests; added admin-update/history-preservation and general-yield coverage. Updated five SYSTEM_KNOWLEDGE passages and CONTEXT. Prepared an owner-run API script resolving SKUs 90003/90004/90005 to IDs and setting only yield_multiplier=1.0; not executed.
+- **Validation:** 17 focused tests passed (`test_dashboard_b2.py`, `test_dashboard_production_calendar.py`, `test_production_today_tile.py`); owner-run API script parsed successfully without execution; `git diff --check` clean.
+- **Why:** Owner ruled one sweetened-coconut pan is 360 lb. Historical pounds and trace data remain unchanged; current-metadata displayed pan counts can change. No planner, production_schedule or void/amend changes.
+
+---
+
 ## 2026-09-15 12:40 — S1 amendment: coconut pan weight ruled 360 lb; ledger findings added (docs only)
 - **File(s) changed:** `docs/scheduling/S1-amendment-bake-vs-pack.md`
 - **What changed:** Pan yield for runs is now `products.default_batch_lb` only; `yield_multiplier` is not applied. New §2d records the read-only investigation: 90003/90004/90005 stored at 360 × 1.11, `/make` posts 399.6 per pan, 131 sweetened makes since ~2026-02-17 booked 40,868 lb above the 360 basis, pan counts on every dashboard reader are right because they divide by 399.6, coconut silos have never been physically counted, and re-basing history blind would push 90004 to about −10,300 lb. Open question 2 marked resolved (owner: 360 is the real pan weight); new open question 11 on how to correct the historical coconut batches.

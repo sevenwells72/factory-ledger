@@ -71,13 +71,13 @@ def api_txn(_db_connection, monkeypatch):
 def test_batch_panel_includes_coconut_and_applies_yield(api_txn, db_cursor, monkeypatch):
     _insert_product(
         db_cursor, sku="B2-COCO", name="Batch Coconut Sweetened Flake B2",
-        product_type="batch", default_batch_lb=360, yield_multiplier=1.11,
-        on_hand_lb=4795.2,
+        product_type="batch", default_batch_lb=360, yield_multiplier=1.0,
+        on_hand_lb=4320,
     )
     _insert_product(
         db_cursor, sku="B2-GRA", name="Batch Classic Granola B2",
-        product_type="batch", default_batch_lb=323, yield_multiplier=1.0,
-        on_hand_lb=646,
+        product_type="batch", default_batch_lb=323, yield_multiplier=0.8,
+        on_hand_lb=516.8,
     )
     _insert_product(
         db_cursor, sku="B2-SKIP", name="Batch Uncategorized Mixer B2",
@@ -93,10 +93,10 @@ def test_batch_panel_includes_coconut_and_applies_yield(api_txn, db_cursor, monk
     assert "Batch Coconut Sweetened Flake B2" in by_name
     coco = by_name["Batch Coconut Sweetened Flake B2"]
     assert coco["production_family"] == "coconut"
-    assert coco["yield_multiplier"] == 1.11
+    assert coco["yield_multiplier"] == 1.0
     assert coco["standard_batch_size_lbs"] == 360
-    assert coco["made_unit_size_lbs"] == pytest.approx(399.6)
-    # 4795.2 / 360 = 13.32 without yield; with 1.11x → 12.0 pans
+    assert coco["made_unit_size_lbs"] == pytest.approx(360)
+    # 4320 posted lb / 360 lb per pan = 12.0 pans.
     assert coco["batch_count"] == pytest.approx(12.0)
     assert coco["lots"][0]["batch_count"] == pytest.approx(12.0)
 
@@ -140,3 +140,33 @@ def test_floor_unit_count_never_overstates():
     assert main._floor_unit_count(25.4, 10) == 2
     assert main._floor_unit_count(0, 10) == 0
     assert main._floor_unit_count(50, None) is None
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("sku", ["90003", "90004", "90005"])
+def test_admin_coconut_yield_update_preserves_posted_pounds(
+    api_txn, db_cursor, monkeypatch, sku
+):
+    product_id = _insert_product(
+        db_cursor, sku=sku, name=f"Batch Coconut Sweetened {sku}",
+        product_type="batch", default_batch_lb=360, yield_multiplier=1.11,
+        on_hand_lb=4795.2,
+    )
+    result = main.admin_update_product(
+        product_id, main.ProductUpdate(yield_multiplier=1.0), True,
+    )
+    assert result["changes"] == {"yield_multiplier": 1.0}
+    monkeypatch.setattr(main, "_load_dashboard_config", lambda: {"batch_skus": []})
+    row = next(r for r in main.dashboard_api_batches()["batches"]
+               if r["product_name"] == f"Batch Coconut Sweetened {sku}")
+    assert row["made_unit_size_lbs"] == 360
+    assert row["batch_count"] == pytest.approx(13.3)
+    assert row["on_hand_lbs"] == pytest.approx(4795.2)
+    db_cursor.execute("SELECT quantity_lb FROM transaction_lines WHERE product_id = %s",
+                      (product_id,))
+    assert float(db_cursor.fetchone()["quantity_lb"]) == pytest.approx(4795.2)
+
+
+@pytest.mark.parametrize("multiplier, expected", [(1.2, 120), (0.8, 80), (None, 100)])
+def test_made_unit_retains_legitimate_yield_changes(multiplier, expected):
+    assert main._made_unit_size_lbs(100, multiplier) == expected

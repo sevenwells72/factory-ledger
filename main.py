@@ -15988,7 +15988,11 @@ def _floor_unit_count(qty, size):
 
 
 def _made_unit_size_lbs(base_batch_lb, yield_multiplier):
-    """Finished output weight of one physical batch/pan, including yield gain/loss."""
+    """Output lb per pan from current catalog data, retaining legitimate yield changes.
+
+    Sweetened coconut 90003/90004/90005 uses 360 lb and yield_multiplier=1.0
+    (forward-only catalog correction). Historical posted pounds are not rebased.
+    """
     if not base_batch_lb or float(base_batch_lb) <= 0:
         return None
     y = float(yield_multiplier) if yield_multiplier is not None else 1.0
@@ -16066,10 +16070,8 @@ def dashboard_api_production(
             if r['transaction_type'] == 'make':
                 batch_size = float(r['default_batch_lb']) if r['default_batch_lb'] else None
                 yield_multiplier = float(r['yield_multiplier']) if r['yield_multiplier'] is not None else 1.0
-                # Make lines store finished-output weight. One physical pan/batch is the
-                # base formula weight after yield gain or loss; for hydrated coconut,
-                # that means default_batch_lb * yield_multiplier per finished pan.
-                made_unit_size = batch_size * yield_multiplier if batch_size and yield_multiplier > 0 else None
+                # Current catalog yield: sweetened coconut is 360 lb at multiplier 1.0.
+                made_unit_size = _made_unit_size_lbs(batch_size, yield_multiplier)
                 entry["standard_batch_size_lbs"] = batch_size
                 entry["yield_multiplier"] = yield_multiplier
                 entry["made_unit_size_lbs"] = made_unit_size
@@ -16196,9 +16198,9 @@ def dashboard_api_batches():
     """Batch inventory on-hand for all active production families.
 
     Includes coconut, granola, graham, chips, and sprinkles (classified from
-    product name). Estimated batch/pan counts use default_batch_lb *
-    yield_multiplier so hydrated coconut is not overstated. On-hand remains a
-    posted ledger SUM.
+    product name). Estimated batch/pan counts use the shared current-catalog
+    yield: sweetened coconut is 360 lb at multiplier 1.0. On-hand remains a
+    posted ledger SUM; historical pounds are never rebased.
     """
     config = _load_dashboard_config()
     if not config:
@@ -17081,6 +17083,8 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
             if req.default_batch_lb is not None:
                 updates.append("default_batch_lb = %s")
                 params.append(req.default_batch_lb)
+            # Catalog-only update: 1.0 restores sweetened coconut to 360 lb/pan
+            # for future makes and current-metadata displays; no ledger rewrite.
             if req.yield_multiplier is not None:
                 updates.append("yield_multiplier = %s")
                 params.append(req.yield_multiplier)
@@ -17844,6 +17848,7 @@ def production_today_tile(
             family = _production_family_from_name(product_name)
             total_lb = float(row["total_lb"] or 0)
             if row["transaction_type"] == "make":
+                # Same current-catalog pan basis as the calendar and batch tile.
                 unit_size = _made_unit_size_lbs(row["default_batch_lb"], row["yield_multiplier"])
                 # A missing unit definition must remain visible under Other,
                 # regardless of its classified family; its count is unavailable.

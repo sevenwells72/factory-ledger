@@ -478,7 +478,7 @@ The exact new names are not present in `dashboard_config.json`, so the main Fini
 
 Coconut likewise has raw desiccated coconut ingredients, sweetened batch intermediates, and finished formats/labels. Batch SKUs distinguish Fancy, Flake, Medium, and Toasted. Finished names distinguish pack weights and brand/customer labels such as CNS or foodservice/private-label variants.
 
-Sweetened coconut formulas include water with `exclude_from_inventory=true`. `yield_multiplier=1.11` hydrates the declared output beyond `default_batch_lb`. The calendar calls the derived make unit a “pan”: positive output divided by `default_batch_lb * yield_multiplier`. That UI unit is not stored as a pan record.
+Sweetened coconut formulas include water with `exclude_from_inventory=true`. Owner ruling (2026-09-15): one pan of 90003/90004/90005 is **360 lb**, with `default_batch_lb=360` and `yield_multiplier=1.0`. The forward-only admin product update is prepared, not applied by this PR. After application, future makes post 360 lb per pan and readers divide posted lb by 360. Historical posted pounds and lots remain unchanged; current-metadata pan displays can change. No pan record is stored.
 
 Toasted coconut is modeled as a batch, but the exact real-world boundary between sweetening, cooling, toasting, and a “pan” is not represented by stage events. The standalone planner models those stages more explicitly, but only as planning assumptions.
 
@@ -617,7 +617,7 @@ For 90025/90026, the preview now carries the Kosher Ignition production warning 
 
 ### Coconut production
 
-Coconut sweetening/toasting is also `/make`. Sweetened formula water is excluded from inventory, while `yield_multiplier` increases declared output. The calendar labels the derived count “pans,” even though the ledger stores pounds and a number of requested batches. The standalone planner's coconut cycles and next-day toasted locks do not write this transaction.
+Coconut sweetening/toasting is also `/make`. Sweetened formula water is excluded from inventory. The forward-only catalog correction sets sweetened coconut 90003/90004/90005 to `yield_multiplier=1.0`, so one pan outputs 360 lb; toasted coconut remains 300 lb. No historical corrections are included. The calendar labels the derived count “pans,” even though the ledger stores pounds and a number of requested batches. The standalone planner's coconut cycles and next-day toasted locks do not write this transaction.
 
 ## Pack: source material to target finished SKU
 
@@ -1009,11 +1009,11 @@ The daily family total is the sum of row-derived batch counts. It is calculated 
 ### Made coconut pans
 
 ```text
-declared_output_per_pan_lb = default_batch_lb * yield_multiplier
+declared_output_per_pan_lb = default_batch_lb  # sweetened coconut: 360 lb, multiplier 1.0
 pans_made = round(positive_make_output_lb / declared_output_per_pan_lb)
 ```
 
-The formula is structurally the same as a batch. “Pan” is a display/business term inferred from family; no pan row exists. The multiplier corrects hydrated coconut display relative to the old default-size-only calculation.
+“Pan” is a display/business term inferred from family; no pan row exists. After the prepared catalog update, 4,320 lb is 12 sweetened-coconut pans. Other products retain legitimate yield multipliers. Historical pounds are not corrected: an old 4,795.2-lb make remains 4,795.2 lb, displayed as 13 pans here (rounded from 13.32) on current metadata.
 
 ### Packed cases
 
@@ -1097,6 +1097,8 @@ component_needed_lb = batch_formulas.quantity_lb * requested_batches
 
 **Inputs:** current product batch size/yield, requested batches, current formula rows. **Output:** one positive batch line plus negative component lines. **Source:** `main.py:make`. **Assumptions:** `default_batch_lb` represents base formula weight; multiplier represents finished yield; formula quantities are independently correct. The code does not reconcile the output formula with component sum.
 
+For sweetened coconut 90003/90004/90005, the forward-only catalog update sets the multiplier to 1.0: `make_output_lb = 360 * requested_batches`. The general multiplier formula remains for legitimate yield changes on other products. Historical makes are unchanged.
+
 For an excluded component, `would_need_lb` is calculated but actual inventory consumption is zero. This is how water is represented in hydrated coconut.
 
 ## Production-warning rule
@@ -1156,6 +1158,8 @@ made_unit_size_lb = default_batch_lb * yield_multiplier
 displayed made units = round(total_positive_make_lb / made_unit_size_lb)
 displayed packed cases = round(total_positive_pack_lb / case_size_lb)
 ```
+
+For sweetened coconut 90003/90004/90005, the prepared multiplier-1.0 catalog correction makes `made_unit_size_lb = default_batch_lb = 360`. The calendar, batch-inventory tile and today tile share `_made_unit_size_lbs`; inventory and today counts retain fractions. All use current metadata, without rewriting historical pounds.
 
 The browser sums those already-rounded product values into family/format groups. **Source:** `main.py:dashboard_api_production`; `dashboard/dashboard.js:productionBatchCount`, `productionUnitCount`, `buildProductionDaySummary`. **Assumptions:** current metadata applies historically; product names encode family; `pack_format` is complete for granola.
 
