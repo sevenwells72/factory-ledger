@@ -16109,19 +16109,28 @@ def dashboard_api_finished_goods():
             all_skus.extend(panel.get("skus", []))
 
         with get_transaction() as cur:
-            # Get on-hand per product
+            # Get on-hand per product. Archived products (products.active =
+            # false) are fetched too, so the panel builder below can tell an
+            # archived SKU apart from a config name that matches nothing —
+            # the former is hidden, the latter is still reported as missing.
             cur.execute(f"""
                 SELECT p.id, p.name, COALESCE(p.case_size_lb, p.case_size_lb) as case_size_lb,
+                       COALESCE(p.active, true) AS active,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
                   AND COALESCE(l.status, 'active') = 'active'
                 LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                WHERE COALESCE(p.active, true) = true
-                  AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
+                WHERE LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
                 GROUP BY p.id
             """, (all_skus,))
-            product_rows = {r['name'].lower(): dict(r) for r in cur.fetchall()}
+            product_rows = {}
+            archived_names = set()
+            for r in cur.fetchall():
+                if r['active']:
+                    product_rows[r['name'].lower()] = dict(r)
+                else:
+                    archived_names.add(r['name'].lower())
 
             # Get lot breakdown for all matched products
             matched_ids = [r['id'] for r in product_rows.values()]
@@ -16164,11 +16173,15 @@ def dashboard_api_finished_goods():
                 "title": panel.get("title", ""),
                 "case_weight_lb": panel.get("case_weight_lb"),
                 "products": [],
-                "missing_skus": []
+                "missing_skus": [],
+                "archived_skus": []
             }
             for sku in panel.get("skus", []):
                 prow = product_rows.get(sku.lower())
-                if prow:
+                if sku.lower() in archived_names:
+                    # Archived: never listed, never "missing".
+                    panel_data["archived_skus"].append(sku)
+                elif prow:
                     pid = prow['id']
                     on_hand = float(prow['on_hand_lbs'])
                     case_wt = panel.get("case_weight_lb")
@@ -16183,6 +16196,12 @@ def dashboard_api_finished_goods():
                     panel_data["products"].append(product_entry)
                 else:
                     panel_data["missing_skus"].append(sku)
+            # A panel whose every configured SKU is archived is dropped
+            # outright. A panel with a missing (unmatched) SKU stays, so a
+            # config typo is still surfaced rather than silently hidden.
+            if (panel_data["archived_skus"] and not panel_data["products"]
+                    and not panel_data["missing_skus"]):
+                continue
             # Sort by on_hand descending
             panel_data["products"].sort(key=lambda x: x["on_hand_lbs"], reverse=True)
             result_panels.append(panel_data)
