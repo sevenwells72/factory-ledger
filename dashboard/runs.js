@@ -13,12 +13,13 @@
   const date = (day, weekday=false) => new Intl.DateTimeFormat('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric',...(weekday?{weekday:'long'}:{})}).format(new Date(day+'T12:00:00Z'));
   const explain = (key,text,definition,specifics,cls='') => SOList.trigger(key,esc(text),definition,p(specifics),cls);
   const errors = {
+    PAN_YIELD_REQUIRED:'This recipe has no pan yield. Choose pounds to plan this run.',
     CASE_WEIGHT_REQUIRED:'This product has no case weight. Choose pounds to plan this run.',
-    PRODUCT_NOT_SCHEDULABLE:'This product cannot be scheduled. Choose an active finished product made in the factory.',
+    PRODUCT_NOT_SCHEDULABLE:'This product cannot be scheduled. Choose an active product allowed for this run type.',
     PRODUCT_NOT_FOUND:'This product is no longer available. Search for another product.',
     PRODUCTION_LINE_NOT_FOUND:'That production line was not found. Check the line number or leave it blank.',
-    INVALID_QUANTITY:'Enter a positive quantity that is at least one ten-thousandth of a pound.',
-    INVALID_UNIT:'Choose cases or pounds.', INVALID_DATE:'Choose a valid planned date.',
+    INVALID_QUANTITY:'Enter a positive quantity; pans must be whole numbers.',
+    INVALID_UNIT:'Choose a unit allowed for this run type.', INVALID_DATE:'Choose a valid planned date.',
     INVALID_STATUS:'Choose a valid run status.', INVALID_STATUS_TRANSITION:'Only planned and in-progress runs can be edited here.',
     RUN_NOT_FOUND:'This run could not be found. Close this panel and reload the week.',
     RUN_NOT_EDITABLE:'This run has already ended. Close this panel and reload the week.',
@@ -59,16 +60,19 @@
     }).join('');
     bind($('week-board'));
   }
+  const isBake=r=>['bake','coconut'].includes(r.run_type);
+  const runRules={bake:{types:['batch'],units:['pans','lb']},coconut:{types:['batch'],units:['pans','lb']},pack:{types:['finished'],units:['lb','cases']},other:{types:null,units:['lb','cases']}};
+  const mixedWarning='This line has both bake and pack coverage. Covered pounds may be counted twice until WIP consumption is connected.';
   function row(r) {
     const native=r.planned_qty??r.planned_qty_lb, unit=r.planned_unit||'lb';
-    const conversion=`${n(r.planned_qty_lb)} lb planned.`+(r.case_size_lb_used?` Saved case weight: ${n(r.case_size_lb_used)} lb per case.`:' Entered in pounds.');
+    const conversion=isBake(r)?`${n(r.expected_lb??r.planned_qty_lb)} lb expected.`+(r.planned_unit==='pans'?` Saved pan yield: ${n(r.pan_yield_lb_used)} lb per pan.`:' Entered in pounds.'):`${n(r.planned_qty_lb)} lb planned.`+(r.case_size_lb_used?` Saved case weight: ${n(r.case_size_lb_used)} lb per case.`:' Entered in pounds.');
     const coverage=(r.coverage||[]).map(c=>`${c.order_number}, line ${n(c.sales_order_line_id)}: ${n(c.qty_lb)} lb.`).join(' ')||'No sales order lines linked.';
     return `<div class="run-row" role="row" data-run-id="${r.id}">
-      <div class="run-product-cell" role="cell">${explain('product',r.product_name,'The finished product planned for this run.',date(r.planned_date)+(r.notes?'. '+r.notes:''),'run-product')}</div>
-      <div class="run-quantity-cell" role="cell">${explain('qty',`${n(native)} ${unit}`,'Planned quantity in the unit entered.',conversion,'run-quantity')}</div>
+      <div class="run-product-cell" role="cell">${explain('product',r.product_name,isBake(r)?'The batch recipe planned for this run.':'The product planned for this run.',date(r.planned_date)+(r.notes?'. '+r.notes:''),'run-product')}</div>
+      <div class="run-quantity-cell" role="cell">${explain('qty',`${n(native)} ${unit}`,'Planned quantity in the unit entered.',conversion,'run-quantity')}${isBake(r)?`<small>Expected ${n(r.expected_lb??r.planned_qty_lb)} lb</small>`:''}</div>
       <div class="run-line" role="cell">${esc(r.line_name||r.line_code||(r.line_id?`Line ${n(r.line_id)}`:''))}</div>
       <div class="run-status-cell" role="cell">${explain('status',names[r.status]||'Status unavailable','The run’s scheduling state.',`${names[r.status]||'State unavailable'} for ${date(r.planned_date)}.`+(r.status==='cancelled'&&r.notes?' '+r.notes:''),'status-chip')}</div>
-      <div class="run-coverage-cell" role="cell">${explain('coverage',`covers ${n((r.coverage||[]).length)} lines · ${n(r.covered_lb||0)} lb of ${n(r.planned_qty_lb)} lb`,'Planned pounds linked to sales order lines; this is not inventory.',coverage,'run-coverage')}</div>
+      <div class="run-coverage-cell" role="cell">${explain('coverage',`covers ${n((r.coverage||[]).length)} lines · ${n(r.covered_lb||0)} lb of ${n(r.planned_qty_lb)} lb`,'Planned pounds linked to sales order lines; this is not inventory.',coverage,'run-coverage')}${(r.coverage||[]).some(c=>c.mixed_bake_pack)?`<p class="error">${esc(mixedWarning)}</p>`:''}</div>
       <div class="run-action-cell" role="cell"><button type="button" data-open="${r.id}" aria-label="Open ${esc(r.product_name)} run">Open</button></div>
     </div>`;
   }
@@ -94,6 +98,7 @@
   async function write(route,method,body) { const result=await request(route,method,body); dialog.close(); dialogGeneration++; await load(); return result; }
   function openRun(r) {
     panel(r.product_name,`${explain('plan',`${n(r.planned_qty??r.planned_qty_lb)} ${r.planned_unit||'lb'}`,'Planned production.',`${n(r.planned_qty_lb)} lb on ${date(r.planned_date)}.`)}
+      ${p((r.run_type||'pack')+(r.run_type==='pack'?' · does not consume WIP yet':''))}
       ${p(date(r.planned_date,true)+(r.line_name?' · '+r.line_name:''))}${r.notes?p(r.notes):''}
       ${active(r)?'<div class="run-actions"><button type="button" id="edit-run">Edit run</button><button type="button" id="edit-coverage">Edit coverage</button><button type="button" id="complete-run">Complete</button><button type="button" id="cancel-run">Cancel run</button></div>':p('This run has ended and can no longer be changed.')}`);
     if(active(r)) {
@@ -101,41 +106,55 @@
       $('complete-run').onclick=()=>complete(r); $('cancel-run').onclick=()=>cancel(r);
     }
   }
-  function editRun(r=null) {
-    let product=r?{id:r.product_id,name:r.product_name,case_size_lb:r.case_size_lb_used}:null;
+  function editRun(r=null,chosenType='pack') {
+    const runType=r?.run_type||chosenType, bake=['bake','coconut'].includes(runType), rules=runRules[runType];
+    let product=r?{id:r.product_id,name:r.product_name,case_size_lb:r.case_size_lb_used,default_batch_lb:r.pan_yield_lb_used}:null;
     let searchGeneration=0, timer;
     const gen=panel(r?'Edit run':'New run',`
-      ${r?p(r.product_name):'<label>Finished product<input id="product-search" type="search" autocomplete="off" placeholder="Search product name or SKU"></label><div id="product-results" aria-label="Product matches"></div><p id="product-status" role="status"></p>'}
+      <label>Run type<select id="run-type" ${r?'disabled':''}>${Object.keys(runRules).map(t=>`<option value="${t}" ${t===runType?'selected':''}>${t==='pack'?'Pack — does not consume WIP yet':t[0].toUpperCase()+t.slice(1)}</option>`).join('')}</select></label>
+      ${r?p(r.product_name):'<label>'+(bake?'Recipe':'Product')+'<input id="product-search" type="search" autocomplete="off" placeholder="Search product name or SKU"></label><div id="product-results" aria-label="Product matches"></div><p id="product-status" role="status"></p>'}
       <div class="form-pair"><label>Quantity<input id="planned-qty" type="number" min="0.0001" step="any" required value="${r?esc(r.planned_qty??r.planned_qty_lb):''}"></label>
-      <label>Unit<select id="planned-unit"><option value="lb">lb</option><option value="cases" disabled>cases</option></select></label></div>
+      <label>Unit<select id="planned-unit">${rules.units.map(u=>`<option value="${u}">${u}</option>`).join('')}</select></label></div>
       <p id="case-reason" class="muted"></p>
       <label>Planned date<input id="planned-date" type="date" required value="${r?esc(r.planned_date):start===monday(today())?today():start}"></label>
-      <label>Production line number (optional)<input id="planned-line" type="number" min="1" step="1" value="${r?.line_id??''}"></label>
-      <p class="muted">Leave blank to use the product’s assigned line when creating a run.</p>
       ${r?`<label>Status<select id="planned-status"><option value="planned">Planned</option><option value="in_progress">In progress</option></select></label>`:''}
       <label>Notes<textarea id="planned-notes">${esc(r?.notes||'')}</textarea></label>`,r?'Save changes':'Create run',async()=>{
-        if(!product){$('dialog-error').textContent='Choose a finished product from the search results.';return;}
-        const body={planned_date:$('planned-date').value,line_id:$('planned-line').value?Number($('planned-line').value):null,notes:$('planned-notes').value};
+        if(!product){$('dialog-error').textContent='Choose a product or recipe from the search results.';return;}
+        const body={planned_date:$('planned-date').value,notes:$('planned-notes').value};
         // Omit unchanged native fields on edit: avoid reconverting a historic case weight.
         if(!r||Number($('planned-qty').value)!==Number(r.planned_qty??r.planned_qty_lb)||$('planned-unit').value!==(r.planned_unit||'lb')) {
           body.planned_qty=Number($('planned-qty').value); body.planned_unit=$('planned-unit').value;
         }
-        if(r)body.status=$('planned-status').value;else body.product_id=product.id;
+        if(r)body.status=$('planned-status').value;else {body.product_id=product.id;body.run_type=runType;}
         await write('/production/runs'+(r?'/'+r.id:''),r?'PATCH':'POST',body);
       });
-    explainInput($('planned-qty'),'Production quantity in the chosen unit.','Enter cases or pounds; saved display quantities are rounded to whole numbers.');
+    explainInput($('planned-qty'),'Production quantity in the chosen unit.','Enter whole pans for a recipe, or use the other available units.');
+    $('run-type').onchange=()=>editRun(null,$('run-type').value);
+    function quantityPreview() {
+      const pans=$('planned-unit').value==='pans';
+      $('planned-qty').step=pans?'1':'any'; $('planned-qty').min=pans?'1':'0.0001';
+      const unchanged=r&&Number($('planned-qty').value)===Number(r.planned_qty)&&$('planned-unit').value===r.planned_unit;
+      const panYield=unchanged?r.pan_yield_lb_used:product?.default_batch_lb;
+      if(bake) $('case-reason').textContent=pans?(Number(panYield)>0?`Expected ${n(Number($('planned-qty').value||0)*Number(panYield))} lb · ${n(panYield)} lb per pan`:'Pans unavailable: no pan yield is recorded. Use pounds.'):`Expected ${n(Number($('planned-qty').value||0))} lb`;
+    }
+    $('planned-qty').addEventListener('input',quantityPreview);
+    $('planned-unit').addEventListener('change',quantityPreview);
     function applyProduct(prod,initial=false) {
       product=prod;
       const hasCase=Number(prod?.case_size_lb)>0;
-      $('planned-unit').querySelector('[value="cases"]').disabled=!hasCase;
+      const caseOption=$('planned-unit').querySelector('[value="cases"]'); if(caseOption)caseOption.disabled=!hasCase;
+      const panOption=$('planned-unit').querySelector('[value="pans"]'); if(panOption)panOption.disabled=!(Number(prod?.default_batch_lb)>0);
       if(!hasCase&&$('planned-unit').value==='cases')$('planned-unit').value='lb';
       if(initial&&r)$('planned-unit').value=r.planned_unit||'lb';
+      if(bake&&!r)$('planned-unit').value=Number(prod?.default_batch_lb)>0?'pans':'lb';
       $('case-reason').textContent=hasCase?'':'Cases unavailable: no case weight is recorded for this product. Use pounds.';
       if(!r) {
         $('product-search').value=prod.name; $('product-status').textContent='Selected: '+prod.name; $('product-results').innerHTML='';
-        $('planned-line').value=prod.default_line_id??prod.line_id??'';
+
       }
+      quantityPreview();
     }
+    quantityPreview();
     if(r){
       applyProduct(product,true);$('planned-status').value=r.status;
       request('/products/search?'+new URLSearchParams({q:r.sku||r.product_name,limit:100})).then(data=>{
@@ -147,15 +166,15 @@
     else $('product-search').addEventListener('input',()=>{
       product=null; clearTimeout(timer); const search=++searchGeneration, q=$('product-search').value.trim();
       $('product-results').innerHTML=''; $('product-status').textContent=q?'Searching…':'';
-      $('planned-unit').querySelector('[value="cases"]').disabled=true; $('planned-unit').value='lb';
+      const caseOption=$('planned-unit').querySelector('[value="cases"]'); if(caseOption)caseOption.disabled=true; quantityPreview();
       timer=setTimeout(async()=>{
         if(!q)return;
         try {
           const data=await request('/products/search?'+new URLSearchParams({q,limit:100}));
           if(gen!==dialogGeneration||search!==searchGeneration)return;
-          const products=(data.products||[]).filter(x=>x.type==='finished'&&x.active!==false&&!x.is_service&&!x.no_production);
+          const products=(data.products||[]).filter(x=>(!rules.types||rules.types.includes(x.type))&&x.active!==false&&!x.is_service&&(runType!=='pack'||!x.no_production));
           $('product-results').innerHTML=products.map((x,i)=>`<button type="button" data-product="${i}">${esc(x.name)}</button>`).join('');
-          $('product-status').textContent=products.length?'Choose a matching product.':'No finished products found. Try another name.';
+          $('product-status').textContent=products.length?'Choose a matching product.':'No matching products found. Try another name.';
           $('product-results').querySelectorAll('button').forEach(b=>b.onclick=()=>{searchGeneration++;applyProduct(products[Number(b.dataset.product)]);});
         }catch(e){if(gen===dialogGeneration&&search===searchGeneration)$('product-status').textContent=e.message;}
       },220);
@@ -178,12 +197,12 @@
         '<label>Completion note (optional)<textarea id="completion-note"></textarea></label>',full?'Looks complete — Confirm':'Confirm anyway',()=>write(`/production/runs/${r.id}/complete`,'POST',{note:$('completion-note').value}));
     }catch(e){if(gen===dialogGeneration){$('dialog-content').innerHTML=p(e.message)+'<button type="button" id="retry-evidence">Retry evidence</button>';$('retry-evidence').onclick=()=>complete(r);}}
   }
-  const matchesProduct=(line,r)=>line.product_id!=null?Number(line.product_id)===Number(r.product_id):r.sku?String(line.sku)===String(r.sku):line.product===r.product_name;
+  const matchesProduct=(line,r)=>isBake(r)?(r.coverage_product_ids||[]).map(Number).includes(Number(line.product_id)):line.product_id!=null?Number(line.product_id)===Number(r.product_id):r.sku?String(line.sku)===String(r.sku):line.product===r.product_name;
   async function coverage(r,customer='') {
     const gen=panel('Edit coverage',p('Loading open order lines…'));
     try {
       const data=await request('/sales/orders?'+new URLSearchParams({state:'open',limit:200,...(customer?{customer}:{})}));
-      const candidates=(data.orders||[]).filter(o=>o.state==='open'&&(o.pallet_lines||[]).some(l=>matchesProduct(l,r)));
+      const candidates=(data.orders||[]).filter(o=>o.state==='open'&&(isBake(r)||(o.pallet_lines||[]).some(l=>matchesProduct(l,r))));
       const details=[];
       // Bound concurrency to avoid a burst of detail reads against the shared dashboard service.
       for(let i=0;i<candidates.length;i+=6) {
@@ -191,6 +210,7 @@
         if(gen!==dialogGeneration)return;
       }
       const lines=details.flatMap(o=>o.state==='open'?(o.lines||[]).filter(l=>matchesProduct(l,r)&&!['cancelled','fulfilled'].includes(l.line_status)&&!l.is_non_weight&&Number(l.readiness?.remaining_lb)>0).map(l=>({...l,order_number:o.order_number,remaining:Number(l.readiness.remaining_lb)})):[]);
+      const allRuns=await request('/production/runs'); if(gen!==dialogGeneration)return;
       const saved=new Map((r.coverage||[]).map(c=>[c.sales_order_line_id,c]));
       const retained=(r.coverage||[]).filter(c=>!lines.some(l=>l.line_id===c.sales_order_line_id));
       let items=[...lines.map(l=>({id:l.line_id,order:l.order_number,remaining:l.remaining,qty:saved.get(l.line_id)?.qty_lb||0})),...retained.map(c=>({id:c.sales_order_line_id,order:c.order_number,remaining:null,qty:c.qty_lb}))];
@@ -201,7 +221,7 @@
         (items.length?items.map(item=>`<div class="coverage-item" data-line-id="${item.id}"><label><span>${esc(item.order)} · Line ${n(item.id)}</span><input aria-label="Covered pounds for ${esc(item.order)} line ${item.id}" data-cover="${item.id}" type="number" min="0" step="any" value="${item.qty}"></label>
           ${item.remaining===null?'':explain('remaining',`${n(item.remaining)} lb remaining`,'Pounds this open sales order line still needs.',`${item.order}, line ${n(item.id)}; effective shipments are deducted.`)}
           <p class="error line-error" role="alert"></p></div>`).join(''):p('No open lines for this product in the loaded orders.'))+
-        '<div id="coverage-total"></div>','Save coverage',async()=>{
+        '<p id="coverage-warning" class="error" role="status"></p><div id="coverage-total"></div>','Save coverage',async()=>{
           const values=items.map(item=>({sales_order_line_id:item.id,qty_lb:Number(document.querySelector(`[data-cover="${item.id}"]`).value)}));
           document.querySelectorAll('.line-error').forEach(el=>el.textContent='');
           let invalid=false;
@@ -218,6 +238,9 @@
       function total() {
         SOList.closeExplanation(); const sum=items.reduce((v,item)=>v+Number(document.querySelector(`[data-cover="${item.id}"]`).value||0),0);
         $('coverage-total').innerHTML=explain('total',`${n(sum)} lb of ${n(r.planned_qty_lb)} lb planned`,'Total pounds linked to this run.',`Coverage across ${n(items.filter(item=>Number(document.querySelector(`[data-cover="${item.id}"]`).value)>0).length)} lines.`);
+        const chosen=items.filter(item=>Number(document.querySelector(`[data-cover="${item.id}"]`).value)>0).map(item=>Number(item.id));
+        const mixed=(allRuns.runs||[]).some(other=>other.id!==r.id&&active(other)&&((isBake(r)&&other.run_type==='pack')||(r.run_type==='pack'&&isBake(other)))&&(other.coverage||[]).some(c=>chosen.includes(Number(c.sales_order_line_id))));
+        $('coverage-warning').textContent=mixed?mixedWarning:'';
         bind($('coverage-total'));
       }
       document.querySelectorAll('[data-cover]').forEach(input=>{input.addEventListener('input',total);explainInput(input,'Pounds from this run assigned to this order line.','Enter zero to remove this link.');}); total();

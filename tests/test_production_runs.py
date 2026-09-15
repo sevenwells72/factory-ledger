@@ -115,6 +115,7 @@ def schema(db_cursor):
     carries them from a prod schema dump is fine."""
     _apply(db_cursor, MIGRATION_052)
     _apply(db_cursor, MIGRATION_053)
+    _apply(db_cursor, ROOT / "migrations/054_run_type.sql")
     return db_cursor
 
 
@@ -306,7 +307,7 @@ def _ship_effective(cur, seeded, qty_lb):
 
 
 def _create(client, seeded, *, qty=10, unit="cases", headers=DASH, **extra):
-    body = {"product_id": seeded["product_id"], "planned_qty": qty,
+    body = {"run_type": "pack", "product_id": seeded["product_id"], "planned_qty": qty,
             "planned_unit": unit, "planned_date": PLANNED.isoformat(), **extra}
     resp = client.post("/production/runs", json=body, headers=headers)
     assert resp.status_code == 201, resp.text
@@ -466,7 +467,7 @@ def test_create_in_lb_records_no_case_size(client, schema):
 @pytest.mark.db
 def test_bulk_sku_with_no_case_size_must_be_planned_in_lb(client, schema):
     seeded = _seed(schema, case_size_lb=None)
-    body = {"product_id": seeded["product_id"], "planned_qty": 5,
+    body = {"run_type": "pack", "product_id": seeded["product_id"], "planned_qty": 5,
             "planned_unit": "cases", "planned_date": PLANNED.isoformat()}
     resp = client.post("/production/runs", json=body, headers=DASH)
     assert resp.status_code == 400, resp.text
@@ -483,7 +484,7 @@ def test_bulk_sku_with_no_case_size_must_be_planned_in_lb(client, schema):
 ])
 def test_create_rejects_bad_quantity_or_unit(client, schema, qty, unit, code):
     seeded = _seed(schema)
-    body = {"product_id": seeded["product_id"], "planned_qty": qty,
+    body = {"run_type": "pack", "product_id": seeded["product_id"], "planned_qty": qty,
             "planned_unit": unit, "planned_date": PLANNED.isoformat()}
     resp = client.post("/production/runs", json=body, headers=DASH)
     assert resp.status_code == 422, resp.text
@@ -499,7 +500,7 @@ def test_create_rejects_bad_quantity_or_unit(client, schema, qty, unit, code):
 ])
 def test_create_rejects_products_that_are_not_finished_skus_made_here(client, schema, kwargs, code, status):
     product_id = _product(schema, uuid4().hex[:8], label="X", **kwargs)
-    body = {"product_id": product_id, "planned_qty": 10, "planned_unit": "lb",
+    body = {"run_type": "pack", "product_id": product_id, "planned_qty": 10, "planned_unit": "lb",
             "planned_date": PLANNED.isoformat()}
     resp = client.post("/production/runs", json=body, headers=DASH)
     assert resp.status_code == status, resp.text
@@ -508,7 +509,7 @@ def test_create_rejects_products_that_are_not_finished_skus_made_here(client, sc
 
 @pytest.mark.db
 def test_create_unknown_product_is_404(client, schema):
-    body = {"product_id": 999999999, "planned_qty": 10, "planned_unit": "lb",
+    body = {"run_type": "pack", "product_id": 999999999, "planned_qty": 10, "planned_unit": "lb",
             "planned_date": PLANNED.isoformat()}
     resp = client.post("/production/runs", json=body, headers=DASH)
     assert resp.status_code == 404
@@ -534,7 +535,7 @@ def test_line_defaults_from_the_single_assignment_and_only_then(client, schema):
     # Explicit wins, and must exist.
     assert _create(client, seeded, qty=1, unit="lb", line_id=bulk)["line_id"] == bulk
     resp = client.post("/production/runs", json={
-        "product_id": seeded["product_id"], "planned_qty": 1, "planned_unit": "lb",
+        "run_type": "pack", "product_id": seeded["product_id"], "planned_qty": 1, "planned_unit": "lb",
         "planned_date": PLANNED.isoformat(), "line_id": 999999999}, headers=DASH)
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "PRODUCTION_LINE_NOT_FOUND"
@@ -878,11 +879,11 @@ def test_evidence_none_partial_and_looks_complete(client, schema):
     assert ev["recorded_lb"] == 300.0 and ev["recorded_qty"] == 40.0
     assert [t["transaction_id"] for t in ev["transactions"]] == [t1]
 
-    t2 = _post_output(schema, seeded["product_id"], 450, PLANNED + timedelta(days=1), ttype="make")
+    t2 = _post_output(schema, seeded["product_id"], 450, PLANNED + timedelta(days=1), ttype="pack")
     ev = client.get(url, headers=DASH).json()
     assert ev["suggested_state"] == "looks_complete"
     assert ev["recorded_lb"] == 750.0
-    assert [(t["transaction_id"], t["type"]) for t in ev["transactions"]] == [(t1, "pack"), (t2, "make")]
+    assert [(t["transaction_id"], t["type"]) for t in ev["transactions"]] == [(t1, "pack"), (t2, "pack")]
 
 
 @pytest.mark.db

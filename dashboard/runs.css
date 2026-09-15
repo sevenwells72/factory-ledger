@@ -75,3 +75,5 @@
 }
 
 .runs-page label>span:has(>.so-explanation) { display:contents; }
+
+.runs-page .run-row small { display:block; color:var(--text-muted); font-size:12px; }

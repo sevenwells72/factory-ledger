@@ -6,7 +6,7 @@ import { startStaticServer } from './lib/server.mjs';
 import { CHECK_SOURCE } from './lib/checks.mjs';
 
 const SCREENS = {runs:{path:'/runs.html',region:'#runs-screen'},dialog:{region:'#run-dialog'}};
-const out = path.resolve('docs/design/audit/pr-screenshots/feat-runs-screen');
+const out = path.resolve(process.env.RUNS_AUDIT_OUT || 'docs/design/audit/pr-screenshots/feat-runs-screen');
 await fs.mkdir(out, {recursive:true});
 const server = await startStaticServer(path.resolve('dashboard'));
 const browser = await chromium.launch();
@@ -139,7 +139,8 @@ async function auditRuns() {
       await page.locator('#save-run').click();await page.getByText('This product has no case weight. Choose pounds to plan this run.').waitFor();
       await capture(page,'case-error',width,theme,'#run-dialog');assert.equal(await page.locator('#planned-qty').inputValue(),'60');
       await save();assert.equal(state.runs.at(-1).planned_qty_lb,1500);assert.equal(writes.at(-1).method,'POST');
-      await open(6);await page.locator('#edit-run').click();assert.equal(await page.locator('#planned-line').inputValue(),'1');
+      await open(6);await page.locator('#edit-run').click();assert.equal(await page.locator('#planned-line').count(),0);
+      assert.equal(writes.at(-1).body.run_type,'pack');assert.equal(writes.at(-1).body.line_id,undefined);
       await page.locator('#planned-status').selectOption('in_progress');await page.locator('#planned-notes').fill('Started.');
       await capture(page,'edit',width,theme,'#run-dialog');await save();assert.equal(state.runs.at(-1).status,'in_progress');assert.equal(writes.at(-1).body.planned_qty,undefined,'Unchanged cases must not be reconverted');
       await open(6);await page.locator('#cancel-run').click();await page.locator('#cancel-reason').fill('Moved to tomorrow.');
