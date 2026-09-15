@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-15 15:05 — Archive 6x8 OZ Case SKUs: dashboard hides archived products (code only; ledger write-off and archive not yet run)
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_archived_products_dashboard.py`, `tests/test_archived_products_dashboard.js`
+- **What changed:** `/dashboard/api/inventory/finished-goods` now fetches archived products (`products.active = false`) as well, hides them from `products` and `missing_skus`, lists them in a new `archived_skus` field, and drops a panel whose configured SKUs are all archived; a panel with an unmatched SKU name is kept so a config typo stays visible. `renderFinishedGoodsPanels` mirrors the drop client-side. dashboard.js cache-bust 63 → 64. Five new tests (4 DB, 1 node). No migration: `products.active` already exists and `PUT /admin/products/{id}` already toggles it. Branch `feat/archive-6x8-skus`; does not touch allocation, void, or trace paths.
+- **Why:** Blubber ruled 2026-09-15 that the PB Banana 6x8 stock (2,406 lb on lot SW2607708 = 802 × 3 lb cases, product 209 / odoo 70088) is not physically present and all four 6x8 OZ Case SKUs (206–209, odoo 70085–70088) are discontinued. The write-off adjustment and the four archive flips are NOT run yet: `/adjust` has no actor plumbing (writes `operator_id` default `legacy-shared-key`) and rejects actor keys (not on `DASHBOARD_KEY_ALLOWLIST`), so the requested attribution to Blubber's actor key is not possible on the existing path; awaiting the owner's choice between posting with the master key now or adding actor attribution to `/adjust` first.
+
+---
+
 ## 2026-09-15 12:46 — S1 run types validated for PR
 - **File(s) changed:** `tests/test_run_types.py`, `tests/visual/run-run-types.mjs`, `docs/scheduling/S1-run-types-delivery.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Corrected the Q8 fixture for the actual SKU index and synchronized the browser test with metadata refresh. Full suite: 1118 passed. Both browser suites pass desktop/mobile light/dark; 30 GPT operations unchanged.

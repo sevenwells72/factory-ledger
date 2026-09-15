@@ -1118,6 +1118,12 @@
     const panels = data.panels || [];
     let html = '';
     for (const panel of panels) {
+      // Archived SKUs are never sent by the API; a panel left with nothing
+      // active and nothing missing is dropped rather than rendered empty.
+      const archivedOnly = (panel.archived_skus || []).length > 0
+        && (panel.products || []).length === 0
+        && (panel.missing_skus || []).length === 0;
+      if (archivedOnly) continue;
       const panelId = 'fg-' + panel.id;
       const expanded = isPanelExpanded(panelId);
       html += `<div class="collapsible-header${expanded ? ' expanded' : ''}" data-panel="${panelId}">`;
