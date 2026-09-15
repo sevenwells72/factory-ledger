@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-15 11:55 — Draft S1 amendment: bake vs pack runs (docs only, NOT DEPLOYED)
+- **File(s) changed:** `docs/scheduling/S1-amendment-bake-vs-pack.md` (new)
+- **What changed:** New design draft amending scheduling S1: `run_type` (bake, pack, coconut, other) on `production_runs`; bake/coconut runs yield a batch product planned in pans with expected lb from `products.default_batch_lb × yield_multiplier` (survey found no other per-pan yield to reuse; `_ORDERS_MATRIX_PAN_YIELD` and the standalone board catalog are drifted duplicates); WIP = the existing batch product, no new rows; routing-based coverage on bake runs (soft, Health v3 unchanged); pack runs defined but WIP consumption deferred to S2 with a list of what S1 must not add; production-line field removed from the form with server-side inference; migration 054 plan (additive, 0 prod rows, rollback). Ends with a plain-English summary and 10 owner questions.
+- **Why:** Owner asked for a written amendment before any code: the floor plans bakes in pans of a recipe, not cases of a finished SKU. No code, no migration, `feat/planner-v2` and `production_schedule` untouched.
+
+---
+
 ## 2026-09-14 — Runs navigation and audit status (NOT DEPLOYED)
 
 - **Files changed:** `dashboard/index.html`, `dashboard/runs.html`, `docs/design/audit/pr-screenshots/feat-runs-screen/delivery-status.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`.
