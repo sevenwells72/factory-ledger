@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict RzKislu2ofB4o1XiV26XMpEswieuXvDRXZGaRguJehgARPCshb9FcB4t9f3cjWK
+\restrict azBVZmL35GAAo3ke4ni4NN2rHWVeuV1Wpd8G2NCsdII4WC4OGVm8GoR2EasWAAh
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -1721,10 +1721,14 @@ CREATE TABLE public.production_runs (
     created_by text,
     updated_by text,
     completed_by text,
+    run_type text DEFAULT 'pack'::text NOT NULL,
+    pan_yield_lb_used numeric(14,4),
     CONSTRAINT production_runs_case_size_lb_used_check CHECK (((case_size_lb_used IS NULL) OR (case_size_lb_used > (0)::numeric))),
+    CONSTRAINT production_runs_pan_yield_lb_used_check CHECK (((pan_yield_lb_used IS NULL) OR (pan_yield_lb_used > (0)::numeric))),
     CONSTRAINT production_runs_planned_qty_check CHECK (((planned_qty IS NULL) OR (planned_qty > (0)::numeric))),
     CONSTRAINT production_runs_planned_qty_lb_check CHECK ((planned_qty_lb > (0)::numeric)),
-    CONSTRAINT production_runs_planned_unit_check CHECK (((planned_unit IS NULL) OR (planned_unit = ANY (ARRAY['cases'::text, 'lb'::text])))),
+    CONSTRAINT production_runs_planned_unit_check CHECK (((planned_unit IS NULL) OR (planned_unit = ANY (ARRAY['cases'::text, 'lb'::text, 'pans'::text])))),
+    CONSTRAINT production_runs_run_type_check CHECK ((run_type = ANY (ARRAY['bake'::text, 'pack'::text, 'coconut'::text, 'other'::text]))),
     CONSTRAINT production_runs_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'in_progress'::text, 'done'::text, 'cancelled'::text])))
 );
 
@@ -4805,5 +4809,5 @@ ALTER TABLE public.migration_markers ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict RzKislu2ofB4o1XiV26XMpEswieuXvDRXZGaRguJehgARPCshb9FcB4t9f3cjWK
+\unrestrict azBVZmL35GAAo3ke4ni4NN2rHWVeuV1Wpd8G2NCsdII4WC4OGVm8GoR2EasWAAh
 

@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-09-15 12:46 — S1 run types validated for PR
+- **File(s) changed:** `tests/test_run_types.py`, `tests/visual/run-run-types.mjs`, `docs/scheduling/S1-run-types-delivery.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Corrected the Q8 fixture for the actual SKU index and synchronized the browser test with metadata refresh. Full suite: 1118 passed. Both browser suites pass desktop/mobile light/dark; 30 GPT operations unchanged.
+- **Why:** Final verification before committing and opening the requested PR; application deployment remains pending merge.
+
+---
+
+## 2026-09-15 12:44 — Applied migration 054 and Q8 line assignments
+- **File(s) changed:** `tests/schema/schema.sql`, `docs/scheduling/S1-run-types-delivery.md`, `FACTORY_LEDGER_CHANGELOG.md`, `main.py`, `dashboard/runs.js`, `tests/test_run_types.py`, `tests/visual/run-run-types.mjs`
+- **What changed:** Applied migration and three assignments on production port 5432; verified marker/rows; refreshed schema dump. Documented rollout and interpretations; finalized tests and saved-yield display.
+- **Why:** Spec requires the additive migration before code merges. API/UI are not deployed.
+
+---
+
+## 2026-09-15 12:43 — S1 run-type form, daily rows and regression coverage
+- **File(s) changed:** `main.py`, `dashboard/runs.js`, `dashboard/runs.css`, `dashboard/runs.html`, `tests/test_production_runs.py`, `tests/test_run_types.py`, `tests/visual/run-runs-interactions.mjs`, `tests/visual/run-run-types.mjs`
+- **What changed:** Added recipe/pans/expected-pound form, removed line input, preserved saved yields, routed coverage choices and cross-week mixed coverage warning; added API/migration and browser tests. API, Health and lock-order regression checks pass; browser QA ongoing.
+- **Why:** Implement the owner decisions and preserve scheduling/inventory separation.
+
+---
+
+## 2026-09-15 12:39 — S1 bake/pack/coconut/other run types
+- **File(s) changed:** `main.py`, `migrations/054_run_type.sql`, `migrations/down/054_run_type_down.sql`, `scripts/s1_batch_line_assignments.sql`
+- **What changed:** Implement required immutable run types, whole-pan conversion with saved yield, routing coverage, line inference, typed evidence, derived uncovered pounds, additive migration and guarded rollback.
+- **Why:** Owner-approved S1 amendment; no inventory or Health writes. Validation and deployment pending.
+
+---
+
 ## 2026-09-15 12:28 — #147 Sweetened coconut pan yield = 360 lb (forward only; NOT DEPLOYED)
 - **File(s) changed:** `main.py`, `tests/test_dashboard_b2.py`, `tests/test_dashboard_production_calendar.py`, `tests/test_production_today_tile.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`, `CONTEXT.md`, `scripts/set_sweetened_coconut_yield.py`, `docs/scheduling/coconut-yield-forward-only.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Calendar now uses the shared per-pan helper; documented multiplier 1.0 for coconut while retaining legitimate yield changes. Replaced coconut fixtures in calendar, batch and today tests; added admin-update/history-preservation and general-yield coverage. Updated five SYSTEM_KNOWLEDGE passages and CONTEXT. Prepared an owner-run API script resolving SKUs 90003/90004/90005 to IDs and setting only yield_multiplier=1.0; not executed.

@@ -18133,16 +18133,14 @@ def production_day_summary(
 
 
 # ═══════════════════════════════════════════════════════════════
-# PRODUCTION RUNS — scheduling S1 (migration 053)
+# PRODUCTION RUNS — scheduling S1 (migrations 053 / 054)
 # docs/design/scheduling-spec-draft.md
 #
-# A run is one FINISHED SKU, one planned quantity, on one day. Coverage links
-# pounds of a run to individual sales_order_lines. That is the whole model:
-# no shifts, no capacity, no batch→finished routing, no run_kind/stage.
+# A run plans a recipe or product on one day. Bake/coconut coverage follows
+# batch routing; pack/other coverage uses product equality. No inventory writes.
 #
 # Hard rules enforced here:
-#   * Nothing in this block is read by Health, readiness, availability or any
-#     existing endpoint. S1 changes nothing the dashboard sees; S2 reads
+#   * Health reads active run coverage as intent, never availability. S2 reads
 #     run_coverage into SALES_ORDER_READINESS_SQL.
 #   * Completing a run creates NO inventory, satisfies NO sales order and sets
 #     NO Ready-to-Ship flag. It is a human's statement that the run happened;
@@ -18150,10 +18148,9 @@ def production_day_summary(
 #     done, actual ledger data governs (S2). A completed run never masks a
 #     shortage.
 #   * Units: planned_qty_lb is canonical (owner ruling 2026-09-14, option 3).
-#     The run also records planned_qty + planned_unit ('cases' | 'lb') as the
-#     floor stated it, and case_size_lb_used — the products.case_size_lb the
-#     conversion multiplied by, exactly as order intake does. A SKU with no
-#     case size must be planned in lb. run_coverage is pounds only.
+#     Native cases/lb/pans and the case or pan multiplier are saved for audit.
+#     Pans use default_batch_lb, never yield_multiplier; whole pans only.
+#     run_coverage remains finished pounds, ignoring add-ins in this phase.
 #   * Locks: coverage writes take sales_orders (ascending id) → those orders'
 #     sales_order_lines (ascending) → the production_runs row, all FOR NO KEY
 #     UPDATE. Run-only writes take only the run row. NO path here locks a
@@ -18169,7 +18166,14 @@ def production_day_summary(
 
 PRODUCTION_RUN_STATUSES = ("planned", "in_progress", "done", "cancelled")
 PRODUCTION_RUN_ACTIVE_STATUSES = ("planned", "in_progress")
-PRODUCTION_RUN_UNITS = ("cases", "lb")
+PRODUCTION_RUN_TYPES = ("bake", "pack", "coconut", "other")
+PRODUCTION_RUN_UNITS = ("cases", "lb", "pans")
+PRODUCTION_RUN_RULES = {
+    "bake": {"types": ("batch",), "units": ("pans", "lb")},
+    "coconut": {"types": ("batch",), "units": ("pans", "lb")},
+    "pack": {"types": ("finished",), "units": ("cases", "lb")},
+    "other": {"types": None, "units": ("lb", "cases")},
+}
 # Evidence window: posted make/pack output for the run's product with
 # business_date within this many days either side of planned_date.
 PRODUCTION_RUN_EVIDENCE_WINDOW_DAYS = 1
@@ -18178,6 +18182,7 @@ PRODUCTION_RUN_EVIDENCE_WINDOW_DAYS = 1
 class ProductionRunCreate(BaseModel):
     """POST /production/runs. planned_qty is in planned_unit; the API stores
     the canonical pounds alongside the native quantity."""
+    run_type: Literal["bake", "pack", "coconut", "other"]
     product_id: int
     planned_qty: float
     planned_unit: str = "lb"
@@ -18190,6 +18195,9 @@ class ProductionRunUpdate(BaseModel):
     """PATCH body. Omitted fields are untouched; line_id / notes sent as null
     are cleared. status may only move between 'planned' and 'in_progress' —
     done and cancelled have their own endpoints."""
+    class Config:
+        extra = "forbid"
+
     planned_qty: Optional[float] = None
     planned_unit: Optional[str] = None
     planned_date: Optional[date] = None
@@ -18234,9 +18242,10 @@ def _run_lb(value) -> Decimal:
     return to_decimal(value)
 
 
-def _run_quantity_lb(product: dict, planned_qty, planned_unit: str) -> tuple:
-    """(planned_qty_lb, case_size_lb_used) for a quantity in the given unit.
+def _run_quantity_lb(product: dict, planned_qty, planned_unit: str, run_type="pack") -> tuple:
+    """(planned_qty_lb, case_size_lb_used, pan_yield_lb_used) for the native unit.
 
+    'pans' requires whole pans and uses default_batch_lb without yield_multiplier.
     'lb' passes through. 'cases' multiplies by products.case_size_lb — the
     same lookup order intake performs (CASE_WEIGHT_REQUIRED when the product
     has none) — and records the multiplier so the conversion is auditable.
@@ -18252,11 +18261,21 @@ def _run_quantity_lb(product: dict, planned_qty, planned_unit: str) -> tuple:
         _run_error("INVALID_QUANTITY", "planned_qty must be a positive number",
                    status_code=422)
     unit = (planned_unit or "lb").strip().lower()
-    if unit not in PRODUCTION_RUN_UNITS:
+    if unit not in PRODUCTION_RUN_RULES[run_type]["units"]:
         _run_error("INVALID_UNIT",
-                   f"planned_unit must be one of {', '.join(PRODUCTION_RUN_UNITS)}",
+                   f"{run_type} planned_unit must be one of {', '.join(PRODUCTION_RUN_RULES[run_type]['units'])}",
                    status_code=422, input=str(planned_unit))
-    if unit == "lb":
+    pan_yield = None
+    if unit == "pans":
+        if not qty.is_integer():
+            _run_error("INVALID_QUANTITY", "Pans must be whole numbers", status_code=422)
+        pan_yield = product.get("default_batch_lb")
+        if pan_yield is None or not math.isfinite(float(pan_yield)) or pan_yield <= 0:
+            _run_error("PAN_YIELD_REQUIRED", "Recipe has no default_batch_lb; plan in lb",
+                       status_code=400, product_id=product.get("id"))
+        planned_lb = _run_lb(Decimal(str(qty)) * Decimal(str(pan_yield)))
+        case_size = None
+    elif unit == "lb":
         planned_lb, case_size = _run_lb(qty), None
     else:
         case_size = float(product.get("case_size_lb") or 0)
@@ -18271,16 +18290,16 @@ def _run_quantity_lb(product: dict, planned_qty, planned_unit: str) -> tuple:
         _run_error("INVALID_QUANTITY",
                    "planned_qty is below 0.0001 lb, the smallest quantity a run can store",
                    status_code=422)
-    return planned_lb, case_size
+    return planned_lb, case_size, pan_yield
 
 
-def _load_schedulable_product(cur, product_id: int) -> dict:
-    """The product a run may yield: an active finished SKU that the factory
-    produces. 404 when missing, 400 PRODUCT_NOT_SCHEDULABLE otherwise, with
+def _load_schedulable_product(cur, product_id: int, run_type="pack") -> dict:
+    """Validate the active non-service product against the run-type rules.
+    404 when missing, 400 PRODUCT_NOT_SCHEDULABLE otherwise, with
     the reason spelled out. Read unlocked — a product row is reference data
     here and is never locked by this block."""
     cur.execute(
-        """SELECT id, name, odoo_code, type, case_size_lb,
+        """SELECT id, name, odoo_code, type, case_size_lb, default_batch_lb, pack_format,
                   COALESCE(active, true) AS active,
                   COALESCE(no_production, false) AS no_production,
                   COALESCE(is_service, false) AS is_service
@@ -18297,21 +18316,22 @@ def _load_schedulable_product(cur, product_id: int) -> dict:
         reason = "is inactive"
     elif product["is_service"]:
         reason = "is a service item, not inventory"
-    elif product["type"] != "finished":
-        reason = f"is type '{product['type']}'; a run is one finished SKU"
-    elif product["no_production"]:
+    elif (PRODUCTION_RUN_RULES[run_type]["types"] is not None
+          and product["type"] not in PRODUCTION_RUN_RULES[run_type]["types"]):
+        reason = f"is type '{product['type']}', which is not allowed"
+    elif run_type == "pack" and product["no_production"]:
         reason = "is flagged no_production (resale, not made here)"
     if reason:
         _run_error("PRODUCT_NOT_SCHEDULABLE",
-                   f"'{product['name']}' {reason}", status_code=400,
+                   f"'{product['name']}' {reason} for a {run_type} run", status_code=400,
                    product_id=product_id)
     return product
 
 
-def _resolve_run_line_id(cur, product_id: int, line_id) -> Optional[int]:
+def _resolve_run_line_id(cur, product_id: int, line_id, run_type="pack", pack_format=None) -> Optional[int]:
     """An explicit line_id must exist; otherwise default from
-    product_line_assignments when the product has exactly one, else NULL. A
-    label for the board, not a capacity input."""
+    product_line_assignments when the product has exactly one, then run-type
+    fallback by line_code, else NULL. A board label, not a capacity input."""
     if line_id is not None:
         cur.execute("SELECT id FROM production_lines WHERE id = %s", (int(line_id),))
         if not cur.fetchone():
@@ -18326,6 +18346,13 @@ def _resolve_run_line_id(cur, product_id: int, line_id) -> Optional[int]:
     rows = cur.fetchall()
     if len(rows) == 1:
         return int(rows[0]["line_id"])
+    code = {"bake": "granola", "coconut": "coconut"}.get(run_type)
+    if run_type == "pack":
+        code = "pouch" if pack_format == "bagged" else "bulk_pack" if pack_format in ("10lb", "25lb") else None
+    if code:
+        cur.execute("SELECT id FROM production_lines WHERE line_code = %s", (code,))
+        row = cur.fetchone()
+        return int(row["id"]) if row else None
     return None
 
 
@@ -18335,7 +18362,7 @@ def _lock_production_run(cur, run_id: int) -> dict:
     the right one for the same reason it is on sales_orders."""
     cur.execute(
         """SELECT id, product_id, planned_qty_lb, planned_qty, planned_unit,
-                  case_size_lb_used, planned_date, line_id, status, notes
+                  case_size_lb_used, pan_yield_lb_used, run_type, planned_date, line_id, status, notes
              FROM production_runs WHERE id = %s
               FOR NO KEY UPDATE""",
         (run_id,),
@@ -18387,9 +18414,15 @@ def _serialize_production_run(row: dict, coverage: list) -> dict:
         "line_name": row.get("line_name"),
         "status": row["status"],
         "notes": row.get("notes"),
+        "run_type": row["run_type"],
+        "pan_yield_lb_used": float(row["pan_yield_lb_used"]) if row.get("pan_yield_lb_used") is not None else None,
+        **({"expected_lb": float(row["planned_qty_lb"])} if row["run_type"] in ("bake", "coconut") else {}),
+        "uncovered_lb": float(_run_lb(row["planned_qty_lb"]) - sum((_run_lb(c["qty_lb"]) for c in coverage), Decimal("0"))),
+        "coverage_product_ids": row.get("coverage_product_ids", [row["product_id"]]),
         "covered_lb": covered,
         "coverage": [
             {
+                "mixed_bake_pack": bool(c.get("mixed_bake_pack")),
                 "coverage_id": c["id"],
                 "sales_order_line_id": c["sales_order_line_id"],
                 "sales_order_id": c["sales_order_id"],
@@ -18417,7 +18450,13 @@ PRODUCTION_RUN_SELECT_SQL = """
 
 RUN_COVERAGE_SELECT_SQL = """
     SELECT rc.id, rc.run_id, rc.sales_order_line_id, rc.qty_lb,
-           sol.sales_order_id, so.order_number
+           sol.sales_order_id, so.order_number,
+           (EXISTS (SELECT 1 FROM run_coverage x JOIN production_runs rx ON rx.id=x.run_id
+                    WHERE x.sales_order_line_id=rc.sales_order_line_id
+                      AND rx.status IN ('planned','in_progress') AND rx.run_type IN ('bake','coconut'))
+            AND EXISTS (SELECT 1 FROM run_coverage x JOIN production_runs rx ON rx.id=x.run_id
+                    WHERE x.sales_order_line_id=rc.sales_order_line_id
+                      AND rx.status IN ('planned','in_progress') AND rx.run_type='pack')) AS mixed_bake_pack
       FROM run_coverage rc
       JOIN sales_order_lines sol ON sol.id = rc.sales_order_line_id
       JOIN sales_orders so ON so.id = sol.sales_order_id
@@ -18439,6 +18478,19 @@ def _fetch_production_runs(cur, where_sql: str, params: list) -> list:
     by_run: dict = defaultdict(list)
     for c in cur.fetchall():
         by_run[c["run_id"]].append(dict(c))
+    batch_ids = list({r["product_id"] for r in runs if r["run_type"] in ("bake", "coconut")})
+    routes = defaultdict(list)
+    if batch_ids:
+        cur.execute("""SELECT DISTINCT p.id, b.id AS batch_id FROM products p
+                       JOIN products b ON b.id = ANY(%s) AND b.type = 'batch'
+                       WHERE p.type = 'finished' AND (p.parent_batch_product_id = b.id
+                         OR EXISTS (SELECT 1 FROM product_bom pb
+                            WHERE pb.finished_product_id=p.id AND pb.component_product_id=b.id))""", (batch_ids,))
+        for route in cur.fetchall():
+            routes[route["batch_id"]].append(route["id"])
+    for r in runs:
+        if r["run_type"] in ("bake", "coconut"):
+            r["coverage_product_ids"] = routes[r["product_id"]]
     return [_serialize_production_run(r, by_run.get(r["id"], [])) for r in runs]
 
 
@@ -18463,11 +18515,14 @@ def list_production_runs(
     to_date: Optional[date] = Query(None, alias="to", description="planned_date <= (YYYY-MM-DD)"),
     status: Optional[str] = Query(None, description="planned | in_progress | done | cancelled"),
     product: Optional[int] = Query(None, description="product id"),
+    run_type: Optional[Literal["bake", "pack", "coconut", "other"]] = Query(None),
     _: bool = Depends(verify_api_key),
 ):
     """Runs in planned_date order, each with its coverage rows. Read-only, no
     locks. Derived Health/coverage fields belong to S2, not here."""
     clauses, params = [], []
+    if run_type is not None:
+        clauses.append("r.run_type = %s"); params.append(run_type)
     if from_date is not None:
         clauses.append("r.planned_date >= %s"); params.append(from_date)
     if to_date is not None:
@@ -18494,20 +18549,20 @@ def create_production_run(req: ProductionRunCreate, request: Request,
     .../coverage so that this path never enters the sales-order lock graph."""
     tag = caller_source_tag(request)
     with get_transaction() as cur:
-        product = _load_schedulable_product(cur, req.product_id)
-        planned_lb, case_size_used = _run_quantity_lb(product, req.planned_qty, req.planned_unit)
-        line_id = _resolve_run_line_id(cur, product["id"], req.line_id)
+        product = _load_schedulable_product(cur, req.product_id, req.run_type)
+        planned_lb, case_size_used, pan_yield = _run_quantity_lb(product, req.planned_qty, req.planned_unit, req.run_type)
+        line_id = _resolve_run_line_id(cur, product["id"], req.line_id, req.run_type, product.get("pack_format"))
         notes = _append_run_note(None, req.notes)
         cur.execute(
             """INSERT INTO production_runs
                    (product_id, planned_qty_lb, planned_qty, planned_unit,
                     case_size_lb_used, planned_date, line_id, status, notes,
-                    created_by, updated_by)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, 'planned', %s, %s, %s)
+                    created_by, updated_by, run_type, pan_yield_lb_used)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, 'planned', %s, %s, %s, %s, %s)
                RETURNING id""",
             (product["id"], planned_lb, float(req.planned_qty),
              (req.planned_unit or "lb").strip().lower(), case_size_used,
-             req.planned_date, line_id, notes, tag, tag),
+             req.planned_date, line_id, notes, tag, tag, req.run_type, pan_yield),
         )
         run_id = cur.fetchone()["id"]
         run = _fetch_production_run(cur, run_id)
@@ -18544,12 +18599,12 @@ def update_production_run(run_id: int, req: ProductionRunUpdate, request: Reques
                     status_code=422, input=str(new_status))
             sets.append("status = %s"); params.append(new_status)
         if "planned_qty" in data or "planned_unit" in data:
-            cur.execute("SELECT id, name, case_size_lb FROM products WHERE id = %s",
+            cur.execute("SELECT id, name, case_size_lb, default_batch_lb FROM products WHERE id = %s",
                         (run["product_id"],))
             product = dict(cur.fetchone())
             qty = data.get("planned_qty", run["planned_qty"])
             unit = data.get("planned_unit", run["planned_unit"]) or "lb"
-            planned_lb, case_size_used = _run_quantity_lb(product, qty, unit)
+            planned_lb, case_size_used, pan_yield = _run_quantity_lb(product, qty, unit, run["run_type"])
             # Both sides are at numeric(14,4) precision, so the comparison
             # is exact: the plan that is validated is the plan that is stored.
             covered = _run_coverage_total(cur, run_id)
@@ -18561,8 +18616,8 @@ def update_production_run(run_id: int, req: ProductionRunUpdate, request: Reques
                            run_id=run_id, covered_lb=float(covered),
                            planned_qty_lb=float(planned_lb))
             sets += ["planned_qty_lb = %s", "planned_qty = %s", "planned_unit = %s",
-                     "case_size_lb_used = %s"]
-            params += [planned_lb, float(qty), unit.strip().lower(), case_size_used]
+                     "case_size_lb_used = %s", "pan_yield_lb_used = %s"]
+            params += [planned_lb, float(qty), unit.strip().lower(), case_size_used, pan_yield]
         if "planned_date" in data:
             if data["planned_date"] is None:
                 _run_error("INVALID_DATE", "planned_date cannot be null", status_code=422)
@@ -18618,11 +18673,11 @@ def _run_evidence(cur, run: dict) -> dict:
               JOIN ledger_current_transactions t ON t.id = tl.transaction_id
              WHERE tl.product_id = %s
                AND tl.quantity_lb > 0
-               AND t.type IN ('make', 'pack')
+               AND t.type = ANY(%s)
                AND t.business_date BETWEEN %s AND %s
              GROUP BY t.id, t.type, t.business_date
              ORDER BY t.business_date, t.id""",
-        (run["product_id"], win_from, win_to),
+        (run["product_id"], ["make"] if run["run_type"] in ("bake", "coconut") else ["pack"] if run["run_type"] == "pack" else ["make", "pack"], win_from, win_to),
     )
     transactions = [
         {"transaction_id": r["transaction_id"], "type": r["type"],
@@ -18638,7 +18693,7 @@ def _run_evidence(cur, run: dict) -> dict:
         suggested = "looks_complete"
     else:
         suggested = "partial"
-    case_size = run.get("case_size_lb_used")
+    case_size = run.get("pan_yield_lb_used") if run.get("planned_unit") == "pans" else run.get("case_size_lb_used")
     return {
         "run_id": run["id"],
         "product_id": run["product_id"],
@@ -18812,9 +18867,19 @@ def put_production_run_coverage(run_id: int, req: RunCoverageReplace, request: R
                     _run_error("LINE_NOT_OPEN",
                                f"Line #{lid} on order {line['order_number']} is '{line['line_status']}'",
                                sales_order_line_id=lid, line_status=line["line_status"])
-                if int(line["product_id"]) != int(run["product_id"]):
+                matches = int(line["product_id"]) == int(run["product_id"])
+                if run["run_type"] in ("bake", "coconut"):
+                    cur.execute("""SELECT 1 FROM products p JOIN products b ON b.id=%s AND b.type='batch'
+                                   WHERE p.id=%s AND p.type='finished' AND
+                                     (p.parent_batch_product_id=b.id OR EXISTS
+                                      (SELECT 1 FROM product_bom pb WHERE pb.finished_product_id=p.id
+                                       AND pb.component_product_id=b.id))""",
+                                (run["product_id"], line["product_id"]))
+                    matches = cur.fetchone() is not None
+                if not matches:
                     _run_error("LINE_PRODUCT_MISMATCH",
-                               f"Line #{lid} is for '{line['product_name']}', not the run's product",
+                               ("line's product is not packed from this batch" if run["run_type"] in ("bake", "coconut")
+                                else f"Line #{lid} is for '{line['product_name']}', not the run's product"),
                                sales_order_line_id=lid, line_product_id=line["product_id"],
                                run_product_id=run["product_id"])
                 remaining = max(0.0, float(line["ordered_lb"] or 0) - float(line["shipped_effective_lb"] or 0))
