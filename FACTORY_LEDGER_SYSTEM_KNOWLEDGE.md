@@ -400,7 +400,7 @@ Key/value configuration used by the API scheduler for workforce, horizon, Friday
 
 ## Legacy views and duplicated meanings
 
-Views such as `inventory_summary`, `lot_balances`, `low_stock_alerts`, `production_history`, `todays_transactions`, and `v_lot_quantities` query raw transaction tables. Some use obsolete values (`products.type='finished_good'`, `transactions.type='production'`) that cannot match current catalog/application enums. Five legacy `/dashboard/*` endpoints consume these views. They are not the main static dashboard APIs and are not correction-aware.
+The nine legacy views (`inventory_summary`, `lot_balances`, `low_stock_alerts`, `production_history`, `todays_transactions`, `v_lot_quantities`, `v_batch_products_needing_setup`, `v_products_missing_boms`, and `v_test_batches_for_review`) are correction-aware as of migration 055: they use `ledger_current_*` and only posted events. Migration 055 was applied to production 2026-09-15 21:51:42 UTC (17:51:42 ET). Their only application readers remain the five legacy `/dashboard/*` endpoints; the static dashboard and GPT do not call those endpoints. The three helper views retain obsolete `production` / `finished_good` predicates where present. `todays_transactions` uses the New York business date (Part B).
 
 Duplicated concepts that require care:
 
