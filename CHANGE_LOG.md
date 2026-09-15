@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-09-15 12:40 — S1 amendment: coconut pan weight ruled 360 lb; ledger findings added (docs only)
+- **File(s) changed:** `docs/scheduling/S1-amendment-bake-vs-pack.md`
+- **What changed:** Pan yield for runs is now `products.default_batch_lb` only; `yield_multiplier` is not applied. New §2d records the read-only investigation: 90003/90004/90005 stored at 360 × 1.11, `/make` posts 399.6 per pan, 131 sweetened makes since ~2026-02-17 booked 40,868 lb above the 360 basis, pan counts on every dashboard reader are right because they divide by 399.6, coconut silos have never been physically counted, and re-basing history blind would push 90004 to about −10,300 lb. Open question 2 marked resolved (owner: 360 is the real pan weight); new open question 11 on how to correct the historical coconut batches.
+- **Why:** Owner ruling on the coconut pan weight; the doc must not hard-code the 1.11 error into run planning.
+
+---
+
+## 2026-09-15 11:55 — Draft S1 amendment: bake vs pack runs (docs only, NOT DEPLOYED)
+- **File(s) changed:** `docs/scheduling/S1-amendment-bake-vs-pack.md` (new)
+- **What changed:** New design draft amending scheduling S1: `run_type` (bake, pack, coconut, other) on `production_runs`; bake/coconut runs yield a batch product planned in pans with expected lb from `products.default_batch_lb × yield_multiplier` (survey found no other per-pan yield to reuse; `_ORDERS_MATRIX_PAN_YIELD` and the standalone board catalog are drifted duplicates); WIP = the existing batch product, no new rows; routing-based coverage on bake runs (soft, Health v3 unchanged); pack runs defined but WIP consumption deferred to S2 with a list of what S1 must not add; production-line field removed from the form with server-side inference; migration 054 plan (additive, 0 prod rows, rollback). Ends with a plain-English summary and 10 owner questions.
+- **Why:** Owner asked for a written amendment before any code: the floor plans bakes in pans of a recipe, not cases of a finished SKU. No code, no migration, `feat/planner-v2` and `production_schedule` untouched.
+
+---
+
 ## 2026-09-14 — Runs navigation and audit status (NOT DEPLOYED)
 
 - **Files changed:** `dashboard/index.html`, `dashboard/runs.html`, `docs/design/audit/pr-screenshots/feat-runs-screen/delivery-status.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`.
