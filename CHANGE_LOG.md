@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-15 15:10 — 6x8 OZ Case write-off and archive EXECUTED in prod; PR #59 merged and deployed
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (data change in prod, no code)
+- **What changed:** Posted adjust transaction **2274** (confirmation TXN-9AB28E, business date 2026-09-15, operator_id `legacy-shared-key`, master key) of −2,406 lb on lot **SW2607708** (lot id 343) for product 209 / odoo 70088, via `POST /adjust` mode=commit; new balance 0 lb / 0 cases. Verified products 206, 207, 208, 209 all read 0 posted lb. Then set `active = false` on all four via `PUT /admin/products/{id}`; verified in DB. PR #59 squash-merged as `203d8cc` on main; Railway deployment 38fdf2f8 SUCCESS, Netlify production serving dashboard.js?v=64. Live `/dashboard/api/inventory/finished-goods` no longer returns the "6x8 OZ Retail Cases (BS Line)" panel and no 6x8 name appears in any panel (the all-archived panel is dropped whole, so its `archived_skus` list is not in the response). Master key was held only in the shell for each call and unset after; scratch DB URL file removed.
+- **Why:** Blubber's option-1 decision 2026-09-15: post with the master key now (actor attribution on `/adjust` is not possible without a code change), then ship PR #59.
+
+---
+
 ## 2026-09-15 15:05 — Archive 6x8 OZ Case SKUs: dashboard hides archived products (code only; ledger write-off and archive not yet run)
 - **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_archived_products_dashboard.py`, `tests/test_archived_products_dashboard.js`
 - **What changed:** `/dashboard/api/inventory/finished-goods` now fetches archived products (`products.active = false`) as well, hides them from `products` and `missing_skus`, lists them in a new `archived_skus` field, and drops a panel whose configured SKUs are all archived; a panel with an unmatched SKU name is kept so a config typo stays visible. `renderFinishedGoodsPanels` mirrors the drop client-side. dashboard.js cache-bust 63 → 64. Five new tests (4 DB, 1 node). No migration: `products.active` already exists and `PUT /admin/products/{id}` already toggles it. Branch `feat/archive-6x8-skus`; does not touch allocation, void, or trace paths.
