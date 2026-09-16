@@ -188,3 +188,4 @@ When editing GPT instructions (`GPT_INSTRUCTIONS.md` or `gpt-instructions-v3.md`
 8. Batch/make transactions consume ingredients proportionally
 9. Dashboard API uses absolute URLs (Railway base)
 10. All migrations are idempotent (IF NOT EXISTS / ON CONFLICT DO NOTHING)
+11. Never DROP and recreate `ledger_current_transactions` or `ledger_current_transaction_lines` — as of migration 055, nine legacy views depend on them and the DROP will fail. Use `CREATE OR REPLACE VIEW`.

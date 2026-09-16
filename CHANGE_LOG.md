@@ -1,5 +1,11 @@
 # Change Log
 
+## 2026-09-16 10:12 — Added Permanent Rule 11 (CREATE OR REPLACE on ledger_current views)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added Permanent Rule 11: never DROP and recreate `ledger_current_transactions` or `ledger_current_transaction_lines`; as of migration 055 nine legacy views depend on them and the DROP fails, so use `CREATE OR REPLACE VIEW`. Verified the row 154 "27 focused tests" figure is correct (17 in tests/test_void_aware_views.py + 10 in tests/test_dashboard_api_key.py); left unchanged.
+- **Why:** Owner required this rule as a merge condition for PR #61; it was reported as added but never committed.
+
+---
 ## 2026-09-15 17:51 — 055 applied to production; schema refreshed
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`, `CHANGE_LOG.md`; both global logs.
 - **What changed:** APPLIED TO PROD 2026-09-15 21:51:42 UTC (17:51:42 ET), following owner approval. Nine views replaced, marker recorded. Read-only verification: product 128 changed from 3,600 to 0 lb; zero inventory_summary discrepancies versus posted-only balances; marker present. Production schema re-dumped with zero data rows.
