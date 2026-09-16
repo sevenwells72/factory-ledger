@@ -11,3 +11,13 @@
   for = "/index.html"
   [headers.values]
     Cache-Control = "no-store, must-revalidate"
+
+# Public legal pages (EULA + Privacy Policy). These are plain static files under
+# dashboard/legal/ and must stay reachable with no auth and no redirect in front
+# of them: Intuit and other reviewers fetch them anonymously. Do NOT add a
+# catch-all redirect, password protection, or Identity gate above this point.
+[[headers]]
+  for = "/legal/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
+    X-Content-Type-Options = "nosniff"
