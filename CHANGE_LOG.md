@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-09-16 17:07 — Public legal pages: EULA + Privacy Policy on the Netlify site
+- **File(s) changed:** `dashboard/legal/eula.html`, `dashboard/legal/privacy.html`, `netlify.toml`
+- **What changed:** Added two plain static pages (no JS, no external requests, no auth) served at `/legal/eula.html` and `/legal/privacy.html`. Content states single-company internal use by CNS Confectionery Products LLC (NJ), no third-party users, QuickBooks Online accessed read-only to sync purchase orders, data stored in our own database and never sold or shared, contact miriam@cnscoinc.com. Added a `[[headers]]` block for `/legal/*` with a comment warning against putting a catch-all redirect, password protection, or Identity gate in front of them. netlify.toml has no redirect rules and there is no `_redirects` file, so nothing blocks these paths.
+- **Why:** Intuit (and other reviewers) require publicly fetchable EULA and privacy URLs for the QuickBooks Online integration.
+
+---
+
 ## 2026-09-16 10:12 — Added Permanent Rule 11 (CREATE OR REPLACE on ledger_current views)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added Permanent Rule 11: never DROP and recreate `ledger_current_transactions` or `ledger_current_transaction_lines`; as of migration 055 nine legacy views depend on them and the DROP fails, so use `CREATE OR REPLACE VIEW`. Verified the row 154 "27 focused tests" figure is correct (17 in tests/test_void_aware_views.py + 10 in tests/test_dashboard_api_key.py); left unchanged.
