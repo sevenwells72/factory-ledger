@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict azBVZmL35GAAo3ke4ni4NN2rHWVeuV1Wpd8G2NCsdII4WC4OGVm8GoR2EasWAAh
+\restrict 8WYuvKSAzwKqBwWTkgDxSUhEq4HDNQYJMDL3DaJLejdYhcjWH3Oo3MMxzrKUuIX
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -2241,12 +2241,12 @@ CREATE VIEW public.todays_transactions AS
     t.notes,
     p.name AS product,
     l.lot_code,
-    tl.quantity_lb
-   FROM (((public.transactions t
-     JOIN public.transaction_lines tl ON ((tl.transaction_id = t.id)))
+    (tl.quantity_lb)::numeric(14,4) AS quantity_lb
+   FROM (((public.ledger_current_transactions t
+     JOIN public.ledger_current_transaction_lines tl ON ((tl.transaction_id = t.id)))
      JOIN public.lots l ON ((l.id = tl.lot_id)))
      JOIN public.products p ON ((p.id = tl.product_id)))
-  WHERE ((t."timestamp")::date = CURRENT_DATE)
+  WHERE ((t.effective_status = 'posted'::text) AND (t.business_date = ((now() AT TIME ZONE 'America/New_York'::text))::date))
   ORDER BY t."timestamp" DESC;
 
 
@@ -2411,8 +2411,21 @@ CREATE VIEW public.v_batch_products_needing_setup AS
         END), (0)::numeric) AS total_produced
    FROM (((public.products p
      LEFT JOIN public.lots l ON ((l.product_id = p.id)))
-     LEFT JOIN public.transaction_lines tl ON ((tl.lot_id = l.id)))
-     LEFT JOIN public.transactions t ON ((t.id = tl.transaction_id)))
+     LEFT JOIN ( SELECT cl.id,
+            cl.transaction_id,
+            cl.product_id,
+            cl.lot_id,
+            cl.quantity_lb,
+            cl.created_at,
+            cl.created_at_source,
+            cl.latest_correction_id,
+            cl.latest_correction_created_at,
+            cl.latest_correction_operator_id,
+            cl.effective_record
+           FROM (public.ledger_current_transaction_lines cl
+             JOIN public.ledger_current_transactions ct ON ((ct.id = cl.transaction_id)))
+          WHERE (ct.effective_status = 'posted'::text)) tl ON ((tl.lot_id = l.id)))
+     LEFT JOIN public.ledger_current_transactions t ON ((t.id = tl.transaction_id)))
   WHERE ((p.type = 'finished_good'::text) AND ((p.verification_status)::text = ANY (ARRAY[('unverified'::character varying)::text, ('incomplete'::character varying)::text])) AND (COALESCE(p.active, true) = true))
   GROUP BY p.id, p.name, p.product_category, p.production_context, p.verification_status, p.has_bom, p.bom_status, p.customer_name, p.created_via
   ORDER BY (count(DISTINCT
@@ -2478,7 +2491,20 @@ CREATE VIEW public.v_lot_quantities AS
     COALESCE(p.uom, 'lb'::text) AS uom
    FROM ((public.lots l
      JOIN public.products p ON ((p.id = l.product_id)))
-     LEFT JOIN public.transaction_lines tl ON ((tl.lot_id = l.id)))
+     LEFT JOIN ( SELECT cl.id,
+            cl.transaction_id,
+            cl.product_id,
+            cl.lot_id,
+            cl.quantity_lb,
+            cl.created_at,
+            cl.created_at_source,
+            cl.latest_correction_id,
+            cl.latest_correction_created_at,
+            cl.latest_correction_operator_id,
+            cl.effective_record
+           FROM (public.ledger_current_transaction_lines cl
+             JOIN public.ledger_current_transactions ct ON ((ct.id = cl.transaction_id)))
+          WHERE (ct.effective_status = 'posted'::text)) tl ON ((tl.lot_id = l.id)))
   GROUP BY l.id, l.lot_code, l.product_id, p.name, p.uom;
 
 
@@ -2510,8 +2536,21 @@ CREATE VIEW public.v_products_missing_boms AS
         END) AS last_produced
    FROM (((public.products p
      LEFT JOIN public.lots l ON ((l.product_id = p.id)))
-     LEFT JOIN public.transaction_lines tl ON ((tl.lot_id = l.id)))
-     LEFT JOIN public.transactions t ON ((t.id = tl.transaction_id)))
+     LEFT JOIN ( SELECT cl.id,
+            cl.transaction_id,
+            cl.product_id,
+            cl.lot_id,
+            cl.quantity_lb,
+            cl.created_at,
+            cl.created_at_source,
+            cl.latest_correction_id,
+            cl.latest_correction_created_at,
+            cl.latest_correction_operator_id,
+            cl.effective_record
+           FROM (public.ledger_current_transaction_lines cl
+             JOIN public.ledger_current_transactions ct ON ((ct.id = cl.transaction_id)))
+          WHERE (ct.effective_status = 'posted'::text)) tl ON ((tl.lot_id = l.id)))
+     LEFT JOIN public.ledger_current_transactions t ON ((t.id = tl.transaction_id)))
   WHERE ((p.type = 'finished_good'::text) AND ((COALESCE(p.has_bom, false) = false) OR ((p.bom_status)::text = 'none'::text)) AND (COALESCE(p.active, true) = true) AND ((COALESCE(p.production_context, 'standard'::character varying))::text = 'standard'::text))
   GROUP BY p.id, p.name, p.product_category, p.production_context, p.verification_status, p.customer_name
  HAVING (count(DISTINCT
@@ -2587,8 +2626,21 @@ CREATE VIEW public.v_test_batches_for_review AS
         END AS recommendation
    FROM (((public.products p
      LEFT JOIN public.lots l ON ((l.product_id = p.id)))
-     LEFT JOIN public.transaction_lines tl ON ((tl.lot_id = l.id)))
-     LEFT JOIN public.transactions t ON ((t.id = tl.transaction_id)))
+     LEFT JOIN ( SELECT cl.id,
+            cl.transaction_id,
+            cl.product_id,
+            cl.lot_id,
+            cl.quantity_lb,
+            cl.created_at,
+            cl.created_at_source,
+            cl.latest_correction_id,
+            cl.latest_correction_created_at,
+            cl.latest_correction_operator_id,
+            cl.effective_record
+           FROM (public.ledger_current_transaction_lines cl
+             JOIN public.ledger_current_transactions ct ON ((ct.id = cl.transaction_id)))
+          WHERE (ct.effective_status = 'posted'::text)) tl ON ((tl.lot_id = l.id)))
+     LEFT JOIN public.ledger_current_transactions t ON ((t.id = tl.transaction_id)))
   WHERE (((p.production_context)::text = ANY (ARRAY[('test_batch'::character varying)::text, ('sample'::character varying)::text, ('one_off'::character varying)::text])) AND (COALESCE(p.active, true) = true))
   GROUP BY p.id, p.name, p.product_category, p.production_context, p.customer_name
   ORDER BY (count(DISTINCT
@@ -3982,7 +4034,20 @@ CREATE OR REPLACE VIEW public.inventory_summary AS
     COALESCE(sum(tl.quantity_lb), (0)::numeric) AS on_hand
    FROM ((public.products p
      LEFT JOIN public.lots l ON ((l.product_id = p.id)))
-     LEFT JOIN public.transaction_lines tl ON ((tl.lot_id = l.id)))
+     LEFT JOIN ( SELECT cl.id,
+            cl.transaction_id,
+            cl.product_id,
+            cl.lot_id,
+            cl.quantity_lb,
+            cl.created_at,
+            cl.created_at_source,
+            cl.latest_correction_id,
+            cl.latest_correction_created_at,
+            cl.latest_correction_operator_id,
+            cl.effective_record
+           FROM (public.ledger_current_transaction_lines cl
+             JOIN public.ledger_current_transactions ct ON ((ct.id = cl.transaction_id)))
+          WHERE (ct.effective_status = 'posted'::text)) tl ON ((tl.lot_id = l.id)))
   WHERE (COALESCE(p.active, true) = true)
   GROUP BY p.id
   ORDER BY p.type, p.name;
@@ -4001,7 +4066,20 @@ CREATE OR REPLACE VIEW public.lot_balances AS
     COALESCE(sum(tl.quantity_lb), (0)::numeric) AS balance
    FROM ((public.lots l
      JOIN public.products p ON ((p.id = l.product_id)))
-     LEFT JOIN public.transaction_lines tl ON ((tl.lot_id = l.id)))
+     LEFT JOIN ( SELECT cl.id,
+            cl.transaction_id,
+            cl.product_id,
+            cl.lot_id,
+            cl.quantity_lb,
+            cl.created_at,
+            cl.created_at_source,
+            cl.latest_correction_id,
+            cl.latest_correction_created_at,
+            cl.latest_correction_operator_id,
+            cl.effective_record
+           FROM (public.ledger_current_transaction_lines cl
+             JOIN public.ledger_current_transactions ct ON ((ct.id = cl.transaction_id)))
+          WHERE (ct.effective_status = 'posted'::text)) tl ON ((tl.lot_id = l.id)))
   GROUP BY l.id, p.id
  HAVING (COALESCE(sum(tl.quantity_lb), (0)::numeric) > (0)::numeric)
   ORDER BY l.created_at DESC;
@@ -4017,7 +4095,20 @@ CREATE OR REPLACE VIEW public.low_stock_alerts AS
     COALESCE(sum(tl.quantity_lb), (0)::numeric) AS on_hand
    FROM ((public.products p
      LEFT JOIN public.lots l ON ((l.product_id = p.id)))
-     LEFT JOIN public.transaction_lines tl ON ((tl.lot_id = l.id)))
+     LEFT JOIN ( SELECT cl.id,
+            cl.transaction_id,
+            cl.product_id,
+            cl.lot_id,
+            cl.quantity_lb,
+            cl.created_at,
+            cl.created_at_source,
+            cl.latest_correction_id,
+            cl.latest_correction_created_at,
+            cl.latest_correction_operator_id,
+            cl.effective_record
+           FROM (public.ledger_current_transaction_lines cl
+             JOIN public.ledger_current_transactions ct ON ((ct.id = cl.transaction_id)))
+          WHERE (ct.effective_status = 'posted'::text)) tl ON ((tl.lot_id = l.id)))
   WHERE ((p.type = 'ingredient'::text) AND (COALESCE(p.active, true) = true))
   GROUP BY p.id
  HAVING (COALESCE(sum(tl.quantity_lb), (0)::numeric) < (100)::numeric)
@@ -4065,12 +4156,12 @@ CREATE OR REPLACE VIEW public.production_history AS
             WHEN (tl.quantity_lb > (0)::numeric) THEN tl.quantity_lb
             ELSE (0)::numeric
         END)) AS quantity_made
-   FROM (((public.transactions t
-     JOIN public.transaction_lines tl ON ((tl.transaction_id = t.id)))
+   FROM (((public.ledger_current_transactions t
+     JOIN public.ledger_current_transaction_lines tl ON ((tl.transaction_id = t.id)))
      JOIN public.lots l ON ((l.id = tl.lot_id)))
      JOIN public.products p ON ((p.id = tl.product_id)))
-  WHERE ((t.type = 'make'::text) AND (tl.quantity_lb > (0)::numeric))
-  GROUP BY t.id, p.id, l.id
+  WHERE ((t.effective_status = 'posted'::text) AND ((t.type = 'make'::text) AND (tl.quantity_lb > (0)::numeric)))
+  GROUP BY t.id, t."timestamp", p.id, l.id
   ORDER BY t."timestamp" DESC;
 
 
@@ -4809,5 +4900,5 @@ ALTER TABLE public.migration_markers ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict azBVZmL35GAAo3ke4ni4NN2rHWVeuV1Wpd8G2NCsdII4WC4OGVm8GoR2EasWAAh
+\unrestrict 8WYuvKSAzwKqBwWTkgDxSUhEq4HDNQYJMDL3DaJLejdYhcjWH3Oo3MMxzrKUuIX
 
