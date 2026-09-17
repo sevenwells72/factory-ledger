@@ -1,0 +1,636 @@
+{
+  "snapshot": {
+    "at": "2026-09-17T19:45:14.807257+00:00",
+    "products": [
+      {
+        "id": 107,
+        "name": "Batch Classic Granola #9",
+        "odoo_code": "90002"
+      },
+      {
+        "id": 108,
+        "name": "Batch Classic Chocolate Chip Granola #9",
+        "odoo_code": "90001"
+      },
+      {
+        "id": 109,
+        "name": "Batch Setton Cinnamon Almond Granola #14",
+        "odoo_code": "90019"
+      },
+      {
+        "id": 110,
+        "name": "Batch Setton Coffee Granola #12",
+        "odoo_code": "90021"
+      },
+      {
+        "id": 111,
+        "name": "Batch Setton Cocoa Crunch Granola #13",
+        "odoo_code": "90020"
+      },
+      {
+        "id": 112,
+        "name": "Batch Vanilla Crisp Granola #16(no almonds)",
+        "odoo_code": "90024"
+      },
+      {
+        "id": 113,
+        "name": "Batch Granola Vanilla Almond 380 lb",
+        "odoo_code": "90010"
+      },
+      {
+        "id": 114,
+        "name": "Batch SS Chocolate Chip Granola #2",
+        "odoo_code": "90011"
+      },
+      {
+        "id": 115,
+        "name": "Batch SS Chocolate Chip Granola #5",
+        "odoo_code": "90012"
+      },
+      {
+        "id": 116,
+        "name": "Batch SS Original Granola #1",
+        "odoo_code": "90016"
+      },
+      {
+        "id": 117,
+        "name": "Batch SS Original Granola #4",
+        "odoo_code": "90017"
+      },
+      {
+        "id": 118,
+        "name": "Batch SS Cranberry Granola #3",
+        "odoo_code": "90013"
+      },
+      {
+        "id": 119,
+        "name": "Batch SS Low Carb Chocolate Chip Granola #8",
+        "odoo_code": "90014"
+      },
+      {
+        "id": 120,
+        "name": "Batch SS Low Carb Original Granola #7",
+        "odoo_code": "90015"
+      },
+      {
+        "id": 121,
+        "name": "Batch BS Dark Chocolate Granola 350",
+        "odoo_code": "95002"
+      },
+      {
+        "id": 122,
+        "name": "Batch BS Peanut Butter Banana Granola",
+        "odoo_code": "95005"
+      },
+      {
+        "id": 123,
+        "name": "Batch BS Almond Butter Granola 350",
+        "odoo_code": "95001"
+      },
+      {
+        "id": 124,
+        "name": "Batch BS Hazelnut Butter Granola 350",
+        "odoo_code": "95003"
+      },
+      {
+        "id": 179,
+        "name": "Granola Fruit Nut Batch",
+        "odoo_code": "90008"
+      },
+      {
+        "id": 283,
+        "name": "Batch SS Classic Granola #9 (Kosher Ignition)",
+        "odoo_code": "90025"
+      },
+      {
+        "id": 284,
+        "name": "Batch SS Classic Chocolate Chip Granola #9 (Kosher Ignition)",
+        "odoo_code": "90026"
+      }
+    ],
+    "lots": [
+      {
+        "product_id": 107,
+        "lot_id": 1378,
+        "lot_code": "SEP 01 2026",
+        "made_date": "2026-09-01",
+        "first_date": "2026-09-01",
+        "balance": "2509.0"
+      },
+      {
+        "product_id": 107,
+        "lot_id": 1387,
+        "lot_code": "SEP 02 2026",
+        "made_date": "2026-09-02",
+        "first_date": "2026-09-02",
+        "balance": "418.0"
+      },
+      {
+        "product_id": 107,
+        "lot_id": 1429,
+        "lot_code": "SEP 11 2026",
+        "made_date": "2026-09-11",
+        "first_date": "2026-09-11",
+        "balance": "3230.0"
+      },
+      {
+        "product_id": 107,
+        "lot_id": 1434,
+        "lot_code": "SEP 14 2026",
+        "made_date": "2026-09-14",
+        "first_date": "2026-09-14",
+        "balance": "1615.0"
+      },
+      {
+        "product_id": 107,
+        "lot_id": 1441,
+        "lot_code": "SEP 15 2026",
+        "made_date": "2026-09-15",
+        "first_date": "2026-09-15",
+        "balance": "5168.0"
+      },
+      {
+        "product_id": 107,
+        "lot_id": 1449,
+        "lot_code": "SEP 16 2026",
+        "made_date": "2026-09-16",
+        "first_date": "2026-09-16",
+        "balance": "1938.0"
+      },
+      {
+        "product_id": 108,
+        "lot_id": 1334,
+        "lot_code": "AUG 25 2026",
+        "made_date": "2026-08-25",
+        "first_date": "2026-08-25",
+        "balance": "3132.0"
+      },
+      {
+        "product_id": 108,
+        "lot_id": 1346,
+        "lot_code": "AUG 26 2026",
+        "made_date": "2026-08-26",
+        "first_date": "2026-08-26",
+        "balance": "3480.0"
+      },
+      {
+        "product_id": 108,
+        "lot_id": 1377,
+        "lot_code": "SEP 01 2026",
+        "made_date": "2026-09-01",
+        "first_date": "2026-09-01",
+        "balance": "696.0"
+      },
+      {
+        "product_id": 108,
+        "lot_id": 1450,
+        "lot_code": "SEP 16 2026",
+        "made_date": "2026-09-16",
+        "first_date": "2026-09-16",
+        "balance": "2088.0"
+      },
+      {
+        "product_id": 112,
+        "lot_id": 1435,
+        "lot_code": "SEP 14 2026",
+        "made_date": "2026-09-14",
+        "first_date": "2026-09-14",
+        "balance": "240.0"
+      },
+      {
+        "product_id": 113,
+        "lot_id": 1437,
+        "lot_code": "SEP 14 2026",
+        "made_date": "2026-09-14",
+        "first_date": "2026-09-14",
+        "balance": "5.0"
+      },
+      {
+        "product_id": 114,
+        "lot_id": 1413,
+        "lot_code": "SEP 09 2026",
+        "made_date": "2026-09-09",
+        "first_date": "2026-09-09",
+        "balance": "927.0"
+      },
+      {
+        "product_id": 114,
+        "lot_id": 1422,
+        "lot_code": "SEP 10 2026",
+        "made_date": "2026-09-10",
+        "first_date": "2026-09-10",
+        "balance": "3930.0"
+      },
+      {
+        "product_id": 116,
+        "lot_id": 1303,
+        "lot_code": "AUG 19 2026",
+        "made_date": "2026-08-19",
+        "first_date": "2026-08-19",
+        "balance": "715.0"
+      },
+      {
+        "product_id": 116,
+        "lot_id": 1394,
+        "lot_code": "SEP 03 2026",
+        "made_date": "2026-09-03",
+        "first_date": "2026-09-03",
+        "balance": "305.0"
+      },
+      {
+        "product_id": 116,
+        "lot_id": 1401,
+        "lot_code": "SEP 08 2026",
+        "made_date": "2026-09-08",
+        "first_date": "2026-09-08",
+        "balance": "400.0"
+      },
+      {
+        "product_id": 116,
+        "lot_id": 1423,
+        "lot_code": "SEP 10 2026",
+        "made_date": "2026-09-10",
+        "first_date": "2026-09-10",
+        "balance": "222.5"
+      },
+      {
+        "product_id": 116,
+        "lot_id": 1436,
+        "lot_code": "SEP 14 2026",
+        "made_date": "2026-09-14",
+        "first_date": "2026-09-14",
+        "balance": "325.0"
+      },
+      {
+        "product_id": 118,
+        "lot_id": 1134,
+        "lot_code": "AUG 06 2026",
+        "made_date": "2026-08-06",
+        "first_date": "2026-08-06",
+        "balance": "4.0"
+      },
+      {
+        "product_id": 118,
+        "lot_id": 1304,
+        "lot_code": "BB081727",
+        "made_date": "2026-08-19",
+        "first_date": "2026-08-19",
+        "balance": "245.0"
+      },
+      {
+        "product_id": 119,
+        "lot_id": 1356,
+        "lot_code": "AUG 27 2026",
+        "made_date": "2026-08-27",
+        "first_date": "2026-08-27",
+        "balance": "35.0"
+      },
+      {
+        "product_id": 120,
+        "lot_id": 1357,
+        "lot_code": "AUG 27 2026",
+        "made_date": "2026-08-27",
+        "first_date": "2026-08-27",
+        "balance": "67.5"
+      },
+      {
+        "product_id": 121,
+        "lot_id": 1055,
+        "lot_code": "JUL 24 2026",
+        "made_date": "2026-07-24",
+        "first_date": "2026-07-24",
+        "balance": "1050.0"
+      },
+      {
+        "product_id": 122,
+        "lot_id": 1079,
+        "lot_code": "JUL 27 2026",
+        "made_date": "2026-07-29",
+        "first_date": "2026-07-29",
+        "balance": "2.38"
+      },
+      {
+        "product_id": 179,
+        "lot_id": 902,
+        "lot_code": "JUN 29 2026",
+        "made_date": "2026-06-29",
+        "first_date": "2026-06-29",
+        "balance": "169.04"
+      },
+      {
+        "product_id": 179,
+        "lot_id": 1455,
+        "lot_code": "SEP 16 2026",
+        "made_date": "2026-09-16",
+        "first_date": "2026-09-16",
+        "balance": "269.04"
+      }
+    ],
+    "totals": {
+      "283": 0,
+      "116": "1967.5",
+      "117": 0,
+      "122": "2.38",
+      "121": "1050.0",
+      "179": "438.08",
+      "115": 0,
+      "114": "4857.0",
+      "119": "35.0",
+      "113": "5.0",
+      "109": "0.0",
+      "108": "9396.0",
+      "112": "240.0",
+      "118": "249.0",
+      "284": 0,
+      "120": "67.5",
+      "111": "0.0",
+      "110": 0,
+      "124": "0.0",
+      "107": "14878.0",
+      "123": "0.0"
+    },
+    "vanilla_makes": [
+      {
+        "business_date": "2026-07-21",
+        "transaction_id": 1695,
+        "line_id": 5506,
+        "lot_code": "JUL 21 2026",
+        "quantity_lb": "740.0"
+      },
+      {
+        "business_date": "2026-09-14",
+        "transaction_id": 2265,
+        "line_id": 7012,
+        "lot_code": "SEP 14 2026",
+        "quantity_lb": "740.0"
+      }
+    ],
+    "existing_adjustments": null
+  },
+  "adjustments": [
+    {
+      "product_id": 107,
+      "product_name": "Batch Classic Granola #9",
+      "product_code": "90002",
+      "lot_id": 1378,
+      "lot_code": "SEP 01 2026",
+      "before": "2509.0",
+      "change": "-2509.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 - likely shipped bulk to Sunshine, order 298 (not enterable in system)"
+    },
+    {
+      "product_id": 107,
+      "product_name": "Batch Classic Granola #9",
+      "product_code": "90002",
+      "lot_id": 1387,
+      "lot_code": "SEP 02 2026",
+      "before": "418.0",
+      "change": "-418.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 - likely shipped bulk to Sunshine, order 298 (not enterable in system)"
+    },
+    {
+      "product_id": 107,
+      "product_name": "Batch Classic Granola #9",
+      "product_code": "90002",
+      "lot_id": 1429,
+      "lot_code": "SEP 11 2026",
+      "before": "3230.0",
+      "change": "-1073.0",
+      "after": "2157.0",
+      "reason": "Physical count 2026-09-17 - likely shipped bulk to Sunshine, order 298 (not enterable in system)"
+    },
+    {
+      "product_id": 107,
+      "product_name": "Batch Classic Granola #9",
+      "product_code": "90002",
+      "lot_id": 1429,
+      "lot_code": "SEP 11 2026",
+      "before": "2157.0",
+      "change": "-318.0",
+      "after": "1839.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 108,
+      "product_name": "Batch Classic Chocolate Chip Granola #9",
+      "product_code": "90001",
+      "lot_id": 1334,
+      "lot_code": "AUG 25 2026",
+      "before": "3132.0",
+      "change": "-3132.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 - likely shipped bulk to Sunshine, order 298 (not enterable in system)"
+    },
+    {
+      "product_id": 108,
+      "product_name": "Batch Classic Chocolate Chip Granola #9",
+      "product_code": "90001",
+      "lot_id": 1346,
+      "lot_code": "AUG 26 2026",
+      "before": "3480.0",
+      "change": "-2868.0",
+      "after": "612.0",
+      "reason": "Physical count 2026-09-17 - likely shipped bulk to Sunshine, order 298 (not enterable in system)"
+    },
+    {
+      "product_id": 108,
+      "product_name": "Batch Classic Chocolate Chip Granola #9",
+      "product_code": "90001",
+      "lot_id": 1346,
+      "lot_code": "AUG 26 2026",
+      "before": "612.0",
+      "change": "-612.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 108,
+      "product_name": "Batch Classic Chocolate Chip Granola #9",
+      "product_code": "90001",
+      "lot_id": 1377,
+      "lot_code": "SEP 01 2026",
+      "before": "696.0",
+      "change": "-696.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 108,
+      "product_name": "Batch Classic Chocolate Chip Granola #9",
+      "product_code": "90001",
+      "lot_id": 1450,
+      "lot_code": "SEP 16 2026",
+      "before": "2088.0",
+      "change": "-88.0",
+      "after": "2000.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 113,
+      "product_name": "Batch Granola Vanilla Almond 380 lb",
+      "product_code": "90010",
+      "lot_id": 1437,
+      "lot_code": "SEP 14 2026",
+      "before": "5.0",
+      "change": "-5.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 114,
+      "product_name": "Batch SS Chocolate Chip Granola #2",
+      "product_code": "90011",
+      "lot_id": 1413,
+      "lot_code": "SEP 09 2026",
+      "before": "927.0",
+      "change": "-927.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 114,
+      "product_name": "Batch SS Chocolate Chip Granola #2",
+      "product_code": "90011",
+      "lot_id": 1422,
+      "lot_code": "SEP 10 2026",
+      "before": "3930.0",
+      "change": "-3930.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 116,
+      "product_name": "Batch SS Original Granola #1",
+      "product_code": "90016",
+      "lot_id": 1303,
+      "lot_code": "AUG 19 2026",
+      "before": "715.0",
+      "change": "-715.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 116,
+      "product_name": "Batch SS Original Granola #1",
+      "product_code": "90016",
+      "lot_id": 1394,
+      "lot_code": "SEP 03 2026",
+      "before": "305.0",
+      "change": "-305.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 116,
+      "product_name": "Batch SS Original Granola #1",
+      "product_code": "90016",
+      "lot_id": 1401,
+      "lot_code": "SEP 08 2026",
+      "before": "400.0",
+      "change": "-400.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 116,
+      "product_name": "Batch SS Original Granola #1",
+      "product_code": "90016",
+      "lot_id": 1423,
+      "lot_code": "SEP 10 2026",
+      "before": "222.5",
+      "change": "-222.5",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 116,
+      "product_name": "Batch SS Original Granola #1",
+      "product_code": "90016",
+      "lot_id": 1436,
+      "lot_code": "SEP 14 2026",
+      "before": "325.0",
+      "change": "-325.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 118,
+      "product_name": "Batch SS Cranberry Granola #3",
+      "product_code": "90013",
+      "lot_id": 1134,
+      "lot_code": "AUG 06 2026",
+      "before": "4.0",
+      "change": "-4.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 118,
+      "product_name": "Batch SS Cranberry Granola #3",
+      "product_code": "90013",
+      "lot_id": 1304,
+      "lot_code": "BB081727",
+      "before": "245.0",
+      "change": "-245.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 119,
+      "product_name": "Batch SS Low Carb Chocolate Chip Granola #8",
+      "product_code": "90014",
+      "lot_id": 1356,
+      "lot_code": "AUG 27 2026",
+      "before": "35.0",
+      "change": "-35.0",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 120,
+      "product_name": "Batch SS Low Carb Original Granola #7",
+      "product_code": "90015",
+      "lot_id": 1357,
+      "lot_code": "AUG 27 2026",
+      "before": "67.5",
+      "change": "-67.5",
+      "after": "0.0",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 122,
+      "product_name": "Batch BS Peanut Butter Banana Granola",
+      "product_code": "95005",
+      "lot_id": 1079,
+      "lot_code": "JUL 27 2026",
+      "before": "2.38",
+      "change": "-2.38",
+      "after": "0.00",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 179,
+      "product_name": "Granola Fruit Nut Batch",
+      "product_code": "90008",
+      "lot_id": 902,
+      "lot_code": "JUN 29 2026",
+      "before": "169.04",
+      "change": "-169.04",
+      "after": "0.00",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    },
+    {
+      "product_id": 179,
+      "product_name": "Granola Fruit Nut Batch",
+      "product_code": "90008",
+      "lot_id": 1455,
+      "lot_code": "SEP 16 2026",
+      "before": "269.04",
+      "change": "-269.04",
+      "after": "0.00",
+      "reason": "Physical count 2026-09-17 (Arturo)"
+    }
+  ]
+}
