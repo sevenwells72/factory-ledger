@@ -423,6 +423,7 @@
       }
       group.count += count;
       group.items.push({
+        productId: batch.product_id,
         name: String(batch.product_name || '').trim(),
         count
       });
@@ -445,6 +446,7 @@
       }
       group.count += cases;
       group.items.push({
+        productId: finishedGood.product_id,
         sku: String(finishedGood.sku || '').trim(),
         name: String(finishedGood.product_name || '').trim(),
         cases
@@ -1022,29 +1024,94 @@
     });
   }
 
+  function productionTraceRow(item, kind, count) {
+    // Only escaped strings enter this summary markup; fetched trace data uses textContent.
+    return `<details class="production-trace" data-product-id="${escAttr(item.productId)}" data-kind="${kind}">
+      <summary class="production-detail-row"><span class="production-detail-product">
+        <span class="production-detail-name">${escHtml(item.name)}</span>
+        ${item.sku ? `<span class="production-detail-sku">SKU ${escHtml(item.sku)}</span>` : ''}
+      </span><span class="production-detail-count">${escHtml(count)}</span></summary>
+      <div class="production-trace-panel" aria-live="polite"></div></details>`;
+  }
+
   function renderMadeDetailRows(group) {
-    let html = '';
-    for (const item of group.items) {
-      html += '<div class="production-detail-row">';
-      html += `<div class="production-detail-name">${escHtml(item.name)}</div>`;
-      html += `<div class="production-detail-count">${escHtml(formatProductionUnit(item.count, group.singular, group.plural))}</div>`;
-      html += '</div>';
-    }
-    return html;
+    return group.items.map(item => productionTraceRow(item, 'make',
+      formatProductionUnit(item.count, group.singular, group.plural))).join('');
   }
 
   function renderPackedDetailRows(group) {
-    let html = '';
-    for (const item of group.items) {
-      html += '<div class="production-detail-row">';
-      html += '<div class="production-detail-product">';
-      html += `<div class="production-detail-name">${escHtml(item.name)}</div>`;
-      if (item.sku) html += `<div class="production-detail-sku">SKU ${escHtml(item.sku)}</div>`;
-      html += '</div>';
-      html += `<div class="production-detail-count">${escHtml(formatProductionUnit(item.cases, 'case', 'cases'))}</div>`;
-      html += '</div>';
+    return group.items.map(item => productionTraceRow(item, 'pack',
+      formatProductionUnit(item.cases, 'case', 'cases'))).join('');
+  }
+
+  function traceText(parent, tag, text) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    parent.appendChild(node);
+    return node;
+  }
+
+  function traceQuantity(item) {
+    return Number(item.quantity).toLocaleString('en-US', { maximumFractionDigits: 4 }) + ' ' + item.unit;
+  }
+
+  function renderProductionTrace(panel, data) {
+    panel.replaceChildren();
+    if (!data.transactions.length) {
+      traceText(panel, 'p', 'No posted production found for this selection.');
+      return;
     }
-    return html;
+    for (const transaction of data.transactions) {
+      traceText(panel, 'h6', `${data.kind === 'pack' ? 'Packed' : 'Made'} #${transaction.transaction_id}`);
+      if (!transaction.consumed.length) traceText(panel, 'p', 'No consumed lots recorded.');
+      for (const item of transaction.consumed) {
+        const label = `${item.product_name} · Lot ${item.lot_code}${item.supplier_lot_code ? ' · Supplier lot ' + item.supplier_lot_code : ''} · ${traceQuantity(item)}`;
+        if (data.kind === 'pack' && item.product_type === 'batch') {
+          const batch = document.createElement('details');
+          batch.className = 'production-trace';
+          panel.appendChild(batch);
+          traceText(batch, 'summary', label);
+          const nested = document.createElement('div');
+          nested.className = 'production-trace-panel';
+          nested.setAttribute('aria-live', 'polite');
+          batch.appendChild(nested);
+          bindProductionTrace(batch, nested, new URLSearchParams({ lot_id: item.lot_id }));
+        } else {
+          traceText(panel, 'p', label);
+        }
+      }
+    }
+    if (data.subtotals.length) {
+      traceText(panel, 'h6', data.kind === 'make' ? 'Ingredient subtotals' : 'Consumed subtotals');
+      for (const item of data.subtotals) traceText(panel, 'p', `${item.product_name} · ${traceQuantity(item)}`);
+    }
+  }
+
+  function bindProductionTrace(details, panel, params) {
+    let loading = false;
+    let loaded = false;
+    async function load() {
+      if (loading || loaded || !details.open) return;
+      loading = true;
+      panel.replaceChildren();
+      traceText(panel, 'p', 'Loading consumed lots…');
+      panel.setAttribute('aria-busy', 'true');
+      try {
+        const data = await fetchAPI('/production/trace?' + params);
+        renderProductionTrace(panel, data);
+        loaded = true;
+      } catch (error) {
+        panel.replaceChildren();
+        traceText(panel, 'p', 'Could not load consumed lots. Try again.');
+        const retry = traceText(panel, 'button', 'Retry');
+        retry.type = 'button';
+        retry.addEventListener('click', load);
+      } finally {
+        loading = false;
+        panel.removeAttribute('aria-busy');
+      }
+    }
+    details.addEventListener('toggle', load);
   }
 
   function renderProductionDetailFamily(family) {
@@ -1093,6 +1160,12 @@
 
     detail.innerHTML = html;
     detail.classList.remove('hidden');
+    detail.querySelectorAll('.production-trace[data-product-id]').forEach(row => {
+      bindProductionTrace(row, row.querySelector('.production-trace-panel'), new URLSearchParams({
+        product_id: row.dataset.productId, kind: row.dataset.kind,
+        start_date: model.day.date, end_date: model.day.date
+      }));
+    });
     detail.querySelector('.production-detail-close').addEventListener('click', () => {
       state.selectedProductionDate = null;
       updateProductionDaySelection(container, false);

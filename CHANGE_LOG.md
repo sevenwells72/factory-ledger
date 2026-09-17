@@ -3253,3 +3253,17 @@
 - **Why:** Upgrade to v3.0.0 — merging preview/commit stays under ChatGPT's 30-operation OpenAPI limit; LAT Code Policy v1.1 compliance; shipment tracking for sales orders; commingled receipt support
 
 ---
+
+## 2026-09-17 15:27 — Production summary consumed-lot drill-down
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/test_production_trace.py`
+- **What changed:** Added scoped read-only current-ledger trace GET and keyboard-accessible nested inline disclosures, ingredient subtotals, units, loading/retry states and cache bumps. Tests and validation recorded below when complete.
+- **Why:** Trace Made/Packed rows to actual consumed lots without stale consumption snapshots. Claude Code cross-review required before merge.
+
+---
+
+## 2026-09-17 — Production trace validation and row layout
+- **File(s) changed:** `tests/test_production_trace.py`, `tests/visual/run-production-trace.mjs`, `dashboard/dashboard.css`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added DB-backed endpoint coverage for amended/voided makes, voided packs, prior-day batches, packaging units, ET boundaries, lot-code collisions, authorization and input validation. Full Python suite: 1,143 passed; Node suite: 67 passed. Browser checks cover 1440/390 light/dark, native keyboard disclosures, retries, escaping, units and nested traces. Aligned row counts beside product text.
+- **Why:** Verify trace correctness and accessible read-only navigation before the PR and Claude Code cross-review. No migration, production data write or GPT schema change.
+
+---

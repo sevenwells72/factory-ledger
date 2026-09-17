@@ -3066,3 +3066,19 @@ button.health-badge { font-family: inherit; border: 1px solid var(--border); cur
 :where(input, select, textarea):focus-visible { outline:2px solid var(--primary-text);outline-offset:2px; }
 /* Scope padding to the history page without changing shared section tables. */
 body:has(#history-form) > main { padding:16px clamp(12px,3vw,32px); }
+
+/* Production trace: native disclosure supports Enter/Space and exposes state. */
+.production-trace { min-width: 0; border-bottom: 1px solid var(--border); }
+.production-trace > summary { min-height: 44px; padding: 10px 8px; cursor: pointer; color: var(--text); overflow-wrap: anywhere; }
+.production-trace > summary.production-detail-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 6px; list-style: none; }
+.production-trace > summary.production-detail-row::-webkit-details-marker { display: none; }
+.production-trace > summary.production-detail-row::before { content: "▸"; }
+.production-trace[open] > summary.production-detail-row::before { content: "▾"; }
+.production-trace > summary:hover { background: var(--surface-hover); }
+.production-trace > summary:focus-visible, .production-trace-panel button:focus-visible { outline: 2px solid var(--primary-text); outline-offset: 2px; }
+.production-trace[open] > summary { background: var(--surface-alt); }
+.production-trace-panel { padding: 8px 12px; color: var(--text); overflow-wrap: anywhere; }
+.production-trace-panel h6 { font: inherit; font-weight: 600; margin: 12px 0 8px; }
+.production-trace-panel p { margin: 8px 0; line-height: 1.5; }
+.production-trace-panel button { min-width: 44px; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 16px; cursor: pointer; }
+.production-trace .production-detail-sku { display: block; }
