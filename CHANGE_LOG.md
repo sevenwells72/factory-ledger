@@ -1,5 +1,35 @@
 # Change Log
 
+## 2026-09-17 15:46 — PR #63 review validation complete
+- **File(s) changed:** `CHANGE_LOG.md`; home and iCloud global logs
+- **What changed:** Full Python suite: 1,144 passed; full Node suite: 67 passed. Trace Playwright checks pass at 1440/390 in light/dark. A scratch copy with the trace header removed fails the new outgoing-header assertion (actual null). All HTML references to changed assets agree: dashboard.css v45, dashboard.js v66.
+- **Why:** Record validation before pushing review fixes to the existing feature branch; no merge or deployment.
+
+---
+
+## 2026-09-17 15:45 — PR #63 review fixes
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/history.html`, `dashboard/runs.html`, `tests/visual/run-production-trace.mjs`, `tests/test_production_trace.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`; home and iCloud global logs
+- **What changed:** Authenticate trace fetches; assert outgoing browser headers; clarify full-batch ingredients and pack consumption; cover amended output lot/current consumption; align CSS/JS cache versions; move PR log entries and row 155 newest-first, restore validation time from commit timestamp, and repair global project paths.
+- **Why:** Address all seven REQUEST CHANGES findings. Batch output total is not supplied by the existing trace response; no extra query added. Read-only route, ledger sources, migrations and GPT schema unchanged.
+
+---
+
+## 2026-09-17 15:30 — Production trace validation and row layout
+- **File(s) changed:** `tests/test_production_trace.py`, `tests/visual/run-production-trace.mjs`, `dashboard/dashboard.css`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added DB-backed endpoint coverage for amended/voided makes, voided packs, prior-day batches, packaging units, ET boundaries, lot-code collisions, authorization and input validation. Full Python suite: 1,143 passed; Node suite: 67 passed. Browser checks cover 1440/390 light/dark, native keyboard disclosures, retries, escaping, units and nested traces. Aligned row counts beside product text.
+- **Why:** Verify trace correctness and accessible read-only navigation before the PR and Claude Code cross-review. No migration, production data write or GPT schema change.
+
+---
+
+---
+
+## 2026-09-17 15:27 — Production summary consumed-lot drill-down
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/test_production_trace.py`
+- **What changed:** Added scoped read-only current-ledger trace GET and keyboard-accessible nested inline disclosures, ingredient subtotals, units, loading/retry states and cache bumps. Tests and validation recorded below when complete.
+- **Why:** Trace Made/Packed rows to actual consumed lots without stale consumption snapshots. Claude Code cross-review required before merge.
+
+---
+
 ## 2026-09-16 17:07 — Public legal pages: EULA + Privacy Policy on the Netlify site
 - **File(s) changed:** `dashboard/legal/eula.html`, `dashboard/legal/privacy.html`, `netlify.toml`
 - **What changed:** Added two plain static pages (no JS, no external requests, no auth) served at `/legal/eula.html` and `/legal/privacy.html`. Content states single-company internal use by CNS Confectionery Products LLC (NJ), no third-party users, QuickBooks Online accessed read-only to sync purchase orders, data stored in our own database and never sold or shared, contact miriam@cnscoinc.com. Added a `[[headers]]` block for `/legal/*` with a comment warning against putting a catch-all redirect, password protection, or Identity gate in front of them. netlify.toml has no redirect rules and there is no `_redirects` file, so nothing blocks these paths.

@@ -2670,6 +2670,7 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     # identity, and is how the dashboard will learn whether it is holding an
     # actor key or the shared one. Deliberately NOT in openapi-gpt-v3.yaml.
     ("GET", "/auth/whoami"),
+    ("GET", "/dashboard/api/production/trace"),
     # Legacy dashboard summaries
     ("GET", "/dashboard/inventory"),
     ("GET", "/dashboard/low-stock"),
@@ -16033,7 +16034,7 @@ def dashboard_api_production(
             cur.execute(f"""
                 SELECT DATE((t.timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York') as prod_date,
                        t.type as transaction_type,
-                       p.name as product_name, p.odoo_code as sku,
+                       p.id as product_id, p.name as product_name, p.odoo_code as sku,
                        p.type as product_type, p.pack_format,
                        p.default_batch_lb, p.yield_multiplier, p.case_size_lb,
                        SUM(tl.quantity_lb) FILTER (WHERE tl.quantity_lb > 0) as total_lbs,
@@ -16060,6 +16061,7 @@ def dashboard_api_production(
                 days_map[d] = {"date": d, "day_name": day_name, "batches": [], "finished_goods": []}
             total_lbs = float(r['total_lbs'] or 0)
             entry = {
+                "product_id": r['product_id'],
                 "product_name": r['product_name'],
                 "sku": r['sku'],
                 "total_lbs": total_lbs,
@@ -16089,6 +16091,89 @@ def dashboard_api_production(
     except Exception as e:
         logger.error(f"Dashboard production API failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dashboard/api/production/trace")
+def dashboard_api_production_trace(
+    product_id: Optional[int] = Query(None, ge=1),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    kind: Literal["make", "pack"] = "make",
+    lot_id: Optional[int] = Query(None, ge=1),
+    _: bool = Depends(verify_api_key),
+):
+    """Read current consumed lines for a calendar row or a packed batch lot.
+
+    Lot lookup deliberately has no date restriction: a pack may consume an
+    earlier make. Numeric lot IDs avoid collisions between product lot codes.
+    No legacy consumption tables or inventory snapshots participate.
+    """
+    if lot_id is not None:
+        if product_id is not None or start_date is not None or end_date is not None or kind != "make":
+            raise HTTPException(400, "Use lot_id alone for a batch trace")
+        output_filter, params = "out.lot_id = %s", [lot_id]
+    else:
+        if product_id is None or start_date is None or end_date is None:
+            raise HTTPException(400, "product_id, start_date and end_date are required")
+        if end_date < start_date or (end_date - start_date).days > 30:
+            raise HTTPException(400, "Date range must be ordered and at most 31 days")
+        output_filter = """out.product_id = %s AND
+            DATE((t.timestamp AT TIME ZONE 'UTC') AT TIME ZONE 'America/New_York') BETWEEN %s AND %s"""
+        params = [product_id, start_date, end_date]
+    with get_transaction() as cur:
+        cur.execute(f"""
+            SELECT t.id, t.timestamp
+            FROM ledger_current_transactions t
+            WHERE t.effective_status = 'posted' AND t.type = %s
+              AND EXISTS (
+                  SELECT 1 FROM ledger_current_transaction_lines out
+                  WHERE out.transaction_id = t.id AND out.quantity_lb > 0
+                    AND {output_filter}
+              )
+            ORDER BY t.timestamp, t.id
+        """, [kind] + params)
+        transactions = cur.fetchall()
+        ids = [row['id'] for row in transactions]
+        lines = []
+        if ids:
+            cur.execute("""
+                SELECT tl.transaction_id, tl.product_id, tl.lot_id,
+                       p.name AS product_name, p.type AS product_type, p.uom,
+                       l.lot_code, l.supplier_lot_code,
+                       SUM(tl.quantity_lb) AS quantity
+                FROM ledger_current_transaction_lines tl
+                JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+                JOIN products p ON p.id = tl.product_id
+                JOIN lots l ON l.id = tl.lot_id
+                WHERE t.effective_status = 'posted' AND t.type = %s
+                  AND tl.transaction_id = ANY(%s) AND tl.quantity_lb < 0
+                GROUP BY tl.transaction_id, tl.product_id, tl.lot_id,
+                         p.name, p.type, p.uom, l.lot_code, l.supplier_lot_code
+                ORDER BY tl.transaction_id, p.name, tl.lot_id
+            """, (kind, ids))
+            lines = cur.fetchall()
+    by_transaction = {tid: [] for tid in ids}
+    totals = {}
+    for row in lines:
+        unit = ledger_quantity_unit(row['uom'])
+        quantity = abs(row['quantity'])
+        item = {key: row[key] for key in (
+            'product_id', 'product_name', 'product_type', 'lot_id',
+            'lot_code', 'supplier_lot_code')}
+        item.update(quantity=float(quantity), unit=unit)
+        by_transaction[row['transaction_id']].append(item)
+        key = (row['product_id'], unit)
+        if key not in totals:
+            totals[key] = dict(product_id=row['product_id'], product_name=row['product_name'],
+                               unit=unit, quantity=0)
+        totals[key]['quantity'] += quantity
+    return {
+        "kind": kind,
+        "transactions": [dict(transaction_id=row['id'],
+                              timestamp=row['timestamp'].isoformat(),
+                              consumed=by_transaction[row['id']]) for row in transactions],
+        "subtotals": [dict(row, quantity=float(row['quantity'])) for row in totals.values()],
+    }
 
 
 @app.get("/dashboard/api/inventory/finished-goods")
