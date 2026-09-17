@@ -30,6 +30,12 @@
 
 ---
 
+## 2026-09-17 14:06 — Granola batch on-hand audit (read-only)
+- **File(s) changed:** `audits/reports/granola-batch-onhand-audit.md` (new)
+- **What changed:** Added a read-only audit of the dashboard "Batch Inventory On-Hand → Granola" section: per-product and per-lot posted on-hand, monthly made/packed/adjusted since 2026-01-01, root cause, and a proposed (not executed) pack/ship + per-lot adjustment list. Root cause: Sunshine per/lb bulk SKUs (285, 288) have NULL case_size_lb and are parented to never-made Kosher batches 283/284, so SO 298 (6,000 lb CC #9 bulk + 4,000 lb Classic #9 bulk, confirmed 2026-08-17, 0 shipped) was never packed or shipped and batches 108/107 were never debited; plus a systematic ~15–25 % made-vs-packed shrink on 107/114/116 consistent with uncredited bake loss (yield_multiplier = 1.0). Ruled out: packs missing batch lines, BOM quantities, yield multipliers, duplicate makes, stale lots, dashboard query. Dashboard has no /adjust UI.
+- **Why:** Owner reported implausible granola batch on-hand (107 = 14,878 lb, 108 = 9,396 lb, 114 = 4,857 lb). No DB writes, no /adjust calls, no migrations.
+
+---
 ## 2026-09-16 17:07 — Public legal pages: EULA + Privacy Policy on the Netlify site
 - **File(s) changed:** `dashboard/legal/eula.html`, `dashboard/legal/privacy.html`, `netlify.toml`
 - **What changed:** Added two plain static pages (no JS, no external requests, no auth) served at `/legal/eula.html` and `/legal/privacy.html`. Content states single-company internal use by CNS Confectionery Products LLC (NJ), no third-party users, QuickBooks Online accessed read-only to sync purchase orders, data stored in our own database and never sold or shared, contact miriam@cnscoinc.com. Added a `[[headers]]` block for `/legal/*` with a comment warning against putting a catch-all redirect, password protection, or Identity gate in front of them. netlify.toml has no redirect rules and there is no `_redirects` file, so nothing blocks these paths.
