@@ -1,0 +1,25 @@
+Already completed: all 24 exact events verified. No credentials loaded, no HTTP calls.
+| Product | Before lb | Change lb | Final lb | Matches target |
+|---|---:|---:|---:|---|
+| Batch Classic Granola #9 (107) | 14,878.00 | -4,318.00 | 10,560.00 | yes |
+| Batch Classic Chocolate Chip Granola #9 (108) | 9,396.00 | -7,396.00 | 2,000.00 | yes |
+| Batch Setton Cinnamon Almond Granola #14 (109) | 0.00 | +0.00 | 0.00 | yes |
+| Batch Setton Coffee Granola #12 (110) | 0.00 | +0.00 | 0.00 | yes |
+| Batch Setton Cocoa Crunch Granola #13 (111) | 0.00 | +0.00 | 0.00 | yes |
+| Batch Vanilla Crisp Granola #16(no almonds) (112) | 240.00 | +0.00 | 240.00 | yes |
+| Batch Granola Vanilla Almond 380 lb (113) | 5.00 | -5.00 | 0.00 | yes |
+| Batch SS Chocolate Chip Granola #2 (114) | 4,857.00 | -4,857.00 | 0.00 | yes |
+| Batch SS Chocolate Chip Granola #5 (115) | 0.00 | +0.00 | 0.00 | yes |
+| Batch SS Original Granola #1 (116) | 1,967.50 | -1,967.50 | 0.00 | yes |
+| Batch SS Original Granola #4 (117) | 0.00 | +0.00 | 0.00 | yes |
+| Batch SS Cranberry Granola #3 (118) | 249.00 | -249.00 | 0.00 | yes |
+| Batch SS Low Carb Chocolate Chip Granola #8 (119) | 35.00 | -35.00 | 0.00 | yes |
+| Batch SS Low Carb Original Granola #7 (120) | 67.50 | -67.50 | 0.00 | yes |
+| Batch BS Dark Chocolate Granola 350 (121) | 1,050.00 | +0.00 | 1,050.00 | yes |
+| Batch BS Peanut Butter Banana Granola (122) | 2.38 | -2.38 | 0.00 | yes |
+| Batch BS Almond Butter Granola 350 (123) | 0.00 | +0.00 | 0.00 | yes |
+| Batch BS Hazelnut Butter Granola 350 (124) | 0.00 | +0.00 | 0.00 | yes |
+| Granola Fruit Nut Batch (179) | 438.08 | -438.08 | 0.00 | yes |
+| Batch SS Classic Granola #9 (Kosher Ignition) (283) | 0.00 | +0.00 | 0.00 | yes |
+| Batch SS Classic Chocolate Chip Granola #9 (Kosher Ignition) (284) | 0.00 | +0.00 | 0.00 | yes |
+Vanilla Crisp (112): excluded; unchanged at 240.00 lb.

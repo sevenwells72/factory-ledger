@@ -1,0 +1,50 @@
+All lot/product balances match; 0 confirmed rows will be skipped.
+Verified 1/24: transaction 2393; lot 1378 = 0.0 lb
+Verified 2/24: transaction 2394; lot 1387 = 0.0 lb
+Verified 3/24: transaction 2395; lot 1429 = 2157.0 lb
+Verified 4/24: transaction 2396; lot 1429 = 1839.0 lb
+Verified 5/24: transaction 2397; lot 1334 = 0.0 lb
+Verified 6/24: transaction 2398; lot 1346 = 612.0 lb
+Verified 7/24: transaction 2399; lot 1346 = 0.0 lb
+Verified 8/24: transaction 2400; lot 1377 = 0.0 lb
+Verified 9/24: transaction 2401; lot 1450 = 2000.0 lb
+Verified 10/24: transaction 2402; lot 1437 = 0.0 lb
+Verified 11/24: transaction 2403; lot 1413 = 0.0 lb
+Verified 12/24: transaction 2404; lot 1422 = 0.0 lb
+Verified 13/24: transaction 2405; lot 1303 = 0.0 lb
+Verified 14/24: transaction 2406; lot 1394 = 0.0 lb
+Verified 15/24: transaction 2407; lot 1401 = 0.0 lb
+Verified 16/24: transaction 2408; lot 1423 = 0.0 lb
+Verified 17/24: transaction 2409; lot 1436 = 0.0 lb
+Verified 18/24: transaction 2410; lot 1134 = 0.0 lb
+Verified 19/24: transaction 2411; lot 1304 = 0.0 lb
+Verified 20/24: transaction 2412; lot 1356 = 0.0 lb
+Verified 21/24: transaction 2413; lot 1357 = 0.0 lb
+Verified 22/24: transaction 2414; lot 1079 = 0.00 lb
+Verified 23/24: transaction 2415; lot 902 = 0.00 lb
+Verified 24/24: transaction 2416; lot 1455 = 0.00 lb
+VERIFIED SUCCESS: 24 exact shared-key adjustments; every target matches.
+| Product | Before lb | Change lb | Final lb | Matches target |
+|---|---:|---:|---:|---|
+| Batch Classic Granola #9 (107) | 14,878.00 | -4,318.00 | 10,560.00 | yes |
+| Batch Classic Chocolate Chip Granola #9 (108) | 9,396.00 | -7,396.00 | 2,000.00 | yes |
+| Batch Setton Cinnamon Almond Granola #14 (109) | 0.00 | +0.00 | 0.00 | yes |
+| Batch Setton Coffee Granola #12 (110) | 0.00 | +0.00 | 0.00 | yes |
+| Batch Setton Cocoa Crunch Granola #13 (111) | 0.00 | +0.00 | 0.00 | yes |
+| Batch Vanilla Crisp Granola #16(no almonds) (112) | 240.00 | +0.00 | 240.00 | yes |
+| Batch Granola Vanilla Almond 380 lb (113) | 5.00 | -5.00 | 0.00 | yes |
+| Batch SS Chocolate Chip Granola #2 (114) | 4,857.00 | -4,857.00 | 0.00 | yes |
+| Batch SS Chocolate Chip Granola #5 (115) | 0.00 | +0.00 | 0.00 | yes |
+| Batch SS Original Granola #1 (116) | 1,967.50 | -1,967.50 | 0.00 | yes |
+| Batch SS Original Granola #4 (117) | 0.00 | +0.00 | 0.00 | yes |
+| Batch SS Cranberry Granola #3 (118) | 249.00 | -249.00 | 0.00 | yes |
+| Batch SS Low Carb Chocolate Chip Granola #8 (119) | 35.00 | -35.00 | 0.00 | yes |
+| Batch SS Low Carb Original Granola #7 (120) | 67.50 | -67.50 | 0.00 | yes |
+| Batch BS Dark Chocolate Granola 350 (121) | 1,050.00 | +0.00 | 1,050.00 | yes |
+| Batch BS Peanut Butter Banana Granola (122) | 2.38 | -2.38 | 0.00 | yes |
+| Batch BS Almond Butter Granola 350 (123) | 0.00 | +0.00 | 0.00 | yes |
+| Batch BS Hazelnut Butter Granola 350 (124) | 0.00 | +0.00 | 0.00 | yes |
+| Granola Fruit Nut Batch (179) | 438.08 | -438.08 | 0.00 | yes |
+| Batch SS Classic Granola #9 (Kosher Ignition) (283) | 0.00 | +0.00 | 0.00 | yes |
+| Batch SS Classic Chocolate Chip Granola #9 (Kosher Ignition) (284) | 0.00 | +0.00 | 0.00 | yes |
+Vanilla Crisp (112): excluded; unchanged at 240.00 lb.
