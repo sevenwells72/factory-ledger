@@ -101,3 +101,30 @@ def test_trace_auth_and_invalid_scopes(trace_client):
                    {'product_id':1, 'start_date':'2026-08-01', 'end_date':'2026-09-17'}):
         assert trace_client.get(path, params=params).status_code == 400
     assert trace_client.get(path, params={'lot_id':-1}).status_code == 422
+
+
+@pytest.mark.db
+def test_amended_output_lot_uses_current_lines(trace_client, db_cursor):
+    batch = product(db_cursor, 'Trace amended batch', 'batch')
+    oats = product(db_cursor, 'Trace amended oats', 'ingredient')
+    db_cursor.execute(
+        "INSERT INTO lots (product_id, lot_code) VALUES (%s, 'CORRECTED-LOT') RETURNING id",
+        (batch[0],))
+    current_lot = db_cursor.fetchone()['id']
+    made, lines = event(db_cursor, 'make', '2026-09-14 15:00', [(batch, 30), (oats, -30)])
+    main._append_transaction_line_correction(
+        db_cursor, lines[0], {'lot_id': current_lot}, 'correct output lot', 'test')
+    main._append_transaction_line_correction(
+        db_cursor, lines[1], {'quantity_lb': -28}, 'correct consumed weight', 'test')
+
+    old = trace_client.get('/dashboard/api/production/trace', params={'lot_id': batch[1]})
+    assert old.status_code == 200
+    assert old.json()['transactions'] == []
+    assert old.json()['subtotals'] == []
+    current = trace_client.get('/dashboard/api/production/trace', params={'lot_id': current_lot})
+    assert current.status_code == 200
+    data = current.json()
+    assert [t['transaction_id'] for t in data['transactions']] == [made]
+    assert data['transactions'][0]['consumed'][0]['lot_id'] == oats[1]
+    assert data['transactions'][0]['consumed'][0]['quantity'] == 28
+    assert data['subtotals'][0]['quantity'] == 28

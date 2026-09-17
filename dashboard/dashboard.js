@@ -669,8 +669,8 @@
     }
   }
 
-  async function fetchAPI(path) {
-    const res = await FL.fetchWithTimeout(API_BASE + path);
+  async function fetchAPI(path, options) {
+    const res = await FL.fetchWithTimeout(API_BASE + path, options);
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`HTTP ${res.status}: ${body}`);
@@ -1055,7 +1055,7 @@
     return Number(item.quantity).toLocaleString('en-US', { maximumFractionDigits: 4 }) + ' ' + item.unit;
   }
 
-  function renderProductionTrace(panel, data) {
+  function renderProductionTrace(panel, data, packedBatch) {
     panel.replaceChildren();
     if (!data.transactions.length) {
       traceText(panel, 'p', 'No posted production found for this selection.');
@@ -1075,19 +1075,21 @@
           nested.className = 'production-trace-panel';
           nested.setAttribute('aria-live', 'polite');
           batch.appendChild(nested);
-          bindProductionTrace(batch, nested, new URLSearchParams({ lot_id: item.lot_id }));
+          bindProductionTrace(batch, nested, new URLSearchParams({ lot_id: item.lot_id }), item);
         } else {
           traceText(panel, 'p', label);
         }
       }
     }
     if (data.subtotals.length) {
-      traceText(panel, 'h6', data.kind === 'make' ? 'Ingredient subtotals' : 'Consumed subtotals');
+      traceText(panel, 'h6', packedBatch
+        ? `Ingredients in full batch (this pack used ${traceQuantity(packedBatch)})`
+        : data.kind === 'make' ? 'Ingredient subtotals' : 'Consumed subtotals');
       for (const item of data.subtotals) traceText(panel, 'p', `${item.product_name} · ${traceQuantity(item)}`);
     }
   }
 
-  function bindProductionTrace(details, panel, params) {
+  function bindProductionTrace(details, panel, params, packedBatch) {
     let loading = false;
     let loaded = false;
     async function load() {
@@ -1097,8 +1099,10 @@
       traceText(panel, 'p', 'Loading consumed lots…');
       panel.setAttribute('aria-busy', 'true');
       try {
-        const data = await fetchAPI('/production/trace?' + params);
-        renderProductionTrace(panel, data);
+        const data = await fetchAPI('/production/trace?' + params, {
+          headers: { 'X-API-Key': SALES_API_KEY }
+        });
+        renderProductionTrace(panel, data, packedBatch);
         loaded = true;
       } catch (error) {
         panel.replaceChildren();

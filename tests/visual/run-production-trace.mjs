@@ -25,6 +25,8 @@ try {
    const url=new URL(route.request().url());
    assert.equal(route.request().method(),'GET');
    if(url.pathname.endsWith('/trace')) {
+    assert.equal(await route.request().headerValue('X-API-Key'), 'dashboard-key-2026',
+      'Every outgoing trace request must carry the dashboard key, including retries and nested traces');
     requests.push(Object.fromEntries(url.searchParams));
     if(!failed){failed=true;return route.fulfill({status:503,json:{error:'private technical error'}});}
     const kind=url.searchParams.get('kind') || 'make';
@@ -55,7 +57,7 @@ try {
   assert((await packed.innerText()).includes('Packaging bags · Lot BAG-1 · 2 each'));
   const nested=packed.locator('.production-trace');
   await nested.locator(':scope > summary').focus();await page.keyboard.press('Enter');
-  await nested.getByText('Ingredient subtotals',{exact:true}).waitFor();
+  await nested.getByText('Ingredients in full batch (this pack used 25 lb)',{exact:true}).waitFor();
   assert(requests.some(r=>r.lot_id==='11'&&!r.start_date));
   assert(requests.filter(r=>r.product_id).every(r=>r.start_date===day&&r.end_date===day));
   const geometry=await page.locator('.production-trace > summary').evaluateAll(nodes=>nodes.map(n=>({height:n.getBoundingClientRect().height,width:n.getBoundingClientRect().width})));
