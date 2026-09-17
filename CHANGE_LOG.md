@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-09-17 15:54 — #156 Granola physical count EXECUTED in production
+- **What changed:** Michael-approved granola physical-count reconciliation EXECUTED via production POST /adjust with explicit --apply --allow-shared-key, using the same in-memory Railway shared-key retrieval as the September 15 coconut adjustment. Posted 24 events across 22 lots, transactions 2393–2416, total −19,335.46 lb, effective 2026-09-17. Classic 107: 14,878 → 10,560 lb; Classic Chocolate Chip 108: 9,396 → 2,000 lb; BS Dark Chocolate 121 unchanged at 1,050 lb; all eight other specified products zero. Vanilla Crisp 112 untouched at 240 lb. Reasons retain the approved Sunshine 4,000/6,000 lb split and Arturo remainder, each ending with (entered via shared key by Michael); operator_id remains legacy-shared-key. All balances checked before each post; exact events and all targets verified with read-only posted ledger_current_* queries. Durable intent/receipt journal plus exact posted-prefix detection prevents replay; rerun verified all 24 and made zero API calls. Nine safety tests passed. No push or merge.
+- **Files/evidence:** `scripts/granola_writedown_0917.py`, frozen JSON plan, safety tests, `audits/reports/granola-writedown-plan.md`, `audits/results/granola-writedown-0917-*`, both project logs and the iCloud global log.
+- **Why:** Michael approved bringing September 17 granola bulk on-hand to the physical count.
+- **Regression guard:** Never replay these posted entries. Default is dry-run; shared-key apply requires the explicit flag, and the execution journal must be retained.
+
+---
+
 ## 2026-09-17 15:46 — PR #63 review validation complete
 - **File(s) changed:** `CHANGE_LOG.md`; home and iCloud global logs
 - **What changed:** Full Python suite: 1,144 passed; full Node suite: 67 passed. Trace Playwright checks pass at 1440/390 in light/dark. A scratch copy with the trace header removed fails the new outgoing-header assertion (actual null). All HTML references to changed assets agree: dashboard.css v45, dashboard.js v66.
