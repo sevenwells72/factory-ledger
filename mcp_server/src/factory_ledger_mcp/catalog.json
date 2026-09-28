@@ -1,0 +1,881 @@
+{
+  "office": [
+    {
+      "name": "searchProducts",
+      "method": "GET",
+      "path": "/products/search",
+      "source_path": "/products/search",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Search products using 3-tier matching: exact -> keyword (word-order independent) -> trigram similarity. Returns match_tier per result.",
+      "path_parameters": [],
+      "query_parameters": [
+        "q",
+        "limit"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Product name, partial name, or odoo_code. Word order does not matter -- 'Chocolate Sprinkles 10' finds 'Sprinkles Chocolate 10 LB'."
+          },
+          "limit": {
+            "type": "integer",
+            "default": 20,
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "resolveProducts",
+      "method": "POST",
+      "path": "/products/resolve",
+      "source_path": "/products/resolve",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Bulk-resolve raw product names to database products. Use BEFORE creating sales orders from OCR text to verify matches. Returns confidence per item.",
+      "path_parameters": [],
+      "query_parameters": [],
+      "body_parameters": [
+        "names"
+      ],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Raw product name strings from OCR or order confirmations"
+          }
+        },
+        "required": [
+          "names"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getBatchFormula",
+      "method": "GET",
+      "path": "/bom/batches/{batch_id}/formula",
+      "source_path": "/bom/batches/{batch_id}/formula",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Get batch formula with ingredient IDs needed for lot overrides and exclusions",
+      "path_parameters": [
+        "batch_id"
+      ],
+      "query_parameters": [],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "batch_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "inventoryLookup",
+      "method": "GET",
+      "path": "/inventory/lookup",
+      "source_path": "/inventory/lookup",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Search inventory by product name (fuzzy). This is the PRIMARY endpoint for all inventory questions.",
+      "path_parameters": [],
+      "query_parameters": [
+        "q",
+        "limit"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Fuzzy product name query (e.g. \"rainbow sprinkles\")"
+          },
+          "limit": {
+            "type": "integer",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getLotByCode",
+      "method": "GET",
+      "path": "/lots/by-code/{lot_code}",
+      "source_path": "/lots/by-code/{lot_code}",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Look up lot by lot code (includes supplier_lot_code and supplier_lot_entries)",
+      "path_parameters": [
+        "lot_code"
+      ],
+      "query_parameters": [],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "lot_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lot_code"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "traceBatch",
+      "method": "GET",
+      "path": "/trace/batch/{lot_code}",
+      "source_path": "/trace/batch/{lot_code}",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Trace batch ingredients (backward trace)",
+      "path_parameters": [
+        "lot_code"
+      ],
+      "query_parameters": [
+        "product_id"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "lot_code": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "integer",
+            "description": "Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response."
+          }
+        },
+        "required": [
+          "lot_code"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "traceIngredient",
+      "method": "GET",
+      "path": "/trace/ingredient/{lot_code}",
+      "source_path": "/trace/ingredient/{lot_code}",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Trace ingredient usage (forward trace)",
+      "path_parameters": [
+        "lot_code"
+      ],
+      "query_parameters": [
+        "product_id"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "lot_code": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "integer",
+            "description": "Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response."
+          }
+        },
+        "required": [
+          "lot_code"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "traceSupplierLot",
+      "method": "GET",
+      "path": "/trace/supplier-lot/{supplier_lot_code}",
+      "source_path": "/trace/supplier-lot/{supplier_lot_code}",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "FDA recall trace — find all internal lots and exposure for a supplier lot code",
+      "path_parameters": [
+        "supplier_lot_code"
+      ],
+      "query_parameters": [
+        "product_id"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "supplier_lot_code": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "integer",
+            "description": "Filter to a specific product when supplier lot code matches multiple."
+          }
+        },
+        "required": [
+          "supplier_lot_code"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getTransactionHistory",
+      "method": "GET",
+      "path": "/transactions/history",
+      "source_path": "/transactions/history",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Get recent transaction history",
+      "path_parameters": [],
+      "query_parameters": [
+        "limit",
+        "transaction_type",
+        "product_name",
+        "since",
+        "until"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "default": 20,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "transaction_type": {
+            "type": "string",
+            "enum": [
+              "receive",
+              "ship",
+              "make",
+              "pack",
+              "adjust"
+            ]
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date (inclusive), format YYYY-MM-DD"
+          },
+          "until": {
+            "type": "string",
+            "format": "date",
+            "description": "End date (inclusive), format YYYY-MM-DD"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getDaySummary",
+      "method": "GET",
+      "path": "/production/day-summary",
+      "source_path": "/production/day-summary",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Get daily production summary — all make/pack/adjust activity grouped by product with lot-level detail.",
+      "path_parameters": [],
+      "query_parameters": [
+        "date"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date in YYYY-MM-DD format; defaults to today"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "listCustomers",
+      "method": "GET",
+      "path": "/customers",
+      "source_path": "/customers",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "List all customers",
+      "path_parameters": [],
+      "query_parameters": [
+        "active_only"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "active_only": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "searchCustomers",
+      "method": "GET",
+      "path": "/customers/search",
+      "source_path": "/customers/search",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Search customers by name (fuzzy, includes aliases). Use for customer lookup and disambiguation.",
+      "path_parameters": [],
+      "query_parameters": [
+        "q"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Customer name or partial name to search"
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "listOrders",
+      "method": "GET",
+      "path": "/sales/orders",
+      "source_path": "/sales/orders",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "List sales orders with filters",
+      "path_parameters": [],
+      "query_parameters": [
+        "status",
+        "customer",
+        "overdue_only",
+        "limit"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "customer": {
+            "type": "string"
+          },
+          "overdue_only": {
+            "type": "boolean",
+            "default": false
+          },
+          "limit": {
+            "type": "integer",
+            "default": 50,
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getOrder",
+      "method": "GET",
+      "path": "/sales/orders/{order_id}",
+      "source_path": "/sales/orders/{order_id}",
+      "source": "openapi-gpt-v3.yaml",
+      "description": "Get sales order details",
+      "path_parameters": [
+        "order_id"
+      ],
+      "query_parameters": [],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order DB id (integer) or order number (e.g. 'SO-260323-001')"
+          }
+        },
+        "required": [
+          "order_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "floor": [
+    {
+      "name": "searchProducts",
+      "method": "GET",
+      "path": "/products/search",
+      "source_path": "/products/search",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Search products using 3-tier matching: exact → keyword (word-order independent) → trigram similarity. Returns match_tier per result.",
+      "path_parameters": [],
+      "query_parameters": [
+        "q",
+        "limit"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Product name, partial name, or odoo_code. Word order does not matter — 'Chocolate Sprinkles 10' finds 'Sprinkles Chocolate 10 LB'."
+          },
+          "limit": {
+            "type": "integer",
+            "default": 20,
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "listProducts",
+      "method": "GET",
+      "path": "/bom/products",
+      "source_path": "/bom/products",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "List all active products, optionally filtered by type (ingredient, batch, finished_good) and name search.",
+      "path_parameters": [],
+      "query_parameters": [
+        "product_type",
+        "q",
+        "limit"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "product_type": {
+            "type": "string",
+            "enum": [
+              "ingredient",
+              "batch",
+              "finished"
+            ],
+            "description": "Filter by product type"
+          },
+          "q": {
+            "type": "string",
+            "description": "Partial name or odoo_code match"
+          },
+          "limit": {
+            "type": "integer",
+            "default": 200,
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getBatchFormula",
+      "method": "GET",
+      "path": "/bom/batches/{batch_id}/formula",
+      "source_path": "/bom/batches/{batch_id}/formula",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Get batch formula with ingredient IDs needed for lot overrides and exclusions.",
+      "path_parameters": [
+        "batch_id"
+      ],
+      "query_parameters": [],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "batch_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "inventoryLookup",
+      "method": "GET",
+      "path": "/inventory/lookup",
+      "source_path": "/inventory/lookup",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Search inventory by product name (fuzzy). PRIMARY endpoint for all inventory questions.",
+      "path_parameters": [],
+      "query_parameters": [
+        "q",
+        "limit"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Fuzzy product name query (e.g. 'rainbow sprinkles')."
+          },
+          "limit": {
+            "type": "integer",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getLotByCode",
+      "method": "GET",
+      "path": "/lots/by-code/{lot_code}",
+      "source_path": "/lots/by-code/{lot_code}",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Look up lot by lot code (includes supplier_lot_code and supplier_lot_entries).",
+      "path_parameters": [
+        "lot_code"
+      ],
+      "query_parameters": [
+        "product_id"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "lot_code": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "integer",
+            "description": "Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response to retry."
+          }
+        },
+        "required": [
+          "lot_code"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getLotsBySupplierLot",
+      "method": "GET",
+      "path": "/lots/by-supplier-lot/{supplier_lot_code}",
+      "source_path": "/lots/by-supplier-lot/{supplier_lot_code}",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Lightweight lookup: find internal lots by supplier lot code.",
+      "path_parameters": [
+        "supplier_lot_code"
+      ],
+      "query_parameters": [],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "supplier_lot_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "supplier_lot_code"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "traceSupplierLot",
+      "method": "GET",
+      "path": "/trace/supplier-lot/{supplier_lot_code}",
+      "source_path": "/trace/supplier-lot/{supplier_lot_code}",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "FDA recall trace — find all internal lots and full downstream exposure for a supplier lot code.",
+      "path_parameters": [
+        "supplier_lot_code"
+      ],
+      "query_parameters": [
+        "product_id"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "supplier_lot_code": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "integer",
+            "description": "Filter to a specific product when supplier lot code matches multiple."
+          }
+        },
+        "required": [
+          "supplier_lot_code"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getTransactionHistory",
+      "method": "GET",
+      "path": "/transactions/history",
+      "source_path": "/transactions/history",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Get recent transaction history. Use to look up a transaction_id before voiding.",
+      "path_parameters": [],
+      "query_parameters": [
+        "limit",
+        "transaction_type",
+        "product_name",
+        "since",
+        "until"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "default": 20,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "transaction_type": {
+            "type": "string",
+            "enum": [
+              "receive",
+              "ship",
+              "make",
+              "pack",
+              "adjust"
+            ]
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date (inclusive), format YYYY-MM-DD."
+          },
+          "until": {
+            "type": "string",
+            "format": "date",
+            "description": "End date (inclusive), format YYYY-MM-DD."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getDaySummary",
+      "method": "GET",
+      "path": "/production/day-summary",
+      "source_path": "/production/day-summary",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Daily production summary — all make/pack/adjust activity grouped by product with lot-level detail.",
+      "path_parameters": [],
+      "query_parameters": [
+        "date"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date in YYYY-MM-DD format; defaults to today."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "listOrders",
+      "method": "GET",
+      "path": "/sales/orders",
+      "source_path": "/sales/orders",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "List sales orders with filters. Use status=open for active orders needing work.",
+      "path_parameters": [],
+      "query_parameters": [
+        "status",
+        "customer",
+        "overdue_only",
+        "limit"
+      ],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Filter by status, or 'open' for all non-terminal statuses."
+          },
+          "customer": {
+            "type": "string",
+            "description": "Filter by customer name (fuzzy, includes aliases)."
+          },
+          "overdue_only": {
+            "type": "boolean",
+            "default": false
+          },
+          "limit": {
+            "type": "integer",
+            "default": 50,
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "getOrder",
+      "method": "GET",
+      "path": "/sales/orders/{order_id}",
+      "source_path": "/sales/orders/{order_id}",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Retrieve one sales order and its lines by numeric database ID or exact SO number.",
+      "path_parameters": [
+        "order_id"
+      ],
+      "query_parameters": [],
+      "body_parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Accepts either the numeric database ID or an SO number such as \"SO-260723-001\"."
+          }
+        },
+        "required": [
+          "order_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "shipOrder",
+      "method": "POST",
+      "path": "/sales/orders/{order_id}/ship/preview",
+      "source_path": "/sales/orders/{order_id}/ship",
+      "source": "gpt-configs/schemas/openapi-floor.yaml",
+      "description": "Preview a sales-order shipment. Read-only: cannot dispatch or commit. Show quantities, shortages and warnings to the operator.",
+      "path_parameters": [
+        "order_id"
+      ],
+      "query_parameters": [],
+      "body_parameters": [
+        "mode",
+        "ship_all",
+        "lines",
+        "occurred_at",
+        "backfill"
+      ],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "description": "Order DB id (integer) or order number."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "preview"
+            ],
+            "default": "preview",
+            "description": "This action is preview-only and makes no changes. Use commitShipOrder after explicit operator approval."
+          },
+          "ship_all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Ship all remaining lines in full. Ignored if 'lines' is provided."
+          },
+          "lines": {
+            "type": "array",
+            "description": "Per-line ship quantities. Omit to use ship_all.",
+            "items": {
+              "type": "object",
+              "required": [
+                "line_id",
+                "quantity_lb"
+              ],
+              "properties": {
+                "line_id": {
+                  "type": "integer"
+                },
+                "quantity_lb": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional event time. Omit when the shipment happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+          },
+          "backfill": {
+            "type": "boolean",
+            "default": false,
+            "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+          }
+        },
+        "required": [
+          "order_id",
+          "mode"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
