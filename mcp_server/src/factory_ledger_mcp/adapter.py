@@ -53,6 +53,10 @@ class LedgerReader:
         query = {key: arguments[key] for key in spec["query_parameters"] if key in arguments}
         body = {key: arguments[key] for key in spec["body_parameters"] if key in arguments}
         if group == "floor" and name == "shipOrder":
+            if body.get("ship_all") and "lines" in body:
+                raise ToolFailure(
+                    "invalid_arguments", "ship_all=true cannot be combined with explicit lines"
+                )
             body["mode"] = "preview"
         kwargs = {"params": query}
         if spec["method"] == "POST":

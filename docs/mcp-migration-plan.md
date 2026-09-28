@@ -12,7 +12,7 @@
 
 ## Scope and evidence
 
-Originally prepared September 28, 2026 against `54df62b`; corrected and expanded on the same date, with Phase 1 built on branch `feature/mcp-server` from local `origin/main` at `6480c91`. The owner explicitly authorized the isolated read-only build below. No production credentials, production data, deployments, existing OpenAPI files, or `main.py` behavior are changed or exercised.
+Originally prepared September 28, 2026 against `54df62b`; corrected and expanded on the same date, with Phase 1 built on branch `feature/mcp-server` from local `origin/main` at `6480c91`. The owner explicitly authorized the isolated read-only build below. No production credentials, production data or deployments are exercised. Existing OpenAPI files and `main.py` behavior remain unchanged; real handlers are exercised only against disposable local test databases.
 
 The inventory below is exhaustive for `openapi-gpt-v3.yaml`, whose declared API version is **3.5.0**: **30 operations, comprising 14 business reads and 16 writes**. A POST is not necessarily a write: `resolveProducts` only resolves names. Preview-capable tools count as writes because they can also commit.
 
@@ -259,7 +259,7 @@ Proposed request path: **ChatGPT plugin / Claude connector → OAuth-protected R
 
 Operational requirements for the later build:
 
-- Configure a dedicated service root/start command and watch patterns. Current `railway.json` watches root Python/config files, not a prospective nested MCP package; otherwise adapter changes may not deploy. Keep its environment separate from the legacy runtime.
+- The branch-only `.railway/railway.ts` partial declares the new MCP service: separate `/mcp_server` root, Docker build, explicit start command, `/health`, restart policy, and MCP/config watch paths. Existing services and root `railway.json` remain unchanged. Railway no longer accepts JSON/TOML config for new services, with a December 1, 2026 cutoff for existing users; legacy-service migration is separate work. No Railway plan or apply was run. See the [IaC reference](https://docs.railway.com/infrastructure-as-code/reference).
 - Check service sleep/cold starts, streaming/proxy timeouts, health checks, connection reuse, rate limits, and bounded concurrency against the ledger’s 2–20-connection pool. Do not assume a daily keepalive script proves readiness.
 - Deploy additive backend changes first: PO/service fields, receipts, scoped bridge authentication, and durable idempotency. Verify schema prerequisites and use the existing guarded migration process. The separate service is not a claim that no backend work is needed.
 - Add request IDs across both services and redacted audit events for previews, approvals, commits, errors, and replays. A tool that never reaches Railway must be distinguishable from a database failure.
@@ -285,7 +285,7 @@ Operational requirements for the later build:
 | Instructions or knowledge files fail to carry over | Version a shared workflow guide; package it with the ChatGPT plugin and supply equivalent Claude guidance. A connector gives tools, not automatic transfer of GPT instructions/files. |
 | Packing-slip workflow fails despite office/floor tool parity | Replace credential-bearing URLs with authenticated or short-lived document access; test opening a slip as the intended operator. This companion web route need not add an MCP operation. |
 
-Run all business-write tests against an isolated database with synthetic data. Existing targeted suites include `test_ship_order_service_line.py`, `test_sales_order_line_fields.py`, `test_sales_order_extract.py`, `test_sales_order_readiness.py`, `test_sales_order_state_model.py`, and `test_sales_order_allocations.py`; add contract/auth/approval/replay tests around the new adapter and backend changes. Phase 1 adapter verification is described below. Existing backend write suites are deferred; the legacy app is not started or imported by the new adapter tests.
+Run all business-write tests against an isolated database with synthetic data. Existing targeted suites include `test_ship_order_service_line.py`, `test_sales_order_line_fields.py`, `test_sales_order_extract.py`, `test_sales_order_readiness.py`, `test_sales_order_state_model.py`, and `test_sales_order_allocations.py`; add contract/auth/approval/replay tests around the new adapter and backend changes. Phase 1 adapter verification is described below. Existing backend write suites are deferred; the integration harness starts the unmodified legacy app in a separate process against a disposable local test database. The adapter runtime never imports it.
 
 Full go-live acceptance: 30 office and 22 floor registrations (35 unique names); all 26 read registrations work; all 26 write-capable registrations refuse unapproved commits; real client order entry returns the saved internal SO and correct PO/pallet line; shipping returns real receipts; replay creates no duplicate; denied users cannot write; existing dashboard/API behavior passes regression testing. Preserve actionable 4xx/409 suggestions instead of replacing them with generic retries.
 
@@ -331,8 +331,50 @@ The adapter makes bounded HTTP calls to a numeric loopback test API only, does n
 
 Google OAuth is an explicit TODO. Authentication defaults to locked; the opt-in bearer-token stub runs only on loopback in local/test mode and refuses Railway/production. A simulated floor role cannot access the office group; other simulated roles can read both groups. This does not authenticate CNS users or enable hosted client installation.
 
-The service has an independent lockfile, Dockerfile, Railway configuration, health endpoint, local synthetic SQLite fixture API, and adapter/protocol tests. Verification on September 28: **89 tests passed**; lint, formatting and package builds passed; the actual SDK client initialized both local HTTP endpoints, listed 14/12 tools, retrieved an office order and ran a Floor preview, while a commit call was rejected. Both smoke-test processes were stopped afterward. Existing `main.py`, OpenAPI files, root requirements and root Railway configuration were verified unchanged.
+### Read-only boundary and accepted usage metadata exception
 
-The fixture API is for read-routing verification, not an alternative implementation of Factory Ledger business logic. PostgreSQL queries, production data, full business logic, live ChatGPT/Claude linking, Google OAuth and deployment are **not** validated in this phase. Docker is unavailable locally, so the container image itself is untested. Run instructions and verification commands are in `mcp_server/README.md`.
+**Owner decision (2026-09-28): read-only means no ledger, order, inventory, lot, or
+product changes. `actors.last_used_at` updates are permitted usage metadata.**
+An actor backend key invokes the existing, throttled `_touch_actor_last_used()` during
+authentication. We keep that behavior; no `main.py` change is needed. Backend actor keys
+retain the real route allowlist (for example, product resolution is forbidden); they do
+not confer Google identity or substitute for future MCP user authorization.
 
-Deployment, production access and future write tools are not authorized by this Phase 1 build.
+### MCP contract overrides (OpenAPI unchanged)
+
+The catalog generator explicitly overrides `getLotByCode` in both groups with optional
+integer query parameter `product_id`. Office's YAML omits it, but the real endpoint
+requires it to resolve a 409 ambiguity. Return the ambiguity matches, then repeat the
+lookup with the selected product ID. Source parity includes this documented override.
+
+Floor shipping preview rejects `ship_all=true` together with `lines`; explicit `lines`
+must be nonempty and require `ship_all=false` or omission. This prevents the backend
+from previewing all remaining quantities when the caller requested selected lines.
+Remove the inherited suggestion to call unavailable `commitShipOrder` from the MCP
+parameter description. Preview still calls the existing preview-only wrapper.
+
+### Cross-review validation and limitations
+
+The service retains the independent lockfile, Dockerfile, health endpoint, synthetic
+SQLite demo and routing/validation tests. The new reusable integration harness creates
+a private PostgreSQL cluster from `tests/schema/schema.sql`, clones a fresh database
+per test, and runs real `main.py` startup/handlers/auth in a separate dependency process.
+It accepts no external database URL and forwards no inherited secrets. Each session has
+its own socket/port, allowing the auth and write worktrees to reuse it concurrently.
+
+Real integration scenarios cover missing/wrong backend keys (401/403), 10-lb single-line
+versus two 100-lb full-order previews, conflicting inputs, and ambiguous/disambiguated lot
+lookups in both groups. All 26 read registrations have explicit scenarios independent of
+the generated catalog: full table/row/column and sequence snapshots allow only the actor's
+`last_used_at` change. The actor's existing product-resolution restriction returns 403;
+the synthetic master key exercises that endpoint successfully with no database change.
+
+The new project-level Railway TypeScript declaration is a scoped partial managing only
+`factory-ledger-mcp`; root legacy config stays byte-identical. Local SDK type-check and
+evaluation do not validate remote reconciliation. Google OAuth, full write workflows,
+production data, live ChatGPT/Claude linking, Docker execution and deployment remain
+unverified. Run and harness details are in `mcp_server/README.md`.
+
+**Local only — not deployed.** No production access, push or merge is performed.
+
+Cross-review validation (2026-09-28): **98 tests passed** (91 routing/validation, 7 real-ledger integration cases); Ruff lint/format and package builds passed.

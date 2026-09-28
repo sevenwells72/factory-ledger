@@ -131,13 +131,19 @@
       "path_parameters": [
         "lot_code"
       ],
-      "query_parameters": [],
+      "query_parameters": [
+        "product_id"
+      ],
       "body_parameters": [],
       "input_schema": {
         "type": "object",
         "properties": {
           "lot_code": {
             "type": "string"
+          },
+          "product_id": {
+            "type": "integer",
+            "description": "Product ID from a 409 ambiguous_lot_code response. Supply it with lot_code to select the intended product."
           }
         },
         "required": [
@@ -590,7 +596,7 @@
           },
           "product_id": {
             "type": "integer",
-            "description": "Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response to retry."
+            "description": "Product ID from a 409 ambiguous_lot_code response. Supply it with lot_code to select the intended product."
           }
         },
         "required": [
@@ -831,16 +837,16 @@
               "preview"
             ],
             "default": "preview",
-            "description": "This action is preview-only and makes no changes. Use commitShipOrder after explicit operator approval."
+            "description": "Preview only; no save tool is available."
           },
           "ship_all": {
             "type": "boolean",
             "default": false,
-            "description": "Ship all remaining lines in full. Ignored if 'lines' is provided."
+            "description": "Preview all remaining lines in full. Cannot be true when lines is supplied."
           },
           "lines": {
             "type": "array",
-            "description": "Per-line ship quantities. Omit to use ship_all.",
+            "description": "Explicit per-line quantities. Requires ship_all to be false or omitted.",
             "items": {
               "type": "object",
               "required": [
@@ -857,7 +863,8 @@
                 }
               },
               "additionalProperties": false
-            }
+            },
+            "minItems": 1
           },
           "occurred_at": {
             "type": "string",

@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-09-28 — Phase 1 MCP cross-review fixes (local only — not deployed)
+
+- **Scope:** Phase 1 MCP cross-review: documented the accepted actors.last_used_at usage-metadata exception; rejected ship_all=true with explicit lines and empty lines; removed unavailable commit-tool advice; added the MCP-only product_id lot override without changing OpenAPI. Added a reusable disposable PostgreSQL/real main.py/auth harness, missing/wrong-key checks, precise preview quantities, 409 disambiguation, and all-table/sequence read invariance. Replaced the MCP JSON scaffold with a project-level scoped Railway TypeScript declaration; existing services and root config unchanged.
+- **Validation:** 98 tests passed (91 routing/validation plus 7 real-ledger integration cases); Ruff lint/format passed; wheel and sdist built; Railway TypeScript type-check and local graph evaluation passed with railway@3.11.0.
+- **Limitations:** Google OAuth, hosted clients, business writes, Docker execution and Railway reconciliation remain unverified. main.py, existing OpenAPI YAML and root dependencies unchanged; no production access, push or merge. local only — not deployed.
+- **Files:** `mcp_server/`, `.railway/railway.ts`, `docs/mcp-migration-plan.md`, both repository changelogs; global iCloud log updated directly at its resolved path.
+
+---
+
 ## 2026-09-16 17:07 — Public legal pages: EULA + Privacy Policy on the Netlify site
 - **File(s) changed:** `dashboard/legal/eula.html`, `dashboard/legal/privacy.html`, `netlify.toml`
 - **What changed:** Added two plain static pages (no JS, no external requests, no auth) served at `/legal/eula.html` and `/legal/privacy.html`. Content states single-company internal use by CNS Confectionery Products LLC (NJ), no third-party users, QuickBooks Online accessed read-only to sync purchase orders, data stored in our own database and never sold or shared, contact miriam@cnscoinc.com. Added a `[[headers]]` block for `/legal/*` with a comment warning against putting a catch-all redirect, password protection, or Identity gate in front of them. netlify.toml has no redirect rules and there is no `_redirects` file, so nothing blocks these paths.

@@ -60,12 +60,32 @@ def build():
                 )
                 properties.update(body.get("properties", {}))
                 required.extend(body.get("required", []))
+                # MCP-only contract overrides; the existing OpenAPI stays unchanged.
+                if name == "getLotByCode":
+                    properties["product_id"] = {
+                        "type": "integer",
+                        "description": (
+                            "Product ID from a 409 ambiguous_lot_code response. "
+                            "Supply it with lot_code to select the intended product."
+                        ),
+                    }
+                    if "product_id" not in query_names:
+                        query_names.append("product_id")
                 description = operation["summary"]
                 if name == "shipOrder":
                     description = (
                         "Preview a sales-order shipment. Read-only: cannot dispatch or "
                         "commit. Show quantities, shortages and warnings to the operator."
                     )
+                    properties["mode"]["description"] = "Preview only; no save tool is available."
+                    properties["ship_all"]["description"] = (
+                        "Preview all remaining lines in full. "
+                        "Cannot be true when lines is supplied."
+                    )
+                    properties["lines"]["description"] = (
+                        "Explicit per-line quantities. Requires ship_all to be false or omitted."
+                    )
+                    properties["lines"]["minItems"] = 1
                 entries.append(
                     {
                         "name": name,

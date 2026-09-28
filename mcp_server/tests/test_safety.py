@@ -52,6 +52,16 @@ async def test_every_write_rejected_even_for_admin(stack, group, name):
     [
         ("shipOrder", {"order_id": "1", "mode": "commit"}),
         ("shipOrder", {"order_id": "1", "mode": "preview", "phase": "commit"}),
+        ("shipOrder", {"order_id": "1", "mode": "preview", "lines": []}),
+        (
+            "shipOrder",
+            {
+                "order_id": "1",
+                "mode": "preview",
+                "ship_all": True,
+                "lines": [{"line_id": 1, "quantity_lb": 10}],
+            },
+        ),
         (
             "shipOrder",
             {"order_id": "1", "mode": "preview", "lines": [{"line_id": 1, "quantity_lb": -1}]},

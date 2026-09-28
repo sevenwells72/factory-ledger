@@ -66,30 +66,50 @@ Stop each service with Ctrl-C. No OpenAI/Anthropic API key is needed.
 To use a separately prepared **local ledger with a test database**, set
 `MCP_LEDGER_API_URL=http://127.0.0.1:<test-port>` and `MCP_TEST_API_KEY` to its synthetic
 test key. Never start the root app against a production environment: its startup can
-run migrations. This task did not import/start that app or connect to PostgreSQL.
+run migrations. The integration harness below starts it only inside a disposable test database.
 Remote URLs, host aliases, redirects and environment proxies are blocked. No production
 URL or credential is packaged; the generator ignores the schemas' server/auth settings.
 
 ## Verification
 
-September 28, 2026: **89 tests passed**, Ruff lint/format checks passed, wheel and source
-distribution built successfully. A separate local TCP smoke test used the SDK client
-against both running services: initialization, 14/12 tool catalogs, office order read,
-Floor shipping preview and rejected commit all passed. Both processes were stopped.
+The suite keeps the synthetic routing/validation tests and adds real ledger integration
+checks. The latter run unmodified `main.py` handlers, startup and authentication in a
+separate process using the root application's pinned requirements, with a disposable
+PostgreSQL database loaded from `../tests/schema/schema.sql`. Missing prerequisites
+fail the integration tests; they are not silently skipped.
 
 ```sh
+# One-time test-only backend environment, separate from the MCP environment:
+uv venv --python 3.12 .venv-ledger-test
+uv pip install --python .venv-ledger-test/bin/python -r ../requirements.txt
+# PostgreSQL 17 binaries must be on PATH (Homebrew's standard path is also detected).
 uv run --locked --no-editable pytest -q
 uv run --locked --no-editable ruff check .
 uv run --locked --no-editable ruff format --check .
 uv build
 ```
 
-Tests drive real JSON-RPC/Streamable HTTP handlers using in-process HTTP transports and
-the synthetic SQLite fixture API; they do not contact the network. They cover all 26 read
-registrations, all 26 deferred write registrations, authentication/group boundaries,
-argument validation, preview-only routing, error preservation, response limits and
-no-retry/no-redirect behavior. Fixture data is checked for changes after calls.
-Backend PostgreSQL business logic and live ChatGPT/Claude installation remain untested.
+`tests/ledger_harness.py` / `conftest.py` expose reusable `ledger` and `real_stack`
+fixtures for the auth and write worktrees. Each session creates its own private cluster
+with a Unix socket and no PostgreSQL TCP listener. Each test clones a fresh database,
+starts the real ledger on a dynamically bound loopback socket, seeds synthetic data,
+and stops the process/drops the database afterward. Inherited database URLs and secrets
+are not forwarded. `MCP_TEST_PG_BIN` can select PostgreSQL's binary directory;
+`MCP_TEST_LEDGER_PYTHON` can select the isolated backend interpreter. Neither option
+selects a database. Concurrent worktrees have separate clusters and ports.
+
+Integration checks exercise missing/wrong backend keys (401/403), real shipment
+quantities (10 lb on one line versus 100 lb on each of two), conflicting-input rejection,
+409 lot ambiguity and `product_id` disambiguation in both groups. A fixed set of 26 read
+scenarios compares every public table, row, column and sequence before/after calls.
+Actor-key reads may update only `actors.last_used_at`; master-key reads change nothing.
+The real backend forbids actor keys on `resolveProducts` (403); the master-key scenario
+exercises its successful read. No auth dependency or business handler is replaced.
+The existing synthetic tests still cover MCP handshake, registration/routing, validation,
+group boundaries, unavailable writes, error preservation, size limits and retry policy.
+
+Google OAuth, live client installation, production data, container execution and hosted
+Railway behavior remain untested. This is **local only — not deployed**.
 
 `--no-editable` also avoids a macOS hidden `.pth` file issue in this Documents workspace.
 Source files are cache keys so `uv` rebuilds the local package after edits. Production
@@ -102,25 +122,50 @@ bounded to its maintained 1.x API; the lock resolves `mcp==1.30.0`.
 and writes `src/factory_ledger_mcp/catalog.json`. It never edits an existing schema. Runtime
 loads only this read catalog; new writes cannot become tools merely by appearing in YAML.
 To deliberately refresh it, run `uv run --locked --no-editable python scripts/build_catalog.py`
-and review the diff. The source-parity test detects stale catalogs.
+and review the diff. The source-plus-overrides parity test detects stale catalogs.
 
 Shared names stay unchanged within each group. Optional filters, enum/limit bounds and
 bilingual responses are retained. Floor `shipOrder` requires `mode: preview` and calls
 the existing `/sales/orders/{order_id}/ship/preview` backend wrapper, which also forces
 preview. Office `resolveProducts` is the only other allowed POST. Mixed preview/commit
 operations such as `make`, `receive` and office `shipOrder` are excluded entirely.
+MCP-only contract overrides are deliberate and leave all OpenAPI YAML unchanged:
+
+- Both `getLotByCode` tools accept optional integer `product_id`, passed as a query
+  parameter to resolve the backend's `409 ambiguous_lot_code` response. This fills the
+  office schema omission and documents the existing floor argument.
+- Floor `shipOrder` rejects `ship_all=true` whenever `lines` is supplied. Explicit
+  `lines` must be nonempty; otherwise the backend treats an empty list as all lines.
+  Omit `ship_all` or set it false for explicit quantities. Parameter descriptions do
+  not direct callers to an unavailable commit tool.
+
 All tool annotations are read-only, non-destructive and limited to the ledger.
+Here **read-only** means no ledger, order, inventory, lot, or product changes;
+`actors.last_used_at` usage-metadata updates are an owner-approved exception.
 
 ## Railway scaffold — not deployed
 
 The Dockerfile, independent lockfile, `PORT` start command and `/health` endpoint are ready
 for a separate service build. Docker image execution has not been verified here because
-Docker is unavailable. No Railway command or deployment was run.
+Docker is unavailable. No Railway project command or deployment was run (only local CLI help/version).
 
-For a **future authorized** service setup, set root directory to `/mcp_server`, select
-configuration file `/mcp_server/railway.json`, and keep its environment separate from
-the existing ledger service. Watch patterns are repository-absolute. The root Railway
-configuration, root dependencies and `main.py` are unchanged.
+The project-level [`../.railway/railway.ts`](../.railway/railway.ts) declares only
+`factory-ledger-mcp`, using a named IaC partial so existing services remain outside
+its ownership. No existing service settings are recreated or guessed; root
+`railway.json` is byte-identical. The new service has root `/mcp_server`, a Dockerfile
+build, start command `/app/.venv/bin/factory-ledger-mcp`, `/health` with a 30-second
+timeout, restart on failure with at most three retries, and repository-absolute watch
+paths `/mcp_server/**` and `/.railway/railway.ts`. The scaffold defines no source
+repository/branch, domain, database or secrets. A later authorized setup must supply
+those and review the scoped plan before applying anything.
+
+Railway [deprecated JSON/TOML Config as Code](https://docs.railway.com/config-as-code):
+new services cannot opt in and existing users face a December 1, 2026 hard cutoff.
+The obsolete MCP-specific JSON scaffold was removed. The legacy service's migration
+is separate work; it is not changed by this branch. The new declaration follows the
+[official IaC API](https://docs.railway.com/infrastructure-as-code/reference) and was
+locally type-checked/evaluated with the official `railway@3.11.0` SDK. No Railway
+project was queried, planned, changed or deployed; remote reconciliation is unverified.
 
 The container defaults to `MCP_ENV=production` and `MCP_AUTH_MODE=locked`: health checks
 work, but both MCP endpoints return 401. The stub refuses production and Railway even
@@ -136,4 +181,6 @@ after their authenticated acceptance checks. None are published or installed by 
 References: [OpenAI MCP servers](https://developers.openai.com/plugins/build/mcp-server),
 [OpenAI authentication](https://developers.openai.com/plugins/build/auth),
 [MCP Python SDK 1.x](https://github.com/modelcontextprotocol/python-sdk/tree/v1.x),
-[Railway configuration](https://docs.railway.com/config-as-code/reference).
+[Railway IaC reference](https://docs.railway.com/infrastructure-as-code/reference).
+
+Cross-review validation (2026-09-28): **98 tests passed** (91 routing/validation, 7 real-ledger integration cases); Ruff lint/format and package builds passed.
