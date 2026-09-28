@@ -1,4 +1,4 @@
-"""FR-15 owner decision: all 14 writes accept all actor roles.
+"""FR-15 owner decision: all 14 writes and product resolution accept all actor roles.
 
 Real PostgreSQL writes through HTTP, with persisted attribution assertions.
 All fixtures use the local TEST_DATABASE_URL and roll back after each test.
@@ -128,6 +128,68 @@ def _snapshot(cur):
 def _request(client, method, route, seed, body, key):
     return client.request(method, route.format(**seed), json=body,
                           headers={'X-API-Key': key} if key is not None else {})
+
+
+def test_actor_only_scope_is_approved_writes_plus_product_resolution():
+    assert main.ACTOR_WRITE_ALLOWLIST == set(CASES) | {('POST', '/products/resolve')}
+    assert ('POST', '/products/resolve') not in main.DASHBOARD_KEY_ALLOWLIST
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('identity', NAMES + ('shared',))
+def test_product_resolution_accepts_actor_and_shared_keys_without_business_changes(
+        client, db_cursor, named_actors, prepared, identity, monkeypatch):
+    if identity == 'shared':
+        key = main.API_KEY
+
+        def unexpected_lookup(*args):
+            raise AssertionError('Shared key must never resolve actors')
+
+        monkeypatch.setattr(main, '_resolve_actor', unexpected_lookup)
+    else:
+        key = named_actors[identity]['key']
+    db_cursor.execute('SELECT row_to_json(p) AS data FROM products p ORDER BY id')
+    products_before = db_cursor.fetchall()
+    db_cursor.execute('SELECT odoo_code FROM products WHERE id=%s', (prepared['product_id'],))
+    odoo_code = db_cursor.fetchone()['odoo_code']
+    before = _snapshot(db_cursor)
+    response = client.post('/products/resolve',
+                           json={'names': [prepared['product_name']]},
+                           headers={'X-API-Key': key})
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        'resolved': [{
+            'input': prepared['product_name'],
+            'match': {'id': prepared['product_id'], 'name': prepared['product_name'],
+                      'odoo_code': odoo_code},
+            'match_tier': 'exact',
+            'confidence': 'high',
+        }],
+        'summary': {'total': 1, 'resolved': 1, 'unresolved': 0},
+        'success': True,
+    }
+    assert _snapshot(db_cursor) == before
+    db_cursor.execute('SELECT row_to_json(p) AS data FROM products p ORDER BY id')
+    assert db_cursor.fetchall() == products_before
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('identity,status,detail', [
+    ('missing', 401, 'API key required'), ('invalid', 403, 'Invalid API key'),
+    ('Retired', 403, 'Invalid API key'),
+    ('dashboard', 403, 'API key not authorized for this endpoint'),
+])
+def test_product_resolution_rejects_unauthorized_keys(
+        client, db_cursor, named_actors, prepared, identity, status, detail):
+    key = {'missing': None, 'invalid': 'not-a-valid-key',
+           'Retired': named_actors['Retired']['key'], 'dashboard': main.DASHBOARD_API_KEY}[identity]
+    before = _snapshot(db_cursor)
+    response = _request(client, 'POST', '/products/resolve', prepared,
+                        {'names': [prepared['product_name']]}, key)
+    assert response.status_code == status, response.text
+    assert response.json()['detail'] == detail
+    assert response.json()['success'] is False
+    assert _snapshot(db_cursor) == before
 
 
 @pytest.mark.db

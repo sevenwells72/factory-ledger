@@ -2792,8 +2792,9 @@ def _route_key(request: Request):
 # considered once both legacy comparisons have failed, which means this whole
 # mechanism is invisible to every existing caller.
 #
-# SCOPE. Actor keys reach the dashboard routes plus the 14 write routes in
-# ACTOR_WRITE_ALLOWLIST (owner decision, 2026-09-28). Role is informational:
+# SCOPE. Actor keys reach the dashboard routes plus the 14 write routes and
+# POST /products/resolve lookup in ACTOR_WRITE_ALLOWLIST (owner decision,
+# 2026-09-28). Role is informational:
 # permission enforcement stays in MCP, not the backend. The dashboard key
 # retains its original scope; unrelated administrative routes stay excluded.
 #
@@ -2810,6 +2811,7 @@ def _route_key(request: Request):
 # ─────────────────────────────────────────────────────────────────
 
 ACTOR_WRITE_ALLOWLIST = frozenset({
+    ("POST", "/products/resolve"),  # office.resolveProducts: lookup, no business write.
     ("POST", "/receive"),
     ("POST", "/ship"),
     ("POST", "/make"),

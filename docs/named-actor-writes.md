@@ -5,6 +5,14 @@ below, regardless of role. Permission enforcement remains in MCP. The shared
 API key and dashboard key keep their existing behavior and scope. This
 supersedes the dashboard-only actor scope in changelog row 142 for these routes.
 
+The same actor-only policy also permits `POST /products/resolve`, the read-only
+lookup used by MCP `office.resolveProducts`. The 2026-09-28 catalog audit found
+it was the only MCP catalog route still blocked after the 14 write additions.
+It uses the existing `verify_api_key` / `_authorize_api_key` mechanism and is
+the only additional method/path pair authorized by this follow-up. The shared
+key still succeeds, the dashboard key remains denied, and unrelated routes
+(including administrative routes) retain their existing permissions.
+
 ## Root cause before the fix
 
 Locations below refer to origin/main at `9daa732`, before this change.
@@ -38,8 +46,9 @@ The shared key returns success earlier in the same check and avoids that gate.
 ## Implementation and stored evidence
 
 One change to the shared auth check adds `ACTOR_WRITE_ALLOWLIST` to the actor
-branch only. It names exactly these 14 route templates. Existing dashboard
-routes remain available to actors; unrelated admin routes remain excluded.
+branch only. It names exactly these 14 write route templates plus the
+`POST /products/resolve` lookup. Existing dashboard routes remain available
+to actors; unrelated admin routes remain excluded.
 There are no backend role checks, no new credentials, and no historical backfill.
 
 The handlers use the actor already resolved on `request.state`. Inventory
@@ -71,8 +80,11 @@ shared key. They also cover missing, invalid, inactive and dashboard keys on
 every route; spoofed body identities; preview purity; atomic rollback when an
 audit or trace write fails; alternating actor/shared calls; allocation releases;
 legacy writes without the new table; and migration rerun/append-only behavior.
+Product-resolution coverage checks all four named actors and the shared key,
+the unchanged lookup response and business data, rejection of missing, invalid,
+inactive and dashboard keys, and the exact actor-only allowlist scope.
 Everything runs against local TEST_DATABASE_URL with savepoint rollback.
-Validation: **1,313 Python tests passed** (baseline 1,153; 160 new), **67 Node
+Validation: **1,323 Python tests passed** (baseline 1,153; 170 new), **67 Node
 tests passed**, zero failures/skips, and `git diff --check` clean.
 
 Migration 056 must be applied after 052 and before a later authorized rollout
