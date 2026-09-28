@@ -14,7 +14,8 @@ from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from .adapter import CATALOG, LedgerReader, ToolFailure
+from . import identity
+from .adapter import CATALOG, WRITE_CATALOG, ConfirmationStore, LedgerReader, ToolFailure
 from .auth import DevelopmentAuth
 from .config import Settings
 
@@ -23,27 +24,41 @@ def group_server(group, reader):
     server = Server(
         f"Factory Ledger — {group}",
         version="0.1.0",
-        instructions="Phase 1: read-only. Report API results faithfully. No changes available.",
+        instructions=(
+            "Report ledger results faithfully. Every write requires two calls: preview, then "
+            "explicit operator approval of the summary and warnings, then commit with the "
+            "unchanged arguments and one-time token. Never auto-approve, retry writes, or claim "
+            "a blocked or uncertain write succeeded. Always report the internal SO for orders."
+        ),
     )
 
     @server.list_tools()
     async def list_tools():
+        try:
+            person = identity.current_identity()
+        except PermissionError:
+            person = None
+        permission = identity.can_write_office if group == "office" else identity.can_write_floor
+        entries = [(item, True) for item in CATALOG[group]]
+        if permission(person):
+            entries.extend((item, False) for item in WRITE_CATALOG[group])
         return [
             types.Tool(
                 name=item["name"],
                 description=item["description"],
                 inputSchema=item["input_schema"],
                 annotations=types.ToolAnnotations(
-                    readOnlyHint=True,
-                    destructiveHint=False,
-                    idempotentHint=True,
+                    readOnlyHint=read_only,
+                    destructiveHint=not read_only
+                    and item["name"]
+                    not in {"createCustomer", "createOrder", "createExpectedReceipt"},
+                    idempotentHint=read_only,
                     openWorldHint=False,
                 ),
             )
-            for item in CATALOG[group]
+            for item, read_only in entries
         ]
 
-    @server.call_tool()
     async def call_tool(name, arguments):
         try:
             data = await reader.call(group, name, arguments)
@@ -59,10 +74,21 @@ def group_server(group, reader):
                 isError=True,
             )
 
+    # The SDK call_tool decorator fills its cache by calling list_tools on a miss.
+    # Register directly so a write resolves identity exactly once, and validation
+    # always uses the adapter's sanitized errors instead of echoing tool inputs.
+    async def call_tool_request(request):
+        return types.ServerResult(
+            await call_tool(request.params.name, request.params.arguments or {})
+        )
+
+    server.request_handlers[types.CallToolRequest] = call_tool_request
     return server
 
 
-def create_app(settings=None, *, backend_transport=None):
+def create_app(
+    settings=None, *, backend_transport=None, confirmation_path="work/mcp-confirmations.sqlite3"
+):
     settings = settings or Settings.from_env()
     client = httpx.AsyncClient(
         base_url=settings.ledger_url,
@@ -73,7 +99,9 @@ def create_app(settings=None, *, backend_transport=None):
         limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
         headers={"X-API-Key": settings.test_api_key} if settings.test_api_key else {},
     )
-    reader = LedgerReader(client)
+    reader = LedgerReader(
+        client, ConfirmationStore(confirmation_path), environment=settings.environment
+    )
     security = TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*"],
@@ -101,11 +129,13 @@ def create_app(settings=None, *, backend_transport=None):
         return JSONResponse(
             {
                 "status": "ok",
-                "phase": 1,
-                "read_only": True,
+                "phase": 2,
+                "write_confirmation": "two-call-token",
+                "backend_idempotency_ready": False,
                 "auth": settings.auth_mode,
                 "google_oauth_ready": False,
-                "tool_counts": {group: len(specs) for group, specs in CATALOG.items()},
+                "read_tool_counts": {group: len(specs) for group, specs in CATALOG.items()},
+                "write_tool_counts": {group: len(specs) for group, specs in WRITE_CATALOG.items()},
             }
         )
 

@@ -240,3 +240,20 @@ def ledger_process(db, log_path):
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=5)
+
+
+def seed_write_database(db):
+    """Extra synthetic records for write acceptance; never replace real handlers/auth."""
+    other_hash = hashlib.sha256(b"mcp-test-other-actor-key").hexdigest()
+    db.sql(f"""
+        INSERT INTO actors (id, name, role, key_hash)
+            VALUES (2, 'Second synthetic actor', 'office', '{other_hash}');
+        INSERT INTO suppliers (id, name, active) VALUES (1, 'MCP Test Supplier', true);
+        INSERT INTO products (id, name, type, active, is_service, uom)
+            VALUES (176, 'Pallet Charge', 'finished', true, true, 'each');
+        INSERT INTO sales_order_lines
+            (id, sales_order_id, product_id, quantity_lb, unit_price)
+            VALUES (3, 1, 176, 2, 15);
+        UPDATE sales_orders SET customer_po='0007-A' WHERE id=1;
+        SELECT setval(pg_get_serial_sequence('sales_order_lines', 'id'), 3);
+    """)

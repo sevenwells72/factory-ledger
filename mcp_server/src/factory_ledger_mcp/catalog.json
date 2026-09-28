@@ -884,5 +884,2013 @@
         "additionalProperties": false
       }
     }
-  ]
+  ],
+  "_writes": {
+    "office": [
+      {
+        "name": "updateSupplierLot",
+        "method": "PATCH",
+        "path": "/lots/{lot_code}/supplier-lot",
+        "source_path": "/lots/{lot_code}/supplier-lot",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Attach or update the supplier lot cross-reference on an existing lot Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [
+          "lot_code"
+        ],
+        "query_parameters": [
+          "product_id"
+        ],
+        "body_parameters": [
+          "supplier_lot_code",
+          "notes"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "lot_code": {
+              "type": "string"
+            },
+            "supplier_lot_code": {
+              "type": "string",
+              "description": "The supplier's printed lot number from the box/bag/packing slip"
+            },
+            "notes": {
+              "type": "string",
+              "description": "Optional context (e.g., \"from packing slip during shipment SO260318001\")"
+            },
+            "product_id": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "lot_code",
+            "supplier_lot_code"
+          ]
+        }
+      },
+      {
+        "name": "receive",
+        "method": "POST",
+        "path": "/receive",
+        "source_path": "/receive",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Receive inventory (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "cases",
+          "case_size_lb",
+          "shipper_name",
+          "bol_reference",
+          "shipper_code_override",
+          "lot_code",
+          "supplier_lot_code",
+          "lot_type",
+          "supplier_lot_entries",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string"
+            },
+            "cases": {
+              "type": "integer"
+            },
+            "case_size_lb": {
+              "type": "number"
+            },
+            "shipper_name": {
+              "type": "string"
+            },
+            "bol_reference": {
+              "type": "string"
+            },
+            "shipper_code_override": {
+              "type": "string"
+            },
+            "lot_code": {
+              "type": "string"
+            },
+            "supplier_lot_code": {
+              "type": "string",
+              "description": "Supplier's printed lot code. Defaults to lot_code if omitted, or 'N/A' if neither is provided."
+            },
+            "lot_type": {
+              "type": "string",
+              "enum": [
+                "single_supplier",
+                "commingled"
+              ]
+            },
+            "supplier_lot_entries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "supplier_lot_code": {
+                    "type": "string"
+                  },
+                  "supplier_name": {
+                    "type": "string"
+                  },
+                  "quantity_lb": {
+                    "type": "number"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when the receipt happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "product_name",
+            "cases",
+            "case_size_lb",
+            "shipper_name",
+            "bol_reference"
+          ]
+        }
+      },
+      {
+        "name": "createExpectedReceipt",
+        "method": "POST",
+        "path": "/expected-receipts",
+        "source_path": "/expected-receipts",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Record an expected/incoming delivery (lb) from a supplier. Not a PO; no inventory effect. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "product_id",
+          "supplier_name",
+          "expected_qty",
+          "expected_date",
+          "reference_number",
+          "notes"
+        ],
+        "named_actor_allowed": true,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string",
+              "description": "Product name or SKU; resolved like other endpoints (404/409 with suggestions)."
+            },
+            "product_id": {
+              "type": "integer"
+            },
+            "supplier_name": {
+              "type": "string",
+              "description": "Must match an existing supplier (case/space-insensitive). No match -> 422 SUPPLIER_NOT_FOUND with detail.candidates (up to 5). Never auto-created."
+            },
+            "expected_qty": {
+              "type": "number",
+              "description": "Expected pounds, > 0",
+              "exclusiveMinimum": 0
+            },
+            "expected_date": {
+              "type": "string",
+              "format": "date",
+              "description": "YYYY-MM-DD, optional"
+            },
+            "reference_number": {
+              "type": "string",
+              "description": "Supplier order / confirmation number, optional"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "supplier_name",
+            "expected_qty"
+          ]
+        }
+      },
+      {
+        "name": "ship",
+        "method": "POST",
+        "path": "/ship",
+        "source_path": "/ship",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Ship inventory standalone (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "quantity_lb",
+          "customer_name",
+          "customer_address",
+          "order_reference",
+          "lot_code",
+          "force_standalone",
+          "force_create_customer",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string"
+            },
+            "quantity_lb": {
+              "type": "number"
+            },
+            "customer_name": {
+              "type": "string"
+            },
+            "customer_address": {
+              "type": "string",
+              "description": "Optional. Address-similarity tiebreaker used when name fuzzy-match is ambiguous."
+            },
+            "order_reference": {
+              "type": "string"
+            },
+            "lot_code": {
+              "type": "string"
+            },
+            "force_standalone": {
+              "type": "boolean",
+              "default": false
+            },
+            "force_create_customer": {
+              "type": "boolean",
+              "default": false
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when the shipment happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "product_name",
+            "quantity_lb",
+            "customer_name",
+            "order_reference"
+          ]
+        }
+      },
+      {
+        "name": "make",
+        "method": "POST",
+        "path": "/make",
+        "source_path": "/make",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Record batch production (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "batches",
+          "lot_code",
+          "ingredient_lot_overrides",
+          "excluded_ingredients",
+          "confirmed_sku",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string"
+            },
+            "batches": {
+              "type": "integer"
+            },
+            "lot_code": {
+              "type": "string"
+            },
+            "ingredient_lot_overrides": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "excluded_ingredients": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "confirmed_sku": {
+              "type": "boolean"
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when production happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "product_name",
+            "batches"
+          ]
+        }
+      },
+      {
+        "name": "pack",
+        "method": "POST",
+        "path": "/pack",
+        "source_path": "/pack",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Pack batch into finished goods (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "source_product",
+          "target_product",
+          "cases",
+          "case_weight_lb",
+          "lot_allocations",
+          "target_lot_code",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "source_product": {
+              "type": "string",
+              "description": "Batch product name or odoo_code (e.g., '31011' or 'Graham Cracker Crumbs - 50 LB')"
+            },
+            "target_product": {
+              "type": "string",
+              "description": "Finished good name or odoo_code (e.g., '31012' or 'Graham Cracker Crumbs - 10 LB')"
+            },
+            "cases": {
+              "type": "integer"
+            },
+            "case_weight_lb": {
+              "type": "number",
+              "description": "Override case weight in lb; defaults to target product's case_size_lb"
+            },
+            "lot_allocations": {
+              "type": "array",
+              "description": "SOURCE lot overrides only (e.g., pull from a specific batch lot). Omit for FIFO. Do NOT put the output/FG lot here - use target_lot_code instead.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "lot_code",
+                  "quantity_lb"
+                ],
+                "properties": {
+                  "lot_code": {
+                    "type": "string"
+                  },
+                  "quantity_lb": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "target_lot_code": {
+              "type": "string",
+              "description": "Override output lot code; defaults to primary source lot code"
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when packing happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "source_product",
+            "target_product",
+            "cases"
+          ]
+        }
+      },
+      {
+        "name": "adjust",
+        "method": "POST",
+        "path": "/adjust",
+        "source_path": "/adjust",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Adjust inventory quantity (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "lot_code",
+          "adjustment_lb",
+          "reason",
+          "reason_es",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string"
+            },
+            "lot_code": {
+              "type": "string"
+            },
+            "adjustment_lb": {
+              "type": "number"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "reason_es": {
+              "type": "string"
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when the adjustment happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "product_name",
+            "lot_code",
+            "adjustment_lb",
+            "reason"
+          ]
+        }
+      },
+      {
+        "name": "createCustomer",
+        "method": "POST",
+        "path": "/customers",
+        "source_path": "/customers",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Create a new customer Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "name",
+          "contact_name",
+          "email",
+          "phone",
+          "address",
+          "notes",
+          "notes_es"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "contact_name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            },
+            "address": {
+              "type": "string"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "notes_es": {
+              "type": "string"
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "updateCustomer",
+        "method": "PATCH",
+        "path": "/customers/{customer_id}",
+        "source_path": "/customers/{customer_id}",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Update customer details Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [
+          "customer_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "name",
+          "contact_name",
+          "email",
+          "phone",
+          "address",
+          "notes",
+          "notes_es",
+          "active",
+          "aliases"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "customer_id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "contact_name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            },
+            "address": {
+              "type": "string"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "notes_es": {
+              "type": "string"
+            },
+            "active": {
+              "type": "boolean"
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "customer_id"
+          ]
+        }
+      },
+      {
+        "name": "createOrder",
+        "method": "POST",
+        "path": "/sales/orders",
+        "source_path": "/sales/orders",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Create a new sales order Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "customer_id",
+          "external_order_ref",
+          "customer_po",
+          "requested_ship_date",
+          "notes",
+          "notes_es",
+          "lines"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "customer_id": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "external_order_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "External reference, such as ORD28100; distinct from internal SO and customer PO."
+            },
+            "customer_po": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 200
+            },
+            "requested_ship_date": {
+              "type": "string",
+              "format": "date"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "notes_es": {
+              "type": "string"
+            },
+            "lines": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 100,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "product_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "unit": {
+                    "type": "string",
+                    "enum": [
+                      "lb",
+                      "cases",
+                      "each"
+                    ]
+                  },
+                  "unit_price": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "notes_es": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "product_id",
+                  "quantity",
+                  "unit"
+                ]
+              }
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "customer_id",
+            "external_order_ref",
+            "lines"
+          ]
+        }
+      },
+      {
+        "name": "updateOrderHeader",
+        "method": "PATCH",
+        "path": "/sales/orders/{order_id}",
+        "source_path": "/sales/orders/{order_id}",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Update order header (ship date, notes, customer) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
+        "path_parameters": [
+          "order_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "requested_ship_date",
+          "notes",
+          "notes_es",
+          "customer_id",
+          "customer_po"
+        ],
+        "named_actor_allowed": true,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "requested_ship_date": {
+              "type": "string",
+              "format": "date",
+              "description": "Ship date in YYYY-MM-DD format. Convert user dates (e.g. '3/31/26' → '2026-03-31'). Empty string to clear."
+            },
+            "notes": {
+              "type": "string",
+              "description": "Order notes (English)"
+            },
+            "notes_es": {
+              "type": "string",
+              "description": "Order notes (Spanish)"
+            },
+            "customer_id": {
+              "type": "integer",
+              "description": "Change the customer for this order"
+            },
+            "customer_po": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Dedicated PO field. Currently blocked because the backend header contract omits this field."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "order_id"
+          ]
+        }
+      },
+      {
+        "name": "updateOrderStatus",
+        "method": "PATCH",
+        "path": "/sales/orders/{order_id}/status",
+        "source_path": "/sales/orders/{order_id}/status",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Update order status Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
+        "path_parameters": [
+          "order_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "status"
+        ],
+        "named_actor_allowed": true,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "new",
+                "confirmed",
+                "in_production",
+                "ready",
+                "partial_ship",
+                "shipped",
+                "invoiced",
+                "cancelled"
+              ]
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "order_id",
+            "status"
+          ]
+        }
+      },
+      {
+        "name": "addOrderLines",
+        "method": "POST",
+        "path": "/sales/orders/{order_id}/lines",
+        "source_path": "/sales/orders/{order_id}/lines",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Add lines to an existing order Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [
+          "order_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "lines"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "product_name"
+                ],
+                "properties": {
+                  "product_name": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "number"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "enum": [
+                      "lb",
+                      "cases",
+                      "bags",
+                      "boxes"
+                    ]
+                  },
+                  "case_weight_lb": {
+                    "type": "number"
+                  },
+                  "quantity_lb": {
+                    "type": "number"
+                  },
+                  "unit_price": {
+                    "type": "number"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "notes_es": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "order_id",
+            "lines"
+          ]
+        }
+      },
+      {
+        "name": "cancelOrderLine",
+        "method": "PATCH",
+        "path": "/sales/orders/{order_id}/lines/{line_id}/cancel",
+        "source_path": "/sales/orders/{order_id}/lines/{line_id}/cancel",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Cancel a specific order line Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [
+          "order_id",
+          "line_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "line_id": {
+              "type": "integer"
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "order_id",
+            "line_id"
+          ]
+        }
+      },
+      {
+        "name": "updateOrderLine",
+        "method": "PATCH",
+        "path": "/sales/orders/{order_id}/lines/{line_id}/update",
+        "source_path": "/sales/orders/{order_id}/lines/{line_id}/update",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Update quantity or price on an order line Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
+        "path_parameters": [
+          "order_id",
+          "line_id"
+        ],
+        "query_parameters": [
+          "quantity_lb",
+          "unit_price"
+        ],
+        "body_parameters": [],
+        "named_actor_allowed": true,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "line_id": {
+              "type": "integer"
+            },
+            "quantity_lb": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "unit_price": {
+              "type": "number",
+              "minimum": 0
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "order_id",
+            "line_id"
+          ]
+        }
+      },
+      {
+        "name": "shipOrder",
+        "method": "POST",
+        "path": "/sales/orders/{order_id}/ship",
+        "source_path": "/sales/orders/{order_id}/ship",
+        "source": "openapi-gpt-v3.yaml",
+        "description": "Ship against a sales order (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [
+          "order_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "ship_all",
+          "lines",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "ship_all": {
+              "type": "boolean",
+              "default": false,
+              "description": "Ship all remaining lines. Never combine true with explicit lines."
+            },
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "line_id",
+                  "quantity_lb"
+                ],
+                "properties": {
+                  "line_id": {
+                    "type": "integer"
+                  },
+                  "quantity_lb": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "additionalProperties": false
+              },
+              "minItems": 1
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when the shipment happened just now. If the user implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "order_id"
+          ]
+        }
+      }
+    ],
+    "floor": [
+      {
+        "name": "updateSupplierLot",
+        "method": "PATCH",
+        "path": "/lots/{lot_code}/supplier-lot",
+        "source_path": "/lots/{lot_code}/supplier-lot",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Attach or update the supplier lot cross-reference on an existing lot. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [
+          "lot_code"
+        ],
+        "query_parameters": [
+          "product_id"
+        ],
+        "body_parameters": [
+          "supplier_lot_code",
+          "notes"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "lot_code": {
+              "type": "string"
+            },
+            "product_id": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "supplier_lot_code": {
+              "type": "string",
+              "description": "The supplier's printed lot number from the box/bag/packing slip."
+            },
+            "notes": {
+              "type": "string",
+              "description": "Optional context (e.g., 'from packing slip during shipment SO-260318-001')."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "lot_code",
+            "supplier_lot_code"
+          ]
+        }
+      },
+      {
+        "name": "renameLot",
+        "method": "PATCH",
+        "path": "/lots/{lot_id}/rename",
+        "source_path": "/lots/{lot_id}/rename",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Rename a lot's lot_code (e.g., fix an UNKNOWN or mistyped lot to the real code). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [
+          "lot_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "new_lot_code"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "lot_id": {
+              "type": "integer"
+            },
+            "new_lot_code": {
+              "type": "string",
+              "description": "The corrected lot_code. Server validates no duplicate exists for the same product."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "lot_id",
+            "new_lot_code"
+          ]
+        }
+      },
+      {
+        "name": "receive",
+        "method": "POST",
+        "path": "/receive",
+        "source_path": "/receive",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Receive inventory (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "cases",
+          "case_size_lb",
+          "shipper_name",
+          "bol_reference",
+          "shipper_code_override",
+          "lot_code",
+          "supplier_lot_code",
+          "lot_type",
+          "supplier_lot_entries",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string"
+            },
+            "cases": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "case_size_lb": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "shipper_name": {
+              "type": "string"
+            },
+            "bol_reference": {
+              "type": "string"
+            },
+            "shipper_code_override": {
+              "type": "string"
+            },
+            "lot_code": {
+              "type": "string"
+            },
+            "supplier_lot_code": {
+              "type": "string",
+              "description": "Supplier's printed lot code. REQUIRED per floor policy — use 'UNKNOWN' with a note if unreadable. Defaults to lot_code if omitted, or 'N/A' if neither is provided."
+            },
+            "lot_type": {
+              "type": "string",
+              "enum": [
+                "single_supplier",
+                "commingled"
+              ]
+            },
+            "supplier_lot_entries": {
+              "type": "array",
+              "description": "For commingled lots — one entry per supplier lot in the bin.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "supplier_lot_code": {
+                    "type": "string"
+                  },
+                  "supplier_name": {
+                    "type": "string"
+                  },
+                  "quantity_lb": {
+                    "type": "number"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when the receipt happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "product_name",
+            "cases",
+            "case_size_lb",
+            "shipper_name",
+            "bol_reference",
+            "supplier_lot_code"
+          ]
+        }
+      },
+      {
+        "name": "ship",
+        "method": "POST",
+        "path": "/ship",
+        "source_path": "/ship",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Ship inventory STANDALONE (no sales order). Use only when no open order exists or operator explicitly says 'standalone'. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "quantity_lb",
+          "customer_name",
+          "order_reference",
+          "lot_code",
+          "force_standalone",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string"
+            },
+            "quantity_lb": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "customer_name": {
+              "type": "string"
+            },
+            "order_reference": {
+              "type": "string"
+            },
+            "lot_code": {
+              "type": "string"
+            },
+            "force_standalone": {
+              "type": "boolean",
+              "default": false,
+              "description": "Bypass the open-sales-order check. Use only when operator explicitly says 'standalone' or no open order exists."
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when the shipment happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "product_name",
+            "quantity_lb",
+            "customer_name",
+            "order_reference"
+          ]
+        }
+      },
+      {
+        "name": "make",
+        "method": "POST",
+        "path": "/make",
+        "source_path": "/make",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Record batch production (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "batches",
+          "lot_code",
+          "ingredient_lot_overrides",
+          "excluded_ingredients",
+          "confirmed_sku",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string"
+            },
+            "batches": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "lot_code": {
+              "type": "string"
+            },
+            "ingredient_lot_overrides": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Map of ingredient_product_id (as string) to lot_code, e.g. {\"45\": \"26-03-15-QUAL-001\"}. Used for FIFO override on specific ingredients."
+            },
+            "excluded_ingredients": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "description": "List of ingredient_product_ids to skip for this batch (e.g., a substitution that's not in the BOM). Water/utility ingredients are auto-excluded server-side."
+            },
+            "confirmed_sku": {
+              "type": "boolean",
+              "description": "Set to true on commit ONLY after operator confirms the correct FG SKU from sibling disambiguation. See sku_confirmation_required in preview response."
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when production happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "product_name",
+            "batches"
+          ]
+        }
+      },
+      {
+        "name": "pack",
+        "method": "POST",
+        "path": "/pack",
+        "source_path": "/pack",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Pack batch into finished goods (preview or commit). Pack = batch → FG; use /make for batch production. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "source_product",
+          "target_product",
+          "cases",
+          "case_weight_lb",
+          "lot_allocations",
+          "target_lot_code",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "source_product": {
+              "type": "string",
+              "description": "Batch product name or odoo_code (e.g., '31011' or 'Graham Cracker Crumbs - 50 LB')"
+            },
+            "target_product": {
+              "type": "string",
+              "description": "Finished good name or odoo_code (e.g., '31012' or 'Graham Cracker Crumbs - 10 LB')"
+            },
+            "cases": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "case_weight_lb": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Override case weight in lb; defaults to target product's case_size_lb."
+            },
+            "lot_allocations": {
+              "type": "array",
+              "description": "SOURCE lot overrides only (pull from specific batch lots). Omit for FIFO. Do NOT put the output/FG lot here — use target_lot_code instead.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "lot_code",
+                  "quantity_lb"
+                ],
+                "properties": {
+                  "lot_code": {
+                    "type": "string"
+                  },
+                  "quantity_lb": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "target_lot_code": {
+              "type": "string",
+              "description": "OUTPUT lot code on the finished good. Defaults to the primary source lot code. If the operator provides a lot code for the physical batch they are packing FROM, that is a SOURCE lot — put it in lot_allocations, not here."
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when packing happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "source_product",
+            "target_product",
+            "cases"
+          ]
+        }
+      },
+      {
+        "name": "adjust",
+        "method": "POST",
+        "path": "/adjust",
+        "source_path": "/adjust",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Adjust inventory quantity (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [],
+        "query_parameters": [],
+        "body_parameters": [
+          "product_name",
+          "lot_code",
+          "adjustment_lb",
+          "reason",
+          "reason_es",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "product_name": {
+              "type": "string"
+            },
+            "lot_code": {
+              "type": "string"
+            },
+            "adjustment_lb": {
+              "type": "number",
+              "description": "Positive = increase, negative = decrease."
+            },
+            "reason": {
+              "type": "string"
+            },
+            "reason_es": {
+              "type": "string"
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when the adjustment happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "product_name",
+            "lot_code",
+            "adjustment_lb",
+            "reason"
+          ]
+        }
+      },
+      {
+        "name": "voidTransaction",
+        "method": "POST",
+        "path": "/void/{transaction_id}",
+        "source_path": "/void/{transaction_id}",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Void a transaction — its lines are excluded from all balances; no reversal is posted. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "path_parameters": [
+          "transaction_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "reason"
+        ],
+        "named_actor_allowed": false,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "transaction_id": {
+              "type": "integer"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Required explanation for the append-only void correction."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "transaction_id",
+            "reason"
+          ]
+        }
+      },
+      {
+        "name": "updateOrderStatus",
+        "method": "PATCH",
+        "path": "/sales/orders/{order_id}/status",
+        "source_path": "/sales/orders/{order_id}/status",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "Update order status (manual transitions only). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
+        "path_parameters": [
+          "order_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "status"
+        ],
+        "named_actor_allowed": true,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "confirmed",
+                "in_production",
+                "ready",
+                "invoiced",
+                "cancelled"
+              ],
+              "description": "Target status for a manual transition. Must be one of the manual-transition values from OrderStatus; 'shipped' and 'partial_ship' are auto-set by shipOrder commit and cannot be sent here."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "order_id",
+            "status"
+          ]
+        }
+      },
+      {
+        "name": "commitShipOrder",
+        "method": "POST",
+        "path": "/sales/orders/{order_id}/ship/commit",
+        "source_path": "/sales/orders/{order_id}/ship/commit",
+        "source": "gpt-configs/schemas/openapi-floor.yaml",
+        "description": "COMMIT a dispatch/shipment for a sales order. Call ONLY after the operator has seen the shipOrder preview and explicitly said to commit/dispatch. Returns the shipment receipt. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
+        "path_parameters": [
+          "order_id"
+        ],
+        "query_parameters": [],
+        "body_parameters": [
+          "ship_all",
+          "lines",
+          "occurred_at",
+          "backfill"
+        ],
+        "named_actor_allowed": true,
+        "input_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "ship_all": {
+              "type": "boolean",
+              "default": false,
+              "description": "Ship all remaining lines. Never combine true with explicit lines."
+            },
+            "lines": {
+              "type": "array",
+              "description": "Per-line quantities to commit. Omit when ship_all is true.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "line_id",
+                  "quantity_lb"
+                ],
+                "properties": {
+                  "line_id": {
+                    "type": "integer"
+                  },
+                  "quantity_lb": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "additionalProperties": false
+              },
+              "minItems": 1
+            },
+            "occurred_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Optional event time. Omit when the shipment happened just now. If the operator implies it happened earlier, ask 'When did this happen?' and pass an ISO 8601 America/New_York plant-local time (an explicit offset is also accepted)."
+            },
+            "backfill": {
+              "type": "boolean",
+              "default": false,
+              "description": "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "commit"
+              ],
+              "default": "preview",
+              "description": "First preview the exact change, show the summary, and obtain explicit approval. Only a second call with the issued token may commit."
+            },
+            "confirmation_token": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 128,
+              "description": "One-time token from this tool’s preview; expires after two minutes. Never invent or reuse one."
+            }
+          },
+          "required": [
+            "order_id"
+          ]
+        }
+      }
+    ]
+  }
 }
