@@ -9,8 +9,13 @@ Auth modes:
               source, an email allowlist + roles from MCP_ALLOWED_USERS and one
               named-actor key per user from MCP_ACTOR_KEY_* variables.
 
-Hosted (production or Railway) configuration fails closed: no dev token, dev email,
-demo role or shared test key may be present, and only locked/google modes load.
+Hosted (production or Railway) configuration fails closed: no dev token, dev email
+or demo role may be present, and only locked/google modes load.
+
+Backend credentials: the adapter sends only the calling user's own named-actor key
+(resolved from MCP_ALLOWED_USERS / MCP_ACTOR_KEY_*) on every ledger request, reads
+included. There is no service-level shared key; MCP_TEST_API_KEY was removed and its
+presence in the environment is refused so a stale value can never be picked up.
 """
 
 import os
@@ -24,6 +29,7 @@ AUTH_MODES = ("locked", "local_stub", "google")
 MIN_TOKEN_SECRET_LENGTH = 32
 LOOPBACK_HOSTS = {"127.0.0.1", "::1"}
 RAILWAY_INTERNAL_SUFFIX = ".railway.internal"
+REMOVED_ENV_NAMES = ("MCP_TEST_API_KEY",)
 
 
 def _railway_detected() -> bool:
@@ -42,7 +48,6 @@ class Settings:
     environment: str = "local"
     auth_mode: str = "locked"
     dev_token: str = field(default="", repr=False)
-    test_api_key: str = field(default="", repr=False)
     dev_role: str = "reader"
     ledger_url: str = "http://127.0.0.1:8100"
     # Auth workstream (google mode; dev_email is local_stub only).
@@ -80,11 +85,6 @@ class Settings:
                 raise ValueError(
                     "MCP_DEV_TOKEN, MCP_DEV_EMAIL and MCP_DEV_ROLE are refused in production "
                     "or on Railway"
-                )
-            if self.test_api_key:
-                raise ValueError(
-                    "MCP_TEST_API_KEY is refused in production or on Railway; users are "
-                    "mapped to named-actor keys and there is no shared-key fallback"
                 )
         if self.dev_email:
             if self.auth_mode != "local_stub":
@@ -156,11 +156,17 @@ class Settings:
     @classmethod
     def from_env(cls):
         env = os.environ
+        for name in REMOVED_ENV_NAMES:
+            if env.get(name, "").strip():
+                raise ValueError(
+                    f"{name} is no longer supported: every ledger request carries the "
+                    "calling user's own named-actor key (MCP_ALLOWED_USERS + MCP_ACTOR_KEY_*); "
+                    "there is no shared-key path. Unset it."
+                )
         return cls(
             environment=env.get("MCP_ENV", "local"),
             auth_mode=env.get("MCP_AUTH_MODE", "locked"),
             dev_token=env.get("MCP_DEV_TOKEN", ""),
-            test_api_key=env.get("MCP_TEST_API_KEY", ""),
             dev_role=env.get("MCP_DEV_ROLE", "reader"),
             ledger_url=env.get("MCP_LEDGER_API_URL", "http://127.0.0.1:8100"),
             public_url=env.get("MCP_PUBLIC_URL", ""),

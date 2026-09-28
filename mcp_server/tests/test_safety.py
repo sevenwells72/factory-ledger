@@ -7,7 +7,7 @@ import yaml
 from factory_ledger_mcp.adapter import CATALOG, LedgerReader, ToolFailure
 from factory_ledger_mcp.config import Settings
 
-from .conftest import rpc
+from .conftest import STUB_ADMIN, STUB_ADMIN_KEY, rpc
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -205,20 +205,20 @@ async def test_timeout_does_not_retry():
         assert len(calls) == 1
 
 
-async def test_test_backend_key_is_distinct_from_client_identity(stack):
-    async with stack(test_api_key="synthetic-test-api-key") as (client, backend):
-        result = await rpc(
-            client,
-            "office",
-            "tools/call",
-            {
-                "name": "searchProducts",
-                "arguments": {"q": "Demo"},
-            },
-        )
+async def test_reads_carry_the_bound_identity_key_or_no_credential_at_all(stack):
+    call = {"name": "searchProducts", "arguments": {"q": "Demo"}}
+    async with stack(dev_email=STUB_ADMIN) as (client, backend):
+        result = await rpc(client, "office", "tools/call", call)
         assert not result["result"]["isError"]
-        assert backend.state.requests[0]["headers"]["x-api-key"] == "synthetic-test-api-key"
-        assert "authorization" not in backend.state.requests[0]["headers"]
+        headers = backend.state.requests[0]["headers"]
+        # The caller's own named-actor key, never the MCP bearer token.
+        assert headers["x-api-key"] == STUB_ADMIN_KEY
+        assert "authorization" not in headers
+    async with stack() as (client, backend):
+        # Legacy demo roles bind no identity: no credential is invented for them.
+        result = await rpc(client, "office", "tools/call", call)
+        assert not result["result"]["isError"]
+        assert "x-api-key" not in backend.state.requests[0]["headers"]
 
 
 async def test_floor_lot_disambiguation_and_boolean_query(stack):

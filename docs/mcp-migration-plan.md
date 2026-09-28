@@ -380,3 +380,31 @@ unverified. Run and harness details are in `mcp_server/README.md`.
 **Local only — not deployed.** No production access, push or merge is performed.
 
 Cross-review validation (2026-09-28): **98 tests passed** (91 routing/validation, 7 real-ledger integration cases); Ruff lint/format and package builds passed.
+
+## 9. Phase 2 integration — local only, not deployed
+
+Branch: `feature/mcp-server`, after merging `feature/mcp-auth` (Google OAuth 2.1 sign-in,
+env allowlist roles, per-user actor keys) and `feature/mcp-writes` (two-call confirmations,
+26 write proposals, real-ledger write tests). Both forked from the same contract commit and
+touched disjoint files, so the merge had no conflicts.
+
+Wiring: `server.py` builds one `Authenticator`, mounts its discovery, authorize, token,
+registration, revocation and Google-callback routes, wraps `/office/mcp` and `/floor/mcp`
+with its gate, and adds `MCP_PUBLIC_URL`'s host and origin to the transport allowlists so
+the Railway domain is not rejected with 421. The adapter sends the calling user's own
+named-actor key (from `current_identity()`) on every ledger request, reads included; the
+settings-level `MCP_TEST_API_KEY` path was removed and a leftover variable is refused at
+startup. Concurrent users are isolated by the request-scoped context variable; a test
+drives two signed-in users through the real app at once and checks every backend request.
+
+Consequence: office `resolveProducts` returns 403 for every user until the backend
+allowlists `/products/resolve` for actor keys; the service no longer has a master key to
+fall back on, by design. PR #66 (`fix/named-actor-writes`) authorizes the 14 write routes
+that reject actor keys today; 16 expected-fail tests in `mcp_server/tests/test_named_actor_pending.py`
+turn into passes after this branch is rebased onto a `main` containing it, at which point
+`catalog.json`'s `named_actor_allowed` flags must be flipped for the same routes.
+
+Railway: `.railway/railway.ts` no longer hard-codes `MCP_AUTH_MODE`; all secrets and
+settings are dashboard-managed `preserve()` references, the partial refuses any project
+other than the ledger's, and it can only ever touch `factory-ledger-mcp`. No plan or apply
+was run. **Local only — not deployed.**

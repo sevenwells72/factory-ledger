@@ -64,9 +64,14 @@ handshake. For a local MCP Inspector, use either endpoint above and the same bea
 Stop each service with Ctrl-C. No OpenAI/Anthropic API key is needed.
 
 To use a separately prepared **local ledger with a test database**, set
-`MCP_LEDGER_API_URL=http://127.0.0.1:<test-port>` and `MCP_TEST_API_KEY` to its synthetic
-test key. Never start the root app against a production environment: its startup can
-run migrations. The integration harness below starts it only inside a disposable test database.
+`MCP_LEDGER_API_URL=http://127.0.0.1:<test-port>` and bind one synthetic allowlisted user
+for the stub session: `MCP_ALLOWED_USERS` (one entry whose `actor_key_env` names an
+`MCP_ACTOR_KEY_*` variable holding that test ledger's named-actor key) plus
+`MCP_DEV_EMAIL` set to that entry's email. **There is no shared backend key.** Every
+ledger request, read or write, carries only the calling user's own named-actor key;
+`MCP_TEST_API_KEY` was removed in Phase 2 and the service refuses to start if it is set.
+Never start the root app against a production environment: its startup can run
+migrations. The integration harness below starts it only inside a disposable test database.
 Remote URLs, host aliases, redirects and environment proxies are blocked. No production
 URL or credential is packaged; the generator ignores the schemas' server/auth settings.
 
@@ -98,13 +103,27 @@ are not forwarded. `MCP_TEST_PG_BIN` can select PostgreSQL's binary directory;
 `MCP_TEST_LEDGER_PYTHON` can select the isolated backend interpreter. Neither option
 selects a database. Concurrent worktrees have separate clusters and ports.
 
-Integration checks exercise missing/wrong backend keys (401/403), real shipment
+Integration checks exercise blank/wrong mapped actor keys (401/403), real shipment
 quantities (10 lb on one line versus 100 lb on each of two), conflicting-input rejection,
 409 lot ambiguity and `product_id` disambiguation in both groups. A fixed set of 26 read
 scenarios compares every public table, row, column and sequence before/after calls.
-Actor-key reads may update only `actors.last_used_at`; master-key reads change nothing.
-The real backend forbids actor keys on `resolveProducts` (403); the master-key scenario
-exercises its successful read. No auth dependency or business handler is replaced.
+Actor-key reads may update only `actors.last_used_at`. The real backend still forbids
+actor keys on `resolveProducts` (403) and this service never falls back to a shared key,
+so that office tool stays unavailable until the backend allowlists the route for actors.
+No auth dependency or business handler is replaced.
+
+Phase 2 wiring tests (`tests/test_phase2_wiring.py`) run the real `create_app` in google
+mode with an in-process fake Google and a recording fake ledger: OAuth discovery and
+protected-resource routes are mounted, both group endpoints challenge with
+`resource_metadata`, the `MCP_PUBLIC_URL` host is accepted while foreign `Host` headers get
+421, a shared key configured on the HTTP client is never sent (reads or writes), and two
+users calling concurrently never receive each other's actor key.
+
+`tests/test_named_actor_pending.py` probes the 14 backend write routes that still reject
+named-actor keys. They are marked expected-fail with the reason
+"blocked until PR #66 (fix/named-actor-writes) is merged; flips to pass after rebasing
+onto main"; nothing from that branch is merged here. After the rebase, drop the markers
+and flip `named_actor_allowed` in `catalog.json` for the same routes.
 The existing synthetic tests still cover MCP handshake, registration/routing, validation,
 group boundaries, unavailable writes, error preservation, size limits and retry policy.
 
@@ -167,16 +186,28 @@ is separate work; it is not changed by this branch. The new declaration follows 
 locally type-checked/evaluated with the official `railway@3.11.0` SDK. No Railway
 project was queried, planned, changed or deployed; remote reconciliation is unverified.
 
-The container defaults to `MCP_ENV=production` and `MCP_AUTH_MODE=locked`: health checks
-work, but both MCP endpoints return 401. The stub refuses production and Railway even
-if explicitly requested. This is build scaffolding, **not a production-ready connector**.
+The container image defaults to `MCP_ENV=production` and `MCP_AUTH_MODE=locked`: health
+checks work, but both MCP endpoints return 401 until the dashboard sets
+`MCP_AUTH_MODE=google`. The stub refuses production and Railway even if explicitly
+requested. This is build scaffolding, **not a deployed connector**.
 
-Before hosted access, complete the Google OAuth TODOs in `auth.py`: compatible OAuth 2.1
-authorization server, PKCE/discovery, verified CNS membership, issuer/audience/expiry,
-revocation, per-user group scopes and real user assignments. Configure trusted hosted
-origins/hosts and a scoped backend credential only in that later authorized phase.
-Publish two ChatGPT plugins / two Claude connector entries at the respective group URLs
-after their authenticated acceptance checks. None are published or installed by Phase 1.
+Phase 2 declares the service's variables in `railway.ts` as dashboard-managed
+`preserve()` references, so the file never carries a value: `MCP_AUTH_MODE`,
+`MCP_PUBLIC_URL`, `MCP_GOOGLE_CLIENT_ID`, `MCP_GOOGLE_CLIENT_SECRET`, `MCP_TOKEN_SECRET`,
+`MCP_ALLOWED_USERS`, `MCP_LEDGER_API_URL`, one `MCP_ACTOR_KEY_*` per allowlisted person
+and the optional `MCP_GOOGLE_HOSTED_DOMAIN`. The former hard-coded `MCP_AUTH_MODE=locked`
+literal is gone so it can no longer override the dashboard. The file also refuses any
+linked project other than the ledger's, and remains a named partial: it can only create,
+change or delete `factory-ledger-mcp`. Removing the `partial` export would turn it into a
+whole-project definition whose plan proposes deleting every undeclared service; keep it.
+Before any apply: run `railway config plan`, confirm the plan names only
+`factory-ledger-mcp`, and never pass `--yes --confirm-destructive`.
+
+`server.py` now builds one `Authenticator`, mounts its OAuth routes, protects both group
+endpoints and adds `MCP_PUBLIC_URL`'s host to the transport allowlists. Still pending
+before hosted access: creating the Google OAuth client, setting the variables above,
+running the plan, and publishing two ChatGPT plugins / two Claude connector entries after
+their authenticated acceptance checks. None are published or installed.
 
 References: [OpenAI MCP servers](https://developers.openai.com/plugins/build/mcp-server),
 [OpenAI authentication](https://developers.openai.com/plugins/build/auth),

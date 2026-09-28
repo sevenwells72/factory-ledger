@@ -5,6 +5,10 @@ sending a mutation; never retry an uncertain outcome. The unmodified backend has
 no transactional idempotency or conditional-version API: the read/check/write gap
 and end-to-end idempotency remain backend work, not guarantees of this adapter.
 Blocked named-actor routes are never redirected to a less restricted endpoint.
+
+Credentials: every ledger request, read or write, carries only the calling user's
+own named-actor key from the request-scoped identity. There is no service-level or
+shared key; a default X-API-Key on the HTTP client is dropped before sending.
 """
 
 import hashlib
@@ -50,6 +54,19 @@ class LedgerReader:
         self.confirmations = confirmations
         self.environment = environment
 
+    @staticmethod
+    def caller_headers():
+        """The calling user's own named-actor key, or no credential at all.
+
+        Reads outside an authenticated request (the loopback demo stub without
+        MCP_DEV_EMAIL) send nothing, so the backend answers 401 itself. A shared
+        or settings-level key is never substituted.
+        """
+        try:
+            return {"X-API-Key": identity.current_identity().actor_key}
+        except PermissionError:
+            return {}
+
     async def call(self, group, name, arguments):
         write = next((s for s in WRITE_CATALOG.get(group, []) if s["name"] == name), None)
         if write is not None:
@@ -82,14 +99,23 @@ class LedgerReader:
                     "invalid_arguments", "ship_all=true cannot be combined with explicit lines"
                 )
             body["mode"] = "preview"
-        kwargs = {"params": query}
+        kwargs = {"params": query, "headers": self.caller_headers()}
         if spec["method"] == "POST":
             kwargs["json"] = body
         return await self._request(spec["method"], path, **kwargs)
 
     async def _request(self, method, path, **kwargs):
+        # The credential is decided per request from the caller's identity. Whatever the
+        # client was constructed with, no other X-API-Key ever leaves this adapter.
+        headers = dict(kwargs.pop("headers", None) or {})
+        actor_key = headers.pop("X-API-Key", None)
+        request = self.client.build_request(method, path, headers=headers, **kwargs)
+        request.headers.pop("X-API-Key", None)
+        if actor_key:
+            request.headers["X-API-Key"] = actor_key
         try:
-            async with self.client.stream(method, path, **kwargs) as response:
+            response = await self.client.send(request, stream=True)
+            try:
                 data = bytearray()
                 async for chunk in response.aiter_bytes():
                     data.extend(chunk)
@@ -119,6 +145,8 @@ class LedgerReader:
                         "ledger_error", "Ledger reported a failed request", details=result
                     )
                 return result
+            finally:
+                await response.aclose()
         except httpx.TimeoutException:
             raise ToolFailure("timeout", "Local ledger timed out; no automatic retry was attempted")
         except httpx.RequestError:

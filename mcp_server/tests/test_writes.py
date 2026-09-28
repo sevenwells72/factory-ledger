@@ -471,7 +471,7 @@ async def test_po_duplicate_and_changed_po_refuse_unsafe_save(writer):
 
 async def test_catalog_permissions_and_real_write_through_mcp(real_stack, monkeypatch):
     monkeypatch.setattr(identity, "current_identity", lambda: FLOOR)
-    async with real_stack(test_api_key=MASTER_KEY) as (client, db):
+    async with real_stack() as (client, db):
         seed_write_database(db)
         for group, count in [("office", 14), ("floor", 22)]:
             listed = (await rpc(client, group, "tools/list"))["result"]["tools"]

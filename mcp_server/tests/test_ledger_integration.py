@@ -5,7 +5,7 @@ import copy
 import pytest
 
 from .conftest import rpc
-from .ledger_harness import ACTOR_KEY, MASTER_KEY
+from .ledger_harness import ACTOR_KEY
 
 
 async def call(client, group, name, **arguments):
@@ -16,7 +16,9 @@ async def call(client, group, name, **arguments):
 
 @pytest.mark.parametrize("key,status", [("", 401), ("wrong-test-key", 403)])
 async def test_real_backend_rejects_missing_and_wrong_keys(real_stack, key, status):
-    async with real_stack(test_api_key=key) as (client, db):
+    # A mapped user whose actor key is blank or wrong gets the backend's own denial;
+    # the adapter never substitutes a shared key.
+    async with real_stack(actor_key=key) as (client, db):
         before = db.snapshot()
         result = await call(client, "office", "searchProducts", q="MCP Test")
         assert result["isError"]
@@ -107,23 +109,21 @@ READS = [(group, name, args) for group in ("office", "floor") for name, args in 
 ]
 
 
-@pytest.mark.parametrize("key", [ACTOR_KEY, MASTER_KEY], ids=["actor", "master"])
-async def test_all_reads_change_only_actor_last_used_at(real_stack, key):
-    async with real_stack(test_api_key=key) as (client, db):
+async def test_all_reads_change_only_actor_last_used_at(real_stack):
+    # Phase 2: reads use the caller's named-actor key only. The former master-key
+    # scenario is gone on purpose; a shared key is never sent by this service.
+    async with real_stack(actor_key=ACTOR_KEY) as (client, db):
         before = db.snapshot()
         assert before["actors"][0]["last_used_at"] is None
         for group, name, arguments in READS:
             result = await call(client, group, name, **arguments)
-            # The existing backend forbids actor keys on product resolution.
-            if key == ACTOR_KEY and name == "resolveProducts":
+            # The existing backend forbids actor keys on product resolution (not in PR #66).
+            if name == "resolveProducts":
                 assert result["isError"] and result["structuredContent"]["status"] == 403
             else:
                 assert not result["isError"], (group, name, result)
         after = db.snapshot()
-        if key == ACTOR_KEY:
-            assert after["actors"][0]["last_used_at"] is not None
-            normalized = copy.deepcopy(after)
-            normalized["actors"][0]["last_used_at"] = None
-            assert normalized == before
-        else:
-            assert after == before
+        assert after["actors"][0]["last_used_at"] is not None
+        normalized = copy.deepcopy(after)
+        normalized["actors"][0]["last_used_at"] = None
+        assert normalized == before

@@ -481,7 +481,7 @@ async def test_admin_signs_in_and_identity_is_bound_inside_tool_calls(
 
         client.headers.update(bearer(tokens["access_token"]))
         listed = (await rpc(client, "office", "tools/list"))["result"]["tools"]
-        assert len(listed) == 14
+        assert len(listed) == 30  # 14 reads + 16 office write proposals for admin_office_floor
         result = (
             await rpc(client, "office", "tools/call", {"name": "listCustomers", "arguments": {}})
         )["result"]
@@ -502,7 +502,7 @@ async def test_admin_signs_in_and_identity_is_bound_inside_tool_calls(
             client, info["client_id"], ADMIN, resource=f"{PUBLIC_URL}/floor/mcp"
         )
         client.headers.update(bearer(floor_tokens["access_token"]))
-        assert len((await rpc(client, "floor", "tools/list"))["result"]["tools"]) == 12
+        assert len((await rpc(client, "floor", "tools/list"))["result"]["tools"]) == 22
         # No identity leaks outside a request.
         with pytest.raises(PermissionError):
             identity.current_identity()
@@ -514,7 +514,8 @@ async def test_floor_role_reads_both_groups_but_holds_no_office_write(google_sta
         tokens = await sign_in(client, info["client_id"], FLOOR)
         assert set(tokens["scope"].split()) == {"office.read", "floor.read", "floor.write"}
         client.headers.update(bearer(tokens["access_token"]))
-        for group, count in (("office", 14), ("floor", 12)):
+        # Floor role: office reads only (14); floor reads plus the 10 floor write proposals.
+        for group, count in (("office", 14), ("floor", 22)):
             assert len((await rpc(client, group, "tools/list"))["result"]["tools"]) == count
             result = (
                 await rpc(
@@ -802,7 +803,6 @@ def test_production_accepts_only_locked_or_google_without_test_settings(monkeypa
         ({"dev_token": TOKEN}, "refused in production"),
         ({"dev_email": ADMIN}, "refused in production"),
         ({"dev_role": "admin"}, "refused in production"),
-        ({"test_api_key": "shared-key"}, "MCP_TEST_API_KEY"),
         ({"public_url": "http://mcp.example.invalid"}, "https"),
         ({"ledger_url": "http://ledger.example.invalid"}, "railway.internal"),
         ({"ledger_url": "https://user:pw@ledger.example.invalid"}, "credentials"),
@@ -813,8 +813,13 @@ def test_production_accepts_only_locked_or_google_without_test_settings(monkeypa
     monkeypatch.setenv("RAILWAY_ENVIRONMENT_ID", "synthetic-platform-indicator")
     with pytest.raises(ValueError, match="Railway"):
         Settings(environment="local", auth_mode="local_stub", dev_token=TOKEN)
-    with pytest.raises(ValueError, match="Railway"):
-        Settings(environment="local", auth_mode="locked", test_api_key="shared-key")
+    # The shared test key no longer exists as a setting; a leftover variable is refused
+    # everywhere, not only when hosted, so it can never be silently ignored.
+    assert not hasattr(Settings(environment="local", auth_mode="locked"), "test_api_key")
+    monkeypatch.setenv("MCP_TEST_API_KEY", "shared-key")
+    with pytest.raises(ValueError, match="MCP_TEST_API_KEY"):
+        Settings.from_env()
+    monkeypatch.delenv("MCP_TEST_API_KEY")
     # Locked/google modes never accept remote ledgers outside a hosted google deployment.
     with pytest.raises(ValueError, match="loopback"):
         google_settings(ledger_url="https://ledger.example.invalid")
