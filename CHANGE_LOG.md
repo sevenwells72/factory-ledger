@@ -1,5 +1,20 @@
 # Change Log
 
+## 2026-09-28 14:31 — Verified named-actor writes, row 157 (not deployed)
+- **File(s) changed:** `main.py`, `migrations/056_actor_write_audit.sql`, `tests/test_named_actor_writes.py`, `tests/test_actor_attribution.py`, `tests/test_released_by_attribution.py`, `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Completed all 14 routes with one shared auth policy and actor attribution; migration 056 provides atomic metadata audit. Replaced superseded actor-denial tests and narrowed the historical allocation source guard to permit transaction attribution while preserving allocation semantics. Documented baseline code locations, evidence storage, rollout dependency, and future restriction candidates.
+- **Validation:** Full local Python suite **1,313 passed**, 868 existing/deprecation warnings, zero failures/skips; baseline 1,153 passed, **160 new tests**. Node suite **67 passed**. `git diff --check` clean. Named acceptance matrix: four actors × 14 endpoints; shared acceptance: 14; missing/invalid/inactive/dashboard rejection: 56; previews, failure rollback, actor isolation, allocation releases, legacy writes without 056, migration rerun and append-only checks also passed.
+- **Why:** Prove the owner-approved scope expansion stores the authenticated actor without changing custom GPT/shared-key behavior. Only local TEST_DATABASE_URL was used; no production access, deployment, merge, MCP-branch changes, or Codex-worktree writes.
+
+---
+
+## 2026-09-28 14:25 — FR-15 named-actor access and attribution for all 14 approved writes (row 157; not deployed)
+- **File(s) changed:** `main.py`, `migrations/056_actor_write_audit.sql`, `tests/test_named_actor_writes.py`, `tests/test_actor_attribution.py`, `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Extend the shared actor auth policy for the 14 owner-approved endpoints; persist actor names on ledger/trace writes and an atomic audit record for customer, lot, and order edits. Add acceptance, attribution, legacy compatibility, invalid-key, rollback, and migration coverage.
+- **Why:** FR-15 reused the dashboard allowlist and several writes still defaulted to legacy-shared-key. Owner approved every actor role on all 14 endpoints; role enforcement remains in MCP. Shared and dashboard key behavior must remain unchanged. Migration 056 is local-test-only until a separately authorized rollout.
+
+---
+
 ## 2026-09-17 15:54 — #156 Granola physical count EXECUTED in production
 - **What changed:** Michael-approved granola physical-count reconciliation EXECUTED via production POST /adjust with explicit --apply --allow-shared-key, using the same in-memory Railway shared-key retrieval as the September 15 coconut adjustment. Posted 24 events across 22 lots, transactions 2393–2416, total −19,335.46 lb, effective 2026-09-17. Classic 107: 14,878 → 10,560 lb; Classic Chocolate Chip 108: 9,396 → 2,000 lb; BS Dark Chocolate 121 unchanged at 1,050 lb; all eight other specified products zero. Vanilla Crisp 112 untouched at 240 lb. Reasons retain the approved Sunshine 4,000/6,000 lb split and Arturo remainder, each ending with (entered via shared key by Michael); operator_id remains legacy-shared-key. All balances checked before each post; exact events and all targets verified with read-only posted ledger_current_* queries. Durable intent/receipt journal plus exact posted-prefix detection prevents replay; rerun verified all 24 and made zero API calls. Nine safety tests passed. No push or merge.
 - **Files/evidence:** `scripts/granola_writedown_0917.py`, frozen JSON plan, safety tests, `audits/reports/granola-writedown-plan.md`, `audits/results/granola-writedown-0917-*`, both project logs and the iCloud global log.
