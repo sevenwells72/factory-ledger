@@ -4,10 +4,10 @@
 
 - Replace both active GPTs: **Factory-Ledger 2.0** (office) and **Factory Ledger - Floor 2.0** (floor). One MCP service exposes separate office and floor connections in ChatGPT and Claude.
 - Run that connection as a separate service on Railway, alongside the existing Factory Ledger app.
-- Use Google OAuth sign-in restricted to CNS Google accounts, with server-enforced office/floor permissions.
+- Use Google sign-in plus an email allowlist and roles from a Railway environment variable, with server-enforced office/floor permissions; unlisted users are denied.
 - Require explicit approval before every change, and return the internal SO number for every order change.
 - Save pallet charges as Pallet Charge line items, product 176, and customer PO numbers in the dedicated PO field.
-- Michael Gross owns the migration and pilots first for about one week, followed by one office user and one floor user, then all staff.
+- Michael Gross owns the migration and pilots first for about one week, followed by Luz or Miriam (office) plus Arturo (floor), then all staff.
 - Budget **16–26 engineering days plus staged pilot time** for both GPTs; target cutover is **November 20, 2026**, ahead of the supplied December 11 deadline.
 
 ## Scope and evidence
@@ -42,21 +42,25 @@ The Floor schema was found, so the Step 1 stop condition does **not** apply. Its
 ## Decisions (2026-09-28)
 
 - **Architecture:** one MCP server deployed as a separate Railway service, with two tool groups, `office` and `floor`. Expose them as **two separate ChatGPT plugins and two separate Claude connector entries**, using `/office/mcp` and `/floor/mcp` on the same service. Registration/visibility alone never grants permission; enforce roles at the server.
-- **Authentication:** Google sign-in (OAuth), restricted to **CNS Google accounts**. A compatible authorization server must supply the MCP OAuth flow and verified Google identity. The exact CNS Workspace domain(s), user identifiers and provider integration remain to be configured; do not infer email addresses or accept a client-supplied email/domain as authentication.
+- **Authentication:** Google sign-in. Email allowlist and roles come from a **Railway environment variable**, never email addresses in code. Validate the Google identity first, then look up the verified email in the server-managed allowlist; a client-supplied email/domain does not authenticate anyone. Unlisted users are denied, including authenticated CNS users.
 - **Owner:** Michael Gross.
-- **Permissions:** Michael Gross, Luz and Miriam receive **office write + floor write**, including reads. Floor users receive **floor write only**, with **office read-only or none**. Other authenticated CNS users are **read-only**. Outside-CNS users receive no access. Until Michael chooses between office read-only and none for floor users, default to **none**. Shared operations exposed in the floor group remain available there (including order reads and, later, approved floor status changes); “no office access” means no access to the office group.
-- **Pilot:** Michael first for approximately one week, then one office user and one floor user, then all staff.
+- **Roles:** `admin_office_floor` (Michael, Luz, Miriam) = office + floor write, including reads; `floor` = floor write + office read, including **read-only office order reads**. Unlisted = denied. Phase 1 still exposes no business writes.
+- **Pilot:** Michael for approximately one week → Luz or Miriam (office) + Arturo (floor) → all staff.
 - **Target cutover:** **November 20, 2026**.
+- **No-PO orders:** allowed, flagged **"No PO"** in summaries/receipts and displays. Leave `customer_po` empty; do not store the flag as a fabricated PO number.
+- **Write confirmation:** every write first returns a **plain-English summary + one-time confirmation token** and saves only on a **second call with that token**. Bind the token to the authenticated user, exact operation/payload and relevant versions; reject expired, changed, cross-user or reused tokens.
 - **Phase 1 authorization:** branch `feature/mcp-server`; separate service directory; **read-only tools for both groups only**; local/test database tests; explicit Google OAuth TODO; no production credentials. **No deployment, production-data access, changes to existing OpenAPI files, or `main.py` behavior.** Later writes, OAuth rollout and production access remain separate work.
 
-| User class (verified CNS membership required) | Office group | Floor group |
+| Role / user class (verified Google identity + allowlist required) | Office group | Floor group |
 |---|---|---|
-| Michael Gross, Luz, Miriam | Read + write (writes in a later phase) | Read + write (writes in a later phase) |
-| Floor users | None by default; Michael may choose read-only | Read + write (writes in a later phase) |
-| Everyone else within CNS | Read only | Read only |
-| Outside CNS / unauthenticated | None | None |
+| `admin_office_floor` — Michael, Luz, Miriam | Read + write (writes in a later phase) | Read + write (writes in a later phase) |
+| `floor` — allowlisted floor users | Read only, including office orders | Read + write (writes in a later phase) |
+| Unlisted / unauthenticated | Denied | Denied |
 
-Phase 1 simulates these read-access boundaries with a local-only stub. It does not implement Google login, real user assignments, or any write permission.
+The existing Phase 1 demo stub predates this decision and still uses synthetic
+`reader`/`admin`/`floor` labels with its older group boundary. It does not implement
+Google login or the decided user-role mapping. The auth workstream must replace that
+boundary with this contract; no real user assignment or write is enabled here.
 
 ## 1. Complete operation inventories and proposed MCP tools
 
@@ -152,11 +156,11 @@ A search of tracked files and the working checkout found no other OpenAPI schema
 
 For the later write phase, keep one tool per operation per group and give write-capable tools an MCP-level `phase: preview | commit`, defaulting to preview. Preserve the distinct Floor `shipOrder` read-only preview and `commitShipOrder` write action; the latter must consume approval for the exact preview payload. None of these writes is implemented in Phase 1. Translate it to the existing API `mode` only for the six native preview operations. For other writes, preparation uses reads and validation and does **not** call the mutating endpoint. Any required preview validation should be factored into shared backend logic during implementation; never create a temporary real order to obtain a preview.
 
-1. Resolve the customer, product IDs, lots, quantities, prices, PO, dates, and target record. Display a concise summary of exactly what will change, including pallet charges and warnings.
-2. Save a short-lived pending approval bound to the authenticated user, operation, canonical payload hash, environment, and relevant record versions. This is approval metadata, not a Factory Ledger business mutation.
-3. Obtain **explicit approval of that exact summary**. Recommended enforceable baseline: an authenticated Factory Ledger approval page reached from the preview result, with Approve/Cancel. The page records the human decision server-side. A conversational “yes” or a model-supplied `confirmed: true` alone cannot prove approval to a remote server. Native client confirmation can improve the experience, but substitute it only if a verifiable per-call approval mechanism is demonstrated in both clients.
-4. The same MCP tool’s commit phase supplies the pending approval ID. The server verifies approval, identity, expiry, payload, and record versions; rejects missing/changed/reused approvals; rechecks current business constraints; then calls the API. Changes to the proposal require a fresh approval. OAuth account consent is not transaction approval.
-5. Persist approval consumption and the resulting receipt safely. No “Created,” “Updated,” or “Shipped” message until committed success is established. Declining or abandoning approval causes no business change.
+1. Resolve the customer, product IDs, lots, quantities, prices, PO, dates, and target record. The first call returns a **plain-English summary of exactly what will change and a one-time confirmation token**, including pallet charges, "No PO" where applicable, and warnings. It makes no business change.
+2. Store a short-lived pending confirmation bound to the authenticated user, operation, canonical payload hash, environment, and relevant record versions. This is approval metadata, not a Factory Ledger business mutation. Never log the token.
+3. Show the summary and obtain explicit operator approval. Only then make a **second call with the token**; a boolean `confirmed: true` is not a substitute. This two-call contract supersedes the earlier proposed approval-page baseline; a token enforces a second, payload-bound call but is not independently proof of human intent, so clients must still present the summary and require approval.
+4. Verify the token, identity, expiry, payload and record versions; reject missing, changed, cross-user, expired or reused tokens. Recheck current business constraints before saving. Changes to the proposal require a fresh summary/token. OAuth consent is not transaction approval.
+5. Consume the token exactly once with durable replay protection and persist the resulting receipt safely. Save only on the second call. No "Created," "Updated," or "Shipped" message until committed success is established. Declining or abandoning confirmation causes no business change.
 
 Use `readOnlyHint: true` on the 26 read-only group registrations; use false on all 26 future write-capable registrations even during their previews. Set destructive annotations according to actual consequences, including inventory posting and cancellation. Set `openWorldHint: false` for this bounded Factory Ledger account. Annotations guide clients but do not enforce approval. Do not carry forward the old workaround that labeled shipping commits non-consequential. [OpenAI MCP tool guidance](https://developers.openai.com/plugins/build/mcp-server)
 
@@ -206,7 +210,7 @@ These are required acceptance criteria, not optional follow-ups.
 - Migration 050 already introduces this column; the shared `_create_sales_order_core(..., customer_po=...)` and dashboard document-approval path use it. Do not plan a second PO column.
 - The legacy `OrderCreate`, `OrderHeaderUpdate`, and YAML schemas do **not** expose `customer_po`; `create_sales_order` does not pass it to the core. `getOrder` also omits it, although `listOrders` returns it. Extend create/header/detail contracts in the future implementation so the 1:1 MCP tools can save and read it. Merely adding an MCP argument would currently risk silently losing it.
 - Reuse the existing normalized customer-plus-PO duplicate check and locking behavior for the new create path. Display conflicts; an intentional duplicate requires a separate explicit override in the approved proposal. Apply appropriate duplicate checks to PO/customer edits too.
-- For entry from a customer PO, require the PO number before commit, consistent with the existing intake rule. For orders genuinely placed without a PO, have the owner choose whether those are allowed; if allowed, leave the dedicated field empty and record that decision, rather than inventing “N/A” as a purchase-order number.
+- For entry from a supplied customer PO, capture its number before commit. Orders genuinely placed without a PO are **allowed**: keep the dedicated field empty and flag **"No PO"** in the preview, receipt and display. Do not invent “N/A” or store “No PO” as the PO number.
 - Persist order, PO, service lines, receipt, and idempotency record atomically. Read back and compare the PO and product 176 line before reporting verified completion.
 
 ## 4. Authentication and authorization
@@ -219,7 +223,7 @@ This is the repository-defined authentication contract. The live GPT’s stored 
 
 ### Decided common approach: Google sign-in with per-user OAuth
 
-Use **OAuth authorization code with PKCE (S256), following MCP’s OAuth 2.1 authorization profile**, with a compatible authorization provider using Google as the identity source, restricted to verified CNS membership. Each operator signs in; the MCP server validates tokens and authorizes each tool. This provides revocation, user attribution, and separate read/write permissions.
+Use **OAuth authorization code with PKCE (S256), following MCP’s OAuth 2.1 authorization profile**, with a compatible authorization provider using Google as the identity source, restricted by a server-managed email allowlist and role mapping supplied through a Railway environment variable. No email addresses belong in code; Google/Workspace membership alone is insufficient and unlisted users are denied. Each operator signs in; the MCP server validates tokens and authorizes each tool. This provides revocation, user attribution, and separate read/write permissions.
 
 | Option | ChatGPT plugin | Claude remote custom connector | Decision |
 |---|---|---|---|
@@ -278,7 +282,7 @@ Operational requirements for the later build:
 | Unexpected customer creation | Current order creation calls customer resolution with auto-create enabled by default. The new path must require an existing resolved customer or separately approved `createCustomer`; revalidate at commit. |
 | Case/lb conversion, wrong FG/private-label match, or missing warning | Require resolved identity and explicit units; preserve warning/disambiguation behavior and customer-specific restrictions from the newer intake flow where applicable. Never guess from OCR. |
 | Wrong date, lot, state transition, or stale inventory | Preserve America/New_York event-time/backfill rules, FIFO/override rules, legal status transitions and row locks; reject stale proposals. Surface current readiness/blockers and supplier-lot ambiguity. |
-| OAuth callback, expiry, role, or provider mismatch | Test first connection, refresh, reconnect, logout/revocation, wrong audience, read-only role attempting a write, and unauthorized user in both actual clients. |
+| OAuth callback, expiry, role, or provider mismatch | Test first connection, refresh, reconnect, logout/revocation, wrong audience, floor role attempting an office write, and unlisted user in both actual clients. |
 | Shared-key exposure or loss of individual attribution | Server-side scoped bridge secret, per-user OAuth/audit, safe packing-slip access, coordinated rotation; redact logs and migrate no embedded keys. |
 | Dependency/startup change breaks the ledger | Isolated adapter dependencies; backend regression checks in a test database. Do not start/import the production-configured app for a “read-only” check: startup performs migrations. |
 | Large trace/history results or infrastructure limits cause truncation/timeouts | Preserve limits, bound response sizes, label truncation, and test large recall traces. Never silently turn incomplete results into a complete recall claim. |
@@ -306,22 +310,20 @@ Allow roughly **3–5 engineering weeks**, plus **about two calendar weeks for s
 
 Target milestones (owner: Michael Gross; dates are targets, not scheduled automation):
 
-1. **By October 9:** finalize CNS domain/user identifiers, Google OAuth provider integration, floor office-read choice and representative prompts for both confirmed GPTs.
+1. **By October 9:** configure the env-managed email/role allowlist, Google OAuth provider integration and representative prompts for both confirmed GPTs.
 2. **By October 30:** complete staging acceptance for office and floor scope, including later write safeguards; prepare two ChatGPT plugins and two Claude connection guides.
 3. **November 2–6:** Michael pilots first, for approximately one week. Do not start write pilots until approval, auth and idempotency acceptance passes.
-4. **November 9–13:** expand to one office user and one floor user. Compare reads; only one client may commit each real event, never dual-write for comparison.
+4. **November 9–13:** expand to Luz or Miriam (office) plus Arturo (floor). Compare reads; only one client may commit each real event, never dual-write for comparison.
 5. **By November 20:** expand to all staff after Michael accepts results and each intended user can authenticate with the correct group access.
 6. **Before December 11:** retire both replaced GPT entry points and coordinate legacy credential removal after dependencies are accounted for. Preserve an API/dashboard/manual fallback.
 
 If the adapter fails, disable its writes and return operators to the existing API/dashboard workflows. Roll back the adapter independently; preserve committed business records and additive database fields. Reconcile pending/unknown writes before retrying. Before retirement, the old GPT may remain an operational fallback only if its exact configuration is still available and validated.
 
-**Remaining decisions / information for Michael:**
+**Remaining configuration / information for Michael:**
 
-- Supply the exact CNS Google Workspace domain(s), verified user identifiers for Michael/Luz/Miriam, and the floor-user roster; choose/configure the managed OAuth provider that supports Google login and MCP authorization.
-- Choose whether floor users may read the office group or have no office-group access (default: none).
-- Name the second-stage office and floor pilot participants and the fallback operator; supply the account-specific retirement notice.
-- Confirm the later authenticated approval-page baseline, or choose an equivalent verifiable approval flow supported in both clients.
-- Decide whether genuine no-PO orders are allowed. Product 176 and dedicated PO storage remain fixed requirements.
+- Supply the verified Google email allowlist and role assignments through the Railway environment variable; configure the managed OAuth provider. Do not add the emails to repository files.
+- Choose Luz or Miriam for the office pilot, name the fallback operator, and supply the account-specific retirement notice. Arturo is the floor pilot.
+- Implement and validate the decided two-call confirmation-token contract in both clients. Product 176, dedicated PO storage, allowed "No PO" orders and floor office-read access are settled requirements.
 
 ## 8. Phase 1 implementation and verification
 
@@ -329,7 +331,7 @@ Branch: `feature/mcp-server`. New service: `mcp_server/`. One process exposes `/
 
 The adapter makes bounded HTTP calls to a numeric loopback test API only, does not follow redirects or environment proxies, and never reads database credentials or imports `main.py`. Non-read operations are absent; POST is allowlisted only for office product resolution and Floor's dedicated shipping preview. JSON Schema validation rejects additional arguments and commit mode; path parameters cannot escape the selected route. Tool annotations are read-only and non-destructive.
 
-Google OAuth is an explicit TODO. Authentication defaults to locked; the opt-in bearer-token stub runs only on loopback in local/test mode and refuses Railway/production. A simulated floor role cannot access the office group; other simulated roles can read both groups. This does not authenticate CNS users or enable hosted client installation.
+Google OAuth is an explicit TODO. Authentication defaults to locked; the opt-in bearer-token stub runs only on loopback in local/test mode and refuses Railway/production. Its older synthetic floor role cannot access the office group; this is a demo-only boundary, not the decided `floor` role contract. The auth workstream must permit office reads for allowlisted floor users. The current stub does not authenticate CNS users or enable hosted client installation.
 
 ### Read-only boundary and accepted usage metadata exception
 
