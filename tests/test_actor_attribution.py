@@ -93,6 +93,7 @@ def _apply_052(cur):
     migration's RAISE NOTICE contains one.
     """
     cur.execute(MIGRATION_052.read_text())
+    cur.execute((ROOT / "migrations" / "056_actor_write_audit.sql").read_text())
 
 
 @pytest.fixture
@@ -740,132 +741,29 @@ def test_unknown_key_is_rejected_exactly_as_before(client, actors):
 
 
 @pytest.mark.db
-def test_actor_key_is_scoped_to_the_dashboard_allowlist(client, actors):
-    """An actor key replaces the shared dashboard key; it does not upgrade it.
-    A named person does not thereby get master-key reach."""
-    for label, resp in [
-        ("POST /make", client.post("/make", json={}, headers=_headers(ACTOR, actors))),
-        ("POST /adjust", client.post("/adjust", json={}, headers=_headers(ACTOR, actors))),
-        ("POST /void/1", client.post("/void/1", json={}, headers=_headers(ACTOR, actors))),
-        ("POST /sales/orders", client.post("/sales/orders", json={},
-                                           headers=_headers(ACTOR, actors))),
-        ("GET /admin/lots/duplicates",
-         client.get("/admin/lots/duplicates", headers=_headers(ACTOR, actors))),
-    ]:
-        assert resp.status_code == 403, f"{label}: {resp.status_code} {resp.text}"
-        assert resp.json()["detail"] == "API key not authorized for this endpoint", label
+def test_actor_key_still_cannot_reach_unapproved_admin_routes(client, actors):
+    resp = client.get('/admin/lots/duplicates', headers=_headers(ACTOR, actors))
+    assert resp.status_code == 403
+    assert resp.json()['detail'] == 'API key not authorized for this endpoint'
 
 
 # ─────────────────────────────────────────────────────────────────
-# The two sales-order line writers an actor key must NOT reach
-#
-# Both are master-key only, and both are next door to
-# PATCH .../lines/{id}/update, which IS allowlisted — so "the line endpoints"
-# is not a thing anyone can reason about as a group. Each is pinned
-# separately, with the row read back, because a 403 that still wrote is the
-# failure that matters.
-#
-# POST .../lines has a second reason to stay out: sales_order_lines carries
-# no attribution column at all, so an actor key reaching it would be reach
-# without a record — the one combination this feature exists to prevent.
-# ─────────────────────────────────────────────────────────────────
+# Dashboard access to the two newly actor-authorized line writers stays denied.
+# Named actor success, persistence, and shared-key compatibility are covered by
+# the complete 14-route matrix in test_named_actor_writes.py.
 
 @pytest.mark.db
-def test_actor_key_is_rejected_on_add_lines(client, db_cursor, actors):
-    seeded = _seed(db_cursor)
-
-    resp = client.post(
-        f"/sales/orders/{seeded['order_id']}/lines",
-        json={"lines": [{"product_id": seeded["product_id"], "quantity_lb": 5}]},
-        headers=_headers(ACTOR, actors),
-    )
-    assert resp.status_code == 403, resp.text
+@pytest.mark.parametrize("method,path", [
+    ("POST", "/sales/orders/1/lines"),
+    ("PATCH", "/sales/orders/1/lines/1/cancel"),
+])
+def test_dashboard_key_still_cannot_write_lines(client, actors, method, path):
+    resp = client.request(method, path, json={}, headers=_headers(DASHBOARD, actors))
+    assert resp.status_code == 403
     assert resp.json()["detail"] == "API key not authorized for this endpoint"
 
-    db_cursor.execute(
-        "SELECT count(*) AS n FROM sales_order_lines WHERE sales_order_id = %s",
-        (seeded["order_id"],),
-    )
-    assert db_cursor.fetchone()["n"] == 1, "a rejected call must not have added a line"
 
-    # The scoped dashboard key is refused identically — an actor key replaces
-    # that key, so the two must agree on every route.
-    resp = client.post(
-        f"/sales/orders/{seeded['order_id']}/lines",
-        json={"lines": [{"product_id": seeded["product_id"], "quantity_lb": 5}]},
-        headers=_headers(DASHBOARD, actors),
-    )
-    assert resp.status_code == 403, resp.text
-
-    # ...and the route is genuinely master-only, not simply broken.
-    assert ("POST", "/sales/orders/{order_id}/lines") not in main.DASHBOARD_KEY_ALLOWLIST
-    resp = client.post(
-        f"/sales/orders/{seeded['order_id']}/lines",
-        json={"lines": [{"product_id": seeded["product_id"], "quantity_lb": 5}]},
-        headers=_headers(MASTER, actors),
-    )
-    assert resp.status_code != 403, resp.text
-
-
-@pytest.mark.db
-def test_actor_key_is_rejected_on_line_cancel(client, db_cursor, actors):
-    seeded = _seed(db_cursor)
-    allocation_id = _allocate(db_cursor, seeded)
-
-    resp = client.patch(
-        f"/sales/orders/{seeded['order_id']}/lines/{seeded['line_id']}/cancel",
-        headers=_headers(ACTOR, actors),
-    )
-    assert resp.status_code == 403, resp.text
-    assert resp.json()["detail"] == "API key not authorized for this endpoint"
-
-    db_cursor.execute(
-        "SELECT line_status FROM sales_order_lines WHERE id = %s", (seeded["line_id"],)
-    )
-    assert db_cursor.fetchone()["line_status"] == "pending", (
-        "a rejected call must not have cancelled the line"
-    )
-    assert _allocation(db_cursor, allocation_id)["status"] == "active", (
-        "a rejected call must not have released the line's reservation"
-    )
-
-    resp = client.patch(
-        f"/sales/orders/{seeded['order_id']}/lines/{seeded['line_id']}/cancel",
-        headers=_headers(DASHBOARD, actors),
-    )
-    assert resp.status_code == 403, resp.text
-
-    assert ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel") \
-        not in main.DASHBOARD_KEY_ALLOWLIST
-    resp = client.patch(
-        f"/sales/orders/{seeded['order_id']}/lines/{seeded['line_id']}/cancel",
-        headers=_headers(MASTER, actors),
-    )
-    assert resp.status_code != 403, resp.text
-
-
-# ─────────────────────────────────────────────────────────────────
-# Scope, stated exhaustively rather than by example
-#
-# The tests above name five endpoints an actor key must not reach. Five is a
-# sample, and a sample cannot support a claim about a surface. This walks
-# EVERY operation the floor GPT's schema declares and asserts the allowlist
-# decides each one — which is the honest form of the scope claim:
-#
-#     floor-EXCLUSIVE endpoints denied; SHARED allowlisted endpoints
-#     accepted.
-#
-# Not "actor keys are denied the floor schema". The floor GPT's schema and
-# the dashboard's allowlist overlap on the read endpoints and on two sales
-# order writes, and an actor key reaches the overlap by design — it replaces
-# the shared dashboard key, which already reaches exactly those routes.
-#
-# Every operation is resolved to the FastAPI route template first, because
-# that template — not the YAML path, and not the request URL — is what
-# _route_key() matches against. A schema path that no longer names a real
-# route is itself a failure worth hearing about.
-# ─────────────────────────────────────────────────────────────────
-
+# Every floor-schema operation must obey the combined actor route policy.
 FLOOR_SCHEMA = ROOT / "gpt-configs" / "schemas" / "openapi-floor.yaml"
 
 _HTTP_METHODS = ("get", "post", "put", "patch", "delete")
@@ -910,7 +808,7 @@ def test_the_floor_schema_operations_all_resolve_to_real_routes():
     ids=[f"{m} {p}" for m, p in FLOOR_OPERATIONS],
 )
 def test_every_floor_schema_operation_obeys_the_allowlist(client, actors, method, path):
-    """In DASHBOARD_KEY_ALLOWLIST -> an actor key is accepted (not 403).
+    """In the combined actor allowlist -> an actor key is accepted (not 403).
     Not in it -> 403, with the authorization detail, every time.
 
     Path parameters are filled with '1' so resolve_order_id takes its integer
@@ -927,15 +825,15 @@ def test_every_floor_schema_operation_obeys_the_allowlist(client, actors, method
         kwargs["json"] = {}
     resp = client.request(method, url, **kwargs)
 
-    allowlisted = (method, template) in main.DASHBOARD_KEY_ALLOWLIST
+    allowlisted = (method, template) in (main.DASHBOARD_KEY_ALLOWLIST | main.ACTOR_WRITE_ALLOWLIST)
     if allowlisted:
         assert resp.status_code != 403, (
-            f"{method} {template} is on DASHBOARD_KEY_ALLOWLIST, so an actor "
+            f"{method} {template} is on the actor allowlist, so an actor "
             f"key must reach it: {resp.status_code} {resp.text[:200]}"
         )
     else:
         assert resp.status_code == 403, (
-            f"{method} {template} is NOT on DASHBOARD_KEY_ALLOWLIST, so an "
+            f"{method} {template} is NOT on the actor allowlist, so an "
             f"actor key must be refused: {resp.status_code} {resp.text[:200]}"
         )
         assert resp.json()["detail"] == "API key not authorized for this endpoint"

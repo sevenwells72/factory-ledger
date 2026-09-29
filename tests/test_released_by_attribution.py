@@ -325,15 +325,32 @@ def test_manual_release_and_ship_agree(client, db_cursor):
 
 
 @pytest.mark.db
-def test_the_three_fixed_paths_no_longer_reference_operator_id():
-    """Source-level guard: a later edit must not quietly reinstate the
-    placeholder on these handlers. Scoped to the three, because _operator_id()
-    is deliberately still live elsewhere."""
+def test_allocation_release_paths_keep_their_source_tag_contract():
+    """Ledger INSERTs need the named-or-legacy operator, but allocation
+    releases must retain caller_source_tag's actor/dashboard/NULL vocabulary.
+    The earlier whole-function ban also rejected a correct ledger INSERT.
+    """
+    import ast
     import inspect
 
     for fn in (main.cancel_order_line, main.ship_order, main.update_order_status):
-        src = inspect.getsource(fn)
-        assert "_operator_id(" not in src, (
-            f"{fn.__name__} must attribute releases with caller_source_tag(request), "
-            f"not the _operator_id placeholder"
-        )
+        tree = ast.parse(inspect.getsource(fn))
+        parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
+        for call in ast.walk(tree):
+            if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+                    and call.func.id == "_operator_id"):
+                continue
+            assert ast.unparse(call) == "_operator_id(request)"
+            # The only permitted use is an argument in the transactions INSERT.
+            # This rejects a release argument OR an intermediate variable that
+            # would later pass the legacy placeholder into released_by.
+            parent = parents[call]
+            while parent is not None and not isinstance(parent, ast.Call):
+                parent = parents.get(parent)
+            assert (isinstance(parent, ast.Call)
+                    and isinstance(parent.func, ast.Attribute)
+                    and parent.func.attr == "execute"
+                    and isinstance(parent.args[0], ast.Constant)
+                    and "INSERT INTO transactions" in parent.args[0].value), (
+                f"{fn.__name__}: allocation releases must use caller_source_tag(request)"
+            )

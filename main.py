@@ -2758,8 +2758,10 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("POST", "/purchase-documents/{document_id}/extract"),
     ("GET", "/purchase-documents/{document_id}/url"),
     # Sales-order intake (migration 050; dashboard-only, not in any GPT yaml).
-    # POST /sales/orders itself stays master-key only (owner ruling 1: the
-    # dashboard never gets the auto-create-customer creation path).
+    # POST /sales/orders itself stays off this list (owner ruling 1: the
+    # dashboard key never gets the auto-create-customer creation path).
+    # Named-actor keys DO reach it, auto-create included, via
+    # ACTOR_WRITE_ALLOWLIST (owner decision 2026-09-28).
     ("POST", "/sales/orders/extract"),
     ("POST", "/sales/orders/match"),
     ("POST", "/sales/orders/extract/approve"),
@@ -2792,12 +2794,11 @@ def _route_key(request: Request):
 # considered once both legacy comparisons have failed, which means this whole
 # mechanism is invisible to every existing caller.
 #
-# SCOPE. An actor key is authorized on exactly DASHBOARD_KEY_ALLOWLIST — the
-# same routes the scoped dashboard key reaches, no more. It is a replacement
-# for that key, not an upgrade of it: handing a named person master-key reach
-# would be a privilege escalation this PR has no mandate for. Role
-# ('owner' | 'floor' | 'office') is recorded and returned by /auth/whoami but
-# does not yet gate anything.
+# SCOPE. Actor keys reach the dashboard routes plus the 14 write routes and
+# POST /products/resolve lookup in ACTOR_WRITE_ALLOWLIST (owner decision,
+# 2026-09-28). Role is informational:
+# permission enforcement stays in MCP, not the backend. The dashboard key
+# retains its original scope; unrelated administrative routes stay excluded.
 #
 # CACHING. The active actor set is small (one row per employee) and is cached
 # whole, so a request costs a dict lookup and no query. Consequences, both
@@ -2810,6 +2811,25 @@ def _route_key(request: Request):
 # An UNKNOWN key never forces a refresh: letting an unauthenticated caller
 # trigger a DB round-trip per request is a free denial-of-service lever.
 # ─────────────────────────────────────────────────────────────────
+
+ACTOR_WRITE_ALLOWLIST = frozenset({
+    ("POST", "/products/resolve"),  # office.resolveProducts: lookup, no business write.
+    ("POST", "/receive"),
+    ("POST", "/ship"),
+    ("POST", "/make"),
+    ("POST", "/pack"),
+    ("POST", "/adjust"),
+    ("POST", "/void/{transaction_id}"),
+    ("POST", "/customers"),
+    ("POST", "/sales/orders"),
+    ("POST", "/sales/orders/{order_id}/lines"),
+    ("POST", "/sales/orders/{order_id}/ship"),
+    ("PATCH", "/customers/{customer_id}"),
+    ("PATCH", "/lots/{lot_code}/supplier-lot"),
+    ("PATCH", "/lots/{lot_id}/rename"),
+    ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
+})
+
 
 ACTOR_CACHE_TTL_S = 60
 # One last_used_at write per key per 10 minutes. The column answers "is this
@@ -3077,10 +3097,30 @@ def actor_name(request: Optional[Request]) -> Optional[str]:
     return actor["name"] if actor else None
 
 
+def _record_actor_write(cur, request: Optional[Request], target_table: str,
+                        target_id: int) -> None:
+    """Attribute a non-ledger write in the SAME transaction (migration 056).
+
+    Legacy calls issue no extra SQL. A failed actor audit must fail the write:
+    never put this in best_effort_audit_insert or commit it separately.
+    Store the authenticated name as a snapshot as well as the stable actor id.
+    """
+    actor = request_actor(request)
+    if actor is None:
+        return
+    method, route = _route_key(request)
+    cur.execute(
+        """INSERT INTO actor_write_audit
+               (actor_id, operator_id, method, route, target_table, target_id)
+           VALUES (%s, %s, %s, %s, %s, %s)""",
+        (actor["id"], actor["name"], method, route, target_table, target_id),
+    )
+
+
 def _authorize_api_key(provided_key: str, request: Request, invalid_status: int = 403) -> bool:
     """Shared check for all dependencies. Master key -> always OK. Dashboard
-    key and actor keys -> OK only if the matched route is on
-    DASHBOARD_KEY_ALLOWLIST.
+    key -> DASHBOARD_KEY_ALLOWLIST. Actor keys additionally reach
+    ACTOR_WRITE_ALLOWLIST, regardless of role.
 
     Status codes are unchanged from before FR-15, deliberately: a missing key
     is 401, and an unrecognised key is `invalid_status` (403 on the header
@@ -3105,7 +3145,7 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
         request.state.actor = actor
         request.state.key_kind = "actor"
         _touch_actor_last_used(actor)
-        if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
+        if _route_key(request) in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     raise HTTPException(status_code=invalid_status, detail="Invalid API key")
@@ -4196,8 +4236,13 @@ def _pick_by_address(cur, candidate_ids: list, address: str) -> Optional[dict]:
 
 
 def resolve_customer_id(cur, customer_name: str, auto_create: bool = True,
-                        force_create: bool = False, address: Optional[str] = None) -> tuple:
+                        force_create: bool = False, address: Optional[str] = None,
+                        *, request: Optional[Request] = None) -> tuple:
     """Find or create customer by name/alias. Returns (customer_id, canonical_name).
+
+    When this call CREATES the customer, the named actor on `request` (if any)
+    is recorded in actor_write_audit on the same cursor, so the audit commits
+    or rolls back with the caller's write. Legacy keys issue no extra SQL.
 
     Resolution order:
     1. Exact match on canonical name
@@ -4290,6 +4335,7 @@ def resolve_customer_id(cur, customer_name: str, auto_create: bool = True,
             (customer_name, address)
         )
         row = cur.fetchone()
+        _record_actor_write(cur, request, "customers", row['id'])
         return row['id'], row['name']
     raise HTTPException(
         status_code=404,
@@ -4932,7 +4978,7 @@ class LotRenameRequest(BaseModel):
 
 
 @app.patch("/lots/{lot_code}/supplier-lot")
-def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
+def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key), request: Request = None):
     """Attach or update the supplier lot cross-reference on an existing lot.
 
     Use this when a packing slip or physical label shows a supplier lot number
@@ -4981,6 +5027,8 @@ def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optio
                     VALUES (%s, %s, %s)
                 """, (lot['id'], new_supplier_lot, req.notes))
 
+            _record_actor_write(cur, request, "lots", lot["id"])
+
             return {
                 "lot_code": lot['lot_code'],
                 "product_name": lot['product_name'],
@@ -4998,7 +5046,7 @@ def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optio
 
 
 @app.patch("/lots/{lot_id}/rename")
-def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_key)):
+def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Rename a lot's lot_code (e.g. fix an UNKNOWN lot to the real code).
 
     Validates no duplicate lot_code exists for the same product.
@@ -5066,6 +5114,8 @@ def rename_lot(lot_id: int, req: LotRenameRequest, _: bool = Depends(verify_api_
             cur.execute("""
                 UPDATE lots SET lot_code = %s WHERE id = %s
             """, (new_code, lot_id))
+
+            _record_actor_write(cur, request, "lots", lot_id)
 
             logger.info(f"Lot {lot_id} renamed: '{old_code}' -> '{new_code}' "
                         f"(product_id={product_id})")
@@ -5307,7 +5357,7 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
 
 
 @app.post("/receive")
-def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
+def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Receive inventory. mode=preview returns what will happen; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
@@ -5420,14 +5470,14 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                         INSERT INTO transactions (
                             type, timestamp, bol_reference, shipper_name,
                             shipper_code, cases_received, case_size_lb,
-                            expected_receipt_id, occurred_at, created_at_source
+                            expected_receipt_id, occurred_at, created_at_source, operator_id
                         )
-                        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id, occurred_at, business_date
                     """, (
                         now, req.bol_reference, req.shipper_name, shipper_code,
                         req.cases, req.case_size_lb, expected_receipt_id,
-                        occurred_at, created_at_source,
+                        occurred_at, created_at_source, _operator_id(request),
                     ))
                     txn_row = cur.fetchone()
                     txn_id = txn_row['id']
@@ -5460,6 +5510,7 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
                             cur, txn_id, 'receive', 'object',
                             [(lot_id, 'received', total_lb)],
                             txn_row['occurred_at'], txn_row['business_date'],
+                            operator_id=actor_name(request),
                             source_party=req.shipper_name,
                         )
 
@@ -7356,7 +7407,7 @@ def approve_extracted_sales_order(req: SalesOrderApproveRequest, request: Reques
             cur, req.customer_id, customer["name"], req.requested_ship_date,
             req.notes, None, core_lines,
             order_date=req.order_date, customer_po=customer_po,
-            source_document_id=req.document_id,
+            source_document_id=req.document_id, request=request,
         )
         warnings.extend(result["warnings"])
 
@@ -7745,7 +7796,7 @@ def check_open_orders_for_ship(cur, customer_id: int, customer_name: str) -> dic
 
 
 @app.post("/ship")
-def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
+def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Ship inventory. mode=preview returns allocation plan; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
@@ -7874,7 +7925,8 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         cur, req.customer_name,
                         auto_create=True,
                         force_create=req.force_create_customer,
-                        address=req.customer_address
+                        address=req.customer_address,
+                        request=request,
                     )
 
                     standalone_warning = None
@@ -7891,7 +7943,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         int(product['id']),
                         lock=True,
                         persist_expired=True,
-                        released_by=_operator_id(_),
+                        released_by=_operator_id(request),
                     )
                     reservation_summary = _allocation_reservation_summary(
                         cur, int(product['id'])
@@ -7948,13 +8000,13 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                     cur.execute("""
                         INSERT INTO transactions (
                             type, timestamp, customer_name, order_reference,
-                            notes, occurred_at, created_at_source
+                            notes, occurred_at, created_at_source, operator_id
                         )
-                        VALUES ('ship', %s, %s, %s, %s, %s, %s)
+                        VALUES ('ship', %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id, occurred_at, business_date
                     """, (
                         now, canonical_customer, req.order_reference, txn_notes,
-                        occurred_at, created_at_source,
+                        occurred_at, created_at_source, _operator_id(request),
                     ))
                     txn_row = cur.fetchone()
                     txn_id = txn_row['id']
@@ -8002,7 +8054,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                         allocations_released = _shrink_overallocated_products(
                             cur,
                             [int(product['id'])],
-                            _operator_id(_),
+                            _operator_id(request),
                             release_reason="inventory_shipped",
                         )
 
@@ -8015,6 +8067,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key)):
                             [(item["lot"]["lot_id"], 'shipped', -float(item["quantity_lb"]))
                              for item in plan["lots"]],
                             txn_row['occurred_at'], txn_row['business_date'],
+                            operator_id=actor_name(request),
                             destination_party=canonical_customer,
                             customer_id=customer_id,
                         )
@@ -8079,7 +8132,7 @@ def build_production_warning(product: dict) -> dict | None:
 
 
 @app.post("/make")
-def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
+def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Record batch production. mode=preview returns ingredient check; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
@@ -8301,13 +8354,13 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
 
                     cur.execute("""
                         INSERT INTO transactions (
-                            type, timestamp, notes, occurred_at, created_at_source
+                            type, timestamp, notes, occurred_at, created_at_source, operator_id
                         )
-                        VALUES ('make', %s, %s, %s, %s)
+                        VALUES ('make', %s, %s, %s, %s, %s)
                         RETURNING id, occurred_at, business_date
                     """, (
                         now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
-                        occurred_at, created_at_source,
+                        occurred_at, created_at_source, _operator_id(request),
                     ))
                     txn_row = cur.fetchone()
                     txn_id = txn_row['id']
@@ -8399,6 +8452,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key)):
                             cur, txn_id, 'make', 'transformation',
                             trace_inputs + [(output_lot_id, 'output', total_output)],
                             txn_row['occurred_at'], txn_row['business_date'],
+                            operator_id=actor_name(request),
                         )
 
                     consumed_flat = []
@@ -8586,7 +8640,7 @@ def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> di
 
 
 @app.post("/pack")
-def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
+def pack(req: PackRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Pack batch into finished goods. mode=preview returns allocation plan; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
@@ -8711,7 +8765,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                         int(source['id']),
                         lock=True,
                         persist_expired=True,
-                        released_by=_operator_id(_),
+                        released_by=_operator_id(request),
                     )
                     reservation_summary = _allocation_reservation_summary(
                         cur, int(source['id'])
@@ -8787,14 +8841,14 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                     source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
                     cur.execute("""
                         INSERT INTO transactions (
-                            type, timestamp, notes, occurred_at, created_at_source
+                            type, timestamp, notes, occurred_at, created_at_source, operator_id
                         )
-                        VALUES ('pack', %s, %s, %s, %s)
+                        VALUES ('pack', %s, %s, %s, %s, %s)
                         RETURNING id, occurred_at, business_date
                     """, (
                         now,
                         f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
-                        occurred_at, created_at_source,
+                        occurred_at, created_at_source, _operator_id(request),
                     ))
                     txn_row = cur.fetchone()
                     txn_id = txn_row['id']
@@ -8869,6 +8923,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
                             cur, txn_id, 'pack', 'transformation',
                             trace_inputs + [(output_lot_id, 'output', total_lb)],
                             txn_row['occurred_at'], txn_row['business_date'],
+                            operator_id=actor_name(request),
                         )
 
                     logger.info(f"Pack committed: {output_lot_code} - {total_lb} lb of {target['name']} from {source['name']}")
@@ -8916,7 +8971,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key)):
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/adjust")
-def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Adjust inventory. mode=preview returns balance check; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
@@ -8985,14 +9040,14 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
                     cur.execute("""
                         INSERT INTO transactions (
                             type, timestamp, adjust_reason, adjust_reason_es,
-                            notes, occurred_at, created_at_source
+                            notes, occurred_at, created_at_source, operator_id
                         )
-                        VALUES ('adjust', %s, %s, %s, %s, %s, %s)
+                        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id, occurred_at, business_date
                     """, (
                         now, req.reason, req.reason_es,
                         f"Adjustment: {req.adjustment_lb} lb",
-                        occurred_at, created_at_source,
+                        occurred_at, created_at_source, _operator_id(request),
                     ))
                     txn_row = cur.fetchone()
                     txn_id = txn_row['id']
@@ -9004,6 +9059,7 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key)):
                             cur, txn_id, 'adjust', 'object',
                             [(result['lot_id'], 'adjusted', req.adjustment_lb)],
                             txn_row['occurred_at'], txn_row['business_date'],
+                            operator_id=actor_name(request),
                         )
 
                     new_balance = lot_on_hand(cur, result['lot_id'])
@@ -9044,7 +9100,9 @@ class LedgerCorrectionRequest(BaseModel):
 
 
 def _operator_id(auth_context: Any) -> str:
-    """Phase-1 compatibility shim for the existing shared credential."""
+    """Authenticated actor name, with the exact legacy placeholder fallback."""
+    if isinstance(auth_context, Request):
+        return actor_name(auth_context) or "legacy-shared-key"
     if isinstance(auth_context, dict) and auth_context.get("operator_id"):
         return str(auth_context["operator_id"])
     if isinstance(auth_context, str) and auth_context.strip():
@@ -9066,6 +9124,8 @@ def _append_transaction_correction(
     reason: str,
     replacement_values: Optional[Dict[str, Any]],
     operator_id: str,
+    *,
+    trace_operator_id: Optional[str] = None,
 ):
     reason = (reason or "").strip()
     if not reason:
@@ -9189,6 +9249,7 @@ def _append_transaction_correction(
             cur, transaction_id, event_type, 'object', [],
             occurred_at, business_date,
             correction_id=correction_id,
+            operator_id=trace_operator_id,
         )
     return result
 
@@ -9232,7 +9293,7 @@ def _append_transaction_line_correction(
 
 
 @app.post("/void/{transaction_id}")
-def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(verify_api_key)):
+def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Append a void correction while preserving the original transaction.
 
     All balance math reads lines through the effective append-only state, so
@@ -9251,7 +9312,8 @@ def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(ve
                     "void",
                     req.reason,
                     None,
-                    _operator_id(_),
+                    _operator_id(request),
+                    trace_operator_id=actor_name(request),
                 )
 
                 logger.info(
@@ -11168,7 +11230,7 @@ def search_customers(q: str = Query(..., min_length=1), _: bool = Depends(verify
 
 
 @app.post("/customers")
-def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
+def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key), request: Request = None):
     validate_bilingual(req.notes, req.notes_es, "notes")
     try:
         with get_db_connection() as conn:
@@ -11179,6 +11241,7 @@ def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
                     (req.name, req.contact_name, req.email, req.phone, req.address, req.notes, req.notes_es)
                 )
                 row = cur.fetchone()
+                _record_actor_write(cur, request, "customers", row["id"])
                 logger.info(f"Created customer: {row['name']} (ID: {row['id']})")
                 return {"customer_id": row['id'], "name": row['name'], "message": f"Customer '{row['name']}' created"}
     except HTTPException:
@@ -11192,7 +11255,7 @@ def create_customer(req: CustomerCreate, _: bool = Depends(verify_api_key)):
 
 
 @app.patch("/customers/{customer_id}")
-def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(verify_api_key)):
+def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(verify_api_key), request: Request = None):
     try:
         def _work(conn):
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -11230,6 +11293,8 @@ def update_customer(customer_id: int, req: CustomerUpdate, _: bool = Depends(ver
                                 "INSERT INTO customer_aliases (customer_id, alias) VALUES (%s, %s)",
                                 (customer_id, alias_stripped)
                             )
+
+                _record_actor_write(cur, request, "customers", customer_id)
 
                 # Fetch current aliases for response
                 cur.execute(
@@ -11285,7 +11350,8 @@ MANUAL_TRANSITIONS = {
 
 def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_date,
                              notes, notes_es, lines, *, order_date=None,
-                             customer_po=None, source_document_id=None):
+                             customer_po=None, source_document_id=None,
+                             request: Optional[Request] = None):
     """The single INSERT path for sales orders — used by both the manual
     POST /sales/orders endpoint and the SO intake approve flow, so the two
     can never drift (docs/designs/sales-order-intake.md). Callers resolve the
@@ -11304,6 +11370,7 @@ def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_dat
     )
     row = cur.fetchone()
     order_id, order_number = row['id'], row['order_number']
+    _record_actor_write(cur, request, "sales_orders", order_id)
 
     line_results = []
     total_lb = 0
@@ -11360,6 +11427,7 @@ def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_dat
             (order_id, product_id, quantity_lb, line.get("unit_price"), line.get("notes"), line.get("notes_es"))
         )
         line_id = cur.fetchone()['id']
+        _record_actor_write(cur, request, "sales_order_lines", line_id)
         total_lb += quantity_lb
 
         # Fix #3: Quantity sanity check — compare to customer's average order size
@@ -11400,7 +11468,7 @@ def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_dat
 
 
 @app.post("/sales/orders")
-def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
+def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), request: Request = None):
     validate_bilingual(req.notes, req.notes_es, "notes")
     for line in req.lines:
         validate_bilingual(line.notes, line.notes_es, "notes")
@@ -11408,7 +11476,8 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 customer_id, customer_name = resolve_customer_id(
-                    cur, req.customer_name, address=req.customer_address
+                    cur, req.customer_name, address=req.customer_address,
+                    request=request,
                 )
 
                 core_lines = []
@@ -11428,7 +11497,7 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key)):
 
                 result = _create_sales_order_core(
                     cur, customer_id, customer_name, req.requested_ship_date,
-                    req.notes, req.notes_es, core_lines,
+                    req.notes, req.notes_es, core_lines, request=request,
                 )
                 return {
                     "order_id": result["order_id"],
@@ -14608,7 +14677,7 @@ def update_order_header(order_id: int = Depends(resolve_order_id), req: OrderHea
 
 
 @app.post("/sales/orders/{order_id}/lines")
-def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLines = ..., _: bool = Depends(verify_api_key)):
+def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLines = ..., _: bool = Depends(verify_api_key), request: Request = None):
     for line in req.lines:
         validate_bilingual(line.notes, line.notes_es, "notes")
     try:
@@ -14684,6 +14753,7 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
                         (order_id, product_id, line.quantity_lb, line.unit_price, line.notes, line.notes_es)
                     )
                     line_id = cur.fetchone()['id']
+                    _record_actor_write(cur, request, "sales_order_lines", line_id)
                     results.append({
                         "line_id": line_id,
                         "product": prod_name,
@@ -14744,6 +14814,7 @@ def cancel_order_line(
                     reason='line_cancelled',
                     released_by=caller_source_tag(request),
                 )
+                _record_actor_write(cur, request, "sales_order_lines", line_id)
                 return {"order_id": order_id, "line_id": line_id, "line_status": "cancelled",
                         "allocations_released": released, "message": "Line cancelled"}
     except HTTPException:
@@ -15172,14 +15243,14 @@ def ship_order(
                         cur.execute("""
                             INSERT INTO transactions (
                                 type, timestamp, customer_name, notes,
-                                occurred_at, created_at_source
+                                occurred_at, created_at_source, operator_id
                             )
-                            VALUES ('ship', %s, %s, %s, %s, %s)
+                            VALUES ('ship', %s, %s, %s, %s, %s, %s)
                             RETURNING id, occurred_at, business_date
                         """, (
                             now, order_row['name'],
                             f"Sales order {order_row['order_number']} — {item['product_name']}",
-                            occurred_at, created_at_source,
+                            occurred_at, created_at_source, _operator_id(request),
                         ))
                         txn_row = cur.fetchone()
                         txn_id = txn_row['id']
@@ -15227,6 +15298,7 @@ def ship_order(
                                 [(lot['lot_id'], 'shipped', -float(lot['quantity_lb']))
                                  for lot in plan["lots"]],
                                 txn_row['occurred_at'], txn_row['business_date'],
+                                operator_id=actor_name(request),
                                 destination_party=order_row['name'],
                                 customer_id=order_row['customer_id'],
                                 sales_order_id=order_id,
@@ -15284,54 +15356,54 @@ def ship_order(
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/receive/preview", include_in_schema=False)
-def receive_preview(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
+def receive_preview(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return receive(req, _)
+    return receive(req, _, request)
 
 @app.post("/receive/commit", include_in_schema=False)
-def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
+def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return receive(req, _)
+    return receive(req, _, request)
 
 @app.post("/ship/preview", include_in_schema=False)
-def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
+def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return ship(req, _)
+    return ship(req, _, request)
 
 @app.post("/ship/commit", include_in_schema=False)
-def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
+def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return ship(req, _)
+    return ship(req, _, request)
 
 @app.post("/make/preview", include_in_schema=False)
-def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
+def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return make(req, _)
+    return make(req, _, request)
 
 @app.post("/make/commit", include_in_schema=False)
-def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
+def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return make(req, _)
+    return make(req, _, request)
 
 @app.post("/pack/preview", include_in_schema=False)
-def pack_preview(req: PackRequest, _: bool = Depends(verify_api_key)):
+def pack_preview(req: PackRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return pack(req, _)
+    return pack(req, _, request)
 
 @app.post("/pack/commit", include_in_schema=False)
-def pack_commit(req: PackRequest, _: bool = Depends(verify_api_key)):
+def pack_commit(req: PackRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return pack(req, _)
+    return pack(req, _, request)
 
 @app.post("/adjust/preview", include_in_schema=False)
-def adjust_preview(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+def adjust_preview(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return adjust(req, _)
+    return adjust(req, _, request)
 
 @app.post("/adjust/commit", include_in_schema=False)
-def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return adjust(req, _)
+    return adjust(req, _, request)
 
 @app.post("/sales/orders/{order_id}/ship/preview", include_in_schema=False)
 def ship_order_preview(

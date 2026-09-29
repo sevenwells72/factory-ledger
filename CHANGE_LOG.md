@@ -1,5 +1,52 @@
 # Change Log
 
+## 2026-09-29 12:25 — Verified PR #66 re-review fixes (row 157; not deployed)
+- **File(s) changed:** `main.py`, `migrations/down/056_actor_write_audit_down.sql`, `tests/test_named_actor_writes.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Verified shared-core order/line audit from both callers, actor intake success, header/second-line audit-failure rollback on both paths (including manual auto-created customer and prior audit rows), shared intake without 056, and empty/refused/export-override/absent-table down cases.
+- **Validation:** Full Python suite **1,361 passed** (14 new), Node **67 passed**, zero failures/skips, on throwaway UTF-8 local database `pr66_fixes` in a dedicated PostgreSQL 17 cluster at 127.0.0.1:57666; focused actor suite 208 passed. `git diff --check` passed. Row 157 matches 8194766 byte-for-byte; all other earlier log text and row numbers preserved.
+- **Why:** Final validation for the owner-approved re-review fixes. Only `_create_sales_order_core`, `approve_extracted_sales_order` and `create_sales_order` changed in `main.py`; minimal diff for PR #67 rebase. No production access, real database migration, merge or deployment.
+
+---
+
+## 2026-09-29 12:23 — PR #66 re-review fixes: shared-core actor audits, original row 157, guarded audit rollback (not deployed)
+- **File(s) changed:** `main.py`, `migrations/down/056_actor_write_audit_down.sql`, `tests/test_named_actor_writes.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Both order-creation callers pass `request` to the shared core, which audits each order and line on the business cursor; remove duplicate manual-handler audits. Restore historical row 157 exactly from 8194766. Guard audit-table rollback with an exclusive lock, non-empty refusal, and explicit verified-export setting. Add regression tests for intake audit success/rollback/shared-key behavior and empty/refused/overridden rollback.
+- **Validation:** Validation pending on a throwaway local database; no production access, real database migration, merge or deployment.
+- **Why:** Owner approved all three PR #66 re-review findings; keep the core diff minimal for stacked PR #67 to rebase.
+
+---
+
+## 2026-09-29 11:35 — PR #66 review fixes F1–F7 (row 157; not deployed)
+- **File(s) changed:** `main.py`, `migrations/056_actor_write_audit.sql`, `migrations/down/056_actor_write_audit_down.sql`, `tests/test_named_actor_writes.py`, `docs/named-actor-writes.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** F1: the ten `/receive|ship|make|pack|adjust` `/preview`+`/commit` shortcut wrappers now pass `request` to their handler, so an actor-keyed `POST /receive/commit` records the actor instead of `legacy-shared-key` (HTTP scope unchanged; the other shortcuts still 403 for actors). F2: `resolve_customer_id` takes keyword `request=` and, when it creates a customer, writes a `customers` row to `actor_write_audit` on the same cursor; `POST /sales/orders` and `POST /ship` commit pass it. F3: corrected the stale `POST /sales/orders` allowlist comment. F4: restored the original 14:31/14:25 entries here, the FACTORY_LEDGER validation note and both iCloud global-log rows (text recovered from the original session transcript), and added separate entries for 1337fdd and these fixes. F5: added the 056 down script with a safety header. F7: 056 now enables (not forces) RLS on `actor_write_audit`. 24 new tests: receive-shortcut attribution for all actors + shared, other shortcuts 403 for actors and unchanged for shared, direct-call pass-through for all five commit wrappers, auto-created-customer audit and rollback on both routes, and an RLS test in which a non-superuser owning role runs the real `POST /customers` path while a granted non-owner role sees 0 rows and cannot insert.
+- **Validation:** Full Python suite **1,347 passed** (1,323 + 24 new), zero failures/skips, on throwaway local DB `factory_ledger_test_pr66_fixes_20260929` built from `tests/schema/schema.sql`; Node suite **67 passed**; `git diff --check` clean. The 14 new F1/F2 tests fail against the pre-fix code.
+- **Why:** Owner-approved fixes from the PR #66 cross-review. No production access, merge, deploy, or migration on any real database; `/Users/cns/Documents/Codex/` untouched.
+
+---
+
+## 2026-09-28 15:08 — Named actors may call POST /products/resolve (1337fdd; row 157 follow-up, not deployed)
+- **File(s) changed:** `main.py`, `tests/test_named_actor_writes.py`, `docs/named-actor-writes.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added only `("POST", "/products/resolve")` to `ACTOR_WRITE_ALLOWLIST` for MCP `office.resolveProducts`. It is a lookup, not a business write. 10 new tests: all four named actors and the shared key succeed with unchanged response and business data; missing, invalid, inactive and dashboard keys are rejected; the exact actor-only allowlist is pinned. Shared-key and dashboard scope unchanged.
+- **Validation:** Full Python suite **1,323 passed** (170 new since baseline 1,153), Node **67 passed**, zero failures/skips. The count was independently re-run on 2026-09-29 against a throwaway local DB. (Entry added 2026-09-29: 1337fdd had rewritten the 14:31/14:25 entries in place instead of adding its own; those are restored above.)
+- **Why:** The 2026-09-28 MCP catalog audit found named actors still got 403 on product resolution.
+
+---
+
+## 2026-09-28 14:31 — Verified named-actor writes, row 157 (not deployed)
+- **File(s) changed:** `main.py`, `migrations/056_actor_write_audit.sql`, `tests/test_named_actor_writes.py`, `tests/test_actor_attribution.py`, `tests/test_released_by_attribution.py`, `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Completed all 14 routes with one shared auth policy and actor attribution; migration 056 provides atomic metadata audit. Replaced superseded actor-denial tests and narrowed the historical allocation source guard to permit transaction attribution while preserving allocation semantics. Documented baseline code locations, evidence storage, rollout dependency, and future restriction candidates.
+- **Validation:** Full local Python suite **1,313 passed**, 868 existing/deprecation warnings, zero failures/skips; baseline 1,153 passed, **160 new tests**. Node suite **67 passed**. `git diff --check` clean. Named acceptance matrix: four actors × 14 endpoints; shared acceptance: 14; missing/invalid/inactive/dashboard rejection: 56; previews, failure rollback, actor isolation, allocation releases, legacy writes without 056, migration rerun and append-only checks also passed.
+- **Why:** Prove the owner-approved scope expansion stores the authenticated actor without changing custom GPT/shared-key behavior. Only local TEST_DATABASE_URL was used; no production access, deployment, merge, MCP-branch changes, or Codex-worktree writes.
+
+---
+
+## 2026-09-28 14:25 — FR-15 named-actor access and attribution for all 14 approved writes (row 157; not deployed)
+- **File(s) changed:** `main.py`, `migrations/056_actor_write_audit.sql`, `tests/test_named_actor_writes.py`, `tests/test_actor_attribution.py`, `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Extend the shared actor auth policy for the 14 owner-approved endpoints; persist actor names on ledger/trace writes and an atomic audit record for customer, lot, and order edits. Add acceptance, attribution, legacy compatibility, invalid-key, rollback, and migration coverage.
+- **Why:** FR-15 reused the dashboard allowlist and several writes still defaulted to legacy-shared-key. Owner approved every actor role on all 14 endpoints; role enforcement remains in MCP. Shared and dashboard key behavior must remain unchanged. Migration 056 is local-test-only until a separately authorized rollout.
+
+---
+
 ## 2026-09-17 15:54 — #156 Granola physical count EXECUTED in production
 - **What changed:** Michael-approved granola physical-count reconciliation EXECUTED via production POST /adjust with explicit --apply --allow-shared-key, using the same in-memory Railway shared-key retrieval as the September 15 coconut adjustment. Posted 24 events across 22 lots, transactions 2393–2416, total −19,335.46 lb, effective 2026-09-17. Classic 107: 14,878 → 10,560 lb; Classic Chocolate Chip 108: 9,396 → 2,000 lb; BS Dark Chocolate 121 unchanged at 1,050 lb; all eight other specified products zero. Vanilla Crisp 112 untouched at 240 lb. Reasons retain the approved Sunshine 4,000/6,000 lb split and Arturo remainder, each ending with (entered via shared key by Michael); operator_id remains legacy-shared-key. All balances checked before each post; exact events and all targets verified with read-only posted ledger_current_* queries. Durable intent/receipt journal plus exact posted-prefix detection prevents replay; rerun verified all 24 and made zero API calls. Nine safety tests passed. No push or merge.
 - **Files/evidence:** `scripts/granola_writedown_0917.py`, frozen JSON plan, safety tests, `audits/reports/granola-writedown-plan.md`, `audits/results/granola-writedown-0917-*`, both project logs and the iCloud global log.
