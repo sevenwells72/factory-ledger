@@ -18,6 +18,72 @@
 
 ---
 
+## 2026-09-28 14:31 — Verified named-actor writes, row 157 (not deployed)
+- **File(s) changed:** `main.py`, `migrations/056_actor_write_audit.sql`, `tests/test_named_actor_writes.py`, `tests/test_actor_attribution.py`, `tests/test_released_by_attribution.py`, `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Completed all 14 routes with one shared auth policy and actor attribution; migration 056 provides atomic metadata audit. Replaced superseded actor-denial tests and narrowed the historical allocation source guard to permit transaction attribution while preserving allocation semantics. Documented baseline code locations, evidence storage, rollout dependency, and future restriction candidates. Product-resolution follow-up adds only `POST /products/resolve` to the existing actor-only allowlist for MCP `office.resolveProducts`; it is a lookup, not a business write. Shared-key success, dashboard denial, and every other route permission remain unchanged.
+- **Validation:** Full local Python suite **1,323 passed**, 878 existing/deprecation warnings, zero failures/skips; baseline 1,153 passed, **170 new tests** (10 for the product-resolution follow-up). Node suite **67 passed**. `git diff --check` clean. Named acceptance matrix: four actors × 14 endpoints; shared acceptance: 14; missing/invalid/inactive/dashboard rejection: 56; previews, failure rollback, actor isolation, allocation releases, legacy writes without 056, migration rerun and append-only checks also passed. Product lookup succeeds for all four named actors and the shared key with unchanged response/business data; missing, invalid, inactive and dashboard keys remain rejected. The exact actor-only allowlist is pinned. The new scope/actor checks failed before the fix and pass after it.
+- **Why:** Prove the owner-approved scope expansion stores the authenticated actor without changing custom GPT/shared-key behavior. Only local TEST_DATABASE_URL was used; no production access, deployment, merge, MCP-branch changes, or Codex-worktree writes. This follow-up applies no migrations outside the existing isolated test fixtures.
+
+---
+
+## 2026-09-28 14:25 — FR-15 named-actor access and attribution for all 14 approved writes (row 157; not deployed)
+- **File(s) changed:** `main.py`, `migrations/056_actor_write_audit.sql`, `tests/test_named_actor_writes.py`, `tests/test_actor_attribution.py`, `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Extend the shared actor auth policy for the 14 owner-approved endpoints; persist actor names on ledger/trace writes and an atomic audit record for customer, lot, and order edits. Add acceptance, attribution, legacy compatibility, invalid-key, rollback, and migration coverage. The row-157 follow-up also permits the read-only `POST /products/resolve` lookup through the same actor auth mechanism, closing the only remaining MCP catalog route denial without widening any other access.
+- **Why:** FR-15 reused the dashboard allowlist and several writes still defaulted to legacy-shared-key. Owner approved every actor role on all 14 endpoints; role enforcement remains in MCP. Shared and dashboard key behavior must remain unchanged. Migration 056 is local-test-only until a separately authorized rollout.
+
+---
+
+## 2026-09-17 15:54 — #156 Granola physical count EXECUTED in production
+- **What changed:** Michael-approved granola physical-count reconciliation EXECUTED via production POST /adjust with explicit --apply --allow-shared-key, using the same in-memory Railway shared-key retrieval as the September 15 coconut adjustment. Posted 24 events across 22 lots, transactions 2393–2416, total −19,335.46 lb, effective 2026-09-17. Classic 107: 14,878 → 10,560 lb; Classic Chocolate Chip 108: 9,396 → 2,000 lb; BS Dark Chocolate 121 unchanged at 1,050 lb; all eight other specified products zero. Vanilla Crisp 112 untouched at 240 lb. Reasons retain the approved Sunshine 4,000/6,000 lb split and Arturo remainder, each ending with (entered via shared key by Michael); operator_id remains legacy-shared-key. All balances checked before each post; exact events and all targets verified with read-only posted ledger_current_* queries. Durable intent/receipt journal plus exact posted-prefix detection prevents replay; rerun verified all 24 and made zero API calls. Nine safety tests passed. No push or merge.
+- **Files/evidence:** `scripts/granola_writedown_0917.py`, frozen JSON plan, safety tests, `audits/reports/granola-writedown-plan.md`, `audits/results/granola-writedown-0917-*`, both project logs and the iCloud global log.
+- **Why:** Michael approved bringing September 17 granola bulk on-hand to the physical count.
+- **Regression guard:** Never replay these posted entries. Default is dry-run; shared-key apply requires the explicit flag, and the execution journal must be retained.
+
+---
+
+## 2026-09-17 15:46 — PR #63 review validation complete
+- **File(s) changed:** `CHANGE_LOG.md`; home and iCloud global logs
+- **What changed:** Full Python suite: 1,144 passed; full Node suite: 67 passed. Trace Playwright checks pass at 1440/390 in light/dark. A scratch copy with the trace header removed fails the new outgoing-header assertion (actual null). All HTML references to changed assets agree: dashboard.css v45, dashboard.js v66.
+- **Why:** Record validation before pushing review fixes to the existing feature branch; no merge or deployment.
+
+---
+
+## 2026-09-17 15:45 — PR #63 review fixes
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/history.html`, `dashboard/runs.html`, `tests/visual/run-production-trace.mjs`, `tests/test_production_trace.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`; home and iCloud global logs
+- **What changed:** Authenticate trace fetches; assert outgoing browser headers; clarify full-batch ingredients and pack consumption; cover amended output lot/current consumption; align CSS/JS cache versions; move PR log entries and row 155 newest-first, restore validation time from commit timestamp, and repair global project paths.
+- **Why:** Address all seven REQUEST CHANGES findings. Batch output total is not supplied by the existing trace response; no extra query added. Read-only route, ledger sources, migrations and GPT schema unchanged.
+
+---
+
+## 2026-09-17 15:30 — Production trace validation and row layout
+- **File(s) changed:** `tests/test_production_trace.py`, `tests/visual/run-production-trace.mjs`, `dashboard/dashboard.css`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added DB-backed endpoint coverage for amended/voided makes, voided packs, prior-day batches, packaging units, ET boundaries, lot-code collisions, authorization and input validation. Full Python suite: 1,143 passed; Node suite: 67 passed. Browser checks cover 1440/390 light/dark, native keyboard disclosures, retries, escaping, units and nested traces. Aligned row counts beside product text.
+- **Why:** Verify trace correctness and accessible read-only navigation before the PR and Claude Code cross-review. No migration, production data write or GPT schema change.
+
+---
+
+---
+
+## 2026-09-17 15:27 — Production summary consumed-lot drill-down
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `tests/test_production_trace.py`
+- **What changed:** Added scoped read-only current-ledger trace GET and keyboard-accessible nested inline disclosures, ingredient subtotals, units, loading/retry states and cache bumps. Tests and validation recorded below when complete.
+- **Why:** Trace Made/Packed rows to actual consumed lots without stale consumption snapshots. Claude Code cross-review required before merge.
+
+---
+
+## 2026-09-17 14:24 — Packout completeness audit (read-only)
+- **File(s) changed:** `audits/reports/packout-completeness-audit.md` (new)
+- **What changed:** Added a read-only audit answering whether finished-product packouts are being skipped and leaving granola batch inventory overstated. Per finished SKU parented to a granola batch, since 2026-01-01: monthly cases packed vs shipped with opening balance and flags; current FG on-hand vs open sales orders; ship days with no pack in the prior 14 days; pack batch-debit vs cases × case weight re-check; shortfalls converted to lb per batch product and compared to the prior audit's unexplained excess. Cross-checked ledger ships against QuickBooks invoices Aug 15–Sep 17.
+- **Why:** Follow-up to `granola-batch-onhand-audit.md`. Verdict: no packout is missing since the Aug 14 count on any packable SKU (0 lb of the 29,131 lb excess); the only unentered packouts are the un-packable Sunshine per/lb bulk lines (10,000 lb, already known). Pre-Aug-14 under-packs filled by adjust/receive total 13,932 lb but were absorbed by the Jun 8 / Aug 14 count write-downs. The live gap is the reverse: Sunshine ships are not entered (145: 3,830 cs, 146: 1,761 cs on hand), which overstates finished goods, not batches. Nothing written to the database.
+
+---
+
+## 2026-09-17 14:06 — Granola batch on-hand audit (read-only)
+- **File(s) changed:** `audits/reports/granola-batch-onhand-audit.md` (new)
+- **What changed:** Added a read-only audit of the dashboard "Batch Inventory On-Hand → Granola" section: per-product and per-lot posted on-hand, monthly made/packed/adjusted since 2026-01-01, root cause, and a proposed (not executed) pack/ship + per-lot adjustment list. Root cause: Sunshine per/lb bulk SKUs (285, 288) have NULL case_size_lb and are parented to never-made Kosher batches 283/284, so SO 298 (6,000 lb CC #9 bulk + 4,000 lb Classic #9 bulk, confirmed 2026-08-17, 0 shipped) was never packed or shipped and batches 108/107 were never debited; plus a systematic ~15–25 % made-vs-packed shrink on 107/114/116 consistent with uncredited bake loss (yield_multiplier = 1.0). Ruled out: packs missing batch lines, BOM quantities, yield multipliers, duplicate makes, stale lots, dashboard query. Dashboard has no /adjust UI.
+- **Why:** Owner reported implausible granola batch on-hand (107 = 14,878 lb, 108 = 9,396 lb, 114 = 4,857 lb). No DB writes, no /adjust calls, no migrations.
+
+---
 ## 2026-09-16 17:07 — Public legal pages: EULA + Privacy Policy on the Netlify site
 - **File(s) changed:** `dashboard/legal/eula.html`, `dashboard/legal/privacy.html`, `netlify.toml`
 - **What changed:** Added two plain static pages (no JS, no external requests, no auth) served at `/legal/eula.html` and `/legal/privacy.html`. Content states single-company internal use by CNS Confectionery Products LLC (NJ), no third-party users, QuickBooks Online accessed read-only to sync purchase orders, data stored in our own database and never sold or shared, contact miriam@cnscoinc.com. Added a `[[headers]]` block for `/legal/*` with a comment warning against putting a catch-all redirect, password protection, or Identity gate in front of them. netlify.toml has no redirect rules and there is no `_redirects` file, so nothing blocks these paths.
