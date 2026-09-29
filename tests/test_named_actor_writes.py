@@ -12,6 +12,7 @@ import pytest
 import main
 from tests.test_actor_attribution import client as actor_client, _ConnProxy, _seed, _allocate, _allocation  # noqa: F401
 from tests.test_trace_emission import _seed_make_setup, _seed_pack_setup
+from tests.test_sales_order_extract import _insert_document, _approve_payload, _approve_line
 
 MIGRATION = Path(__file__).resolve().parents[1] / 'migrations/056_actor_write_audit.sql'
 NAMES = ('Blubber', 'Arturo', 'Luz', 'Miriam')
@@ -559,3 +560,133 @@ def test_audit_table_rls_blocks_other_roles_but_not_the_owning_backend_role(
         db_cursor.execute('RELEASE SAVEPOINT rls_insert_check')
     finally:
         db_cursor.execute('RESET ROLE')
+
+
+# Order creation must audit both callers of the shared core, including intake.
+def _intake_body(cur, seed):
+    token = uuid4().hex
+    doc = _insert_document(cur, path=f'review/{token}.png', kind='sales',
+                           status='extracted', sha=token)
+    return _approve_payload(doc['id'], seed['customer_id'], [
+        _approve_line(seed['product_id'], 20, code='AUDIT-1', save_alias=True),
+        _approve_line(seed['product_id'], 30, code='AUDIT-2', save_alias=True),
+    ], po=f'AUDIT-{token}')
+
+
+def _intake_snapshot(cur):
+    result = _snapshot(cur)
+    for table in ('purchase_documents', 'customer_product_aliases'):
+        cur.execute(f'SELECT row_to_json(t) AS data FROM {table} t ORDER BY id')
+        result[table] = [r['data'] for r in cur.fetchall()]
+    return result
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('identity', NAMES + ('shared',))
+def test_intake_creation_audits_order_and_each_line(
+        client, db_cursor, named_actors, prepared, identity):
+    body = _intake_body(db_cursor, prepared)
+    key = main.API_KEY if identity == 'shared' else named_actors[identity]['key']
+    before = _intake_snapshot(db_cursor)
+    response = client.post('/sales/orders/extract/approve', json=body,
+                           headers={'X-API-Key': key})
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert len(result['lines']) == 2 and result['aliases_saved'] == 2
+    after = _intake_snapshot(db_cursor)
+    assert after['customers'] == before['customers']
+    doc = next(r for r in after['purchase_documents'] if r['id'] == body['document_id'])
+    assert doc['status'] == 'approved'
+    audit = after['actor_write_audit'][len(before['actor_write_audit']):]
+    if identity == 'shared':
+        assert audit == []
+    else:
+        assert len(audit) == 3  # No duplicate audit from either caller.
+        assert {(r['target_table'], r['target_id']) for r in audit} == {
+            ('sales_orders', result['order_id']),
+            *(('sales_order_lines', line['line_id']) for line in result['lines']),
+        }
+        assert {(r['actor_id'], r['operator_id'], r['method'], r['route'])
+                for r in audit} == {
+            (named_actors[identity]['id'], identity, 'POST', '/sales/orders/extract/approve')}
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('route', ['/sales/orders', '/sales/orders/extract/approve'])
+@pytest.mark.parametrize('fail_at', [1, 3])
+def test_core_audit_failure_rolls_back_both_creation_paths(
+        client, db_cursor, named_actors, prepared, route, fail_at, monkeypatch):
+    if route.endswith('/approve'):
+        body = _intake_body(db_cursor, prepared)
+    else:
+        body = {'customer_name': 'Zq' + uuid4().hex,
+                'lines': [{'product_name': prepared['product_name'], 'quantity_lb': qty}
+                          for qty in (20, 30)]}
+    before = _intake_snapshot(db_cursor)
+    original = main._record_actor_write
+    calls = []
+
+    def fail_core_audit(cur, request, table, target_id):
+        # Let manual customer creation succeed before testing core rollback.
+        if table in ('sales_orders', 'sales_order_lines'):
+            calls.append(table)
+            if len(calls) == fail_at:
+                cur.execute('SELECT 1 / 0')
+        original(cur, request, table, target_id)
+
+    monkeypatch.setattr(main, '_record_actor_write', fail_core_audit)
+    response = client.post(route, json=body,
+                           headers={'X-API-Key': named_actors['Luz']['key']})
+    assert response.status_code == 500, response.text
+    assert calls == ['sales_orders', 'sales_order_lines', 'sales_order_lines'][:fail_at]
+    assert _intake_snapshot(db_cursor) == before
+
+
+@pytest.mark.db
+def test_shared_intake_creation_still_works_without_audit_table(
+        client, db_cursor, named_actors, prepared):
+    body = _intake_body(db_cursor, prepared)
+    db_cursor.execute('DROP TABLE actor_write_audit')  # Rolled back by fixture.
+    response = client.post('/sales/orders/extract/approve', json=body,
+                           headers={'X-API-Key': main.API_KEY})
+    assert response.status_code == 201, response.text
+    assert len(response.json()['lines']) == 2
+
+
+def _audit_down_sql():
+    # Run the unchanged body within the fixture's rollback-only transaction.
+    sql = (MIGRATION.parent / 'down/056_actor_write_audit_down.sql').read_text()
+    return sql.split('\nBEGIN;', 1)[1].rsplit('\nCOMMIT;', 1)[0]
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('state', ['empty', 'nonempty', 'exported', 'absent'])
+def test_audit_down_requires_explicit_export_for_nonempty_table(db_cursor, named_actors, state):
+    import psycopg2
+    if state in ('nonempty', 'exported'):
+        db_cursor.execute(
+            "INSERT INTO actor_write_audit (actor_id, operator_id, method, route, "
+            "target_table, target_id) VALUES (%s, 'Luz', 'POST', '/customers', 'customers', 1)",
+            (named_actors['Luz']['id'],))
+    if state == 'absent':
+        db_cursor.execute('DROP TABLE actor_write_audit')
+    db_cursor.execute('SELECT row_to_json(m) AS data FROM migration_markers m ORDER BY name')
+    markers_before = [r['data'] for r in db_cursor.fetchall()]
+    if state == 'nonempty':
+        before = _snapshot(db_cursor)
+        db_cursor.execute('SAVEPOINT audit_down_guard')
+        with pytest.raises(psycopg2.errors.RaiseException, match='056 rollback refused'):
+            db_cursor.execute(_audit_down_sql())
+        db_cursor.execute('ROLLBACK TO SAVEPOINT audit_down_guard')
+        assert _snapshot(db_cursor) == before
+        db_cursor.execute('SELECT row_to_json(m) AS data FROM migration_markers m ORDER BY name')
+        assert [r['data'] for r in db_cursor.fetchall()] == markers_before
+    else:
+        if state == 'exported':
+            db_cursor.execute("SET LOCAL factory_ledger.confirm_audit_export = 'yes'")
+        db_cursor.execute(_audit_down_sql())
+        db_cursor.execute("SELECT to_regclass('public.actor_write_audit') AS audit_table")
+        assert db_cursor.fetchone()['audit_table'] is None
+        db_cursor.execute('SELECT row_to_json(m) AS data FROM migration_markers m ORDER BY name')
+        assert [r['data'] for r in db_cursor.fetchall()] == [
+            r for r in markers_before if r['name'] != '056_actor_write_audit']

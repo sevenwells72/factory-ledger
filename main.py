@@ -7407,7 +7407,7 @@ def approve_extracted_sales_order(req: SalesOrderApproveRequest, request: Reques
             cur, req.customer_id, customer["name"], req.requested_ship_date,
             req.notes, None, core_lines,
             order_date=req.order_date, customer_po=customer_po,
-            source_document_id=req.document_id,
+            source_document_id=req.document_id, request=request,
         )
         warnings.extend(result["warnings"])
 
@@ -11350,7 +11350,8 @@ MANUAL_TRANSITIONS = {
 
 def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_date,
                              notes, notes_es, lines, *, order_date=None,
-                             customer_po=None, source_document_id=None):
+                             customer_po=None, source_document_id=None,
+                             request: Optional[Request] = None):
     """The single INSERT path for sales orders — used by both the manual
     POST /sales/orders endpoint and the SO intake approve flow, so the two
     can never drift (docs/designs/sales-order-intake.md). Callers resolve the
@@ -11369,6 +11370,7 @@ def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_dat
     )
     row = cur.fetchone()
     order_id, order_number = row['id'], row['order_number']
+    _record_actor_write(cur, request, "sales_orders", order_id)
 
     line_results = []
     total_lb = 0
@@ -11425,6 +11427,7 @@ def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_dat
             (order_id, product_id, quantity_lb, line.get("unit_price"), line.get("notes"), line.get("notes_es"))
         )
         line_id = cur.fetchone()['id']
+        _record_actor_write(cur, request, "sales_order_lines", line_id)
         total_lb += quantity_lb
 
         # Fix #3: Quantity sanity check — compare to customer's average order size
@@ -11494,11 +11497,8 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
 
                 result = _create_sales_order_core(
                     cur, customer_id, customer_name, req.requested_ship_date,
-                    req.notes, req.notes_es, core_lines,
+                    req.notes, req.notes_es, core_lines, request=request,
                 )
-                _record_actor_write(cur, request, "sales_orders", result["order_id"])
-                for line in result["line_results"]:
-                    _record_actor_write(cur, request, "sales_order_lines", line["line_id"])
                 return {
                     "order_id": result["order_id"],
                     "order_number": result["order_number"],
