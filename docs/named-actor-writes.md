@@ -95,3 +95,25 @@ are outside this task.
 Future consideration only: if authorization moves into the backend, review
 void, adjust, and lot rename first because they can alter inventory availability
 or traceability. No such role restrictions are added here.
+
+## PR #66 review fixes (2026-09-29)
+
+- **Shortcut routes.** The ten `/{receive,ship,make,pack,adjust}/{preview,commit}`
+  wrappers now pass the request to their handler. Before, an actor-keyed
+  `POST /receive/commit` (reachable through the dashboard allowlist) stored
+  `legacy-shared-key` and a NULL trace operator. HTTP scope is unchanged: the
+  ship/make/pack/adjust shortcuts still return 403 to actor keys.
+- **Auto-created customers.** `resolve_customer_id(..., request=)` writes a
+  `customers` audit row on the same cursor when it creates a customer, so the
+  customer that `POST /sales/orders` or `POST /ship` makes as a side effect is
+  attributed, and a failed audit rolls back the order or shipment too.
+- **Row-level security.** Migration 056 enables (does not force) RLS with no
+  policies. The backend role must own the table, so apply 056 as the same
+  role the app connects as. Other non-superuser roles see and write nothing.
+- **Rollback.** `migrations/down/056_actor_write_audit_down.sql` drops the table
+  and marker; its header lists the preconditions (table empty or exported,
+  backend reverted first, port 5432).
+
+Validation after these fixes: **1,347 Python tests passed** (24 new), **67 Node
+tests passed**, zero failures/skips, on a throwaway local database. The 14
+F1/F2 regression tests fail against the pre-fix code.

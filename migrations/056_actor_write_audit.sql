@@ -30,5 +30,10 @@ BEGIN
     END IF;
 END $$;
 
+-- Supabase Data API hardening (owner-approved, PR #66 review F7). No policies:
+-- anon/authenticated get nothing; the backend connects as the table owner,
+-- which bypasses RLS (not FORCEd). Idempotent on rerun.
+ALTER TABLE public.actor_write_audit ENABLE ROW LEVEL SECURITY;
+
 INSERT INTO public.migration_markers (name) VALUES ('056_actor_write_audit')
 ON CONFLICT (name) DO NOTHING;

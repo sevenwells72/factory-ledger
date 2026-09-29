@@ -4,7 +4,11 @@ Every fix is logged here so future sessions know what breaks if a change is reve
 
 ## Change History
 
-**Row 157 validation (2026-09-28 14:31):** 1,323 Python tests passed (170 new, including 10 product-resolution checks); 67 Node tests passed; no failures/skips; diff check clean. Includes `tests/test_released_by_attribution.py` guard refinement and the product-resolution follow-up: four named actors/shared key succeed, missing/invalid/inactive/dashboard keys are rejected, lookup response/business data are unchanged, and exact actor scope is pinned. Migration 056 tested locally only; not deployed; no migrations applied outside test fixtures.
+**Row 157 review fixes (2026-09-29 11:35):** PR #66 cross-review F1–F7. Shortcut `/preview`+`/commit` wrappers pass `request` (actor-keyed `/receive/commit` no longer stored as legacy-shared-key); customers auto-created by `POST /sales/orders` or `POST /ship` get a same-transaction `actor_write_audit` row; stale allowlist comment fixed; 056 enables RLS (owner bypasses, other roles blocked) and gains `migrations/down/056_actor_write_audit_down.sql`; logs restored to append-only. 1,347 Python tests passed (24 new), 67 Node passed, zero failures/skips. The backend role must own `actor_write_audit`: apply 056 as the app role. Not deployed; no migrations applied outside test fixtures.
+
+**Row 157 follow-up — 1337fdd (2026-09-28 15:08):** Named actors may call the read-only `POST /products/resolve` (MCP `office.resolveProducts`); it is the only allowlist addition. 1,323 Python tests passed (10 new), 67 Node passed; re-verified 2026-09-29 on a throwaway local DB. Entry added 2026-09-29 (F4); 1337fdd had amended the validation note below in place.
+
+**Row 157 validation (2026-09-28 14:31):** 1,313 Python tests passed (160 new); 67 Node tests passed; no failures/skips; diff check clean. Includes `tests/test_released_by_attribution.py` guard refinement. Migration 056 tested locally only; not deployed.
 
 | # | Date | Area | What Changed | Problem It Solved | Breaks If Reverted | Migration/File |
 |---|------|------|-------------|-------------------|-------------------|----------------|

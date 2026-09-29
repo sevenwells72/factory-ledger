@@ -373,3 +373,189 @@ def test_expired_allocation_release_keeps_the_correct_identity(
     expected = identity if identity != 'shared' else (
         None if route.endswith('/ship') and route != '/ship' else 'legacy-shared-key')
     assert allocation['released_by'] == expected
+
+
+# ── PR #66 review fixes ─────────────────────────────────────────────────────
+# F1: the /x/preview + /x/commit shortcut wrappers must hand the request to the
+# handler, or an actor-keyed call is stored as legacy-shared-key. HTTP scope is
+# unchanged: only /receive/preview and /receive/commit are actor-reachable
+# (dashboard allowlist); the other shortcuts stay master-key only.
+SHORTCUTS = {'receive': main.ReceiveRequest, 'ship': main.ShipRequest,
+             'make': main.MakeRequest, 'pack': main.PackRequest,
+             'adjust': main.AdjustRequest}
+
+
+def _new_transactions(before, after):
+    previous = {r['id'] for r in before['transactions']}
+    transactions = [r for r in after['transactions'] if r['id'] not in previous]
+    tids = {r['id'] for r in transactions}
+    events = [r for r in after['trace_events'] if r['transaction_id'] in tids]
+    return transactions, events
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('identity', NAMES + ('shared',))
+def test_receive_shortcut_commit_persists_the_authenticated_operator(
+        client, db_cursor, named_actors, prepared, identity):
+    body = _payload(db_cursor, '/receive', prepared)
+    body.pop('mode')
+    key = main.API_KEY if identity == 'shared' else named_actors[identity]['key']
+    before = _snapshot(db_cursor)
+    response = _request(client, 'POST', '/receive/commit', prepared, body, key)
+    assert response.status_code == 200, response.text
+    transactions, events = _new_transactions(before, _snapshot(db_cursor))
+    assert len(transactions) == 1 and len(events) == 1
+    assert transactions[0]['operator_id'] == ('legacy-shared-key' if identity == 'shared' else identity)
+    assert events[0]['operator_id'] == (None if identity == 'shared' else identity)
+
+
+@pytest.mark.db
+def test_receive_shortcut_preview_has_no_business_writes(client, db_cursor, named_actors, prepared):
+    body = _payload(db_cursor, '/receive', prepared)
+    body.pop('mode')
+    before = _snapshot(db_cursor)
+    response = _request(client, 'POST', '/receive/preview', prepared, body,
+                        named_actors['Luz']['key'])
+    assert response.status_code == 200, response.text
+    assert _snapshot(db_cursor) == before
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('name', ('ship', 'make', 'pack', 'adjust'))
+def test_other_shortcut_commits_keep_actor_scope_and_shared_attribution(
+        client, db_cursor, named_actors, prepared, name):
+    body = _payload(db_cursor, '/' + name, prepared)
+    body.pop('mode')
+    before = _snapshot(db_cursor)
+    denied = _request(client, 'POST', f'/{name}/commit', prepared, body,
+                      named_actors['Arturo']['key'])
+    assert denied.status_code == 403, denied.text
+    assert denied.json()['detail'] == 'API key not authorized for this endpoint'
+    assert _snapshot(db_cursor) == before
+    response = _request(client, 'POST', f'/{name}/commit', prepared, body, main.API_KEY)
+    assert response.status_code == 200, response.text
+    transactions, events = _new_transactions(before, _snapshot(db_cursor))
+    assert transactions and {r['operator_id'] for r in transactions} == {'legacy-shared-key'}
+    assert events and {r['operator_id'] for r in events} == {None}
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('name', sorted(SHORTCUTS))
+def test_every_shortcut_commit_wrapper_passes_the_request_through(
+        client, db_cursor, named_actors, prepared, name):
+    """Direct call with an actor-bearing Request: proves attribution survives
+    each commit wrapper without widening any route's HTTP scope."""
+    from starlette.requests import Request
+    body = _payload(db_cursor, '/' + name, prepared)
+    body.pop('mode')
+    actor = {'id': named_actors['Luz']['id'], 'name': 'Luz', 'role': 'floor'}
+    request = Request({'type': 'http', 'method': 'POST', 'path': f'/{name}/commit',
+                       'headers': [], 'query_string': b'',
+                       'state': {'actor': actor, 'key_kind': 'actor'}})
+    before = _snapshot(db_cursor)
+    result = getattr(main, f'{name}_commit')(SHORTCUTS[name](**body), True, request=request)
+    assert isinstance(result, dict) and result.get('success') is not False, result
+    transactions, events = _new_transactions(before, _snapshot(db_cursor))
+    assert transactions and {r['operator_id'] for r in transactions} == {'Luz'}
+    assert events and {r['operator_id'] for r in events} == {'Luz'}
+
+
+# F2: a customer auto-created inside POST /sales/orders or POST /ship is a
+# metadata write with no ledger row of its own; it gets its own audit record
+# in the same transaction as the order/shipment.
+def _auto_create_body(cur, route, seed, new_name):
+    if route == '/sales/orders':
+        return {'customer_name': new_name,
+                'lines': [{'product_name': seed['product_name'], 'quantity_lb': 20}]}
+    body = _payload(cur, '/ship', seed)
+    body['customer_name'] = new_name
+    return body
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('route', ['/sales/orders', '/ship'])
+@pytest.mark.parametrize('identity', ('Miriam', 'Luz', 'shared'))
+def test_auto_created_customer_is_audited_with_the_business_write(
+        client, db_cursor, named_actors, prepared, route, identity):
+    # Unique first word: no exact, fuzzy or prefix match, so it must auto-create.
+    new_name = f'Zq{uuid4().hex[:10]} Autocreate'
+    body = _auto_create_body(db_cursor, route, prepared, new_name)
+    key = main.API_KEY if identity == 'shared' else named_actors[identity]['key']
+    before = _snapshot(db_cursor)
+    response = _request(client, 'POST', route, prepared, body, key)
+    assert response.status_code == 200, response.text
+    after = _snapshot(db_cursor)
+    created = [r for r in after['customers'] if r['name'] == new_name]
+    assert len(created) == 1
+    audit = after['actor_write_audit'][len(before['actor_write_audit']):]
+    customer_audit = [r for r in audit if r['target_table'] == 'customers']
+    if identity == 'shared':
+        assert audit == []
+    else:
+        assert [(r['actor_id'], r['operator_id'], r['method'], r['route'], r['target_id'])
+                for r in customer_audit] == [
+            (named_actors[identity]['id'], identity, 'POST', route, created[0]['id'])]
+    if route == '/ship':
+        transactions, _ = _new_transactions(before, after)
+        assert {r['operator_id'] for r in transactions} == {
+            'legacy-shared-key' if identity == 'shared' else identity}
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('route', ['/sales/orders', '/ship'])
+def test_auto_created_customer_audit_failure_rolls_back_everything(
+        client, db_cursor, named_actors, prepared, route, monkeypatch):
+    new_name = f'Zq{uuid4().hex[:10]} Autocreate'
+    body = _auto_create_body(db_cursor, route, prepared, new_name)
+    before = _snapshot(db_cursor)
+    def fail_audit(cur, *args):
+        cur.execute('SELECT 1 / 0')
+    monkeypatch.setattr(main, '_record_actor_write', fail_audit)
+    response = _request(client, 'POST', route, prepared, body, named_actors['Arturo']['key'])
+    assert response.status_code == 500, response.text
+    assert _snapshot(db_cursor) == before
+
+
+# F7: RLS is enabled (not forced) on actor_write_audit. The backend role owns
+# the table, so it bypasses RLS; any other non-superuser role, even one with
+# table grants (as Supabase anon/authenticated may have), sees and writes nothing.
+@pytest.mark.db
+def test_audit_table_rls_blocks_other_roles_but_not_the_owning_backend_role(
+        client, db_cursor, named_actors, prepared):
+    import psycopg2
+    db_cursor.execute("SELECT relrowsecurity, relforcerowsecurity FROM pg_class "
+                      "WHERE oid = 'public.actor_write_audit'::regclass")
+    assert tuple(db_cursor.fetchone().values()) == (True, False)
+    token = uuid4().hex[:8]
+    owner, outsider = f'pr66_backend_{token}', f'pr66_outsider_{token}'
+    for role in (owner, outsider):  # rolled back with the test transaction
+        db_cursor.execute(f'CREATE ROLE {role} NOLOGIN NOSUPERUSER NOBYPASSRLS')
+        db_cursor.execute(f'GRANT USAGE ON SCHEMA public TO {role}')
+        db_cursor.execute(f'GRANT ALL ON ALL TABLES IN SCHEMA public TO {role}')
+        db_cursor.execute(f'GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO {role}')
+    db_cursor.execute(f'ALTER TABLE public.actor_write_audit OWNER TO {owner}')
+    try:
+        # The real app write path, running as the non-superuser owning role.
+        db_cursor.execute(f'SET LOCAL ROLE {owner}')
+        response = _request(client, 'POST', '/customers', prepared,
+                            _payload(db_cursor, '/customers', prepared),
+                            named_actors['Arturo']['key'])
+        assert response.status_code == 200, response.text
+        customer_id = response.json()['customer_id']
+        db_cursor.execute("SELECT operator_id FROM actor_write_audit "
+                          "WHERE target_table = 'customers' AND target_id = %s", (customer_id,))
+        assert [r['operator_id'] for r in db_cursor.fetchall()] == ['Arturo']
+
+        db_cursor.execute(f'SET LOCAL ROLE {outsider}')
+        db_cursor.execute('SELECT count(*) AS n FROM actor_write_audit')
+        assert db_cursor.fetchone()['n'] == 0
+        db_cursor.execute('SAVEPOINT rls_insert_check')
+        with pytest.raises(psycopg2.Error, match='row-level security'):
+            db_cursor.execute(
+                "INSERT INTO actor_write_audit (actor_id, operator_id, method, route, "
+                "target_table, target_id) VALUES (%s, 'Forged', 'POST', '/customers', "
+                "'customers', %s)", (named_actors['Arturo']['id'], customer_id))
+        db_cursor.execute('ROLLBACK TO SAVEPOINT rls_insert_check')
+        db_cursor.execute('RELEASE SAVEPOINT rls_insert_check')
+    finally:
+        db_cursor.execute('RESET ROLE')

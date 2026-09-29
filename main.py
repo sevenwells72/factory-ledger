@@ -2758,8 +2758,10 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("POST", "/purchase-documents/{document_id}/extract"),
     ("GET", "/purchase-documents/{document_id}/url"),
     # Sales-order intake (migration 050; dashboard-only, not in any GPT yaml).
-    # POST /sales/orders itself stays master-key only (owner ruling 1: the
-    # dashboard never gets the auto-create-customer creation path).
+    # POST /sales/orders itself stays off this list (owner ruling 1: the
+    # dashboard key never gets the auto-create-customer creation path).
+    # Named-actor keys DO reach it, auto-create included, via
+    # ACTOR_WRITE_ALLOWLIST (owner decision 2026-09-28).
     ("POST", "/sales/orders/extract"),
     ("POST", "/sales/orders/match"),
     ("POST", "/sales/orders/extract/approve"),
@@ -4234,8 +4236,13 @@ def _pick_by_address(cur, candidate_ids: list, address: str) -> Optional[dict]:
 
 
 def resolve_customer_id(cur, customer_name: str, auto_create: bool = True,
-                        force_create: bool = False, address: Optional[str] = None) -> tuple:
+                        force_create: bool = False, address: Optional[str] = None,
+                        *, request: Optional[Request] = None) -> tuple:
     """Find or create customer by name/alias. Returns (customer_id, canonical_name).
+
+    When this call CREATES the customer, the named actor on `request` (if any)
+    is recorded in actor_write_audit on the same cursor, so the audit commits
+    or rolls back with the caller's write. Legacy keys issue no extra SQL.
 
     Resolution order:
     1. Exact match on canonical name
@@ -4328,6 +4335,7 @@ def resolve_customer_id(cur, customer_name: str, auto_create: bool = True,
             (customer_name, address)
         )
         row = cur.fetchone()
+        _record_actor_write(cur, request, "customers", row['id'])
         return row['id'], row['name']
     raise HTTPException(
         status_code=404,
@@ -7917,7 +7925,8 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request =
                         cur, req.customer_name,
                         auto_create=True,
                         force_create=req.force_create_customer,
-                        address=req.customer_address
+                        address=req.customer_address,
+                        request=request,
                     )
 
                     standalone_warning = None
@@ -11464,7 +11473,8 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 customer_id, customer_name = resolve_customer_id(
-                    cur, req.customer_name, address=req.customer_address
+                    cur, req.customer_name, address=req.customer_address,
+                    request=request,
                 )
 
                 core_lines = []
@@ -15346,54 +15356,54 @@ def ship_order(
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/receive/preview", include_in_schema=False)
-def receive_preview(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
+def receive_preview(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return receive(req, _)
+    return receive(req, _, request)
 
 @app.post("/receive/commit", include_in_schema=False)
-def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key)):
+def receive_commit(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return receive(req, _)
+    return receive(req, _, request)
 
 @app.post("/ship/preview", include_in_schema=False)
-def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key)):
+def ship_preview(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return ship(req, _)
+    return ship(req, _, request)
 
 @app.post("/ship/commit", include_in_schema=False)
-def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key)):
+def ship_commit(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return ship(req, _)
+    return ship(req, _, request)
 
 @app.post("/make/preview", include_in_schema=False)
-def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key)):
+def make_preview(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return make(req, _)
+    return make(req, _, request)
 
 @app.post("/make/commit", include_in_schema=False)
-def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key)):
+def make_commit(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return make(req, _)
+    return make(req, _, request)
 
 @app.post("/pack/preview", include_in_schema=False)
-def pack_preview(req: PackRequest, _: bool = Depends(verify_api_key)):
+def pack_preview(req: PackRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return pack(req, _)
+    return pack(req, _, request)
 
 @app.post("/pack/commit", include_in_schema=False)
-def pack_commit(req: PackRequest, _: bool = Depends(verify_api_key)):
+def pack_commit(req: PackRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return pack(req, _)
+    return pack(req, _, request)
 
 @app.post("/adjust/preview", include_in_schema=False)
-def adjust_preview(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+def adjust_preview(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "preview"
-    return adjust(req, _)
+    return adjust(req, _, request)
 
 @app.post("/adjust/commit", include_in_schema=False)
-def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key)):
+def adjust_commit(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Request = None):
     req.mode = "commit"
-    return adjust(req, _)
+    return adjust(req, _, request)
 
 @app.post("/sales/orders/{order_id}/ship/preview", include_in_schema=False)
 def ship_order_preview(
