@@ -24,6 +24,13 @@
 
 ---
 
+## 2026-09-29 11:32 — Row 158: order create contract implementation (not deployed)
+- **File(s) changed:** `main.py`, `migrations/057_order_create_contract.sql`, `migrations/down/057_order_create_contract_down.sql`, `tests/schema/schema.sql`, dashboard PO display, contract tests and documentation.
+- **What changed:** Add exact-text customer PO and No PO support, direct approved IDs, external-reference uniqueness and atomic retry receipts, explicit duplicate-PO override, service counts and amounts separate from pounds, product case-weight lookup, and named-actor header audit. Preserve the legacy create request/response path. Implementation and disposable-DB verification in progress.
+- **Why:** MCP createOrder needs durable, verifiable orders with retry safety. Isolated worktree `fix/order-create-contract`, stacked on PR #66; no production access, merge, or deployment. Migration 057 must eventually be applied via port 5432 after 056 and before application rollout.
+
+---
+
 ## 2026-09-28 15:08 — Named actors may call POST /products/resolve (1337fdd; row 157 follow-up, not deployed)
 - **File(s) changed:** `main.py`, `tests/test_named_actor_writes.py`, `docs/named-actor-writes.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added only `("POST", "/products/resolve")` to `ACTOR_WRITE_ALLOWLIST` for MCP `office.resolveProducts`. It is a lookup, not a business write. 10 new tests: all four named actors and the shared key succeed with unchanged response and business data; missing, invalid, inactive and dashboard keys are rejected; the exact actor-only allowlist is pinned. Shared-key and dashboard scope unchanged.
