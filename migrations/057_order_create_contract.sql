@@ -28,3 +28,6 @@ CREATE TABLE IF NOT EXISTS public.sales_order_create_receipts (
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     PRIMARY KEY (customer_id, external_order_reference)
 );
+
+-- Match 056: API table owner can write; no public Supabase client policies.
+ALTER TABLE public.sales_order_create_receipts ENABLE ROW LEVEL SECURITY;

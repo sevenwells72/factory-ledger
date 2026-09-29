@@ -89,6 +89,8 @@ this code, only with separate rollout authorization. This PR applies nothing
 to a real database. 057 adds one nullable header field, a partial unique index
 on customer/reference, four nullable line fields, and the receipt table. It
 is additive and rerunnable, with no historical updates or ledger view changes.
+Receipts have RLS enabled without FORCE or public policies, matching 056's
+table-owner API access and denying public Supabase client access.
 `tests/schema/schema.sql` includes it for disposable databases.
 
 To roll back, stop contract writes and revert the application first. Leaving

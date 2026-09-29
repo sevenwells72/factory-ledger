@@ -13,6 +13,13 @@
 - **What changed:** Both order-creation callers pass `request` to the shared core, which audits each order and line on the business cursor; remove duplicate manual-handler audits. Restore historical row 157 exactly from 8194766. Guard audit-table rollback with an exclusive lock, non-empty refusal, and explicit verified-export setting. Add regression tests for intake audit success/rollback/shared-key behavior and empty/refused/overridden rollback.
 - **Validation:** Validation pending on a throwaway local database; no production access, real database migration, merge or deployment.
 - **Why:** Owner approved all three PR #66 re-review findings; keep the core diff minimal for stacked PR #67 to rebase.
+---
+
+## 2026-09-29 11:41 — Row 158 verified on updated PR #66 base (not deployed)
+- **File(s) changed:** `main.py`, `migrations/057_order_create_contract.sql`, `migrations/down/057_order_create_contract_down.sql`, `tests/schema/schema.sql`, `tests/test_order_create_contract.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `docs/order-create-contract.md`, and all three changelogs.
+- **What changed:** Exact-text PO and visible No PO, explicit duplicate-PO override on create/header edits, approved IDs, per-customer external-reference uniqueness and atomic original-response receipts, durable commercial line quantities/amounts, product-derived physical weights, zero prices, named header audit, and zero-pound service auto-fulfillment. Retain saved case weights for reads/price edits. Receipt RLS matches 056. Rebased onto PR #66 review fixes `ccdbe57`, retaining its auto-created-customer audit and wrapper attribution. No GPT OpenAPI or key-scope changes.
+- **Validation:** Fresh disposable local DB `factory_ledger_order_create_final_test` built from the updated schema via localhost:5432. Full Python suite **1,384 passed**, no failures/skips (1,347 base + 37 new); Node **67 passed**, no failures/skips; JS syntax and `git diff --check` clean. Real two-connection HTTP races prove exactly one order; duplicate PO, conflicting reference, product 176/freight, zero prices/totals, header/line edits, named actors, late-line/audit/receipt rollback, database uniqueness and migration down/up/rerun covered. Original legacy create response asserted exactly; no receipt/audit for shared legacy writes.
+- **Rollout:** NOT merged or deployed; no real DB touched. Apply 056 then additive 057 through port 5432 before a separately authorized application rollout. 057 never changes ledger views; optional down script removes only new metadata after app rollback. API reads gain verification fields and zero values display faithfully; existing GPT create requests retain their original contract.
 
 ---
 

@@ -323,6 +323,20 @@ def test_all_zero_prices_produce_zero_total(client, catalog):
     assert client.get(f"/sales/orders/{result['order_id']}").json()['totals']['total_value'] == 0
 
 
+def test_detail_and_price_edits_keep_saved_weight_and_use_service_flag(client, db_cursor, catalog):
+    original = post(client, payload(catalog))
+    db_cursor.execute("UPDATE products SET case_size_lb=50, name=%s WHERE id=%s", ('Coffee ' + uuid4().hex, catalog[1][0]))
+    order_id = original['order_id']
+    line_id = original['lines'][0]['line_id']
+    detail = client.get(f'/sales/orders/{order_id}').json()
+    assert detail['lines'][0]['case_size_lb'] == 25
+    assert detail['lines'][0]['cases'] == 2
+    assert not detail['lines'][0].get('is_non_weight')
+    response = client.patch(f'/sales/orders/{order_id}/lines/{line_id}/update', params={'unit_price': 40})
+    assert response.status_code == 200, response.text
+    assert client.get(f'/sales/orders/{order_id}').json()['lines'][0]['amount'] == 80
+
+
 @pytest.mark.parametrize('update', [{'customer_po': 62732}, {'allow_duplicate_po': 'true'}, {'lines': []}])
 def test_invalid_new_fields_rejected_without_writes(client, db_cursor, catalog, update):
     before = counts(db_cursor)
@@ -351,6 +365,8 @@ def test_migration_057_reversible_rerunnable_and_preserves_ledger_views(db_curso
     db_cursor.execute(DOWN.read_text())
     db_cursor.execute(UP.read_text())
     db_cursor.execute(UP.read_text())
+    db_cursor.execute("SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE oid='sales_order_create_receipts'::regclass")
+    assert db_cursor.fetchone() == {'relrowsecurity': True, 'relforcerowsecurity': False}
     db_cursor.execute("SELECT oid FROM pg_class WHERE relname IN ('ledger_current_transactions', 'ledger_current_transaction_lines') ORDER BY oid")
     assert db_cursor.fetchall() == views
 

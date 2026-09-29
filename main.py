@@ -14217,7 +14217,9 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 qty = float(r['quantity_lb'])
                 shipped = float(r['quantity_shipped_lb'])
                 price = float(r['unit_price']) if r['unit_price'] is not None else None
-                case_size = float(r['case_size_lb']) if r['case_size_lb'] else None
+                saved_weight = (r['ordered_case_weight_lb'] if r['ordered_quantity'] is not None
+                                else r['case_size_lb'])
+                case_size = float(saved_weight) if saved_weight else None
                 cases = round(qty / case_size) if case_size else None
 
                 # Exclude service/charge lines (pallets, freight, etc.) from weight totals
@@ -14247,7 +14249,8 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 # Primary: DB flag; fallback: keyword matching
                 product_name_lower = r['name'].lower()
                 non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                is_non_weight = is_service or any(kw in product_name_lower for kw in non_weight_keywords)
+                is_non_weight = (is_service if r['ordered_quantity'] is not None else
+                                 is_service or any(kw in product_name_lower for kw in non_weight_keywords))
 
                 if is_non_weight:
                     price_basis = "per_unit"
@@ -15198,6 +15201,7 @@ def update_order_line(
                     cur.execute('SELECT case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id=%s',
                                 (row['product_id'],))
                     product = cur.fetchone()
+                    product['case_size_lb'] = existing['ordered_case_weight_lb']
                     contract = _order_line_contract({
                         'quantity': existing['ordered_quantity'] if quantity_lb is None else None,
                         'quantity_lb': row['quantity_lb'], 'unit': existing['ordered_unit'],
