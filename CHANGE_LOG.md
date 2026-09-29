@@ -15,6 +15,18 @@
 - **Why:** Owner approved all three PR #66 re-review findings; keep the core diff minimal for stacked PR #67 to rebase.
 ---
 
+## 2026-09-29 12:16 — Row 158 follow-up: NULL prices, migration marker and both pallet products verified (not deployed)
+- **Files:** migration 057/up/down, order-create tests/docs, CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md; resolved iCloud global log.
+- **Validation:** Full fresh throwaway-local-DB suite: 1,414 Python tests passed (3 additional cases) and 69 Node tests passed, zero failures/skips. Legacy NULL and zero prices retain null case_price, line_value, unpriced-order totals and line-edit responses; quantity-only edits keep stored NULL. Migration 057 up/down/rerun verifies its marker is inserted once without rewriting it, removed on rollback, and unrelated markers remain intact. Products 102 Pallets and 176 Pallet Charge both preserve counts/prices/amounts and ship without inventory or weight contributions via products.is_service. No application code changes or existing GPT behavior changes in this follow-up. git diff --check passes. No production access, real database migration, merge or deployment.
+
+---
+
+## 2026-09-29 12:13 — Row 158 follow-up: NULL-price, migration-marker and both service-SKU coverage (not deployed)
+- **Files:** migration 057/up/down, `tests/test_order_create_review.py`, `tests/test_order_create_contract.py`, `docs/order-create-contract.md`, all three logs.
+- **What changed:** Confirmed existing code preserves NULL prices and null line/order values on legacy unpriced orders, including quantity-only edits; added explicit legacy/new NULL-price coverage alongside zero-price cases. Added idempotent 057_order_create_contract migration marker and targeted down-script removal, matching 056. Extended real create/preview/ship/detail tests to both active service products, 102 Pallets and 176 Pallet Charge; classification remains products.is_service with no product-ID special cases. No main.py behavior changes. Updated contract docs. Full throwaway-DB and Node validation pending; no production access, real DB migration, merge or deployment.
+
+---
+
 ## 2026-09-29 12:07 — Row 158 follow-up: all PR #67 cross-review fixes verified (not deployed)
 - **Files:** `main.py`, dashboard JS/index, migration 057 and down script, `tests/test_order_create_review.py`, `tests/test_order_create_review.js`, existing contract/shipping tests, `docs/order-create-contract.md`, all three logs.
 - **Validation:** Full suite: 1,411 Python tests passed (27 new) and 69 Node tests passed (2 new), zero failures/skips, on fresh throwaway local DB factory_ledger_pr67_review_test_20260929 built from tests/schema/schema.sql. JS syntax and git diff --check pass. PDF tests read actual generated slips before/after shipment; real HTTP races prove one receipt for a new customer and serialize header PO edits against creates. Named line-audit failures roll back quantities/amounts. Legacy zero reads remain null and legacy missing-case-weight requests return 422; only new fields opt into the new contract, and both physical paths retain omitted-unit warnings. All findings accepted. No merge, deploy, real database migration or production access.

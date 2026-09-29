@@ -17,3 +17,5 @@ ALTER TABLE public.sales_order_lines
     DROP COLUMN IF EXISTS ordered_unit,
     DROP COLUMN IF EXISTS ordered_case_weight_lb,
     DROP COLUMN IF EXISTS amount;
+
+DELETE FROM public.migration_markers WHERE name = '057_order_create_contract';

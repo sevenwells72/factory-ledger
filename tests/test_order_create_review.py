@@ -163,19 +163,30 @@ def legacy_body(cur, catalog, line):
 
 
 @pytest.mark.parametrize('new_style', [False, True])
-def test_zero_price_legacy_null_new_style_zero(client, db_cursor, catalog, new_style):
-    body = (payload(catalog, lines=[{'product_id': catalog[1][0], 'quantity_lb': 50, 'unit_price': 0}])
-            if new_style else legacy_body(db_cursor, catalog, {'quantity_lb': 50, 'unit_price': 0}))
+@pytest.mark.parametrize('stored_price', [None, 0], ids=['null-price', 'zero-price'])
+def test_null_and_zero_prices_preserve_legacy_reads(client, db_cursor, catalog, new_style, stored_price):
+    body = (payload(catalog, lines=[{'product_id': catalog[1][0], 'quantity_lb': 50, 'unit_price': stored_price}])
+            if new_style else legacy_body(db_cursor, catalog, {'quantity_lb': 50, 'unit_price': stored_price}))
     created = post(client, body)
     order_id = created['order_id']
-    expected = 0 if new_style else None
+    expected = 0 if new_style and stored_price == 0 else None
     detail = client.get(f'/sales/orders/{order_id}').json()
     assert detail['lines'][0]['case_price'] == expected
     assert detail['lines'][0]['line_value'] == expected
     assert detail['totals']['total_value'] == expected
-    edited = client.patch(f"/sales/orders/{order_id}/lines/{created['lines'][0]['line_id']}/update", params={'unit_price': 0})
+    line_id = created['lines'][0]['line_id']
+    params = {'unit_price': 0} if stored_price == 0 else {'quantity_lb': 100}
+    edited = client.patch(f"/sales/orders/{order_id}/lines/{line_id}/update", params=params)
     assert edited.status_code == 200, edited.text
     assert edited.json()['unit_price'] == expected
+    detail = client.get(f'/sales/orders/{order_id}').json()
+    assert detail['lines'][0]['case_price'] == expected
+    assert detail['lines'][0]['line_value'] == expected
+    assert detail['totals']['total_value'] == expected
+    db_cursor.execute('SELECT unit_price, ordered_quantity FROM sales_order_lines WHERE id=%s', (line_id,))
+    stored = db_cursor.fetchone()
+    assert stored['unit_price'] == stored_price
+    assert (stored['ordered_quantity'] is not None) == new_style
 
 
 @pytest.mark.parametrize('line,status,warning', [
@@ -223,12 +234,23 @@ def test_new_cased_product_in_lb_needs_whole_cases_when_priced(client, db_cursor
         assert counts(db_cursor) == before
 
 
-def test_migration_down_removes_both_trim_checks_and_up_restores_them(db_cursor):
+def test_migration_down_removes_trim_checks_and_marker_and_up_restores_them(db_cursor):
+    db_cursor.execute("SELECT name FROM migration_markers WHERE name <> '057_order_create_contract'")
+    other_markers = {row['name'] for row in db_cursor.fetchall()}
     db_cursor.execute(DOWN.read_text())
+    db_cursor.execute('SELECT name FROM migration_markers')
+    assert {row['name'] for row in db_cursor.fetchall()} == other_markers
     db_cursor.execute("SELECT count(*) AS n FROM pg_constraint WHERE conname IN ('sales_orders_external_reference_trimmed_check','sales_order_create_receipts_reference_trimmed_check')")
     assert db_cursor.fetchone()['n'] == 0
     db_cursor.execute(UP.read_text())
+    db_cursor.execute("SELECT * FROM migration_markers WHERE name='057_order_create_contract'")
+    marker = db_cursor.fetchone()
+    assert marker is not None
     db_cursor.execute(UP.read_text())
+    db_cursor.execute("SELECT * FROM migration_markers WHERE name='057_order_create_contract'")
+    assert db_cursor.fetchall() == [marker]  # rerun neither duplicates nor rewrites it
+    db_cursor.execute('SELECT name FROM migration_markers')
+    assert {row['name'] for row in db_cursor.fetchall()} == other_markers | {'057_order_create_contract'}
     db_cursor.execute("SELECT count(*) AS n FROM pg_constraint WHERE conname IN ('sales_orders_external_reference_trimmed_check','sales_order_create_receipts_reference_trimmed_check')")
     assert db_cursor.fetchone()['n'] == 2
 

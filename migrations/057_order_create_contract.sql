@@ -52,3 +52,6 @@ DO $$ BEGIN
             CHECK (external_order_reference = btrim(external_order_reference));
     END IF;
 END $$;
+
+INSERT INTO public.migration_markers (name) VALUES ('057_order_create_contract')
+ON CONFLICT (name) DO NOTHING;

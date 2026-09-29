@@ -282,13 +282,21 @@ def test_line_edit_keeps_saved_amount_and_original_receipt(client, catalog):
     assert post(client, body) == original
 
 
-def test_pallet_176_and_other_service_lines_ship_without_inventory(client, db_cursor, catalog):
+@pytest.mark.parametrize('service_id,service_name', [(102, 'Pallets'), (176, 'Pallet Charge')])
+def test_both_pallet_products_and_other_services_ship_without_inventory(client, db_cursor, catalog, service_id, service_name):
     # Product identity is authoritative; no product-name heuristics or special
-    # pallet count in a pounds column. Product 176 is the deployed pallet SKU.
-    db_cursor.execute("INSERT INTO products(id,name,type,is_service) VALUES (176,'Pallet Charge 176','packaging',true)")
+    # pallet count in a pounds column. Both deployed pallet SKUs use is_service.
+    db_cursor.execute("INSERT INTO products(id,name,type,is_service,active) VALUES (%s,%s,'packaging',true,true)",
+                      (service_id, service_name))
     body = payload(catalog)
-    body['lines'][1]['product_id'] = 176
+    body['lines'][1]['product_id'] = service_id
     original = post(client, body)
+    service = original['lines'][1]
+    assert service['product_id'] == service_id
+    assert service['is_service'] is True
+    assert (service['quantity'], service['unit_price'], service['amount'], service['quantity_lb']) == (3, 12.5, 37.5, 0)
+    assert original['total_lb'] == 50
+    assert original['total'] == 97.5
     order_id = original['order_id']
     db_cursor.execute("INSERT INTO lots(product_id,lot_code,supplier_lot_code,entry_source) VALUES (%s,'CONTRACT-LOT-001','N/A','received') RETURNING id", (catalog[1][0],))
     lot_id = db_cursor.fetchone()['id']
@@ -310,7 +318,7 @@ def test_pallet_176_and_other_service_lines_ship_without_inventory(client, db_cu
     assert detail['lines'][1]['quantity'] == 3
     assert detail['totals']['total_shipped_lb'] == 50
     assert detail['totals']['total_value'] == 97.5
-    db_cursor.execute('SELECT count(*) AS n FROM transaction_lines WHERE product_id IN (176,%s)', (catalog[1][2],))
+    db_cursor.execute('SELECT count(*) AS n FROM transaction_lines WHERE product_id IN (%s,%s)', (service_id, catalog[1][2]))
     assert db_cursor.fetchone()['n'] == 0
 
 

@@ -17,7 +17,8 @@ unchanged. Header PATCH keeps its existing key permissions and status gate
 }
 ```
 
-IDs above are illustrative except product 176, the Pallet Charge SKU. Supply
+IDs above are illustrative except product 176, the Pallet Charge SKU. Product
+102 (Pallets) is also a service product; both use the catalog's `is_service` flag. Supply
 the approved customer and product IDs from lookup; the API validates existence
 and uses those IDs directly, even if a stale display name is also supplied.
 Existing name-only requests remain supported.
@@ -52,8 +53,8 @@ Existing name-only requests remain supported.
   is per entered unit. Conflicting explicit pounds are rejected. A new-style
   priced line in pounds for a cased product must be a whole number of cases;
   otherwise a clear 422 asks for cases or whole-case pounds.
-* Service classification comes from `products.is_service`, including product
-  176; it never depends on the product's name. Store service count in
+* Service classification comes from `products.is_service`, including products
+  102 and 176; it never depends on a specific ID or the product's name. Store service count in
   `ordered_quantity`, unit `each`, and zero in `quantity_lb`. Services contribute
   to money totals, never pounds, physical case totals, FIFO, or allocations.
   Ship-all or explicit line shipping fulfills them without inventory movement,
@@ -74,7 +75,9 @@ The new create response includes `order_number`, `customer_po`,
 `customer_po_status`, `external_order_reference`, `total_lb`, `total`, and
 per-line `product_id`, `quantity`, `unit`, `quantity_lb`, `unit_price`, `amount`,
 and `is_service`. Order detail exposes saved commercial fields and shows
-zero prices/totals for new-style lines. Legacy zero prices retain null reads.
+zero prices/totals for new-style lines. Legacy NULL and zero prices retain null
+price/line-value reads and null totals on orders with no priced lines. NULL
+prices remain NULL after quantity-only edits, too.
 All header, line, audit and receipt writes commit in one
 transaction. Audit or receipt failure rolls back the entire order.
 
@@ -113,12 +116,14 @@ is additive and rerunnable, with no historical updates or ledger view changes.
 Receipts have RLS enabled without FORCE or public policies, matching 056's
 table-owner API access and denying public Supabase client access.
 `tests/schema/schema.sql` includes it for disposable databases.
+057 inserts `057_order_create_contract` into `migration_markers` with
+`ON CONFLICT (name) DO NOTHING`, matching 056; rerunning retains the original marker.
 
 To roll back, stop contract writes and revert the application first. Leaving
 057 in place preserves metadata and is compatible with the old application.
 If schema removal is required, export new metadata and run
 `migrations/down/057_order_create_contract_down.sql` through port 5432; it
-removes only 057 objects and necessarily discards their contents. It uses no
+removes only 057 objects and its marker, and necessarily discards their contents. It uses no
 CASCADE and never drops `ledger_current_transactions` or
 `ledger_current_transaction_lines`. Any future view change must use
 `CREATE OR REPLACE VIEW`.
