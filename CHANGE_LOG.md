@@ -15,6 +15,20 @@
 - **Why:** Owner approved all three PR #66 re-review findings; keep the core diff minimal for stacked PR #67 to rebase.
 ---
 
+## 2026-09-29 12:07 — Row 158 follow-up: all PR #67 cross-review fixes verified (not deployed)
+- **Files:** `main.py`, dashboard JS/index, migration 057 and down script, `tests/test_order_create_review.py`, `tests/test_order_create_review.js`, existing contract/shipping tests, `docs/order-create-contract.md`, all three logs.
+- **Validation:** Full suite: 1,411 Python tests passed (27 new) and 69 Node tests passed (2 new), zero failures/skips, on fresh throwaway local DB factory_ledger_pr67_review_test_20260929 built from tests/schema/schema.sql. JS syntax and git diff --check pass. PDF tests read actual generated slips before/after shipment; real HTTP races prove one receipt for a new customer and serialize header PO edits against creates. Named line-audit failures roll back quantities/amounts. Legacy zero reads remain null and legacy missing-case-weight requests return 422; only new fields opt into the new contract, and both physical paths retain omitted-unit warnings. All findings accepted. No merge, deploy, real database migration or production access.
+- **Correction to earlier claims:** Row 158 and prior entries are preserved. Prior blanket claims about zero-price reads and complete GPT create compatibility did not cover the reproduced cases; the tests now explicitly verify the owner-approved legacy/new-style split. Service-only completion is now allowed when no physical line is unfulfilled, superseding the older ZERO_SHIPMENT assertion.
+
+---
+
+## 2026-09-29 12:03 — Row 158 follow-up: PR #67 cross-review fixes (not deployed; verification in progress)
+- **Files:** `main.py`, dashboard, migration 057/up/down, contract/review tests, contract documentation, all three logs.
+- **What changed:** Correct packing-slip service counts and whole-order shipment completion; audit line edits atomically; trim only PO/reference edges and enforce reference CHECKs; restore legacy zero-price null reads and GPT case-weight validation; retain omitted-unit warnings; serialize referenced creates before customer auto-create; render service counts read-only while preserving price edits; reject priced fractional-case pounds; document app-role/5432/ON_ERROR_STOP/transaction/lock-timeout migration procedures. Add PDF, lifecycle, actor rollback, legacy-shape, zero-price, concurrency and migration regression tests. Earlier row-158 claims that all zero reads should change and that GPT create compatibility was complete were too broad; the owner now requires legacy zero reads and validation to remain unchanged. Historical row 158 is retained verbatim.
+- **Scope:** Work only in `/Users/cns/Documents/Codex/wt-order-create`; base remains ccdbe57 after fetch. Throwaway local database only; no production, merge, deployment or real-database migration.
+
+---
+
 ## 2026-09-29 11:41 — Row 158 verified on updated PR #66 base (not deployed)
 - **File(s) changed:** `main.py`, `migrations/057_order_create_contract.sql`, `migrations/down/057_order_create_contract_down.sql`, `tests/schema/schema.sql`, `tests/test_order_create_contract.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `docs/order-create-contract.md`, and all three changelogs.
 - **What changed:** Exact-text PO and visible No PO, explicit duplicate-PO override on create/header edits, approved IDs, per-customer external-reference uniqueness and atomic original-response receipts, durable commercial line quantities/amounts, product-derived physical weights, zero prices, named header audit, and zero-pound service auto-fulfillment. Retain saved case weights for reads/price edits. Receipt RLS matches 056. Rebased onto PR #66 review fixes `ccdbe57`, retaining its auto-created-customer audit and wrapper attribution. No GPT OpenAPI or key-scope changes.

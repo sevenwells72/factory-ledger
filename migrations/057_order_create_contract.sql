@@ -1,4 +1,10 @@
--- Apply after 056, BEFORE deploying the order-create contract, via port 5432.
+-- Apply after 056, BEFORE deploying the order-create contract.
+-- Run as the app's DB role (table owner), port 5432, with ON_ERROR_STOP:
+--   \set ON_ERROR_STOP on
+--   BEGIN;
+--   SET LOCAL lock_timeout='5s';
+--   \i migrations/057_order_create_contract.sql
+--   COMMIT;
 -- Additive only; no backfill, ledger view changes, or production data writes.
 -- Rollback: stop contract writes, revert application, then run
 -- migrations/down/057_order_create_contract_down.sql (new metadata is lost).
@@ -31,3 +37,18 @@ CREATE TABLE IF NOT EXISTS public.sales_order_create_receipts (
 
 -- Match 056: API table owner can write; no public Supabase client policies.
 ALTER TABLE public.sales_order_create_receipts ENABLE ROW LEVEL SECURITY;
+
+-- Keep database identity consistent with request-edge whitespace trimming.
+-- The guards also add these checks when rerunning an earlier 057 test schema.
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.sales_orders'::regclass
+                   AND conname='sales_orders_external_reference_trimmed_check') THEN
+        ALTER TABLE public.sales_orders ADD CONSTRAINT sales_orders_external_reference_trimmed_check
+            CHECK (external_order_reference = btrim(external_order_reference));
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.sales_order_create_receipts'::regclass
+                   AND conname='sales_order_create_receipts_reference_trimmed_check') THEN
+        ALTER TABLE public.sales_order_create_receipts ADD CONSTRAINT sales_order_create_receipts_reference_trimmed_check
+            CHECK (external_order_reference = btrim(external_order_reference));
+    END IF;
+END $$;

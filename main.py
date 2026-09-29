@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Request, Response, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, validator, StrictStr, StrictBool
+from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool
 from typing import Optional, List, Dict, Union, Literal, Callable, Any
 import json
 import pathlib
@@ -3879,8 +3879,17 @@ class OrderCreateLine(BaseModel):
 
 
 def _optional_order_text(value):
-    # Empty/whitespace-only means No PO/no reference; non-empty text is exact.
-    return value if value is not None and value.strip() else None
+    # Trim only the edges; preserve leading zeros and internal whitespace.
+    return (value.strip() or None) if value is not None else None
+
+
+def _uses_order_create_contract(payload):
+    lines = payload.get('lines')
+    lines = lines if isinstance(lines, list) else []
+    return bool({'customer_id', 'customer_po', 'external_order_reference', 'allow_duplicate_po'}
+                & payload.keys()) or any(
+        {'product_id', 'amount'} & line.keys() for line in lines if isinstance(line, dict)
+    )
 
 
 class OrderCreate(BaseModel):
@@ -3894,6 +3903,17 @@ class OrderCreate(BaseModel):
     lines: List[OrderCreateLine]
     notes: Optional[str] = None
     notes_es: Optional[str] = None
+
+    @root_validator(pre=True)
+    def preserve_legacy_line_validation(cls, values):
+        if isinstance(values, dict) and not _uses_order_create_contract(values):
+            # Run the original GPT line validator before the product-aware one:
+            # missing case weights and unknown units must retain their old 422.
+            lines = values.get('lines')
+            for line in lines if isinstance(lines, list) else []:
+                if isinstance(line, dict):
+                    OrderLineInput(**line)
+        return values
 
     @validator('customer_id', always=True)
     def require_customer(cls, v, values):
@@ -11433,6 +11453,12 @@ def _lock_order_reference(cur, customer_id, reference):
                 (f'order-create-reference:{customer_id}:{reference}',))
 
 
+def _lock_order_customer_reference(cur, customer_name, reference):
+    normalized_name = _normalize_vendor_description(customer_name)
+    cur.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))',
+                ('order-create-customer-reference:' + json.dumps([normalized_name, reference]),))
+
+
 def _order_reference_conflict():
     raise HTTPException(409, detail={
         'error_code': 'EXTERNAL_ORDER_REFERENCE_CONFLICT',
@@ -11492,6 +11518,11 @@ def _order_line_contract(line, product, product_name):
         priced_quantity = quantity
         if not service and unit == 'lb' and weight:
             priced_quantity = pounds / weight
+            if priced_quantity != priced_quantity.to_integral_value():
+                raise HTTPException(422, detail={
+                    'error_code': 'WHOLE_CASE_QUANTITY_REQUIRED',
+                    'message': f"'{product_name}' is priced per case. Specify quantity in cases or whole-case pounds (multiples of {weight} lb).",
+                })
         amount = (priced_quantity * price).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     if line.get('amount') is not None:
         supplied = Decimal(str(line['amount']))
@@ -11578,12 +11609,12 @@ def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_dat
                 # Recalculate quantity_lb with looked-up weight
                 quantity_lb = quantity * effective_case_weight
 
-            # Fix #1: Warn if unit was not explicitly provided and quantity was given
-            if quantity is not None and unit is None:
-                warnings.append(
-                    f"⚠️ '{prod_name}': No unit specified for quantity {quantity:,.0f} — "
-                    f"defaulting to lb. Did you mean cases?"
-                )
+        # Preserve the original warning on both physical-line paths.
+        if not is_service and quantity is not None and unit is None:
+            warnings.append(
+                f"⚠️ '{prod_name}': No unit specified for quantity {quantity:,.0f} — "
+                f"defaulting to lb. Did you mean cases?"
+            )
 
         cur.execute(
             """INSERT INTO sales_order_lines (sales_order_id, product_id, quantity_lb, unit_price, notes, notes_es)
@@ -11652,6 +11683,11 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                reference = req.external_order_reference
+                if reference is not None and req.customer_id is None:
+                    # Serialize name-based retries before either can auto-create
+                    # the customer. ID-based requests keep their existing lock.
+                    _lock_order_customer_reference(cur, req.customer_name, reference)
                 if req.customer_id is not None:
                     cur.execute('SELECT id, name FROM customers WHERE id=%s', (req.customer_id,))
                     customer = cur.fetchone()
@@ -11663,7 +11699,6 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
                         cur, req.customer_name, address=req.customer_address, request=request
                     )
 
-                reference = req.external_order_reference
                 request_hash = None
                 if reference is not None:
                     _lock_order_reference(cur, customer_id, reference)
@@ -11685,11 +11720,7 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
                 _check_order_po(cur, customer_id, req.customer_po, req.allow_duplicate_po)
                 # Existing GPT payloads retain their original calculation/response
                 # path. New fields opt into durable quantities and money.
-                save_contract = bool(
-                    {'customer_id', 'customer_po', 'external_order_reference', 'allow_duplicate_po'}
-                    & req.__fields_set__
-                ) or any(line.product_id is not None or line.amount is not None
-                         or line.unit == 'each' or line.quantity_lb is None for line in req.lines)
+                save_contract = _uses_order_create_contract(req.dict(exclude_unset=True))
                 if save_contract and not req.lines:
                     raise HTTPException(422, 'At least one order line is required')
 
@@ -14216,7 +14247,9 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
             for r in cur.fetchall():
                 qty = float(r['quantity_lb'])
                 shipped = float(r['quantity_shipped_lb'])
-                price = float(r['unit_price']) if r['unit_price'] is not None else None
+                new_style = r['ordered_quantity'] is not None
+                price = (float(r['unit_price']) if r['unit_price'] is not None
+                         and (new_style or r['unit_price']) else None)
                 saved_weight = (r['ordered_case_weight_lb'] if r['ordered_quantity'] is not None
                                 else r['case_size_lb'])
                 case_size = float(saved_weight) if saved_weight else None
@@ -14335,7 +14368,9 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 "total_ordered_units": total_ordered_units,
                 "total_shipped_units": total_shipped_units,
                 "total_remaining_units": total_ordered_units - total_shipped_units,
-                "total_value": round(total_value, 2) if any(line['line_value'] is not None for line in lines) else None
+                "total_value": round(total_value, 2) if total_value > 0 or any(
+                    'quantity' in line and line['line_value'] is not None for line in lines
+                ) else None
             }
             order.update(readiness_by_order[order_id])
             return order
@@ -15210,6 +15245,7 @@ def update_order_line(
                     }, product, str(row['product_id']))
                     cur.execute('UPDATE sales_order_lines SET ordered_quantity=%s, amount=%s WHERE id=%s',
                                 (contract['quantity'], contract['amount'], line_id))
+                _record_actor_write(cur, request, 'sales_order_lines', line_id)
                 if quantity_lb is not None:
                     product_id = int(row['product_id'])
                     # released_by comes from caller_source_tag, the same source
@@ -15250,7 +15286,9 @@ def update_order_line(
                 prow = cur.fetchone()
                 cs = float(prow['case_size_lb']) if prow and prow['case_size_lb'] else None
                 qty = float(row['quantity_lb'])
-                return {"line_id": row['id'], "quantity_lb": qty, "unit_price": float(row['unit_price']) if row['unit_price'] is not None else None,
+                price = (float(row['unit_price']) if row['unit_price'] is not None
+                         and (existing['ordered_quantity'] is not None or row['unit_price']) else None)
+                return {"line_id": row['id'], "quantity_lb": qty, "unit_price": price,
                         "case_size_lb": cs, "unit_count": round(qty / cs) if cs else None,
                         "allocations_released": allocations_released}
     except HTTPException:
@@ -15415,6 +15453,7 @@ def ship_order(
                         lines_to_ship = []
                         for rl in (req.lines or []):
                             cur.execute("""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
+                                                  sol.ordered_quantity, sol.line_status,
                                                   COALESCE(p.is_service, false) AS is_service
                                            FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
                                            WHERE sol.id = %s AND sol.sales_order_id = %s""", (rl.line_id, order_id))
@@ -15422,11 +15461,12 @@ def ship_order(
                             if not r:
                                 raise HTTPException(404, f"Line #{rl.line_id} not found on order #{order_id}")
                             remaining = float(r['quantity_lb']) - float(r['quantity_shipped_lb'])
-                            if remaining <= 0:
+                            service_count = r['is_service'] and r['ordered_quantity'] is not None
+                            if r['line_status'] in ('fulfilled', 'cancelled') or (remaining <= 0 and not service_count):
                                 raise HTTPException(status_code=409, detail={"error_code": "LINE_ALREADY_FULFILLED", "message": f"Line #{rl.line_id} ({r['name']}) is already fully shipped.", "line_id": rl.line_id, "product": r['name'], "ordered_lb": float(r['quantity_lb']), "shipped_lb": float(r['quantity_shipped_lb']), "remaining_lb": 0})
-                            if rl.quantity_lb > remaining:
+                            if not service_count and rl.quantity_lb > remaining:
                                 raise HTTPException(status_code=422, detail={"error_code": "QTY_EXCEEDS_REMAINING", "message": f"Line #{rl.line_id} ({r['name']}): requested {rl.quantity_lb} lb but only {remaining} lb remaining.", "line_id": rl.line_id, "product": r['name'], "requested_lb": rl.quantity_lb, "remaining_lb": remaining, "suggestion": f"Retry with quantity_lb={remaining}"})
-                            lines_to_ship.append({"line_id": r['id'], "product_id": r['product_id'], "quantity_lb": rl.quantity_lb, "product_name": r['name'], "is_service": r['is_service']})
+                            lines_to_ship.append({"line_id": r['id'], "product_id": r['product_id'], "quantity_lb": 0 if service_count else rl.quantity_lb, "product_name": r['name'], "is_service": r['is_service']})
 
                     if not lines_to_ship:
                         raise HTTPException(status_code=409, detail={"error_code": "ORDER_ALREADY_FULFILLED", "message": f"Order {order_row['order_number']} has no remaining lines to ship.", "order_id": order_id, "order_number": order_row['order_number'], "status": order_row['status']})
@@ -15507,7 +15547,6 @@ def ship_order(
                     shipment_id = cur.fetchone()['id']
 
                     results = []
-                    all_fully_shipped = True
                     # Flag read once per request (§9); each per-line ship
                     # transaction below emits its own trace event.
                     trace_on = trace_emit_enabled()
@@ -15543,7 +15582,6 @@ def ship_order(
                         actual_ship = float(plan["actual_ship_lb"])
                         if actual_ship <= BALANCE_EPSILON:
                             results.append({"line_id": item["line_id"], "product": item["product_name"], "requested_lb": qty_to_ship, "shipped_lb": 0, "status": "no_stock"})
-                            all_fully_shipped = False
                             continue
 
                         cur.execute("""
@@ -15578,10 +15616,8 @@ def ship_order(
                             new_line_status = 'fulfilled'
                         elif new_shipped > 0:
                             new_line_status = 'partial'
-                            all_fully_shipped = False
                         else:
                             new_line_status = 'pending'
-                            all_fully_shipped = False
                         cur.execute("UPDATE sales_order_lines SET line_status = %s WHERE id = %s", (new_line_status, item["line_id"]))
 
                         # Record in sales_order_shipments
@@ -15621,16 +15657,21 @@ def ship_order(
                                         "allocation_changes": allocation_changes,
                                         "transaction_id": txn_id, "confirmation_code": generate_confirmation_code(txn_id),
                                         "line_status": new_line_status})
-                        if actual_ship < qty_to_ship:
-                            all_fully_shipped = False
 
-                    # Block zero-shipment: if no PHYSICAL line items shipped any quantity, roll back.
-                    # Service lines (pallet charges, etc.) don't count — they auto-fulfill without
-                    # inventory movement and shouldn't bypass this guard on their own.
+                    # Inspect the whole order, not just this request's lines.
+                    # Services may finish after all physical shipments are done;
+                    # they must not hide unfulfilled physical lines with no stock.
+                    cur.execute('''SELECT COUNT(*) AS pending_lines,
+                                          COUNT(*) FILTER (WHERE NOT COALESCE(p.is_service, false)) AS pending_physical
+                                   FROM sales_order_lines sol JOIN products p ON p.id=sol.product_id
+                                   WHERE sol.sales_order_id=%s AND sol.line_status NOT IN ('fulfilled', 'cancelled')''',
+                                (order_id,))
+                    pending = cur.fetchone()
+                    all_fully_shipped = pending['pending_lines'] == 0
                     any_actually_shipped = any(
                         r.get("shipped_lb", 0) > 0 and not r.get("is_service") for r in results
                     )
-                    if not any_actually_shipped:
+                    if not any_actually_shipped and pending['pending_physical']:
                         cur.execute("DELETE FROM shipment_lines WHERE shipment_id = %s", (shipment_id,))
                         cur.execute("DELETE FROM shipments WHERE id = %s", (shipment_id,))
                         raise HTTPException(status_code=409, detail={
@@ -15776,7 +15817,8 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
             cur.execute("""
                 SELECT sol.id, sol.product_id, p.name AS product_name,
                        sol.quantity_lb, sol.quantity_shipped_lb,
-                       p.case_size_lb, sol.line_status
+                       p.case_size_lb, sol.line_status, sol.ordered_quantity,
+                       COALESCE(p.is_service, false) AS is_service
                 FROM sales_order_lines sol
                 JOIN products p ON p.id = sol.product_id
                 WHERE sol.sales_order_id = %s AND sol.line_status != 'cancelled'
@@ -15849,10 +15891,11 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                     product_name = line['product_name']
                     product_lower = product_name.lower()
                     non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                    is_non_weight = any(kw in product_lower for kw in non_weight_keywords)
+                    is_non_weight = (line['is_service'] if line['ordered_quantity'] is not None else
+                                     line['is_service'] or any(kw in product_lower for kw in non_weight_keywords))
                     if is_non_weight and product_name not in shipped_product_names:
-                        qty_lb = float(line['quantity_lb'])
-                        qty_display = str(int(qty_lb)) if qty_lb == int(qty_lb) else str(qty_lb)
+                        count = float(line['ordered_quantity'] if line['ordered_quantity'] is not None else line['quantity_lb'])
+                        qty_display = f"{count:g}"
                         line_allocations.append({
                             "product_name": product_name,
                             "lot_code": "N/A",
@@ -15870,10 +15913,12 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                     # Detect non-weight items
                     product_lower = product_name.lower()
                     non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                    is_non_weight = any(kw in product_lower for kw in non_weight_keywords)
+                    is_non_weight = (line['is_service'] if line['ordered_quantity'] is not None else
+                                     line['is_service'] or any(kw in product_lower for kw in non_weight_keywords))
 
                     if is_non_weight:
-                        qty_display = str(int(qty_lb)) if qty_lb == int(qty_lb) else str(qty_lb)
+                        count = float(line['ordered_quantity'] if line['ordered_quantity'] is not None else line['quantity_lb'])
+                        qty_display = f"{count:g}"
                         line_allocations.append({
                             "product_name": product_name,
                             "lot_code": "N/A",

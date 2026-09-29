@@ -114,7 +114,7 @@ def test_no_po_never_blocks_and_is_visible(client, catalog, po):
     assert detail['customer_po_status'] == 'No PO'
 
 
-def test_po_duplicate_warning_explicit_override_and_exact_text(client, db_cursor, catalog):
+def test_po_duplicate_warning_explicit_override_and_trimmed_text(client, db_cursor, catalog):
     first = post(client, payload(catalog, customer_po='  062732  '))
     duplicate = payload(catalog, external_order_reference='ORD28101')
     response = client.post('/sales/orders', json=duplicate)
@@ -125,7 +125,7 @@ def test_po_duplicate_warning_explicit_override_and_exact_text(client, db_cursor
     second = post(client, duplicate)
     assert second['order_id'] != first['order_id']
     db_cursor.execute('SELECT customer_po FROM sales_orders WHERE id=%s', (first['order_id'],))
-    assert db_cursor.fetchone()['customer_po'] == '  062732  '
+    assert db_cursor.fetchone()['customer_po'] == '062732'
 
 
 def test_retry_is_original_even_after_header_and_catalog_edits(client, db_cursor, catalog):
