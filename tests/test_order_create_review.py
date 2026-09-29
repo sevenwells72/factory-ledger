@@ -17,8 +17,194 @@ import main
 from tests.test_sales_order_line_fields import client  # noqa: F401
 from tests.test_named_actor_writes import named_actors  # noqa: F401
 from tests.test_order_create_contract import catalog, seed, payload, post, counts, ROOT, UP, DOWN  # noqa: F401
+from tests.test_sales_order_extract import _insert_document, _approve_payload, _approve_line
 
 pytestmark = pytest.mark.db
+
+
+@pytest.mark.parametrize('path', ['manual', 'receipt', 'intake'])
+def test_rebased_creation_audits_each_target_exactly_once(client, db_cursor, catalog, named_actors, path):
+    client.headers['X-API-Key'] = named_actors['Miriam']['key']
+    new_customer = 'Zq' + uuid4().hex
+    if path == 'intake':
+        doc = _insert_document(db_cursor, path=uuid4().hex, kind='sales', status='extracted', sha=uuid4().hex)
+        body = _approve_payload(doc['id'], catalog[0], [
+            _approve_line(catalog[1][0], 20), _approve_line(catalog[1][0], 30)], po=uuid4().hex)
+        route, status = '/sales/orders/extract/approve', 201
+    elif path == 'manual':
+        body = legacy_body(db_cursor, catalog, {'quantity_lb': 50})
+        body['customer_name'] = new_customer
+        body['lines'].append(dict(body['lines'][0]))
+        route, status = '/sales/orders', 200
+    else:
+        body = payload(catalog)
+        del body['customer_id']
+        body['customer_name'] = new_customer
+        route, status = '/sales/orders', 200
+    response = client.post(route, json=body)
+    assert response.status_code == status, response.text
+    result = response.json()
+    expected = {('sales_orders', result['order_id'])} | {
+        ('sales_order_lines', line['line_id']) for line in result['lines']}
+    if path != 'intake':
+        db_cursor.execute('SELECT id FROM customers WHERE name=%s', (new_customer,))
+        expected.add(('customers', db_cursor.fetchone()['id']))
+    db_cursor.execute('SELECT * FROM actor_write_audit ORDER BY id')
+    audit = db_cursor.fetchall()
+    assert len(audit) == len(expected) == {'manual': 4, 'receipt': 5, 'intake': 3}[path]
+    assert {(r['target_table'], r['target_id']) for r in audit} == expected
+    assert {(r['actor_id'], r['operator_id'], r['method'], r['route']) for r in audit} == {
+        (named_actors['Miriam']['id'], 'Miriam', 'POST', route)}
+    if path == 'receipt':
+        before = counts(db_cursor)
+        assert client.post(route, json=body).json() == result
+        assert counts(db_cursor) == before
+        assert before['sales_order_create_receipts'] == 1
+
+
+@pytest.mark.parametrize('failure', ['second_line_audit', 'receipt'])
+def test_rebased_receipt_failure_undoes_auto_customer_and_all_audits(
+        client, db_cursor, catalog, named_actors, monkeypatch, failure):
+    body = payload(catalog)
+    del body['customer_id']
+    body['customer_name'] = 'Zq' + uuid4().hex
+    before = counts(db_cursor)
+    if failure == 'receipt':
+        db_cursor.execute('''CREATE FUNCTION pg_temp.reject_receipt() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN RAISE EXCEPTION 'receipt rollback probe'; END $$;
+            CREATE TRIGGER reject_receipt BEFORE INSERT ON sales_order_create_receipts
+            FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_receipt()''')
+    else:
+        original = main._record_actor_write
+        line_audits = []
+        def fail_second_line(cur, request, table, target):
+            if table == 'sales_order_lines':
+                line_audits.append(target)
+                if len(line_audits) == 2:
+                    cur.execute('SELECT 1 / 0')
+            original(cur, request, table, target)
+        monkeypatch.setattr(main, '_record_actor_write', fail_second_line)
+    response = client.post('/sales/orders', json=body,
+                           headers={'X-API-Key': named_actors['Miriam']['key']})
+    assert response.status_code == 500, response.text
+    assert counts(db_cursor) == before
+    db_cursor.execute('SELECT id FROM customers WHERE name=%s', (body['customer_name'],))
+    assert db_cursor.fetchone() is None
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+def test_reduced_partial_line_does_not_block_other_line_completion(client, db_cursor, catalog, legacy):
+    body = (legacy_body(db_cursor, catalog, {'quantity_lb': 50}) if legacy else
+            payload(catalog, lines=[{'product_id': catalog[1][0], 'quantity_lb': 50}]))
+    body['lines'].append(dict(body['lines'][0]))
+    created = post(client, body)
+    first, second = [line['line_id'] for line in created['lines']]
+    url = f"/sales/orders/{created['order_id']}/ship"
+    stock(db_cursor, catalog[1][0], 90)
+    response = client.post(url, json={'mode': 'commit', 'lines': [{'line_id': first, 'quantity_lb': 40}]})
+    assert response.status_code == 200, response.text
+    assert response.json()['order_status'] == 'partial_ship'
+    response = client.patch(f"/sales/orders/{created['order_id']}/lines/{first}/update", params={'quantity_lb': 40})
+    assert response.status_code == 200, response.text
+    response = client.post(url, json={'mode': 'commit', 'lines': [{'line_id': second, 'quantity_lb': 50}]})
+    assert response.status_code == 200, response.text
+    assert response.json()['order_status'] == 'shipped'
+    db_cursor.execute('SELECT status FROM sales_orders WHERE id=%s', (created['order_id'],))
+    assert db_cursor.fetchone()['status'] == 'shipped'
+
+
+@pytest.mark.parametrize('fail_audit', [False, True])
+def test_legacy_stuck_partial_order_finishes_without_new_shipment(
+        client, db_cursor, catalog, named_actors, monkeypatch, fail_audit):
+    created = post(client, legacy_body(db_cursor, catalog, {'quantity_lb': 50}))
+    line_id = created['lines'][0]['line_id']
+    url = f"/sales/orders/{created['order_id']}/ship"
+    stock(db_cursor, catalog[1][0], 40)
+    assert client.post(url, json={'mode': 'commit', 'ship_all': True}).status_code == 200
+    # Persist the exact pre-fix stuck state: partial status but nothing remaining.
+    db_cursor.execute('UPDATE sales_order_lines SET quantity_lb=40 WHERE id=%s', (line_id,))
+    before = counts(db_cursor)
+    db_cursor.execute('SELECT count(*) AS n FROM shipments')
+    shipments_before = db_cursor.fetchone()['n']
+    if fail_audit:
+        def fail(cur, *args):
+            cur.execute('SELECT 1 / 0')
+        monkeypatch.setattr(main, '_record_actor_write', fail)
+    response = client.post(url, json={'mode': 'commit', 'ship_all': True},
+                           headers={'X-API-Key': named_actors['Miriam']['key']})
+    assert response.status_code == (500 if fail_audit else 200), response.text
+    db_cursor.execute('SELECT status FROM sales_orders WHERE id=%s', (created['order_id'],))
+    assert db_cursor.fetchone()['status'] == ('partial_ship' if fail_audit else 'shipped')
+    if not fail_audit:
+        assert response.json()['shipment_id'] is None
+        assert response.json()['lines_shipped'] == []
+        before['actor_write_audit'] += 1
+        repeated = client.post(url, json={'mode': 'commit', 'ship_all': True})
+        assert repeated.status_code == 409
+    assert counts(db_cursor) == before
+    db_cursor.execute('SELECT count(*) AS n FROM shipments')
+    assert db_cursor.fetchone()['n'] == shipments_before
+
+
+def test_legacy_422_reports_all_bad_lines_with_original_indices(client, db_cursor, catalog):
+    body = legacy_body(db_cursor, catalog, {'quantity_lb': 50})
+    product = body['lines'][0]['product_name']
+    body['lines'] += [{'product_name': product, 'quantity': 2, 'unit': 'cases'},
+                      {'product_name': product, 'quantity': 3, 'unit': 'bags'}]
+    before = counts(db_cursor)
+    response = client.post('/sales/orders', json=body)
+    assert response.status_code == 422, response.text
+    errors = response.json()['detail']
+    assert [e['loc'] for e in errors] == [
+        ['body', 'lines', 1, 'quantity_lb'], ['body', 'lines', 2, 'quantity_lb']]
+    assert "unit is 'cases'" in errors[0]['msg']
+    assert "unit is 'bags'" in errors[1]['msg']
+    assert counts(db_cursor) == before
+
+
+@pytest.mark.parametrize('price,status', [(30, 422), (0, 422), (None, 200)])
+def test_priced_case_line_edit_requires_whole_cases_and_names_product(client, db_cursor, catalog, price, status):
+    created = post(client, payload(catalog, lines=[{
+        'product_id': catalog[1][0], 'quantity': 4, 'unit': 'cases', 'unit_price': price}]))
+    line_id = created['lines'][0]['line_id']
+    db_cursor.execute('SELECT row_to_json(l) AS data FROM sales_order_lines l WHERE id=%s', (line_id,))
+    original = db_cursor.fetchone()['data']
+    db_cursor.execute('SELECT name FROM products WHERE id=%s', (catalog[1][0],))
+    name = db_cursor.fetchone()['name']
+    response = client.patch(f"/sales/orders/{created['order_id']}/lines/{line_id}/update", params={'quantity_lb': 110})
+    assert response.status_code == status, response.text
+    if status == 422:
+        detail = response.json()['detail']
+        assert detail['error_code'] == 'WHOLE_CASE_QUANTITY_REQUIRED'
+        assert name in detail['message'] and '25' in detail['message']
+        db_cursor.execute('SELECT row_to_json(l) AS data FROM sales_order_lines l WHERE id=%s', (line_id,))
+        assert db_cursor.fetchone()['data'] == original
+
+
+@pytest.mark.parametrize('kind', ['cancelled', 'service_first'])
+def test_shipping_rejections_explain_cancelled_and_service_lines(client, db_cursor, catalog, kind):
+    created = post(client, payload(catalog))
+    if kind == 'cancelled':
+        line = created['lines'][0]
+        cancelled = client.patch(f"/sales/orders/{created['order_id']}/lines/{line['line_id']}/cancel")
+        assert cancelled.status_code == 200, cancelled.text
+        quantity, code, wording = 50, 'LINE_CANCELLED', 'cancelled'
+    else:
+        stock(db_cursor, catalog[1][0])  # Stock exists; this is a sequencing error.
+        line = created['lines'][1]
+        quantity, code, wording = 0, 'PHYSICAL_LINES_PENDING', 'physical product lines'
+    before = counts(db_cursor)
+    db_cursor.execute('SELECT line_status FROM sales_order_lines WHERE id=%s', (line['line_id'],))
+    status = db_cursor.fetchone()['line_status']
+    response = client.post(f"/sales/orders/{created['order_id']}/ship", json={
+        'mode': 'commit', 'lines': [{'line_id': line['line_id'], 'quantity_lb': quantity}]})
+    assert response.status_code == 409, response.text
+    assert response.json()['detail']['error_code'] == code
+    assert wording in response.json()['detail']['message']
+    assert 'zero available stock' not in response.text
+    assert counts(db_cursor) == before
+    db_cursor.execute('SELECT line_status FROM sales_order_lines WHERE id=%s', (line['line_id'],))
+    assert db_cursor.fetchone()['line_status'] == status
 
 
 def stock(cur, product_id, pounds=50):

@@ -1,5 +1,18 @@
 # Change Log
 
+## 2026-09-29 12:34 — Row 158 re-review verified on PR #66 7410112 (not deployed)
+- **Files:** `main.py`, `tests/test_order_create_review.py`, all three changelogs.
+- **Validation:** Full Python suite 1,443 passed (1,414 previous + 14 upstream PR #66 + 15 new), Node 69 passed, zero failures/skips; focused suite 296 passed. Tests ran only on fresh throwaway UTF-8 PostgreSQL 17 database pr67_test at 127.0.0.1:57667. Exact audit counts: manual auto-customer order 4, receipt create 5 with no retry duplicates, extraction approval 3; late audit/receipt failures undo customer and prior audits. N1 uses one pending-quantity rule for preview/ship-all/completion and repairs legacy partial orders with no remaining quantities without stock moves or a new shipment; repair audit failure rolls back. N2 reports every bad legacy line at body/lines/index/quantity_lb. N3 rejects priced fractional-case edits with the product name. Messages identify cancelled lines and physical-lines-first service sequencing. Floor GPT behavior: shipping one of two physical lines now yields partial_ship (previously incorrectly shipped); service-only orders now ship; shipping a cancelled line now 409s. Changelog row 158 and earlier entries remain unchanged; upstream restored row 157 retained. No production access, real-DB migrations, merge or deploy.
+- **Rebase:** Resolved `main.py` signature/header-audit/manual-response conflicts by combining the request-aware core audit with contract fields and receipt handling, with no duplicate caller audit. Resolved changelog insertions by retaining both histories and original row 158.
+
+---
+
+## 2026-09-29 12:31 — Row 158 re-review: rebase onto PR #66 and repair shipping/validation (not deployed)
+- **Files:** `main.py`, `tests/test_order_create_review.py`, all three changelogs.
+- **What changed:** Rebased onto 7410112. Resolved shared-core request/header-audit/manual-caller conflicts by preserving contract fields and receipts with one core audit per created order/line; retained customer audit. Preserved both log histories, restored upstream row 157 and unchanged row 158. Fix remaining-quantity completion (including legacy partial orders), indexed multi-line legacy 422 errors, priced whole-case line edits with product names, and cancelled/service-first shipping messages. Floor GPT behavior: shipping one of two physical lines yields partial_ship (previously incorrectly shipped); service-only orders can ship; shipping a cancelled line returns 409. Full disposable-database validation pending; no production, real-DB migrations, merge or deploy.
+
+---
+
 ## 2026-09-29 12:25 — Verified PR #66 re-review fixes (row 157; not deployed)
 - **File(s) changed:** `main.py`, `migrations/down/056_actor_write_audit_down.sql`, `tests/test_named_actor_writes.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Verified shared-core order/line audit from both callers, actor intake success, header/second-line audit-failure rollback on both paths (including manual auto-created customer and prior audit rows), shared intake without 056, and empty/refused/export-override/absent-table down cases.

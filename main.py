@@ -3892,6 +3892,10 @@ def _uses_order_create_contract(payload):
     )
 
 
+class _LegacyLines(BaseModel):
+    lines: List[OrderLineInput]
+
+
 class OrderCreate(BaseModel):
     customer_name: Optional[str] = None
     customer_id: Optional[int] = None
@@ -3909,10 +3913,7 @@ class OrderCreate(BaseModel):
         if isinstance(values, dict) and not _uses_order_create_contract(values):
             # Run the original GPT line validator before the product-aware one:
             # missing case weights and unknown units must retain their old 422.
-            lines = values.get('lines')
-            for line in lines if isinstance(lines, list) else []:
-                if isinstance(line, dict):
-                    OrderLineInput(**line)
+            _LegacyLines(**values)
         return values
 
     @validator('customer_id', always=True)
@@ -11516,12 +11517,12 @@ def _order_line_contract(line, product, product_name):
         if price < 0 or price != price.quantize(Decimal('0.0001')):
             raise HTTPException(422, 'unit_price must be non-negative with at most four decimal places')
         priced_quantity = quantity
-        if not service and unit == 'lb' and weight:
-            priced_quantity = pounds / weight
+        if not service and unit in ('lb', 'cases') and weight:
+            priced_quantity = pounds / weight if unit == 'lb' else quantity
             if priced_quantity != priced_quantity.to_integral_value():
                 raise HTTPException(422, detail={
                     'error_code': 'WHOLE_CASE_QUANTITY_REQUIRED',
-                    'message': f"'{product_name}' is priced per case. Specify quantity in cases or whole-case pounds (multiples of {weight} lb).",
+                    'message': f"'{product_name}' is priced per case. Specify whole cases or whole-case pounds (multiples of {weight} lb).",
                 })
         amount = (priced_quantity * price).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     if line.get('amount') is not None:
@@ -15233,7 +15234,7 @@ def update_order_line(
                 if existing['ordered_quantity'] is not None:
                     # Keep saved commercial values consistent after existing
                     # physical-quantity and price edits; receipt stays original.
-                    cur.execute('SELECT case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id=%s',
+                    cur.execute('SELECT name, case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id=%s',
                                 (row['product_id'],))
                     product = cur.fetchone()
                     product['case_size_lb'] = existing['ordered_case_weight_lb']
@@ -15242,7 +15243,7 @@ def update_order_line(
                         'quantity_lb': row['quantity_lb'], 'unit': existing['ordered_unit'],
                         'case_weight_lb': existing['ordered_case_weight_lb'],
                         'unit_price': row['unit_price'],
-                    }, product, str(row['product_id']))
+                    }, product, product['name'])
                     cur.execute('UPDATE sales_order_lines SET ordered_quantity=%s, amount=%s WHERE id=%s',
                                 (contract['quantity'], contract['amount'], line_id))
                 _record_actor_write(cur, request, 'sales_order_lines', line_id)
@@ -15303,6 +15304,28 @@ def update_order_line(
 # SHIP AGAINST ORDER ENDPOINTS (v2.3.0)
 # ═══════════════════════════════════════════════════════════════
 
+# Use the same remaining-work rule in preview, ship-all and completion.
+# A quantity reduction can leave a physical line marked partial at zero remaining.
+ORDER_LINE_PENDING_SQL = """
+    sol.line_status != 'cancelled' AND (
+        (NOT COALESCE(p.is_service, false)
+         AND sol.quantity_lb - sol.quantity_shipped_lb > 0)
+        OR (COALESCE(p.is_service, false) AND sol.line_status != 'fulfilled'
+            AND (sol.ordered_quantity IS NOT NULL
+                 OR sol.quantity_lb - sol.quantity_shipped_lb > 0))
+    )
+"""
+
+
+def _pending_order_ship_counts(cur, order_id):
+    cur.execute(f'''SELECT COUNT(*) AS pending_lines,
+                          COUNT(*) FILTER (WHERE NOT COALESCE(p.is_service, false)) AS pending_physical
+                   FROM sales_order_lines sol JOIN products p ON p.id=sol.product_id
+                   WHERE sol.sales_order_id=%s AND ({ORDER_LINE_PENDING_SQL})''',
+                (order_id,))
+    return cur.fetchone()
+
+
 @app.post("/sales/orders/{order_id}/ship")
 def ship_order(
     request: Request,
@@ -15333,11 +15356,11 @@ def ship_order(
                 if order_row['status'] in ('invoiced', 'cancelled'):
                     raise HTTPException(400, f"Cannot ship {order_row['status']} order")
                 ship_all = (req is None) or (req.ship_all)
-                cur.execute("""SELECT sol.id, p.id AS product_id, p.name, sol.quantity_lb, sol.quantity_shipped_lb,
+                cur.execute(f"""SELECT sol.id, p.id AS product_id, p.name, sol.quantity_lb, sol.quantity_shipped_lb,
                                       sol.ordered_quantity,
                                       COALESCE(p.is_service, false) AS is_service
                                FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
-                               WHERE sol.sales_order_id = %s AND sol.line_status NOT IN ('fulfilled', 'cancelled') ORDER BY sol.id""", (order_id,))
+                               WHERE sol.sales_order_id = %s AND ({ORDER_LINE_PENDING_SQL}) ORDER BY sol.id""", (order_id,))
                 lines = cur.fetchall()
                 preview = []
                 warnings = []
@@ -15437,18 +15460,16 @@ def ship_order(
                     ship_all = (req is None) or (req.ship_all)
 
                     if ship_all:
-                        cur.execute("""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
+                        cur.execute(f"""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
                                               sol.ordered_quantity,
                                               COALESCE(p.is_service, false) AS is_service
                                        FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
-                                       WHERE sol.sales_order_id = %s AND sol.line_status NOT IN ('fulfilled', 'cancelled') ORDER BY sol.id""", (order_id,))
+                                       WHERE sol.sales_order_id = %s AND ({ORDER_LINE_PENDING_SQL}) ORDER BY sol.id""", (order_id,))
                         lines_to_ship = [{"line_id": r['id'], "product_id": r['product_id'],
                                           "quantity_lb": float(r['quantity_lb']) - float(r['quantity_shipped_lb']),
                                           "product_name": r['name'],
                                           "is_service": r['is_service']}
-                                         for r in cur.fetchall()
-                                         if float(r['quantity_lb']) - float(r['quantity_shipped_lb']) > 0
-                                         or (r['is_service'] and r['ordered_quantity'] is not None)]
+                                         for r in cur.fetchall()]
                     else:
                         lines_to_ship = []
                         for rl in (req.lines or []):
@@ -15462,14 +15483,36 @@ def ship_order(
                                 raise HTTPException(404, f"Line #{rl.line_id} not found on order #{order_id}")
                             remaining = float(r['quantity_lb']) - float(r['quantity_shipped_lb'])
                             service_count = r['is_service'] and r['ordered_quantity'] is not None
-                            if r['line_status'] in ('fulfilled', 'cancelled') or (remaining <= 0 and not service_count):
+                            if r['line_status'] == 'cancelled':
+                                raise HTTPException(status_code=409, detail={
+                                    "error_code": "LINE_CANCELLED",
+                                    "message": f"Line #{rl.line_id} ({r['name']}) is cancelled and cannot be shipped.",
+                                    "line_id": rl.line_id, "product": r['name'],
+                                })
+                            if (r['is_service'] and r['line_status'] == 'fulfilled') or (remaining <= 0 and not service_count):
                                 raise HTTPException(status_code=409, detail={"error_code": "LINE_ALREADY_FULFILLED", "message": f"Line #{rl.line_id} ({r['name']}) is already fully shipped.", "line_id": rl.line_id, "product": r['name'], "ordered_lb": float(r['quantity_lb']), "shipped_lb": float(r['quantity_shipped_lb']), "remaining_lb": 0})
                             if not service_count and rl.quantity_lb > remaining:
                                 raise HTTPException(status_code=422, detail={"error_code": "QTY_EXCEEDS_REMAINING", "message": f"Line #{rl.line_id} ({r['name']}): requested {rl.quantity_lb} lb but only {remaining} lb remaining.", "line_id": rl.line_id, "product": r['name'], "requested_lb": rl.quantity_lb, "remaining_lb": remaining, "suggestion": f"Retry with quantity_lb={remaining}"})
                             lines_to_ship.append({"line_id": r['id'], "product_id": r['product_id'], "quantity_lb": 0 if service_count else rl.quantity_lb, "product_name": r['name'], "is_service": r['is_service']})
 
                     if not lines_to_ship:
+                        if ship_all and order_row['status'] == 'partial_ship':
+                            # Repair a legacy partial order whose quantities were
+                            # reduced to what was already shipped. No stock moves.
+                            cur.execute("UPDATE sales_orders SET status='shipped' WHERE id=%s", (order_id,))
+                            _record_actor_write(cur, request, 'sales_orders', order_id)
+                            return {"mode": "commit", "order_number": order_row['order_number'],
+                                    "customer": order_row['name'], "order_status": "shipped",
+                                    "shipment_id": None, "lines_shipped": [],
+                                    "message": f"Order {order_row['order_number']} completed — no quantities remain to ship"}
                         raise HTTPException(status_code=409, detail={"error_code": "ORDER_ALREADY_FULFILLED", "message": f"Order {order_row['order_number']} has no remaining lines to ship.", "order_id": order_id, "order_number": order_row['order_number'], "status": order_row['status']})
+
+                    if all(item['is_service'] for item in lines_to_ship) and _pending_order_ship_counts(cur, order_id)['pending_physical']:
+                        raise HTTPException(status_code=409, detail={
+                            "error_code": "PHYSICAL_LINES_PENDING",
+                            "message": "Ship the remaining physical product lines before completing service charges.",
+                            "order_id": order_id, "order_number": order_row['order_number'],
+                        })
 
                     # Step 3 of the normative lock order: EVERY product this
                     # shipment touches, ascending product id, taken here before
@@ -15661,12 +15704,7 @@ def ship_order(
                     # Inspect the whole order, not just this request's lines.
                     # Services may finish after all physical shipments are done;
                     # they must not hide unfulfilled physical lines with no stock.
-                    cur.execute('''SELECT COUNT(*) AS pending_lines,
-                                          COUNT(*) FILTER (WHERE NOT COALESCE(p.is_service, false)) AS pending_physical
-                                   FROM sales_order_lines sol JOIN products p ON p.id=sol.product_id
-                                   WHERE sol.sales_order_id=%s AND sol.line_status NOT IN ('fulfilled', 'cancelled')''',
-                                (order_id,))
-                    pending = cur.fetchone()
+                    pending = _pending_order_ship_counts(cur, order_id)
                     all_fully_shipped = pending['pending_lines'] == 0
                     any_actually_shipped = any(
                         r.get("shipped_lb", 0) > 0 and not r.get("is_service") for r in results
