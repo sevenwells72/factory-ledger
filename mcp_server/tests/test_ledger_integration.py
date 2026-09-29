@@ -117,11 +117,11 @@ async def test_all_reads_change_only_actor_last_used_at(real_stack):
         assert before["actors"][0]["last_used_at"] is None
         for group, name, arguments in READS:
             result = await call(client, group, name, **arguments)
-            # The existing backend forbids actor keys on product resolution (not in PR #66).
+            assert not result["isError"], (group, name, result)
             if name == "resolveProducts":
-                assert result["isError"] and result["structuredContent"]["status"] == 403
-            else:
-                assert not result["isError"], (group, name, result)
+                data = result["structuredContent"]["data"]
+                assert data["summary"] == {"total": 1, "resolved": 1, "unresolved": 0}
+                assert data["resolved"][0]["match"]["id"] == 1
         after = db.snapshot()
         assert after["actors"][0]["last_used_at"] is not None
         normalized = copy.deepcopy(after)

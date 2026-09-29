@@ -893,7 +893,7 @@
         "path": "/lots/{lot_code}/supplier-lot",
         "source_path": "/lots/{lot_code}/supplier-lot",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Attach or update the supplier lot cross-reference on an existing lot Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Attach or update the supplier lot cross-reference on an existing lot Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [
           "lot_code"
         ],
@@ -904,7 +904,7 @@
           "supplier_lot_code",
           "notes"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -952,7 +952,7 @@
         "path": "/receive",
         "source_path": "/receive",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Receive inventory (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Receive inventory (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -969,7 +969,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1141,7 +1141,7 @@
         "path": "/ship",
         "source_path": "/ship",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Ship inventory standalone (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Ship inventory standalone (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -1156,7 +1156,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1228,7 +1228,7 @@
         "path": "/make",
         "source_path": "/make",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Record batch production (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Record batch production (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -1241,7 +1241,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1313,7 +1313,7 @@
         "path": "/pack",
         "source_path": "/pack",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Pack batch into finished goods (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Pack batch into finished goods (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -1326,7 +1326,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1409,7 +1409,7 @@
         "path": "/adjust",
         "source_path": "/adjust",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Adjust inventory quantity (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Adjust inventory quantity (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -1421,7 +1421,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1481,7 +1481,7 @@
         "path": "/customers",
         "source_path": "/customers",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Create a new customer Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Create a new customer Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -1493,7 +1493,7 @@
           "notes",
           "notes_es"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1546,7 +1546,7 @@
         "path": "/customers/{customer_id}",
         "source_path": "/customers/{customer_id}",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Update customer details Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Update customer details Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [
           "customer_id"
         ],
@@ -1562,7 +1562,7 @@
           "active",
           "aliases"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1627,7 +1627,7 @@
         "path": "/sales/orders",
         "source_path": "/sales/orders",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Create a new sales order Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Create a new sales order Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. Save remains blocked: the backend create contract lacks dedicated customer_po, external-reference uniqueness, and resolved product/service inputs.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -1639,7 +1639,7 @@
           "notes_es",
           "lines"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1870,7 +1870,7 @@
         "path": "/sales/orders/{order_id}/lines",
         "source_path": "/sales/orders/{order_id}/lines",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Add lines to an existing order Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Add lines to an existing order Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [
           "order_id"
         ],
@@ -1878,7 +1878,7 @@
         "body_parameters": [
           "lines"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -1956,14 +1956,14 @@
         "path": "/sales/orders/{order_id}/lines/{line_id}/cancel",
         "source_path": "/sales/orders/{order_id}/lines/{line_id}/cancel",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Cancel a specific order line Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Cancel a specific order line Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [
           "order_id",
           "line_id"
         ],
         "query_parameters": [],
         "body_parameters": [],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2059,7 +2059,7 @@
         "path": "/sales/orders/{order_id}/ship",
         "source_path": "/sales/orders/{order_id}/ship",
         "source": "openapi-gpt-v3.yaml",
-        "description": "Ship against a sales order (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Ship against a sales order (preview or commit) Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [
           "order_id"
         ],
@@ -2070,7 +2070,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2143,7 +2143,7 @@
         "path": "/lots/{lot_code}/supplier-lot",
         "source_path": "/lots/{lot_code}/supplier-lot",
         "source": "gpt-configs/schemas/openapi-floor.yaml",
-        "description": "Attach or update the supplier lot cross-reference on an existing lot. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Attach or update the supplier lot cross-reference on an existing lot. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [
           "lot_code"
         ],
@@ -2154,7 +2154,7 @@
           "supplier_lot_code",
           "notes"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2202,7 +2202,7 @@
         "path": "/lots/{lot_id}/rename",
         "source_path": "/lots/{lot_id}/rename",
         "source": "gpt-configs/schemas/openapi-floor.yaml",
-        "description": "Rename a lot's lot_code (e.g., fix an UNKNOWN or mistyped lot to the real code). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Rename a lot's lot_code (e.g., fix an UNKNOWN or mistyped lot to the real code). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [
           "lot_id"
         ],
@@ -2210,7 +2210,7 @@
         "body_parameters": [
           "new_lot_code"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2250,7 +2250,7 @@
         "path": "/receive",
         "source_path": "/receive",
         "source": "gpt-configs/schemas/openapi-floor.yaml",
-        "description": "Receive inventory (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Receive inventory (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -2267,7 +2267,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2370,7 +2370,7 @@
         "path": "/ship",
         "source_path": "/ship",
         "source": "gpt-configs/schemas/openapi-floor.yaml",
-        "description": "Ship inventory STANDALONE (no sales order). Use only when no open order exists or operator explicitly says 'standalone'. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Ship inventory STANDALONE (no sales order). Use only when no open order exists or operator explicitly says 'standalone'. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -2383,7 +2383,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2449,7 +2449,7 @@
         "path": "/make",
         "source_path": "/make",
         "source": "gpt-configs/schemas/openapi-floor.yaml",
-        "description": "Record batch production (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Record batch production (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -2462,7 +2462,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2538,7 +2538,7 @@
         "path": "/pack",
         "source_path": "/pack",
         "source": "gpt-configs/schemas/openapi-floor.yaml",
-        "description": "Pack batch into finished goods (preview or commit). Pack = batch → FG; use /make for batch production. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Pack batch into finished goods (preview or commit). Pack = batch → FG; use /make for batch production. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -2551,7 +2551,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2637,7 +2637,7 @@
         "path": "/adjust",
         "source_path": "/adjust",
         "source": "gpt-configs/schemas/openapi-floor.yaml",
-        "description": "Adjust inventory quantity (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Adjust inventory quantity (preview or commit). Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [],
         "query_parameters": [],
         "body_parameters": [
@@ -2649,7 +2649,7 @@
           "occurred_at",
           "backfill"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,
@@ -2710,7 +2710,7 @@
         "path": "/void/{transaction_id}",
         "source_path": "/void/{transaction_id}",
         "source": "gpt-configs/schemas/openapi-floor.yaml",
-        "description": "Void a transaction — its lines are excluded from all balances; no reversal is posted. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token. BLOCKED: this backend route rejects named-actor keys.",
+        "description": "Void a transaction — its lines are excluded from all balances; no reversal is posted. Two calls required: preview returns a summary and token; commit needs the unchanged payload and token.",
         "path_parameters": [
           "transaction_id"
         ],
@@ -2718,7 +2718,7 @@
         "body_parameters": [
           "reason"
         ],
-        "named_actor_allowed": false,
+        "named_actor_allowed": true,
         "input_schema": {
           "type": "object",
           "additionalProperties": false,

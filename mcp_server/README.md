@@ -1,16 +1,25 @@
-# Factory Ledger MCP — Phase 1
+# Factory Ledger MCP — Phase 2 integration
 
-One independent service with two read-only MCP endpoints:
+One independent service with two MCP endpoints and per-user backend actor keys:
 
-| Group | Local URL | Tools |
-|---|---|---:|
-| Office | `http://127.0.0.1:8000/office/mcp` | 14 |
-| Floor | `http://127.0.0.1:8000/floor/mcp` | 12 |
+| Group | Local URL | Reads/previews | Confirmed-write tools |
+|---|---|---:|---:|
+| Office | `http://127.0.0.1:8000/office/mcp` | 14 | 16 |
+| Floor | `http://127.0.0.1:8000/floor/mcp` | 12 | 10 |
 
-This replaces the read surfaces of **Factory-Ledger 2.0** and **Factory Ledger - Floor 2.0**.
-The Floor count includes shipping preview. No write operation is registered, even for admin.
-The complete inventories, retired schemas, decisions, estimate and rollout are in
+Branch `integration/mcp-with-66` combines the Phase 2 adapter at `d74f747` with
+PR #66 through `1337fdd`. Named actors can use all catalog routes, including
+`resolveProducts`, `createCustomer`, and `renameLot`. All 20 stale write permission
+flags across 14 routes are enabled. Administrative routes remain unavailable to actors.
+Every save still needs a separate preview and a one-time confirmation token, with MCP
+role checks. **`createOrder` saves remain blocked by the backend contract**;
+`updateOrderHeader` also blocks changes to `customer_po`. See the next backend PR below.
+
+This replaces the surfaces of **Factory-Ledger 2.0** and **Factory Ledger - Floor 2.0**.
+The Floor read count includes shipping preview; `commitShipOrder` is a separate write.
+The inventories, decisions and rollout are in
 [`../docs/mcp-migration-plan.md`](../docs/mcp-migration-plan.md).
+This integration is **test-only, not deployed**, and has not been merged to main.
 
 ## Run locally with synthetic data
 
@@ -39,7 +48,8 @@ uv run --locked --no-editable factory-ledger-mcp
 This explicitly opts into the loopback-only development auth stub. It does not sign in
 as Michael or any other real person. The sample token is synthetic, not a production secret.
 Use `MCP_DEV_ROLE=floor` to simulate no office access; `reader` and `admin` can read both
-groups. All three roles remain read-only in Phase 1.
+groups. These unbound synthetic demo roles remain read-only. A mapped test user can exercise
+confirmed writes only against the disposable real ledger described below.
 
 In a third terminal:
 
@@ -107,10 +117,9 @@ Integration checks exercise blank/wrong mapped actor keys (401/403), real shipme
 quantities (10 lb on one line versus 100 lb on each of two), conflicting-input rejection,
 409 lot ambiguity and `product_id` disambiguation in both groups. A fixed set of 26 read
 scenarios compares every public table, row, column and sequence before/after calls.
-Actor-key reads may update only `actors.last_used_at`. The real backend still forbids
-actor keys on `resolveProducts` (403) and this service never falls back to a shared key,
-so that office tool stays unavailable until the backend allowlists the route for actors.
-No auth dependency or business handler is replaced.
+Actor-key reads may update only `actors.last_used_at`. All 26 read scenarios, including
+successful `resolveProducts`, use the synthetic named-actor key and preserve business
+data. No auth dependency or business handler is replaced.
 
 Phase 2 wiring tests (`tests/test_phase2_wiring.py`) run the real `create_app` in google
 mode with an in-process fake Google and a recording fake ledger: OAuth discovery and
@@ -119,11 +128,15 @@ protected-resource routes are mounted, both group endpoints challenge with
 421, a shared key configured on the HTTP client is never sent (reads or writes), and two
 users calling concurrently never receive each other's actor key.
 
-`tests/test_named_actor_pending.py` probes the 14 backend write routes that still reject
-named-actor keys. They are marked expected-fail with the reason
-"blocked until PR #66 (fix/named-actor-writes) is merged; flips to pass after rebasing
-onto main"; nothing from that branch is merged here. After the rebase, drop the markers
-and flip `named_actor_allowed` in `catalog.json` for the same routes.
+`tests/test_named_actor_routes.py` requires the 14 PR #66 route probes and the
+`createCustomer`/`renameLot` adapter commits to pass normally, with no expected-fail
+markers. Invalid integer line paths and an invalid ship mode keep authorization probes
+free of business mutations. Additional checks verify all 11 admin routes return 403
+for floor, office, and owner actors, and that the disposable schema includes 056's table,
+marker, and append-only trigger. Customer and lot commits must persist actor audit rows.
+The full suite includes this real-ledger harness; no separate database URL is accepted.
+Migration 056 is loaded only by `tests/schema/schema.sql` in that disposable cluster;
+no standalone migration command or external database is used.
 The existing synthetic tests still cover MCP handshake, registration/routing, validation,
 group boundaries, unavailable writes, error preservation, size limits and retry policy.
 
@@ -135,19 +148,24 @@ Source files are cache keys so `uv` rebuilds the local package after edits. Prod
 dependencies are locked separately from the old FastAPI application. The SDK is deliberately
 bounded to its maintained 1.x API; the lock resolves `mcp==1.30.0`.
 
+Integration gate (2026-09-29): **205 passed; zero failures, skips or expected-fails**. Includes 55 disposable-PostgreSQL tests (54 real-ledger HTTP tests plus the schema-056 check) and all 16 former expected-fail cases. Ruff lint/format passed. Wheel and sdist rebuilt; packaged and installed source/catalog files match the checkout. `createOrder` remains blocked and is covered by passing rejection tests.
+
 ## Tool contracts
 
 `scripts/build_catalog.py` reads the two existing YAML files, expands local schema references,
 and writes `src/factory_ledger_mcp/catalog.json`. It never edits an existing schema. Runtime
-loads only this read catalog; new writes cannot become tools merely by appearing in YAML.
-To deliberately refresh it, run `uv run --locked --no-editable python scripts/build_catalog.py`
-and review the diff. The source-plus-overrides parity test detects stale catalogs.
+loads the reviewed read sections plus the separately reviewed `_writes` sections.
+New writes cannot become tools merely by appearing in YAML. The Phase 1 generator
+produces only read sections: do not overwrite the combined catalog with its CLI output.
+Use its `build()` result to review read-section updates while preserving `_writes`;
+the source-plus-overrides parity test detects stale read catalogs.
 
 Shared names stay unchanged within each group. Optional filters, enum/limit bounds and
 bilingual responses are retained. Floor `shipOrder` requires `mode: preview` and calls
 the existing `/sales/orders/{order_id}/ship/preview` backend wrapper, which also forces
-preview. Office `resolveProducts` is the only other allowed POST. Mixed preview/commit
-operations such as `make`, `receive` and office `shipOrder` are excluded entirely.
+preview. Office `resolveProducts` is the other read-only POST. Write operations such
+as `make`, `receive` and office `shipOrder` use the two-call confirmation flow. Floor
+saves use the separate `commitShipOrder` tool.
 MCP-only contract overrides are deliberate and leave all OpenAPI YAML unchanged:
 
 - Both `getLotByCode` tools accept optional integer `product_id`, passed as a query
@@ -155,12 +173,51 @@ MCP-only contract overrides are deliberate and leave all OpenAPI YAML unchanged:
   office schema omission and documents the existing floor argument.
 - Floor `shipOrder` rejects `ship_all=true` whenever `lines` is supplied. Explicit
   `lines` must be nonempty; otherwise the backend treats an empty list as all lines.
-  Omit `ship_all` or set it false for explicit quantities. Parameter descriptions do
-  not direct callers to an unavailable commit tool.
+  Omit `ship_all` or set it false for explicit quantities. Saving uses the separate
+  confirmed `commitShipOrder` flow.
 
-All tool annotations are read-only, non-destructive and limited to the ledger.
-Here **read-only** means no ledger, order, inventory, lot, or product changes;
+Read-tool annotations are read-only and non-destructive; write tools are annotated
+separately and restricted by user role and confirmation. Here **read-only** means no
+ledger, order, inventory, lot, or product changes;
 `actors.last_used_at` usage-metadata updates are an owner-approved exception.
+
+## Next backend PR: keep `createOrder` saves blocked
+
+PR #66 fixes authorization; it does not complete `POST /sales/orders`. The adapter
+continues to return an unsaved proposal and rejects commit. The next backend PR needs:
+
+- **Dedicated PO on create:** expose `customer_po` in `OrderCreate` and pass it into
+  the existing `_create_sales_order_core(customer_po=...)`. The database column already
+  exists. Preserve leading zeros/punctuation, allow an empty PO, and report "No PO".
+- **External reference and duplicate protection:** accept and persist
+  `external_order_ref`; enforce its agreed uniqueness and normalized customer-plus-PO
+  conflicts transactionally, including concurrent requests. The current endpoint does
+  neither. The adapter's scan of at most 200 orders/notes cannot provide this guarantee.
+  Add durable request-id/idempotency protection so a retry returns the original order
+  instead of creating another one.
+- **Resolved customer and products:** accept the selected `customer_id` and line
+  `product_id`, validate active records, and use those exact identities. The current
+  endpoint requires names and resolves them again, which cannot bind the approved IDs.
+- **Pallet Charge in the same create call:** accept product **176** with `unit: each`,
+  its count and unit price alongside physical products. `OrderLineInput` currently
+  rejects `each` unless callers bypass quantity validation with `quantity_lb`; that
+  legacy escape hatch is not an acceptable service-count contract. Persist the count
+  and amount without treating pallets as physical pounds or inventory.
+- **Consistent quantities and receipts:** support cases using the selected product's
+  case weight (validation currently demands `case_weight_lb` before the core can look
+  it up); exclude service counts from physical `total_lb`. Return/read back PO,
+  external reference, product IDs, service counts, prices and amounts alongside the
+  existing internal SO number, order ID, line IDs and status. Create currently omits
+  several of these fields, and `getOrder` omits `customer_po` and line `product_id`.
+  Preserve a zero unit price/amount as zero; current detail truthiness checks turn
+  zero prices and a zero total into missing values.
+- **Atomic persistence and verification:** save the header, PO/reference, physical and
+  service lines, actor audit and idempotency receipt together. Roll back on any failure
+  and verify the saved PO/product-176 line before reporting success. Existing order/line
+  inserts already share a transaction; extend it to cover the new contract.
+
+Related remaining restriction: `OrderHeaderUpdate` also omits `customer_po`, so MCP
+continues to reject a PO edit. Other header edits remain available.
 
 ## Railway scaffold — not deployed
 
@@ -214,4 +271,4 @@ References: [OpenAI MCP servers](https://developers.openai.com/plugins/build/mcp
 [MCP Python SDK 1.x](https://github.com/modelcontextprotocol/python-sdk/tree/v1.x),
 [Railway IaC reference](https://docs.railway.com/infrastructure-as-code/reference).
 
-Cross-review validation (2026-09-28): **98 tests passed** (91 routing/validation, 7 real-ledger integration cases); Ruff lint/format and package builds passed.
+Historical Phase 1 cross-review validation (2026-09-28): **98 tests passed** (91 routing/validation, 7 real-ledger integration cases); Ruff lint/format and package builds passed.

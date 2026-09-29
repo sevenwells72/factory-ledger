@@ -25,6 +25,23 @@ ACTOR_KEY = "mcp-test-actor-key"
 DASHBOARD_KEY = "mcp-test-dashboard-key"
 
 
+def invalid_write_probe(path):
+    """Pass real auth but fail validation, including bodyless/default-preview routes."""
+    for parameter, value in [
+        ("{lot_code}", "MCP-SHARED-LOT"),
+        ("{lot_id}", "1"),
+        ("{order_id}", "1"),
+        ("{line_id}", "not-an-integer"),
+        ("{customer_id}", "1"),
+        ("{transaction_id}", "1"),
+    ]:
+        path = path.replace(parameter, value)
+    assert "{" not in path, path
+    # Cancel-line ignores JSON; its invalid integer path prevents mutation. Ship
+    # otherwise defaults to a successful preview, so explicitly invalidate mode.
+    return path, {"unsupported_probe": True, "mode": "invalid-probe"}
+
+
 def clean_environment():
     # In particular: no inherited DATABASE_URL, API keys, proxies or storage/AI secrets.
     return {"PATH": os.defpath, "LANG": "C", "PYTHONUNBUFFERED": "1"}

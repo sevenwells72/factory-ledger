@@ -1,7 +1,7 @@
 [project]
 name = "factory-ledger-mcp"
 version = "0.1.0"
-description = "Isolated, read-only Factory Ledger MCP adapter"
+description = "Factory Ledger MCP adapter with per-user auth and confirmed writes"
 requires-python = ">=3.12,<3.14"
 dependencies = [
   "mcp>=1.28,<2",

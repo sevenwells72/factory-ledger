@@ -1022,7 +1022,8 @@ async def test_identity_actor_key_is_a_named_ledger_actor_without_master_reach(
                 headers={"X-API-Key": key},
                 json={"names": ["MCP Test Almonds"]},
             )
-        probes.append((whoami.status_code, whoami.json(), resolve.status_code))
+            admin = await ledger_client.get("/admin/lots/duplicates", headers={"X-API-Key": key})
+        probes.append((whoami.status_code, whoami.json(), resolve.status_code, admin.status_code))
         return {"ok": True}
 
     monkeypatch.setattr(LedgerReader, "call", call)
@@ -1042,13 +1043,14 @@ async def test_identity_actor_key_is_a_named_ledger_actor_without_master_reach(
                 )
             )["result"]
             assert result["isError"] is False
-    status, whoami, resolve_status = probes[0]
+    status, whoami, resolve_status, admin_status = probes[0]
     assert status == 200
     assert whoami == {
         "actor": {"name": "Synthetic MCP actor", "role": "floor"},
         "key_kind": "actor",
     }
-    assert resolve_status == 403  # Actor keys keep the backend route allowlist; no master fallback.
+    assert resolve_status == 200  # PR #66 allows named-actor product resolution.
+    assert admin_status == 403  # The actor still has no master-key reach or fallback.
     after = db.snapshot()
     changed = {table for table in before if before[table] != after[table]}
     assert changed <= {"actors"}

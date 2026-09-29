@@ -12,7 +12,7 @@
 
 ## Scope and evidence
 
-Originally prepared September 28, 2026 against `54df62b`; corrected and expanded on the same date, with Phase 1 built on branch `feature/mcp-server` from local `origin/main` at `6480c91`. The owner explicitly authorized the isolated read-only build below. No production credentials, production data or deployments are exercised. Existing OpenAPI files and `main.py` behavior remain unchanged; real handlers are exercised only against disposable local test databases.
+Originally prepared September 28, 2026 against `54df62b`; corrected and expanded on the same date, with Phase 1 built on branch `feature/mcp-server` from local `origin/main` at `6480c91`. The owner explicitly authorized the isolated read-only build below. No production credentials, production data or deployments are exercised. Existing OpenAPI files remain unchanged. The test-only integration on `integration/mcp-with-66` merges backend PR #66 through `1337fdd`; its real handlers are exercised only against disposable local test databases. Nothing is merged to main or deployed.
 
 The inventory below is exhaustive for `openapi-gpt-v3.yaml`, whose declared API version is **3.5.0**: **30 operations, comprising 14 business reads and 16 writes**. A POST is not necessarily a write: `resolveProducts` only resolves names. Preview-capable tools count as writes because they can also commit.
 
@@ -44,7 +44,7 @@ The Floor schema was found, so the Step 1 stop condition does **not** apply. Its
 - **Architecture:** one MCP server deployed as a separate Railway service, with two tool groups, `office` and `floor`. Expose them as **two separate ChatGPT plugins and two separate Claude connector entries**, using `/office/mcp` and `/floor/mcp` on the same service. Registration/visibility alone never grants permission; enforce roles at the server.
 - **Authentication:** Google sign-in. Email allowlist and roles come from a **Railway environment variable**, never email addresses in code. Validate the Google identity first, then look up the verified email in the server-managed allowlist; a client-supplied email/domain does not authenticate anyone. Unlisted users are denied, including authenticated CNS users.
 - **Owner:** Michael Gross.
-- **Roles:** `admin_office_floor` (Michael, Luz, Miriam) = office + floor write, including reads; `floor` = floor write + office read, including **read-only office order reads**. Unlisted = denied. Phase 1 still exposes no business writes.
+- **Roles:** `admin_office_floor` (Michael, Luz, Miriam) = office + floor write, including reads; `floor` = floor write + office read, including **read-only office order reads**. Unlisted = denied. Phase 2 exposes confirmed-write tools in local tests; `createOrder` saves and header PO edits remain blocked by backend contract gaps.
 - **Pilot:** Michael for approximately one week → Luz or Miriam (office) + Arturo (floor) → all staff.
 - **Target cutover:** **November 20, 2026**.
 - **No-PO orders:** allowed, flagged **"No PO"** in summaries/receipts and displays. Leave `customer_po` empty; do not store the flag as a fabricated PO number.
@@ -53,14 +53,14 @@ The Floor schema was found, so the Step 1 stop condition does **not** apply. Its
 
 | Role / user class (verified Google identity + allowlist required) | Office group | Floor group |
 |---|---|---|
-| `admin_office_floor` — Michael, Luz, Miriam | Read + write (writes in a later phase) | Read + write (writes in a later phase) |
-| `floor` — allowlisted floor users | Read only, including office orders | Read + write (writes in a later phase) |
+| `admin_office_floor` — Michael, Luz, Miriam | Read + confirmed write (local/test integration) | Read + confirmed write (local/test integration) |
+| `floor` — allowlisted floor users | Read only, including office orders | Read + confirmed write (local/test integration) |
 | Unlisted / unauthenticated | Denied | Denied |
 
-The existing Phase 1 demo stub predates this decision and still uses synthetic
-`reader`/`admin`/`floor` labels with its older group boundary. It does not implement
-Google login or the decided user-role mapping. The auth workstream must replace that
-boundary with this contract; no real user assignment or write is enabled here.
+The unbound Phase 1 demo stub retains synthetic `reader`/`admin`/`floor` labels and
+read-only behavior. Phase 2 implements the decided mapping for allowlisted identities
+and uses only their own backend keys. Live Google sign-in and hosted access still need
+separate acceptance; all integration writes here use synthetic users and disposable data.
 
 ## 1. Complete operation inventories and proposed MCP tools
 
@@ -325,7 +325,10 @@ If the adapter fails, disable its writes and return operators to the existing AP
 - Choose Luz or Miriam for the office pilot, name the fallback operator, and supply the account-specific retirement notice. Arturo is the floor pilot.
 - Implement and validate the decided two-call confirmation-token contract in both clients. Product 176, dedicated PO storage, allowed "No PO" orders and floor office-read access are settled requirements.
 
-## 8. Phase 1 implementation and verification
+## 8. Historical Phase 1 implementation and verification
+
+This section records the original read-only milestone. Sections 9–10 describe the
+current auth/write integration and supersede its deferred-write and OAuth status.
 
 Branch: `feature/mcp-server`. New service: `mcp_server/`. One process exposes `/office/mcp` (14 reads) and `/floor/mcp` (12 reads), each with an independent catalog. No write tool is registered, including for the simulated admin role. Existing schemas are inputs to a generated, read-only JSON catalog and are not edited. Tool names/arguments remain group-specific.
 
@@ -339,8 +342,9 @@ Google OAuth is an explicit TODO. Authentication defaults to locked; the opt-in 
 product changes. `actors.last_used_at` updates are permitted usage metadata.**
 An actor backend key invokes the existing, throttled `_touch_actor_last_used()` during
 authentication. We keep that behavior; no `main.py` change is needed. Backend actor keys
-retain the real route allowlist (for example, product resolution is forbidden); they do
-not confer Google identity or substitute for future MCP user authorization.
+retain the real route allowlist; PR #66 now permits product resolution while admin
+routes remain restricted. Backend keys do not confer Google identity or replace MCP
+user authorization.
 
 ### MCP contract overrides (OpenAPI unchanged)
 
@@ -368,8 +372,8 @@ Real integration scenarios cover missing/wrong backend keys (401/403), 10-lb sin
 versus two 100-lb full-order previews, conflicting inputs, and ambiguous/disambiguated lot
 lookups in both groups. All 26 read registrations have explicit scenarios independent of
 the generated catalog: full table/row/column and sequence snapshots allow only the actor's
-`last_used_at` change. The actor's existing product-resolution restriction returns 403;
-the synthetic master key exercises that endpoint successfully with no database change.
+`last_used_at` change. In the current integration, product resolution succeeds using
+the named actor's own key, with the same business-data invariance checks.
 
 The new project-level Railway TypeScript declaration is a scoped partial managing only
 `factory-ledger-mcp`; root legacy config stays byte-identical. Local SDK type-check and
@@ -397,14 +401,60 @@ settings-level `MCP_TEST_API_KEY` path was removed and a leftover variable is re
 startup. Concurrent users are isolated by the request-scoped context variable; a test
 drives two signed-in users through the real app at once and checks every backend request.
 
-Consequence: office `resolveProducts` returns 403 for every user until the backend
-allowlists `/products/resolve` for actor keys; the service no longer has a master key to
-fall back on, by design. PR #66 (`fix/named-actor-writes`) authorizes the 14 write routes
-that reject actor keys today; 16 expected-fail tests in `mcp_server/tests/test_named_actor_pending.py`
-turn into passes after this branch is rebased onto a `main` containing it, at which point
-`catalog.json`'s `named_actor_allowed` flags must be flipped for the same routes.
+The test-only integration merges PR #66 (`fix/named-actor-writes`) through `1337fdd`.
+All 20 `named_actor_allowed` flags across its 14 write routes are enabled, including
+`createCustomer` and `renameLot`. `resolveProducts` also succeeds with the caller's own
+named-actor key. The former 16 expected-fail cases are normal required tests in
+`mcp_server/tests/test_named_actor_routes.py`; no shared-key fallback is used.
+Admin routes remain blocked, including for backend owner actors. `createOrder` retains
+its independent contract blocker, as do header edits that supply `customer_po`.
 
 Railway: `.railway/railway.ts` no longer hard-codes `MCP_AUTH_MODE`; all secrets and
 settings are dashboard-managed `preserve()` references, the partial refuses any project
 other than the ledger's, and it can only ever touch `factory-ledger-mcp`. No plan or apply
 was run. **Local only — not deployed.**
+
+## 10. Test-only PR #66 integration gate and next backend PR
+
+Branch `integration/mcp-with-66` starts at `d74f747` and merges
+`origin/fix/named-actor-writes` at `1337fdd`. Only the two changelogs conflicted; their
+existing entries were preserved without new integration rows or renumbering. Their
+existing row-number collision is deferred until the final merge to main.
+
+The full MCP suite runs the real-ledger harness with private PostgreSQL sockets,
+synthetic credentials and a fresh database per test. `tests/schema/schema.sql` includes
+056; tests verify its audit table, marker and append-only trigger before backend
+startup, then require customer/lot audit records. Authorization probes validate all 19
+write routes without business mutations. Product resolution succeeds, and all 11 admin
+routes must deny floor, office and owner actors. `createOrder` is tested as a deliberate
+save rejection, with no expected-fail marker.
+
+Integration gate (2026-09-29): **205 passed; zero failures, skips or expected-fails**. Includes 55 disposable-PostgreSQL tests (54 real-ledger HTTP tests plus the schema-056 check) and all 16 former expected-fail cases. Ruff lint/format passed. Wheel and sdist rebuilt; packaged and installed source/catalog files match the checkout. `createOrder` remains blocked and is covered by passing rejection tests.
+
+**Next backend PR — `POST /sales/orders`:**
+
+1. Expose and persist dedicated `customer_po` using the existing column/core argument,
+   preserving leading zeros and allowing empty "No PO" orders.
+2. Persist `external_order_ref`, enforce reference uniqueness and normalized
+   customer-plus-PO conflicts under concurrency, and provide durable idempotency.
+   The adapter's 200-order scan is only a preliminary check.
+3. Accept verified `customer_id` and line `product_id`, rather than resolving names
+   again after approval, and validate active customer/products.
+4. Create product-176 Pallet Charge service lines in the same call as physical lines,
+   with `each` count, price and amount. The current input validator rejects `each`
+   without a legacy `quantity_lb` bypass. Keep service counts out of physical pounds,
+   inventory, allocation and production.
+5. Support product-derived case weights at validation; return and read back PO,
+   external reference, product IDs, service counts/prices/amounts, and existing SO/line
+   identifiers. Reconcile create/detail totals so pallets do not inflate `total_lb`,
+   and preserve zero prices/amounts instead of turning them into missing values.
+6. Extend the existing atomic order/line transaction to include the new fields,
+   service lines, actor audit and durable receipt. Verify the saved PO and pallet line
+   before claiming success. Add header PO support separately or within the same backend
+   PR; MCP continues blocking that field until it is supported.
+
+Implementation evidence: `main.py` models `OrderCreate`, `OrderLineInput`, and
+`OrderHeaderUpdate`; `create_sales_order`; `_create_sales_order_core`; and `get_sales_order`.
+The detailed gap list is also in `mcp_server/README.md`. No backend contract is changed
+by this gate. No production access, external migration application, Railway plan/apply,
+main merge, deployment or PR creation is part of this integration.

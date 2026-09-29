@@ -22,7 +22,7 @@ from factory_ledger_mcp.adapter import (
 )
 
 from .conftest import rpc
-from .ledger_harness import ACTOR_KEY, MASTER_KEY, seed_write_database
+from .ledger_harness import ACTOR_KEY, MASTER_KEY, invalid_write_probe, seed_write_database
 
 ADMIN = identity.Identity("office@example.invalid", "admin_office_floor", ACTOR_KEY)
 FLOOR = identity.Identity("floor@example.invalid", "floor", ACTOR_KEY)
@@ -166,23 +166,16 @@ async def test_all_underlying_write_routes_named_actor_authorization(writer):
             if key in seen:
                 continue
             seen.add(key)
-            path = spec["path"]
-            for param in spec["path_parameters"]:
-                path = path.replace(
-                    "{" + param + "}", "MCP-SHARED-LOT" if param == "lot_code" else "1"
-                )
+            assert spec["named_actor_allowed"], spec["name"]
+            path, body = invalid_write_probe(spec["path"])
             # Invalid/missing required fields safely probe the REAL auth dependency.
             response = await reader.client.request(
                 spec["method"],
                 path,
                 headers={"X-API-Key": ACTOR_KEY},
-                json={"unsupported_probe": True},
+                json=body,
             )
-            if spec["named_actor_allowed"]:
-                assert response.status_code in {400, 422}, (spec["name"], response.text)
-            else:
-                assert response.status_code == 403, (spec["name"], response.text)
-                assert response.json()["detail"] == "API key not authorized for this endpoint"
+            assert response.status_code in {400, 422}, (spec["name"], response.text)
     assert len(seen) == 19
     assert business_snapshot(db) == before
 
@@ -196,11 +189,13 @@ async def test_all_previews_are_read_only_and_blocked_routes_never_save(writer):
             preview = await reader.call(group, spec["name"], args)
             assert not preview["saved"]
             assert preview["summary"] and preview["confirmation_token"]
-            if not spec["named_actor_allowed"]:
+            if spec["name"] == "createOrder":
                 assert not preview["can_commit"]
                 with pytest.raises(ToolFailure) as exc:
                     await commit(reader, group, spec["name"], args, preview)
                 assert_error(exc, "backend_write_blocked")
+            else:
+                assert preview["can_commit"], (group, spec["name"], preview)
     assert business_snapshot(db) == before
 
 
