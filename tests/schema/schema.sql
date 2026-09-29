@@ -4904,3 +4904,4 @@ ALTER TABLE public.migration_markers ENABLE ROW LEVEL SECURITY;
 
 -- Pending production migration; local test schema only.
 \ir ../../migrations/056_actor_write_audit.sql
+\ir ../../migrations/057_order_create_contract.sql

@@ -232,29 +232,25 @@ def test_partial_stock_plus_service_still_fulfills_service(db_cursor, ship_order
 
 
 @pytest.mark.db
-def test_service_only_order_raises_zero_shipment(db_cursor, ship_order_db):
-    """Scenario C: service-only order → ZERO_SHIPMENT error, no state change.
-    Service lines don't count toward the physical-shipped guard."""
+def test_service_only_order_fulfills_without_inventory(db_cursor, ship_order_db):
+    """PR #67 owner ruling: ZERO_SHIPMENT only while physical work remains.
+    A service-only order can complete without creating inventory events."""
     seeded = _seed(db_cursor, stock_lb=0, service_only=True)
-
-    svc_before = _line_state(db_cursor, seeded["service_line_id"])
-    status_before = _order_status(db_cursor, seeded["order_id"])
-
-    with pytest.raises(HTTPException) as exc_info:
-        ship_order(
-            request=_StubRequest(),
-            order_id=seeded["order_id"],
-            req=ShipOrderRequest(mode="commit", ship_all=True),
-            _=True,
-        )
-    assert exc_info.value.status_code == 409
-    assert exc_info.value.detail["error_code"] == "ZERO_SHIPMENT"
-
-    # Nothing should have changed.
+    db_cursor.execute('SELECT count(*) AS n FROM transactions')
+    transactions_before = db_cursor.fetchone()['n']
+    result = ship_order(
+        request=_StubRequest(),
+        order_id=seeded["order_id"],
+        req=ShipOrderRequest(mode="commit", ship_all=True),
+        _=True,
+    )
+    assert result['order_status'] == 'shipped'
     svc_after = _line_state(db_cursor, seeded["service_line_id"])
-    assert svc_after["line_status"] == svc_before["line_status"]
-    assert float(svc_after["quantity_shipped_lb"]) == float(svc_before["quantity_shipped_lb"])
-    assert _order_status(db_cursor, seeded["order_id"]) == status_before
+    assert svc_after["line_status"] == 'fulfilled'
+    assert float(svc_after["quantity_shipped_lb"]) == float(svc_after['quantity_lb'])
+    assert _order_status(db_cursor, seeded["order_id"]) == 'shipped'
+    db_cursor.execute('SELECT count(*) AS n FROM transactions')
+    assert db_cursor.fetchone()['n'] == transactions_before
 
 
 @pytest.mark.db

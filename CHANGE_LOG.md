@@ -1,5 +1,18 @@
 # Change Log
 
+## 2026-09-29 12:34 — Row 158 re-review verified on PR #66 7410112 (not deployed)
+- **Files:** `main.py`, `tests/test_order_create_review.py`, all three changelogs.
+- **Validation:** Full Python suite 1,443 passed (1,414 previous + 14 upstream PR #66 + 15 new), Node 69 passed, zero failures/skips; focused suite 296 passed. Tests ran only on fresh throwaway UTF-8 PostgreSQL 17 database pr67_test at 127.0.0.1:57667. Exact audit counts: manual auto-customer order 4, receipt create 5 with no retry duplicates, extraction approval 3; late audit/receipt failures undo customer and prior audits. N1 uses one pending-quantity rule for preview/ship-all/completion and repairs legacy partial orders with no remaining quantities without stock moves or a new shipment; repair audit failure rolls back. N2 reports every bad legacy line at body/lines/index/quantity_lb. N3 rejects priced fractional-case edits with the product name. Messages identify cancelled lines and physical-lines-first service sequencing. Floor GPT behavior: shipping one of two physical lines now yields partial_ship (previously incorrectly shipped); service-only orders now ship; shipping a cancelled line now 409s. Changelog row 158 and earlier entries remain unchanged; upstream restored row 157 retained. No production access, real-DB migrations, merge or deploy.
+- **Rebase:** Resolved `main.py` signature/header-audit/manual-response conflicts by combining the request-aware core audit with contract fields and receipt handling, with no duplicate caller audit. Resolved changelog insertions by retaining both histories and original row 158.
+
+---
+
+## 2026-09-29 12:31 — Row 158 re-review: rebase onto PR #66 and repair shipping/validation (not deployed)
+- **Files:** `main.py`, `tests/test_order_create_review.py`, all three changelogs.
+- **What changed:** Rebased onto 7410112. Resolved shared-core request/header-audit/manual-caller conflicts by preserving contract fields and receipts with one core audit per created order/line; retained customer audit. Preserved both log histories, restored upstream row 157 and unchanged row 158. Fix remaining-quantity completion (including legacy partial orders), indexed multi-line legacy 422 errors, priced whole-case line edits with product names, and cancelled/service-first shipping messages. Floor GPT behavior: shipping one of two physical lines yields partial_ship (previously incorrectly shipped); service-only orders can ship; shipping a cancelled line returns 409. Full disposable-database validation pending; no production, real-DB migrations, merge or deploy.
+
+---
+
 ## 2026-09-29 12:25 — Verified PR #66 re-review fixes (row 157; not deployed)
 - **File(s) changed:** `main.py`, `migrations/down/056_actor_write_audit_down.sql`, `tests/test_named_actor_writes.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Verified shared-core order/line audit from both callers, actor intake success, header/second-line audit-failure rollback on both paths (including manual auto-created customer and prior audit rows), shared intake without 056, and empty/refused/export-override/absent-table down cases.
@@ -13,6 +26,39 @@
 - **What changed:** Both order-creation callers pass `request` to the shared core, which audits each order and line on the business cursor; remove duplicate manual-handler audits. Restore historical row 157 exactly from 8194766. Guard audit-table rollback with an exclusive lock, non-empty refusal, and explicit verified-export setting. Add regression tests for intake audit success/rollback/shared-key behavior and empty/refused/overridden rollback.
 - **Validation:** Validation pending on a throwaway local database; no production access, real database migration, merge or deployment.
 - **Why:** Owner approved all three PR #66 re-review findings; keep the core diff minimal for stacked PR #67 to rebase.
+---
+
+## 2026-09-29 12:16 — Row 158 follow-up: NULL prices, migration marker and both pallet products verified (not deployed)
+- **Files:** migration 057/up/down, order-create tests/docs, CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md; resolved iCloud global log.
+- **Validation:** Full fresh throwaway-local-DB suite: 1,414 Python tests passed (3 additional cases) and 69 Node tests passed, zero failures/skips. Legacy NULL and zero prices retain null case_price, line_value, unpriced-order totals and line-edit responses; quantity-only edits keep stored NULL. Migration 057 up/down/rerun verifies its marker is inserted once without rewriting it, removed on rollback, and unrelated markers remain intact. Products 102 Pallets and 176 Pallet Charge both preserve counts/prices/amounts and ship without inventory or weight contributions via products.is_service. No application code changes or existing GPT behavior changes in this follow-up. git diff --check passes. No production access, real database migration, merge or deployment.
+
+---
+
+## 2026-09-29 12:13 — Row 158 follow-up: NULL-price, migration-marker and both service-SKU coverage (not deployed)
+- **Files:** migration 057/up/down, `tests/test_order_create_review.py`, `tests/test_order_create_contract.py`, `docs/order-create-contract.md`, all three logs.
+- **What changed:** Confirmed existing code preserves NULL prices and null line/order values on legacy unpriced orders, including quantity-only edits; added explicit legacy/new NULL-price coverage alongside zero-price cases. Added idempotent 057_order_create_contract migration marker and targeted down-script removal, matching 056. Extended real create/preview/ship/detail tests to both active service products, 102 Pallets and 176 Pallet Charge; classification remains products.is_service with no product-ID special cases. No main.py behavior changes. Updated contract docs. Full throwaway-DB and Node validation pending; no production access, real DB migration, merge or deployment.
+
+---
+
+## 2026-09-29 12:07 — Row 158 follow-up: all PR #67 cross-review fixes verified (not deployed)
+- **Files:** `main.py`, dashboard JS/index, migration 057 and down script, `tests/test_order_create_review.py`, `tests/test_order_create_review.js`, existing contract/shipping tests, `docs/order-create-contract.md`, all three logs.
+- **Validation:** Full suite: 1,411 Python tests passed (27 new) and 69 Node tests passed (2 new), zero failures/skips, on fresh throwaway local DB factory_ledger_pr67_review_test_20260929 built from tests/schema/schema.sql. JS syntax and git diff --check pass. PDF tests read actual generated slips before/after shipment; real HTTP races prove one receipt for a new customer and serialize header PO edits against creates. Named line-audit failures roll back quantities/amounts. Legacy zero reads remain null and legacy missing-case-weight requests return 422; only new fields opt into the new contract, and both physical paths retain omitted-unit warnings. All findings accepted. No merge, deploy, real database migration or production access.
+- **Correction to earlier claims:** Row 158 and prior entries are preserved. Prior blanket claims about zero-price reads and complete GPT create compatibility did not cover the reproduced cases; the tests now explicitly verify the owner-approved legacy/new-style split. Service-only completion is now allowed when no physical line is unfulfilled, superseding the older ZERO_SHIPMENT assertion.
+
+---
+
+## 2026-09-29 12:03 — Row 158 follow-up: PR #67 cross-review fixes (not deployed; verification in progress)
+- **Files:** `main.py`, dashboard, migration 057/up/down, contract/review tests, contract documentation, all three logs.
+- **What changed:** Correct packing-slip service counts and whole-order shipment completion; audit line edits atomically; trim only PO/reference edges and enforce reference CHECKs; restore legacy zero-price null reads and GPT case-weight validation; retain omitted-unit warnings; serialize referenced creates before customer auto-create; render service counts read-only while preserving price edits; reject priced fractional-case pounds; document app-role/5432/ON_ERROR_STOP/transaction/lock-timeout migration procedures. Add PDF, lifecycle, actor rollback, legacy-shape, zero-price, concurrency and migration regression tests. Earlier row-158 claims that all zero reads should change and that GPT create compatibility was complete were too broad; the owner now requires legacy zero reads and validation to remain unchanged. Historical row 158 is retained verbatim.
+- **Scope:** Work only in `/Users/cns/Documents/Codex/wt-order-create`; base remains ccdbe57 after fetch. Throwaway local database only; no production, merge, deployment or real-database migration.
+
+---
+
+## 2026-09-29 11:41 — Row 158 verified on updated PR #66 base (not deployed)
+- **File(s) changed:** `main.py`, `migrations/057_order_create_contract.sql`, `migrations/down/057_order_create_contract_down.sql`, `tests/schema/schema.sql`, `tests/test_order_create_contract.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `docs/order-create-contract.md`, and all three changelogs.
+- **What changed:** Exact-text PO and visible No PO, explicit duplicate-PO override on create/header edits, approved IDs, per-customer external-reference uniqueness and atomic original-response receipts, durable commercial line quantities/amounts, product-derived physical weights, zero prices, named header audit, and zero-pound service auto-fulfillment. Retain saved case weights for reads/price edits. Receipt RLS matches 056. Rebased onto PR #66 review fixes `ccdbe57`, retaining its auto-created-customer audit and wrapper attribution. No GPT OpenAPI or key-scope changes.
+- **Validation:** Fresh disposable local DB `factory_ledger_order_create_final_test` built from the updated schema via localhost:5432. Full Python suite **1,384 passed**, no failures/skips (1,347 base + 37 new); Node **67 passed**, no failures/skips; JS syntax and `git diff --check` clean. Real two-connection HTTP races prove exactly one order; duplicate PO, conflicting reference, product 176/freight, zero prices/totals, header/line edits, named actors, late-line/audit/receipt rollback, database uniqueness and migration down/up/rerun covered. Original legacy create response asserted exactly; no receipt/audit for shared legacy writes.
+- **Rollout:** NOT merged or deployed; no real DB touched. Apply 056 then additive 057 through port 5432 before a separately authorized application rollout. 057 never changes ledger views; optional down script removes only new metadata after app rollback. API reads gain verification fields and zero values display faithfully; existing GPT create requests retain their original contract.
 
 ---
 
@@ -21,6 +67,13 @@
 - **What changed:** F1: the ten `/receive|ship|make|pack|adjust` `/preview`+`/commit` shortcut wrappers now pass `request` to their handler, so an actor-keyed `POST /receive/commit` records the actor instead of `legacy-shared-key` (HTTP scope unchanged; the other shortcuts still 403 for actors). F2: `resolve_customer_id` takes keyword `request=` and, when it creates a customer, writes a `customers` row to `actor_write_audit` on the same cursor; `POST /sales/orders` and `POST /ship` commit pass it. F3: corrected the stale `POST /sales/orders` allowlist comment. F4: restored the original 14:31/14:25 entries here, the FACTORY_LEDGER validation note and both iCloud global-log rows (text recovered from the original session transcript), and added separate entries for 1337fdd and these fixes. F5: added the 056 down script with a safety header. F7: 056 now enables (not forces) RLS on `actor_write_audit`. 24 new tests: receive-shortcut attribution for all actors + shared, other shortcuts 403 for actors and unchanged for shared, direct-call pass-through for all five commit wrappers, auto-created-customer audit and rollback on both routes, and an RLS test in which a non-superuser owning role runs the real `POST /customers` path while a granted non-owner role sees 0 rows and cannot insert.
 - **Validation:** Full Python suite **1,347 passed** (1,323 + 24 new), zero failures/skips, on throwaway local DB `factory_ledger_test_pr66_fixes_20260929` built from `tests/schema/schema.sql`; Node suite **67 passed**; `git diff --check` clean. The 14 new F1/F2 tests fail against the pre-fix code.
 - **Why:** Owner-approved fixes from the PR #66 cross-review. No production access, merge, deploy, or migration on any real database; `/Users/cns/Documents/Codex/` untouched.
+
+---
+
+## 2026-09-29 11:32 — Row 158: order create contract implementation (not deployed)
+- **File(s) changed:** `main.py`, `migrations/057_order_create_contract.sql`, `migrations/down/057_order_create_contract_down.sql`, `tests/schema/schema.sql`, dashboard PO display, contract tests and documentation.
+- **What changed:** Add exact-text customer PO and No PO support, direct approved IDs, external-reference uniqueness and atomic retry receipts, explicit duplicate-PO override, service counts and amounts separate from pounds, product case-weight lookup, and named-actor header audit. Preserve the legacy create request/response path. Implementation and disposable-DB verification in progress.
+- **Why:** MCP createOrder needs durable, verifiable orders with retry safety. Isolated worktree `fix/order-create-contract`, stacked on PR #66; no production access, merge, or deployment. Migration 057 must eventually be applied via port 5432 after 056 and before application rollout.
 
 ---
 
