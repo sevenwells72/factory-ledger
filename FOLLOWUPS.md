@@ -16,6 +16,52 @@ product matches, return the candidates unresolved instead of picking one.
 Needs CNS shorthand aliases (SS = Sunshine, BS = Blue Stripes): "Sunshine 9"
 resolved to nothing. The alias tables are nearly empty
 (customer_product_aliases 2 rows, supplier_product_aliases 1 row in production).
+Seed list drafted 2026-10-07: `~/Documents/fl-audits/shorthand-draft.md` (Michael's
+answers applied); catalog duplicates to resolve first:
+`~/Documents/fl-audits/catalog-cleanup.csv`.
+
+**P1.2 "Pouches" → cases conversion (A4 unit resolution + F1 draft) — Michael, 2026-10-07.**
+People sometimes say "pouches" for quantity, but the Sunshine 12x10 OZ items (145,
+146, 147, 148, 149) are sold and stocked in cases. Rule: when the user gives a
+quantity in pouches for a pouch product, FL converts to cases using that product's
+pouches-per-case (12 today) and shows the conversion in the draft — "60 pouches =
+5 cases — confirm". If the quantity does not divide evenly, FL asks instead of
+rounding. Design doc §3.2 currently lists `pouches` as ambiguous between `each` and
+`cases`; replace that with this conversion rule. Needs a `pouches_per_case` (or
+reuse of `case_size_lb` / pack format) on the product, the `/resolve kind=unit`
+response to return the converted draft quantity, and F1 to render the sentence.
+Non-pouch products: "pouches" stays an error, never a silent unit change.
+
+**P1.3 F1 must log unmatched words during the pilot (D5 Spanish/shorthand collection).**
+The Spanish and floor-shorthand entries in `shorthand-draft.md` are guesses; nobody
+has recorded Arturo's actual vocabulary. During the F1 pilot every `/resolve` call
+whose outcome is `none` or whose chosen candidate was not the top-ranked one is
+already written to `resolution_log` (design §3.3) — F1 must additionally store the
+raw user utterance (typed text or edited transcript) with the log row, and the
+dashboard Aliases tab gets an "Unmatched this week" list the office reviews to add
+aliases. Review cadence: weekly with the owner view until the list is empty for two
+consecutive weeks.
+
+**P1.4 Supplier tracking on receipts — APPROVED (Michael, 2026-10-07; design §5.2).**
+Today `generate_lot_code` (main:5429) stores only the first four typed letters of the
+supplier in the lot code and nothing stores a `supplier_id` (production: `DUTC` on 39
+lots is both Dutch Valley and Dutch Gold; the `suppliers` table is referenced by two
+expected receipts). From cutover: `receive/prepare` requires a resolved `supplier_id`
+(`POST /resolve kind=supplier`, 422 `SUPPLIER_REQUIRED`), stored on `transactions` and
+`lots`; the lot-code prefix becomes a label from `suppliers.short_code`. A5 +½ d, D2/F1
++½ d; readiness gate 10(e). Prerequisite: merge the supplier duplicates listed in
+`~/Documents/fl-audits/catalog-cleanup.csv` (reviewed separately — not applied here).
+
+**P1.5 Classic #9 Regular vs Extra-Kosher tiers (Michael, 2026-10-07; design §5.3, row A12).**
+Two products per flavour already exist (107/108 regular, 283/284 "Kosher Ignition")
+with identical formulas except 284's chip size (1,000 CT vs 108's 4,000 CT — confirm).
+Rules: owner PIN attestation on every extra-kosher make ticket; extra-kosher finished
+goods (285–290) pack only from extra-kosher lots (`KOSHER_SOURCE_REQUIRED` — the
+2026-08-12 pack of 63 cases of 286 from a regular 107 lot is the case this prevents);
+extra-kosher lots may be packed as regular, recorded as a downgrade; `SS`+`#9` resolves
+to extra-kosher only, `#9` alone shows both. A12 3–3½ d after A5 and A11; cannot slip —
+Sunshine order SO-260817-001 (10,000 lb of #9 bulk) is open. Mapping proposal in §5.3
+awaits Michael's confirmation; no catalog change is made by the docs.
 
 ---
 
