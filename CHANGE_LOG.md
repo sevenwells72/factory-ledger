@@ -14,6 +14,13 @@
 
 ---
 
+## 2026-10-07 15:49 — A1 part 1: reconcile the final concurrent documentation merge
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Rebase onto main 199c3b5, preserve both log histories, and identify the new supplier-tracking and kosher decisions as A5/D2/F1 and A12 work.
+- **Why:** Remove PR #78 changelog conflicts without changing the tested A1 implementation or concurrent documents.
+
+---
+
 ## 2026-10-07 15:44 — A1 part 1: preserve concurrent F1 and identity design decisions
 - **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
 - **What changed:** Rebase onto documentation-only main d6ead6c, retain both complete changelog histories and record the unchanged tested implementation.
