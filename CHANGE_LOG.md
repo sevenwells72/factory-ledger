@@ -14,6 +14,41 @@
 
 ---
 
+## 2026-10-07 15:26 — A1 part 1: align boundary assertions with existing receive semantics
+- **File(s) changed:** `tests/test_write_tickets.py`
+- **What changed:** Acknowledge the known duplicate before testing a merged-lot refusal, and assert the existing closed expected-receipt status.
+- **Why:** Keep tests aligned with the specified warning order and unchanged receipt settlement behavior.
+
+---
+
+## 2026-10-07 15:25 — A1 part 1: cover lot identity, expected receipts and RLS boundaries
+- **File(s) changed:** `tests/test_write_tickets.py`, `tests/schema/schema.sql`
+- **What changed:** Add boundary tests for merged/twin lots, missing IDs, anonymous supplier defaults, pinned expected-receipt settlement and nonowner RLS; restore public search_path for the pending schema include.
+- **Why:** Exercise the core validation boundaries and keep the pending migration compatible with a pg_dump that clears search_path.
+
+---
+
+## 2026-10-07 15:24 — A1 part 1: integrate schema migration with startup marker ownership
+- **File(s) changed:** `migrations/058_write_tickets.sql`, `main.py`, `write_tickets.py`, `tests/test_startup_migrations.py`
+- **What changed:** Let the startup gate write its own marker, honor the application schema, extend first-boot schema assertions, and share the lot-code twin guard.
+- **Why:** Full-suite failures exposed duplicate marker ownership in the permission-degradation path; the preview must also reuse the commit identity guard.
+
+---
+
+## 2026-10-07 15:20 — A1 part 1: preserve nullable-active catalog semantics
+- **File(s) changed:** `write_tickets.py`, `tests/test_write_tickets.py`
+- **What changed:** Treat only active=false as archived, matching the existing resolver; load isolated test schemas through psycopg2 without platform-specific tooling.
+- **Why:** Initial real-DB tests exposed legacy NULL active flags and a psql environment connection mismatch.
+
+---
+
+## 2026-10-07 15:18 — A1 part 1: exercise ticket safety against PostgreSQL
+- **File(s) changed:** `tests/test_write_tickets.py`, `tests/test_startup_migrations.py`, `tests/test_named_actor_writes.py`, `write_tickets.py`
+- **What changed:** Cover identity/hash binding, expiry, replay, rejection, rollback, duplicate acknowledgement, counters, receipt reads, migrations and concurrent HTTP commits; update exact allowlist/marker expectations.
+- **Why:** Prove the first vertical slice and preserve legacy-route regression coverage before staging verification.
+
+---
+
 ## 2026-10-07 15:11 — A1 part 1: receive prepare, atomic commit and searchable receipts
 - **File(s) changed:** `write_tickets.py`, `scripts/expire_tickets.py`, `main.py`
 - **What changed:** Add ID-only drafts, frozen event time and expected receipt, expiry/supersession, duplicate acknowledgement, actor-bound replay, receipt lookup and explicit expiry maintenance.
