@@ -14,6 +14,20 @@
 
 ---
 
+## 2026-10-07 15:40 — A1 part 1: finish review notes and remove temporary test link
+- **File(s) changed:** `docs/deployments/a1-write-tickets-part1.md`, `.venv-test (temporary local symlink)`
+- **What changed:** Document the reused Python 3.12 environment and remove its worktree-only symlink; the source virtual environment is untouched.
+- **Why:** Leave the requested worktree clean for review while preserving reproducible test setup instructions.
+
+---
+
+## 2026-10-07 15:37 — A1 part 1: document verification, staging receipt and remaining work
+- **File(s) changed:** `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Record 1,526 Python and 69 Node passes, 942 DB-marked passes, staging receipt RCV-261007-001, lifecycle contract, migration operations and part 2 boundaries.
+- **Why:** Deliver concrete review evidence and owner rollout steps without editing the concurrently maintained design or adding a deployment row.
+
+---
+
 ## 2026-10-07 15:26 — A1 part 1: align boundary assertions with existing receive semantics
 - **File(s) changed:** `tests/test_write_tickets.py`
 - **What changed:** Acknowledge the known duplicate before testing a merged-lot refusal, and assert the existing closed expected-receipt status.
