@@ -116,7 +116,15 @@ class ApplyTests(unittest.TestCase):
         for target in ('socket.create_connection', 'socket.socket.connect', 'subprocess.run', 'fresh_start_common.snapshot',
                        'apply_reset.LiveBackend.request', 'apply_reset.LiveBackend.snapshot', 'apply_reset.LiveBackend.actor'):
             ctx = patch(target, side_effect=AssertionError('LIVE ACCESS FORBIDDEN IN TESTS')); ctx.start(); self.addCleanup(ctx.stop)
-        products = json.loads((f.OUT/'scope-manifest-v2.json').read_text())['products']
+        # Derive the legacy executor's scope from the committed v3 catalog;
+        # a clean checkout must not depend on historical, untracked manifests.
+        self.catalog_products = json.loads((f.OUT/'v3/raw/01-scope.json').read_text(), parse_float=f.D)['products']
+        products = [p for p in self.catalog_products if p['id'] not in f.EXCLUDED_PRODUCT_IDS
+                    and (p['type'] == 'finished' or (p['type'] == 'batch' and 'granola' in p['name'].lower()))]
+        # Give the legacy parser an issued manifest inside this test's directory,
+        # independent of any v1/v2 materials in the developer's checkout.
+        (self.out/'scope-manifest-v2.json').write_text(json.dumps(dict(products=products), default=str))
+        ctx = patch.object(f, 'OUT', self.out); ctx.start(); self.addCleanup(ctx.stop)
         self.cut = datetime.now(timezone.utc) - timedelta(hours=2)
         self.before = (self.cut-timedelta(hours=1)).isoformat()
         self.s = dict(snapshot_at=(self.cut+timedelta(minutes=1)).isoformat(), products=products,
@@ -572,8 +580,7 @@ class ApplyTests(unittest.TestCase):
                 self.assertEqual(self.backend.calls,[])
 
     def test_excluded_live_stock_does_not_block_apply_or_full_verification(self):
-        old=json.loads((f.OUT/'issued-before-scope-exclusion-2026-10-05/scope-manifest-v2.json').read_text())
-        for p in old['products']:
+        for p in self.catalog_products:
             if p['id'] in f.EXCLUDED_PRODUCT_IDS:
                 self.s['products'].append(p)
                 self.s['lots'].append(dict(id=p['id'],product_id=p['id'],lot_code='FAKE-EXCLUDED',status='merged',merged_into_lot_id=999))
@@ -607,12 +614,12 @@ class ApplyTests(unittest.TestCase):
         self.assertEqual(self.backend.calls,[])
 
     def test_owner_guides_cover_live_count_and_first_use_safeguards(self):
-        text=(f.OUT/'apply-guide.md').read_text()
+        text=(Path(__file__).resolve().parent/'apply-guide.md').read_text()
         for phrase in ('Dry run on production','one small active product, whole pounds',
                        'Check the recorded actor and dashboard balances','Only then approve and apply the rest',
                        'owner-approved direct database write','archive-185-execution.txt'):
             with self.subTest(phrase=phrase):self.assertIn(phrase,text)
-        floor=(f.OUT/'README.md').read_text()
+        floor=(Path(__file__).resolve().parent/'README.md').read_text()
         self.assertIn('while production continues',floor)
         self.assertNotIn('Apply within 14 days',text+floor)
 
