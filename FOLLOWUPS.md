@@ -5,6 +5,20 @@ future PR.
 
 ---
 
+## Phase 1 — next up (added 2026-10-07)
+
+**P1.1 `/products/resolve` must not auto-pick when several products match.**
+Staging smoke after the catalog copy: "Classic" auto-resolved to Granola Classic
+25 LB (136) over four other Classic SKUs, and "chocolate chip" to White Chocolate
+Chips (53) over Chocolate Chips Sugar Free / Real 1,000 CT / Real 4,000 CT and
+Granola Chocolate Chip 25 LB — both tagged `keyword` / `medium`. When more than one
+product matches, return the candidates unresolved instead of picking one.
+Needs CNS shorthand aliases (SS = Sunshine, BS = Blue Stripes): "Sunshine 9"
+resolved to nothing. The alias tables are nearly empty
+(customer_product_aliases 2 rows, supplier_product_aliases 1 row in production).
+
+---
+
 ## 1. Backfill NULL addresses on recurring customers
 
 **Context.** During Pass 1 we added an address-similarity tiebreaker to
@@ -165,3 +179,37 @@ restart budget and polluting the project's deployment log.
 
 Cheap to investigate — 5 minutes in the Railway dashboard. Worth closing out
 before it becomes unexplained project clutter.
+
+---
+
+## 7. Staging follow-ups from PR #71 review (2026-10-07) — next staging PR
+
+Non-blocking items found while reviewing and rolling out PR #71 (`infra/staging`,
+merged as `8a56f92`). Do not implement outside a PR.
+
+**7a. `tests/test_seed_staging.py` is order/DB-state dependent.**
+`test_seed_is_idempotent_and_uses_no_known_actor_key` calls `sync_sequences()`,
+which `setval`s `products_id_seq` (and others) to ≥1,000,000,000. `setval` is
+non-transactional, so on a reused test DB every later committed row from the
+race/lock tests lands in the fixture range and the `count(*) WHERE id >= FIXTURE_BASE == 3`
+assertion fails (`15 == 3` observed). Passes on a fresh DB (full suite 1,471 green).
+*Action:* count only the seed's own rows (`id BETWEEN FIXTURE_BASE+1 AND FIXTURE_BASE+3`
+or `name LIKE 'STAGING %'`), or don't call `sync_sequences` in the test.
+
+**7b. Document that the inlined staging launcher is intentionally kept.**
+After the merge, `main.py` carries the guard itself, so the 3,130-char `python -c`
+start command on FastAPI-staging is redundant. Keep it as defence in depth
+(it also enforces `ENVIRONMENT=staging`), and say so in `docs/staging.md` so
+nobody "cleans it up" later. It must be regenerated with
+`scripts/staging_start_command.py` whenever `staging_safety.py` changes.
+
+**7c. Fixture alias rows collide with `--copy-master-data`.** (Found on the
+first real run, 2026-10-07.) `seed_fixtures()` inserts the synthetic
+`customer_product_aliases` / `supplier_product_aliases` rows without explicit ids,
+so they take serial id=1 — which is exactly production's alias id=1, and the copy
+aborts with `customer_product_aliases_pkey` duplicate key (correctly rolled back,
+staging untouched). Worked around in staging by moving both rows to id 1000000001
+and rerunning. **Fixed in PR `docs/staging-followups`:** both inserts now use
+explicit `FIXTURE_BASE+1` ids and
+`test_fixture_aliases_use_reserved_ids_so_source_id_1_copies` seeds fixtures then
+copies id=1 source rows. (Staging's hand-moved rows already sit at 1000000001.)

@@ -139,14 +139,16 @@ def seed_fixtures(cur):
                        VALUES (%s,%s,%s,%s,%s)""",
                     (FIXTURE_BASE+offset,FIXTURE_BASE+1,FIXTURE_BASE+offset,qty,price))
     # Realistic alias/unit fixtures without copying any production rows.
+    # Explicit reserved ids: a serial id here (1) collides with production's
+    # alias id 1 when --copy-master-data runs later (seen 2026-10-07).
     cur.execute("""INSERT INTO supplier_product_aliases
-                   (supplier_id,vendor_description,product_id,lb_per_unit,unit)
-                   VALUES (%s,'STAGING ALMONDS 25 LB',%s,25,'case')""",
-                (FIXTURE_BASE+1,FIXTURE_BASE+1))
+                   (id,supplier_id,vendor_description,product_id,lb_per_unit,unit)
+                   VALUES (%s,%s,'STAGING ALMONDS 25 LB',%s,25,'case')""",
+                (FIXTURE_BASE+1,FIXTURE_BASE+1,FIXTURE_BASE+1))
     cur.execute("""INSERT INTO customer_product_aliases
-                   (customer_id,customer_item_code,product_id,case_size_lb)
-                   VALUES (%s,'STAGING-BATCH-10',%s,10)""",
-                (FIXTURE_BASE+1,FIXTURE_BASE+2))
+                   (id,customer_id,customer_item_code,product_id,case_size_lb)
+                   VALUES (%s,%s,'STAGING-BATCH-10',%s,10)""",
+                (FIXTURE_BASE+1,FIXTURE_BASE+1,FIXTURE_BASE+2))
     mark(cur, FIXTURE_MARKER)
     return True
 
