@@ -3,7 +3,7 @@
 Status: implemented and tested; migration 058 applied to staging only on
 2026-10-07. No hosted application deployment, production access, merge, or key
 rotation. Branch `feat/write-tickets` was created from `cb2705c` and rebased onto
-`origin/main` at `d6ead6c` after documentation-only PRs #74/#75 landed. The A1
+`origin/main` at `199c3b5` after documentation-only PRs #74/#75/#77 landed. The A1
 code and migration match the tested/staging version byte for byte. F1 backend
 ticket custody and A11 PIN sessions remain separate chunks; the plain A1
 endpoint contract is unchanged.
@@ -23,6 +23,8 @@ are ready, but only receive can currently issue or commit a ticket.
 
 Roles, correction reasons, lot confirmations, shipping/BOL and order tickets,
 resolution changes, dashboard screens and client adapters remain later chunks.
+Rev 3.2 mandatory supplier tracking is assigned to A5/D2/F1; A1 retains its
+optional supplier ID contract. Kosher tier enforcement is A12.
 
 ## Contract
 
