@@ -313,11 +313,11 @@ class V3Tests(unittest.TestCase):
   self.data['count'][0]['quantity']='100'
   a=self.analyze();message='moves CSV row 3: move-log row has no valid product_id'
   self.assertEqual(a['general'],[]);self.assertEqual(a['holds'],{});self.assertEqual(a['lot_holds'],{});self.assertEqual(a['sheet_follow_up'],{})
-  self.assertTrue(a['full_scope_reviewed']);self.assertEqual(a['rows'][0]['status'],'READY')
+  self.assertFalse(a['full_scope_reviewed']);self.assertTrue(a['rows']);self.assertTrue(all(r['status']=='READY' for r in a['rows']))
   self.assertEqual(a['moved_during_count'],[]);self.assertEqual(a['review_template']['move_reviews'],{})
   self.assertEqual(len(a['move_follow_up']),1);entry=a['move_follow_up'][0]
   self.assertEqual(entry['move_id'],'UNKNOWN-MOVE');self.assertEqual(entry['product_id'],pid);self.assertEqual(entry['detail'],message)
-  self.assertEqual(v.report(a,self.out/'move-follow-up',verify=True),0)
+  self.assertEqual(v.report(a,self.out/'move-follow-up',verify=True),2)
   self.assertEqual(v.read_csv(self.out/'move-follow-up/move-follow-up.csv')[0]['detail'],message)
   self.assertIn(message,(self.out/'move-follow-up/reset-verification-v3.md').read_text())
  def test_M3_blank_move_product_has_move_level_follow_up(self):

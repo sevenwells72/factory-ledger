@@ -111,9 +111,70 @@ or traceability. No such role restrictions are added here.
   policies. The backend role must own the table, so apply 056 as the same
   role the app connects as. Other non-superuser roles see and write nothing.
 - **Rollback.** `migrations/down/056_actor_write_audit_down.sql` drops the table
-  and marker; its header lists the preconditions (table empty or exported,
-  backend reverted first, port 5432).
+  and marker; see "Rollback" below for the guard and the exact procedure.
 
 Validation after these fixes: **1,347 Python tests passed** (24 new), **67 Node
 tests passed**, zero failures/skips, on a throwaway local database. The 14
 F1/F2 regression tests fail against the pre-fix code.
+
+## Production rollout (2026-09-29 / 2026-09-30)
+
+Executed with owner approval for each production step; all times UTC.
+
+- **056 applied 2026-09-29 16:53:55** as `postgres` (table owner) over the
+  session pooler on port 5432, inside `BEGIN; SET LOCAL lock_timeout='5s'; ...
+  COMMIT;` with `ON_ERROR_STOP`. Verified read-only: `actor_write_audit` owned
+  by `postgres`, RLS enabled and not forced, no policies, 0 rows, append-only
+  trigger enabled, both indexes valid, marker present, `ledger_current_*` view
+  definitions unchanged.
+- **057 applied 2026-09-29 16:56:23** the same way (see
+  `docs/order-create-contract.md`). The old backend kept serving identical order
+  and packing-slip responses with both migrations in place.
+- **PR #66 merged 2026-09-29 16:58:36** as merge commit `67db9a0`. Railway
+  deployment `353e5aed` sat QUEUED for ~30 minutes during a Railway incident
+  ("API degradation causing slow or stuck deployments") and went live ~17:29;
+  the new deployment's log showed the verification requests and the previous
+  deployment was removed.
+- **PR #67 merged 2026-09-29 17:30:38** as `521330c`. Railway never received
+  that push (same incident); Netlify deployed the dashboard (`dashboard.js?v=68`)
+  at ~17:33, which is backward-compatible with the #66 backend. The backend was
+  deployed 2026-09-30 13:53 via `railway redeploy --from-source` (deployment
+  `c4f4bca5`, commit `521330c`) and verified: `/health` 200, legacy NULL-price
+  lines still return null price/value, packing slip unchanged apart from its
+  generated timestamp, `sales_order_create_receipts` 0 rows, dashboard loads.
+- **Not exercised during rollout:** no named-actor request was sent (no actor
+  key was at hand) and no test writes were made; `actor_write_audit` was 0 rows
+  at every check. The first real named-actor write is the owner's.
+- Housekeeping (this branch): `tests/schema/schema.sql` re-dumped from
+  production after both migrations and the temporary `\ir` includes for 056/057
+  removed.
+
+## Rollback
+
+Order: revert the PR #67 merge (`git revert -m 1 521330c`), then the PR #66
+merge (`git revert -m 1 67db9a0`), wait for Railway to deploy the reverted
+backend, then run `migrations/down/057_order_create_contract_down.sql`, then
+`migrations/down/056_actor_write_audit_down.sql`. Both down scripts run as the
+table owner over port 5432 with `ON_ERROR_STOP`; 057 needs an explicit
+`BEGIN; SET LOCAL lock_timeout='5s'; \i ...; COMMIT;` wrapper, while the 056
+script carries its own `BEGIN`/`COMMIT` and must not be nested in another
+transaction.
+
+The 056 script guards the attribution history:
+
+- It takes `LOCK TABLE public.actor_write_audit IN ACCESS EXCLUSIVE MODE` so
+  no named-actor write can slip in between the emptiness check and the drop.
+- It **refuses to run while the table has rows**, raising
+  `056 rollback refused: actor_write_audit is not empty ...`, because dropping
+  the table permanently deletes who edited which customer, lot, order and line.
+- After exporting the rows and verifying the export, the operator overrides the
+  refusal by adding `SET LOCAL factory_ledger.confirm_audit_export = 'yes';`
+  inside the script's transaction (after `BEGIN`, before the `DO` block). The
+  setting clears at `COMMIT`/`ROLLBACK`; no other value permits the drop.
+- Revert the backend first: while code that calls `_record_actor_write()` is
+  deployed, every named-actor metadata write fails closed (500 + rollback) once
+  the table is gone. Shared-key writes never touch the table.
+
+Post-rollout validation on this branch, against a throwaway local database
+built from the re-dumped schema: **1,443 Python tests passed**, **69 Node
+tests passed**, zero failures/skips.

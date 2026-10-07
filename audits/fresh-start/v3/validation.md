@@ -43,3 +43,22 @@ node --test tests/*.js
 ```
 
 The four expected errors are the receipt extract/approve and sales upload/approve read-only-tripwire setup tests in `tests/test_expected_receipt_extract.py` and `tests/test_sales_order_extract.py`; all report `DATABASE_URL env var required`. DB-dependent tests remain unvalidated because database access was prohibited.
+
+## 2026-10-07 11:00 — PR #69 merge and move-follow-up sign-off verification (row 160)
+
+PR #68 is MERGED at 4f7ddbe. Merged origin/main without rebasing; PR #69 now uses row 160, following upstream rows 159 and 158. Every upstream line in both repository changelogs is preserved in its original order. CHANGE_LOG.md is prose rather than a numbered table. The ledger has no missing integer IDs, but origin/main already contains duplicate IDs 42 (twice) and 13 (three times), plus 28a/28b; these historical entries remain intact. The new sequence is 160, 159, 158, with no new duplicates or gaps.
+
+Blank/non-catalog move-product follow-ups now prevent full_scope_reviewed and report(verify=True) returns 2; general/product/lot/sheet hold buckets stay empty and unrelated rows remain READY. Both revised regressions failed against the old predicate before the fix. Tool-guide and STAGE-2 wording agree with the behavior.
+
+Focused offline suites: test_fresh_start_v3.py 96 passed; test_apply_reset.py 65 passed (161 total plus 8 subtests). Full checkout Python suite, including the six historical PDF checks: 539 passed, 1105 skipped, 37 warnings, exactly the 4 known DATABASE_URL setup errors, and 22 subtests passed. Node: 69 passed, zero failures/skips. Both DATABASE_URL and TEST_DATABASE_URL were unset; no database/application API access. The PDF tests used bundled pdfplumber and ReportLab 4.4.9 to match the saved PDF; the initial runner lacked pdfplumber and its older ReportLab 4.1.0 could not reproduce the PDF bytes.
+
+Commands from the checkout root with Python 3.12, the project test dependencies, and the bundled PDF dependencies available:
+
+```sh
+# Both database variables are unset for every command.
+python -B -m pytest audits/fresh-start/test_fresh_start_v3.py audits/fresh-start/test_apply_reset.py
+python -B -m pytest . --ignore=work --continue-on-collection-errors
+node --test tests/*.js
+```
+
+The full run includes the local historical v2/PDF tests, which are not added to this PR. The four expected setup errors are the same receipt extract/approve and sales upload/approve tripwire tests listed above. The extra 82 database skips versus the earlier run come from the tests restored by origin/main. No database-backed behavior is claimed verified. main.py, schema/migrations, dashboard, docs and application tests match origin/main exactly; the only PR changes are the fresh-start package and the two changelogs. The 27-file delivery manifest is refreshed and verified. The iCloud global log received one PR #69 row-160 line; the existing PR #68 row-159 entry was preserved, and the home-path file was not modified.

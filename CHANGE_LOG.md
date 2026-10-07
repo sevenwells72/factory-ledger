@@ -1,34 +1,65 @@
 # Change Log
 
-## 2026-10-07 10:32 — Fresh-start v3 standalone and full-suite verification complete (row 159)
+## 2026-10-07 10:57 — PR #69 merge and move-follow-up sign-off fix (row 160; not deployed)
+- **File(s) changed:** `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/v3/STAGE-2.md`, `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; resolved iCloud global log.
+- **What changed:** Confirmed PR #68 merged as 4f7ddbe, then merged origin/main without rebasing. Restore every upstream changelog entry, including row 158 and PR #68's row 159; renumber this PR's entry to 160. Unresolved move follow-ups now prevent full-scope sign-off and verification returns 2 while general holds stay empty and unrelated rows remain READY. Align both guides and refresh delivery hashes.
+- **Validation:** The two revised blank/non-catalog move-product regressions fail against the old predicate. Focused offline suites: test_fresh_start_v3.py 96 passed; test_apply_reset.py 65 passed (161 total plus 8 subtests). Full checkout Python suite, including the six historical PDF checks: 539 passed, 1105 skipped, 37 warnings, exactly the 4 known DATABASE_URL setup errors, and 22 subtests passed. Node: 69 passed, zero failures/skips. Both DATABASE_URL and TEST_DATABASE_URL were unset; no database/application API access. The PDF tests used bundled pdfplumber and ReportLab 4.4.9 to match the saved PDF; the initial runner lacked pdfplumber and its older ReportLab 4.1.0 could not reproduce the PDF bytes. Application, database schema/migrations and API files receive only the upstream merge and must match origin/main exactly.
+- **History note:** CHANGE_LOG.md contains prose entries, not a numbered table. The upstream numbered ledger has pre-existing duplicate IDs 42 (twice) and 13 (three times), plus 28a/28b; preserving every upstream row leaves those historical exceptions intact. The recent 160, 159, 158 sequence is consecutive and unique.
+
+---
+
+## 2026-10-07 10:32 — Fresh-start v3 standalone and full-suite verification complete (row 160)
 - **File(s) changed:** `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
-- **Validation:** Clean temporary detached worktree of 805d471: test_fresh_start_v3.py and test_apply_reset.py ran 161 tests, all passed; fresh_start_v3.py --write-count-template generated 850 blank rows with the duplicate column. Worktree removed; no stash used. Full checkout Python suite: 533 passed, 1023 skipped, 27 warnings, exactly 4 expected DATABASE_URL errors, and 22 subtests passed; test_count_pdf.py excluded as requested. Node suite: 67 passed, no failures/skips. Both DB environment variables unset; no DB/application API calls or migrations. All 23 requested additions present; no prohibited additions; all 28 delivered fresh-start files scanned including extracted PDF content with no secrets (one synthetic FAKE.invalid URL), and zero /Users/ paths. Manifest verifies all 27 companion files. origin/main 521330c maximum row 158 verified; row 159 used. main.py/migrations unchanged. Whitespace check passes for text with CSV CRLF allowed; PDF bytes retained.
+- **Validation:** Clean temporary detached worktree of 805d471: test_fresh_start_v3.py and test_apply_reset.py ran 161 tests, all passed; fresh_start_v3.py --write-count-template generated 850 blank rows with the duplicate column. Worktree removed; no stash used. Full checkout Python suite: 533 passed, 1023 skipped, 27 warnings, exactly 4 expected DATABASE_URL errors, and 22 subtests passed; test_count_pdf.py excluded as requested. Node suite: 67 passed, no failures/skips. Both DB environment variables unset; no DB/application API calls or migrations. All 23 requested additions present; no prohibited additions; all 28 delivered fresh-start files scanned including extracted PDF content with no secrets (one synthetic FAKE.invalid URL), and zero /Users/ paths. Manifest verifies all 27 companion files. origin/main 521330c maximum row 158 verified; row 159 originally used (renumbered to 160 after PR #68). main.py/migrations unchanged. Whitespace check passes for text with CSV CRLF allowed; PDF bytes retained.
 - **Why:** Record reproducible standalone proof and offline full-suite limits before the repository-visibility push gate.
 
 ---
 
-## 2026-10-07 10:31 — Preserve executor checkout guard while isolating fixtures (row 159)
+## 2026-10-07 10:31 — Preserve executor checkout guard while isolating fixtures (row 160)
 - **File(s) changed:** `audits/fresh-start/fresh_start_common.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Correction to the prior standalone-fixture follow-up: its focused-pass claim was premature. f9dbd2a produced 51 failures/errors because relocating OUT tripped the executor checkout guard. Keep OUT unchanged, name the two existing legacy manifest paths in SCOPE_MANIFESTS, and patch only the v2 manifest path to a per-test fixture. The production path and guard behavior are unchanged. The observed focused rerun now passes 161 tests plus 8 subtests. Both failed temporary worktrees were removed; clean-HEAD proof remains pending.
 - **Why:** Isolate test data without bypassing the executor checkout guard.
 
 ---
 
-## 2026-10-07 10:29 — Fresh-start standalone fixture repair (row 159; not deployed)
+## 2026-10-07 10:29 — Fresh-start standalone fixture repair (row 160; not deployed)
 - **File(s) changed:** `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Clean-worktree validation of fd7e75b exposed 65 executor-test errors from untracked v2 manifests. Derive the same 94-product legacy scope from the committed v3 snapshot and create an issued manifest in each temporary test directory; use that snapshot for excluded-product fixtures too. Guide checks resolve from the test file. Focused suite now passes 161 tests plus 8 subtests; no live access or production behavior changes. Clean-HEAD proof will be repeated.
 - **Why:** The executor safety tests must run from committed files without relying on local historical reports.
 
 ---
 
-## 2026-10-07 10:27 — Fresh-start v3 review fixes and self-contained tool files (row 159; not deployed)
+## 2026-10-07 10:27 — Fresh-start v3 review fixes and self-contained tool files (row 160; not deployed)
 - **File(s) changed:** `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/fresh_start_common.py`, `audits/fresh-start/lot_review.py`, `audits/fresh-start/v3/queries/01-scope.sql`, `audits/fresh-start/v3/count-sheet-v3.csv`, `audits/fresh-start/apply_reset.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/reset_preview.py`, `audits/fresh-start/verify_reset.py`, `audits/fresh-start/v3/raw/01-scope.json`, `audits/fresh-start/v3/count-coverage-v3.csv`, `audits/fresh-start/v3/moved-during-count-v3.csv`, `audits/fresh-start/build_v3_materials.py`, `audits/fresh-start/apply-guide.md`, `audits/fresh-start/approval.md`, `audits/fresh-start/v3/sheet-register-v3.csv`, `audits/fresh-start/v3/count-sheet-v3.pdf`, `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/scope-check.md`, `audits/fresh-start/v3/sunshine-ownership-reconciliation.md`, `audits/fresh-start/v3/build-backlog.md`, `audits/fresh-start/v3/delivery-sha256.json`, `audits/fresh-start/v3/recount-groups.csv`, `audits/fresh-start/v3/recount-groups.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Commit the 23 selected tool, SQL, snapshot, count and guide/report files; derive checkout paths from __file__; route blank/non-catalog move IDs to a move-level CSV/Markdown follow-up without holding unrelated products; document conservative holds for voided prior openings; add three regression tests and refresh the delivery manifest. Retain H1/M1/M2/M3/L1-L5 fixes from 960c9fa. No main.py edits, database/application API calls or migrations.
-- **Validation:** Focused offline suite: 161 passed plus 8 subtests; secret scan covers all 28 delivered fresh-start files, including PDF text and the saved snapshot, with no credentials found (one synthetic FAKE.invalid fixture). Clean-worktree and full-suite verification follow after commit. Fetched origin/main at 521330c; maximum row is 158, so this task uses 159.
+- **Validation:** Focused offline suite: 161 passed plus 8 subtests; secret scan covers all 28 delivered fresh-start files, including PDF text and the saved snapshot, with no credentials found (one synthetic FAKE.invalid fixture). Clean-worktree and full-suite verification follow after commit. Fetched origin/main at 521330c; maximum row is 158, so this task originally used 159 (renumbered to 160 after PR #68).
 - **Why:** A clean checkout was missing required tool imports/data and unidentified move rows leaked into global holds.
 
 ---
 
+
+## 2026-09-30 10:12 — PR #66 + #67 production rollout (DEPLOYED) and post-rollout housekeeping
+- **File(s) changed:** `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **Production actions (2026-09-29 UTC, each owner-approved):** 056 applied 16:53:55 and 057 applied 16:56:23 as `postgres` over port 5432 inside `BEGIN; SET LOCAL lock_timeout='5s'; … COMMIT;` with `ON_ERROR_STOP`; both verified read-only (owner, RLS enabled/not forced, 0 rows, indexes valid, CHECKs, markers, `ledger_current_*` view definitions unchanged). PR #66 merged 16:58:36 (`67db9a0`), live on Railway ~17:29 after deployment `353e5aed` sat QUEUED during Railway's "API degradation causing slow or stuck deployments" incident. PR #67 retargeted to main and merged 17:30:38 (`521330c`); Netlify deployed `dashboard.js?v=68` ~17:33; Railway never received the push. 2026-09-30 13:53 UTC: backend deployed with `railway redeploy --from-source` (deployment `c4f4bca5`, commit `521330c`).
+- **Verified live:** `/health` 200; GET `/sales/orders/349` and `/353` unchanged apart from live inventory figures plus #67's additive keys; legacy NULL-price line 813 still null price/value, total 3909.5; packing slip text identical except generated timestamp; shared-key `POST /products/resolve` 200; `actor_write_audit` and `sales_order_create_receipts` 0 rows; only shared-key floor transactions appeared; dashboard loads. No test writes were made; the named-actor check was skipped (no actor key at hand).
+- **What changed here:** `tests/schema/schema.sql` re-dumped from production (schema only, 5,041 lines) so it carries 056/057 natively; the temporary `\ir` includes were removed. `docs/named-actor-writes.md` gained "Production rollout" and "Rollback" sections (lock, non-empty refusal, `SET LOCAL factory_ledger.confirm_audit_export = 'yes'` override, revert order). Row 159 added to `FACTORY_LEDGER_CHANGELOG.md`.
+- **Validation:** full suite on throwaway local DB built from the re-dumped schema: **1,443 Python tests passed**, **69 Node tests passed**, zero failures/skips.
+- **Why:** Close out the approved rollout of rows 157/158 and leave the repo's test schema and rollback documentation matching production.
+
+---
+
+## 2026-09-29 12:34 — Row 158 re-review verified on PR #66 7410112 (not deployed)
+- **Files:** `main.py`, `tests/test_order_create_review.py`, all three changelogs.
+- **Validation:** Full Python suite 1,443 passed (1,414 previous + 14 upstream PR #66 + 15 new), Node 69 passed, zero failures/skips; focused suite 296 passed. Tests ran only on fresh throwaway UTF-8 PostgreSQL 17 database pr67_test at 127.0.0.1:57667. Exact audit counts: manual auto-customer order 4, receipt create 5 with no retry duplicates, extraction approval 3; late audit/receipt failures undo customer and prior audits. N1 uses one pending-quantity rule for preview/ship-all/completion and repairs legacy partial orders with no remaining quantities without stock moves or a new shipment; repair audit failure rolls back. N2 reports every bad legacy line at body/lines/index/quantity_lb. N3 rejects priced fractional-case edits with the product name. Messages identify cancelled lines and physical-lines-first service sequencing. Floor GPT behavior: shipping one of two physical lines now yields partial_ship (previously incorrectly shipped); service-only orders now ship; shipping a cancelled line now 409s. Changelog row 158 and earlier entries remain unchanged; upstream restored row 157 retained. No production access, real-DB migrations, merge or deploy.
+- **Rebase:** Resolved `main.py` signature/header-audit/manual-response conflicts by combining the request-aware core audit with contract fields and receipt handling, with no duplicate caller audit. Resolved changelog insertions by retaining both histories and original row 158.
+
+---
+
+## 2026-09-29 12:31 — Row 158 re-review: rebase onto PR #66 and repair shipping/validation (not deployed)
+- **Files:** `main.py`, `tests/test_order_create_review.py`, all three changelogs.
+- **What changed:** Rebased onto 7410112. Resolved shared-core request/header-audit/manual-caller conflicts by preserving contract fields and receipts with one core audit per created order/line; retained customer audit. Preserved both log histories, restored upstream row 157 and unchanged row 158. Fix remaining-quantity completion (including legacy partial orders), indexed multi-line legacy 422 errors, priced whole-case line edits with product names, and cancelled/service-first shipping messages. Floor GPT behavior: shipping one of two physical lines yields partial_ship (previously incorrectly shipped); service-only orders can ship; shipping a cancelled line returns 409. Full disposable-database validation pending; no production, real-DB migrations, merge or deploy.
+
+---
 
 ## 2026-09-29 12:25 — Verified PR #66 re-review fixes (row 157; not deployed)
 - **File(s) changed:** `main.py`, `migrations/down/056_actor_write_audit_down.sql`, `tests/test_named_actor_writes.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
@@ -43,6 +74,39 @@
 - **What changed:** Both order-creation callers pass `request` to the shared core, which audits each order and line on the business cursor; remove duplicate manual-handler audits. Restore historical row 157 exactly from 8194766. Guard audit-table rollback with an exclusive lock, non-empty refusal, and explicit verified-export setting. Add regression tests for intake audit success/rollback/shared-key behavior and empty/refused/overridden rollback.
 - **Validation:** Validation pending on a throwaway local database; no production access, real database migration, merge or deployment.
 - **Why:** Owner approved all three PR #66 re-review findings; keep the core diff minimal for stacked PR #67 to rebase.
+---
+
+## 2026-09-29 12:16 — Row 158 follow-up: NULL prices, migration marker and both pallet products verified (not deployed)
+- **Files:** migration 057/up/down, order-create tests/docs, CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md; resolved iCloud global log.
+- **Validation:** Full fresh throwaway-local-DB suite: 1,414 Python tests passed (3 additional cases) and 69 Node tests passed, zero failures/skips. Legacy NULL and zero prices retain null case_price, line_value, unpriced-order totals and line-edit responses; quantity-only edits keep stored NULL. Migration 057 up/down/rerun verifies its marker is inserted once without rewriting it, removed on rollback, and unrelated markers remain intact. Products 102 Pallets and 176 Pallet Charge both preserve counts/prices/amounts and ship without inventory or weight contributions via products.is_service. No application code changes or existing GPT behavior changes in this follow-up. git diff --check passes. No production access, real database migration, merge or deployment.
+
+---
+
+## 2026-09-29 12:13 — Row 158 follow-up: NULL-price, migration-marker and both service-SKU coverage (not deployed)
+- **Files:** migration 057/up/down, `tests/test_order_create_review.py`, `tests/test_order_create_contract.py`, `docs/order-create-contract.md`, all three logs.
+- **What changed:** Confirmed existing code preserves NULL prices and null line/order values on legacy unpriced orders, including quantity-only edits; added explicit legacy/new NULL-price coverage alongside zero-price cases. Added idempotent 057_order_create_contract migration marker and targeted down-script removal, matching 056. Extended real create/preview/ship/detail tests to both active service products, 102 Pallets and 176 Pallet Charge; classification remains products.is_service with no product-ID special cases. No main.py behavior changes. Updated contract docs. Full throwaway-DB and Node validation pending; no production access, real DB migration, merge or deployment.
+
+---
+
+## 2026-09-29 12:07 — Row 158 follow-up: all PR #67 cross-review fixes verified (not deployed)
+- **Files:** `main.py`, dashboard JS/index, migration 057 and down script, `tests/test_order_create_review.py`, `tests/test_order_create_review.js`, existing contract/shipping tests, `docs/order-create-contract.md`, all three logs.
+- **Validation:** Full suite: 1,411 Python tests passed (27 new) and 69 Node tests passed (2 new), zero failures/skips, on fresh throwaway local DB factory_ledger_pr67_review_test_20260929 built from tests/schema/schema.sql. JS syntax and git diff --check pass. PDF tests read actual generated slips before/after shipment; real HTTP races prove one receipt for a new customer and serialize header PO edits against creates. Named line-audit failures roll back quantities/amounts. Legacy zero reads remain null and legacy missing-case-weight requests return 422; only new fields opt into the new contract, and both physical paths retain omitted-unit warnings. All findings accepted. No merge, deploy, real database migration or production access.
+- **Correction to earlier claims:** Row 158 and prior entries are preserved. Prior blanket claims about zero-price reads and complete GPT create compatibility did not cover the reproduced cases; the tests now explicitly verify the owner-approved legacy/new-style split. Service-only completion is now allowed when no physical line is unfulfilled, superseding the older ZERO_SHIPMENT assertion.
+
+---
+
+## 2026-09-29 12:03 — Row 158 follow-up: PR #67 cross-review fixes (not deployed; verification in progress)
+- **Files:** `main.py`, dashboard, migration 057/up/down, contract/review tests, contract documentation, all three logs.
+- **What changed:** Correct packing-slip service counts and whole-order shipment completion; audit line edits atomically; trim only PO/reference edges and enforce reference CHECKs; restore legacy zero-price null reads and GPT case-weight validation; retain omitted-unit warnings; serialize referenced creates before customer auto-create; render service counts read-only while preserving price edits; reject priced fractional-case pounds; document app-role/5432/ON_ERROR_STOP/transaction/lock-timeout migration procedures. Add PDF, lifecycle, actor rollback, legacy-shape, zero-price, concurrency and migration regression tests. Earlier row-158 claims that all zero reads should change and that GPT create compatibility was complete were too broad; the owner now requires legacy zero reads and validation to remain unchanged. Historical row 158 is retained verbatim.
+- **Scope:** Work only in `/Users/cns/Documents/Codex/wt-order-create`; base remains ccdbe57 after fetch. Throwaway local database only; no production, merge, deployment or real-database migration.
+
+---
+
+## 2026-09-29 11:41 — Row 158 verified on updated PR #66 base (not deployed)
+- **File(s) changed:** `main.py`, `migrations/057_order_create_contract.sql`, `migrations/down/057_order_create_contract_down.sql`, `tests/schema/schema.sql`, `tests/test_order_create_contract.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `docs/order-create-contract.md`, and all three changelogs.
+- **What changed:** Exact-text PO and visible No PO, explicit duplicate-PO override on create/header edits, approved IDs, per-customer external-reference uniqueness and atomic original-response receipts, durable commercial line quantities/amounts, product-derived physical weights, zero prices, named header audit, and zero-pound service auto-fulfillment. Retain saved case weights for reads/price edits. Receipt RLS matches 056. Rebased onto PR #66 review fixes `ccdbe57`, retaining its auto-created-customer audit and wrapper attribution. No GPT OpenAPI or key-scope changes.
+- **Validation:** Fresh disposable local DB `factory_ledger_order_create_final_test` built from the updated schema via localhost:5432. Full Python suite **1,384 passed**, no failures/skips (1,347 base + 37 new); Node **67 passed**, no failures/skips; JS syntax and `git diff --check` clean. Real two-connection HTTP races prove exactly one order; duplicate PO, conflicting reference, product 176/freight, zero prices/totals, header/line edits, named actors, late-line/audit/receipt rollback, database uniqueness and migration down/up/rerun covered. Original legacy create response asserted exactly; no receipt/audit for shared legacy writes.
+- **Rollout:** NOT merged or deployed; no real DB touched. Apply 056 then additive 057 through port 5432 before a separately authorized application rollout. 057 never changes ledger views; optional down script removes only new metadata after app rollback. API reads gain verification fields and zero values display faithfully; existing GPT create requests retain their original contract.
 
 ---
 
@@ -51,6 +115,13 @@
 - **What changed:** F1: the ten `/receive|ship|make|pack|adjust` `/preview`+`/commit` shortcut wrappers now pass `request` to their handler, so an actor-keyed `POST /receive/commit` records the actor instead of `legacy-shared-key` (HTTP scope unchanged; the other shortcuts still 403 for actors). F2: `resolve_customer_id` takes keyword `request=` and, when it creates a customer, writes a `customers` row to `actor_write_audit` on the same cursor; `POST /sales/orders` and `POST /ship` commit pass it. F3: corrected the stale `POST /sales/orders` allowlist comment. F4: restored the original 14:31/14:25 entries here, the FACTORY_LEDGER validation note and both iCloud global-log rows (text recovered from the original session transcript), and added separate entries for 1337fdd and these fixes. F5: added the 056 down script with a safety header. F7: 056 now enables (not forces) RLS on `actor_write_audit`. 24 new tests: receive-shortcut attribution for all actors + shared, other shortcuts 403 for actors and unchanged for shared, direct-call pass-through for all five commit wrappers, auto-created-customer audit and rollback on both routes, and an RLS test in which a non-superuser owning role runs the real `POST /customers` path while a granted non-owner role sees 0 rows and cannot insert.
 - **Validation:** Full Python suite **1,347 passed** (1,323 + 24 new), zero failures/skips, on throwaway local DB `factory_ledger_test_pr66_fixes_20260929` built from `tests/schema/schema.sql`; Node suite **67 passed**; `git diff --check` clean. The 14 new F1/F2 tests fail against the pre-fix code.
 - **Why:** Owner-approved fixes from the PR #66 cross-review. No production access, merge, deploy, or migration on any real database; `/Users/cns/Documents/Codex/` untouched.
+
+---
+
+## 2026-09-29 11:32 — Row 158: order create contract implementation (not deployed)
+- **File(s) changed:** `main.py`, `migrations/057_order_create_contract.sql`, `migrations/down/057_order_create_contract_down.sql`, `tests/schema/schema.sql`, dashboard PO display, contract tests and documentation.
+- **What changed:** Add exact-text customer PO and No PO support, direct approved IDs, external-reference uniqueness and atomic retry receipts, explicit duplicate-PO override, service counts and amounts separate from pounds, product case-weight lookup, and named-actor header audit. Preserve the legacy create request/response path. Implementation and disposable-DB verification in progress.
+- **Why:** MCP createOrder needs durable, verifiable orders with retry safety. Isolated worktree `fix/order-create-contract`, stacked on PR #66; no production access, merge, or deployment. Migration 057 must eventually be applied via port 5432 after 056 and before application rollout.
 
 ---
 

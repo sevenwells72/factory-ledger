@@ -2825,9 +2825,9 @@
       if (!original) continue;
       const qtyInput = row.querySelector('.order-line-qty-input');
       const priceInput = row.querySelector('.order-line-price-input');
-      if (!qtyInput || !priceInput) continue;
+      if (!priceInput || (!qtyInput && original.unit !== 'each')) continue;
       const params = new URLSearchParams();
-      const nextQty = qtyInput.value === '' ? null : Number(qtyInput.value);
+      const nextQty = !qtyInput || qtyInput.value === '' ? null : Number(qtyInput.value);
       const nextPrice = priceInput.value === '' ? null : Number(priceInput.value);
       if (nextQty != null && !Number.isFinite(nextQty)) {
         setOrderDetailMessage(container, 'Quantity must be a valid number.', 'error');
@@ -3320,7 +3320,8 @@
     html += `<span class="so-ordered-total">${SOList.number(ordered)} lb ordered</span>`;
     html += editMode && editableHeader ? `<label class="order-edit-field">Ship by <input type="date" class="order-edit-input order-edit-ship-date" value="${escAttr(data.requested_ship_date || '')}"></label>` : `<span class="so-case-ship-date"><span class="so-fact-label">Ship by</span> ${orderDetailShipDate(data)}</span>`;
     if (data.order_date) html += `<span class="so-order-date">Ordered ${escHtml(formatDateShort(data.order_date))}</span>`;
-    if (data.customer_po) html += `<span class="so-customer-po">Customer PO ${escHtml(data.customer_po)}</span>`;
+    html += `<span class="so-customer-po">${data.customer_po ? 'Customer PO ' + escHtml(data.customer_po) : 'No PO'}</span>`;
+    if (data.external_order_reference) html += `<span class="so-external-reference">External reference ${escHtml(data.external_order_reference)}</span>`;
     html += '</div><div class="so-dimensions">';
     html += `<div class="so-dimension" data-dimension="state"><span class="so-dimension-label">State</span>${SOList.trigger('detail-state-' + data.order_id, escHtml(stateLabel), 'State records whether the order remains open for work or has been closed or cancelled.', stateContent, 'so-state-chip')}</div>`;
     html += `<div class="so-dimension" data-dimension="ready"><span class="so-dimension-label">Ready to ship</span><div class="so-detail-ready-control"><label class="so-ready-target"><input type="checkbox" class="order-ready-checkbox so-detail-ready-checkbox" data-order-id="${escAttr(data.order_id)}" aria-label="Ready to ship: ${escAttr(data.order_number)}" ${readyExplanation.attrs}${flag.ready ? ' checked' : ''}${data.state !== 'open' || state.orderReadyWrites.has(String(data.order_id)) ? ' disabled' : ''}></label><button type="button" class="so-explain-trigger so-ready-explanation" ${readyExplanation.attrs} aria-label="Ready to ship explanation">${flag.ready ? 'Marked' : 'Not marked'}</button>${readyExplanation.content}</div></div>`;
@@ -3353,7 +3354,10 @@
         html += `<tr class="${lineEditable ? 'order-line-edit-row ' : ''}${line.line_status === 'cancelled' ? 'so-line-cancelled' : ''}" data-line-id="${escAttr(line.line_id)}">`;
         html += `<td data-label="Product"><div class="order-product-cell">${SOList.trigger('line-product-' + line.line_id, escHtml(product), 'The product or service ordered on this line.', productContent, 'so-line-product')}${q.service ? '' : `<button type="button" class="btn-sm order-inventory-toggle" data-line-id="${escAttr(line.line_id)}" aria-expanded="false" aria-controls="order-inventory-${escAttr(line.line_id)}">Inventory</button>`}</div></td>`;
         if (lineEditable) {
-          html += `<td class="num order-edit-num-cell" data-label="Ordered ${unit}"><input type="number" class="order-edit-input order-line-qty-input" aria-label="Ordered ${unit}: ${escAttr(product)}" min="0.0001" step="0.0001" value="${escAttr(line.quantity_lb ?? '')}"></td><td class="num order-edit-num-cell" data-label="Price"><input type="number" class="order-edit-input order-line-price-input" aria-label="Price: ${escAttr(product)}" min="0" step="0.01" value="${escAttr(line.case_price ?? '')}"></td>`;
+          html += line.unit === 'each'
+            ? `<td class="num" data-label="Ordered units">${SOList.number(line.quantity)} units</td>`
+            : `<td class="num order-edit-num-cell" data-label="Ordered ${unit}"><input type="number" class="order-edit-input order-line-qty-input" aria-label="Ordered ${unit}: ${escAttr(product)}" min="0.0001" step="0.0001" value="${escAttr(line.quantity_lb ?? '')}"></td>`;
+          html += `<td class="num order-edit-num-cell" data-label="Price"><input type="number" class="order-edit-input order-line-price-input" aria-label="Price: ${escAttr(product)}" min="0" step="0.01" value="${escAttr(line.case_price ?? '')}"></td>`;
         } else {
           html += `<td class="num" data-label="Ordered ${unit}">${SOList.number(q.ordered)}${suffix}</td>`;
           if (editMode) html += `<td class="num" data-label="Price">${line.case_price == null ? '' : SOList.number(line.case_price, 'money')}</td>`;
