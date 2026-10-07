@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-07 13:05 — Staging follow-ups PR: fixture alias ids, regression test, FOLLOWUPS Phase 1 item
+- **File(s) changed:** `scripts/seed_staging.py`, `tests/test_seed_staging.py`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** `seed_fixtures()` now inserts the synthetic customer/supplier alias rows with explicit id `FIXTURE_BASE+1` (they took serial id=1 and collided with production alias id=1 on `--copy-master-data`). New test `test_fixture_aliases_use_reserved_ids_so_source_id_1_copies` seeds fixtures then copies id=1 source rows for every master table (fails on the old code, passes now; staging test files 29/29 on a fresh local DB). FOLLOWUPS.md: new top section "Phase 1 — next up" with P1.1 (`/products/resolve` must not auto-pick among several matches — Classic, chocolate chip; needs CNS shorthand aliases SS=Sunshine, BS=Blue Stripes; alias tables nearly empty) and §7c marked fixed. Branch `docs/staging-followups` off main `8a56f92`.
+- **Why:** Owner-approved follow-up from the PR #71 rollout; no app code (main.py / staging_safety.py / dashboard) touched.
+
+---
+
+## 2026-10-07 12:45 — PR #71 merged + deployed; staging seeded with production catalog; follow-ups queued
+- **File(s) changed:** `FOLLOWUPS.md` (new §7, uncommitted on worktree `~/dev/fl-staging-wt` @ main), `CHANGE_LOG.md`; staging DB data (fl-staging, not production); `~/Documents/fl-secrets/production-db-url.txt` (new, mode 600, outside Git)
+- **What changed:** PR #71 (`infra/staging`) merged to main as `8a56f92` (merge commit, branch kept). Railway: FastAPI prod deploy `1097f50d` SUCCESS, FastAPI-staging `40bd42f5` SUCCESS, both from `8a56f92`, `/health` 200 on both, startup logs clean. `scripts/seed_staging.py --copy-master-data` run against staging: first attempt aborted on `customer_product_aliases_pkey` id=1 (fixture alias rows had serial id=1) — fully rolled back; fixed in staging data by moving the two synthetic alias rows to id 1000000001, rerun copied customers 83 / suppliers 51 / products 210 / customer_product_aliases 2 / supplier_product_aliases 1 (staging now = production + 7 fixture rows; marker `staging_master_data_copy_v1` set). Production access was a single `BEGIN ... READ ONLY` SELECT-only transaction via the 5432 session pooler. Staging `/products/resolve` smoke: "Classic" → 136 Granola Classic 25 LB (keyword/medium), "Sunshine 9" → no match (no such product), "chocolate chip" → 53 White Chocolate Chips (keyword/medium). Added FOLLOWUPS.md §7a–7c (seed-test sequence pollution, keep inlined launcher, fixture alias id collision).
+- **Why:** Owner approved merge + rollout after the PR #71 review; staging needs the real catalog for write tests.
+
+---
+
 ## 2026-10-07 12:03 — Verified live staging read, order creation and receipt; prepared unmerged PR
 - **File(s) changed:** docs/staging.md, FACTORY_LEDGER_CHANGELOG.md, CHANGE_LOG.md; outputs/staging-verification.json.
 - **What changed:** All three smoke operations returned HTTP 200; direct staging reads verified order 1000000002, transaction 1000000002, lot 1000000003 and 25 lb. Production never queried; no catalog copy. Confirmed live source is main at d8d8081 and the staging launcher provides the guard before merge. Preserved earlier changelog rows and added the verification note.

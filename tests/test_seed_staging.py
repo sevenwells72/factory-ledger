@@ -134,3 +134,36 @@ def test_copy_reads_only_master_tables_and_excludes_generated_alias(tuple_cursor
     assert tuple_cursor.fetchone()[0] == "lb"
     tuple_cursor.execute("SELECT alias_key FROM customer_product_aliases WHERE id=720001")
     assert tuple_cursor.fetchone()[0] == "copy-test"
+
+
+@pytest.mark.db
+def test_fixture_aliases_use_reserved_ids_so_source_id_1_copies(tuple_cursor):
+    """Regression: fixture alias rows took serial id=1 and collided with production."""
+    assert seed.seed_fixtures(tuple_cursor) is True
+    for table in ("customer_product_aliases", "supplier_product_aliases"):
+        tuple_cursor.execute(seed.sql.SQL("SELECT id FROM {} WHERE product_id >= %s")
+                             .format(seed.sql.Identifier(table)), (seed.FIXTURE_BASE,))
+        assert [r[0] for r in tuple_cursor.fetchall()] == [seed.FIXTURE_BASE + 1]
+    columns = {}
+    for table in seed.MASTER_TABLES:
+        tuple_cursor.execute("""SELECT column_name FROM information_schema.columns
+            WHERE table_schema='public' AND table_name=%s AND is_generated='NEVER'
+            ORDER BY ordinal_position""", (table,))
+        columns[table] = [r[0] for r in tuple_cursor.fetchall()]
+    source = ReadOnlySource(columns)
+    source_id = 1  # production's lowest alias id
+    orig = source.fetchall
+    def fetchall():
+        rows = orig()
+        keys = ("id", "customer_id", "supplier_id", "product_id")
+        return [tuple(source_id if col in keys and v is not None else v
+                      for col, v in zip(columns[source.table], rows[0]))]
+    source.fetchall = fetchall
+    with patch.object(seed.psycopg2, "connect", return_value=source):
+        counts = seed.copy_master_data(tuple_cursor,
+            "postgresql://test:synthetic@source.example/postgres",
+            "postgresql://test:synthetic@staging.example/postgres")
+    assert counts == {table: 1 for table in seed.MASTER_TABLES}
+    tuple_cursor.execute("SELECT count(*) FROM customer_product_aliases WHERE id IN (1, %s)",
+                         (seed.FIXTURE_BASE + 1,))
+    assert tuple_cursor.fetchone()[0] == 2
