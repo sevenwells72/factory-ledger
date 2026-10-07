@@ -25,3 +25,21 @@ Both preview and verification were regenerated offline using the unchanged Octob
 ## Limits to the conclusion
 
 This validates the preparation tools and saved evidence, not production deployment or a real reset. FL has no per-location balances and its API lacks an atomic inventory guard; owner-reviewed allocation and a brief quiet posting interval for approved products remain necessary. Unknown lots are never created. Packaging counts are raw informational observations, not reconciled totals or adjustment targets. No packaging balance is loaded or zeroed. Billing IDs 102/176 remain excluded even if their catalog type changes. New catalog products of type packaging are excluded dynamically; known food sold in cases remains in scope. Count and Sunshine ownership facts still need the owner's real records.
+
+
+## 2026-10-07 10:32 — Review and standalone verification
+
+Clean temporary detached worktree of 805d471: test_fresh_start_v3.py and test_apply_reset.py ran 161 tests, all passed; fresh_start_v3.py --write-count-template generated 850 blank rows with the duplicate column. Worktree removed; no stash used. Full checkout Python suite: 533 passed, 1023 skipped, 27 warnings, exactly 4 expected DATABASE_URL errors, and 22 subtests passed; test_count_pdf.py excluded as requested. Node suite: 67 passed, no failures/skips. Both DB environment variables unset; no DB/application API calls or migrations. All 23 requested additions present; no prohibited additions; all 28 delivered fresh-start files scanned including extracted PDF content with no secrets (one synthetic FAKE.invalid URL), and zero hardcoded user-home paths. Manifest verifies all 27 companion files. origin/main 521330c maximum row 158 verified; row 159 used. main.py/migrations unchanged. Whitespace check passes for text with CSV CRLF allowed; PDF bytes retained.
+
+Commands used (Python 3.12, with DATABASE_URL and TEST_DATABASE_URL unset):
+
+```sh
+# In audits/fresh-start/ of a temporary worktree created from committed HEAD:
+python -B -m unittest -q test_fresh_start_v3.py test_apply_reset.py
+python -B fresh_start_v3.py --write-count-template <temporary-path-under-audits/fresh-start>
+# Back in the original checkout:
+python -m pytest . --ignore=work --ignore=audits/fresh-start/test_count_pdf.py --continue-on-collection-errors
+node --test tests/*.js
+```
+
+The four expected errors are the receipt extract/approve and sales upload/approve read-only-tripwire setup tests in `tests/test_expected_receipt_extract.py` and `tests/test_sales_order_extract.py`; all report `DATABASE_URL env var required`. DB-dependent tests remain unvalidated because database access was prohibited.

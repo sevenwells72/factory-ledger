@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-07 10:32 — Fresh-start v3 standalone and full-suite verification complete (row 159)
+- **File(s) changed:** `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **Validation:** Clean temporary detached worktree of 805d471: test_fresh_start_v3.py and test_apply_reset.py ran 161 tests, all passed; fresh_start_v3.py --write-count-template generated 850 blank rows with the duplicate column. Worktree removed; no stash used. Full checkout Python suite: 533 passed, 1023 skipped, 27 warnings, exactly 4 expected DATABASE_URL errors, and 22 subtests passed; test_count_pdf.py excluded as requested. Node suite: 67 passed, no failures/skips. Both DB environment variables unset; no DB/application API calls or migrations. All 23 requested additions present; no prohibited additions; all 28 delivered fresh-start files scanned including extracted PDF content with no secrets (one synthetic FAKE.invalid URL), and zero /Users/ paths. Manifest verifies all 27 companion files. origin/main 521330c maximum row 158 verified; row 159 used. main.py/migrations unchanged. Whitespace check passes for text with CSV CRLF allowed; PDF bytes retained.
+- **Why:** Record reproducible standalone proof and offline full-suite limits before the repository-visibility push gate.
+
+---
+
 ## 2026-10-07 10:31 — Preserve executor checkout guard while isolating fixtures (row 159)
 - **File(s) changed:** `audits/fresh-start/fresh_start_common.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Correction to the prior standalone-fixture follow-up: its focused-pass claim was premature. f9dbd2a produced 51 failures/errors because relocating OUT tripped the executor checkout guard. Keep OUT unchanged, name the two existing legacy manifest paths in SCOPE_MANIFESTS, and patch only the v2 manifest path to a per-test fixture. The production path and guard behavior are unchanged. The observed focused rerun now passes 161 tests plus 8 subtests. Both failed temporary worktrees were removed; clean-HEAD proof remains pending.
