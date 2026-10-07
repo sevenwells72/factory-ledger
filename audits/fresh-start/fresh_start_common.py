@@ -14,6 +14,7 @@ from lot_review import lot_suggestions
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'audits/fresh-start'
+SCOPE_MANIFESTS = {1: OUT / 'scope-manifest.json', 2: OUT / 'scope-manifest-v2.json'}
 WRAPPER = ROOT / 'scripts/psql_ro.sh'
 CREDENTIAL = Path.home() / '.config/factory-ledger/db_url'
 PLANT = ZoneInfo('America/New_York')
@@ -420,7 +421,7 @@ def analyze(s, path, cutoff, confirmations_path=None):
     def data_issue(pid, category, detail, fix):
         data_issues[pid].append(dict(category=category,detail=detail,fix=fix))
         issues[pid].append(detail)
-    manifest_path = OUT / ('scope-manifest-v2.json' if parsed['version']==2 else 'scope-manifest.json')
+    manifest_path = SCOPE_MANIFESTS[parsed['version']]
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else None
     if manifest:
         original = {p['id']:p for p in manifest['products'] if p['id'] not in EXCLUDED_PRODUCT_IDS}

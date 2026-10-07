@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-07 10:31 — Preserve executor checkout guard while isolating fixtures (row 159)
+- **File(s) changed:** `audits/fresh-start/fresh_start_common.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Correction to the prior standalone-fixture follow-up: its focused-pass claim was premature. f9dbd2a produced 51 failures/errors because relocating OUT tripped the executor checkout guard. Keep OUT unchanged, name the two existing legacy manifest paths in SCOPE_MANIFESTS, and patch only the v2 manifest path to a per-test fixture. The production path and guard behavior are unchanged. The observed focused rerun now passes 161 tests plus 8 subtests. Both failed temporary worktrees were removed; clean-HEAD proof remains pending.
+- **Why:** Isolate test data without bypassing the executor checkout guard.
+
+---
+
 ## 2026-10-07 10:29 — Fresh-start standalone fixture repair (row 159; not deployed)
 - **File(s) changed:** `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Clean-worktree validation of fd7e75b exposed 65 executor-test errors from untracked v2 manifests. Derive the same 94-product legacy scope from the committed v3 snapshot and create an issued manifest in each temporary test directory; use that snapshot for excluded-product fixtures too. Guide checks resolve from the test file. Focused suite now passes 161 tests plus 8 subtests; no live access or production behavior changes. Clean-HEAD proof will be repeated.

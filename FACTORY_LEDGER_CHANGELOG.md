@@ -1,5 +1,7 @@
 # Factory Ledger Changelog — Regression Guard
 
+**Row 159 fixture guard correction (2026-10-07 10:31):** Correction to the prior standalone-fixture follow-up: its focused-pass claim was premature. f9dbd2a produced 51 failures/errors because relocating OUT tripped the executor checkout guard. Keep OUT unchanged, name the two existing legacy manifest paths in SCOPE_MANIFESTS, and patch only the v2 manifest path to a per-test fixture. The production path and guard behavior are unchanged. The observed focused rerun now passes 161 tests plus 8 subtests. Both failed temporary worktrees were removed; clean-HEAD proof remains pending.
+
 **Row 159 standalone fixture follow-up (2026-10-07 10:29):** Clean-worktree validation of fd7e75b exposed 65 executor-test errors from untracked v2 manifests. Derive the same 94-product legacy scope from the committed v3 snapshot and create an issued manifest in each temporary test directory; use that snapshot for excluded-product fixtures too. Guide checks resolve from the test file. Focused suite now passes 161 tests plus 8 subtests; no live access or production behavior changes. Clean-HEAD proof will be repeated.
 
 Every fix is logged here so future sessions know what breaks if a change is reverted.

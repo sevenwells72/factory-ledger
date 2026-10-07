@@ -124,7 +124,8 @@ class ApplyTests(unittest.TestCase):
         # Give the legacy parser an issued manifest inside this test's directory,
         # independent of any v1/v2 materials in the developer's checkout.
         (self.out/'scope-manifest-v2.json').write_text(json.dumps(dict(products=products), default=str))
-        ctx = patch.object(f, 'OUT', self.out); ctx.start(); self.addCleanup(ctx.stop)
+        ctx = patch.dict(f.SCOPE_MANIFESTS, {2: self.out/'scope-manifest-v2.json'})
+        ctx.start(); self.addCleanup(ctx.stop)
         self.cut = datetime.now(timezone.utc) - timedelta(hours=2)
         self.before = (self.cut-timedelta(hours=1)).isoformat()
         self.s = dict(snapshot_at=(self.cut+timedelta(minutes=1)).isoformat(), products=products,
