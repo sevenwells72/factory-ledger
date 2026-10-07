@@ -1,0 +1,548 @@
+# Phase 1 — Factory Ledger "minimum safe operating system"
+
+**Status:** design document only. Nothing in this document has been built, migrated, deployed or tested. No app code, no migrations, no DB writes.
+**Date:** 2026-10-07 · **Against:** `origin/main` @ `ebf153e` (PR #72), MCP branch `integration/mcp-with-66` @ `2c6d625` / `feature/mcp-server` @ `d74f747`
+**Inputs read:** `FOLLOWUPS.md` (incl. P1.1 and §7), `~/Documents/fl-audits/mcp-readiness-audit.md` (2026-10-07), the GPT retirement map with the Oct 6 inventory rules R1–R10 (`~/Documents/Claude/2026-10-06/gpt-retirement-map/docs-draft/gpt-retirement-map.md`), `docs/mcp-auth-contract.md`, `docs/mcp-migration-plan.md`, `docs/named-actor-writes.md`, `docs/order-create-contract.md`, `docs/staging.md`, `audits/fresh-start/v3/*` (count packet, build backlog, Sunshine reconciliation), `IDEMPOTENCY_KEY_PLAN.md`, `main.py` and `tests/schema/schema.sql` on main, `mcp_server/` on the MCP branches.
+**Line numbers** are `main.py` on `ebf153e` and `tests/schema/schema.sql` ("schema:") unless stated. They drift; grep by function name before editing.
+
+---
+
+## 0. Decisions already made (not reopened here)
+
+1. **FL is the authority; AI is only an interface.** Every rule in this document is enforced in `main.py` + Postgres. The ChatGPT plugin, the dashboard and any future client go through the same endpoints and get the same refusals.
+2. **ChatGPT + private MCP plugin is the primary chat interface.** The MCP adapter on `feature/mcp-server` (Google sign-in, per-user actor keys, two-call confirm) is reused; its SQLite ticket moves into FL (§1).
+3. **No critical rule may depend on AI instructions.** If a rule only exists in an MCP/GPT instruction file, it is not a rule. Instruction files may *explain* FL's behaviour; they may not *be* the behaviour.
+4. **Chat writes use prepare → commit.** One prepare call that returns an exact draft and a ticket; one commit call that posts only that draft.
+5. **Ambiguity is resolved against FL records with the user choosing, never guessed.** Products, lots, orders, customers and units (§3).
+6. **Cutover = physical count + reset, readiness-gated, target Nov 20** (count packet v3 is ready; reset applies only after owner approval — `audits/fresh-start/`). GPT retirement by Dec 11.
+
+Vocabulary used below: **ledger post** = a `transactions` row (receive / make / pack / adjust / ship / found). **Metadata write** = customers, lots, orders, lines, expected receipts. **Actor** = a row in `actors` (migration 052). **Owner** = Michael (`actors.role = 'owner'`; the brief says "admin" — FL's existing role value is `owner`, keep it).
+
+---
+
+## 1. Prepare → commit with an FL-side ticket
+
+### 1.1 What exists today (facts)
+
+- The adapter already implements prepare/commit correctly *except for location*: `ConfirmationStore` is SQLite at `work/mcp-confirmations.sqlite3` (adapter.py:768–855), TTL 120 s, token bound to `digest([env, base_url, group, tool, payload])` + `digest([email, role, actor_key])` + `revision = digest(state)`. No Railway volume is declared, so it resets on every deploy. After the mutating request is sent, any failure becomes `write_outcome_uncertain` and the row *blocks* re-issuing the same proposal — the operator must reconcile by hand.
+- The backend has request-level idempotency on exactly one route: `POST /sales/orders` (`sales_order_create_receipts`, PR #67: same `request_hash` → original response; different → 409 `EXTERNAL_ORDER_REFERENCE_CONFLICT`).
+- `/receive`, `/make`, `/pack`, `/adjust`, `/ship`, `/sales/orders/{id}/ship`, `/sales/orders/{id}/lines`, `/inventory/found`, `/production/runs` have **no** retry protection: a dropped response + retry posts twice. They do have `mode=preview|commit`, `FOR UPDATE` locks and `occurred_at`/`backfill`.
+- Every commit already returns `confirmation_code = "TXN-" + sha256("txn-{id}-cns")[:6]` (main:3276). It is derived from the id after the fact; it is not stored, not searchable, and not a receipt.
+- `IDEMPOTENCY_KEY_PLAN.md` proposes an `idempotency_keys` table keyed on a client header. This design supersedes it: the key is FL-issued (a ticket), not client-invented, so a client cannot forget to send one.
+
+### 1.2 Tables (migration 058 `write_tickets`)
+
+```sql
+CREATE TABLE write_tickets (
+  id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  ticket_hash     text NOT NULL UNIQUE,          -- sha256 of the opaque ticket string; the string itself is never stored
+  action          text NOT NULL CHECK (action IN (
+                    'receive','make','pack','adjust','found','void',
+                    'ship_order','ship_standalone','ship_bulk',
+                    'rename_lot','update_supplier_lot',
+                    'create_order','add_order_lines','update_order_line','cancel_order_line',
+                    'update_order_header','update_order_status','close_order','cancel_order',
+                    'create_expected_receipt','resolve_exception')),
+  actor_id        integer NOT NULL REFERENCES actors(id),
+  client_source   text NOT NULL CHECK (client_source IN ('mcp','dashboard','api')),
+  payload         jsonb NOT NULL,                -- the NORMALISED draft: ids only (product_id, lot_id, customer_id, order_id, line_id), numeric qty, unit, occurred_at, reason codes, confirmations
+  payload_hash    text NOT NULL,                 -- sha256(canonical JSON of payload); returned to the client, echoed back on commit
+  state_hash      text NOT NULL,                 -- sha256 of the validation snapshot (lot balances, order status, lot status, expected-receipt status) at prepare
+  draft           jsonb NOT NULL,                -- what was SHOWN to the user: labels, lot codes, lb, warnings, suggested lots (for the receipt page)
+  warnings        jsonb NOT NULL DEFAULT '[]',   -- [{code, message, message_es, refs}] e.g. POSSIBLE_DUPLICATE
+  status          text NOT NULL DEFAULT 'prepared' CHECK (status IN ('prepared','committed','expired','rejected','superseded')),
+  prepared_at     timestamptz NOT NULL DEFAULT clock_timestamp(),
+  expires_at      timestamptz NOT NULL,          -- prepared_at + 10 minutes (chat) / 30 minutes (dashboard forms)
+  committed_at    timestamptz,
+  receipt_number  text UNIQUE,                   -- §2; set in the same transaction as the post
+  result_ref      jsonb,                         -- {transaction_ids:[], lot_ids:[], shipment_id, order_id, correction_id}
+  response        jsonb,                         -- the exact commit response, replayed verbatim on retry
+  acknowledged    jsonb NOT NULL DEFAULT '[]',   -- warning codes the committer explicitly acknowledged
+  reject_reason   text
+);
+CREATE INDEX ON write_tickets (actor_id, prepared_at DESC);
+CREATE INDEX ON write_tickets (status) WHERE status = 'prepared';
+-- append-only on committed rows: trigger refuses UPDATE when OLD.status = 'committed' (same pattern as actor_write_audit_append_only, schema:4266)
+```
+
+`transactions` gains two nullable columns, set at INSERT only (the table is append-only via the 039 triggers, so they must be present at insert): `receipt_number text` (unique, partial index) and `ticket_id bigint REFERENCES write_tickets(id)`. `shipments`, `ledger_corrections`, `sales_orders`, `sales_order_lines`, `lots` get `ticket_id` the same way (metadata writes are UPDATEs, so a nullable column + the `actor_write_audit` row carries it).
+
+### 1.3 Endpoints
+
+**Prepare** — one per action, all `POST`, all return the same envelope. Each reuses the existing preview code path (`mode='preview'` already runs the full validators: receive main:5451, ship 7890, make 8226, pack 8734, adjust 9065, ship_order 15340) and then *adds* the ticket:
+
+| Endpoint | Replaces (becomes internal-only, §1.7) | Input identity rule |
+|---|---|---|
+| `POST /receive/prepare` | `POST /receive` mode=preview, `/receive/preview` | `product_id` required (no `product_name`); `supplier_id` or `supplier_name` → resolved, ambiguity 409 |
+| `POST /make/prepare` | `POST /make` preview, `/make/preview` | `product_id` (batch); `lot_confirmations[]` optional at prepare, **required at commit** (R4, §5) |
+| `POST /pack/prepare` | `POST /pack` preview, `/pack/preview` | `source_product_id`, `target_product_id`, `lot_confirmations[]` |
+| `POST /adjust/prepare` | `POST /adjust` preview, `/adjust/preview` | `lot_id`, `delta_lb` (signed), `reason_code` from the fixed list (R2) |
+| `POST /inventory/found/prepare` | `POST /inventory/found` | `product_id`, qty + uom, `reason_code` |
+| `POST /void/{transaction_id}/prepare` | `POST /void/{id}` | returns the full transaction in `draft` so the user sees what is being voided |
+| `POST /sales/orders/{id}/ship/prepare` | `POST /sales/orders/{id}/ship` mode=preview, `/ship/preview` | `line_ids` + quantities, `bol_reference` (§8), `lot_confirmations[]` |
+| `POST /ship/prepare` (standalone) | `POST /ship` | **`customer_id` required**; no `customer_name`, no `force_create_customer` (audit: REPLACE) |
+| `POST /ship/bulk/prepare` | new (§8.3 Sunshine bins) | `customer_id`, `bins[]` |
+| `POST /lots/{lot_id}/rename/prepare`, `POST /lots/{lot_id}/supplier-lot/prepare` | `PATCH …/rename`, `PATCH …/supplier-lot` | `reason_code` (R2/R8) |
+| `POST /sales/orders/prepare` | `POST /sales/orders` direct | PR #67 contract: `customer_id`, line `product_id`, `unit`, `customer_po`, `external_order_reference` (the ticket *is* the external reference for chat — the adapter passes `receipt_number` as `external_order_reference`, so the existing `sales_order_create_receipts` replay keeps working unchanged) |
+| `POST /sales/orders/{id}/lines/prepare`, `…/lines/{line_id}/update/prepare`, `…/lines/{line_id}/cancel/prepare`, `POST /sales/orders/{id}/header/prepare`, `…/status/prepare`, `…/close/prepare`, `…/cancel/prepare` | the matching direct routes | ids only |
+| `POST /expected-receipts/prepare` | `POST /expected-receipts` | `product_id`, `supplier_id` |
+
+Prepare response envelope:
+
+```json
+{
+  "ticket": "wt_7f3c…(43 chars, opaque)",     "ticket_id": 1842,
+  "action": "make",       "expires_at": "2026-10-07T17:12:00Z",
+  "payload_hash": "sha256…",
+  "draft": { "product": {"id":107,"name":"Granola Classic Batch #9","odoo_code":"90001"},
+             "output_lb": 323, "lot_code": "26-10-07-CLS9-001 (new)",
+             "ingredients": [ {"product_id":12,"name":"Coconut Flake Desiccated","need_lb":40,
+                               "suggested_lot": {"lot_id":9123,"lot_code":"24-09-30-…","on_hand_lb":260,"suggested":true,"confirmed":false} } ],
+             "occurred_at": "2026-10-07T12:55:00-04:00", "happened_vs_now_minutes": 3,
+             "production_warning": {…kosher…} },
+  "warnings": [ {"code":"POSSIBLE_DUPLICATE","message":"A make of Granola Classic Batch #9, 323 lb, was posted 14 minutes ago as receipt MK-261007-006 by Arturo.","refs":{"receipt_number":"MK-261007-006","transaction_id":2451}} ],
+  "blockers": [ {"code":"LOT_NOT_CONFIRMED","message":"Confirm the coconut lot (type its last 4 characters) before committing."} ],
+  "can_commit": false,
+  "permissions": {"actor":"Arturo","role":"floor","allowed":true}
+}
+```
+
+`blockers` non-empty ⇒ the ticket is still issued (so the conversation can continue — e.g. the user types the last-4 and the client calls prepare again, which **supersedes** the first ticket), but commit of this ticket will fail with the same blocker codes.
+
+**Commit** — one endpoint for every action:
+
+```
+POST /tickets/{ticket}/commit
+{ "payload_hash": "sha256…", "acknowledged_warnings": ["POSSIBLE_DUPLICATE"], "lot_confirmations": [...optional late additions...] }
+```
+
+Inside one DB transaction:
+
+1. `SELECT … FROM write_tickets WHERE ticket_hash = sha256($ticket) FOR UPDATE`. No row → 404 `TICKET_NOT_FOUND`.
+2. `actor_id` must equal the authenticated actor → else 403 `TICKET_WRONG_USER` (bound to user).
+3. `payload_hash` in body must equal stored → else 409 `TICKET_PAYLOAD_MISMATCH` (bound to exact payload — the client is proving it is committing what it showed).
+4. `status = 'committed'` → **return the stored `response` with HTTP 200 and `"replayed": true`** (retry returns the original receipt). This is the whole point of the FL-side ticket: a client that lost the response calls commit again and gets the same receipt number, never a second post.
+5. `status IN ('expired','rejected','superseded')` → 409 `TICKET_NOT_COMMITTABLE` with the status. `expires_at < now()` → flip to `expired`, 409 `TICKET_EXPIRED` ("prepare again").
+6. **Re-validate** by running the action's validator against *current* state: posted-only lot balances (`lot_on_hand()`), lot `status <> 'merged'`, order `state='open'`/status rules, expected receipt still `open`, actor still `active`, role still allowed for this action (§4), `occurred_at` still inside the back-dating limit for this role (§6), every warning in `warnings` that is `requires_ack` is present in `acknowledged_warnings` → else 409 `WARNING_NOT_ACKNOWLEDGED`. If re-validation fails → ticket `rejected` with `reject_reason`, 409 `TICKET_STALE` carrying the fresh validation errors. (The stored `state_hash` is compared and reported as `state_changed: true/false` in the receipt, but it is **not** by itself a reason to refuse — a lot balance moving from 260 → 250 lb while the draft needs 40 lb is fine; the validator decides.)
+7. Post exactly the stored `payload` (never the request body) through the existing commit code (receive main:5445 …), passing `ticket_id` and the pre-allocated `receipt_number` into every INSERT.
+8. `UPDATE write_tickets SET status='committed', committed_at=now(), receipt_number=…, result_ref=…, response=…`.
+9. COMMIT. The response is the normal commit response plus `{receipt_number, ticket_id, replayed:false, state_changed}`.
+
+Because step 1's lock, the post and step 8 are one transaction, a crash anywhere rolls the ticket back to `prepared` and the retry proceeds normally. There is no `inflight`/`uncertain` state and nothing for a human to reconcile. The adapter's `write_outcome_uncertain` path goes away: on timeout the adapter simply calls commit again.
+
+Concurrency: two commits of the same ticket serialize on the `FOR UPDATE`; the second sees `committed` and replays. Two *different* tickets for the same physical event are what the possible-duplicate warning (§1.5) is for.
+
+### 1.4 Expiry, supersession, cleanup
+
+- Expiry: 10 minutes for `client_source='mcp'` (a floor conversation: "here is the draft — yes"), 30 minutes for `dashboard` forms. Decision D2 (§11).
+- A new prepare by the same actor for the same `(action, payload_hash)` marks older `prepared` tickets `superseded` (adapter behaviour kept). Different payload → independent tickets; both may commit (that is two different events).
+- Nightly job (`scripts/expire_tickets.py` or a startup sweep — **gated by a migration marker like 051's sweep is not; make it a plain idempotent UPDATE**) flips `prepared` past `expires_at` to `expired`. Rows are never deleted; the ticket log is part of the audit trail.
+
+### 1.5 "Possible duplicate" warning
+
+Computed at prepare, stored in `warnings`, `requires_ack: true`:
+
+| Action | Match rule (posted, `effective_status='posted'`, any actor) | Window |
+|---|---|---|
+| receive | same `product_id` and (same `supplier_lot_code` **or** same `total_lb` ± 0) | 24 h |
+| make | same batch `product_id` and same `output_lb` | 45 min |
+| pack | same `target_product_id` and same `cases` | 45 min |
+| adjust / found | same `lot_id` (found: same product) and same `delta_lb` | 2 h |
+| ship_order | same `sales_order_line_id` with any shipped qty since the prepare's own preview | 24 h |
+| ship_standalone / bulk | same `customer_id` and same total lb | 24 h |
+| create_order | handled by PR #67 `DUPLICATE_CUSTOMER_PO` — surfaced as a warning in the draft with `allow_duplicate_po` as the acknowledgement |
+
+The warning names the earlier receipt number, who posted it and how long ago. It never blocks; the commit must carry the acknowledgement. Make/pack windows are short on purpose: two Classic batches an hour apart are normal; two in 20 minutes are usually one batch typed twice.
+
+### 1.6 What the MCP adapter changes to
+
+- `ConfirmationStore` is deleted. `_write()` preview phase calls `/{action}/prepare`, returns FL's `ticket`, `draft`, `warnings`, `blockers`, `expires_at` to the model verbatim. Commit phase calls `POST /tickets/{ticket}/commit` with `payload_hash` and the acknowledgements the user gave. Token binding/principal/revision logic moves into FL (§1.3 steps 2–6).
+- `verify_order_readback` stays (cheap, catches adapter bugs) but a readback failure is reported as `verification: pending`, never as uncertain-do-not-retry.
+- Catalog: write tools keep `phase` + `confirmation_token` (renamed `ticket`) control fields so the ChatGPT-side contract is unchanged; `receive/make/pack/adjust/ship` input schemas switch from `product_name`/`customer_name` to `product_id`/`customer_id` and the model obtains ids via `POST /resolve` (§3). `createOrder` blocker and the 200-order scan are removed (stale after PR #67; audit §2.3 row 29). Standalone `ship` loses `force_create_customer`.
+
+### 1.7 Endpoints that become internal-only
+
+"Internal-only" = reachable with the master `API_KEY` only (removed from `DASHBOARD_KEY_ALLOWLIST` and `ACTOR_WRITE_ALLOWLIST`), kept for migration tooling and `audits/fresh-start/apply_reset.py`, and deleted after GPT retirement (Dec 11).
+
+- `POST /receive`, `/make`, `/pack`, `/adjust`, `/ship` with `mode=commit`, and the `/{action}/preview|commit` siblings (main:15746–15791).
+- `POST /sales/orders/{id}/ship` (mode=commit), `/ship/commit`.
+- `POST /inventory/found`, `/inventory/found-with-new-product` (direct).
+- `POST /void/{id}` direct; `PATCH /lots/{id}/rename`, `PATCH /lots/{code}/supplier-lot` direct.
+- `POST /sales/orders` direct (dashboard intake `/sales/orders/extract/approve` keeps calling `_create_sales_order_core` internally — same core, so PR #67 idempotency is identical through both doors), `POST …/lines`, `PATCH …/lines/{id}/update|cancel`, `PATCH /sales/orders/{id}`, `PATCH …/status`, `/close|/cancel|/reopen`.
+- `POST /records/transactions/{id}/corrections`, `/records/certifications`, `/lots/{id}/reassign`, `/admin/*` — already master-only; unchanged.
+
+Reads are untouched. The dashboard moves its existing ship preview to `/ship/prepare` and gains the commit button it never had (retirement map F5).
+
+---
+
+## 2. Receipt numbers
+
+**Rule the floor can apply:** *no FL receipt number = not recorded.* Anyone can type a receipt number into the dashboard and see what it posted; if the number does not exist, the event was not recorded, whatever the chat said.
+
+**Format:** `<PREFIX>-<YYMMDD>-<NNN>` — `RCV` receive, `MK` make, `PK` pack, `ADJ` adjust, `FND` found, `SHP` ship (order, standalone, bulk), `VD` void, `LOT` rename/supplier-lot, `SO` order create/edit (chat-created orders also get their `SO-YYMMDD-NNN` order number as today; the receipt is the ticket), `XR` exception resolution. `NNN` is per prefix per plant day from a `receipt_counters (prefix, business_date, next)` row locked `FOR UPDATE` inside the commit transaction (same pattern as the SO number). Short enough to say over the phone and write on paper; the prefix tells Arturo what it was without looking it up.
+
+**Storage:** `write_tickets.receipt_number` (unique) and `transactions.receipt_number` (set at INSERT). A ship that posts three transactions carries one receipt number on all three. The existing `confirmation_code` stays in responses for one release for GPT compatibility, then is dropped.
+
+**Endpoints (dashboard allowlist + actor):**
+
+- `GET /receipts/{receipt_number}` → `{receipt_number, action, status, actor:{name,role}, client_source, happened_at, entered_at, draft, response, transactions:[{id, type, lines:[{product, lot_code, quantity_lb}], effective_status}], lots, shipment, order, warnings, acknowledged, exceptions_opened:[…]}`. 404 if unknown — that 404 is the "not recorded" answer.
+- `GET /receipts?date=&actor=&action=&status=` → list for the day (feeds the end-of-shift summary §7.3).
+- `GET /receipts/by-transaction/{transaction_id}` → reverse lookup for Ledger History rows.
+
+**Dashboard:** a "Receipt #" box in the shell header (every page) → receipt page. Ledger History and Activity rows show the receipt number as the primary id instead of the raw transaction id. Voided posts show the `VD-` receipt that voided them.
+
+**Chat:** the adapter's commit result is "Recorded — receipt **MK-261007-007**." If the model cannot show a receipt number, nothing was recorded; the instruction file says so, but the *enforcement* is that the dashboard lookup is the truth.
+
+---
+
+## 3. Resolution: product, lot, customer, order, unit
+
+### 3.1 Today (facts) and the staging test cases
+
+`_tiered_product_search` (main:4139): tier 1 exact (`odoo_code` if all digits, else `LOWER(name)`), tier 2 keyword (`name ILIKE ALL(%word%)`, noise words stripped), tier 3 trigram > 0.25. No alias table is consulted. `POST /products/resolve` (main:4578) **always answers 200 with a `match`** and only lists `alternatives` for keyword/trigram; `resolve_product_id` (main:3980) auto-picks on exact, on keyword-with-one-hit, or trigram > 0.4 with a 0.15 gap, else 409 `PRODUCT_AMBIGUOUS` / `PRODUCT_UNCERTAIN`.
+
+Staging (`FOLLOWUPS.md` P1.1, catalog copy of production, 2026-10-07):
+
+| Query | Today | Required outcome |
+|---|---|---|
+| `Classic` | auto-resolved to **Granola Classic 25 LB (136)** over four other Classic SKUs, tier `keyword`, confidence `medium` | `ambiguous` — list all 5 Classic products ranked; no `match` |
+| `chocolate chip` | auto-resolved to **White Chocolate Chips (53)** over Chocolate Chips Sugar Free / Real 1,000 CT / Real 4,000 CT / Granola Chocolate Chip 25 LB, `keyword`/`medium` | `ambiguous` — 5 candidates; a floor context (`group: floor`, action `make`) ranks the ingredient chips above the finished-goods granola, an order context ranks the granola first, but neither auto-picks |
+| `Sunshine 9` | **nothing** (no alias; "Sunshine" is not in any product name — the family is "SS Classic #9", batches 90025/90026 ids 283/284, finished goods 70013–70018 ids 285–290) | after alias `SS ⇄ Sunshine`: `ambiguous` with the 8 SS #9 products grouped (2 batch, 6 finished); with action `make` → the 2 batch products; with action `pack` + a source batch → the 6 finished goods |
+
+These three are the acceptance tests for PR-R (§10), run against staging, plus: `90001` → exact match (odoo code); `Granola Classic 25 LB` → exact; `BS cacao` → Blue Stripes Whole Cacao Beans (alias expansion then keyword); `coconut` → ambiguous (product 12 and 190 are the known duplicate — never pick).
+
+### 3.2 One resolution endpoint
+
+`POST /resolve` (read-only POST; add to `SAFE_POSTS` in the adapter and to both allowlists):
+
+```json
+{ "kind": "product" | "lot" | "customer" | "order" | "unit",
+  "query": "Sunshine 9",
+  "context": { "action": "make" | "pack" | "receive" | "ship" | "order" | null,
+               "group": "floor" | "office",
+               "product_id": 283, "customer_id": 5, "order_id": 1201 } }
+```
+
+Response:
+
+```json
+{ "outcome": "match" | "ambiguous" | "none",
+  "query_normalized": "ss 9",   "expansions_applied": [{"from":"sunshine","to":"ss","alias_id":4}],
+  "match": { "id": 283, "label": "SS Classic #9 Batch (90025)" }  // only when outcome = match
+  "candidates": [ {"id":283,"label":"…","score":0.92,"tier":"alias","why":"alias 'SS' + token '#9'", "context_boost":"batch product for make"},
+                  {"id":284,"label":"…","score":0.92,"tier":"alias","why":"…"} ],
+  "confidence": "high" | "medium" | "low" | "none",
+  "ask": "Which one? 1) SS Classic #9 Batch 90025 (323 lb)  2) SS Classic #9 Batch 90026 (348 lb)" }
+```
+
+**Decision rules (the critical part — in FL, not in the prompt):**
+
+- `match` is returned **only** when exactly one candidate is at tier `exact` (odoo code, exact full name, exact alias, exact lot code, exact SO number, exact customer name/alias) **or** exactly one candidate scores ≥ 0.5 at all. "Several plausibly match" = two or more candidates ≥ 0.5 → `ambiguous`, *regardless* of the gap. The old "keyword with one hit auto-picks" survives (one hit is one candidate); "trigram 0.4 with 0.15 gap" is removed.
+- `none` when no candidate ≥ 0.25. The response still returns the best 3 below threshold under `near_misses` so the user can say "no, I meant…", but `candidates` is empty and the model has nothing to pick.
+- Candidates are capped at 8, ranked by score then by context boost (floor+make → batch products; pack → finished goods whose parent batch is `context.product_id`; receive → ingredients/packaging; order → finished goods + services). Boost reorders; it never promotes to `match`.
+- Inactive products/customers/merged lots are excluded, except that an exact lot-code hit on a merged lot returns `outcome: none` with `note: "lot merged into …"`.
+- `confidence` is derived: `high` = tier exact/alias; `medium` = keyword; `low` = trigram. It is informational — the model may *not* use it to pick; FL has already decided.
+
+Per kind:
+
+| kind | Sources searched, in order | Context use |
+|---|---|---|
+| product | `odoo_code` exact → `search_aliases` (global) exact → `customer_product_aliases` (when `customer_id`) / `supplier_product_aliases` (when `supplier_id`) → name exact → keyword after token expansion → trigram | action filters type (`batch`/`finished`/ingredient) as boost; `confirmed_sku` logic in make (sibling SKUs) becomes an `ambiguous` outcome here |
+| lot | exact `lot_code` (upcased, `LOT` suffix normalised per `lots_product_code_norm_uniq`) within `product_id` if given → `supplier_lot_code` / `lot_supplier_codes` → **last-4 suffix match** (R4) → trigram on lot_code | `product_id` required for suffix matching; suffix hitting 2+ lots → `ambiguous` ("type the full code or scan"); lots with `on_hand_lb ≤ 0` excluded unless action is `adjust`/`void` |
+| customer | exact name → `customer_aliases` → `LIKE` on name/alias → trigram | existing `_pick_by_address` becomes a boost only when `customer_address` is supplied (keeps FOLLOWUPS §3 tuning path) |
+| order | exact `order_number` → `customer_po` (+customer) → "open orders for customer X" (candidates = open orders, newest first) | `context.customer_id`; `status`/`state` filters; "the Setton order" with 2 open orders → `ambiguous` always |
+| unit | strict enum `lb`, `cases`, `bags`, `boxes`, `each`, `oz`, `pouches`→`cases`? **no**: `pouches` is `ambiguous` between `each` and `cases` | the product's `pack_format` / `case_size_lb` / `is_service` decides which units are *allowed*; a bare number ("9 Sunshine") with no unit → `ambiguous` with the allowed units as candidates; prepare refuses a draft without a unit (422 `UNIT_REQUIRED`) |
+
+`POST /products/resolve` (bulk, used by PO intake) keeps its shape but its per-name result follows the same rule: `match` only when unambiguous, else `match: null` + `candidates`. `resolve_product_id` / `resolve_customer_id` inside write handlers are retired for ticketed actions (ids only), kept for the internal-only direct routes until they are deleted.
+
+### 3.3 Aliases (migration 060)
+
+```sql
+CREATE TABLE search_aliases (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  kind text NOT NULL CHECK (kind IN ('token','product','customer')),
+  alias text NOT NULL,                       -- 'SS', 'BS', 'classic 9'
+  alias_norm text GENERATED ALWAYS AS (lower(regexp_replace(alias,'\s+',' ','g'))) STORED,
+  expansion text,                            -- kind=token: 'Sunshine' (bidirectional: both directions are tried)
+  product_id integer REFERENCES products(id),  -- kind=product
+  customer_id integer REFERENCES customers(id),-- kind=customer (supersedes customer_aliases over time; migrate its rows)
+  language text NOT NULL DEFAULT 'any' CHECK (language IN ('any','en','es')),
+  active boolean NOT NULL DEFAULT true,
+  created_by integer REFERENCES actors(id), created_at timestamptz DEFAULT clock_timestamp(),
+  deactivated_by integer REFERENCES actors(id), deactivated_at timestamptz,
+  UNIQUE (kind, alias_norm, COALESCE(product_id,0), COALESCE(customer_id,0))
+);
+```
+
+Seed rows: token `SS ⇄ Sunshine`, `BS ⇄ Blue Stripes`, `CLS ⇄ Classic`, `choc ⇄ chocolate`, `#9 ⇄ 9`; the Spanish forms Arturo uses (`coco ⇄ coconut`, `avena ⇄ oats`, `chispas ⇄ chips`) — to be collected from Arturo in week 1 (Decision D5). `customer_product_aliases` / `supplier_product_aliases` stay (they carry case sizes and lb-per-unit) and are consulted when the context has a customer/supplier.
+
+**Alias maintenance on the dashboard:** Settings → *Aliases* tab: list (kind, alias, points to, who added, last matched), add, deactivate (never delete; deactivation keeps the resolution log honest). Endpoints `GET /aliases`, `POST /aliases/prepare` + commit (owner/office), `PATCH /aliases/{id}/deactivate`. Also an inline "Add alias" on the receipt page and on an `ambiguous` resolution shown in the dashboard ("Classic → always mean Granola Classic 25 LB for **Setton**" writes a `customer_product_aliases` row). Chat **cannot** create aliases in Phase 1 — aliases change what every future resolution does, so they are an office/owner screen action.
+
+`resolution_log (id, actor_id, kind, query, context, outcome, candidates, chosen_id, ticket_id, created_at)` records every call; it is how the thresholds get tuned from data (FOLLOWUPS §3) and how "the model picked wrong" is investigated.
+
+---
+
+## 4. Identity and roles
+
+### 4.1 People → FL actors
+
+| Person | FL `actors.role` (existing CHECK: `owner`,`floor`,`office`) | MCP allowlist role today | Phase 1 |
+|---|---|---|---|
+| Michael | `owner` ("admin" in the brief) | `admin_office_floor` | owner |
+| Arturo | `floor` — **inventory owner** (R1) | `floor` | floor; default owner of shortage / unidentified-lot exceptions |
+| Luz | `office` | `admin_office_floor` | office |
+| Miriam | `office` | `admin_office_floor` | office |
+
+Today `actors.role` is **informational only** (main:2802 "permission enforcement stays in MCP"); the MCP has its own two-role vocabulary (`admin_office_floor`, `floor`) in `identity.py`. Phase 1 makes FL's role the only one that matters: the adapter stops deciding permissions (its `can_write_*` helpers reduce to "is this user allowlisted at all") and FL answers 403 per action.
+
+### 4.2 How Google sign-in maps to an FL user
+
+Unchanged mechanics (reuse): Google OAuth (`auth.py`) → verified `email` → `MCP_ALLOWED_USERS` entry → `actor_key_env` → `MCP_ACTOR_KEY_<NAME>` → sent as `X-API-Key` on every call → `_authorize_api_key` (main:3123) sha256-lookup in `actors.key_hash` → `request.state.actor`. The adapter already refuses to write unless `/auth/whoami` says `key_kind == 'actor'`.
+
+Additions (migration 059):
+
+- `actors.email text UNIQUE` — the Google email, lowercased. `GET /auth/whoami` returns `{actor:{id,name,role,email}, key_kind, permissions:{<action>: true|false}}` so the dashboard and the adapter can grey out what the user cannot do (display only; FL still enforces).
+- Startup check in the MCP: for every allowlisted user, `/auth/whoami` with that user's key must return an actor whose `email` equals the allowlist email, else refuse to start (catches a swapped `MCP_ACTOR_KEY_*`). Today a swapped key would silently post Luz's writes as Arturo.
+- `MCP_ALLOWED_USERS.role` becomes optional and ignored for permissions; keep it only to decide which tool groups to *list* (floor users see the floor server). Long-term the allowlist is just emails.
+- No shared key is ever sent by the adapter (audit confirms). The master `API_KEY` rotation (audit §7: the live value is committed in 7 public files) is **Phase 1 PR-0** — before any of this is deployed.
+
+Dashboard identity (Decision D3): today every dashboard write is `operator = 'dashboard'` via the shared `DASHBOARD_API_KEY` shipped in `dashboard.js`. Phase 1 minimum: dashboard write screens (ship commit, exceptions, aliases, corrections) require a *personal* actor key entered once per browser (stored in `localStorage`, sent as `X-API-Key` only on write calls); the shared dashboard key stays for reads. Google sign-in on the dashboard is Phase 2.
+
+### 4.3 Permission matrix (enforced in `_authorize_api_key` → `ROLE_PERMISSIONS[action][role]`, checked again at ticket commit)
+
+| Action (ticket `action`) | owner (Michael) | floor (Arturo) | office (Luz, Miriam) |
+|---|---|---|---|
+| All reads, `POST /resolve`, receipts, exceptions list, shift summary | ✓ | ✓ | ✓ |
+| `receive` | ✓ | ✓ | ✓ (office books paperwork; `lot_confirmations` still required) |
+| `make`, `pack` | ✓ | ✓ | ✗ |
+| `adjust` ≤ 500 lb and ≤ 10 % of lot | ✓ | ✓ | ✗ |
+| `adjust` > 500 lb or > 10 % | ✓ | prepare ✓ / commit → opens exception `LARGE_CORRECTION`, posts only after owner approval (§7) | ✗ |
+| `found` | ✓ | ✓ | ✗ |
+| `void` | any | own posts, same plant day | own order-side posts? — ✗ (void is ledger-only) |
+| `rename_lot`, `update_supplier_lot` (resolve unidentified lot) | ✓ | ✓ | ✓ |
+| `ship_order` prepare | ✓ | ✓ | ✓ |
+| `ship_order` commit (needs BOL, §8) | ✓ | ✓ | ✓ |
+| `ship_standalone` (customer_id, no SO) | ✓ | ✗ | ✓ |
+| `ship_bulk` (Sunshine bins) | ✓ | ✓ | ✓ |
+| `create_order`, `add_order_lines`, `update_order_line`, `cancel_order_line`, `update_order_header` | ✓ | ✗ | ✓ |
+| `update_order_status` | ✓ | only `ready` (existing `/sales-orders/{so}/ready`) | ✓ (never `shipped`/`partial_ship` — already 400) |
+| `close_order` with `shipped_not_recorded`, `cancel_order`, `reopen` | ✓ | ✗ | `cancel_order` ✓; `shipped_not_recorded` ✗ (R6) |
+| `create_expected_receipt` | ✓ | ✗ | ✓ |
+| customers create/update | ✓ | ✗ | ✓ |
+| aliases add/deactivate | ✓ | ✗ | ✓ |
+| `resolve_exception`: shortage, unidentified lot | ✓ | ✓ (owner of the queue) | ✗ |
+| `resolve_exception`: large correction approval, late-entry acceptance, shipment-proof waiver | ✓ | ✗ | ✗ |
+| Back-dating > 48 h (§6) | ✓ | ✗ | ✗ |
+| `/admin/*`, lot merge, BOM, product create, `/records/*` | ✓ (master key today → owner actor in Phase 2) | ✗ | ✗ |
+
+Every ✗ is a 403 `ROLE_NOT_ALLOWED {action, role}` from FL. The MCP lists tools by group as today, but a floor user calling an office tool gets FL's 403, not the adapter's.
+
+---
+
+## 5. Oct 6 inventory rules → where FL enforces them
+
+| Rule | Where enforced (table / endpoint / check) | Phase |
+|---|---|---|
+| **R1** Arturo owns inventory accuracy and traceability | `actors.role='floor'` is the default `owner_actor_id` on `exceptions` of kind `SHORTAGE`, `UNIDENTIFIED_LOT`, `NEGATIVE_BALANCE`; owner weekly view (§7.2) shows them under his name; every ledger post carries `entered_by_actor_id` | 1 |
+| **R2** corrections need a fixed reason; all on owner's weekly view; > 500 lb or > 10 % highlighted; photo > 500 lb | `correction_reasons (code PK, label_en, label_es, applies_to[], active)` seeded with Michael's list (Decision D4 — the 8 values are not in any repo file; today `/reason-codes` is hard-coded and unchecked). `adjust/prepare`, `void/prepare`, `rename/prepare`, `supplier-lot/prepare`, `found/prepare` → 422 `REASON_CODE_INVALID` unless `reason_code` ∈ active list. Threshold: `abs(delta_lb) > 500 OR abs(delta_lb) > 0.10 * lot_on_hand_before` → `exceptions(LARGE_CORRECTION)` + ticket blocker `PHOTO_REQUIRED` unless an `attachments` row (§8.1) is linked at commit. Weekly view = `GET /reports/weekly` §7.2 | 1 |
+| **R3** make/pack never blocked by "not enough stock"; post + flag; Arturo resolves in 2 days; never add stock to get around it | `make`/`pack` commit: replace the 400 "Insufficient inventory" (main ~8524, `validate_lot_deduction` 1767, pack ~9029) with: post the consumption against the confirmed lot (balance goes negative — `lot_on_hand()` already allows it for adjust), insert `shortage_flags (id, transaction_id, product_id, lot_id, short_lb, opened_at, due_at = opened_at + 2 business days, owner_actor_id, status, resolution_kind, resolution_ticket_id)` and `exceptions(SHORTAGE)`. "Never add stock to get around it": `adjust/prepare` with `delta_lb > 0` on a lot/product with an **open** shortage → 409 `SHORTAGE_OPEN_RESOLVE_INSTEAD` (resolution goes through `resolve_exception` with kind `count` → a counted adjust that records the shortage id, or `missing_movement` → the receive/make that was never entered, or `void`); `found/prepare` for a product with an open shortage → same 409. Also: any positive adjust within 30 min *before* a make/pack on the same ingredient by the same actor is tagged `pre_make_adjust=true` and listed on the weekly view | 1 |
+| **R4** actual ingredient lot confirmed; FL may suggest oldest, no click-through default; pallet lot recorded on move to production; case items need last-4 typed | `make/pack/ship` prepare returns `suggested_lot` with `confirmed:false`; commit → 422 `LOT_NOT_CONFIRMED` unless every consumed lot has a `lot_confirmations[]` entry `{lot_id, method: 'last4'|'full_code'|'scan'|'pallet', value}` where `value` matches the lot (`last4` = last 4 chars of `lot_code`, unique within the product's active lots else `AMBIGUOUS_SUFFIX`; `pallet` = a `lot_moves` row for that lot with `to_location='production'` within the last 24 h). The adapter cannot fabricate this: it must pass what the user typed. Stored in `transaction_lot_confirmations (transaction_id, lot_id, method, value, actor_id, created_at)`. Pallet moves: `POST /lots/{id}/move/prepare` (`to_location` enum `storage|staging|production`) — a small `lot_moves` table, not full locations (build backlog "Storage locations" 8–12 d stays Phase 2) | 1 (last-4 / full / pallet move); scan = client feature later |
+| **R5** substitutions recorded on the batch with a reason | `make/prepare` body `substitutions[] {ingredient_product_id, substitute_product_id, lot_id, reason_code, note}`; stored in `transaction_substitutions`; `excluded_ingredients` requires a `reason_code` too; shown on the trace page and the day summary | 1 |
+| **R6** order can't close as shipped without a recorded shipment (proof = loaded truck + BOL, same day) | Already: status `shipped` only via `ship_order` (main:14736 400 on manual). Add: `ship_order` commit → 422 `BOL_REQUIRED` unless `bol_reference` non-blank; stored on `shipments.bol_reference` (new column — today it only exists on `transactions`); `shipments.proof_status` (`complete`|`photo_pending`) — photo attachment required by end of the plant day else `exceptions(SHIPMENT_PROOF_MISSING)` auto-opened at 23:00 local; same-day check: `occurred_at::date = current plant date` else blocker `SHIP_NOT_SAME_DAY` (owner may acknowledge); `close_order` with `shipped_not_recorded` → owner only (§4.3) | 1 |
+| **R7** Sunshine bulk: weighed bins (bin ID + tare) leave as a sale, invoiced immediately; pouches invoiced at packing, tracked as Sunshine-owned stock at CNS | §8.3–8.4: `bins`, `ship_bulk` action, `invoice_triggers`; pouch packs set `lots.ownership='sunshine'` + invoice trigger; on-hand reports split by ownership. Full custody/ownership model (backlog 7–12 d) is Phase 2 | 1-lite |
+| **R8** unidentified lots allowed but flagged; resolved within 7 days | `lots.identity_status` (`identified`|`unidentified`) + `identify_by date`; `receive/prepare` with blank/`N/A`/`UNKNOWN` `supplier_lot_code` → draft shows "UNIDENTIFIED — resolve by <date>", commit sets status + `exceptions(UNIDENTIFIED_LOT, due_at = received_at + 7 d, owner = floor)`; `supplier-lot/prepare` with a real code and `reason_code` resolves it; the count packet's "Unidentified lot" rows land here too | 1 |
+| **R9** weekly/monthly recounts and a monthly mock recall | `recount_schedule` from `audits/fresh-start/v3/recount-groups.csv` (77 weekly / 131 monthly, pending owner approval) → dashboard To-Do reminders + `recounts (product_id, counted_lb, fl_lb_at_count, actor_id, counted_at)`; mock recall = a saved `traceSupplierLot` run with `recall_drills (supplier_lot, run_by, run_at, lots_found, orders_affected)` | 2 (reminders in 1) |
+| **R10** full physical count — separate workstream; connection points only | `adjust` reason `count_correction` + R2 thresholds; `FND` receipts for `found_during_count`; unidentified-lot queue; `apply_reset.py` keeps using the master key on the internal-only direct routes (§1.7) and must write `receipt_number`s so the reset is auditable like everything else | — |
+
+---
+
+## 6. `happened_at` vs `entered_at` vs `entered_by`
+
+### 6.1 Today
+
+`transactions` has all three: `occurred_at` (happened; trigger fills from `timestamp` if missing), `created_at` (entered; `clock_timestamp()`, immutable), `operator_id` (text = actor name, default `'legacy-shared-key'`), plus `business_date` (NY date of `occurred_at`), `created_at_source`, `entry_backfilled`. `validate_inventory_occurred_at` (main:3235): ≤ 5 min future, ≤ 14 days back without `backfill=true`. Daily Entries already computes `days_late`.
+
+**Not separable today:** order create (`order_date = CURRENT_DATE`), order status/close/cancel (`state_changed_at` server), lot rename/supplier-lot (no timestamp of the real event at all), void (`ledger_corrections.created_at` only), production-run complete (`clock_timestamp()`), `lots.received_at` PATCH (no attribution).
+
+### 6.2 Phase 1 contract — every write
+
+Three fields on every row that records something that happened, with one meaning each:
+
+| Field | Meaning | Who sets it |
+|---|---|---|
+| `happened_at timestamptz` (existing `occurred_at` on `transactions`; new on `ledger_corrections`, `shipments`, `lots` (rename/supplier-lot events go to `lot_events`), `sales_orders.state_changed_at` → keep name, add `state_happened_at`, `production_runs.completed_happened_at`) | when it physically happened, plant time | the user, via the draft; defaults to now; shown back in the draft as "happened 3 min ago" / "happened **yesterday 16:40**" |
+| `entered_at timestamptz` (existing `created_at`) | when FL recorded it | DB clock only; never settable |
+| `entered_by_actor_id integer REFERENCES actors(id)` (new; `operator_id` text stays as a snapshot for the legacy readers) | the authenticated person | `_authorize_api_key`; never from the body (already true for `operator_id` since PR #66) |
+
+Plus `ticket_id` (which draft produced it) and `client_source`. `lot_events (lot_id, event: 'rename'|'supplier_lot'|'identified'|'move'|'ownership', old, new, reason_code, happened_at, entered_at, entered_by_actor_id, ticket_id)` replaces "no audit of why" on rename (retirement map F3).
+
+### 6.3 Back-dating limits (checked at prepare and again at commit)
+
+| `now − happened_at` | floor / office | owner |
+|---|---|---|
+| future > 5 min | 400 `OCCURRED_AT_IN_FUTURE` (unchanged) | same |
+| 0 – 48 h | allowed | allowed |
+| 48 h – 14 d | allowed; receipt flagged `late_entry`; `exceptions(LATE_ENTRY)` opened for the owner to acknowledge; the draft says "This will be recorded as a late entry (2 days)" | allowed, no exception |
+| > 14 d | 403 `BACKFILL_OWNER_ONLY` | allowed with `backfill:true` + `reason_code` (existing `api_backfill` stamping) |
+
+Why 48 h: the count packet already treats > 15 min after count start as late; day-to-day, "I forgot yesterday's make" is normal and must not be blocked, but it must be visible. Decision D6.
+
+---
+
+## 7. Exceptions queue, owner weekly view, end-of-shift summary
+
+### 7.1 `exceptions` (migration 061)
+
+```sql
+CREATE TABLE exceptions (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  kind text NOT NULL CHECK (kind IN ('SHORTAGE','UNIDENTIFIED_LOT','LARGE_CORRECTION','LATE_ENTRY',
+                                     'SHIPMENT_PROOF_MISSING','NEGATIVE_BALANCE','POSSIBLE_DUPLICATE_ACK',
+                                     'UNSHIPPED_PAST_DUE','SUNSHINE_INVOICE_PENDING','SHIFT_DISCREPANCY')),
+  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved','waived','escalated')),
+  severity text NOT NULL CHECK (severity IN ('info','warn','block')),
+  product_id int, lot_id int, transaction_id bigint, sales_order_id int, shipment_id int,
+  receipt_number text, ticket_id bigint REFERENCES write_tickets(id),
+  detail jsonb NOT NULL,                       -- {short_lb, delta_lb, pct, days_late, …}
+  owner_actor_id int REFERENCES actors(id),    -- who must resolve (floor by default for SHORTAGE/UNIDENTIFIED_LOT/NEGATIVE_BALANCE; owner for the rest)
+  opened_at timestamptz DEFAULT clock_timestamp(),
+  due_at timestamptz,                          -- SHORTAGE +2 business days; UNIDENTIFIED_LOT +7 days; SHIPMENT_PROOF_MISSING end of day; others NULL
+  escalated_at timestamptz,                    -- set by the nightly job when now() > due_at; owner is told on the weekly view and the shift summary
+  resolved_at timestamptz, resolved_by_actor_id int, resolution_kind text, resolution_note text,
+  resolution_ticket_id bigint REFERENCES write_tickets(id)   -- the posting that fixed it (counted adjust, late receive, void, supplier-lot update, photo attach)
+);
+```
+
+Endpoints: `GET /exceptions?status=open&kind=&owner=&overdue=true` (dashboard + MCP read tool `listExceptions`); `GET /exceptions/{id}`; `POST /exceptions/{id}/resolve/prepare` → `{resolution_kind, note, linked_ticket?}` → commit (ticketed, so it has a receipt `XR-…`). `resolution_kind` per kind: SHORTAGE → `counted` (requires a linked `ADJ` receipt with reason `count_correction`), `missing_movement` (linked `RCV`/`MK` receipt), `voided` (linked `VD`); UNIDENTIFIED_LOT → `identified` (linked `LOT` receipt) or `written_off` (owner); LARGE_CORRECTION → `approved`/`declined` (owner; approval posts the held adjust — the held ticket's `expires_at` is extended to 7 days for this case); LATE_ENTRY → `acknowledged`; SHIPMENT_PROOF_MISSING → `photo_attached` / `waived` (owner).
+
+Nightly job (`scripts/exceptions_sweep.py`, run by Railway cron or GitHub Action — **not** an app-startup sweep): escalate overdue; open `SHIPMENT_PROOF_MISSING` for the day's shipments without a photo; open `NEGATIVE_BALANCE` for any lot `lot_on_hand() < 0` without an open shortage; open `UNSHIPPED_PAST_DUE` for open orders with `requested_ship_date < today`.
+
+**Dashboard:** *Exceptions* tab — open items grouped by kind, overdue first, owner column, "Resolve" opens the matching form (counted adjust, attach photo, supplier lot, approve). Each row links to its receipt.
+
+### 7.2 Michael's weekly view
+
+`GET /reports/weekly?week=2026-W41` → one page, printable, Monday–Sunday:
+
+1. Open exceptions by kind with age; overdue in red (escalated).
+2. All corrections this week (`ADJ`, `FND`, `VD`, `LOT`) with reason code, Δ lb, % of lot, who, happened/entered, photo ✓/✗; rows over threshold highlighted (R2).
+3. Shortages opened / resolved / still open > 2 days (R3) and any `pre_make_adjust` tags.
+4. Late entries (> 48 h) and back-fills (R-§6).
+5. Unidentified lots opened / resolved / overdue (R8).
+6. Shipments without proof; orders closed `shipped_not_recorded` (R6).
+7. Sunshine: bulk dispatches awaiting invoice; pouch packs awaiting invoice (R7).
+8. Shift summaries: days confirmed / confirmed with discrepancies / not confirmed (§7.3).
+9. Recount reminders due (R9) — Phase 2 data, Phase 1 shows the schedule.
+
+Dashboard *Weekly* tab (owner/office visible), plus MCP read tool `weeklyReview` so Michael can ask for it in chat.
+
+### 7.3 End-of-shift summary — what Arturo checks against reality
+
+`GET /reports/shift-summary?date=2026-10-07&actor=Arturo` (default: today, the caller) — MCP tool `endOfShift` (floor + office) and a dashboard page on the phone:
+
+```
+SHIFT SUMMARY — Tue Oct 7 — Arturo                         FL receipts today: 11
+RECEIVED   RCV-261007-001  Coconut Flake Desiccated   1,100 lb  lot 24-09-30-… (supplier lot 8812-A)   08:41
+           RCV-261007-002  Oats Rolled                2,000 lb  lot …  ⚠ UNIDENTIFIED — resolve by Oct 14
+MADE       MK-261007-001   SS Classic #9 Batch 90025    323 lb  lot 26-10-07-CLS9-001   ingredients: coconut lot …(last-4 typed), …
+           MK-261007-002   …                                                      ⚠ SHORT 12 lb oats lot … — resolve by Oct 9
+PACKED     PK-261007-001   SS Original 12x10 OZ       120 cases (900 lb) from lot 26-10-07-CLS9-001   ownership: Sunshine → invoice pending
+SHIPPED    SHP-261007-001  SO-261003-004 Setton Farms  40 cases  BOL 55821  photo ✓
+ADJUSTED   ADJ-261007-001  Almonds lot …  −35 lb  reason: damage
+VOIDED     (none)
+NOT ENTERED YET?  expected receipt ER-… (Graham crumbs, due today) — no RCV receipt
+                  production run #88 SS Original pack, planned today — status planned, no PK receipt
+LOT BALANCES TOUCHED TODAY   coconut lot … 260 → 220 lb · oats lot … 0 → −12 lb (short) · …
+OPEN EXCEPTIONS (yours)   2 shortages (1 due Oct 9), 1 unidentified lot (due Oct 14)
+LATE ENTRIES TODAY        none
+Does this match what happened on the floor?   [Confirm]   [Confirm with notes]   [Something is missing]
+```
+
+Sections are driven by `write_tickets` (today's committed receipts for the plant day, `happened_at` *or* `entered_at` today — both are listed, late ones marked) + `expected_receipts` due today without a linked receive + `production_runs` planned today without a linked pack/make + `lot_on_hand()` for every lot touched + open `exceptions` owned by the actor.
+
+`POST /reports/shift-summary/confirm` → `shift_confirmations (business_date, actor_id, confirmed_at, outcome: 'match'|'discrepancy', notes, receipts_seen int, summary_snapshot jsonb)`. "Something is missing" opens `exceptions(SHIFT_DISCREPANCY)` with the note; the weekly view (§7.2 item 8) shows which days were never confirmed. Not confirming is not blocked — it is visible. The summary is bilingual (`label_es` on every section; reason codes carry `label_es`).
+
+---
+
+## 8. Shipment + BOL gate; Sunshine flows
+
+### 8.1 Attachments (migration 063)
+
+`attachments (id, kind: 'bol'|'truck_photo'|'correction_photo'|'count_sheet'|'other', storage_path, sha256, content_type, bytes, uploaded_by_actor_id, uploaded_at, ticket_id, transaction_id, shipment_id, exception_id)` in the existing Supabase storage bucket pattern (`purchase-documents` is already wired for ER/SO intake; add bucket `evidence`). `POST /attachments` (multipart, dashboard + actor keys) returns `attachment_id`; a prepare/commit payload references `attachment_ids[]`. ChatGPT can upload images in a conversation but the MCP cannot reliably relay binaries in Phase 1, so **photos are a dashboard/phone-form action**; the chat flow says "ship it, photo pending" and FL opens the proof exception if no photo arrives by end of day.
+
+### 8.2 Ship gate (all three doors: office `shipOrder`, floor `commitShipOrder`, dashboard button — all hit `ship_order` main:15333)
+
+Prepare draft shows: order, customer, lines with lots (confirmed per R4), total lb/cases, `bol_reference`, `happened_at`, `photo: attached|pending`. Commit refuses: `BOL_REQUIRED` (blank BOL), `LOT_NOT_CONFIRMED`, `SHIP_NOT_SAME_DAY` unless acknowledged by owner, `QTY_EXCEEDS_REMAINING`/`LINE_CANCELLED` etc. (existing). On success: `shipments` row gains `bol_reference`, `proof_status`, `ticket_id`, `entered_by_actor_id`; order status → `shipped`/`partial_ship` (existing); receipt `SHP-…`; packing slip link becomes `GET /sales/orders/{id}/packing-slip?receipt=SHP-…&sig=<hmac>` (short-lived signed link, replaces the static `?key=` — retirement map I1).
+
+Standalone ship (`/ship/prepare`): `customer_id` only, `OPEN_SALES_ORDER_EXISTS` stays as a blocker that only office/owner may acknowledge, no customer auto-create.
+
+### 8.3 Sunshine bulk (weighed bins → sale on departure → invoice)
+
+Tables: `bins (id, bin_code UNIQUE, tare_lb numeric, tare_verified_at, tare_verified_by_actor_id, active)`; `bulk_dispatch_lines (shipment_id, bin_id, lot_id, product_id, gross_lb, tare_lb, net_lb, weighed_at, scale_note, estimated bool)`; `invoice_triggers (id, kind: 'bulk_dispatch'|'pouch_pack', shipment_id, transaction_id, customer_id, product_id, qty, unit, price_basis, status: 'pending'|'invoiced'|'void', invoice_reference, invoiced_by_actor_id, invoiced_at)`.
+
+Flow: `POST /ship/bulk/prepare {customer_id (Sunshine), bins:[{bin_code, lot_id, gross_lb}], happened_at}` → draft computes `net_lb = gross − tare` per bin (tare missing or unverified → blocker `BIN_TARE_UNVERIFIED`; owner can verify tare on the dashboard), total net lb, warns if a bin was dispatched in the last 24 h (possible duplicate). Commit posts one `SHP` ship transaction per lot (balances leave CNS — it *is* a sale), `bulk_dispatch_lines`, and an `invoice_triggers(bulk_dispatch, pending)` row. Office works `GET /invoice-triggers?status=pending` on the dashboard and marks each `invoiced` with the QuickBooks invoice number (ticketed); pending triggers older than 1 business day appear as `SUNSHINE_INVOICE_PENDING` exceptions. Price basis and the later yield-credit question are **not** modelled (build backlog flags it as an owner decision — D8).
+
+### 8.4 Sunshine pouches (invoice at pack, Sunshine-owned stock at CNS)
+
+Products 145–149 (`70003, 70002, 70011, 70070, 70010`, 12×10 oz) are flagged `products.ownership_on_pack = 'sunshine'` (new column, default NULL). `pack/prepare` of such a product: draft says "This pack becomes Sunshine-owned stock held at CNS and triggers an invoice." Commit: output lot gets `lots.ownership='sunshine'` (new column, default `'cns'`), an `invoice_triggers(pouch_pack, pending)` row for the cases packed, and a `lot_events(ownership)` row. Inventory reports (`/inventory/lookup`, FG tab, count sheet) show ownership as a column and totals split `CNS-owned / Sunshine-owned`. A later ship of that lot to Sunshine posts normally but does **not** create a second invoice trigger (already invoiced at pack); a ship of a Sunshine-owned lot to anyone else → blocker `OWNED_BY_OTHER_PARTY` (owner acknowledge only). The historical reconciliation of today's pouch stock (`audits/fresh-start/v3/sunshine-ownership-reconciliation.md`) is an office review after the count, not a Phase 1 code path.
+
+---
+
+## 9. Offline / paper fallback
+
+Three failure modes, one rule: **the paper carries exactly the draft fields, and the later FL entry carries the paper's time and reference.**
+
+1. **ChatGPT/MCP down, FL up** → use the dashboard forms (ship commit, receive, adjust, found, exceptions) which exist after PR-D1/D2; same tickets, same rules. The dashboard is the designated fallback (migration plan line 320).
+2. **FL down (Railway/Supabase)** → paper. A one-page bilingual *FL Late Entry Sheet* (`docs/manual-tests/late-entry-sheet.pdf`, generated like the count packet): one row per event with the ticket fields — action, product (name + odoo code), lot code **and last-4 confirmation initialled**, supplier lot, qty + unit, happened time (HH:MM), who, reason code, BOL #, bin codes/gross for bulk, a box for the receipt number to be written back. Sheets are numbered (`LE-261007-A`), photographed, and entered when FL returns.
+3. **Phone dead / hands full** → same sheet, entered later the same shift.
+
+Entering paper later: `*/prepare` with `happened_at` = the paper time, `entry_source: 'paper'`, `paper_ref: 'LE-261007-A/3'` (both stored on the ticket and the transaction; `transactions.created_at_source` stays `database`/`api_backfill` — the DB clock is still the entered time). FL's response is the receipt number, which is written back onto the sheet. The sheet is then photographed and attached (`attachments.kind='count_sheet'`) to the first receipt of the batch. Late-entry flags (§6.3) apply automatically, so the weekly view shows how much went through paper. Traceability survives because the lot confirmation, the happened time and the actor are captured on paper in the same form FL requires and FL refuses the entry without them; the one thing paper cannot provide is the possible-duplicate check at the time — FL still runs it at entry against what *was* posted, and the end-of-shift summary (§7.3) lists paper-sourced receipts separately for Arturo to check against the sheet.
+
+Expected receipts and production runs due that day stay in the "NOT ENTERED YET?" section until the paper is keyed in, so a lost sheet is noticed the same day.
+
+---
+
+## 10. Build plan
+
+Prerequisite **PR-0 — rotate the master `API_KEY`** (audit §7; live value is in 7 files of a public repo). Railway variable change + scrub the literals; ½ day; owner approval per deploy step. Nothing below should deploy before it.
+
+Three tracks that can run in parallel once PR-A1 defines the contract. Effort = engineering days incl. tests against the local harness (`ledger_harness.py`) and staging, before owner acceptance. Migrations are numbered from 058 and must be renumbered against then-current main.
+
+| # | PR | Track | Contents | Depends on | Effort |
+|---|---|---|---|---|---|
+| A1 | `feat/write-tickets` | API | migration 058 `write_tickets`, `receipt_counters`, `transactions.receipt_number/ticket_id`; `/receive\|make\|pack\|adjust\|found/prepare`, `POST /tickets/{t}/commit` with replay; possible-duplicate warnings; `GET /receipts/*`; allowlist changes; direct routes still open (not yet internal-only) | PR-0 | 5–6 d |
+| A2 | `feat/roles-enforced` | API | migration 059 `actors.email`, `entered_by_actor_id` on transactions/shipments/corrections/sales_orders/lines + `lot_events`; `ROLE_PERMISSIONS`; `/auth/whoami` permissions; back-dating limits (§6.3) with LATE_ENTRY (needs 061 — order A2 after A3 or ship the enum in A2) | A1 | 3 d |
+| A3 | `feat/exceptions-core` | API | migration 061 `exceptions`, `shortage_flags`, `correction_reasons` (seeded with D4 list), R2 reason enforcement + thresholds, R3 post-and-flag in make/pack + `SHORTAGE_OPEN_RESOLVE_INSTEAD`, `/exceptions/*`, nightly sweep script | A1 | 5–6 d |
+| A4 | `feat/resolve-endpoint` | API | migration 060 `search_aliases` + seeds + `resolution_log`; `POST /resolve` (5 kinds) with the §3.2 decision rules; `/products/resolve` no-auto-pick; `/aliases/*`; acceptance tests for Classic / chocolate chip / Sunshine 9 on staging | A1 (for alias write tickets) — resolution reads can start day 1 | 4 d |
+| A5 | `feat/lot-confirmation` | API | R4 `lot_confirmations` + `transaction_lot_confirmations` + `lot_moves`; R5 `substitutions`; R8 `lots.identity_status`/`identify_by` + receive flagging + UNIDENTIFIED_LOT exceptions | A1, A3 | 4 d |
+| A6 | `feat/ship-gate` | API | migration 063 `attachments`, `shipments.bol_reference/proof_status`; `/ship/prepare`, `/sales/orders/{id}/ship/prepare`, BOL/photo/same-day gate, signed packing-slip link; standalone ship by `customer_id` only | A1, A3 | 3 d |
+| A7 | `feat/order-tickets` | API | prepare/commit wrappers for create/lines/header/status/close/cancel/expected-receipt (thin: reuse `_create_sales_order_core`; ticket receipt = `external_order_reference`) | A1 | 2–3 d |
+| A8 | `feat/sunshine-lite` | API | migration 064 `bins`, `bulk_dispatch_lines`, `invoice_triggers`, `products.ownership_on_pack`, `lots.ownership`; `/ship/bulk/prepare`; pouch pack ownership + trigger; `/invoice-triggers` | A1, A6 | 4–5 d |
+| A9 | `feat/reports` | API | `/reports/shift-summary` + confirm, `/reports/weekly` | A2, A3, A5, A6 | 3 d |
+| A10 | `chore/internal-only-routes` | API | remove direct write routes from both allowlists (§1.7); delete `confirmation_code` | all A, M3, D2 live | 1 d |
+| M1 | `mcp/rebase-and-tickets` | MCP | rebase `feature/mcp-server` onto main; delete `ConfirmationStore`; `_write()` → prepare/commit; id-only input schemas; drop createOrder blocker/scan, `_order()` workaround, `external_order_ref` rename; standalone ship without auto-create; FOUND tool | A1 contract (can be built against the harness with A1's branch) | 4 d |
+| M2 | `mcp/roles-from-fl` | MCP | permissions from `/auth/whoami`; startup email↔actor check; allowlist role optional | A2 | 1 d |
+| M3 | `mcp/phase1-tools` | MCP | `resolve`, `listExceptions`, `resolveException`, `endOfShift`, `weeklyReview`, `shipBulk`, `moveLot`; bilingual summaries; instruction file rewrite (explain, don't enforce) | A3–A9 | 3 d |
+| M4 | `infra/mcp-deploy` | MCP | Google OAuth client, Railway `factory-ledger-mcp` service (plan must name only that service), `MCP_ACTOR_KEY_*` from A2 actors, staging first | M1 | 1–2 d + owner steps |
+| D1 | `dash/receipts-and-exceptions` | Dashboard | receipt lookup box + page; Exceptions tab + resolve forms; receipt numbers on History/Activity | A1, A3 | 3 d |
+| D2 | `dash/floor-forms` | Dashboard | ship commit button (BOL, photo upload), receive form, adjust/found forms with reason dropdown + photo, lot-confirmation inputs; personal actor key entry (§4.2) | A1, A5, A6 | 4–5 d |
+| D3 | `dash/aliases-weekly-shift` | Dashboard | Aliases settings tab; Weekly view; shift-summary page + confirm; ownership column on inventory tabs; invoice-triggers list | A4, A8, A9 | 3–4 d |
+| P1 | `docs/paper-fallback` | Docs | late-entry sheet PDF + instructions (EN/ES), `docs/manual-tests/` acceptance scripts for staging | A1 | 1 d |
+
+Critical path: PR-0 → A1 → (A3 ∥ A4 ∥ M1) → A5/A6 → A9 → M3/D3 → A10. Roughly **45–55 engineering days of API work, 9–10 MCP, 10–13 dashboard** — about 3 engineers × 4–5 weeks if the tracks really run in parallel, which is tight for Nov 20. What can slip past cutover without breaking the safety rules: A8 Sunshine-lite (bulk can stay on paper + standalone ship with `customer_id` until it lands), R9 recounts, Google sign-in for the dashboard. What cannot: PR-0, A1, A2, A3, A4, A5, A6, M1, M4, D1, D2.
+
+Every PR: branch off `origin/main`, hunk-level staging on the shared checkout, suite green against the local DB (`TEST_DATABASE_URL` set), staging deploy and manual acceptance before any prod step, per-action approval for push/merge/deploy, `FACTORY_LEDGER_CHANGELOG.md` row on deploy. Migrations applied to staging first, prod only with approval.
+
+---
+
+## 11. DECISIONS NEEDED FROM MICHAEL
+
+1. **Replace the direct write routes or keep them alongside tickets through cutover?** *Recommendation:* keep them master-key-only from PR-A1 onward (internal-only), delete after Dec 11. Running two write paths for staff is how a rule gets bypassed.
+2. **Ticket life:** 10 minutes for chat, 30 for dashboard forms? *Recommendation:* yes. Commit re-validates anyway; a shorter life just means "say yes sooner".
+3. **Dashboard identity in Phase 1:** personal actor key typed once per browser for write screens (cheap, shippable in D2), with Google sign-in on the dashboard deferred to Phase 2? *Recommendation:* yes — the alternative delays every floor form past Nov 20.
+4. **The fixed correction-reason list (R2):** the Oct 6 notes say "your 8 values" but no repo file has them. Please supply the 8 (EN + ES). *Recommendation:* seed with today's six adjust codes (`damage, spoilage, count_correction, sample, hydration_yield, other`) plus `found_during_count`, `unreceived_delivery`, `data_entry_error`, `merge` and prune to your 8 in week 1; `other` always requires a note.
+5. **Who may add aliases?** *Recommendation:* owner + office on the dashboard only; chat never. Collect Arturo's Spanish shorthand in week 1 and seed it.
+6. **Back-dating:** 48 h free, 48 h–14 d flagged as late (owner acknowledges), > 14 d owner-only. *Recommendation:* adopt as written; revisit the 48 h after one month of weekly views.
+7. **Large corrections (> 500 lb or > 10 %):** hold the post until you approve, or post immediately with a photo and show it on the weekly view? *Recommendation:* post immediately with photo required (never block the floor from recording what is true); hold only when the photo is missing.
+8. **Sunshine scope for Nov 20:** bulk bins + invoice trigger + pouch ownership flag (A8, 4–5 d), or paper for bulk until after cutover? *Recommendation:* ship A8 if the three critical tracks are green by Nov 6; otherwise defer and keep bulk on standalone ship (`customer_id` = Sunshine) + paper bin log. Also confirm whether the pouch invoice-at-pack price basis is per case and fixed, and how later yield credits should be modelled — not designed here.
+9. **Shipment photo:** required at commit (floor must have the phone form open at the dock) or required by end of day with an exception if missing? *Recommendation:* end of day — BOL number at commit is the hard gate, photo is the proof trail.
+10. **Who is the named fallback operator and what is the readiness gate for Nov 20?** *Recommendation:* fallback = Luz on the dashboard forms; gate = (a) PR-0 done, (b) A1–A6 + M1 + M4 + D1 + D2 on staging with the §3.1 and §7.3 acceptance scripts passed by you, Arturo and one office user, (c) physical count reviewed and reset approved, (d) five consecutive confirmed shift summaries on staging with zero unexplained discrepancies. If (d) is not met by Nov 17, cutover moves; the date does not override the gate.

@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-07 13:06 — Phase 1 design doc: minimum safe operating system (document only)
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md` (new), `CHANGE_LOG.md`
+- **What changed:** New design document on branch `docs/phase1-design` (off `origin/main` ebf153e). Covers: FL-side prepare→commit tickets (`write_tickets` table, `POST /{action}/prepare` + `POST /tickets/{ticket}/commit` with replay, possible-duplicate warnings, which direct routes become master-key-only); dashboard-searchable receipt numbers (`RCV-/MK-/PK-/ADJ-/FND-/SHP-/VD-/LOT-YYMMDD-NNN`, `GET /receipts/{n}`); `POST /resolve` for product/lot/customer/order/unit with never-auto-pick rules, `search_aliases` (SS=Sunshine, BS=Blue Stripes) and the Classic / chocolate chip / Sunshine 9 staging cases as acceptance tests; FL-enforced role matrix for owner/floor/office and Google-email→actor mapping; Oct 6 rules R1–R10 mapped to tables/endpoints; happened_at/entered_at/entered_by contract and back-dating limits; `exceptions` queue, owner weekly view, end-of-shift summary + confirmation; BOL/photo ship gate and Sunshine bulk/pouch flows; paper late-entry fallback; PR-sized build plan with effort; 10 decisions for Michael. No app code, migrations, DB writes or deploys.
+- **Why:** Requested Phase 1 design for the Nov 20 cutover; consolidates FOLLOWUPS P1.1, the 2026-10-07 MCP readiness audit, and the Oct 6 inventory rules into one buildable spec.
+
+---
+
 ## 2026-10-07 13:05 — Staging follow-ups PR: fixture alias ids, regression test, FOLLOWUPS Phase 1 item
 - **File(s) changed:** `scripts/seed_staging.py`, `tests/test_seed_staging.py`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** `seed_fixtures()` now inserts the synthetic customer/supplier alias rows with explicit id `FIXTURE_BASE+1` (they took serial id=1 and collided with production alias id=1 on `--copy-master-data`). New test `test_fixture_aliases_use_reserved_ids_so_source_id_1_copies` seeds fixtures then copies id=1 source rows for every master table (fails on the old code, passes now; staging test files 29/29 on a fresh local DB). FOLLOWUPS.md: new top section "Phase 1 — next up" with P1.1 (`/products/resolve` must not auto-pick among several matches — Classic, chocolate chip; needs CNS shorthand aliases SS=Sunshine, BS=Blue Stripes; alias tables nearly empty) and §7c marked fixed. Branch `docs/staging-followups` off main `8a56f92`.
