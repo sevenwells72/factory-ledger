@@ -5039,3 +5039,7 @@ ALTER TABLE public.sales_order_create_receipts ENABLE ROW LEVEL SECURITY;
 
 \unrestrict snzm2EIGbFUSoznYriSvXtBuw8SNFu0kSM1QiZ9wMT1DLMrqeHHnVkGTFAoSxpG
 
+
+-- Pending A1: remove after prod migration + scripts/dump_prod_schema.sh
+SET search_path TO public;
+\ir ../../migrations/058_write_tickets.sql

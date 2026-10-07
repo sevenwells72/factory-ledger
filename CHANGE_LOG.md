@@ -14,6 +14,13 @@
 
 ---
 
+## 2026-10-07 15:04 — A1 part 1: add durable ticket and receipt storage
+- **File(s) changed:** `migrations/058_write_tickets.sql`, `migrations/down/058_write_tickets_down.sql`, `tests/schema/schema.sql`
+- **What changed:** Add owner-only RLS, immutable committed receipts, guarded rollback, nullable ledger references and pending test schema include.
+- **Why:** Establish atomic ticket evidence without changing historical ledger rows or direct-route behavior.
+
+---
+
 ## 2026-10-07 15:42 — Phase 1 design doc rev 3.2: supplier tracking approved, Classic #9 Regular/Extra-Kosher tiers; FOLLOWUPS P1.4–P1.5
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/kosher-supplier-decisions` (worktree `~/dev/fl-docs-wt`, based on PR #76's branch so FOLLOWUPS does not conflict). New §5.2 supplier tracking: verified that `generate_lot_code` stores only the first four typed letters and nothing stores a `supplier_id`; rule from cutover — `receive/prepare` requires a resolved `supplier_id` (`/resolve kind=supplier`, 422 `SUPPLIER_REQUIRED`), stored on `transactions`/`lots`, prefix = label from `suppliers.short_code`; A5 +½ d, D2 +½ d, readiness gate 10(e). New §5.3 Classic #9 tiers: production facts for 107/108/136/143/144/283–290 (formulas identical except 284's 1,000 CT chips; 283/284 never posted; 286 was packed from a regular 107 lot on 2026-08-12 then adjusted out; Sunshine SO-260817-001 open for 10,000 lb), proposed mapping (107/108 regular; 283/284 extra-kosher; 285–287 from 283, 288–290 from 284), rules (owner PIN attestation `POST /tickets/{t}/attest`, `KOSHER_ATTESTATION_REQUIRED`, `KOSHER_SOURCE_REQUIRED`, recorded downgrade, EXTRA-KOSHER labeling), new row A12 `feat/kosher-tier` 3–3½ d after A5/A11; §3.2 alias rule SS+#9 → extra-kosher, #9 alone → both; §4.3 attestation row; critical path 29–30 d; §11 items 17–18 with the mapping open for Michael. FOLLOWUPS P1.4 and P1.5 summarise both with pointers. No catalog change applied.
