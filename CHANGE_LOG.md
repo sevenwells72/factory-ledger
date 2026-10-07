@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-07 15:31 — FOLLOWUPS: P1.2 pouches→cases conversion rule, P1.3 F1 unmatched-word logging
+- **File(s) changed:** `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** Branch `docs/followups-pouches-unmatched` (worktree `~/dev/fl-docs-wt`, off `origin/main` d6ead6c). Under "Phase 1 — next up": P1.1 gains pointers to the shorthand draft and catalog-cleanup sheet in `~/Documents/fl-audits`; new **P1.2** — when a user says "pouches" for a pouch product (145–149), FL converts to cases by pouches-per-case and shows "60 pouches = 5 cases — confirm" in the draft, asks if not divisible, never a silent unit change for non-pouch products (replaces design §3.2's each/cases ambiguity for `pouches`); new **P1.3** — during the F1 pilot every unresolved or overridden `/resolve` call must store the raw utterance in `resolution_log` and the Aliases tab shows an "Unmatched this week" list for office review (D5 Spanish/shorthand collection). Docs only.
+- **Why:** Michael's answers Q11 and Q19 on the shorthand draft, 2026-10-07.
+
+---
+
 ## 2026-10-07 15:11 — Phase 1 design doc rev 3.1: floor identity decided (PIN-only login on any device)
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/identity-decision` (worktree `~/dev/fl-docs-wt`, off `origin/main` bbac54d). §4.4 header changed from OPEN to DECIDED with Michael's decision of record: PIN-only login (no name picker) on any device — shared floor tablet or personal phone — each person a unique personal 4-digit PIN; FL rejects obvious PINs (repeated digits, sequences) and PINs already in use, locks temporarily after several wrong attempts, ends sessions after 10 min idle; every entry records the person, never the device; office/owner may also use their personal actor key; FL-issued short-lived sessions are the only browser credential (replaces D3's `localStorage` actor key); owner note that phones in production areas is CNS's food-safety call. Added the A11 mechanics (peppered `actors.pin_hash` UNIQUE, `actor_sessions`, `pin_attempts`, `POST /auth/session {pin}`, `key_kind='session'`, per-source lockout + global ceiling because there is no username, 10,000-PIN staging sweep). A11 renamed `feat/pin-sessions`, effort 2 → **2½ d** (UI drops to ~½ d). §11 item 16 → Decided; readiness gate 10(b) adds A11 + the PIN sweep; §1.8, §4.2, D2, F1 and §11.2 references updated; header gains Revision 3.1.

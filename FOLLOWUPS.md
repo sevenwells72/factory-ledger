@@ -16,6 +16,31 @@ product matches, return the candidates unresolved instead of picking one.
 Needs CNS shorthand aliases (SS = Sunshine, BS = Blue Stripes): "Sunshine 9"
 resolved to nothing. The alias tables are nearly empty
 (customer_product_aliases 2 rows, supplier_product_aliases 1 row in production).
+Seed list drafted 2026-10-07: `~/Documents/fl-audits/shorthand-draft.md` (Michael's
+answers applied); catalog duplicates to resolve first:
+`~/Documents/fl-audits/catalog-cleanup.csv`.
+
+**P1.2 "Pouches" → cases conversion (A4 unit resolution + F1 draft) — Michael, 2026-10-07.**
+People sometimes say "pouches" for quantity, but the Sunshine 12x10 OZ items (145,
+146, 147, 148, 149) are sold and stocked in cases. Rule: when the user gives a
+quantity in pouches for a pouch product, FL converts to cases using that product's
+pouches-per-case (12 today) and shows the conversion in the draft — "60 pouches =
+5 cases — confirm". If the quantity does not divide evenly, FL asks instead of
+rounding. Design doc §3.2 currently lists `pouches` as ambiguous between `each` and
+`cases`; replace that with this conversion rule. Needs a `pouches_per_case` (or
+reuse of `case_size_lb` / pack format) on the product, the `/resolve kind=unit`
+response to return the converted draft quantity, and F1 to render the sentence.
+Non-pouch products: "pouches" stays an error, never a silent unit change.
+
+**P1.3 F1 must log unmatched words during the pilot (D5 Spanish/shorthand collection).**
+The Spanish and floor-shorthand entries in `shorthand-draft.md` are guesses; nobody
+has recorded Arturo's actual vocabulary. During the F1 pilot every `/resolve` call
+whose outcome is `none` or whose chosen candidate was not the top-ranked one is
+already written to `resolution_log` (design §3.3) — F1 must additionally store the
+raw user utterance (typed text or edited transcript) with the log row, and the
+dashboard Aliases tab gets an "Unmatched this week" list the office reviews to add
+aliases. Review cadence: weekly with the owner view until the list is empty for two
+consecutive weeks.
 
 ---
 
