@@ -2,8 +2,8 @@
 
 Status: implemented and tested; migration 058 applied to staging only on
 2026-10-07. No hosted application deployment, production access, merge, or key
-rotation. Branch `feat/write-tickets` was created from `cb2705c` and rebased onto
-`origin/main` at `199c3b5` after documentation-only PRs #74/#75/#77 landed. The A1
+rotation. Branch `feat/write-tickets` was created from `cb2705c` and updated with
+concurrent documentation-only main changes through rev 3.3 (PRs #74/#75/#77/#79). The A1
 code and migration match the tested/staging version byte for byte. F1 backend
 ticket custody and A11 PIN sessions remain separate chunks; the plain A1
 endpoint contract is unchanged.

@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-07 15:52 — A1 part 1: retain final kosher documentation answers from main
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Integrate documentation-only main ac14219 while retaining all log entries; A1 code and migration remain identical to the validated version.
+- **Why:** Keep PR #78 reviewable as concurrent owner documentation decisions land; no feature work outside A1 part 1.
+
+---
+
 ## 2026-10-07 15:49 — A1 part 1: reconcile the final concurrent documentation merge
 - **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
 - **What changed:** Rebase onto main 199c3b5, preserve both log histories, and identify the new supplier-tracking and kosher decisions as A5/D2/F1 and A12 work.
@@ -81,6 +88,13 @@
 - **File(s) changed:** `migrations/058_write_tickets.sql`, `migrations/down/058_write_tickets_down.sql`, `tests/schema/schema.sql`
 - **What changed:** Add owner-only RLS, immutable committed receipts, guarded rollback, nullable ledger references and pending test schema include.
 - **Why:** Establish atomic ticket evidence without changing historical ledger rows or direct-route behavior.
+
+---
+
+## 2026-10-07 15:49 — Phase 1 design doc rev 3.3: kosher answers (chip size, Aug 12 mis-pack, paper log until cutover)
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** Branch `docs/kosher-answers` (worktree `~/dev/fl-docs-wt`, off `origin/main` 199c3b5). §5.3: 284 chip-size flag resolved (interchangeable; 4,000 CT standard; 284 formula → 72 via catalog cleanup, pre-approved; 1,000 CT stays a recorded substitution); Aug 12 mis-pack of 286 recorded as a probable recording error with no historical correction; new interim procedure — extra-kosher batches logged on paper (date + lot number) until cutover. §10.1 cutover checklist gains step 1a: tag the paper-logged lots `extra_kosher` in FL, attach the photographed log, exception for unmatched rows. §11 item 19 added; item 18 and "still open" trimmed to the id mapping only. FOLLOWUPS P1.5 updated with the same three points. Header gains Revision 3.3. No FL data changed.
+- **Why:** Michael's kosher answers, 2026-10-07.
 
 ---
 
