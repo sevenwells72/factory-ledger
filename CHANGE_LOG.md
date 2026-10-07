@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-07 11:10 — Global change-log canonical path rule (docs only; not deployed)
+- **File(s) changed:** `CLAUDE.md`, `AGENTS.md` (new), `CHANGE_LOG.md`
+- **What changed:** Added a CANONICAL PATH rule to the Global Log section of `CLAUDE.md`: the real file is `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`, `~/change-log.md` must stay a symlink to it, and new rows go directly below the `|------|` separator. Created `AGENTS.md` with the same rule for Codex and other agents. Same rule added to the user's global `~/.claude/CLAUDE.md` (outside the repo).
+- **Why:** The two paths had forked between 2026-09-14 and 2026-10-07 (`~/change-log.md` became a regular file; Claude sessions wrote it, Codex sessions wrote the iCloud file). Reconciled 2026-10-07 11:09: both files backed up with suffix `.bak-2026-10-07`, rows merged (iCloud 476 + home 472 → 493 unique; 3 in-file exact duplicates dropped, 452 rows common to both kept once), four 2026-10-07 10:27–10:32 Codex rows annotated "row 159 → now 160", stray mid-file separator removed, symlink restored. No application code touched.
+
+---
+
 ## 2026-10-07 10:57 — PR #69 merge and move-follow-up sign-off fix (row 160; not deployed)
 - **File(s) changed:** `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/v3/STAGE-2.md`, `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; resolved iCloud global log.
 - **What changed:** Confirmed PR #68 merged as 4f7ddbe, then merged origin/main without rebasing. Restore every upstream changelog entry, including row 158 and PR #68's row 159; renumber this PR's entry to 160. Unresolved move follow-ups now prevent full-scope sign-off and verification returns 2 while general holds stay empty and unrelated rows remain READY. Align both guides and refresh delivery hashes.

@@ -55,7 +55,8 @@ Format:
 ```
 
 Rules:
-* Newest entries go at the top of the table (just below the header row).
+* CANONICAL PATH: the real file is `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md` (iCloud Drive). `~/change-log.md` is a symlink to it and MUST stay a symlink — never replace it with a regular file (no atomic write-and-rename, no `mv`/`cp` over it). If `~/change-log.md` is not a symlink, stop and report it instead of writing; the log forked once (2026-09-14 → 2026-10-07) because of this.
+* Newest entries go at the top of the table, directly below the `|------|` separator row — never between the header row and the separator.
 * If `~/change-log.md` doesn't exist yet, create it with the header and table headers before adding the first entry.
 * Never delete or modify previous entries.
 * The "Project" column should be the absolute path to the project root.
