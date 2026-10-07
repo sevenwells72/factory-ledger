@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-07 11:10 — Global change-log canonical path rule (docs only; not deployed)
+- **File(s) changed:** `CLAUDE.md`, `AGENTS.md` (new), `CHANGE_LOG.md`
+- **What changed:** Added a CANONICAL PATH rule to the Global Log section of `CLAUDE.md`: the real file is `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`, `~/change-log.md` must stay a symlink to it, and new rows go directly below the `|------|` separator. Created `AGENTS.md` with the same rule for Codex and other agents. Same rule added to the user's global `~/.claude/CLAUDE.md` (outside the repo).
+- **Why:** The two paths had forked between 2026-09-14 and 2026-10-07 (`~/change-log.md` became a regular file; Claude sessions wrote it, Codex sessions wrote the iCloud file). Reconciled 2026-10-07 11:09: both files backed up with suffix `.bak-2026-10-07`, rows merged (iCloud 476 + home 472 → 493 unique; 3 in-file exact duplicates dropped, 452 rows common to both kept once), four 2026-10-07 10:27–10:32 Codex rows annotated "row 159 → now 160", stray mid-file separator removed, symlink restored. No application code touched.
+
+---
+
 ## 2026-09-30 10:12 — PR #66 + #67 production rollout (DEPLOYED) and post-rollout housekeeping
 - **File(s) changed:** `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **Production actions (2026-09-29 UTC, each owner-approved):** 056 applied 16:53:55 and 057 applied 16:56:23 as `postgres` over port 5432 inside `BEGIN; SET LOCAL lock_timeout='5s'; … COMMIT;` with `ON_ERROR_STOP`; both verified read-only (owner, RLS enabled/not forced, 0 rows, indexes valid, CHECKs, markers, `ledger_current_*` view definitions unchanged). PR #66 merged 16:58:36 (`67db9a0`), live on Railway ~17:29 after deployment `353e5aed` sat QUEUED during Railway's "API degradation causing slow or stuck deployments" incident. PR #67 retargeted to main and merged 17:30:38 (`521330c`); Netlify deployed `dashboard.js?v=68` ~17:33; Railway never received the push. 2026-09-30 13:53 UTC: backend deployed with `railway redeploy --from-source` (deployment `c4f4bca5`, commit `521330c`).
