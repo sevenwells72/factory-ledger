@@ -31,6 +31,8 @@ from collections import defaultdict, deque
 # imports). Always referenced as `extraction.<name>` so tests can monkeypatch
 # the module attributes and both sides see it.
 import extraction
+import write_tickets
+import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
 from openpyxl import Workbook
@@ -2053,6 +2055,13 @@ def _run_startup_migrations() -> None:
     assert_staging_database(DATABASE_URL)
     gated = _ensure_migration_markers()
 
+    def _startup_migration_write_tickets(cur):
+        sql = (pathlib.Path(__file__).parent / "migrations/058_write_tickets.sql").read_text()
+        # The gate owns marker writes/error handling; manual SQL includes it.
+        cur.execute(sql.split("-- Standalone migration marker;", 1)[0])
+
+    _run_once_startup_migration("058_write_tickets", _startup_migration_write_tickets, gated)
+
     # Migration: Add label_type column for SKU protection
     def _startup_migration_label_type(cur):
         # Add column if it doesn't exist
@@ -2774,7 +2783,7 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("GET", "/supply-requests"),
     ("POST", "/supply-requests"),
     ("PATCH", "/supply-requests/{supply_request_id}"),
-})
+}) | write_tickets.ROUTES
 
 
 def _route_key(request: Request):
@@ -2831,7 +2840,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-})
+}) | write_tickets.ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -5311,20 +5320,8 @@ def check_suspicious_code_similarity(cur, product_id: int, lot_id: int, lot_code
     }
 
 
-def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
-                       entry_source_notes: str = None, entry_source_notes_es: str = None,
-                       found_location: str = None, estimated_age: str = None) -> tuple:
-    """Find existing lot or create a new one. Returns (lot_id, is_new, lot_uuid).
-
-    Uses INSERT ... ON CONFLICT DO NOTHING + SELECT to guarantee exactly one lot
-    per (product_id, lot_code) pair, leveraging the unique index.
-
-    Tier-1 twins (§3.1 / migration 047): a code that normalizes onto an
-    existing non-merged lot of the same product WITHOUT matching it exactly
-    (casing/whitespace/'Lot'-suffix variant) is rejected with a 409 — checked
-    up front for a clear message, with the lots_product_code_norm_uniq index
-    as the concurrent-mint backstop.
-    """
+def _validate_lot_code_twin(cur, product_id: int, lot_code: str):
+    """Read-only lot identity guard shared by draft validation and creation."""
     t1_col = _LOT_CODE_T1_NORM_SQL.format(expr="lot_code")
     t1_param = _LOT_CODE_T1_NORM_SQL.format(expr="%s")
     cur.execute(f"""
@@ -5342,6 +5339,24 @@ def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
             f"'{twin['lot_code']}' (lot id {twin['id']}) for this product — a "
             f"casing/whitespace/'Lot'-suffix variant of the same code. Use the "
             f"existing lot's exact code to add to it, or a genuinely different code.")
+
+
+
+def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
+                       entry_source_notes: str = None, entry_source_notes_es: str = None,
+                       found_location: str = None, estimated_age: str = None) -> tuple:
+    """Find existing lot or create a new one. Returns (lot_id, is_new, lot_uuid).
+
+    Uses INSERT ... ON CONFLICT DO NOTHING + SELECT to guarantee exactly one lot
+    per (product_id, lot_code) pair, leveraging the unique index.
+
+    Tier-1 twins (§3.1 / migration 047): a code that normalizes onto an
+    existing non-merged lot of the same product WITHOUT matching it exactly
+    (casing/whitespace/'Lot'-suffix variant) is rejected with a 409 — checked
+    up front for a clear message, with the lots_product_code_norm_uniq index
+    as the concurrent-mint backstop.
+    """
+    _validate_lot_code_twin(cur, product_id, lot_code)
 
     # Build dynamic INSERT with optional columns
     columns = ["product_id", "lot_code", "entry_source"]
@@ -5445,6 +5460,183 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
     return lot_code, shipper_code, auto
 
 
+def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
+    """Read-only receive draft, shared by legacy preview and A1 prepare."""
+    product = product if product is not None else resolve_product_full(cur, req.product_name)
+
+    # Lot Identity Policy: honor physical lot code if provided
+    if req.lot_code:
+        lot_code = normalize_lot_code_input(req.lot_code)
+        shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
+        auto = False
+        cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product['id'], lot_code))
+        existing = cur.fetchone()
+    else:
+        lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
+        existing = None
+    total_lb = req.cases * req.case_size_lb
+
+    response = {
+        "mode": "preview",
+        "product_id": product['id'],
+        "product_name": product['name'],
+        "odoo_code": product['odoo_code'],
+        "cases": req.cases,
+        "case_size_lb": req.case_size_lb,
+        "total_lb": total_lb,
+        "shipper_name": req.shipper_name,
+        "shipper_code": shipper_code,
+        "shipper_code_auto": auto,
+        "lot_code": lot_code,
+        "bol_reference": req.bol_reference,
+        "preview_message": f"Ready to receive {req.cases} cases ({total_lb} lb) of {product['name']} as lot {lot_code}"
+    }
+    if existing:
+        response["lot_exists"] = True
+        response["existing_lot_id"] = existing['id']
+        response["preview_message"] += f" (lot already exists — will add to existing)"
+    if req.supplier_lot_entries:
+        response["commingled"] = True
+        response["supplier_lot_entries"] = req.supplier_lot_entries
+    # FR-2 lookahead: which open expected receipt (if any) this
+    # commit would link to. Informational only.
+    er_match = preview_expected_receipt_match(cur, product['id'], req.shipper_name)
+    response["expected_receipt_match"] = (
+        {"id": er_match["id"], "expected_qty": er_match["expected_qty"],
+         "remaining": er_match["remaining"], "expected_date": er_match["expected_date"],
+         "reference_number": er_match["reference_number"]}
+        if er_match else None
+    )
+    return response
+
+
+def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
+                         created_at_source, *, product=None, ticket_id=None,
+                         receipt_number=None, expected_receipt_id=None):
+    """Receive post on the caller's transaction, preserving the legacy locks."""
+    cur.execute("SELECT pg_advisory_xact_lock(1)")
+    product = product if product is not None else resolve_product_full(cur, req.product_name)
+
+    if req.lot_code:
+        lot_code = normalize_lot_code_input(req.lot_code)
+        shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
+    else:
+        lot_code, shipper_code, _ = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
+    total_lb = req.cases * req.case_size_lb
+    now = get_plant_now()
+
+    # Determine lot_type
+    lot_type = req.lot_type or ("commingled" if req.supplier_lot_entries else "single_supplier")
+
+    lot_id, is_new_lot, lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'received')
+    code_similarity = (
+        check_suspicious_code_similarity(cur, product['id'], lot_id, lot_code)
+        if is_new_lot else None
+    )
+
+    # Update lot with LAT Code Policy v1.1 fields
+    cur.execute("""
+        UPDATE lots SET received_at = COALESCE(received_at, %s),
+                        supplier_lot_code = COALESCE(%s, supplier_lot_code),
+                        lot_type = COALESCE(%s, lot_type)
+        WHERE id = %s
+    """, (now, req.supplier_lot_code, lot_type, lot_id))
+
+    # FR-2 auto-match: open expected receipt for (product, supplier),
+    # FIFO by expected_date. Supplier resolved by normalised name;
+    # unknown OR INACTIVE supplier, or no open record → post normally,
+    # unlinked. The link is set at INSERT (transactions is append-only).
+    if ticket_id is None:
+        expected_receipt_id = None
+        er_supplier = resolve_supplier(cur, req.shipper_name)
+        if er_supplier and er_supplier["active"]:
+            er_match = find_open_expected_receipt(cur, product['id'], er_supplier['id'], lock=True)
+            if er_match:
+                expected_receipt_id = er_match['id']
+
+    cur.execute("""
+        INSERT INTO transactions (
+            type, timestamp, bol_reference, shipper_name,
+            shipper_code, cases_received, case_size_lb,
+            expected_receipt_id, occurred_at, created_at_source, operator_id,
+            ticket_id, receipt_number
+        )
+        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, occurred_at, business_date
+    """, (
+        now, req.bol_reference, req.shipper_name, shipper_code,
+        req.cases, req.case_size_lb, expected_receipt_id,
+        occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+    ))
+    txn_row = cur.fetchone()
+    txn_id = txn_row['id']
+
+    cur.execute("""
+        INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
+        VALUES (%s, %s, %s, %s)
+    """, (txn_id, product['id'], lot_id, total_lb))
+
+    # Recompute received (ledger SUM) and auto-close on full/over receipt.
+    expected_receipt_summary = (
+        settle_expected_receipt(cur, expected_receipt_id) if expected_receipt_id else None
+    )
+
+    # Insert commingled supplier lot entries if provided
+    supplier_entries_saved = []
+    if req.supplier_lot_entries:
+        for entry in req.supplier_lot_entries:
+            cur.execute("""
+                INSERT INTO lot_supplier_codes (lot_id, supplier_lot_code, supplier_name, quantity_lb, notes)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """, (lot_id, entry.get('supplier_lot_code'), entry.get('supplier_name'),
+                  entry.get('quantity_lb'), entry.get('notes')))
+            supplier_entries_saved.append(cur.fetchone()['id'])
+
+    # Trace emission (§4): last write before commit, fail-hard.
+    if trace_emit_enabled():
+        emit_trace_event(
+            cur, txn_id, 'receive', 'object',
+            [(lot_id, 'received', total_lb)],
+            txn_row['occurred_at'], txn_row['business_date'],
+            operator_id=actor_name(request),
+            source_party=req.shipper_name,
+        )
+
+    date_str, time_str = format_timestamp(now)
+    receipt = f"RECEIVED: {req.cases} cases ({total_lb} lb) {product['name']}\nLot: {lot_code}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
+
+    lot_verb = "created" if is_new_lot else "found existing"
+    logger.info(f"Receive committed: {lot_code} ({lot_verb}) - {total_lb} lb of {product['name']}")
+
+    response = {
+        "mode": "commit",
+        "success": True,
+        "transaction_id": txn_id,
+        "confirmation_code": generate_confirmation_code(txn_id),
+        "lot_id": lot_id,
+        "lot_uuid": str(lot_uuid),
+        "lot_code": lot_code,
+        "lot_is_new": is_new_lot,
+        "lot_type": lot_type,
+        "total_lb": total_lb,
+        "receipt_text": receipt,
+        "message": f"Received {total_lb} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
+    }
+    if code_similarity:
+        response.setdefault("warnings", []).append(code_similarity)
+    if supplier_entries_saved:
+        response["supplier_lot_entries_created"] = len(supplier_entries_saved)
+    response["expected_receipt"] = expected_receipt_summary
+    if expected_receipt_summary:
+        response["message"] += (
+            f"; linked to expected receipt #{expected_receipt_summary['id']}"
+            + (" (now closed)" if expected_receipt_summary["auto_closed"] else
+               f" ({expected_receipt_summary['remaining']:g} lb still expected)")
+        )
+    return response
+
+
 @app.post("/receive")
 def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Receive inventory. mode=preview returns what will happen; mode=commit executes."""
@@ -5457,190 +5649,18 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Req
         supplier_lot = (req.lot_code or "").strip() or "N/A"
     req.supplier_lot_code = supplier_lot
 
-    if req.mode == "preview":
-        try:
-            with get_transaction() as cur:
-                product = resolve_product_full(cur, req.product_name)
-
-                # Lot Identity Policy: honor physical lot code if provided
-                if req.lot_code:
-                    lot_code = normalize_lot_code_input(req.lot_code)
-                    shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
-                    auto = False
-                    cur.execute("SELECT id FROM lots WHERE product_id = %s AND lot_code = %s", (product['id'], lot_code))
-                    existing = cur.fetchone()
-                else:
-                    lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
-                    existing = None
-                total_lb = req.cases * req.case_size_lb
-
-                response = {
-                    "mode": "preview",
-                    "product_id": product['id'],
-                    "product_name": product['name'],
-                    "odoo_code": product['odoo_code'],
-                    "cases": req.cases,
-                    "case_size_lb": req.case_size_lb,
-                    "total_lb": total_lb,
-                    "shipper_name": req.shipper_name,
-                    "shipper_code": shipper_code,
-                    "shipper_code_auto": auto,
-                    "lot_code": lot_code,
-                    "bol_reference": req.bol_reference,
-                    "preview_message": f"Ready to receive {req.cases} cases ({total_lb} lb) of {product['name']} as lot {lot_code}"
-                }
-                if existing:
-                    response["lot_exists"] = True
-                    response["existing_lot_id"] = existing['id']
-                    response["preview_message"] += f" (lot already exists — will add to existing)"
-                if req.supplier_lot_entries:
-                    response["commingled"] = True
-                    response["supplier_lot_entries"] = req.supplier_lot_entries
-                # FR-2 lookahead: which open expected receipt (if any) this
-                # commit would link to. Informational only.
-                er_match = preview_expected_receipt_match(cur, product['id'], req.shipper_name)
-                response["expected_receipt_match"] = (
-                    {"id": er_match["id"], "expected_qty": er_match["expected_qty"],
-                     "remaining": er_match["remaining"], "expected_date": er_match["expected_date"],
-                     "reference_number": er_match["reference_number"]}
-                    if er_match else None
-                )
-                return response
-        except HTTPException:
+    try:
+        with get_transaction() as cur:
+            if req.mode == "preview":
+                return _receive_preview_core(cur, req)
+            return _receive_commit_core(cur, req, request, occurred_at, created_at_source)
+    except HTTPException:
+        raise
+    except Exception as e:
+        if req.mode == "commit" and _is_readonly_error(e):
             raise
-        except Exception as e:
-            logger.error(f"Receive preview failed: {e}")
-            return JSONResponse(status_code=500, content={"error": str(e)})
-    else:
-        # mode == "commit"
-        try:
-            with get_db_connection() as conn:
-                with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    cur.execute("SELECT pg_advisory_xact_lock(1)")
-                    product = resolve_product_full(cur, req.product_name)
-
-                    if req.lot_code:
-                        lot_code = normalize_lot_code_input(req.lot_code)
-                        shipper_code = req.shipper_code_override or ''.join(c for c in req.shipper_name.upper() if c.isalpha())[:4] or "UNKN"
-                    else:
-                        lot_code, shipper_code, _ = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
-                    total_lb = req.cases * req.case_size_lb
-                    now = get_plant_now()
-
-                    # Determine lot_type
-                    lot_type = req.lot_type or ("commingled" if req.supplier_lot_entries else "single_supplier")
-
-                    lot_id, is_new_lot, lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'received')
-                    code_similarity = (
-                        check_suspicious_code_similarity(cur, product['id'], lot_id, lot_code)
-                        if is_new_lot else None
-                    )
-
-                    # Update lot with LAT Code Policy v1.1 fields
-                    cur.execute("""
-                        UPDATE lots SET received_at = COALESCE(received_at, %s),
-                                        supplier_lot_code = COALESCE(%s, supplier_lot_code),
-                                        lot_type = COALESCE(%s, lot_type)
-                        WHERE id = %s
-                    """, (now, req.supplier_lot_code, lot_type, lot_id))
-
-                    # FR-2 auto-match: open expected receipt for (product, supplier),
-                    # FIFO by expected_date. Supplier resolved by normalised name;
-                    # unknown OR INACTIVE supplier, or no open record → post normally,
-                    # unlinked. The link is set at INSERT (transactions is append-only).
-                    expected_receipt_id = None
-                    er_supplier = resolve_supplier(cur, req.shipper_name)
-                    if er_supplier and er_supplier["active"]:
-                        er_match = find_open_expected_receipt(cur, product['id'], er_supplier['id'], lock=True)
-                        if er_match:
-                            expected_receipt_id = er_match['id']
-
-                    cur.execute("""
-                        INSERT INTO transactions (
-                            type, timestamp, bol_reference, shipper_name,
-                            shipper_code, cases_received, case_size_lb,
-                            expected_receipt_id, occurred_at, created_at_source, operator_id
-                        )
-                        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id, occurred_at, business_date
-                    """, (
-                        now, req.bol_reference, req.shipper_name, shipper_code,
-                        req.cases, req.case_size_lb, expected_receipt_id,
-                        occurred_at, created_at_source, _operator_id(request),
-                    ))
-                    txn_row = cur.fetchone()
-                    txn_id = txn_row['id']
-
-                    cur.execute("""
-                        INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
-                        VALUES (%s, %s, %s, %s)
-                    """, (txn_id, product['id'], lot_id, total_lb))
-
-                    # Recompute received (ledger SUM) and auto-close on full/over receipt.
-                    expected_receipt_summary = (
-                        settle_expected_receipt(cur, expected_receipt_id) if expected_receipt_id else None
-                    )
-
-                    # Insert commingled supplier lot entries if provided
-                    supplier_entries_saved = []
-                    if req.supplier_lot_entries:
-                        for entry in req.supplier_lot_entries:
-                            cur.execute("""
-                                INSERT INTO lot_supplier_codes (lot_id, supplier_lot_code, supplier_name, quantity_lb, notes)
-                                VALUES (%s, %s, %s, %s, %s)
-                                RETURNING id
-                            """, (lot_id, entry.get('supplier_lot_code'), entry.get('supplier_name'),
-                                  entry.get('quantity_lb'), entry.get('notes')))
-                            supplier_entries_saved.append(cur.fetchone()['id'])
-
-                    # Trace emission (§4): last write before commit, fail-hard.
-                    if trace_emit_enabled():
-                        emit_trace_event(
-                            cur, txn_id, 'receive', 'object',
-                            [(lot_id, 'received', total_lb)],
-                            txn_row['occurred_at'], txn_row['business_date'],
-                            operator_id=actor_name(request),
-                            source_party=req.shipper_name,
-                        )
-
-                    date_str, time_str = format_timestamp(now)
-                    receipt = f"RECEIVED: {req.cases} cases ({total_lb} lb) {product['name']}\nLot: {lot_code}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
-
-                    lot_verb = "created" if is_new_lot else "found existing"
-                    logger.info(f"Receive committed: {lot_code} ({lot_verb}) - {total_lb} lb of {product['name']}")
-
-                    response = {
-                        "mode": "commit",
-                        "success": True,
-                        "transaction_id": txn_id,
-                        "confirmation_code": generate_confirmation_code(txn_id),
-                        "lot_id": lot_id,
-                        "lot_uuid": str(lot_uuid),
-                        "lot_code": lot_code,
-                        "lot_is_new": is_new_lot,
-                        "lot_type": lot_type,
-                        "total_lb": total_lb,
-                        "receipt_text": receipt,
-                        "message": f"Received {total_lb} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
-                    }
-                    if code_similarity:
-                        response.setdefault("warnings", []).append(code_similarity)
-                    if supplier_entries_saved:
-                        response["supplier_lot_entries_created"] = len(supplier_entries_saved)
-                    response["expected_receipt"] = expected_receipt_summary
-                    if expected_receipt_summary:
-                        response["message"] += (
-                            f"; linked to expected receipt #{expected_receipt_summary['id']}"
-                            + (" (now closed)" if expected_receipt_summary["auto_closed"] else
-                               f" ({expected_receipt_summary['remaining']:g} lb still expected)")
-                        )
-                    return response
-        except HTTPException:
-            raise
-        except Exception as e:
-            if _is_readonly_error(e): raise
-            logger.error(f"Receive commit failed: {e}")
-            return JSONResponse(status_code=500, content={"error": str(e)})
+        logger.error(f"Receive {req.mode} failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -20484,3 +20504,7 @@ def audit_integrity():
 _dashboard_dir = pathlib.Path(__file__).parent / "dashboard"
 if _dashboard_dir.is_dir():
     app.mount("/dashboard", StaticFiles(directory=str(_dashboard_dir), html=True), name="dashboard-ui")
+
+
+# A1: plain HTTP ticket/receipt routes share the same FL action cores.
+write_tickets.register_routes(app, sys.modules[__name__])

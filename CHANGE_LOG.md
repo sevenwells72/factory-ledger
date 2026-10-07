@@ -14,6 +14,20 @@
 
 ---
 
+## 2026-10-07 15:11 — A1 part 1: receive prepare, atomic commit and searchable receipts
+- **File(s) changed:** `write_tickets.py`, `scripts/expire_tickets.py`, `main.py`
+- **What changed:** Add ID-only drafts, frozen event time and expected receipt, expiry/supersession, duplicate acknowledgement, actor-bound replay, receipt lookup and explicit expiry maintenance.
+- **Why:** Provide a reviewable first vertical slice; make/pack/adjust/found remain for part 2, with all legacy route permissions preserved.
+
+---
+
+## 2026-10-07 15:05 — A1 part 1: share the receive transaction core
+- **File(s) changed:** `main.py`
+- **What changed:** Extract cursor-based receive preview/post helpers, accept ticket references at INSERT, and register marker-gated migration 058.
+- **Why:** Ticket commit must post and store its receipt on one connection while legacy receive validation, locks and responses stay intact.
+
+---
+
 ## 2026-10-07 15:04 — A1 part 1: add durable ticket and receipt storage
 - **File(s) changed:** `migrations/058_write_tickets.sql`, `migrations/down/058_write_tickets_down.sql`, `tests/schema/schema.sql`
 - **What changed:** Add owner-only RLS, immutable committed receipts, guarded rollback, nullable ledger references and pending test schema include.
