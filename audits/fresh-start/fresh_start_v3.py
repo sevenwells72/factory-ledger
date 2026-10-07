@@ -143,7 +143,7 @@ def analyze(s,data,verified_openings=()):
  products={pid:p for pid,p in catalog.items() if not f.reset_exclusion_reason(p)}
  information_products={pid:p for pid,p in catalog.items() if f.reset_exclusion_reason(p)}
  information=information_counts(data,catalog)
- information_moves=[m for m in data['moves'] if information_reason(m,catalog)]
+ information_moves=[]
  lots={l['id']:l for l in s['lots'] if l['product_id'] in products};now=f.stamp(s['snapshot_at'])
  lines=s['lines'];review=data.get('review') or {};sources=data.get('sources',{})
  countsha=sources.get('count',{}).get('sha256',fingerprint(data['count']))
@@ -252,12 +252,16 @@ def analyze(s,data,verified_openings=()):
  groups=defaultdict(list)
  for r in observations:groups[(r['pid'],r['lid'])].append(r)
  # Cross-area moves are physical internal movements, not inventory adjustments.
- move_effect=defaultdict(lambda:D(0));move_records=[];resolved_moves=set();internal_tx=set();used_moveids=set()
+ move_effect=defaultdict(lambda:D(0));move_records=[];move_follow_up=[];resolved_moves=set();internal_tx=set();used_moveids=set()
  byrow={r['row_id']:r for r in observations}
- for m in data['moves']:
-  if information_reason(m,catalog):continue
+ for row_number,m in enumerate(data['moves'],start=2):
   if not any(m.values()):continue
   pid=int(m['product_id']) if m.get('product_id','').isdigit() else None
+  if pid not in catalog:
+   row_ref=f'moves CSV row {row_number}'
+   move_follow_up.append(dict(m,row_ref=row_ref,detail=row_ref+': move-log row has no valid product_id'))
+   continue
+  if information_reason(m,catalog):information_moves.append(m);continue
   fp=fingerprint(m);ans=review.get('move_reviews',{}).get(fp,{})
   templates['move_reviews'][fp]=dict(move=m,owner='',source_row='',destination_row='',source_included=None,destination_included=None,notes='')
   error=''
@@ -303,6 +307,7 @@ def analyze(s,data,verified_openings=()):
   for x in xs:
    is_own=x['line_id'] in own
    looks_open=bool(re.match(r'^OPENING BALANCE .+? \| v3 \S+ L'+str(lid)+r'(?=\s*\||$)',x.get('adjust_reason') or ''))
+   # Conservatively hold even voided prior openings until journal proof is supplied.
    if looks_open and not is_own:lot_holds[lid].append('prior opening without journal proof')
    t=f.stamp(x.get('occurred_at'));entered=f.entered_at(x)
    if not t or not entered:hold(pid,'Missing ledger timestamp');continue
@@ -395,7 +400,7 @@ def analyze(s,data,verified_openings=()):
   area_records.append(dict(sheet_id=sid,area=meta[0],counter=meta[1],start=meta[2],end=meta[3],row_ids=[r['row_id'] for r in raws],movement_line_ids=[x['line_id'] for x in events],classifications_needed=[x['fingerprint'] for x in events if x['review_rows']],holds=sorted(local_holds),follow_up=sheet_follow_up[sid]))
  if holds.get(None):general+=holds[None]
  allready=not any(holds.values()) and not any(lot_holds.values()) and not any(sheet_follow_up.values()) and not general and len(coverage)==len(products)
- return dict(version=3,reset_scope_policy=f.RESET_SCOPE_POLICY,information_products=information_products,packaging_information_only=information,packaging_moves_information_only=information_moves,baseline={str(pid):baseline(s,pid) for pid in products},snapshot_at=s['snapshot_at'],input_sha256=countsha,sources=sources,data=data,rows=lotrows,row_comparison=row_comparison,activity=activity,area_reconciliation=area_records,moved_during_count=move_records,unidentified_follow_up=unknown,sheet_follow_up={sid:items for sid,items in sheet_follow_up.items() if items},review_template=templates,holds={str(k):v for k,v in holds.items() if v},lot_holds={str(k):v for k,v in lot_holds.items() if v},general=general,products=products,coverage_complete=sorted(coverage),full_scope_reviewed=allready,excluded_duplicate_rows=sorted(excluded))
+ return dict(version=3,reset_scope_policy=f.RESET_SCOPE_POLICY,information_products=information_products,packaging_information_only=information,packaging_moves_information_only=information_moves,baseline={str(pid):baseline(s,pid) for pid in products},snapshot_at=s['snapshot_at'],input_sha256=countsha,sources=sources,data=data,rows=lotrows,row_comparison=row_comparison,activity=activity,area_reconciliation=area_records,moved_during_count=move_records,move_follow_up=move_follow_up,unidentified_follow_up=unknown,sheet_follow_up={sid:items for sid,items in sheet_follow_up.items() if items},review_template=templates,holds={str(k):v for k,v in holds.items() if v},lot_holds={str(k):v for k,v in lot_holds.items() if v},general=general,products=products,coverage_complete=sorted(coverage),full_scope_reviewed=allready,excluded_duplicate_rows=sorted(excluded))
 
 def write_csv(path,rows):
  if not rows:path.write_text('status\nNo rows\n');return
@@ -408,7 +413,7 @@ def report(a,output,verify=False):
  for src in a['sources'].values():check(not Path(src['path']).is_relative_to(output),'Keep filled inputs outside output directory to prevent overwrites')
  suffix='verification' if verify else 'preview'
  (output/f'reset-{suffix}-v3.json').write_text(json.dumps(a,indent=2,default=str)+'\n')
- for name,key in [('lot-comparison','rows'),('row-cutoffs','row_comparison'),('all-movements','activity'),('area-reconciliation','area_reconciliation'),('moved-during-count-review','moved_during_count'),('unidentified-seven-day-follow-up','unidentified_follow_up'),('packaging-information-only','packaging_information_only'),('packaging-moves-information-only','packaging_moves_information_only')]:
+ for name,key in [('lot-comparison','rows'),('row-cutoffs','row_comparison'),('all-movements','activity'),('area-reconciliation','area_reconciliation'),('moved-during-count-review','moved_during_count'),('move-follow-up','move_follow_up'),('unidentified-seven-day-follow-up','unidentified_follow_up'),('packaging-information-only','packaging_information_only'),('packaging-moves-information-only','packaging_moves_information_only')]:
   records=a[key]
   if key=='rows':records=[{(k[:-3]+'_native' if k.endswith('_lb') else k):value for k,value in r.items()} for r in records]
   write_csv(output/(name+'.csv'),records)
@@ -430,6 +435,8 @@ def report(a,output,verify=False):
  for pid,hs in a['holds'].items():text.append('- '+pid+': '+'; '.join(hs))
  for lid,hs in a['lot_holds'].items():text.append('- Lot '+lid+': '+'; '.join(hs))
  for sid,items in a['sheet_follow_up'].items():text.append('- Sheet '+(sid or '(missing sheet ID)')+': '+'; '.join(r['hold'] for r in items))
+ text+=['','## Move-log follow-up','', 'Correct these rows in the move log and rerun. An unidentified move does not block review of unrelated catalog products; see `move-follow-up.csv`.','']
+ text+=f.table(['Row reference','Move ID','Product ID as entered','Follow-up'],[[r['row_ref'],r.get('move_id',''),r.get('product_id',''),r['detail']] for r in a['move_follow_up']])
  text+=['',MOVE_DETECTION_NOTE]
  text+=['','## Owner review','',f'Fill `{path.name}` in a separate inputs folder. Answers bind exact movement, row times and quantities through fingerprints. Each required movement needs before/after answers; multi-area movements also need signed quantity allocations. Late entries need explicit confirmation. Move-log entries need both endpoint rows and inclusion decisions. Duplicate ticks and corrections need owner disposition. Each multi-area lot also needs confirmation of no unlogged moves; sheet follow-ups and coverage-without-rows reviews must be resolved.','', 'Only the separate `apply_reset.py` can submit an approved reset. This report and generator have no production-write capability. Intentional historical posting (`backfill=true`) is included in the signed v3 plan so actual count times can be retained even on an older reviewed count. There is no automatic retry of an uncertain write.']
  (output/f'reset-{suffix}-v3.md').write_text('\n'.join(text)+'\n')

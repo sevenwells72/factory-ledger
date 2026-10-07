@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-10-07 10:27 — Fresh-start v3 review fixes and self-contained tool files (row 159; not deployed)
+- **File(s) changed:** `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/fresh_start_common.py`, `audits/fresh-start/lot_review.py`, `audits/fresh-start/v3/queries/01-scope.sql`, `audits/fresh-start/v3/count-sheet-v3.csv`, `audits/fresh-start/apply_reset.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/reset_preview.py`, `audits/fresh-start/verify_reset.py`, `audits/fresh-start/v3/raw/01-scope.json`, `audits/fresh-start/v3/count-coverage-v3.csv`, `audits/fresh-start/v3/moved-during-count-v3.csv`, `audits/fresh-start/build_v3_materials.py`, `audits/fresh-start/apply-guide.md`, `audits/fresh-start/approval.md`, `audits/fresh-start/v3/sheet-register-v3.csv`, `audits/fresh-start/v3/count-sheet-v3.pdf`, `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/scope-check.md`, `audits/fresh-start/v3/sunshine-ownership-reconciliation.md`, `audits/fresh-start/v3/build-backlog.md`, `audits/fresh-start/v3/delivery-sha256.json`, `audits/fresh-start/v3/recount-groups.csv`, `audits/fresh-start/v3/recount-groups.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Commit the 23 selected tool, SQL, snapshot, count and guide/report files; derive checkout paths from __file__; route blank/non-catalog move IDs to a move-level CSV/Markdown follow-up without holding unrelated products; document conservative holds for voided prior openings; add three regression tests and refresh the delivery manifest. Retain H1/M1/M2/M3/L1-L5 fixes from 960c9fa. No main.py edits, database/application API calls or migrations.
+- **Validation:** Focused offline suite: 161 passed plus 8 subtests; secret scan covers all 28 delivered fresh-start files, including PDF text and the saved snapshot, with no credentials found (one synthetic FAKE.invalid fixture). Clean-worktree and full-suite verification follow after commit. Fetched origin/main at 521330c; maximum row is 158, so this task uses 159.
+- **Why:** A clean checkout was missing required tool imports/data and unidentified move rows leaked into global holds.
+
+---
+
+
 ## 2026-09-29 12:25 — Verified PR #66 re-review fixes (row 157; not deployed)
 - **File(s) changed:** `main.py`, `migrations/down/056_actor_write_audit_down.sql`, `tests/test_named_actor_writes.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Verified shared-core order/line audit from both callers, actor intake success, header/second-line audit-failure rollback on both paths (including manual auto-created customer and prior audit rows), shared intake without 056, and empty/refused/export-override/absent-table down cases.

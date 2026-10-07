@@ -1,0 +1,211 @@
+reset_scope,product_id,SKU,name,type,proposed_group,movement_transactions_60d,absolute_movement_native_60d,native_unit,historical_oct5_difference_lb,large_adjustments_180d,review_priority_score,reasons,rank
+included,126,90004,Batch Coconut Sweetened Flake,batch,WEEKLY,167,243790.4,lb,,8,182,167 movement transactions in 60 days; 8 adjustments of at least 500 native units in 180 days; 70 shortage/support/reconciliation note references; investigate context,1
+included,107,90002,Batch Classic Granola #9,batch,WEEKLY,81,183662.0,lb,,20,96,81 movement transactions in 60 days; 20 adjustments of at least 500 native units in 180 days; 15 shortage/support/reconciliation note references; investigate context,2
+included,32,11032,Oats,ingredient,WEEKLY,54,186709.0,lb,-2406.2,0,74,54 movement transactions in 60 days; Oct 5 historical total comparison: -2406.2 lb (time unresolved),3
+included,40,11040,Sugar – 6X,ingredient,WEEKLY,44,80540.00,lb,572.49,1,74,44 movement transactions in 60 days; Oct 5 historical total comparison: 572.49 lb (time unresolved); 1 adjustments of at least 500 native units in 180 days,4
+included,34,11034,Oil – Canola,ingredient,WEEKLY,53,25074.00,lb,-630.87,0,73,53 movement transactions in 60 days; Oct 5 historical total comparison: -630.87 lb (time unresolved),5
+included,13,11013,Coconut Macaroon Desiccated,ingredient,WEEKLY,56,14345.5,lb,,12,71,56 movement transactions in 60 days; 12 adjustments of at least 500 native units in 180 days; 13 shortage/support/reconciliation note references; investigate context,6
+included,164,893,CQ Coconut Sweetened Flake 10 LB,finished,WEEKLY,56,148300.0,lb,,1,71,56 movement transactions in 60 days; 1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,7
+included,39,11039,Salt,ingredient,WEEKLY,69,1340.60,lb,-249.4,0,69,69 movement transactions in 60 days,8
+included,29,11029,Glycol,ingredient,WEEKLY,41,9976.0,lb,531.0,0,61,41 movement transactions in 60 days; Oct 5 historical total comparison: 531.0 lb (time unresolved),9
+included,16,11016,Corn Starch,ingredient,WEEKLY,40,1640.0,lb,950.0,0,60,40 movement transactions in 60 days; Oct 5 historical total comparison: 950.0 lb (time unresolved),10
+included,30,11030,Honey,ingredient,WEEKLY,46,14336.0,lb,215.4,0,51,46 movement transactions in 60 days; 1 shortage/support/reconciliation note references; investigate context,11
+included,12,11012,Coconut Flake Desiccated,ingredient,WEEKLY,34,124550.0,lb,,17,49,34 movement transactions in 60 days; 17 adjustments of at least 500 native units in 180 days; 5 shortage/support/reconciliation note references; investigate context,12
+included,44,11044,Sugar – Light Brown,ingredient,WEEKLY,28,27500.0,lb,-2010.0,0,48,28 movement transactions in 60 days; Oct 5 historical total comparison: -2010.0 lb (time unresolved),13
+included,136,70050,Granola Classic 25 LB,finished,WEEKLY,32,49975.0,lb,,11,47,32 movement transactions in 60 days; 11 adjustments of at least 500 native units in 180 days; 3 shortage/support/reconciliation note references; investigate context,14
+included,18,11018,Flavor – Almond,ingredient,WEEKLY,26,540.0,lb,-1040.6,0,46,26 movement transactions in 60 days; Oct 5 historical total comparison: -1040.6 lb (time unresolved),15
+included,31,11031,Oat Bran,ingredient,WEEKLY,30,6980.0,lb,0.0,1,45,30 movement transactions in 60 days; 1 adjustments of at least 500 native units in 180 days; 20 shortage/support/reconciliation note references; investigate context,16
+included,114,90011,Batch SS Chocolate Chip Granola #2,batch,WEEKLY,30,95710.5,lb,,10,45,30 movement transactions in 60 days; 10 adjustments of at least 500 native units in 180 days; 4 shortage/support/reconciliation note references; investigate context,17
+included,116,90016,Batch SS Original Granola #1,batch,WEEKLY,30,45880.0,lb,,5,45,30 movement transactions in 60 days; 5 adjustments of at least 500 native units in 180 days; 2 shortage/support/reconciliation note references; investigate context,18
+included,165,31012,Graham Cracker Crumbs – 10 LB,finished,WEEKLY,30,32080.0,lb,,3,45,30 movement transactions in 60 days; 3 adjustments of at least 500 native units in 180 days; 3 shortage/support/reconciliation note references; investigate context,19
+included,46,11046,Sunflower Seeds,ingredient,WEEKLY,23,9141.0,lb,-7185.4,0,43,23 movement transactions in 60 days; Oct 5 historical total comparison: -7185.4 lb (time unresolved),20
+included,125,90003,Batch Coconut Sweetened Fancy,batch,WEEKLY,27,23540.8,lb,,2,42,27 movement transactions in 60 days; 2 adjustments of at least 500 native units in 180 days; 13 shortage/support/reconciliation note references; investigate context,21
+included,72,25010,"Chocolate Chips – Real – 4,000 CT",ingredient,WEEKLY,15,8999.0,lb,-765.0,0,40,15 movement transactions in 60 days; Oct 5 historical total comparison: -765.0 lb (time unresolved); 1 shortage/support/reconciliation note references; investigate context,22
+included,146,70002,Granola SS Original 12x10 OZ Case,finished,WEEKLY,15,35212.5,lb,,2,40,15 movement transactions in 60 days; 2 adjustments of at least 500 native units in 180 days; Sunshine ownership / retrospective ship reconciliation; 2 shortage/support/reconciliation note references; investigate context,23
+included,108,90001,Batch Classic Chocolate Chip Granola #9,batch,WEEKLY,18,38368.0,lb,,19,33,18 movement transactions in 60 days; 19 adjustments of at least 500 native units in 180 days; 8 shortage/support/reconciliation note references; investigate context,24
+included,145,70003,Granola SS Chocolate Chip 12x10 OZ Case,finished,WEEKLY,18,67762.5,lb,,0,33,18 movement transactions in 60 days; Sunshine ownership / retrospective ship reconciliation; 1 shortage/support/reconciliation note references; investigate context,25
+included,157,10020,Coconut Sweetened Flake CNS 25 LB,finished,WEEKLY,18,29325.0,lb,,1,33,18 movement transactions in 60 days; 1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,26
+included,73,25011,"Chocolate Chips – Real – 1,000 CT",ingredient,WEEKLY,8,1350.0,lb,1250.0,0,33,8 movement transactions in 60 days; Oct 5 historical total comparison: 1250.0 lb (time unresolved); 1 shortage/support/reconciliation note references; investigate context,27
+included,137,10300,Granola Crunchy CNS 10 LB Case,finished,WEEKLY,26,7450.0,lb,,0,31,26 movement transactions in 60 days; 2 shortage/support/reconciliation note references; investigate context,28
+included,161,67470,Coconut Sweetened Fancy UNIPRO 10 LB,finished,WEEKLY,15,17460.0,lb,,1,30,15 movement transactions in 60 days; 1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,29
+included,147,70011,Granola SS Cranberry 12x10 OZ Case,finished,WEEKLY,5,4927.5,lb,,1,30,1 adjustments of at least 500 native units in 180 days; Sunshine ownership / retrospective ship reconciliation; 1 shortage/support/reconciliation note references; investigate context,30
+included,162,67476,Coconut Sweetened Flake UNIPRO 10 LB,finished,WEEKLY,14,15600.0,lb,,5,29,14 movement transactions in 60 days; 5 adjustments of at least 500 native units in 180 days; 3 shortage/support/reconciliation note references; investigate context,31
+included,149,70010,Granola SS Original Low Carb 12x10 OZ Case,finished,WEEKLY,4,6052.5,lb,,1,29,1 adjustments of at least 500 native units in 180 days; Sunshine ownership / retrospective ship reconciliation; 1 shortage/support/reconciliation note references; investigate context,32
+included,148,70070,Granola SS Chocolate Chip Low Carb 12x10 OZ Case,finished,WEEKLY,3,5550.0,lb,,1,28,1 adjustments of at least 500 native units in 180 days; Sunshine ownership / retrospective ship reconciliation; 1 shortage/support/reconciliation note references; investigate context,33
+included,75,31011,Graham Cracker Crumbs – 50 LB,ingredient,WEEKLY,25,82090.0,lb,,0,25,25 movement transactions in 60 days,34
+included,127,90005,Batch Coconut Sweetened Medium,batch,WEEKLY,19,10750.4,lb,,0,24,19 movement transactions in 60 days; 5 shortage/support/reconciliation note references; investigate context,35
+included,33,11033,Oats – Gluten Free,ingredient,WEEKLY,4,8000.0,lb,-2000.0,0,24,Oct 5 historical total comparison: -2000.0 lb (time unresolved),36
+included,3,11003,Almonds – Sliced,ingredient,WEEKLY,22,4739.5,lb,-491.5,0,22,22 movement transactions in 60 days,37
+included,112,90024,Batch Vanilla Crisp Granola #16(no almonds),batch,WEEKLY,7,3525.0,lb,,1,22,1 adjustments of at least 500 native units in 180 days; 3 shortage/support/reconciliation note references; investigate context,38
+included,118,90013,Batch SS Cranberry Granola #3,batch,WEEKLY,7,4342.5,lb,,2,22,2 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,39
+included,174,10303,Sprinkles Chocolate 10 LB,finished,WEEKLY,7,1160.0,lb,,1,22,1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,40
+included,144,1614,CQ Granola 10 LB,finished,WEEKLY,16,56000.0,lb,,0,21,16 movement transactions in 60 days; 7 shortage/support/reconciliation note references; investigate context,41
+included,10,11010,Coconut Fancy Desiccated,ingredient,WEEKLY,6,5200.0,lb,,4,21,4 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,42
+included,160,10029,Coconut Toasted Sweetened Flake CNS 25 LB,finished,WEEKLY,6,3800.0,lb,,1,21,1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,43
+included,203,10306,Sprinkles Chocolate 25 LB,finished,WEEKLY,6,7575.0,lb,,1,21,1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,44
+included,14,11014,Coconut Medium Desiccated,ingredient,WEEKLY,5,2600.0,lb,,8,20,8 adjustments of at least 500 native units in 180 days; 2 shortage/support/reconciliation note references; investigate context,45
+included,120,90015,Batch SS Low Carb Original Granola #7,batch,WEEKLY,5,4275.0,lb,,1,20,1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,46
+included,28,11028,Flax – Seed,ingredient,WEEKLY,0,0,lb,-800.0,0,20,Oct 5 historical total comparison: -800.0 lb (time unresolved),47
+included,41,11041,Sugar – Cane – Organic,ingredient,WEEKLY,0,0,lb,-1365.0,0,20,Oct 5 historical total comparison: -1365.0 lb (time unresolved),48
+included,42,11042,Sugar – Granulated,ingredient,WEEKLY,0,0,lb,-700.0,0,20,Oct 5 historical total comparison: -700.0 lb (time unresolved),49
+included,128,90007,Batch Coconut Toasted Sweetened Flake,batch,WEEKLY,4,4200.0,lb,,1,19,1 adjustments of at least 500 native units in 180 days; 2 shortage/support/reconciliation note references; investigate context,50
+included,158,10002,Coconut Sweetened Medium CNS 10 LB,finished,WEEKLY,4,1600.0,lb,,1,19,1 adjustments of at least 500 native units in 180 days; 2 shortage/support/reconciliation note references; investigate context,51
+included,173,10304,Kookies & Kreme – 25 LB,finished,WEEKLY,18,63225.0,lb,,0,18,18 movement transactions in 60 days,52
+included,111,90020,Batch Setton Cocoa Crunch Granola #13,batch,WEEKLY,3,2708.0,lb,,1,18,1 adjustments of at least 500 native units in 180 days; 3 shortage/support/reconciliation note references; investigate context,53
+included,163,67473,Coconut Sweetened Medium UNIPRO 10 LB,finished,WEEKLY,12,7310.0,lb,,0,17,12 movement transactions in 60 days; 1 shortage/support/reconciliation note references; investigate context,54
+included,121,95002,Batch BS Dark Chocolate Granola 350,batch,WEEKLY,2,3413.84,lb,,4,17,4 adjustments of at least 500 native units in 180 days; 5 shortage/support/reconciliation note references; investigate context,55
+included,202,10305,Sprinkles Rainbow 25 LB,finished,WEEKLY,6,18700.0,lb,,1,16,1 adjustments of at least 500 native units in 180 days,56
+included,133,70082,Granola Setton French Vanilla 25 LB,finished,WEEKLY,1,750.0,lb,,1,16,1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,57
+included,139,70059,Granola Cocoa Vibes 25 LB,finished,WEEKLY,1,600.0,lb,,1,16,1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,58
+included,151,70073,BS Granola – Peanut Butter Banana – 6x7 OZ Case,finished,WEEKLY,0,0,lb,,1,15,1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context,59
+included,119,90014,Batch SS Low Carb Chocolate Chip Granola #8,batch,WEEKLY,4,2800.0,lb,,1,14,1 adjustments of at least 500 native units in 180 days,60
+included,286,70014,Granola SS Classic #9 25 LB,finished,WEEKLY,2,3150.0,lb,,1,12,1 adjustments of at least 500 native units in 180 days,61
+included,209,70088,BS Granola – Peanut Butter Banana – 6x8 OZ Case,finished,WEEKLY,1,2406.0,lb,,1,11,1 adjustments of at least 500 native units in 180 days,62
+included,175,10302,Sprinkles Rainbow 10 LB,finished,WEEKLY,10,38790.0,lb,,0,10,10 movement transactions in 60 days,63
+included,27,11027,Flax – Ground,ingredient,WEEKLY,5,304.0,lb,0.0,0,10,1 shortage/support/reconciliation note references; investigate context,64
+included,113,90010,Batch Granola Vanilla Almond 380 lb,batch,WEEKLY,5,1005.0,lb,,0,10,2 shortage/support/reconciliation note references; investigate context,65
+included,134,70052,Granola Vanilla Crisp 25 LB (French Vanilla),finished,WEEKLY,5,2600.0,lb,,0,10,1 shortage/support/reconciliation note references; investigate context,66
+included,9,11009,Coconut Chips Desiccated,ingredient,WEEKLY,0,0,lb,,5,10,5 adjustments of at least 500 native units in 180 days,67
+included,123,95001,Batch BS Almond Butter Granola 350,batch,WEEKLY,0,0,lb,,1,10,1 adjustments of at least 500 native units in 180 days,68
+included,156,10001,Coconut Sweetened Flake CNS 10 LB,finished,WEEKLY,9,3430.0,lb,,0,9,9 movement transactions in 60 days,69
+included,17,11017,Cranberries Dried,ingredient,WEEKLY,4,402.5,lb,-170.0,0,9,1 shortage/support/reconciliation note references; investigate context,70
+included,159,10010,Coconut Toasted Sweetened Flake CNS 10 LB,finished,MONTHLY,7,820.0,lb,,0,7,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,71
+included,109,90019,Batch Setton Cinnamon Almond Granola #14,batch,WEEKLY,2,150.0,lb,,0,7,2 shortage/support/reconciliation note references; investigate context,72
+included,153,70080,BS Granola – Hazelnut Butter – 6x7 OZ Case,finished,WEEKLY,2,33.28,lb,,0,7,2 shortage/support/reconciliation note references; investigate context,73
+included,155,10007,Coconut Sweetened Fancy CNS 25 LB,finished,WEEKLY,1,125.0,lb,,0,6,1 shortage/support/reconciliation note references; investigate context,74
+included,291,15999,WIP Banana / PB-chip mix (for PBB),ingredient,WEEKLY,1,1.0,container,,0,6,1 shortage/support/reconciliation note references; investigate context,75
+included,35,11035,Pumpkin Seeds,ingredient,WEEKLY,0,0,lb,-21.0,0,5,1 shortage/support/reconciliation note references; investigate context,76
+included,150,70074,BS Granola – Dark Chocolate – 6x7 OZ Case,finished,WEEKLY,0,0,lb,,0,5,2 shortage/support/reconciliation note references; investigate context,77
+included,206,70085,BS Granola – Hazelnut Butter – 6x8 OZ Case,finished,WEEKLY,0,0,lb,,0,5,1 shortage/support/reconciliation note references; investigate context,78
+included,45,11045,Sugar – Monk Fruit,ingredient,MONTHLY,4,884.0,lb,-238.0,0,4,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,79
+included,141,70060,Granola Honey Nut 25 LB,finished,MONTHLY,4,2750.0,lb,,0,4,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,80
+included,179,90008,Granola Fruit Nut Batch,batch,MONTHLY,4,1707.12,lb,,0,4,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,81
+included,2,11002,Almonds – Diced,ingredient,MONTHLY,3,396.0,lb,-289.0,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,82
+included,4,11004,Almonds – Slivered,ingredient,MONTHLY,3,592.0,lb,-53.0,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,83
+included,26,11026,Flavor – Vanilla,ingredient,MONTHLY,3,50.0,lb,-72.4,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,84
+included,36,11036,Raisins,ingredient,MONTHLY,3,62.5,lb,-208.75,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,85
+included,38,11038,Rice Flour,ingredient,MONTHLY,3,175.0,lb,-139.81,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,86
+included,43,11043,Sugar – Invert(Cream),ingredient,MONTHLY,3,35.0,lb,-212.5,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,87
+included,138,70012,Granola Wheat Free 25 LB,finished,MONTHLY,3,6000.0,lb,,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,88
+included,190,10047,Desiccated Flake 50 LB,finished,MONTHLY,3,3200.0,lb,,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,89
+included,196,10053,Desiccated Macaroon Bakers 25 LB,finished,MONTHLY,3,11950.0,lb,,0,3,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,90
+included,6,11006,Chocolate Chips – Sugar Free,ingredient,MONTHLY,2,116.0,lb,-219.0,0,2,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,91
+included,49,11049,Walnuts,ingredient,MONTHLY,2,62.5,lb,-238.75,0,2,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,92
+included,135,70048,Granola Vanilla Almond 25 LB,finished,MONTHLY,2,750.0,lb,,0,2,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,93
+included,142,70061,Granola Fruit Nut 25 LB,finished,MONTHLY,2,1000.0,lb,,0,2,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,94
+included,178,10301,Kookies & Kreme – 10 LB,finished,MONTHLY,2,300.0,lb,,0,2,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,95
+included,183,70004,Granola SS Original Bulk per/lb,finished,MONTHLY,2,3750.0,lb,,0,2,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,96
+included,189,10046,Desiccated Fancy Bakers 50 LB,finished,MONTHLY,2,2000.0,lb,,0,2,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,97
+included,285,70013,Granola SS Classic #9 Bulk per/lb,finished,MONTHLY,2,24230.0,lb,,0,2,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,98
+included,7,11007,Cinnamon Ground,ingredient,MONTHLY,1,20.0,lb,20.0,0,1,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,99
+included,122,95005,Batch BS Peanut Butter Banana Granola,batch,MONTHLY,1,2.38,lb,,0,1,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,100
+included,1,11001,Allulose,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,101
+included,5,11005,Chia Seeds,ingredient,MONTHLY,0,0,lb,0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,102
+included,8,11008,Cocoa Powder,ingredient,MONTHLY,0,0,lb,-94.0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,103
+included,11,11011,Coconut Fine Grade Low Fat Desiccated,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,104
+included,15,11015,Coffee – Instant,ingredient,MONTHLY,0,0,lb,0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,105
+included,19,11019,Flavor – Blueberry,ingredient,MONTHLY,0,0,lb,-8.66,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,106
+included,20,11020,Flavor – Chocolate,ingredient,MONTHLY,0,0,lb,-54.08,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,107
+included,21,11021,Flavor – Cinnamon,ingredient,MONTHLY,0,0,lb,-16.96,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,108
+included,22,11022,Flavor – Coffee,ingredient,MONTHLY,0,0,lb,-80.08,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,109
+included,23,11023,Flavor – Maple,ingredient,MONTHLY,0,0,lb,-48.7,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,110
+included,24,11024,Flavor – Raspberry,ingredient,MONTHLY,0,0,lb,0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,111
+included,25,11025,Flavor – Strawberry,ingredient,MONTHLY,0,0,lb,-8.66,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,112
+included,37,11037,Raspberries – Freeze Dried,ingredient,MONTHLY,0,0,lb,0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,113
+included,47,11047,Tapioca Syrup,ingredient,MONTHLY,0,0,lb,0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,114
+included,48,11048,Vanilla Powder,ingredient,MONTHLY,0,0,lb,0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,115
+included,50,11050,Water,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,116
+included,51,11051,Wheat Flakes,ingredient,MONTHLY,0,0,lb,0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,117
+included,52,11052,Oil – Soybean,ingredient,MONTHLY,0,0,lb,-20.0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,118
+included,53,11053,White Chocolate Chips,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,119
+included,54,15001,BS Almond Butter,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,120
+included,55,15002,BS Almonds – Sliced – Raw,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,121
+included,56,15003,BS Banana Bites – Small,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,122
+included,57,15004,BS Cacao Fruit Sugar,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,123
+included,58,15005,BS Cacao Nibs,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,124
+included,59,15006,BS Cacao Shell Flour,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,125
+included,60,15007,BS Chia Seeds,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,126
+included,61,15008,BS Cocoa Liquor – Chips,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,127
+included,62,15009,BS Coconut Sugar,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,128
+included,63,15010,BS Coconut – Chips,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,129
+included,64,15011,BS Hazelnut Butter,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,130
+included,65,15012,BS Hazelnuts,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,131
+included,66,15013,BS Hazelnuts – Diced,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,132
+included,67,15014,BS Oats GF,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,133
+included,68,15015,BS Oil – Almond,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,134
+included,69,15016,BS Peanut Butter Chips,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,135
+included,70,15019,BS Pumpkin Seeds,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,136
+included,71,15020,BS Salt,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,137
+included,74,25012,"Chocolate Chips – Real – 10,000 CT",ingredient,MONTHLY,0,0,lb,0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,138
+excluded — information only,76,21001,Bag Blue #10,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,139
+excluded — information only,77,21002,Bag Blue #25,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,140
+excluded — information only,78,21003,Bag Clear #10,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,141
+excluded — information only,79,21004,Bag Clear #25,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,142
+excluded — information only,80,21005,Bag – Printed – SS Chocolate Chip Granola,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,143
+excluded — information only,81,21006,Bag – Printed – SS Cranberry Granola,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,144
+excluded — information only,82,21007,Bag – Printed – SS Original Granola,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,145
+excluded — information only,83,21024,Bag – Printed – BS Almond Butter 7 oz,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,146
+excluded — information only,84,21025,Bag – Printed – BS Dark Chocolate 7 oz,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,147
+excluded — information only,85,21026,Bag – Printed – BS Hazelnut Butter 7 oz,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,148
+excluded — information only,86,21028,Bag – Printed – BS Peanut Butter 7 oz,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,149
+excluded — information only,87,21061,Bag – Printed – SS Chocolate Chip Granola Low Carb,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,150
+excluded — information only,88,21060,Bag – Printed – SS Original Granola Low Carb,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,151
+excluded — information only,89,21008,Box 10 LB White Plain #13,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,152
+excluded — information only,90,21009,Box 10 LB White Plain #13 Flat,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,153
+excluded — information only,91,21010,Box 14 12,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,154
+excluded — information only,92,21011,Box 24,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,155
+excluded — information only,93,21012,Box 24 Flat,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,156
+excluded — information only,94,21013,Box 38F Toasted 25 LB,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,157
+excluded — information only,95,21014,Box F28,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,158
+excluded — information only,96,21015,Box PL9 Crumb,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,159
+excluded — information only,97,21016,Box Unipro Printed 10 LB,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,160
+excluded — information only,98,21017,Box Unipro Printed 10 LB Flat,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,161
+excluded — information only,99,21018,Box – CQ – Printed – Coconut,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,162
+excluded — information only,100,21019,Box – CQ – Printed – Granola,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,163
+excluded — information only,101,21020,Box – CQ – Printed – Granola – Flat,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,164
+excluded — information only,102,21021,Pallets,packaging,BILLING — EXCLUDED,0,0,unit,,0,0,"Owner decision: billing item; excluded from reset, physical pallets counted once for information",165
+excluded — information only,103,21022,Tape – 48mmx100m – Case 36,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,166
+excluded — information only,104,21023,Tape – 48mmx914m – Case 6,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,167
+excluded — information only,105,21029,Case – Generic – 7 OZ Master,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,168
+excluded — information only,106,21030,Case – Generic – 7 OZ Master – Flat,packaging,MONTHLY,0,0,unit,,0,0,Information-only packaging count; excluded from reset because FL does not deduct on pack,169
+included,110,90021,Batch Setton Coffee Granola #12,batch,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,170
+included,115,90012,Batch SS Chocolate Chip Granola #5,batch,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,171
+included,117,90017,Batch SS Original Granola #4,batch,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,172
+included,124,95003,Batch BS Hazelnut Butter Granola 350,batch,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,173
+included,129,70081,Granola Setton Good Ol 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,174
+included,130,70078,Granola Setton Morning Latte Crunch 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,175
+included,131,70077,Granola Setton Cinnamon Spice Almond 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,176
+included,132,70056,Granola Setton Cocoa Crunch 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,177
+included,140,70057,Granola Cinnamon Almond 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,178
+included,143,70053,Granola Chocolate Chip 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,179
+included,152,70079,BS Almond Butter Granola – 6x7 OZ Case,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,180
+included,154,10006,Coconut Sweetened Fancy CNS 10 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,181
+included,166,11055,Sweetened Flake Coconut,ingredient,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,182
+included,169,11054,Organic Madagascar Vanilla Extract,ingredient,MONTHLY,0,0,lb,-50.0,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,183
+included,171,70089,Classic Granola 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,184
+excluded — information only,176,,Pallet Charge,packaging,BILLING — EXCLUDED,0,0,each,,0,0,"Owner decision: billing item; excluded from reset, physical pallets counted once for information",185
+included,181,25013,Real Chocolate Chips 10000ct 50 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,186
+included,182,25014,Real Chocolate Chips 10000ct 30 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,187
+included,184,70005,Granola SS B'gan Chocolate per/lb,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,188
+included,185,70006,Granola SS Mini 100,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,189
+included,186,70009,Granola SS Evergreen 12 pack,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,190
+included,187,70051,Coconut Chips 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,191
+included,188,10045,Desiccated Macaroon Bakers 50 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,192
+included,191,10048,Desiccated Flake CNS 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,193
+included,192,10049,Desiccated Coconut Chips 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,194
+included,193,10050,Desiccated Coconut Chips 15 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,195
+included,194,10051,Desiccated Medium Bakers 50 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,196
+included,195,10052,Desiccated Medium CNS 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,197
+included,197,10054,Desiccated Medium CNS 100 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,198
+included,198,10055,Desiccated Flake 55 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,199
+included,199,10056,Desiccated Flake 80 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,200
+included,200,10058,Desiccated Macaroon CNS 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,201
+included,201,10059,Desiccated Macaroon 55 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,202
+included,207,70086,BS Almond Butter Granola – 6x8 OZ Case,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,203
+included,208,70087,BS Granola – Dark Chocolate – 6x8 OZ Case,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,204
+included,283,90025,Batch SS Classic Granola #9 (Kosher Ignition),batch,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,205
+included,284,90026,Batch SS Classic Chocolate Chip Granola #9 (Kosher Ignition),batch,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,206
+included,287,70015,Granola SS Classic #9 10 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,207
+included,288,70016,Granola SS Classic Chocolate Chip #9 Bulk per/lb,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,208
+included,289,70017,Granola SS Classic Chocolate Chip #9 25 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,209
+included,290,70018,Granola SS Classic Chocolate Chip #9 10 LB,finished,MONTHLY,0,0,lb,,0,0,Lower recorded activity and no material recorded discrepancy signal; still count monthly and after any incident,210

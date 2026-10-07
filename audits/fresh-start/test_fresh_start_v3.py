@@ -52,6 +52,11 @@ class V3Tests(unittest.TestCase):
   with contextlib.redirect_stdout(io.StringIO()):return app.run(self.preview,self.approval,self.out/'count.csv',apply,backend,lambda _:phrase)
  def test_baseline_and_decimal_rounding(self):
   self.assertEqual(self.target()['adjustment_lb'],f.D(-10));self.data['count'][0]['quantity']='90.123456';self.assertEqual(self.target()['adjustment_lb'],f.D('-9.8765'))
+ def test_root_resolves_inside_this_repository(self):
+  repo=Path(__file__).resolve().parents[2]
+  self.assertEqual(f.ROOT,repo);self.assertEqual(f.OUT,Path(f.__file__).resolve().parent)
+  self.assertTrue(f.OUT.is_relative_to(repo));self.assertTrue((repo/'.git').exists());self.assertTrue((repo/'main.py').is_file())
+  self.assertEqual(f.WRAPPER,repo/'scripts/psql_ro.sh')
  def test_inside_window_requires_before_after(self):
   self.line(-10,self.t+timedelta(minutes=1));self.assertEqual(self.target()['status'],'HELD');self.answer();self.assertEqual(self.target()['expected_current_lb'],80)
  def test_before_classification_changes_basis(self):
@@ -303,6 +308,22 @@ class V3Tests(unittest.TestCase):
   self.assertEqual(areas['UNKNOWN']['follow_up'][0]['row_id'],'UNKNOWN');self.assertFalse(a['full_scope_reviewed'])
   self.assertEqual(v.report(a,self.out/'follow-up',verify=True),2)
   rows=v.read_csv(self.out/'follow-up/sheet-follow-up.csv');self.assertEqual(rows[0]['sheet_id'],'UNKNOWN')
+ def assert_invalid_move_follow_up(self,pid):
+  self.data['moves']=[{},dict(move_id='UNKNOWN-MOVE',product_id=pid,quantity='10')]
+  self.data['count'][0]['quantity']='100'
+  a=self.analyze();message='moves CSV row 3: move-log row has no valid product_id'
+  self.assertEqual(a['general'],[]);self.assertEqual(a['holds'],{});self.assertEqual(a['lot_holds'],{});self.assertEqual(a['sheet_follow_up'],{})
+  self.assertTrue(a['full_scope_reviewed']);self.assertEqual(a['rows'][0]['status'],'READY')
+  self.assertEqual(a['moved_during_count'],[]);self.assertEqual(a['review_template']['move_reviews'],{})
+  self.assertEqual(len(a['move_follow_up']),1);entry=a['move_follow_up'][0]
+  self.assertEqual(entry['move_id'],'UNKNOWN-MOVE');self.assertEqual(entry['product_id'],pid);self.assertEqual(entry['detail'],message)
+  self.assertEqual(v.report(a,self.out/'move-follow-up',verify=True),0)
+  self.assertEqual(v.read_csv(self.out/'move-follow-up/move-follow-up.csv')[0]['detail'],message)
+  self.assertIn(message,(self.out/'move-follow-up/reset-verification-v3.md').read_text())
+ def test_M3_blank_move_product_has_move_level_follow_up(self):
+  self.assert_invalid_move_follow_up('')
+ def test_M3_unknown_move_product_has_move_level_follow_up(self):
+  self.assert_invalid_move_follow_up('99999')
  def test_M3_bad_row_on_another_sheet_does_not_leak_into_sheet_follow_up(self):
   self.data['count'].append(dict(self.row('R2','B'),lot_code='UNKNOWN'))
   a=self.analyze();areas={r['sheet_id']:r for r in a['area_reconciliation']}
