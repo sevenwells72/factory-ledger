@@ -7,6 +7,44 @@
 
 ---
 
+## 2026-10-07 10:57 — PR #69 merge and move-follow-up sign-off fix (row 160; not deployed)
+- **File(s) changed:** `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/v3/STAGE-2.md`, `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; resolved iCloud global log.
+- **What changed:** Confirmed PR #68 merged as 4f7ddbe, then merged origin/main without rebasing. Restore every upstream changelog entry, including row 158 and PR #68's row 159; renumber this PR's entry to 160. Unresolved move follow-ups now prevent full-scope sign-off and verification returns 2 while general holds stay empty and unrelated rows remain READY. Align both guides and refresh delivery hashes.
+- **Validation:** The two revised blank/non-catalog move-product regressions fail against the old predicate. Focused offline suites: test_fresh_start_v3.py 96 passed; test_apply_reset.py 65 passed (161 total plus 8 subtests). Full checkout Python suite, including the six historical PDF checks: 539 passed, 1105 skipped, 37 warnings, exactly the 4 known DATABASE_URL setup errors, and 22 subtests passed. Node: 69 passed, zero failures/skips. Both DATABASE_URL and TEST_DATABASE_URL were unset; no database/application API access. The PDF tests used bundled pdfplumber and ReportLab 4.4.9 to match the saved PDF; the initial runner lacked pdfplumber and its older ReportLab 4.1.0 could not reproduce the PDF bytes. Application, database schema/migrations and API files receive only the upstream merge and must match origin/main exactly.
+- **History note:** CHANGE_LOG.md contains prose entries, not a numbered table. The upstream numbered ledger has pre-existing duplicate IDs 42 (twice) and 13 (three times), plus 28a/28b; preserving every upstream row leaves those historical exceptions intact. The recent 160, 159, 158 sequence is consecutive and unique.
+
+---
+
+## 2026-10-07 10:32 — Fresh-start v3 standalone and full-suite verification complete (row 160)
+- **File(s) changed:** `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **Validation:** Clean temporary detached worktree of 805d471: test_fresh_start_v3.py and test_apply_reset.py ran 161 tests, all passed; fresh_start_v3.py --write-count-template generated 850 blank rows with the duplicate column. Worktree removed; no stash used. Full checkout Python suite: 533 passed, 1023 skipped, 27 warnings, exactly 4 expected DATABASE_URL errors, and 22 subtests passed; test_count_pdf.py excluded as requested. Node suite: 67 passed, no failures/skips. Both DB environment variables unset; no DB/application API calls or migrations. All 23 requested additions present; no prohibited additions; all 28 delivered fresh-start files scanned including extracted PDF content with no secrets (one synthetic FAKE.invalid URL), and zero /Users/ paths. Manifest verifies all 27 companion files. origin/main 521330c maximum row 158 verified; row 159 originally used (renumbered to 160 after PR #68). main.py/migrations unchanged. Whitespace check passes for text with CSV CRLF allowed; PDF bytes retained.
+- **Why:** Record reproducible standalone proof and offline full-suite limits before the repository-visibility push gate.
+
+---
+
+## 2026-10-07 10:31 — Preserve executor checkout guard while isolating fixtures (row 160)
+- **File(s) changed:** `audits/fresh-start/fresh_start_common.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Correction to the prior standalone-fixture follow-up: its focused-pass claim was premature. f9dbd2a produced 51 failures/errors because relocating OUT tripped the executor checkout guard. Keep OUT unchanged, name the two existing legacy manifest paths in SCOPE_MANIFESTS, and patch only the v2 manifest path to a per-test fixture. The production path and guard behavior are unchanged. The observed focused rerun now passes 161 tests plus 8 subtests. Both failed temporary worktrees were removed; clean-HEAD proof remains pending.
+- **Why:** Isolate test data without bypassing the executor checkout guard.
+
+---
+
+## 2026-10-07 10:29 — Fresh-start standalone fixture repair (row 160; not deployed)
+- **File(s) changed:** `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/v3/delivery-sha256.json`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Clean-worktree validation of fd7e75b exposed 65 executor-test errors from untracked v2 manifests. Derive the same 94-product legacy scope from the committed v3 snapshot and create an issued manifest in each temporary test directory; use that snapshot for excluded-product fixtures too. Guide checks resolve from the test file. Focused suite now passes 161 tests plus 8 subtests; no live access or production behavior changes. Clean-HEAD proof will be repeated.
+- **Why:** The executor safety tests must run from committed files without relying on local historical reports.
+
+---
+
+## 2026-10-07 10:27 — Fresh-start v3 review fixes and self-contained tool files (row 160; not deployed)
+- **File(s) changed:** `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/fresh_start_common.py`, `audits/fresh-start/lot_review.py`, `audits/fresh-start/v3/queries/01-scope.sql`, `audits/fresh-start/v3/count-sheet-v3.csv`, `audits/fresh-start/apply_reset.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/reset_preview.py`, `audits/fresh-start/verify_reset.py`, `audits/fresh-start/v3/raw/01-scope.json`, `audits/fresh-start/v3/count-coverage-v3.csv`, `audits/fresh-start/v3/moved-during-count-v3.csv`, `audits/fresh-start/build_v3_materials.py`, `audits/fresh-start/apply-guide.md`, `audits/fresh-start/approval.md`, `audits/fresh-start/v3/sheet-register-v3.csv`, `audits/fresh-start/v3/count-sheet-v3.pdf`, `audits/fresh-start/v3/validation.md`, `audits/fresh-start/v3/scope-check.md`, `audits/fresh-start/v3/sunshine-ownership-reconciliation.md`, `audits/fresh-start/v3/build-backlog.md`, `audits/fresh-start/v3/delivery-sha256.json`, `audits/fresh-start/v3/recount-groups.csv`, `audits/fresh-start/v3/recount-groups.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Commit the 23 selected tool, SQL, snapshot, count and guide/report files; derive checkout paths from __file__; route blank/non-catalog move IDs to a move-level CSV/Markdown follow-up without holding unrelated products; document conservative holds for voided prior openings; add three regression tests and refresh the delivery manifest. Retain H1/M1/M2/M3/L1-L5 fixes from 960c9fa. No main.py edits, database/application API calls or migrations.
+- **Validation:** Focused offline suite: 161 passed plus 8 subtests; secret scan covers all 28 delivered fresh-start files, including PDF text and the saved snapshot, with no credentials found (one synthetic FAKE.invalid fixture). Clean-worktree and full-suite verification follow after commit. Fetched origin/main at 521330c; maximum row is 158, so this task originally used 159 (renumbered to 160 after PR #68).
+- **Why:** A clean checkout was missing required tool imports/data and unidentified move rows leaked into global holds.
+
+---
+
+
 ## 2026-09-30 10:12 — PR #66 + #67 production rollout (DEPLOYED) and post-rollout housekeeping
 - **File(s) changed:** `tests/schema/schema.sql`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **Production actions (2026-09-29 UTC, each owner-approved):** 056 applied 16:53:55 and 057 applied 16:56:23 as `postgres` over port 5432 inside `BEGIN; SET LOCAL lock_timeout='5s'; … COMMIT;` with `ON_ERROR_STOP`; both verified read-only (owner, RLS enabled/not forced, 0 rows, indexes valid, CHECKs, markers, `ledger_current_*` view definitions unchanged). PR #66 merged 16:58:36 (`67db9a0`), live on Railway ~17:29 after deployment `353e5aed` sat QUEUED during Railway's "API degradation causing slow or stuck deployments" incident. PR #67 retargeted to main and merged 17:30:38 (`521330c`); Netlify deployed `dashboard.js?v=68` ~17:33; Railway never received the push. 2026-09-30 13:53 UTC: backend deployed with `railway redeploy --from-source` (deployment `c4f4bca5`, commit `521330c`).

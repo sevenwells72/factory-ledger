@@ -1,0 +1,44 @@
+# Proposed recount groups - owner approval needed
+
+**Plain-English summary:** Start with **77 weekly items** that move often or show discrepancy/reconciliation problems, and **131 monthly items** with lower recorded risk. Pallets 102 and Pallet Charge 176 are excluded billing items; physical pallets are counted once for information. The 30 packaging supplies in the monthly group are informational recounts, excluded from reset. These are proposals, not an approved schedule; no reminders or stock changes were created.
+
+Use the same item + lot + location and live-movement rules as the full count. Rotate subgroups through the week if needed, but search every location of each selected item. Add a prompt recount after an unexplained shortage, incorrect lot, missing movement or large correction. Packaging with little FL history is proposed for monthly informational counting; these observations never establish or reset FL balances. Adjust its group when actual turnover is known. Zero activity in FL is not proof that nothing moved physically.
+
+Snapshot: 2026-10-06T18:37:34.872652+00:00. Rank uses distinct posted movement transactions during the last 60 days, material historical count differences, large adjustments during 180 days, and shortage/reconciliation note references. Score = transaction count + 20 for an absolute historical ingredient difference >=500 lb + 10 for any large adjustment + 10 for Sunshine pouches + 5 for relevant notes. Note matches are leads, not proof of a cause. Pounds and packaging counts are kept separate in `recount-groups.csv`; no sum across unlike units is used to rank them. The October 5 ingredient-total comparison is retained only as historical risk evidence, not a reset target.
+
+## Highest-priority items
+
+| Rank | ID / SKU | Item | 60-day TX count | Native movement volume | Proposed group | Reason |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 126 / 90004 | Batch Coconut Sweetened Flake | 167 | 243790.4 lb | WEEKLY | 167 movement transactions in 60 days; 8 adjustments of at least 500 native units in 180 days; 70 shortage/support/reconciliation note references; investigate context |
+| 2 | 107 / 90002 | Batch Classic Granola #9 | 81 | 183662.0 lb | WEEKLY | 81 movement transactions in 60 days; 20 adjustments of at least 500 native units in 180 days; 15 shortage/support/reconciliation note references; investigate context |
+| 3 | 32 / 11032 | Oats | 54 | 186709.0 lb | WEEKLY | 54 movement transactions in 60 days; Oct 5 historical total comparison: -2406.2 lb (time unresolved) |
+| 4 | 40 / 11040 | Sugar – 6X | 44 | 80540.00 lb | WEEKLY | 44 movement transactions in 60 days; Oct 5 historical total comparison: 572.49 lb (time unresolved); 1 adjustments of at least 500 native units in 180 days |
+| 5 | 34 / 11034 | Oil – Canola | 53 | 25074.00 lb | WEEKLY | 53 movement transactions in 60 days; Oct 5 historical total comparison: -630.87 lb (time unresolved) |
+| 6 | 13 / 11013 | Coconut Macaroon Desiccated | 56 | 14345.5 lb | WEEKLY | 56 movement transactions in 60 days; 12 adjustments of at least 500 native units in 180 days; 13 shortage/support/reconciliation note references; investigate context |
+| 7 | 164 / 893 | CQ Coconut Sweetened Flake 10 LB | 56 | 148300.0 lb | WEEKLY | 56 movement transactions in 60 days; 1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context |
+| 8 | 39 / 11039 | Salt | 69 | 1340.60 lb | WEEKLY | 69 movement transactions in 60 days |
+| 9 | 29 / 11029 | Glycol | 41 | 9976.0 lb | WEEKLY | 41 movement transactions in 60 days; Oct 5 historical total comparison: 531.0 lb (time unresolved) |
+| 10 | 16 / 11016 | Corn Starch | 40 | 1640.0 lb | WEEKLY | 40 movement transactions in 60 days; Oct 5 historical total comparison: 950.0 lb (time unresolved) |
+| 11 | 30 / 11030 | Honey | 46 | 14336.0 lb | WEEKLY | 46 movement transactions in 60 days; 1 shortage/support/reconciliation note references; investigate context |
+| 12 | 12 / 11012 | Coconut Flake Desiccated | 34 | 124550.0 lb | WEEKLY | 34 movement transactions in 60 days; 17 adjustments of at least 500 native units in 180 days; 5 shortage/support/reconciliation note references; investigate context |
+| 13 | 44 / 11044 | Sugar – Light Brown | 28 | 27500.0 lb | WEEKLY | 28 movement transactions in 60 days; Oct 5 historical total comparison: -2010.0 lb (time unresolved) |
+| 14 | 136 / 70050 | Granola Classic 25 LB | 32 | 49975.0 lb | WEEKLY | 32 movement transactions in 60 days; 11 adjustments of at least 500 native units in 180 days; 3 shortage/support/reconciliation note references; investigate context |
+| 15 | 18 / 11018 | Flavor – Almond | 26 | 540.0 lb | WEEKLY | 26 movement transactions in 60 days; Oct 5 historical total comparison: -1040.6 lb (time unresolved) |
+| 16 | 31 / 11031 | Oat Bran | 30 | 6980.0 lb | WEEKLY | 30 movement transactions in 60 days; 1 adjustments of at least 500 native units in 180 days; 20 shortage/support/reconciliation note references; investigate context |
+| 17 | 114 / 90011 | Batch SS Chocolate Chip Granola #2 | 30 | 95710.5 lb | WEEKLY | 30 movement transactions in 60 days; 10 adjustments of at least 500 native units in 180 days; 4 shortage/support/reconciliation note references; investigate context |
+| 18 | 116 / 90016 | Batch SS Original Granola #1 | 30 | 45880.0 lb | WEEKLY | 30 movement transactions in 60 days; 5 adjustments of at least 500 native units in 180 days; 2 shortage/support/reconciliation note references; investigate context |
+| 19 | 165 / 31012 | Graham Cracker Crumbs – 10 LB | 30 | 32080.0 lb | WEEKLY | 30 movement transactions in 60 days; 3 adjustments of at least 500 native units in 180 days; 3 shortage/support/reconciliation note references; investigate context |
+| 20 | 46 / 11046 | Sunflower Seeds | 23 | 9141.0 lb | WEEKLY | 23 movement transactions in 60 days; Oct 5 historical total comparison: -7185.4 lb (time unresolved) |
+| 21 | 125 / 90003 | Batch Coconut Sweetened Fancy | 27 | 23540.8 lb | WEEKLY | 27 movement transactions in 60 days; 2 adjustments of at least 500 native units in 180 days; 13 shortage/support/reconciliation note references; investigate context |
+| 22 | 72 / 25010 | Chocolate Chips – Real – 4,000 CT | 15 | 8999.0 lb | WEEKLY | 15 movement transactions in 60 days; Oct 5 historical total comparison: -765.0 lb (time unresolved); 1 shortage/support/reconciliation note references; investigate context |
+| 23 | 146 / 70002 | Granola SS Original 12x10 OZ Case | 15 | 35212.5 lb | WEEKLY | 15 movement transactions in 60 days; 2 adjustments of at least 500 native units in 180 days; Sunshine ownership / retrospective ship reconciliation; 2 shortage/support/reconciliation note references; investigate context |
+| 24 | 108 / 90001 | Batch Classic Chocolate Chip Granola #9 | 18 | 38368.0 lb | WEEKLY | 18 movement transactions in 60 days; 19 adjustments of at least 500 native units in 180 days; 8 shortage/support/reconciliation note references; investigate context |
+| 25 | 145 / 70003 | Granola SS Chocolate Chip 12x10 OZ Case | 18 | 67762.5 lb | WEEKLY | 18 movement transactions in 60 days; Sunshine ownership / retrospective ship reconciliation; 1 shortage/support/reconciliation note references; investigate context |
+| 26 | 157 / 10020 | Coconut Sweetened Flake CNS 25 LB | 18 | 29325.0 lb | WEEKLY | 18 movement transactions in 60 days; 1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context |
+| 27 | 73 / 25011 | Chocolate Chips – Real – 1,000 CT | 8 | 1350.0 lb | WEEKLY | 8 movement transactions in 60 days; Oct 5 historical total comparison: 1250.0 lb (time unresolved); 1 shortage/support/reconciliation note references; investigate context |
+| 28 | 137 / 10300 | Granola Crunchy CNS 10 LB Case | 26 | 7450.0 lb | WEEKLY | 26 movement transactions in 60 days; 2 shortage/support/reconciliation note references; investigate context |
+| 29 | 161 / 67470 | Coconut Sweetened Fancy UNIPRO 10 LB | 15 | 17460.0 lb | WEEKLY | 15 movement transactions in 60 days; 1 adjustments of at least 500 native units in 180 days; 1 shortage/support/reconciliation note references; investigate context |
+| 30 | 147 / 70011 | Granola SS Cranberry 12x10 OZ Case | 5 | 4927.5 lb | WEEKLY | 1 adjustments of at least 500 native units in 180 days; Sunshine ownership / retrospective ship reconciliation; 1 shortage/support/reconciliation note references; investigate context |
+
+The full 210-product assignment is in `recount-groups.csv`. Owner decisions: approve weekly/monthly membership, assign a counter and reviewer, and keep packaging observations separate from reset balances; the billing exclusion is already decided. Re-rank after the full count is reconciled using observed lot/location errors rather than only historic proxies.
