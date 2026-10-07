@@ -138,6 +138,8 @@ def test_hash_tampering_and_commit_body_cannot_replace_payload(client, db_cursor
     prepared = prepare(client, payload)
     error(commit(client, prepared, payload_hash='0'*64), 409, 'TICKET_PAYLOAD_MISMATCH')
     assert commit(client, prepared, cases=900).status_code == 422
+    assert commit(client, prepared, client_source='dashboard').status_code == 422
+    assert ticket_row(db_cursor, prepared)['status'] == 'prepared'
     db_cursor.execute("UPDATE write_tickets SET payload=jsonb_set(payload,'{cases}','900') WHERE id=%s",
                       (prepared['ticket_id'],))
     error(commit(client, prepared), 409, 'TICKET_PAYLOAD_MISMATCH')
@@ -206,11 +208,60 @@ def direct_receive(client, cur, payload, **changes):
     return response.json()
 
 
-def test_state_changed_but_valid_and_duplicate_acknowledgement(client, db_cursor, payload):
+@pytest.mark.parametrize('shipper_code_override', [None, 'RACE'])
+@pytest.mark.parametrize('winner', ['legacy', 'ticket'])
+def test_generated_lot_taken_after_prepare_requires_fresh_ticket(
+        client, db_cursor, payload, shipper_code_override, winner):
+    payload = payload | {'lot_code': None, 'shipper_code_override': shipper_code_override}
     first = prepare(client, payload)
-    direct = direct_receive(client, db_cursor, payload)
-    # A newly arrived existing lot changes the snapshot without invalidating a receive.
+    reserved_code = first['draft']['lot_code']
+    assert first['can_commit'] is True
+    assert not first['draft'].get('lot_exists')
+
+    # Another delivery takes the displayed code before the first ticket commits.
+    competing_payload = payload | {'bol_reference': payload['bol_reference'] + '-OTHER'}
+    if winner == 'ticket':
+        second = prepare(client, competing_payload)
+        assert second['draft']['lot_code'] == reserved_code
+        response = commit(client, second)
+        assert response.status_code == 200, response.text
+        competing = response.json()
+    else:
+        competing = direct_receive(client, db_cursor, competing_payload)
+    assert competing['lot_code'] == reserved_code
+    db_cursor.execute('SELECT prefix,business_date,next FROM receipt_counters ORDER BY prefix,business_date')
+    counters_before = db_cursor.fetchall()
+
     response = commit(client, first)
+    error(response, 409, 'TICKET_STALE')
+    assert response.json()['detail']['blockers'][0]['code'] == 'LOT_CODE_TAKEN'
+    row = ticket_row(db_cursor, first)
+    assert row['status'] == 'rejected' and 'LOT_CODE_TAKEN' in row['reject_reason']
+    assert row['receipt_number'] is None
+    assert posted_count(db_cursor, first) == 0
+    assert main.lot_on_hand(db_cursor, competing['lot_id']) == 50
+    db_cursor.execute('SELECT prefix,business_date,next FROM receipt_counters ORDER BY prefix,business_date')
+    assert db_cursor.fetchall() == counters_before
+    error(commit(client, first), 409, 'TICKET_NOT_COMMITTABLE')
+
+    fresh = prepare(client, payload)
+    assert fresh['can_commit'] is True
+    assert fresh['draft']['lot_code'] != reserved_code
+    assert fresh['warnings'][0]['code'] == 'POSSIBLE_DUPLICATE'
+    response = commit(client, fresh, acknowledged_warnings=['POSSIBLE_DUPLICATE'])
+    assert response.status_code == 200, response.text
+    assert response.json()['lot_code'] == fresh['draft']['lot_code']
+    assert response.json()['lot_id'] != competing['lot_id']
+    assert posted_count(db_cursor, fresh) == 1
+
+
+def test_state_changed_but_valid_and_duplicate_acknowledgement(client, db_cursor, payload):
+    direct = direct_receive(client, db_cursor, payload)
+    first = prepare(client, payload)
+    assert first['draft']['lot_exists'] is True
+    direct_receive(client, db_cursor, payload)
+    # The draft explicitly allows adding to this existing lot; only its stock changed.
+    response = commit(client, first, acknowledged_warnings=['POSSIBLE_DUPLICATE'])
     assert response.status_code == 200, response.text
     assert response.json()['state_changed'] is True
     duplicate = prepare(client, payload)

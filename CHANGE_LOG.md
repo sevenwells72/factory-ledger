@@ -14,6 +14,41 @@
 
 ---
 
+## 2026-10-07 16:12 — A1 review: verify full suite and record PR 78 fix evidence
+- **File(s) changed:** `docs/deployments/a1-write-tickets-part1.md`, `CHANGE_LOG.md`
+- **What changed:** Record 1,530 Python passes (946 DB-marked, 58 ticket tests), 69 Node passes, no failures/skips and a clean diff check. Tests used a fresh dedicated local database and reproduced all four lot-code races before the fix; deployment notes require the exact app connection role for migration 058. Project and global logs updated; no merge or production changes.
+- **Why:** Provide current validation evidence for the requested review fixes before pushing to feat/write-tickets.
+
+---
+
+## 2026-10-07 16:11 — A1 review: retain duplicate acknowledgement on fresh-code retries
+- **File(s) changed:** `tests/test_write_tickets.py`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Assert and acknowledge the existing POSSIBLE_DUPLICATE warning when re-preparing the raced delivery; remove a stale unchanged-contract statement from the deployment notes.
+- **Why:** Fresh lot codes must preserve the existing duplicate-warning gate; the lot-race rejection itself now passes.
+
+---
+
+## 2026-10-07 16:11 — A1 review: reject taken lot codes, tighten commit input and clarify migration ownership
+- **File(s) changed:** `write_tickets.py`, `tests/test_write_tickets.py`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Under the existing receive lock, reject a newly occupied prepared lot as TICKET_STALE with LOT_CODE_TAKEN before allocating a receipt or posting stock. Remove unused commit client_source, assert its rejection, and document migration 058 application by the exact app connection role because RLS has no policies. Make/pack ticket routes remain unimplemented in this part.
+- **Why:** Apply PR #78 review fixes; all four new race cases first reproduced the bug on the prior code. No merge, migration application or production changes.
+
+---
+
+## 2026-10-07 16:11 — A1 review: reproduce generated lot-code races and preserve explicit existing-lot receives
+- **File(s) changed:** `tests/test_write_tickets.py`
+- **What changed:** Add four prepare/commit race cases covering ticket and legacy writers, with and without a shipper-code override; require persistent LOT_CODE_TAKEN rejection, unchanged stock/counters and a fresh-code retry. Update the valid-state-change case to prepare an explicitly existing lot.
+- **Why:** PR #78 review requires stale generated lot codes to reject instead of combining separate deliveries.
+
+---
+
+## 2026-10-07 15:52 — A1 part 1: retain final kosher documentation answers from main
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Integrate documentation-only main ac14219 while retaining all log entries; A1 code and migration remain identical to the validated version.
+- **Why:** Keep PR #78 reviewable as concurrent owner documentation decisions land; no feature work outside A1 part 1.
+
+---
+
 ## 2026-10-07 15:49 — A1 part 1: reconcile the final concurrent documentation merge
 - **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
 - **What changed:** Rebase onto main 199c3b5, preserve both log histories, and identify the new supplier-tracking and kosher decisions as A5/D2/F1 and A12 work.

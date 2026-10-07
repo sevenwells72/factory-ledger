@@ -2,11 +2,11 @@
 
 Status: implemented and tested; migration 058 applied to staging only on
 2026-10-07. No hosted application deployment, production access, merge, or key
-rotation. Branch `feat/write-tickets` was created from `cb2705c` and rebased onto
-`origin/main` at `199c3b5` after documentation-only PRs #74/#75/#77 landed. The A1
-code and migration match the tested/staging version byte for byte. F1 backend
-ticket custody and A11 PIN sessions remain separate chunks; the plain A1
-endpoint contract is unchanged.
+rotation. Branch `feat/write-tickets` was created from `cb2705c` and updated with
+concurrent documentation-only main changes through rev 3.3 (PRs #74/#75/#77/#79). The A1
+migration is unchanged; the PR #78 review fixes below update ticket revalidation
+and the commit request contract after that staging smoke. F1 backend
+ticket custody and A11 PIN sessions remain separate chunks.
 
 ## Review boundary
 
@@ -35,14 +35,19 @@ optional supplier ID contract. Kosher tier enforcement is A12.
 - `occurred_at` is frozen at prepare; `happened_at` is an accepted alias.
   The displayed lot code and expected-receipt match are pinned in the stored
   payload. A closed or reassigned expected receipt requires a fresh prepare.
+  If the draft showed a new lot (no `lot_exists`) and that code is occupied at
+  commit, commit rejects with `409 TICKET_STALE` and blocker `LOT_CODE_TAKEN`.
+  Re-prepare from the original input to obtain a fresh auto-generated code.
+  Adding to a lot explicitly shown as existing at prepare remains valid.
 - `client_source` is `api` by default. `api`, `mcp`, and `fl_assistant` expire
   after 10 minutes; dashboard forms expire after 30 minutes. No client-specific
   ticket fields or business-rule branches exist.
 - Prepare returns a ticket even for business-validation blockers. Warning
   `POSSIBLE_DUPLICATE` requires acknowledgement at commit; it checks effective
   posted receives across all actors over the preceding 24 hours.
-- Commit accepts only `payload_hash`, `acknowledged_warnings`, and optional
-  `client_source`. The stored prepare source remains the audit source.
+- Commit accepts only `payload_hash` and optional `acknowledged_warnings`.
+  `client_source` belongs only on prepare; supplying it at commit returns 422.
+  The stored prepare source remains the audit source.
   Receipt/counter/lot/ledger/trace changes share one transaction. Rejected and
   expired statuses persist; unexpected failures roll back to prepared.
 - Replays retain the saved response and receipt, changing only `replayed` to
@@ -82,19 +87,26 @@ catalog behavior. No original ledger view or historical migration is changed.
 
 ## Verification
 
-Fresh local PostgreSQL 17 database, rebuilt with `scripts/setup_test_db.sh --fresh`.
-The existing Python 3.12 test environment was reused through a temporary
-`.venv-test` symlink, removed after verification. For a new environment, use
-Python 3.12 and install both `requirements.txt` and `tests/requirements-test.txt`.
-Tests ran with `TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test`
+PR #78 review fixes, 2026-10-07: fresh dedicated local PostgreSQL 17 database
+`fl_a1fix_20261007`, loaded from `tests/schema/schema.sql`; other sessions' test
+databases were left untouched. The existing Python 3.12 test interpreter was
+reused directly, with bytecode and pytest cache writes disabled. For a new
+environment, install both `requirements.txt` and `tests/requirements-test.txt`.
+Tests ran with `TEST_DATABASE_URL=postgresql://localhost:5432/fl_a1fix_20261007`
 explicitly set and inherited `DATABASE_URL` removed before pytest:
 
-- Full Python suite: **1,526 collected, 1,526 passed**, zero failures/skips.
-- Database-marked tests: **942 collected, 942 passed** in that full run.
-- New ticket tests: **54 passed**, including real concurrent HTTP commits on a
+- Full Python suite: **1,530 collected, 1,530 passed**, zero failures/skips.
+- Database-marked tests: **946 passed** in that full run.
+- Ticket tests: **58 passed**, including real concurrent HTTP commits on a
   dedicated temporary local database, replay, expiry, payload/user binding,
   rollback after ledger insertion, revalidation, duplicate warnings, counter
   boundaries, receipt reads, RLS, immutability and migration down/up/rerun.
+- The four new lot-code race cases first failed on the prior code, then passed:
+  competing legacy/ticket receives, each with generated/overridden shipper
+  prefixes. Rejection leaves stock and counters unchanged; a fresh prepare
+  gets a different code and commits after duplicate-warning acknowledgement.
+  Explicit existing-lot receives still allow valid state changes; commit-time
+  `client_source` is rejected with 422.
 - `test_staging_safety.py` and `test_seed_staging.py` run unchanged in the suite.
 - Node suite (`node --test tests/*.js`): **69 passed**, zero failures/skips.
 - A full rerun needs a fresh DB: existing seed tests assume an otherwise empty
@@ -119,8 +131,17 @@ Migration 058 is idempotent, with marker `058_write_tickets`. Startup uses the
 existing serialized marker gate; the standalone SQL runner also writes the
 marker. No expiry or new data sweep runs at startup.
 
-For an explicit schema application, use the app/table owner, port 5432, an
-explicit transaction, `ON_ERROR_STOP`, `SET LOCAL lock_timeout='5s'`, and
+Migration 058 **must be applied by the same database role the app connects
+as**, so that role owns both `write_tickets` and `receipt_counters`. Both tables
+have RLS enabled with no policies; normal table grants to a different app role
+are insufficient for ticket reads/writes. Do not apply it as a separate admin
+or migration role and assume grants will make the application work. Verify
+`current_user` matches the app connection role before applying, and verify both
+table owners match that role afterward. An idempotent rerun does not change
+ownership of tables already created under a different role.
+
+For an explicit schema application, connect as that app role on port 5432, use
+an explicit transaction, `ON_ERROR_STOP`, `SET LOCAL lock_timeout='5s'`, and
 `SET LOCAL search_path=public`, then include `migrations/058_write_tickets.sql`.
 Revert the application before any optional down migration. The down file is
 `migrations/down/058_write_tickets_down.sql`; read its evidence-export guard.
@@ -138,7 +159,7 @@ only localhost or explicitly guarded staging. Production scheduling/operation
 is outside this part.
 
 Owner steps for a later authorized rollout: review this part and the remaining
-A1 work; apply 058 to production before deploying the code; re-dump
+A1 work; apply 058 as the app connection role before deploying the code; re-dump
 `tests/schema/schema.sql` and remove the entire pending 058 block; add a
 `FACTORY_LEDGER_CHANGELOG.md` deployment row at actual deployment time. Rotation
 remains an owner cutover-day step. This PR must not be merged by the agent.

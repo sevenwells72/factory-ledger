@@ -79,7 +79,6 @@ class ReceivePrepareRequest(IdInput):
 class CommitRequest(BaseModel):
     payload_hash: str
     acknowledged_warnings: List[str] = Field(default_factory=list)
-    client_source: Optional[ClientSource] = None
 
     class Config:
         extra = 'forbid'
@@ -355,11 +354,16 @@ def register_routes(app, api):
                     current_actor = cur.fetchone()
                     if not current_actor or not current_actor['active']:
                         fail(403, 'ACTOR_INACTIVE', 'The preparing actor is no longer active.')
-                _, state, req, product, occurred_at, source, er_id = validate_receive(
+                draft, state, req, product, occurred_at, source, er_id = validate_receive(
                     api, cur, row['payload'], lock=True)
                 if row['draft'].get('blockers'):
                     fail(409, 'DRAFT_BLOCKED', 'Prepare again after resolving the draft blockers.',
                          blockers=row['draft']['blockers'])
+                # A draft promising a new lot cannot silently add to a lot
+                # created after prepare. This runs under the receive lock.
+                if not row['draft'].get('lot_exists') and draft.get('lot_exists'):
+                    fail(409, 'LOT_CODE_TAKEN',
+                         'The prepared lot code is now in use; prepare again for a fresh draft.')
                 state_changed = canonical_hash(state) != row['state_hash']
                 receipt = allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
                 req.mode = 'commit'
