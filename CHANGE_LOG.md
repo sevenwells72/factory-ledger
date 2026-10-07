@@ -1,5 +1,54 @@
 # Change Log
 
+## 2026-10-07 12:03 — Verified live staging read, order creation and receipt; prepared unmerged PR
+- **File(s) changed:** docs/staging.md, FACTORY_LEDGER_CHANGELOG.md, CHANGE_LOG.md; outputs/staging-verification.json.
+- **What changed:** All three smoke operations returned HTTP 200; direct staging reads verified order 1000000002, transaction 1000000002, lot 1000000003 and 25 lb. Production never queried; no catalog copy. Confirmed live source is main at d8d8081 and the staging launcher provides the guard before merge. Preserved earlier changelog rows and added the verification note.
+- **Why:** Deliver isolated staging without modifying production or protected branches.
+
+---
+
+## 2026-10-07 12:02 — Verified FastAPI-staging is live; added regression-guard row 161
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, CHANGE_LOG.md.
+- **What changed:** Staging deployment 1ce1986c-e204-4220-b04b-06661f365b43 is SUCCESS; logs show guarded launcher, completed startup and health HTTP 200 on port 8000. Recorded rollback/safety invariants immediately after deployment. No production service or database queries.
+- **Why:** Deliver isolated staging without modifying production or protected branches.
+
+---
+
+## 2026-10-07 12:01 — Documented isolated staging operation and catalog-copy boundaries
+- **File(s) changed:** docs/staging.md, CHANGE_LOG.md.
+- **What changed:** Added staging endpoint/service identity, secret-file locations, guarded-main launcher, seed scenario, exact catalog-copy allowlist and unit mapping, and 44-test validation. Documented that production data is not queried for smoke verification.
+- **Why:** Deliver isolated staging without modifying production or protected branches.
+
+---
+
+## 2026-10-07 11:59 — Seeded staging and deployed guarded main to FastAPI-staging
+- **File(s) changed:** CHANGE_LOG.md; staging service configuration; task work/staging-railway.json.
+- **What changed:** Inserted three synthetic products, one customer, one supplier, two alias records, one batch formula, two lots with 250 lb each, one receipt transaction, one three-line order, and one inactive synthetic actor. Production catalog was not copied. Configured only FastAPI-staging to deploy main with a tested startup guard and explicit PORT=8000. Verified its stored URI differs from the production host; generated staging domain fastapi-staging-production-dd7b.up.railway.app. Deployment building; smoke checks pending.
+- **Why:** Deliver isolated staging without modifying production or protected branches.
+
+---
+
+## 2026-10-07 11:58 — Prepared isolated FastAPI-staging service; 44 targeted tests passed
+- **File(s) changed:** tests/test_seed_staging.py, CHANGE_LOG.md; staging-api-key.txt (outside Git); task work helpers.
+- **What changed:** Created a new empty Railway service with independently generated credentials and only staging variables; configured the tested guard as its startup command before connecting a repository. API key saved only to the requested chmod-600 local file and the staging service variable. Local disposable PostgreSQL verification: 44 passed, including existing startup migrations. No production service variables read or changed. Deployment has not started.
+- **Why:** Deliver isolated staging without modifying production or protected branches.
+
+---
+
+## 2026-10-07 11:56 — Loaded isolated staging schema and added database safety and seed tooling
+- **File(s) changed:** main.py, staging_safety.py, scripts/seed_staging.py, scripts/staging_start_command.py, tests/test_staging_safety.py, tests/test_seed_staging.py, CHANGE_LOG.md.
+- **What changed:** Staging SELECT 1 passed; verified production and staging pooler hosts differ using local config only; loaded tests/schema/schema.sql plus pg_trgm into empty staging in one transaction and revoked anonymous Data API access. Added fail-closed staging checks before pool creation and before startup migrations, a guarded Railway launcher for main, synthetic fixtures based on the committed MCP harness, an optional SELECT-only master-data importer, and regression tests. Validation pending.
+- **Why:** Build staging while leaving production and protected branches untouched; do not reuse test or production keys.
+
+---
+
+## 2026-10-07 11:38 — Created isolated staging worktree; Supabase setup pending
+- **File(s) changed:** `CHANGE_LOG.md`; created git worktree `/Users/cns/dev/fl-staging-wt` on `infra/staging` from `origin/main` (`d8d8081`).
+- **What changed:** Prepared the user-requested isolated worktree and checked Supabase CLI availability. No staging resources provisioned or application code changed yet.
+- **Why:** Build staging without changing production, main, or existing feature/spike worktrees; stop at step 1 if CLI provisioning is unavailable.
+
+---
+
 ## 2026-10-07 11:10 — Global change-log canonical path rule (docs only; not deployed)
 - **File(s) changed:** `CLAUDE.md`, `AGENTS.md` (new), `CHANGE_LOG.md`
 - **What changed:** Added a CANONICAL PATH rule to the Global Log section of `CLAUDE.md`: the real file is `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/change-log.md`, `~/change-log.md` must stay a symlink to it, and new rows go directly below the `|------|` separator. Created `AGENTS.md` with the same rule for Codex and other agents. Same rule added to the user's global `~/.claude/CLAUDE.md` (outside the repo).

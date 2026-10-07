@@ -31,6 +31,7 @@ from collections import defaultdict, deque
 # imports). Always referenced as `extraction.<name>` so tests can monkeypatch
 # the module attributes and both sides see it.
 import extraction
+from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
 from openpyxl import Workbook
 from openpyxl.comments import Comment
@@ -2049,6 +2050,7 @@ def _run_startup_migrations() -> None:
     # the comment block above _run_once_startup_migration for why and for the
     # concurrency argument. The data sweeps (Migration 007, Migration 009 and
     # the 051 cutover reconciliation) are deliberately NOT gated.
+    assert_staging_database(DATABASE_URL)
     gated = _ensure_migration_markers()
 
     # Migration: Add label_type column for SKU protection
@@ -2377,6 +2379,7 @@ def _run_startup_migrations() -> None:
 @app.on_event("startup")
 async def startup():
     global db_pool
+    assert_staging_database(DATABASE_URL)
     if not DATABASE_URL:
         raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")
     if not API_KEY:
