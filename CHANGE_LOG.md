@@ -14,6 +14,13 @@
 
 ---
 
+## 2026-10-07 15:44 — A1 part 1: preserve concurrent F1 and identity design decisions
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Rebase onto documentation-only main d6ead6c, retain both complete changelog histories and record the unchanged tested implementation.
+- **Why:** Open a reviewable PR without overwriting the concurrent docs work or expanding this part into F1/A11.
+
+---
+
 ## 2026-10-07 15:40 — A1 part 1: finish review notes and remove temporary test link
 - **File(s) changed:** `docs/deployments/a1-write-tickets-part1.md`, `.venv-test (temporary local symlink)`
 - **What changed:** Document the reused Python 3.12 environment and remove its worktree-only symlink; the source virtual environment is untouched.
