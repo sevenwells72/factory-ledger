@@ -54,14 +54,19 @@ expected receipts). From cutover: `receive/prepare` requires a resolved `supplie
 
 **P1.5 Classic #9 Regular vs Extra-Kosher tiers (Michael, 2026-10-07; design §5.3, row A12).**
 Two products per flavour already exist (107/108 regular, 283/284 "Kosher Ignition")
-with identical formulas except 284's chip size (1,000 CT vs 108's 4,000 CT — confirm).
+with identical formulas except 284's chip size (1,000 CT vs 108's 4,000 CT — resolved: chips
+are interchangeable, standard is 4,000 CT, 284's formula → 72 via `catalog-cleanup.csv`,
+1,000 CT stays a recorded substitution).
 Rules: owner PIN attestation on every extra-kosher make ticket; extra-kosher finished
 goods (285–290) pack only from extra-kosher lots (`KOSHER_SOURCE_REQUIRED` — the
-2026-08-12 pack of 63 cases of 286 from a regular 107 lot is the case this prevents);
+2026-08-12 pack of 63 cases of 286 from a regular 107 lot is the case this prevents — left
+uncorrected as a probable recording error, per Michael);
 extra-kosher lots may be packed as regular, recorded as a downgrade; `SS`+`#9` resolves
 to extra-kosher only, `#9` alone shows both. A12 3–3½ d after A5 and A11; cannot slip —
 Sunshine order SO-260817-001 (10,000 lb of #9 bulk) is open. Mapping proposal in §5.3
-awaits Michael's confirmation; no catalog change is made by the docs.
+awaits Michael's confirmation; no catalog change is made by the docs. **Interim until
+cutover:** extra-kosher batches logged on paper (date + lot number); cutover checklist step
+1a (design §10.1) tags those lots `extra_kosher` in FL from the paper log.
 
 ---
 
