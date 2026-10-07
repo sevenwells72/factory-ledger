@@ -68,6 +68,15 @@ awaits Michael's confirmation; no catalog change is made by the docs. **Interim 
 cutover:** extra-kosher batches logged on paper (date + lot number); cutover checklist step
 1a (design §10.1) tags those lots `extra_kosher` in FL from the paper log.
 
+**P1.6 Schedule rev 3.4 — 3 Codex lanes (Michael, 2026-10-07; design §10.2, §11 item 20).**
+A3 split into A3a (tables, 1 d) + A3b; A9 runs beside A12; D3-lite (shift-summary page +
+Confirm) before the pilot, the rest of D3 Nov 23–27; G1 engineering merged Oct 30 behind an
+unset `READONLY_API_KEY`; A10 at cutover+1 in two stages (ledger routes Nov 23, order routes
+after A7). Pilot soft-start Nov 2, gate (d) Nov 9–13, decision Nov 17, cutover Nov 20. The
+"simplify for cutover" set (§10.2 item 9) is the Nov 6 lever with A8. Lane plan with dates and
+the daily owner-acceptance slot: `~/Documents/fl-audits/lane-schedule.md`. Open: PR #78 records
+a PR-0 "rotate at cutover" override that the design doc still needs Michael to confirm.
+
 ---
 
 ## 1. Backfill NULL addresses on recurring customers
