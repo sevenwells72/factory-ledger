@@ -42,6 +42,27 @@ dashboard Aliases tab gets an "Unmatched this week" list the office reviews to a
 aliases. Review cadence: weekly with the owner view until the list is empty for two
 consecutive weeks.
 
+**P1.4 Supplier tracking on receipts — APPROVED (Michael, 2026-10-07; design §5.2).**
+Today `generate_lot_code` (main:5429) stores only the first four typed letters of the
+supplier in the lot code and nothing stores a `supplier_id` (production: `DUTC` on 39
+lots is both Dutch Valley and Dutch Gold; the `suppliers` table is referenced by two
+expected receipts). From cutover: `receive/prepare` requires a resolved `supplier_id`
+(`POST /resolve kind=supplier`, 422 `SUPPLIER_REQUIRED`), stored on `transactions` and
+`lots`; the lot-code prefix becomes a label from `suppliers.short_code`. A5 +½ d, D2/F1
++½ d; readiness gate 10(e). Prerequisite: merge the supplier duplicates listed in
+`~/Documents/fl-audits/catalog-cleanup.csv` (reviewed separately — not applied here).
+
+**P1.5 Classic #9 Regular vs Extra-Kosher tiers (Michael, 2026-10-07; design §5.3, row A12).**
+Two products per flavour already exist (107/108 regular, 283/284 "Kosher Ignition")
+with identical formulas except 284's chip size (1,000 CT vs 108's 4,000 CT — confirm).
+Rules: owner PIN attestation on every extra-kosher make ticket; extra-kosher finished
+goods (285–290) pack only from extra-kosher lots (`KOSHER_SOURCE_REQUIRED` — the
+2026-08-12 pack of 63 cases of 286 from a regular 107 lot is the case this prevents);
+extra-kosher lots may be packed as regular, recorded as a downgrade; `SS`+`#9` resolves
+to extra-kosher only, `#9` alone shows both. A12 3–3½ d after A5 and A11; cannot slip —
+Sunshine order SO-260817-001 (10,000 lb of #9 bulk) is open. Mapping proposal in §5.3
+awaits Michael's confirmation; no catalog change is made by the docs.
+
 ---
 
 ## 1. Backfill NULL addresses on recurring customers
