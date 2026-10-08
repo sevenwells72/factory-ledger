@@ -401,6 +401,9 @@ def register_routes(app, api):
             except HTTPException as exc:
                 if exc.status_code >= 500:
                     raise
+                # A5 §5.2: choose a real resolved supplier before issuing a receipt draft.
+                if action == 'receive' and isinstance(exc.detail, dict) and exc.detail.get('error_code') == 'SUPPLIER_REQUIRED':
+                    raise
                 blockers = [blocker(exc)]
             blockers = blockers or draft.get('blockers', [])
             warnings = (receive_duplicates(cur, payload) if action == 'receive' else

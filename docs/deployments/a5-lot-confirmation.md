@@ -5,10 +5,10 @@ Base: origin/main 1f3f098 (design revision 3.7).
 
 ## Checkpoints
 
-1. Lot confirmations and pallet-move evidence: complete; 175 targeted tests passed.
-2. Substitutions with reasons: complete; 122 confirmation/substitution/A1 tests passed.
-3. Unidentified lots and seven-business-day deadline: complete; 200 targeted tests passed.
-4. Real supplier identity on receipts: complete; 335 A5/ticket/resolver tests passed.
+1. Lot confirmations and pallet-move evidence: complete, pushed `7c7857e`; 175 targeted tests passed.
+2. Substitutions with reasons: complete, pushed `2c66870`; 122 targeted tests passed.
+3. Unidentified lots and seven-business-day deadline: complete, pushed `8189515`; 200 targeted tests passed.
+4. Real supplier identity on receipts: complete, pushed `aaaf915`; 335 targeted tests passed. Final follow-up aligns missing/ineligible supplier prepare with HTTP 422.
 
 Commit and push each finished part. Recheck `feat/roles` before shared edits.
 A5 owns confirmation validators; A3b owns insufficient-stock behavior.
@@ -48,7 +48,45 @@ movement. Named actors retain attribution; dashboard scope is unchanged.
 
 ## Validation and staging evidence
 
-Pending. No production access, deployment, or merge authorized.
+Final complete suite: **1,856 Python tests passed**, zero failures/skips, on a
+fresh dedicated local PostgreSQL 17 database (`127.0.0.1:57688/fl_a5_release`).
+**69 JavaScript tests passed**, zero failures/skips. All four migrations rerun
+idempotently with supplier labels and marker timestamps unchanged. Whitespace
+check passes. AST comparison confirms `choose_inputs` and
+`_post_prepared_inputs` are identical to origin/main.
+
+Migrations **062, 063, 064 and 066 applied to STAGING only** (one transaction,
+app/table owner, port 5432, `lock_timeout=5s`, `search_path=public`). The local
+branch ran its real HTTP routes against the guarded staging database with
+startup migrations/sweeps disabled. The hosted staging service, production,
+other worktrees, roles branch and direct endpoints were not changed.
+
+Final reference: `STG-A5-58F9C7C8DB95`; temporary actor `1000000008`, deactivated
+in `finally`. Fixtures and receipts are synthetic acceptance stock, retained.
+The supplier is the existing real staging catalog vendor **Dutch Gold Honey,
+ID 13**, explicitly selected from `/resolve kind=supplier` candidates.
+
+| Check | Final receipt/evidence |
+|---|---|
+| Receive | **RCV-261008-004**, supplier 13 on transaction and new lot at INSERT |
+| Confirmed make | **MK-261008-005**, lot **26-10-08-DUTB-004**, lot ID 1000000018, typed last four **-004** |
+| Pallet move | LOT-261008-002, production move with full lot code |
+| Recorded substitution | MK-261008-006, `acceptance_trial` reason |
+| Unidentified receive | RCV-261008-006, exception due **2026-10-19 23:59 America/New_York** |
+| Refusals | Unconfirmed make 422; substitution without reason 422; missing real supplier 422 |
+| Idempotency | Identical make replay returned the same saved receipt |
+
+Full receipt JSON: [final evidence](a5-staging-receipt-final.json).
+Earlier acceptance evidence: [initial evidence](a5-staging-receipt.json).
+Reproducible runner: `scripts/check_lot_confirmation_staging.py` (URI never
+printed; it reads only the protected staging URI file). No hosted deployment,
+production query/migration, PR merge, or user notification was performed.
+
+Deployment prerequisite: apply 062/063/064/066 explicitly before this application
+code. They are additive; no historical transaction/lot supplier inference or
+ledger rewrite occurs. Roll back application code first and retain additive
+schema/evidence; do not drop recorded confirmations, moves or substitutions.
+A2 migration 065 is independent. Claude Code review is still required.
 
 ## Substitution contract
 
@@ -89,8 +127,8 @@ identity evidence, and equivalent found hooks in `ticket_actions`.
 ## Supplier identity
 
 Receive requires an active real `supplier_id` eligible in A4 `/resolve`.
-Missing, inactive and pseudo-supplier IDs issue a blocked draft with
-`SUPPLIER_REQUIRED`. Names and lot prefixes never select the supplier.
+Missing, inactive and pseudo-supplier IDs return HTTP 422
+`SUPPLIER_REQUIRED` before a ticket is issued. Commit rechecks eligibility. Names and lot prefixes never select the supplier.
 `suppliers.short_code` is a unique four-letter display label, seeded from the
 name's token when available and assigned collision-safe alternatives otherwise.
 New real suppliers receive a label at INSERT. A ticket-generated label uses the
@@ -117,5 +155,4 @@ A5 supplier migration is **066**, leaving A2's **065_entered_by** untouched.
 The receive transaction INSERT is a known merge point: preserve BOTH A2
 `entered_by_actor_id` and A5 `supplier_id`, with matching VALUES/parameters.
 A2 permission/backdating hooks must remain before A5 validation/posting.
-A2's role map must include `move_lot` for the intended inventory roles when
-integrated. No A2 checkout was edited and no A2 code was merged into this PR.
+A2's cbe9668 role map already includes `move_lot` for named roles/master; preserve it when integrated. No A2 checkout was edited and no A2 code was merged into this PR.

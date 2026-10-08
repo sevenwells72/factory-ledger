@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-10-08 14:26 — Finish A5 full-suite and final staging receipt evidence
+- **File(s) changed:** `a5-staging-receipt-final.json`, `a5-lot-confirmation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record 1,856 Python/69 JS passes, additive staging-only migrations, final MK-261008-005 confirmed lot with Dutch Gold Honey supplier 13, exact shared hooks/A2 integration, and rollback guidance; no merge or production access.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:23 — Enforce the supplier-required HTTP 422 contract
+- **File(s) changed:** `write_tickets.py`, `test_write_tickets.py`, `test_lot_confirmation.py`, `check_lot_confirmation_staging.py`, `a5-lot-confirmation.md`
+- **What changed:** Match design §5.2 by refusing absent/ineligible suppliers before issuing a ticket; retain commit-time revalidation and update acceptance assertions.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:23 — Record successful A5 staging migration and receipt acceptance
+- **File(s) changed:** `a5-staging-receipt.json`
+- **What changed:** Applied 062/063/064/066 to staging only; local branch HTTP issued MK-261008-003 with confirmed lot 26-10-08-DUTB-001 and Dutch Gold Honey supplier 13, plus pallet/substitution/unidentified receipts; temporary actor deactivated.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:20 — Add guarded A5 staging acceptance and exact actor scope assertion
+- **File(s) changed:** `check_lot_confirmation_staging.py`, `test_named_actor_writes.py`, `a5-lot-confirmation.md`
+- **What changed:** Prepare a staging-only receipt/substitution/exception check with startup disabled and synthetic actor deactivation; explicitly include the authorized pallet route in the existing allowlist regression.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:18 — Fix fresh-schema A5 migration search path
+- **File(s) changed:** `schema.sql`
+- **What changed:** Restore public search_path after pg_dump before pending A5 includes; the first full-suite attempt failed during schema setup, so rerun on a fresh local database.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
 ## 2026-10-08 14:17 — Checkpoint real receipt suppliers and coordinate A2 migration number
 - **File(s) changed:** `066_receipt_suppliers.sql`, `schema.sql`, `test_write_tickets.py`, `a5-lot-confirmation.md`
 - **What changed:** Preserve A2 migration 065 by numbering supplier migration 066; document exact receive INSERT overlap and 335 passing targeted tests.

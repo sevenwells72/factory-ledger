@@ -322,10 +322,10 @@ def test_receipt_without_real_supplier_blocked(client,db_cursor,supplier_name):
     else:
         db_cursor.execute('INSERT INTO suppliers(name,active) VALUES (%s,true) RETURNING id',(supplier_name,))
         payload['supplier_id']=db_cursor.fetchone()['id']
-    d=prepare(client,'receive',payload)
-    assert not d['can_commit'] and d['blockers'][0]['code']=='SUPPLIER_REQUIRED'
-    assert commit(client,d).status_code==409
-    assert posted_count(db_cursor,d)==0
+    r=client.post('/receive/prepare',json=payload,headers=headers())
+    error(r,422,'SUPPLIER_REQUIRED')
+    db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE payload->>'bol_reference'=%s",(payload['bol_reference'],))
+    assert db_cursor.fetchone()['n']==0
     if supplier_name:
         r=client.post('/resolve',json={'kind':'supplier','query':supplier_name},headers=headers())
         assert r.status_code==200,r.text

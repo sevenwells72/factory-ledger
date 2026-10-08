@@ -5730,7 +5730,8 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 \unrestrict j6tUwHUOKWxZ5zJHWGtQie2cMMdcopymLX0pMRUOplt3FhNIBI3hLkW5H6JZZBX
 
 
--- Pending A5 migration, applied explicitly on staging only.
+-- Pending A5 migrations. pg_dump leaves search_path empty; restore it for standalone DDL.
+SET search_path TO public;
 \ir ../../migrations/062_lot_confirmation.sql
 \ir ../../migrations/063_batch_substitutions.sql
 \ir ../../migrations/064_unidentified_lots.sql

@@ -505,8 +505,8 @@ def test_merged_and_code_twin_lots_are_blockers_without_posting(client, db_curso
 
 
 def test_missing_supplier_and_unknown_product_still_issue_blocked_tickets(client, db_cursor, payload):
-    for changes, code in (({'supplier_id': 2147483647}, 'SUPPLIER_REQUIRED'),
-                          ({'product_id': 2147483647}, 'PRODUCT_NOT_FOUND')):
+    error(client.post('/receive/prepare', json=payload | {'supplier_id': 2147483647}, headers=headers()), 422, 'SUPPLIER_REQUIRED')
+    for changes, code in (({'product_id': 2147483647}, 'PRODUCT_NOT_FOUND'),):
         prepared = prepare(client, payload | changes)
         assert prepared['can_commit'] is False
         assert prepared['blockers'][0]['code'] == code
@@ -535,8 +535,7 @@ def test_rls_hides_tickets_and_counters_from_nonowner(client, db_cursor, payload
 def test_missing_supplier_blocks_and_happened_alias_freezes_the_draft(client, db_cursor, payload):
     body = {k: v for k, v in payload.items() if k not in ('supplier_id', 'occurred_at', 'lot_code')}
     body['happened_at'] = payload['occurred_at']
-    missing = prepare(client, body)
-    assert not missing['can_commit'] and missing['blockers'][0]['code'] == 'SUPPLIER_REQUIRED'
+    error(client.post('/receive/prepare', json=body, headers=headers()), 422, 'SUPPLIER_REQUIRED')
     prepared = prepare(client, body | {'supplier_id': payload['supplier_id']})
     assert prepared['can_commit'] is True
     receipt = commit(client, prepared).json()
