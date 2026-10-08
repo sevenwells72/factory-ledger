@@ -5,7 +5,10 @@
 -- 061 — keep them in sync.
 -- Output: one row per (source, raw value, mapped code) with a count; rows
 -- mapped to 'unknown' keep their original text in adjust_reason/notes and
--- will show up as the first weekly view's backlog (§5.1).
+-- will show up as the first weekly view's backlog (§5.1). Priority mirrors
+-- 061: legacy code → already-new code → count-like adjust text (design §11
+-- item 26: physical…count / inventory count / cycle count / count correction
+-- / recon, case-insensitive, adjust_reason only) → 'unknown'.
 WITH legacy(source, legacy_code, reason_code) AS (VALUES
     ('adjust', 'count_correction', 'physical_count'),
     ('adjust', 'damage', 'damage_disposal'),
@@ -36,7 +39,11 @@ src AS (
      WHERE type = 'adjust')
 SELECT COALESCE(src.source, '<no reason at all>') AS source,
        COALESCE(src.raw, '<null>') AS raw_value,
-       COALESCE(m.reason_code, already.code, 'unknown') AS will_become,
+       COALESCE(m.reason_code, already.code,
+                CASE WHEN src.source = 'adjust'
+                      AND src.raw ~* '(physical.*count|inventory count|cycle count|count correction|recon)'
+                     THEN 'physical_count' END,
+                'unknown') AS will_become,
        count(*) AS rows
   FROM src
   LEFT JOIN legacy m

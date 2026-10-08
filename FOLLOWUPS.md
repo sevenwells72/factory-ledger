@@ -87,6 +87,20 @@ A2 (key kinds / scoped keys) must decide whether office and dashboard clients sh
 the bulk resolver, and if so add the `('POST', '/products/resolve')` pair to the relevant
 allowlist(s) with a test, or document that bulk resolution stays master/office-key only.
 
+**P1.8 `transactions.reason_code` after migration 061 — NULL window until A3b, and the effective view does not expose it (found 2026-10-08, PR #85 review).**
+061's backfill is one-time at apply: every `type='adjust'` row existing then gets a code
+(legacy map → already-new code → count-like text → `unknown`). Adjust and found rows that
+PR #83's tickets insert between the prod apply and A3b carry `reason_code NULL`, because
+nothing sets it at INSERT until A3b (`transactions` is append-only, so it cannot be
+patched afterwards without the 046/061 trigger dance). 061 is rerunnable as a sweep
+(`WHERE reason_code IS NULL`), so A3b's rollout should either re-run 061 once after its
+deploy or include the sweep in its own migration. Separately, `ledger_current_transactions`
+has an explicit column list and `effective_record` is `to_jsonb(t.*)`, so the new column is
+only visible in the jsonb blob — A3b/A9 must add `reason_code` to the view (and to
+`_TRANSACTION_AMENDABLE_FIELDS` if a reason may be amended) before reading it through
+effective rows. The §7.3 contract (`docs/contracts/shift-summary.md` §2.2.1) reads
+`reason_code` from the receipt's transaction, so this is on A9's path.
+
 ---
 
 ## 1. Backfill NULL addresses on recurring customers

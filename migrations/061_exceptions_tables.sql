@@ -3,8 +3,17 @@
 -- enforcement, no route change, no startup hook (apply explicitly, like 060).
 -- Apply as the app/table owner after 060, port 5432, in one transaction
 -- (ON_ERROR_STOP, BEGIN, SET LOCAL lock_timeout='5s',
--- SET LOCAL search_path=public, COMMIT). Safe to rerun: every statement is
--- IF NOT EXISTS / ON CONFLICT DO NOTHING / WHERE reason_code IS NULL.
+-- SET LOCAL search_path=public, COMMIT). Always use that wrapper: an
+-- autocommit apply (psql -f with no BEGIN) that fails part-way leaves a
+-- partial but rerunnable state — never a disabled guard, since the DO block
+-- below is one statement — but the wrapper is what makes it all-or-nothing.
+-- Safe to rerun: every statement is IF NOT EXISTS / ON CONFLICT DO NOTHING /
+-- WHERE reason_code IS NULL (a rerun also sweeps adjust rows that A1-part-2
+-- tickets inserted with reason_code NULL before A3b sets it at INSERT).
+-- Lock profile at production size (2.5k transactions, 630 adjust rows,
+-- measured 2026-10-08): ~40 ms of server work; ADD COLUMN holds ACCESS
+-- EXCLUSIVE on transactions until COMMIT, so expect ~1–3 s of blocked app
+-- writes over the network, bounded by lock_timeout.
 --
 -- The only write to existing rows is the one-time, history-only backfill of
 -- the new nullable transactions.reason_code column on type='adjust' rows
@@ -103,9 +112,17 @@ ON CONFLICT (source, legacy_code) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
 -- 3. transactions.reason_code — nullable, FK to the fixed list, set at INSERT
---    by A3b for new corrections. History-only backfill of type='adjust' rows:
---    adjust_reason (or the found-inventory note code) → mapped code, anything
---    else → 'unknown' with the original text kept in adjust_reason/notes.
+--    by A3b for new corrections. History-only backfill of type='adjust' rows,
+--    in priority order: (1) legacy code / description → mapped code;
+--    (2) a value that already is one of the eight new codes → kept;
+--    (3) free-text adjust reasons that describe a count (Michael, 2026-10-08,
+--        design §11 item 26: ILIKE %physical%count%, %inventory count%,
+--        %cycle count%, %count correction%, %recon%) → 'physical_count';
+--    (4) anything else, blank or NULL → 'unknown' (item 24), original text
+--        kept in adjust_reason/notes. The read-only prod dry-run without tier
+--        (3) put 499 of 628 rows in 'unknown', 312 of them literally saying
+--        "physical count"; tier (3) applies to adjust_reason text only, never
+--        to found-inventory note codes.
 -- ---------------------------------------------------------------------------
 ALTER TABLE transactions
     ADD COLUMN IF NOT EXISTS reason_code text REFERENCES correction_reasons(code);
@@ -137,7 +154,12 @@ BEGIN
          WHERE type = 'adjust' AND reason_code IS NULL
     )
     UPDATE public.transactions t
-       SET reason_code = COALESCE(m.reason_code, already.code, 'unknown')
+       SET reason_code = COALESCE(
+               m.reason_code, already.code,
+               CASE WHEN src.source = 'adjust'
+                     AND src.raw ~* '(physical.*count|inventory count|cycle count|count correction|recon)'
+                    THEN 'physical_count' END,
+               'unknown')
       FROM src
       LEFT JOIN public.correction_reason_legacy_codes m
              ON m.source = src.source

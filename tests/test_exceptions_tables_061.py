@@ -68,6 +68,16 @@ LEGACY_ROWS = [
     ('adjust', None, 'Found inventory: physical_count', 'physical_count'),
     ('adjust', None, 'Adjustment: 5 lb', 'unknown'),
     ('adjust', '', None, 'unknown'),
+    # design §11 item 26: count-like free text on adjust_reason → physical_count
+    ('adjust', 'Physical count 2026-09-17 (Arturo) (entered via shared key by Michael)', 'x', 'physical_count'),
+    ('adjust', 'PHYSICAL INVENTORY COUNT CORRECTION - lot not present', 'x', 'physical_count'),
+    ('adjust', 'Count correction — lot not present per 2026-05-14 physical inventory', 'x', 'physical_count'),
+    ('adjust', 'Physical cycle count 2026-07-21, floor count by Arturo', 'x', 'physical_count'),
+    ('adjust', 'COCONUT-WIP-RECON-2026-09-15: Reconcile coconut batch WIP to stated physical zero', 'x', 'physical_count'),
+    ('adjust', 'Inventory correction to support production', 'x', 'unknown'),
+    ('adjust', 'Product merge – SKU deprecated', 'x', 'unknown'),
+    # the tier never applies to found-inventory note codes
+    ('adjust', None, 'Found inventory: physical count recon', 'unknown'),
     ('receive', None, 'Receive 2 cases', None),
     ('make', 'damage', 'make with stray reason text', None),
 ]
@@ -269,6 +279,9 @@ def test_backfill_maps_history_restores_guard_and_is_rerunnable(isolated_databas
         assert preview[('found', 'physical_count')] == 'physical_count'
         assert preview[('adjust', 'Damage Disposal')] == 'damage_disposal'
         assert preview[('<no reason at all>', '<null>')] == 'unknown'   # NULL and blank adjust_reason
+        assert preview[('adjust', 'Physical cycle count 2026-07-21, floor count by Arturo')] == 'physical_count'
+        assert preview[('adjust', 'Inventory correction to support production')] == 'unknown'
+        assert preview[('found', 'physical count recon')] == 'unknown'
         assert all(k[0] != 'make' for k in preview)
     apply(isolated_database, UP)
     with connect(isolated_database) as cur:
