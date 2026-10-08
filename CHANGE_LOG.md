@@ -1,5 +1,11 @@
 # Change Log
 
+## 2026-10-08 12:41 — Design §11 item 26: pattern list gains %physical inventory%; dry-run counts 391 / 32 / 205
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `CHANGE_LOG.md`
+- **What changed:** Branch `docs/shift-summary-contract` (PR #84). Item 26, the §5.1 note and the rev 3.6 header now list `%physical inventory%` among the count-like patterns and record the final read-only prod dry-run of the PR #85 backfill: `physical_count` 391, `missing_receipt` 32, `unknown` 205 (of 628 adjust rows).
+- **Why:** Keep the design record in step with PR #85 commit bc5a01e before PR #84 merges.
+
+---
 ## 2026-10-08 12:40 — Shift-summary contract review fixes (lang fields, all-actors confirmation, day-1 action scope, legacy-key actors, error envelope) + design rev 3.6 items 25–26
 - **File(s) changed:** `docs/contracts/shift-summary.md`, `docs/design/phase1-safe-operating-system.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/shift-summary-contract` (PR #84), after the independent review. Contract: (1) `lang` now defined — every `*_en`/`*_es` pair has an un-suffixed copy (`title`, `label`, `empty`, `line`, `display`, `message`, `summary`, `rollup`, `reason`) in the requested language, pairs always present; (2) all-actors view `confirmation` fixed to `{status:'unconfirmed', latest:null, can_confirm:false, reason_*}`; (3) new §2 note: only ticketed actions produce receipts — 058's CHECK covers receive/make/pack/adjust/found, so SHIPPED/VOIDED stay empty and ADJUSTED has no rename/supplier-lot rows until A5/A6/A8 widen it; (4) receipt-row `actor.id`/`role` may be `null` on legacy-key tickets; §4 now states errors are `fail()`-shaped (`detail.error_code`, extras at `detail.*`) and that A9 must extend `_structured_error` to pass `message_es`; (5) new §1.3 **[DECISION 4]**: `summary_hash` covers only the receipt rows of the seven receipt sections (stable fields + `flags[].{code,refs}`), never `after_lb`, `overdue`, expectations or exceptions — 409 only when that person's entries changed; §3.1, §6 and §7 updated. Design doc: Revision 3.6 line; §11 table "Decisions recorded 2026-10-08 12:40" with item 25 (hash scope) and item 26 (061 count-like text tier → `physical_count`, prod dry-run 91→342 / 32 / 499→248); §5.1 mapping note for item 26.
