@@ -35,6 +35,55 @@
 
 ---
 
+## 2026-10-08 09:42 — Rebase A4 onto the latest Phase 1 design revision
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Preserved all A4 and main change-log entries while resolving the rebase conflict onto `cef1c16` (spec revision 3.4). Final checks: 1,511 Python tests, 69 JavaScript tests, read-only staging acceptance; no application-code change in the rebase.
+- **Why:** Keep the A4 PR current with the latest approved design and retain both sessions' history. No deploy or remote database writes.
+
+---
+
+## 2026-10-08 09:41 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `docs/resolution.md`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-08 09:38 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `docs/resolution.md`, `resolution.py`, `tests/test_resolution.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-08 09:33 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `docs/resolution.md`, `migrations/060_search_aliases.sql`, `resolution.py`, `tests/test_resolution.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-07 16:17 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `resolution.py`, `tests/test_resolution.py`, `main.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-07 16:12 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `resolution.py`, `scripts/check_resolution_staging.py`, `tests/test_resolution.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-07 16:07 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `migrations/060_search_aliases.sql`, `resolution.py`, `tests/test_resolution.py`, `main.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
 ## 2026-10-07 16:05 — Phase 1 design doc rev 3.4: 3-lane schedule, A3 split, A9 ∥ A12, D3-lite, G1 early, A10 at cutover+1
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/rev34-schedule` (worktree `~/dev/fl-docs-wt`, off `origin/main` ac14219). Schedule only, no rule changes. §10 table: A3 split into A3a `feat/exceptions-tables` (migration 061 tables + 8-reason seed, 1 d) and A3b `feat/exceptions-core` (enforcement, with make/pack file ownership vs A5); A5/A6 now depend on A3a; A9 marked pilot-critical for the shift summary, parallel to A12, weekly report may land after cutover; A10 moves to cutover+1 in two stages (ledger routes Nov 23, order routes after A7); G1 engineering built Oct 30 behind an unset key; D3 split into D3-lite `dash/shift-summary` (1 d, before the pilot) and D3 `dash/aliases-weekly` (Nov 23–27). New §10.2 with the gate-10(d) analysis, the four approved changes with risks, the held change 9 (Nov 6 lever with A8), the rev 3.4 critical path (≈17–18 d), dates (pilot soft-start Nov 2, checkpoint Nov 6, gate (d) Nov 9–13, decision Nov 17, cutover Nov 20), 2- vs 3-lane estimates, day-1 contract freezes, and a note that PR #78 records a PR-0 "rotate at cutover" override for Michael to confirm. §10.1 step 7 updated. §11 item 20 added; open-items line extended. Header gains Revision 3.4. FOLLOWUPS gains P1.6 pointing at `~/Documents/fl-audits/lane-schedule.md`. No FL data changed.

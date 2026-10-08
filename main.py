@@ -32,6 +32,7 @@ from collections import defaultdict, deque
 # the module attributes and both sides see it.
 import extraction
 import write_tickets
+import resolution
 import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
@@ -2678,6 +2679,8 @@ def _capture_readonly_diagnostics() -> dict:
 # ship/receive endpoints. Anything not listed here (admin/*, /make, /pack,
 # /adjust, /void, deletes, migrations, etc.) is master-key only.
 DASHBOARD_KEY_ALLOWLIST = frozenset({
+    ("POST", "/resolve"),  # A4: read-only resolution, shared by every client.
+    ("GET", "/aliases"),
     # Who am I (FR-15). Read-only, returns nothing but the caller's own
     # identity, and is how the dashboard will learn whether it is holding an
     # actor key or the shared one. Deliberately NOT in openapi-gpt-v3.yaml.
@@ -3174,6 +3177,10 @@ def verify_api_key_flexible(
 ):
     """Accept API key from either header or query parameter (packing slip browser access)."""
     return _authorize_api_key(x_api_key or key, request, invalid_status=401)
+
+
+# A4 is isolated from ticket/write handlers; defer transaction lookup for tests.
+app.include_router(resolution.build_router(lambda: get_transaction(), verify_api_key))
 
 
 @app.get("/auth/whoami")
@@ -4593,7 +4600,7 @@ def resolve_products_bulk(req: BulkResolveRequest, _: bool = Depends(verify_api_
             resolved_list = []
             resolved_count = 0
             for name in req.names:
-                result = _resolve_single_product(cur, name)
+                result = resolution.resolve_bulk_product(cur, name)
                 resolved_list.append(result)
                 if result['match'] is not None:
                     resolved_count += 1
