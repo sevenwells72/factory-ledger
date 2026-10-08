@@ -151,3 +151,90 @@ def test_migration_rerun_and_append_only(client,db_cursor,items):
     with pytest.raises(psycopg2.IntegrityError):
         db_cursor.execute('DELETE FROM transaction_lot_confirmations WHERE transaction_id=%s',(result['transaction_id'],))
     db_cursor.execute('ROLLBACK TO SAVEPOINT a5_immutable')
+
+
+def sub_payload(items):
+    # The existing batch stock is a distinct valid intermediate ingredient.
+    return {'ingredient_product_id':items['ingredient']['id'],
+            'substitute_product_id':items['batch']['id'],'lot_id':items['batch']['lot_id'],
+            'reason_code':'ingredient_unavailable','note':'Operator chose the alternative.'}
+
+
+@pytest.fixture
+def substitute(db_cursor,items):
+    db_cursor.execute("INSERT INTO products(name,type,uom) VALUES ('A5 replacement','ingredient','lb') RETURNING id")
+    pid=db_cursor.fetchone()['id']
+    db_cursor.execute("INSERT INTO lots(product_id,lot_code) VALUES (%s,'A5-SUBSTITUTE-4312') RETURNING id,lot_code",(pid,))
+    row=dict(db_cursor.fetchone()); row['lot_id']=row.pop('id'); row['id']=pid
+    db_cursor.execute("INSERT INTO transactions(type) VALUES ('receive') RETURNING id")
+    tx=db_cursor.fetchone()['id']
+    db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,100)',(tx,pid,row['lot_id']))
+    return row
+
+
+def test_substitution_consumes_replacement_and_records_reason(client,db_cursor,items,substitute,actors):
+    sub=sub_payload(items) | {'substitute_product_id':substitute['id'],'lot_id':substitute['lot_id']}
+    payload=body('make',items) | {'substitutions':[sub],'lot_confirmations':[evidence(substitute)]}
+    d=prepare(client,'make',payload,actors['floor']['key'])
+    assert d['can_commit'],d
+    assert d['draft']['substitutions'][0]['reason_code']=='ingredient_unavailable'
+    r=commit(client,d,actors['floor']['key']); assert r.status_code==200,r.text
+    tx=r.json()['transaction_id']
+    db_cursor.execute('SELECT product_id,lot_id,quantity_lb FROM transaction_lines WHERE transaction_id=%s AND quantity_lb<0',(tx,))
+    rows=db_cursor.fetchall()
+    assert len(rows)==1 and rows[0]['product_id']==substitute['id'] and rows[0]['lot_id']==substitute['lot_id'] and rows[0]['quantity_lb']==-10
+    db_cursor.execute('SELECT * FROM transaction_substitutions WHERE transaction_id=%s',(tx,))
+    saved=db_cursor.fetchone()
+    assert saved['ingredient_product_id']==items['ingredient']['id'] and saved['reason_code']==sub['reason_code'] and saved['note']==sub['note']
+    assert saved['actor_id']==actors['floor']['id']
+    db_cursor.execute('SELECT ingredient_product_id FROM ingredient_lot_consumption WHERE transaction_id=%s',(tx,))
+    assert db_cursor.fetchone()['ingredient_product_id']==substitute['id']
+    detail=client.get('/receipts/'+r.json()['receipt_number'],headers=headers()).json()
+    assert detail['response']['substitutions'][0]['lot_id']==substitute['lot_id']
+
+
+@pytest.mark.parametrize('reason',[None,'','   '])
+def test_substitution_requires_nonblank_reason(client,items,reason):
+    sub=sub_payload(items)
+    if reason is None: sub.pop('reason_code')
+    else: sub['reason_code']=reason
+    r=client.post('/make/prepare',json=body('make',items)|{'substitutions':[sub]},headers=headers())
+    assert r.status_code==422,r.text
+
+
+def test_manual_exclusion_needs_reason_and_is_recorded(client,db_cursor,items):
+    payload=body('make',items)|{'excluded_ingredients':[items['ingredient']['id']]}
+    d=prepare(client,'make',payload)
+    assert d['blockers'][0]['code']=='SUBSTITUTION_REASON_REQUIRED'
+    d=prepare(client,'make',payload|{'reason_code':'trial_without_ingredient','note':'Approved trial'})
+    assert d['can_commit'],d
+    r=commit(client,d); assert r.status_code==200,r.text
+    db_cursor.execute('SELECT substitute_product_id,lot_id,reason_code FROM transaction_substitutions WHERE transaction_id=%s',(r.json()['transaction_id'],))
+    assert dict(db_cursor.fetchone())=={'substitute_product_id':None,'lot_id':None,'reason_code':'trial_without_ingredient'}
+
+
+@pytest.mark.parametrize('change',['wrong_lot','duplicate','self','excluded','inactive'])
+def test_invalid_substitutions_block(client,db_cursor,items,substitute,change):
+    sub=sub_payload(items)|{'substitute_product_id':substitute['id'],'lot_id':substitute['lot_id']}
+    payload=body('make',items)|{'substitutions':[sub]}
+    if change=='wrong_lot': sub['lot_id']=items['ingredient']['lot_id']
+    if change=='duplicate': payload['substitutions']=[sub,sub]
+    if change=='self': sub['substitute_product_id']=sub['ingredient_product_id']
+    if change=='excluded': payload|={'excluded_ingredients':[items['ingredient']['id']],'reason_code':'trial'}
+    if change=='inactive': db_cursor.execute('UPDATE products SET active=false WHERE id=%s',(substitute['id'],))
+    d=prepare(client,'make',payload)
+    assert not d['can_commit']
+    assert d['blockers'][0]['code']!='LOT_NOT_CONFIRMED'
+
+
+def test_substitution_reason_rows_rollback_with_ledger(client,db_cursor,items,substitute,monkeypatch):
+    import lot_confirmation as a5
+    sub=sub_payload(items)|{'substitute_product_id':substitute['id'],'lot_id':substitute['lot_id']}
+    d=prepare(client,'make',body('make',items)|{'substitutions':[sub],'lot_confirmations':[evidence(substitute)]})
+    original=a5.record_substitutions
+    def crash(*args):
+        original(*args)
+        raise RuntimeError('substitution failure')
+    monkeypatch.setattr(a5,'record_substitutions',crash)
+    with pytest.raises(RuntimeError,match='substitution failure'): commit(client,d)
+    assert posted_count(db_cursor,d)==0

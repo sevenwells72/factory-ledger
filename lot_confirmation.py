@@ -131,3 +131,90 @@ def _move_response(cur):
     row = dict(cur.fetchone())
     row['move_id'] = row.pop('id')
     return dict(row, success=True, confirmed=True)
+
+
+class Substitution(BaseModel):
+    ingredient_product_id: conint(strict=True, gt=0)
+    substitute_product_id: conint(strict=True, gt=0)
+    lot_id: conint(strict=True, gt=0)
+    reason_code: constr(strict=True, strip_whitespace=True, min_length=1, max_length=80)
+    note: constr(strict=True, strip_whitespace=True, max_length=2000) | None = None
+
+    class Config:
+        extra = 'forbid'
+
+
+def prepare_substitutions(api, cur, payload, draft, overrides, lock):
+    """Replace formula requirements explicitly, retaining original recipe evidence."""
+    import ticket_actions as actions
+    excluded = payload.get('excluded_ingredients') or []
+    if len(set(excluded)) != len(excluded):
+        fail('DUPLICATE_EXCLUSION', 'Exclude each ingredient only once.')
+    if excluded and not (payload.get('reason_code') or '').strip():
+        fail('SUBSTITUTION_REASON_REQUIRED', 'Manually excluded ingredients need a reason_code.')
+    originals = {i['ingredient_id']: dict(i) for i in draft['ingredients']}
+    all_ids = set(originals) | {i['ingredient_id'] for i in draft.get('excluded_ingredients', [])}
+    if set(excluded) - all_ids:
+        fail('INVALID_EXCLUSION', 'An excluded ingredient is not in this batch formula.')
+    changes, seen = [], set()
+    for sub in payload.get('substitutions') or []:
+        original, replacement = sub['ingredient_product_id'], sub['substitute_product_id']
+        if not (sub.get('reason_code') or '').strip():
+            fail('SUBSTITUTION_REASON_REQUIRED', 'Every substitution needs a reason_code.')
+        if original in seen or original not in originals or original == replacement or replacement == payload['product_id'] or replacement in (all_ids - set(originals)):
+            fail('INVALID_SUBSTITUTION', 'Substitute each included formula ingredient once with a different product.')
+        if original in overrides:
+            fail('INVALID_SUBSTITUTION', 'Use the substitution lot instead of also overriding the original ingredient.')
+        seen.add(original)
+        product = actions.product(api, cur, replacement, lock)
+        if product.get('is_service') or product['type'] not in ('ingredient', 'batch'):
+            fail('INVALID_SUBSTITUTION', 'The substitute must be an active ingredient or batch product.')
+        current = actions.lot(api, cur, sub['lot_id'], replacement, lock)
+        if replacement in overrides and overrides[replacement] != sub['lot_id']:
+            fail('INVALID_SUBSTITUTION', 'Select the same lot for repeated uses of a substitute ingredient.')
+        overrides[replacement] = sub['lot_id']
+        changes.append(dict(sub, ingredient_name=originals[original]['ingredient_name'],
+                            substitute_name=product['name'], lot_code=current['lot_code']))
+    by_id = {s['ingredient_product_id']: s for s in changes}
+    draft['original_ingredients'] = list(originals.values())
+    for ingredient in draft['ingredients']:
+        sub = by_id.get(ingredient['ingredient_id'])
+        if sub:
+            ingredient.update(ingredient_id=sub['substitute_product_id'], ingredient_name=sub['substitute_name'],
+                              substituted_for=sub['ingredient_product_id'], override_lot=sub['lot_code'])
+            # Original-stock availability is not evidence about the substitute.
+            available = float(api.lot_on_hand(cur, sub['lot_id']))
+            ingredient.update(available_lb=available, sufficient=available >= ingredient['needed_lb'],
+                              lots=[{'lot_code': sub['lot_code'], 'available_lb': available}], lot_count=1)
+    draft['all_ingredients_available'] = all(i['sufficient'] for i in draft['ingredients'])
+    draft['substitutions'] = changes
+    draft['exclusion_reason_code'] = payload.get('reason_code') if excluded else None
+    return changes
+
+
+def substituted_formula(formula, substitutions):
+    """Same one-for-one pounds as the validated draft, no recipe/master edits."""
+    by_id = {s['ingredient_product_id']: s['substitute_product_id'] for s in substitutions}
+    combined = {}
+    for row in formula:
+        row = dict(row)
+        row['ingredient_product_id'] = by_id.get(row['ingredient_product_id'], row['ingredient_product_id'])
+        key = (row['ingredient_product_id'], bool(row.get('exclude_from_inventory')))
+        if key in combined:
+            combined[key]['quantity_lb'] += row['quantity_lb']
+        else:
+            combined[key] = row
+    return list(combined.values())
+
+
+def record_substitutions(cur, transaction_id, payload, actor_id):
+    rows = list(payload.get('substitutions') or []) + [
+        {'ingredient_product_id': pid, 'substitute_product_id': None, 'lot_id': None,
+         'reason_code': payload['reason_code'], 'note': payload.get('note')}
+        for pid in payload.get('excluded_ingredients') or []]
+    for row in rows:
+        cur.execute('''INSERT INTO transaction_substitutions
+            (transaction_id,ingredient_product_id,substitute_product_id,lot_id,reason_code,note,actor_id)
+            VALUES (%s,%s,%s,%s,%s,%s,%s)''',
+            (transaction_id,row['ingredient_product_id'],row['substitute_product_id'],row['lot_id'],
+             row['reason_code'],row.get('note'),actor_id))

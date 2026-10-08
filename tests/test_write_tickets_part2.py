@@ -24,6 +24,7 @@ def isolated_database(a1_isolated_database):
     from pathlib import Path
     with psycopg2.connect(a1_isolated_database) as conn, conn.cursor() as cur:
         cur.execute((Path(__file__).parents[1]/'migrations/062_lot_confirmation.sql').read_text())
+        cur.execute((Path(__file__).parents[1]/'migrations/063_batch_substitutions.sql').read_text())
     yield a1_isolated_database
 
 

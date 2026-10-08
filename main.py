@@ -32,6 +32,7 @@ from collections import defaultdict, deque
 # the module attributes and both sides see it.
 import extraction
 import write_tickets
+import lot_confirmation
 import resolution
 import sys
 from staging_safety import assert_staging_database
@@ -8373,7 +8374,7 @@ def _make_preview_core(cur, req, *, product=None):
     return response
 
 
-def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None):
+def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
 
     siblings = get_sibling_skus(cur, product['id'])
@@ -8426,6 +8427,9 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         FROM batch_formulas bf WHERE bf.product_id = %s
     """, (product['id'],))
     formula = cur.fetchall()
+    # A5 hook: only ticket calls pass validated substitutions.
+    if substitutions:
+        formula = lot_confirmation.substituted_formula(formula, substitutions)
 
     auto_excluded_ids = set()
     for ing in formula:

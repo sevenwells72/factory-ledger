@@ -114,6 +114,9 @@ class MovePrepareRequest(ActionPrepareRequest):
 
 
 class MakePrepareRequest(ActionPrepareRequest):
+    substitutions: List[a5.Substitution] = Field(default_factory=list)
+    reason_code: Optional[str] = None
+    note: Optional[str] = None
     lot_confirmations: List[a5.LotConfirmation] = Field(default_factory=list)
     product_id: PositiveId
     batches: conint(strict=True, gt=0)

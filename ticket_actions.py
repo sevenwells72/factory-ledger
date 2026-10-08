@@ -98,16 +98,19 @@ def validate(api, cur, action, payload, lock=False):
             fail('INVALID_OUTPUT', f'{p["name"]} requires a positive configured batch weight.')
         if draft.get('sku_confirmation_required') and not req.confirmed_sku:
             fail('SKU_CONFIRMATION_REQUIRED', f'Confirm {p["name"]} as the output SKU and prepare again.')
+        # A5 hook: explicitly substitute recipe inputs before selecting lots.
+        substitutions = a5.prepare_substitutions(api, cur, payload, draft, overrides, lock)
         for ingredient in draft['ingredients']:
             pid = ingredient['ingredient_id']
-            requirements[pid] = float(api.to_decimal(ingredient['needed_lb']))
+            requirements[pid] = requirements.get(pid, 0) + float(api.to_decimal(ingredient['needed_lb']))
         if set(overrides) - set(requirements):
             fail('UNUSED_LOT_SELECTION', 'An ingredient override is not part of this batch.')
         input_plan = input_plan if input_plan is not None else choose_inputs(api, cur, requirements, overrides)
         output_product, output_code = p, draft['lot_code']
-        options = {'product': p, 'input_plan': input_plan}
+        options = {'product': p, 'input_plan': input_plan, 'substitutions': substitutions}
         specification = {'requirements': requirements, 'output_lb': draft['total_output_lb'],
-                         'excluded': draft.get('excluded_ingredients', [])}
+                         'excluded': draft.get('excluded_ingredients', []),
+                         'original_requirements': {i['ingredient_id']: i['needed_lb'] for i in draft['original_ingredients']}}
     elif action == 'pack':
         if lock:
             # Keep the legacy source-lot/allocation lock order before any pinned input locks.
@@ -248,6 +251,10 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         actor = api.request_actor(request)
         a5.record_confirmations(cur, response['transaction_id'], draft['input_plan'], actor['id'] if actor else None)
         response['input_plan'] = draft['input_plan']
+        if action == 'make':
+            a5.record_substitutions(cur, response['transaction_id'], payload, actor['id'] if actor else None)
+            response['substitutions'] = draft['substitutions']
+            response['exclusion_reason_code'] = draft['exclusion_reason_code']
     if action == 'pack':
         response['lot_id'] = response['output_lot_id']
     elif action == 'adjust':

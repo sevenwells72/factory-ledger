@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-08 14:10 — Checkpoint A5 substitutions with 122 passing tests
+- **File(s) changed:** `lot_confirmation.py`, `a5-lot-confirmation.md`
+- **What changed:** Document replacement consumption and shared hook ownership; reject output-product or auto-excluded substitutes; checkpoint part 2.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:09 — Add substitution and exclusion regression tests
+- **File(s) changed:** `test_lot_confirmation.py`
+- **What changed:** Verify replacement ledger/trace consumption, batch reason evidence, invalid selections, blank reasons, exclusions and atomic rollback.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:08 — Implement recorded batch substitutions and exclusion reasons
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `write_tickets.py`, `main.py`, `063_batch_substitutions.sql`, `schema.sql`, `test_write_tickets_part2.py`
+- **What changed:** Add explicit substitute inputs with reasons, immutable per-batch records and actual substitute consumption through a named make-formula hook; legacy calls and shortage branches unchanged.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
 ## 2026-10-08 14:07 — Checkpoint A5 part 1 validated
 - **File(s) changed:** `a5-lot-confirmation.md`
 - **What changed:** Record confirmation contract, exact shared hook points and 175 passing targeted tests; full suite and staging remain pending.
