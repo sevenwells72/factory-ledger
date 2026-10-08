@@ -32,6 +32,62 @@
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_write_tickets.py`, `CHANGE_LOG.md`
 - **What changed:** `scripts/dump_prod_schema.sh` re-run against production after 062–065 were applied (19:29–19:33Z): the pending `\ir` tail is gone and the dump now carries `lot_moves`, `transaction_lot_confirmations`, `transaction_substitutions`, `a5_lot_supplier_immutable`, the `move_lot` action CHECK, `lots.identity_status/identify_by/supplier_id`, `transactions.supplier_id/entered_by_actor_id`, `ledger_corrections.entered_by_actor_id`, `suppliers.short_code`. FACTORY_LEDGER_CHANGELOG rows 168 (A5 rollout: PR #88 → 7580338, 062/063/064 applied, Railway fb4d3912/db939e88) and 169 (A2 rollout: PR #89 → de31023, 065 applied staging+prod, Railway 9a5948bd/6c838631). `test_migration_up_down_up_and_marker_stability` drops the two 062 tables (whose `lot_moves.ticket_id` FK now blocks the 058 down) before the 061/058 down and re-runs the idempotent 062 after 058 is back — the pending-include era hid this because the fixture strips `\ir` lines. Fresh DB from the new dump: Python 2138 passed, Node 69/69.
 - **Why:** Same housekeeping as PRs #82/#86 after a production migration; keeps the local test schema identical to prod and the regression-guard changelog current.
+## 2026-10-08 15:07 — F1 final code checkpoint verified
+- **File(s) changed:** `fl_assistant.py`, `tests/test_fl_assistant.py`, `dashboard/fl-assistant.html`, `dashboard/fl-assistant.js`, `scripts/check_assistant_staging.py`, `docs/contracts/fl-assistant-part1.md`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/fl-assistant-*`
+- **What changed:** Final code: 1829 Python tests passed on fresh fl_f1_final, 72 JavaScript passed, browser harness passed, all five hosted staging write flows and real transcription passed. Includes plant-clock context and navigation isolated from legacy production dashboard URLs.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:06 — F1 live validation recorded
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Append row-167 live verification with all five real receipts, one post per ticket, editable unsent transcription, retained synthetic stock and deactivated actor; document minimal A2/A5 merge conflicts and screenshots.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:05 — F1 hosted acceptance evidence
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/validation/fl-assistant-desktop.png`, `docs/validation/fl-assistant-mobile.png`
+- **What changed:** Persist real staging receipts RCV-261008-008, MK-261008-008, PK-261008-004, ADJ-261008-003 and FND-261008-003: one post per ticket under concurrent replay, real editable/unsent transcription and named actor deactivation. Include verified browser screenshots.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:04 — F1 navigation stays within staging assistant
+- **File(s) changed:** `dashboard/fl-assistant.html`, `dashboard/fl-assistant.js`
+- **What changed:** Keep navigation on the assistant origin and add today-entries shortcut; avoid routing the staging assistant into legacy dashboard pages whose API base is production.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:02 — F1 live acceptance choice handling
+- **File(s) changed:** `scripts/check_assistant_staging.py`
+- **What changed:** First live run recorded receive/make/pack and correctly stopped for an ambiguous adjust-product choice. Update the test operator to press the known synthetic fixture candidate explicitly; no application auto-selection change. Temporary actor was deactivated.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:01 — F1 validation and operating contract
+- **File(s) changed:** `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Document verified local/browser coverage, staging-only rollout and durable retry/cancellation rules, private photo storage, rollback preservation, and A2/A3b/A5/A6/A11 integration boundaries.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:59 — F1 staging deployment successful
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record row 167 immediately after FastAPI-staging deployment 7c03a200 succeeded from deec0da. Migration 068 and OpenAI feature configuration are staging-only; no production changes. Live acceptance is next.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:59 — F1 model clock context
+- **File(s) changed:** `fl_assistant.py`, `tests/test_fl_assistant.py`
+- **What changed:** Provide the real FL plant clock in America/New_York for relative-date interpretation; no time or backdating rule is duplicated in the assistant.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
 ## 2026-10-08 14:56 — F1 page checkpoint verified
 - **File(s) changed:** `dashboard/fl-assistant.html`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`, `tests/test_fl_assistant_ui.js`, `tests/visual/run-fl-assistant.mjs`, `scripts/check_assistant_staging.py`
 - **What changed:** Desktop and 390px light/dark checks passed: exact-draft retry, manual lot evidence, warnings, editable unsent dictation, attachment-only upload, choices/XSS, Spanish and reload recovery. Add guarded hosted-staging acceptance runner.

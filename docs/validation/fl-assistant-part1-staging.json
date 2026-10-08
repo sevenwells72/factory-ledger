@@ -1,0 +1,564 @@
+{
+  "reference": "STG-F1-85AAC3C9FC",
+  "base_url": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "builder": "Codex",
+  "receipts": {
+    "receive": {
+      "mode": "commit",
+      "success": true,
+      "transaction_id": 1000000027,
+      "confirmation_code": "TXN-4FF928",
+      "lot_id": 1000000026,
+      "lot_uuid": "983701bc-5900-4798-ae97-441836605e39",
+      "lot_code": "STG-F1-85AAC3C9FC-LOT",
+      "lot_is_new": true,
+      "lot_type": "single_supplier",
+      "total_lb": 100.0,
+      "receipt_text": "RECEIVED: 10 cases (100.0 lb) STG-F1-85AAC3C9FC ingredient\nLot: STG-F1-85AAC3C9FC-LOT\nBOL: STG-F1-85AAC3C9FC\n2026-10-08 03:02 PM ET",
+      "message": "Received 100.0 lb as lot STG-F1-85AAC3C9FC-LOT",
+      "expected_receipt": null,
+      "receipt_number": "RCV-261008-008",
+      "ticket_id": 26,
+      "replayed": false,
+      "state_changed": false
+    },
+    "make": {
+      "mode": "commit",
+      "success": true,
+      "transaction_id": 1000000028,
+      "confirmation_code": "TXN-CA69FE",
+      "lot_id": 1000000027,
+      "lot_uuid": "37deb0da-cfd3-408c-b977-304498753167",
+      "lot_code": "B26-1008-008",
+      "yield_multiplier": 1.0,
+      "formula_weight_lb": 10.0,
+      "estimated_yield_lb": 10.0,
+      "output_lb": 10.0,
+      "ingredients_consumed": [
+        {
+          "ingredient_id": 1000000019,
+          "ingredient_name": "STG-F1-85AAC3C9FC ingredient",
+          "lot_id": 1000000026,
+          "lot_code": "STG-F1-85AAC3C9FC-LOT",
+          "consumed_lb": 10.0
+        }
+      ],
+      "ingredients_consumed_grouped": [
+        {
+          "ingredient_id": 1000000019,
+          "ingredient_name": "STG-F1-85AAC3C9FC ingredient",
+          "total_consumed_lb": 10.0,
+          "lots": [
+            {
+              "lot_id": 1000000026,
+              "lot_code": "STG-F1-85AAC3C9FC-LOT",
+              "consumed_lb": 10.0
+            }
+          ]
+        }
+      ],
+      "message": "Produced 10.0 lb as lot B26-1008-008",
+      "pack_needed": {
+        "batch_lot_code": "B26-1008-008",
+        "batch_product_name": "STG-F1-85AAC3C9FC batch",
+        "batch_on_hand_lb": 10.0,
+        "finished_goods": [
+          {
+            "product_id": 1000000021,
+            "name": "STG-F1-85AAC3C9FC finished",
+            "case_size_lb": 5.0
+          }
+        ],
+        "message": "Run /pack to convert STG-F1-85AAC3C9FC batch lot B26-1008-008 into finished goods: STG-F1-85AAC3C9FC finished"
+      },
+      "daily_production_summary": {
+        "production": [
+          {
+            "product_name": "STG-A1P2-294CDA1C784E batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 0.1,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 0.1,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A5-58F9C7C8DB95 batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 0.2,
+            "transaction_count": 2
+          },
+          {
+            "product_name": "STG-A5-58F9C7C8DB95 ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A5-58F9C7C8DB95 substitute",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A5-E25438A1C0FC batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 0.2,
+            "transaction_count": 2
+          },
+          {
+            "product_name": "STG-A5-E25438A1C0FC ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A5-E25438A1C0FC substitute",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-425FD98B13 batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 10.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-425FD98B13 ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-85AAC3C9FC batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 10.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-85AAC3C9FC ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-294CDA1C784E batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-294CDA1C784E finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "total_lb": 0.05,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "total_lb": 0.05,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-425FD98B13 batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-425FD98B13 finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "total_lb": 10.0,
+            "transaction_count": 1
+          }
+        ],
+        "adjustments": [
+          {
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "lot_code": "STG-A1P2-294CDA1C784E-INPUT",
+            "adjustment_lb": -0.01,
+            "reason": "STG-A1P2-294CDA1C784E synthetic count"
+          },
+          {
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "lot_code": "26-10-08-FOUND-001",
+            "adjustment_lb": 0.01,
+            "reason": null
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "lot_code": "STG-A1P2-57FB94002B5A-INPUT",
+            "adjustment_lb": -0.01,
+            "reason": "STG-A1P2-57FB94002B5A synthetic count"
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "lot_code": "26-10-08-FOUND-002",
+            "adjustment_lb": 0.01,
+            "reason": null
+          }
+        ]
+      },
+      "receipt_number": "MK-261008-008",
+      "ticket_id": 27,
+      "replayed": false,
+      "state_changed": false
+    },
+    "pack": {
+      "mode": "commit",
+      "success": true,
+      "transaction_id": 1000000029,
+      "confirmation_code": "TXN-84CED2",
+      "output_lot_id": 1000000028,
+      "output_lot_uuid": "22efbca5-4c6a-4138-97c6-ab193d80bd2b",
+      "output_lot_code": "B26-1008-008",
+      "target_product_name": "STG-F1-85AAC3C9FC finished",
+      "source_product_name": "STG-F1-85AAC3C9FC batch",
+      "cases": 2,
+      "case_weight_lb": 5.0,
+      "total_lb": 10.0,
+      "can_pack_lb": 10.0,
+      "reserved_others_lb": 0,
+      "reserved_by_orders": [],
+      "batch_lots_consumed": [
+        {
+          "lot_code": "B26-1008-008",
+          "consumed_lb": 10.0
+        }
+      ],
+      "message": "Packed 2 cases (10.0 lb) of STG-F1-85AAC3C9FC finished as lot B26-1008-008",
+      "daily_production_summary": {
+        "production": [
+          {
+            "product_name": "STG-A1P2-294CDA1C784E batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 0.1,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 0.1,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A5-58F9C7C8DB95 batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 0.2,
+            "transaction_count": 2
+          },
+          {
+            "product_name": "STG-A5-58F9C7C8DB95 ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A5-58F9C7C8DB95 substitute",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A5-E25438A1C0FC batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 0.2,
+            "transaction_count": 2
+          },
+          {
+            "product_name": "STG-A5-E25438A1C0FC ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A5-E25438A1C0FC substitute",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-425FD98B13 batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 10.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-425FD98B13 ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-85AAC3C9FC batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "total_lb": 10.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-85AAC3C9FC ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-294CDA1C784E batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-294CDA1C784E finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "total_lb": 0.05,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "total_lb": 0.05,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-425FD98B13 batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-425FD98B13 finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "total_lb": 10.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-85AAC3C9FC batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "total_lb": 0.0,
+            "transaction_count": 1
+          },
+          {
+            "product_name": "STG-F1-85AAC3C9FC finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "total_lb": 10.0,
+            "transaction_count": 1
+          }
+        ],
+        "adjustments": [
+          {
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "lot_code": "STG-A1P2-294CDA1C784E-INPUT",
+            "adjustment_lb": -0.01,
+            "reason": "STG-A1P2-294CDA1C784E synthetic count"
+          },
+          {
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "lot_code": "26-10-08-FOUND-001",
+            "adjustment_lb": 0.01,
+            "reason": null
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "lot_code": "STG-A1P2-57FB94002B5A-INPUT",
+            "adjustment_lb": -0.01,
+            "reason": "STG-A1P2-57FB94002B5A synthetic count"
+          },
+          {
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "lot_code": "26-10-08-FOUND-002",
+            "adjustment_lb": 0.01,
+            "reason": null
+          }
+        ]
+      },
+      "lot_id": 1000000028,
+      "receipt_number": "PK-261008-004",
+      "ticket_id": 28,
+      "replayed": false,
+      "state_changed": false
+    },
+    "adjust": {
+      "mode": "commit",
+      "success": true,
+      "transaction_id": 1000000030,
+      "confirmation_code": "TXN-D69114",
+      "product_id": 1000000019,
+      "product_name": "STG-F1-85AAC3C9FC ingredient",
+      "lot_code": "STG-F1-85AAC3C9FC-LOT",
+      "adjustment_lb": -2.0,
+      "new_balance_lb": 88.0,
+      "reason": "physical_count",
+      "message": "Adjusted lot STG-F1-85AAC3C9FC-LOT by -2.0 lb (new balance: 88.0 lb)",
+      "lot_id": 1000000026,
+      "receipt_number": "ADJ-261008-003",
+      "ticket_id": 29,
+      "replayed": false,
+      "state_changed": false
+    },
+    "found": {
+      "success": true,
+      "lot_id": 1000000029,
+      "lot_uuid": "311edb69-5638-4740-bd7a-9e7fc98a395d",
+      "lot_code": "STG-F1-85AAC3C9FC-FOUND",
+      "product_name": "STG-F1-85AAC3C9FC ingredient",
+      "quantity": 2.0,
+      "uom": "lb",
+      "entry_source": "found_inventory",
+      "message": "Added 2.0 lb of STG-F1-85AAC3C9FC ingredient as lot STG-F1-85AAC3C9FC-FOUND",
+      "transaction_id": 1000000031,
+      "receipt_number": "FND-261008-003",
+      "ticket_id": 30,
+      "replayed": false,
+      "state_changed": false
+    }
+  },
+  "checks": [
+    "five real Responses function-tool drafts and commits",
+    "concurrent same-ticket replay for all five actions",
+    "turn idempotency",
+    "private photo attachment",
+    "English/Spanish",
+    "today receipts",
+    "inventory read",
+    "saved draft/receipt recovery",
+    "real OpenAI transcription, editable and unsent"
+  ],
+  "transcript": {
+    "text": "I received two cases.",
+    "editable": true,
+    "sent": false,
+    "success": true
+  },
+  "verified_tickets": [
+    {
+      "id": 26,
+      "receipt_number": "RCV-261008-008",
+      "client_source": "fl_assistant",
+      "ledger_posts": 1
+    },
+    {
+      "id": 27,
+      "receipt_number": "MK-261008-008",
+      "client_source": "fl_assistant",
+      "ledger_posts": 1
+    },
+    {
+      "id": 28,
+      "receipt_number": "PK-261008-004",
+      "client_source": "fl_assistant",
+      "ledger_posts": 1
+    },
+    {
+      "id": 29,
+      "receipt_number": "ADJ-261008-003",
+      "client_source": "fl_assistant",
+      "ledger_posts": 1
+    },
+    {
+      "id": 30,
+      "receipt_number": "FND-261008-003",
+      "client_source": "fl_assistant",
+      "ledger_posts": 1
+    }
+  ],
+  "actor_id": 1000000010,
+  "synthetic_products": {
+    "ingredient": {
+      "id": 1000000019,
+      "name": "STG-F1-85AAC3C9FC ingredient"
+    },
+    "batch": {
+      "id": 1000000020,
+      "name": "STG-F1-85AAC3C9FC batch"
+    },
+    "finished": {
+      "id": 1000000021,
+      "name": "STG-F1-85AAC3C9FC finished"
+    }
+  },
+  "acceptance_deployment_id": "7c03a200-e38b-4413-8687-a83d032c8132",
+  "acceptance_commit": "deec0da",
+  "temporary_actor_deactivated": true
+}
