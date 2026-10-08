@@ -192,6 +192,12 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/expected-receipts/{expected_receipt_id}/update/prepare'),
         ('POST', '/expected-receipts/{expected_receipt_id}/cancel/prepare'),
         ('POST', '/expected-receipts/extract/approve/prepare'),
+        ('GET', '/correction-reasons'),
+        ('POST', '/assistant/session'), ('POST', '/assistant/resume'),
+        ('POST', '/assistant/turn'), ('POST', '/assistant/record'),
+        ('POST', '/assistant/cancel'), ('POST', '/assistant/attachment'),
+        ('POST', '/assistant/confirm-sku'),
+        ('POST', '/assistant/attachment/read'), ('POST', '/assistant/transcribe'),
     }
     assert ('POST', '/products/resolve') not in main.DASHBOARD_KEY_ALLOWLIST
 

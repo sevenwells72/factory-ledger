@@ -40,6 +40,7 @@ import lot_confirmation
 import exceptions_enforcement
 import resolution
 import permissions
+import fl_assistant
 import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
@@ -2872,7 +2873,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES
+}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -20774,3 +20775,4 @@ write_tickets.register_routes(app, sys.modules[__name__])
 exceptions_enforcement.register_routes(app, sys.modules[__name__])
 attachments.register_routes(app, sys.modules[__name__])
 ship_tickets.register_routes(app, sys.modules[__name__])
+fl_assistant.register_routes(app, sys.modules[__name__])
