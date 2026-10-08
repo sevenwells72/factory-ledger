@@ -132,7 +132,11 @@ def _request(client, method, route, seed, body, key):
 
 
 def test_actor_only_scope_is_approved_writes_plus_product_resolution():
-    assert main.ACTOR_WRITE_ALLOWLIST == set(CASES) | {('POST', '/products/resolve')}
+    assert main.ACTOR_WRITE_ALLOWLIST == set(CASES) | {('POST', '/products/resolve')} | {
+        ('POST', '/receive/prepare'), ('POST', '/tickets/{ticket}/commit'),
+        ('GET', '/receipts'), ('GET', '/receipts/{receipt_number}'),
+        ('GET', '/receipts/by-transaction/{transaction_id}'),
+    }
     assert ('POST', '/products/resolve') not in main.DASHBOARD_KEY_ALLOWLIST
 
 

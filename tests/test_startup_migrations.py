@@ -41,6 +41,7 @@ import main
 # — or a marker renamed — fails the first-boot test rather than silently
 # reverting to per-boot DDL.
 GATED_MARKERS = {
+    "058_write_tickets",
     "startup_migration_label_type",
     "startup_migration_004",
     "startup_migration_005",
@@ -57,6 +58,7 @@ GATED_MARKERS = {
 # the corresponding ALTER would be a no-op and the first-boot test would prove
 # nothing.
 PRE_MIGRATION_SCHEMA_DDL = """
+CREATE TABLE actors (id serial PRIMARY KEY);
 CREATE TABLE products (
     id          serial PRIMARY KEY,
     name        text NOT NULL,
@@ -95,6 +97,8 @@ CREATE TABLE transactions (
 
 # Columns and relations the gated blocks are supposed to create.
 EXPECTED_COLUMNS = [
+    ("transactions", "ticket_id"),
+    ("transactions", "receipt_number"),
     ("products", "label_type"),
     ("products", "yield_multiplier"),
     ("products", "case_size_lb"),
@@ -108,7 +112,8 @@ EXPECTED_COLUMNS = [
     ("lots", "lot_type"),
     ("lots", "received_at"),
 ]
-EXPECTED_TABLES = ["customer_aliases", "lot_supplier_codes", "migration_markers"]
+EXPECTED_TABLES = ["customer_aliases", "lot_supplier_codes", "migration_markers",
+                   "write_tickets", "receipt_counters"]
 
 
 # ─────────────────────────────────────────────────────────────────

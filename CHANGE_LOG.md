@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-10-08 11:11 — Rebase feat/write-tickets (PR #78) onto origin/main cef1c16 for merge
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md` (conflict resolution only)
+- **What changed:** Replayed the 7 A1 part-1 commits (d211ca5..7c7687f) onto `origin/main` at `cef1c16` (rev 3.4) in worktree `~/dev/fl-a1-merge-wt`; the branch's own doc merge commit f6be4a2 was dropped by the rebase because main already contains it. Conflicts were confined to this change log (both sides added entries at the top; both kept, newest first) and the status paragraph of the A1 deployment notes (kept the 7c7687f wording). Application code, migration 058 and tests are byte-identical to 7c7687f. Full Python suite and Node suite rerun on a fresh local DB `fl_a1merge_20261008` before force-with-lease push.
+- **Why:** PR #78 was CONFLICTING against main after rev 3.4 merged; Michael asked for a rebase in a separate worktree ahead of the production 058 migration and merge.
+
+---
+
+## 2026-10-07 16:12 — A1 review: verify full suite and record PR 78 fix evidence
+- **File(s) changed:** `docs/deployments/a1-write-tickets-part1.md`, `CHANGE_LOG.md`
+- **What changed:** Record 1,530 Python passes (946 DB-marked, 58 ticket tests), 69 Node passes, no failures/skips and a clean diff check. Tests used a fresh dedicated local database and reproduced all four lot-code races before the fix; deployment notes require the exact app connection role for migration 058. Project and global logs updated; no merge or production changes.
+- **Why:** Provide current validation evidence for the requested review fixes before pushing to feat/write-tickets.
+
+---
+
+## 2026-10-07 16:11 — A1 review: retain duplicate acknowledgement on fresh-code retries
+- **File(s) changed:** `tests/test_write_tickets.py`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Assert and acknowledge the existing POSSIBLE_DUPLICATE warning when re-preparing the raced delivery; remove a stale unchanged-contract statement from the deployment notes.
+- **Why:** Fresh lot codes must preserve the existing duplicate-warning gate; the lot-race rejection itself now passes.
+
+---
+
+## 2026-10-07 16:11 — A1 review: reject taken lot codes, tighten commit input and clarify migration ownership
+- **File(s) changed:** `write_tickets.py`, `tests/test_write_tickets.py`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Under the existing receive lock, reject a newly occupied prepared lot as TICKET_STALE with LOT_CODE_TAKEN before allocating a receipt or posting stock. Remove unused commit client_source, assert its rejection, and document migration 058 application by the exact app connection role because RLS has no policies. Make/pack ticket routes remain unimplemented in this part.
+- **Why:** Apply PR #78 review fixes; all four new race cases first reproduced the bug on the prior code. No merge, migration application or production changes.
+
+---
+
+## 2026-10-07 16:11 — A1 review: reproduce generated lot-code races and preserve explicit existing-lot receives
+- **File(s) changed:** `tests/test_write_tickets.py`
+- **What changed:** Add four prepare/commit race cases covering ticket and legacy writers, with and without a shipper-code override; require persistent LOT_CODE_TAKEN rejection, unchanged stock/counters and a fresh-code retry. Update the valid-state-change case to prepare an explicitly existing lot.
+- **Why:** PR #78 review requires stale generated lot codes to reject instead of combining separate deliveries.
+
+---
+
 ## 2026-10-07 16:05 — Phase 1 design doc rev 3.4: 3-lane schedule, A3 split, A9 ∥ A12, D3-lite, G1 early, A10 at cutover+1
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/rev34-schedule` (worktree `~/dev/fl-docs-wt`, off `origin/main` ac14219). Schedule only, no rule changes. §10 table: A3 split into A3a `feat/exceptions-tables` (migration 061 tables + 8-reason seed, 1 d) and A3b `feat/exceptions-core` (enforcement, with make/pack file ownership vs A5); A5/A6 now depend on A3a; A9 marked pilot-critical for the shift summary, parallel to A12, weekly report may land after cutover; A10 moves to cutover+1 in two stages (ledger routes Nov 23, order routes after A7); G1 engineering built Oct 30 behind an unset key; D3 split into D3-lite `dash/shift-summary` (1 d, before the pilot) and D3 `dash/aliases-weekly` (Nov 23–27). New §10.2 with the gate-10(d) analysis, the four approved changes with risks, the held change 9 (Nov 6 lever with A8), the rev 3.4 critical path (≈17–18 d), dates (pilot soft-start Nov 2, checkpoint Nov 6, gate (d) Nov 9–13, decision Nov 17, cutover Nov 20), 2- vs 3-lane estimates, day-1 contract freezes, and a note that PR #78 records a PR-0 "rotate at cutover" override for Michael to confirm. §10.1 step 7 updated. §11 item 20 added; open-items line extended. Header gains Revision 3.4. FOLLOWUPS gains P1.6 pointing at `~/Documents/fl-audits/lane-schedule.md`. No FL data changed.
@@ -11,6 +46,97 @@
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/kosher-answers` (worktree `~/dev/fl-docs-wt`, off `origin/main` 199c3b5). §5.3: 284 chip-size flag resolved (interchangeable; 4,000 CT standard; 284 formula → 72 via catalog cleanup, pre-approved; 1,000 CT stays a recorded substitution); Aug 12 mis-pack of 286 recorded as a probable recording error with no historical correction; new interim procedure — extra-kosher batches logged on paper (date + lot number) until cutover. §10.1 cutover checklist gains step 1a: tag the paper-logged lots `extra_kosher` in FL, attach the photographed log, exception for unmatched rows. §11 item 19 added; item 18 and "still open" trimmed to the id mapping only. FOLLOWUPS P1.5 updated with the same three points. Header gains Revision 3.3. No FL data changed.
 - **Why:** Michael's kosher answers, 2026-10-07.
+
+---
+
+## 2026-10-07 15:52 — A1 part 1: retain final kosher documentation answers from main
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Integrate documentation-only main ac14219 while retaining all log entries; A1 code and migration remain identical to the validated version.
+- **Why:** Keep PR #78 reviewable as concurrent owner documentation decisions land; no feature work outside A1 part 1.
+
+---
+
+## 2026-10-07 15:49 — A1 part 1: reconcile the final concurrent documentation merge
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Rebase onto main 199c3b5, preserve both log histories, and identify the new supplier-tracking and kosher decisions as A5/D2/F1 and A12 work.
+- **Why:** Remove PR #78 changelog conflicts without changing the tested A1 implementation or concurrent documents.
+
+---
+
+## 2026-10-07 15:44 — A1 part 1: preserve concurrent F1 and identity design decisions
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Rebase onto documentation-only main d6ead6c, retain both complete changelog histories and record the unchanged tested implementation.
+- **Why:** Open a reviewable PR without overwriting the concurrent docs work or expanding this part into F1/A11.
+
+---
+
+## 2026-10-07 15:40 — A1 part 1: finish review notes and remove temporary test link
+- **File(s) changed:** `docs/deployments/a1-write-tickets-part1.md`, `.venv-test (temporary local symlink)`
+- **What changed:** Document the reused Python 3.12 environment and remove its worktree-only symlink; the source virtual environment is untouched.
+- **Why:** Leave the requested worktree clean for review while preserving reproducible test setup instructions.
+
+---
+
+## 2026-10-07 15:37 — A1 part 1: document verification, staging receipt and remaining work
+- **File(s) changed:** `docs/deployments/a1-write-tickets-part1.md`
+- **What changed:** Record 1,526 Python and 69 Node passes, 942 DB-marked passes, staging receipt RCV-261007-001, lifecycle contract, migration operations and part 2 boundaries.
+- **Why:** Deliver concrete review evidence and owner rollout steps without editing the concurrently maintained design or adding a deployment row.
+
+---
+
+## 2026-10-07 15:26 — A1 part 1: align boundary assertions with existing receive semantics
+- **File(s) changed:** `tests/test_write_tickets.py`
+- **What changed:** Acknowledge the known duplicate before testing a merged-lot refusal, and assert the existing closed expected-receipt status.
+- **Why:** Keep tests aligned with the specified warning order and unchanged receipt settlement behavior.
+
+---
+
+## 2026-10-07 15:25 — A1 part 1: cover lot identity, expected receipts and RLS boundaries
+- **File(s) changed:** `tests/test_write_tickets.py`, `tests/schema/schema.sql`
+- **What changed:** Add boundary tests for merged/twin lots, missing IDs, anonymous supplier defaults, pinned expected-receipt settlement and nonowner RLS; restore public search_path for the pending schema include.
+- **Why:** Exercise the core validation boundaries and keep the pending migration compatible with a pg_dump that clears search_path.
+
+---
+
+## 2026-10-07 15:24 — A1 part 1: integrate schema migration with startup marker ownership
+- **File(s) changed:** `migrations/058_write_tickets.sql`, `main.py`, `write_tickets.py`, `tests/test_startup_migrations.py`
+- **What changed:** Let the startup gate write its own marker, honor the application schema, extend first-boot schema assertions, and share the lot-code twin guard.
+- **Why:** Full-suite failures exposed duplicate marker ownership in the permission-degradation path; the preview must also reuse the commit identity guard.
+
+---
+
+## 2026-10-07 15:20 — A1 part 1: preserve nullable-active catalog semantics
+- **File(s) changed:** `write_tickets.py`, `tests/test_write_tickets.py`
+- **What changed:** Treat only active=false as archived, matching the existing resolver; load isolated test schemas through psycopg2 without platform-specific tooling.
+- **Why:** Initial real-DB tests exposed legacy NULL active flags and a psql environment connection mismatch.
+
+---
+
+## 2026-10-07 15:18 — A1 part 1: exercise ticket safety against PostgreSQL
+- **File(s) changed:** `tests/test_write_tickets.py`, `tests/test_startup_migrations.py`, `tests/test_named_actor_writes.py`, `write_tickets.py`
+- **What changed:** Cover identity/hash binding, expiry, replay, rejection, rollback, duplicate acknowledgement, counters, receipt reads, migrations and concurrent HTTP commits; update exact allowlist/marker expectations.
+- **Why:** Prove the first vertical slice and preserve legacy-route regression coverage before staging verification.
+
+---
+
+## 2026-10-07 15:11 — A1 part 1: receive prepare, atomic commit and searchable receipts
+- **File(s) changed:** `write_tickets.py`, `scripts/expire_tickets.py`, `main.py`
+- **What changed:** Add ID-only drafts, frozen event time and expected receipt, expiry/supersession, duplicate acknowledgement, actor-bound replay, receipt lookup and explicit expiry maintenance.
+- **Why:** Provide a reviewable first vertical slice; make/pack/adjust/found remain for part 2, with all legacy route permissions preserved.
+
+---
+
+## 2026-10-07 15:05 — A1 part 1: share the receive transaction core
+- **File(s) changed:** `main.py`
+- **What changed:** Extract cursor-based receive preview/post helpers, accept ticket references at INSERT, and register marker-gated migration 058.
+- **Why:** Ticket commit must post and store its receipt on one connection while legacy receive validation, locks and responses stay intact.
+
+---
+
+## 2026-10-07 15:04 — A1 part 1: add durable ticket and receipt storage
+- **File(s) changed:** `migrations/058_write_tickets.sql`, `migrations/down/058_write_tickets_down.sql`, `tests/schema/schema.sql`
+- **What changed:** Add owner-only RLS, immutable committed receipts, guarded rollback, nullable ledger references and pending test schema include.
+- **Why:** Establish atomic ticket evidence without changing historical ledger rows or direct-route behavior.
 
 ---
 
