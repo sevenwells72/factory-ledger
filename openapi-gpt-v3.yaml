@@ -425,7 +425,7 @@ paths:
   /products/resolve:
     post:
       operationId: resolveProducts
-      summary: "Bulk-resolve raw product names to database products. Use BEFORE creating sales orders from OCR text to verify matches. Returns confidence per item."
+      summary: "Bulk-resolve raw product names to database products. Use BEFORE creating sales orders from OCR text to verify matches. Returns a match only when unambiguous; otherwise ask the user to choose from candidates."
       requestBody:
         required: true
         content:
@@ -436,9 +436,11 @@ paths:
               properties:
                 names:
                   type: array
+                  maxItems: 50
                   items:
                     type: string
-                  description: "Raw product name strings from OCR or order confirmations"
+                    maxLength: 500
+                  description: "Up to 50 raw product names from OCR or order confirmations; NUL bytes are rejected with 422."
             example:
               names:
                 - "Chocolate Sprinkles 10 lb"
@@ -447,8 +449,8 @@ paths:
       responses:
         '200':
           description: |
-            success: true, plus each item: input, match {id, name, odoo_code} or null, match_tier (exact/keyword/trigram/null), confidence (high/medium/low/none).
-            Multiple matches -> top in 'match', rest in 'alternatives'. Summary has total/resolved/unresolved.
+            success: true, plus each item: input, match {id, name, odoo_code} or null, match_tier (exact/alias/keyword/trigram/null), confidence (high/medium/low/none).
+            Ambiguous or unconfident inputs return match: null with candidates, alternatives, and ask; never pick a candidate automatically. Summary has total/resolved/unresolved.
   /bom/batches/{batch_id}/formula:
     get:
       operationId: getBatchFormula

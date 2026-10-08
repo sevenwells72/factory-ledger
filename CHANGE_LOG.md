@@ -1,5 +1,11 @@
 # Change Log
 
+## 2026-10-08 11:30 — Rebase feat/resolution (PR #81) onto origin/main 442c675; re-dump tests/schema/schema.sql with 058
+- **File(s) changed:** `CHANGE_LOG.md`, `main.py` (import block only), `tests/schema/schema.sql`
+- **What changed:** Replayed the 3 A4 part-1 commits (56077a3, 9f0ebb2, 2294a55) onto `origin/main` at `442c675` (A1 part 1 merged) in worktree `~/dev/fl-a4-merge-wt`. Conflicts: this change log (both sides kept, newest first) and the adjacent import lines at the top of `main.py` (`import write_tickets` from A1 + `import resolution` from A4; both kept). Resolver code, migration 060, tests and docs are identical to 2294a55. `tests/schema/schema.sql` re-dumped read-only from production (now contains the 058 `write_tickets`/`receipt_counters` objects and `transactions.receipt_number`/`ticket_id`; the pending 058 include is gone) plus a pending `\ir 060_search_aliases.sql` block that must be removed by a re-dump after 060 is applied to production. Full Python suite 1,653 passed / 0 failed / 0 skipped and Node 69/69 on fresh local DB `fl_a4merge_20261008`.
+- **Why:** PR #81 was CONFLICTING after PR #78 merged; Michael asked for the rebase and schema re-dump ahead of the production 060 migration and merge.
+
+---
 ## 2026-10-08 11:11 — Rebase feat/write-tickets (PR #78) onto origin/main cef1c16 for merge
 - **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md` (conflict resolution only)
 - **What changed:** Replayed the 7 A1 part-1 commits (d211ca5..7c7687f) onto `origin/main` at `cef1c16` (rev 3.4) in worktree `~/dev/fl-a1-merge-wt`; the branch's own doc merge commit f6be4a2 was dropped by the rebase because main already contains it. Conflicts were confined to this change log (both sides added entries at the top; both kept, newest first) and the status paragraph of the A1 deployment notes (kept the 7c7687f wording). Application code, migration 058 and tests are byte-identical to 7c7687f. Full Python suite and Node suite rerun on a fresh local DB `fl_a1merge_20261008` before force-with-lease push.
@@ -32,6 +38,118 @@
 - **File(s) changed:** `tests/test_write_tickets.py`
 - **What changed:** Add four prepare/commit race cases covering ticket and legacy writers, with and without a shipper-code override; require persistent LOT_CODE_TAKEN rejection, unchanged stock/counters and a fresh-code retry. Update the valid-state-change case to prepare an explicitly existing lot.
 - **Why:** PR #78 review requires stale generated lot codes to reject instead of combining separate deliveries.
+
+---
+
+## 2026-10-08 11:13 — Verify PR #81 context ranking and input validation fixes
+- **File(s) changed:** `docs/resolution.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record 1,595 Python tests (123 resolver, 32 new) and 69 JavaScript tests passing, no skips/failures, against fresh disposable localhost PostgreSQL 17. OpenAPI stays at 30 operations. Guarded staging READ ONLY Classic/order IDs 136/287/286/285/290; make IDs 108/107/284/283 (only four eligible); both ambiguous with no match.
+- **Why:** Complete all owner-requested PR #81 re-review fixes and acceptance evidence before pushing. No deployment, migration, staging writes, production access, other worktree edits or merge. Preserve all historical log entries.
+
+---
+
+## 2026-10-08 11:11 — Import the bulk resolution list constraint helper
+- **File(s) changed:** `main.py`
+- **What changed:** Import Pydantic Field for the 50-name bulk request limit.
+- **Why:** The focused test collection exposed the missing import; rerun validation after correcting it.
+
+---
+
+## 2026-10-08 11:10 — Correct A4 context precedence and reject invalid resolution requests
+- **File(s) changed:** `resolution.py`, `main.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`, `docs/design/phase1-safe-operating-system.md`, `docs/resolution.md`, `openapi-gpt-v3.yaml`, `scripts/check_resolution_staging.py`, `tests/test_resolution_review.py`
+- **What changed:** Rank by score, context, recency, name, numeric ID; prefer finished goods for ship as well as order/pack and retain make eligibility. Reject NUL queries/names and bulk lists over 50 with 422. Add ranking/HTTP regressions, correct the false recency-first attribution in §3.2, remove the dead resolver reference, and extend READ ONLY staging acceptance for both Classic contexts.
+- **Why:** Address the owner-requested PR #81 re-review fixes. Full local suite and staging verification follow; no merge, production access, or other worktree changes.
+
+---
+
+## 2026-10-08 10:32 — Verify all A4 fixes and apply migration 060 to staging only
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/resolution.md`
+- **What changed:** Full fresh-local-PostgreSQL suite: 1,563 Python tests, including 91 A4; JavaScript: 69 passed. OpenAPI 30 operations before/after; diff check passed. Applied only migration 060 to the validated staging database, with its five persisted aliases. READ ONLY staging checks passed: Classic ambiguous (11; top five IDs 108/107/284/283/136), Sunshine 9 SS-only 283–290, #9 both tiers 107/108 + 283–290, CLS Specialty none, 24 pouches → 2 cases / 25 → clarification. Local core/router verification; no application deployment or production access.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:30 — Preserve database tie ordering across A4 candidate page sizes
+- **File(s) changed:** `resolution.py`, `tests/test_resolution_review.py`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:28 — Guard inactive exact lots and verify persisted staging aliases with explicit migration 060
+- **File(s) changed:** `resolution.py`, `tests/test_resolution_review.py`, `scripts/check_resolution_staging.py`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:27 — Correct A4 regression fixture import for packaged test collection
+- **File(s) changed:** `tests/test_resolution_review.py`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:26 — Add A4 review regression tests and record approved part 1 scope and pouch rule
+- **File(s) changed:** `resolution.py`, `tests/test_resolution.py`, `tests/test_resolution_review.py`, `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `docs/resolution.md`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:22 — Fix A4 identity selection, seed aliases, and add safe pagination and recency
+- **File(s) changed:** `resolution.py`, `main.py`, `migrations/060_search_aliases.sql`, `openapi-gpt-v3.yaml`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 09:42 — Rebase A4 onto the latest Phase 1 design revision
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Preserved all A4 and main change-log entries while resolving the rebase conflict onto `cef1c16` (spec revision 3.4). Final checks: 1,511 Python tests, 69 JavaScript tests, read-only staging acceptance; no application-code change in the rebase.
+- **Why:** Keep the A4 PR current with the latest approved design and retain both sessions' history. No deploy or remote database writes.
+
+---
+
+## 2026-10-08 09:41 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `docs/resolution.md`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-08 09:38 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `docs/resolution.md`, `resolution.py`, `tests/test_resolution.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-08 09:33 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `docs/resolution.md`, `migrations/060_search_aliases.sql`, `resolution.py`, `tests/test_resolution.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-07 16:17 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `resolution.py`, `tests/test_resolution.py`, `main.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-07 16:12 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `resolution.py`, `scripts/check_resolution_staging.py`, `tests/test_resolution.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
+
+---
+
+## 2026-10-07 16:07 — A4 read-only resolution and alias foundation
+- **File(s) changed:** `migrations/060_search_aliases.sql`, `resolution.py`, `tests/test_resolution.py`, `main.py`
+- **What changed:** Added/refined isolated ranked resolution, exact-only aliases, pouch draft conversion, read-only API wiring and regression coverage; migration and seed format remain unapplied.
+- **Why:** Implement Phase 1 A4 without guessing identities or overlapping A1 ticket handlers. No production or staging writes.
 
 ---
 

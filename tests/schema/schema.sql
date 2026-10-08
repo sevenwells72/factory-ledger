@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict snzm2EIGbFUSoznYriSvXtBuw8SNFu0kSM1QiZ9wMT1DLMrqeHHnVkGTFAoSxpG
+\restrict fydbNNKU4wJo488v6L4mRZkQcf5PSdJpMarvOfnDG21shZCPzaaTXqXWg4FI92t
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -291,6 +291,23 @@ CREATE FUNCTION public.update_sales_order_timestamp() RETURNS trigger
     AS $$
 BEGIN
     NEW.updated_at := now();
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: write_ticket_preserve_committed(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.write_ticket_preserve_committed() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF OLD.status = 'committed' THEN
+        RAISE EXCEPTION 'Committed write tickets are immutable' USING ERRCODE = '23000';
+    END IF;
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     RETURN NEW;
 END;
 $$;
@@ -1063,7 +1080,9 @@ CREATE TABLE public.transactions (
     business_date date NOT NULL,
     operator_id text DEFAULT 'legacy-shared-key'::text NOT NULL,
     expected_receipt_id integer,
-    entry_backfilled boolean DEFAULT false NOT NULL
+    entry_backfilled boolean DEFAULT false NOT NULL,
+    receipt_number text,
+    ticket_id bigint
 );
 
 
@@ -1909,6 +1928,18 @@ CREATE TABLE public.reassignment_reason_codes (
 
 
 --
+-- Name: receipt_counters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.receipt_counters (
+    prefix text NOT NULL,
+    business_date date NOT NULL,
+    next integer DEFAULT 1 NOT NULL,
+    CONSTRAINT receipt_counters_next_check CHECK ((next > 0))
+);
+
+
+--
 -- Name: run_coverage; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2707,6 +2738,57 @@ CREATE VIEW public.v_test_batches_for_review AS
 
 
 --
+-- Name: write_tickets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.write_tickets (
+    id bigint NOT NULL,
+    ticket_hash text NOT NULL,
+    action text NOT NULL,
+    actor_id integer,
+    operator_id text NOT NULL,
+    key_kind text NOT NULL,
+    client_source text NOT NULL,
+    payload jsonb NOT NULL,
+    payload_hash text NOT NULL,
+    state_hash text NOT NULL,
+    draft jsonb NOT NULL,
+    warnings jsonb DEFAULT '[]'::jsonb NOT NULL,
+    status text DEFAULT 'prepared'::text NOT NULL,
+    prepared_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    committed_at timestamp with time zone,
+    receipt_number text,
+    result_ref jsonb,
+    response jsonb,
+    acknowledged jsonb DEFAULT '[]'::jsonb NOT NULL,
+    reject_reason text,
+    CONSTRAINT write_tickets_action_check CHECK ((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text]))),
+    CONSTRAINT write_tickets_check CHECK (((key_kind = 'actor'::text) = (actor_id IS NOT NULL))),
+    CONSTRAINT write_tickets_client_source_check CHECK ((client_source = ANY (ARRAY['mcp'::text, 'dashboard'::text, 'fl_assistant'::text, 'api'::text]))),
+    CONSTRAINT write_tickets_key_kind_check CHECK ((key_kind = ANY (ARRAY['actor'::text, 'legacy_ledger'::text, 'legacy_dashboard'::text]))),
+    CONSTRAINT write_tickets_payload_hash_check CHECK ((length(payload_hash) = 64)),
+    CONSTRAINT write_tickets_state_hash_check CHECK ((length(state_hash) = 64)),
+    CONSTRAINT write_tickets_status_check CHECK ((status = ANY (ARRAY['prepared'::text, 'committed'::text, 'expired'::text, 'rejected'::text, 'superseded'::text]))),
+    CONSTRAINT write_tickets_ticket_hash_check CHECK ((length(ticket_hash) = 64))
+);
+
+
+--
+-- Name: write_tickets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.write_tickets ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.write_tickets_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: actors id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3308,6 +3390,14 @@ ALTER TABLE ONLY public.reassignment_reason_codes
 
 
 --
+-- Name: receipt_counters receipt_counters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.receipt_counters
+    ADD CONSTRAINT receipt_counters_pkey PRIMARY KEY (prefix, business_date);
+
+
+--
 -- Name: run_coverage run_coverage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3513,6 +3603,30 @@ ALTER TABLE ONLY public.transactions
 
 ALTER TABLE ONLY public.batch_formulas
     ADD CONSTRAINT unique_batch_ingredient UNIQUE (product_id, ingredient_product_id);
+
+
+--
+-- Name: write_tickets write_tickets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.write_tickets
+    ADD CONSTRAINT write_tickets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: write_tickets write_tickets_receipt_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.write_tickets
+    ADD CONSTRAINT write_tickets_receipt_number_key UNIQUE (receipt_number);
+
+
+--
+-- Name: write_tickets write_tickets_ticket_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.write_tickets
+    ADD CONSTRAINT write_tickets_ticket_hash_key UNIQUE (ticket_hash);
 
 
 --
@@ -4111,10 +4225,45 @@ CREATE INDEX trace_events_txn_idx ON public.trace_events USING btree (transactio
 
 
 --
+-- Name: transactions_receipt_number_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX transactions_receipt_number_idx ON public.transactions USING btree (receipt_number) WHERE (receipt_number IS NOT NULL);
+
+
+--
+-- Name: transactions_ticket_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX transactions_ticket_id_idx ON public.transactions USING btree (ticket_id) WHERE (ticket_id IS NOT NULL);
+
+
+--
 -- Name: uq_certifications_original_business_date; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX uq_certifications_original_business_date ON public.certifications USING btree (business_date) WHERE (supersedes_certification_id IS NULL);
+
+
+--
+-- Name: write_tickets_actor_prepared_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX write_tickets_actor_prepared_idx ON public.write_tickets USING btree (actor_id, prepared_at DESC);
+
+
+--
+-- Name: write_tickets_open_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX write_tickets_open_idx ON public.write_tickets USING btree (status) WHERE (status = 'prepared'::text);
+
+
+--
+-- Name: write_tickets_supersession_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX write_tickets_supersession_idx ON public.write_tickets USING btree (operator_id, action, payload_hash) WHERE (status = 'prepared'::text);
 
 
 --
@@ -4453,6 +4602,13 @@ CREATE TRIGGER trg_transactions_created_at BEFORE INSERT OR UPDATE ON public.tra
 --
 
 CREATE TRIGGER trg_transactions_original_append_only BEFORE DELETE OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: write_tickets write_tickets_preserve_committed; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER write_tickets_preserve_committed BEFORE DELETE OR UPDATE ON public.write_tickets FOR EACH ROW EXECUTE FUNCTION public.write_ticket_preserve_committed();
 
 
 --
@@ -5016,6 +5172,22 @@ ALTER TABLE ONLY public.transactions
 
 
 --
+-- Name: transactions transactions_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
+-- Name: write_tickets write_tickets_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.write_tickets
+    ADD CONSTRAINT write_tickets_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: actor_write_audit; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -5028,18 +5200,31 @@ ALTER TABLE public.actor_write_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.migration_markers ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: receipt_counters; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.receipt_counters ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: sales_order_create_receipts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.sales_order_create_receipts ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: write_tickets; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict snzm2EIGbFUSoznYriSvXtBuw8SNFu0kSM1QiZ9wMT1DLMrqeHHnVkGTFAoSxpG
+\unrestrict fydbNNKU4wJo488v6L4mRZkQcf5PSdJpMarvOfnDG21shZCPzaaTXqXWg4FI92t
 
 
--- Pending A1: remove after prod migration + scripts/dump_prod_schema.sh
+
+-- Pending A4: remove after prod migration + scripts/dump_prod_schema.sh
 SET search_path TO public;
-\ir ../../migrations/058_write_tickets.sql
+\ir ../../migrations/060_search_aliases.sql

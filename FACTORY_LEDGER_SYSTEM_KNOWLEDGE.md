@@ -529,7 +529,7 @@ Common data-entry facts:
 
 - protected requests carry the shared API key, not a user session;
 - the GPT is an API client, so it must never claim a mutation succeeded from conversational intent alone;
-- `resolve_product_id`, `resolve_product_full`, `_tiered_product_search`, and `_resolve_single_product` turn an operator phrase into a catalog row;
+- `resolve_product_id`, `resolve_product_full`, and `_tiered_product_search` serve legacy product lookup/write paths; `resolution.resolve` and `resolution.resolve_bulk_product` serve `/resolve` and `/products/resolve`, returning a match only for one confident identity;
 - `find_or_create_lot` enforces the product/lot uniqueness rule;
 - `generate_lot_code` constructs system lot codes from plant date, shipper abbreviation, and sequence;
 - preview is a read/validation step; it is not a ledger event;

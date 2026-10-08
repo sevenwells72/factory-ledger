@@ -26,8 +26,8 @@ People sometimes say "pouches" for quantity, but the Sunshine 12x10 OZ items (14
 quantity in pouches for a pouch product, FL converts to cases using that product's
 pouches-per-case (12 today) and shows the conversion in the draft — "60 pouches =
 5 cases — confirm". If the quantity does not divide evenly, FL asks instead of
-rounding. Design doc §3.2 currently lists `pouches` as ambiguous between `each` and
-`cases`; replace that with this conversion rule. Needs a `pouches_per_case` (or
+rounding. Design doc §3.2 now records this approved conversion rule (A4 part 1,
+PR #81); the old each/cases ambiguity wording is superseded. Needs a `pouches_per_case` (or
 reuse of `case_size_lb` / pack format) on the product, the `/resolve kind=unit`
 response to return the converted draft quantity, and F1 to render the sentence.
 Non-pouch products: "pouches" stays an error, never a silent unit change.
@@ -36,7 +36,7 @@ Non-pouch products: "pouches" stays an error, never a silent unit change.
 The Spanish and floor-shorthand entries in `shorthand-draft.md` are guesses; nobody
 has recorded Arturo's actual vocabulary. During the F1 pilot every `/resolve` call
 whose outcome is `none` or whose chosen candidate was not the top-ranked one is
-already written to `resolution_log` (design §3.3) — F1 must additionally store the
+to be written to `resolution_log` in A4 part 2 after A1 merges (design §3.3) — F1 must additionally store the
 raw user utterance (typed text or edited transcript) with the log row, and the
 dashboard Aliases tab gets an "Unmatched this week" list the office reviews to add
 aliases. Review cadence: weekly with the owner view until the list is empty for two

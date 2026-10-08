@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Request, Response, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool
+from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool, Field
 from typing import Optional, List, Dict, Union, Literal, Callable, Any
 import json
 import pathlib
@@ -32,6 +32,7 @@ from collections import defaultdict, deque
 # the module attributes and both sides see it.
 import extraction
 import write_tickets
+import resolution
 import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
@@ -2678,6 +2679,8 @@ def _capture_readonly_diagnostics() -> dict:
 # ship/receive endpoints. Anything not listed here (admin/*, /make, /pack,
 # /adjust, /void, deletes, migrations, etc.) is master-key only.
 DASHBOARD_KEY_ALLOWLIST = frozenset({
+    ("POST", "/resolve"),  # A4: read-only resolution, shared by every client.
+    ("GET", "/aliases"),
     # Who am I (FR-15). Read-only, returns nothing but the caller's own
     # identity, and is how the dashboard will learn whether it is holding an
     # actor key or the shared one. Deliberately NOT in openapi-gpt-v3.yaml.
@@ -3174,6 +3177,10 @@ def verify_api_key_flexible(
 ):
     """Accept API key from either header or query parameter (packing slip browser access)."""
     return _authorize_api_key(x_api_key or key, request, invalid_status=401)
+
+
+# A4 is isolated from ticket/write handlers; defer transaction lookup for tests.
+app.include_router(resolution.build_router(lambda: get_transaction(), verify_api_key))
 
 
 @app.get("/auth/whoami")
@@ -4217,55 +4224,16 @@ def _tiered_product_search(cur, query: str, limit: int = 5, restrict_ids=None) -
     return [dict(r, match_tier='trigram', similarity=float(r['sim'])) for r in rows]
 
 
-def _resolve_single_product(cur, raw_name: str) -> dict:
-    """Resolve a single raw product name string using 3-tier search.
-    Returns a dict with: input, match, match_tier, confidence, alternatives."""
-    results = _tiered_product_search(cur, raw_name, limit=5)
-
-    if not results:
-        return {
-            "input": raw_name,
-            "match": None,
-            "match_tier": None,
-            "confidence": "none",
-            "suggestions": []
-        }
-
-    best = results[0]
-    tier = best['match_tier']
-    sim = best['similarity']
-
-    # Determine confidence
-    if tier == 'exact':
-        confidence = 'high'
-    elif tier == 'keyword':
-        confidence = 'high' if len(results) == 1 else 'medium'
-    else:  # trigram
-        if sim > 0.4:
-            confidence = 'medium'
-        else:
-            confidence = 'low'
-
-    match_data = {"id": best['id'], "name": best['name'], "odoo_code": best['odoo_code']}
-    result = {
-        "input": raw_name,
-        "match": match_data,
-        "match_tier": tier,
-        "confidence": confidence,
-    }
-
-    # Include alternatives if there are multiple matches at tier 2/3
-    if len(results) > 1 and tier in ('keyword', 'trigram'):
-        result["alternatives"] = [
-            {"id": r['id'], "name": r['name'], "odoo_code": r['odoo_code']}
-            for r in results[1:]
-        ]
-
-    return result
-
-
 class BulkResolveRequest(BaseModel):
-    names: List[str]
+    names: List[str] = Field(..., max_length=50)
+
+    @validator('names')
+    def validate_names(cls, names):
+        if any('\x00' in name for name in names):
+            raise ValueError('Product names must not contain NUL bytes')
+        if any(len(name) > 500 for name in names):
+            raise ValueError('Each product name must be at most 500 characters')
+        return names
 
 
 def get_sibling_skus(cur, product_id: int) -> list:
@@ -4587,13 +4555,14 @@ def products_missing_case_size(_: bool = Depends(verify_api_key)):
 @app.post("/products/resolve")
 def resolve_products_bulk(req: BulkResolveRequest, _: bool = Depends(verify_api_key)):
     """Bulk-resolve raw product name strings against the database.
-    Uses 3-tier matching: exact → keyword (word-order independent) → trigram similarity."""
+    Returns a match only for one confident identity; ambiguous inputs return
+    match=None with candidates and a clarification question."""
     try:
         with get_transaction() as cur:
             resolved_list = []
             resolved_count = 0
             for name in req.names:
-                result = _resolve_single_product(cur, name)
+                result = resolution.resolve_bulk_product(cur, name)
                 resolved_list.append(result)
                 if result['match'] is not None:
                     resolved_count += 1
