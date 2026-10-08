@@ -179,6 +179,16 @@ ROUTE_ACTIONS = {
 # Actor-reachable writes with no §4.3 row. Listed so the completeness test
 # names every exemption; each stays open to every named role as today.
 UNGATED_ROUTES = frozenset({
+    # F1 transport authenticates every request; relayed FL actions retain A2 checks.
+    ('POST', '/assistant/session'),
+    ('POST', '/assistant/resume'),
+    ('POST', '/assistant/turn'),
+    ('POST', '/assistant/record'),
+    ('POST', '/assistant/cancel'),
+    ('POST', '/assistant/confirm-sku'),
+    ('POST', '/assistant/attachment'),
+    ('POST', '/assistant/attachment/read'),
+    ('POST', '/assistant/transcribe'),
     ('POST', '/products/resolve'),                 # lookup, no business write
     ('POST', '/resolve'),                          # A4 resolution, read-only
     ('POST', '/sales/orders/{order_id}/allocations'),                           # planning board

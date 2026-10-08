@@ -111,9 +111,14 @@ def check(audio_file=None):
                 assert card['prepared']['action'] == action
                 if any(b['code'] == 'SKU_CONFIRMATION_REQUIRED' for b in card['prepared']['blockers']):
                     card = post('/assistant/confirm-sku', json={'draft_id': card['id']})['card']
-                assert card['prepared']['can_commit'], card['prepared']['blockers']
+                assert card['prepared']['can_commit'] or (card['prepared']['blockers'] and all(b['code'] == 'LOT_NOT_CONFIRMED' for b in card['prepared']['blockers'])), card['prepared']['blockers']
                 assert 'ticket' not in card['prepared'] and 'payload_hash' not in card['prepared']
                 commit_body = {'draft_id': card['id'], 'acknowledged_warnings': [w['code'] for w in card['prepared']['warnings'] if w.get('requires_ack')]}
+                if action in ('make', 'pack'):
+                    # Synthetic test operator explicitly confirms the displayed
+                    # fixture lots, matching the human page controls after A5.
+                    commit_body['lot_confirmations'] = [{'lot_id': i['lot_id'], 'method': 'full_code', 'value': i['lot_code']}
+                        for i in card['prepared']['draft']['input_plan']]
                 with ThreadPoolExecutor(max_workers=2) as pool:
                     responses = [f.result() for f in [pool.submit(post, '/assistant/record', json=commit_body) for _ in range(2)]]
                 assert all(r['kind'] == 'receipt' for r in responses)
@@ -133,7 +138,7 @@ def check(audio_file=None):
             for query in ('What did I enter today?', f'Look up inventory for {products["ingredient"]["name"]}'):
                 result = post('/assistant/turn', json={'session_id': last_sid, 'turn_id': str(uuid4()), 'text': query})
                 assert result['cards'][0]['kind'] == 'read', result
-            evidence['checks'] += ['five real Responses function-tool drafts and commits', 'concurrent same-ticket replay for all five actions', 'turn idempotency', 'private photo attachment', 'English/Spanish', 'today receipts', 'inventory read', 'saved draft/receipt recovery']
+            evidence['checks'] += ['five real Responses function-tool drafts and commits', 'concurrent same-ticket replay for all five actions', 'turn idempotency', 'private photo attachment', 'English/Spanish', 'today receipts', 'inventory read', 'saved draft/receipt recovery', 'A5 explicit operator lot confirmations for make and pack']
             if audio_file:
                 transcript = post('/assistant/transcribe', files={'file': ('dictation.wav', Path(audio_file).read_bytes(), 'audio/wav')})
                 assert transcript['editable'] and transcript['sent'] is False

@@ -32,6 +32,41 @@
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_write_tickets.py`, `CHANGE_LOG.md`
 - **What changed:** `scripts/dump_prod_schema.sh` re-run against production after 062–065 were applied (19:29–19:33Z): the pending `\ir` tail is gone and the dump now carries `lot_moves`, `transaction_lot_confirmations`, `transaction_substitutions`, `a5_lot_supplier_immutable`, the `move_lot` action CHECK, `lots.identity_status/identify_by/supplier_id`, `transactions.supplier_id/entered_by_actor_id`, `ledger_corrections.entered_by_actor_id`, `suppliers.short_code`. FACTORY_LEDGER_CHANGELOG rows 168 (A5 rollout: PR #88 → 7580338, 062/063/064 applied, Railway fb4d3912/db939e88) and 169 (A2 rollout: PR #89 → de31023, 065 applied staging+prod, Railway 9a5948bd/6c838631). `test_migration_up_down_up_and_marker_stability` drops the two 062 tables (whose `lot_moves.ticket_id` FK now blocks the 058 down) before the 061/058 down and re-runs the idempotent 062 after 058 is back — the pending-include era hid this because the fixture strips `\ir` lines. Fresh DB from the new dump: Python 2138 passed, Node 69/69.
 - **Why:** Same housekeeping as PRs #82/#86 after a production migration; keeps the local test schema identical to prod and the regression-guard changelog current.
+## 2026-10-08 15:39 — F1 review fixes pass full fresh-database and browser validation
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/contracts/fl-assistant-part1.md`
+- **What changed:** 2186 Python / 72 JavaScript passed, zero failures/skips, against fresh localhost PostgreSQL 17 fl_f1_full; browser harness passed. All upstream changelog lines preserved and GPT OpenAPI remains 30 operations. Final merged-main recheck has maximum row 167, so F1 uses next row 168 (correcting the provisional 169 reservation). Staging prerequisites 062–065/068 already exist; no migration needed.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:38 — Align F1 lot-evidence regression with A5 HTTP 422
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Assert the real LOT_NOT_CONFIRMED error code and HTTP 422 before supplying explicit human lot evidence; focused run otherwise passed all new recovery and A2 checks.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:37 — Document F1 merge order and manual production migration prerequisite
+- **File(s) changed:** `docs/deployments/f1-assistant.md`, `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Document A5 → A2 → F1, merged schema includes 062–065/068 with unmerged 066 excluded, manual owner/5432/ON_ERROR_STOP migration 068 with lock and statement timeouts before production enablement, read-only correction-catalog reachability, exact staging target, and conservative cancellation/crash recovery. Production remains untouched.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:37 — F1 regression and hosted acceptance checks cover merged A2/A5
+- **File(s) changed:** `tests/test_fl_assistant.py`, `scripts/check_assistant_staging.py`
+- **What changed:** Add disabled-page flag matrix, status-only logging, real expired/role-denied cancellation, uncertain-attempt fencing, crashed-chat recovery/renewal and stale-worker protection tests. Exercise A5 denial before explicit operator lot evidence; update live acceptance with human-style full-code confirmations. Fix replay test to prepare a real supplier-bound draft after A5.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:35 — F1 rebased onto merged A5/A2 and review fixes applied
+- **File(s) changed:** `permissions.py`, `fl_assistant.py`, `main.py`, `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Rebase onto de31023 with both imports and all history retained; nine explicitly ungated transport routes preserve per-request and relayed checks; disabled page returns 404; OpenAI errors log status only; two-minute renewed chat lease; definitive first-attempt 4xx clears its marker using a timestamp fence, preserving prior/concurrent uncertainty. F1 row moves to 169 (after A5 167, reserving 168 for A2); schema includes 062–065 and 068, excludes unmerged 066. Prepared isolated local Python/Node/Postgres test tooling.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
 ## 2026-10-08 15:13 — F1 final hosted smoke and handoff
 - **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`
 - **What changed:** Final deployment 6117e0d1 serves code 337ea51 and exact JavaScript bytes; real Responses read and editable/unsent transcription pass again. Final temporary actor deactivated. Record dependency follow-up ID; PR 90 remains OPEN/DRAFT.
