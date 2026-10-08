@@ -127,3 +127,13 @@ attachments and editable unsent dictation. A2 route completeness passes and
 real make/pack commits require A5 operator lot evidence. The integration
 follow-up described above is fulfilled by this rebase; staging verification
 for the reviewed code is recorded separately below when complete.
+
+Reviewed code `04f42a0` deployed successfully to staging as
+`e922cda2-182a-4fb8-b558-48c98f34a031`. All five hosted real-model actions
+passed: **RCV-261008-009, MK-261008-009, PK-261008-005, ADJ-261008-004,
+FND-261008-004**. Concurrent retries returned matching receipts; direct
+staging queries verified one ledger post per ticket, A2 actor attribution
+on all five and A5 lot confirmations on make/pack. Temporary actor
+`1000000012` is verified inactive. Health is 200 and hosted page/JS
+bytes match the tested worktree. Production was not accessed; PR #90 remains
+unmerged. Full evidence is under `review_fixes_acceptance` in the validation JSON.
