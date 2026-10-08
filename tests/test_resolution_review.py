@@ -206,3 +206,85 @@ def test_pagination_preserves_sql_numeric_id_tie_order():
     result = r.decide('Duplicate', rows)
     assert_no_pick(result)
     assert [row['id'] for row in result['candidates']] == [2, 10]
+
+
+@pytest.mark.parametrize('action', ['order', 'ship', 'pack'])
+def test_finished_goods_context_precedes_recent_batch_activity(catalog, action):
+    cur = catalog['cur']
+    for i, product in enumerate(catalog['batches']):
+        lot(cur, product, f'CONTEXT-RECENT-BATCH-{i}', 10)
+    result = resolve(catalog, 'product', 'Classic', {'action': action}, limit=25)
+    assert_no_pick(result)
+    candidates = result['candidates']
+    finished = set(catalog['classic'] + catalog['finished'])
+    assert {row['id'] for row in candidates[:len(finished)]} == finished
+    assert {row['id'] for row in candidates[len(finished):]} == set(catalog['batches'])
+    assert {row['score'] for row in candidates} == {0.8}
+    # Apply ranking before pagination, including the smaller default display.
+    page = resolve(catalog, 'product', 'Classic', {'action': action}, limit=5)
+    assert_no_pick(page)
+    assert page['candidates'] == candidates[:5]
+    assert all(row['type'] == 'finished' for row in page['candidates'])
+
+
+@pytest.mark.parametrize('group', [None, 'floor', 'office'])
+def test_make_context_keeps_batch_and_ingredient_domain(catalog, group):
+    for i, product in enumerate(catalog['finished']):
+        lot(catalog['cur'], product, f'CONTEXT-RECENT-FINISHED-{i}', 10)
+    ingredient = catalog['product']('Classic Ingredient')
+    result = resolve(catalog, 'product', 'Classic', {'action': 'make', 'group': group}, limit=25)
+    assert_no_pick(result)
+    assert {row['id'] for row in result['candidates']} == {*catalog['batches'], ingredient}
+    if group == 'floor':
+        assert result['candidates'][0]['id'] == ingredient
+    assert all(row['type'] in ('batch', 'ingredient') for row in result['candidates'])
+
+
+def test_decide_fallback_orders_score_context_recency_name_and_numeric_id():
+    rows = [dict(id=id, name=name, score=score, context_rank=context,
+                 recent_activity=recent, tier='trigram')
+            for id, name, score, context, recent in [
+                (9, 'A weaker', .6, 10, 100),
+                (8, 'A lower context', .8, 0, 100),
+                (7, 'A older', .8, 2, 0),
+                (6, 'B recent', .8, 2, 10),
+                (10, 'A recent', .8, 2, 10),
+                (2, 'A recent', .8, 2, 10),
+                (1, 'A strongest', .9, 0, 0),
+            ]]
+    result = r.decide('query', rows)
+    assert_no_pick(result)
+    assert [row['id'] for row in result['candidates']] == [1, 2, 10, 6, 7, 8, 9]
+
+
+@pytest.mark.parametrize('kind', ['product', 'customer', 'supplier', 'order', 'lot', 'unit'])
+@pytest.mark.parametrize('query', ['\x00Classic', 'Cla\x00ssic', 'Classic\x00'])
+def test_resolve_rejects_nul_query_before_resolution(client, monkeypatch, kind, query):
+    monkeypatch.setattr(r, 'resolve', lambda *_: pytest.fail('NUL query reached resolver'))
+    response = client.post('/resolve', json={'kind': kind, 'query': query},
+                           headers={'X-API-Key': 'a4-master'})
+    assert response.status_code == 422
+    assert response.json()['detail'][0]['loc'] == ['body', 'query']
+
+
+@pytest.mark.parametrize('names', [
+    ['\x00Classic'], ['Classic', 'Cla\x00ssic'], ['Classic\x00', 'Classic'],
+    ['Classic'] * 51,
+])
+def test_bulk_rejects_nul_and_excess_names_before_resolution(client, monkeypatch, names):
+    monkeypatch.setattr(r, 'resolve_bulk_product', lambda *_: pytest.fail('invalid bulk reached resolver'))
+    response = client.post('/products/resolve', json={'names': names},
+                           headers={'X-API-Key': 'a4-master'})
+    assert response.status_code == 422
+    assert response.json()['detail'][0]['loc'] == ['body', 'names']
+
+
+@pytest.mark.parametrize('count', [0, 1, 50])
+def test_bulk_accepts_valid_list_boundaries(client, catalog, count):
+    response = client.post('/products/resolve', json={'names': ['A4-70050'] * count},
+                           headers={'X-API-Key': 'a4-master'})
+    assert response.status_code == 200
+    result = response.json()
+    assert result['summary'] == {'total': count, 'resolved': count, 'unresolved': 0}
+    assert len(result['resolved']) == count
+    assert all(row['match']['id'] == catalog['classic'][0] for row in result['resolved'])

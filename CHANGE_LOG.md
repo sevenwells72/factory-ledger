@@ -35,6 +35,27 @@
 
 ---
 
+## 2026-10-08 11:13 — Verify PR #81 context ranking and input validation fixes
+- **File(s) changed:** `docs/resolution.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record 1,595 Python tests (123 resolver, 32 new) and 69 JavaScript tests passing, no skips/failures, against fresh disposable localhost PostgreSQL 17. OpenAPI stays at 30 operations. Guarded staging READ ONLY Classic/order IDs 136/287/286/285/290; make IDs 108/107/284/283 (only four eligible); both ambiguous with no match.
+- **Why:** Complete all owner-requested PR #81 re-review fixes and acceptance evidence before pushing. No deployment, migration, staging writes, production access, other worktree edits or merge. Preserve all historical log entries.
+
+---
+
+## 2026-10-08 11:11 — Import the bulk resolution list constraint helper
+- **File(s) changed:** `main.py`
+- **What changed:** Import Pydantic Field for the 50-name bulk request limit.
+- **Why:** The focused test collection exposed the missing import; rerun validation after correcting it.
+
+---
+
+## 2026-10-08 11:10 — Correct A4 context precedence and reject invalid resolution requests
+- **File(s) changed:** `resolution.py`, `main.py`, `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md`, `docs/design/phase1-safe-operating-system.md`, `docs/resolution.md`, `openapi-gpt-v3.yaml`, `scripts/check_resolution_staging.py`, `tests/test_resolution_review.py`
+- **What changed:** Rank by score, context, recency, name, numeric ID; prefer finished goods for ship as well as order/pack and retain make eligibility. Reject NUL queries/names and bulk lists over 50 with 422. Add ranking/HTTP regressions, correct the false recency-first attribution in §3.2, remove the dead resolver reference, and extend READ ONLY staging acceptance for both Classic contexts.
+- **Why:** Address the owner-requested PR #81 re-review fixes. Full local suite and staging verification follow; no merge, production access, or other worktree changes.
+
+---
+
 ## 2026-10-08 10:32 — Verify all A4 fixes and apply migration 060 to staging only
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/resolution.md`
 - **What changed:** Full fresh-local-PostgreSQL suite: 1,563 Python tests, including 91 A4; JavaScript: 69 passed. OpenAPI 30 operations before/after; diff check passed. Applied only migration 060 to the validated staging database, with its five persisted aliases. READ ONLY staging checks passed: Classic ambiguous (11; top five IDs 108/107/284/283/136), Sunshine 9 SS-only 283–290, #9 both tiers 107/108 + 283–290, CLS Specialty none, 24 pouches → 2 cases / 25 → clarification. Local core/router verification; no application deployment or production access.

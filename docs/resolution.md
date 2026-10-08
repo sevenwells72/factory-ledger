@@ -27,7 +27,7 @@ Kinds: `product`, `customer`, `supplier`, `order`, `lot`, `unit`. `context`
 defaults to `{}` and accepts action, group, product/customer/supplier/order IDs,
 customer address, and order state/status. Quantity is an optional positive,
 finite decimal, at most 1 trillion. Query is required, at most 500 characters;
-an empty unit query explicitly asks for a unit.
+NUL bytes are rejected with HTTP 422; an empty unit query explicitly asks for a unit.
 
 The response always has `outcome` (`match`, `ambiguous`, `none`), nullable
 `match`, ranked `candidates`, `confidence`, `query_normalized`,
@@ -46,10 +46,12 @@ label, score, tier, reason, context boost and relevant catalog/lot/order metadat
   0–2147483647) page candidates. SQL deduplicates all alias spellings before
   counting and paging: `candidate_count` is exact and `has_more` is page-aware.
   A one-item or empty page cannot change the global outcome or chosen identity.
-- Equal product scores sort by latest activity within 180 days: a posted
-  transaction occurrence (using current corrected ledger records) or an open,
-  unfulfilled order line. Context breaks remaining ties, then name/id. Recency
-  and context never change scores, bypass the exact tier, or resolve ambiguity.
+- Ranking is score → context rank → recency → name → id (first three
+  descending, name/id ascending). Product recency uses latest activity within
+  180 days: a posted transaction occurrence (using current corrected ledger
+  records) or an open, unfulfilled order line. Context and recency never change
+  scores, bypass the exact tier, or resolve ambiguity. Recent batch activity
+  cannot outrank equally matching finished goods in order/ship/pack context.
 - Alias substitution uses normalized whole whitespace-delimited spans, in both
   directions. It never substitutes inside a word and never fuzzy-searches alias
   spellings. Short and numeric search terms also have word boundaries: `SS`
@@ -58,7 +60,8 @@ label, score, tier, reason, context boost and relevant catalog/lot/order metadat
 - Context boosts only rank; they do not change scores. The make domain is
   batches/ingredients, with ingredients first for floor make. For pack with a
   source product, only that batch's finished children are eligible. Order favors
-  finished goods/services; receive favors ingredients/packaging. In the current
+  finished goods/services; ship and pack without a source product favor finished
+  goods. Receive favors ingredients/packaging. In the current
   SS #9 catalog, make has two batch candidates; pack with source 283 has its
   three children (285–287), and source 284 has its three (288–290).
 - Product aliases from existing customer/supplier tables require that exact
@@ -88,7 +91,9 @@ unconfirmed catalog mapping.
 
 `POST /products/resolve` keeps the successful legacy per-name envelope and bulk
 summary. Ambiguous/unconfident names now return `match: null` plus the new
-candidate/clarification fields. Existing write resolvers are untouched.
+candidate/clarification fields. The bulk list is capped at 50 names; each name
+is at most 500 characters and must not contain NUL bytes. Invalid requests
+return HTTP 422 before resolution. Existing write resolvers are untouched.
 
 `GET /aliases?kind=token&active=true` lists active rows by default; `active=false`
 lists inactive rows. Both reads report `alias_table_available=false` when migration
@@ -187,3 +192,22 @@ none. Pouch 24 → two cases; 25 → clarification. Checks used the local
 core/router against staging in READ ONLY, not a hosted app deployment.
 **1,563 Python tests (91 A4) and 69 JavaScript tests passed**; OpenAPI remains
 at 30 operations. No production access or merge.
+
+
+### PR #81 re-review verification — 2026-10-08 11:13 ET
+
+Ranking is score → context rank → recency → name → id. All **1,595 Python tests**,
+including **123 resolver tests (32 new cases)**, and **69 JavaScript tests** pass
+with no failures or skips on a fresh disposable localhost PostgreSQL 17 database.
+OpenAPI remains at 30 operations before/after; `git diff --check` passes.
+
+Guarded staging READ ONLY verification through the updated local resolver
+returned these `Classic` candidates with `limit=5`; both outcomes stay ambiguous
+and no identity is auto-picked. This is not a hosted application deployment.
+
+| Context | Candidates in rank order |
+|---|---|
+| order | 136 — Granola Classic 25 LB; 287 — Granola SS Classic #9 10 LB; 286 — Granola SS Classic #9 25 LB; 285 — Granola SS Classic #9 Bulk per/lb; 290 — Granola SS Classic Chocolate Chip #9 10 LB |
+| make | 108 — Batch Classic Chocolate Chip Granola #9; 107 — Batch Classic Granola #9; 284 — Batch SS Classic Chocolate Chip Granola #9 (Kosher Ignition); 283 — Batch SS Classic Granola #9 (Kosher Ignition) (only 4 eligible candidates) |
+
+No migration, staging write, production access or merge was performed for this re-review.

@@ -436,10 +436,11 @@ paths:
               properties:
                 names:
                   type: array
+                  maxItems: 50
                   items:
                     type: string
                     maxLength: 500
-                  description: "Raw product name strings from OCR or order confirmations"
+                  description: "Up to 50 raw product names from OCR or order confirmations; NUL bytes are rejected with 422."
             example:
               names:
                 - "Chocolate Sprinkles 10 lb"

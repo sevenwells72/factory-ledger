@@ -53,13 +53,20 @@ def check(*, apply_migration=False):
                       for row in rows if row['kind'] == 'token' and row['active']}
             assert available and all(stored.get(key) == value for key, value in expected_seeds.items())
             results = []
-            for query, context, limit in [('Classic', {}, 5), ('chocolate chip', {}, 8),
+            for query, context, limit in [('Classic', {}, 5),
+                                           ('Classic', {'action': 'order'}, 5),
+                                           ('Classic', {'action': 'make'}, 5),
+                                           ('chocolate chip', {}, 8),
                                            ('Sunshine 9', {}, 8), ('Sunshine 9', {'action': 'make'}, 8),
                                            ('#9', {}, 25), ('SS 9', {}, 8), ('SS', {}, 8),
                                            ('SSX', {}, 8), ('glass jar', {}, 8), ('CLS Specialty', {}, 8)]:
                 result = resolution.resolve(cur, resolution.ResolveRequest(kind='product', query=query, context=context, limit=limit))
                 if query in ('Classic', 'chocolate chip', 'Sunshine 9', 'SS', '#9', 'SS 9'):
                     assert result['outcome'] == 'ambiguous' and result['match'] is None
+                if query == 'Classic' and context.get('action') == 'order':
+                    assert all(c['type'] == 'finished' for c in result['candidates'])
+                if query == 'Classic' and context.get('action') == 'make':
+                    assert all(c['type'] in ('batch', 'ingredient') for c in result['candidates'])
                 if query == 'Sunshine 9':
                     expected = {283, 284} if context else set(range(283, 291))
                     assert {c['id'] for c in result['candidates']} == expected

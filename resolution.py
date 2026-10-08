@@ -57,6 +57,12 @@ class ResolveRequest(BaseModel):
     limit: int = Field(MAX_CANDIDATES, ge=1, le=MAX_PAGE_SIZE, strict=True)
     offset: int = Field(0, ge=0, le=2147483647, strict=True)
 
+    @validator('query')
+    def reject_nul_query(cls, value):
+        if '\x00' in value:
+            raise ValueError('query must not contain NUL bytes')
+        return value
+
     @validator('quantity', pre=True)
     def finite_quantity(cls, value):
         if isinstance(value, bool):
@@ -215,8 +221,8 @@ def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
         WITH scored AS ({scored_sql}), ranked AS (
             SELECT *, count(*) FILTER (WHERE score >= 0.25) OVER () AS candidate_count,
                       count(*) FILTER (WHERE score >= 0.5) OVER () AS plausible_count,
-                      row_number() OVER (ORDER BY score DESC, recent_activity DESC,
-                                          context_rank DESC, name, id) AS _position
+                      row_number() OVER (ORDER BY score DESC, context_rank DESC,
+                                          recent_activity DESC, name, id) AS _position
             FROM scored
         ) SELECT * FROM ranked {page} ORDER BY _position
     ''', tuple(params) + bounds)
@@ -287,8 +293,8 @@ def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, off
     if rows and '_position' in rows[0]:
         rows = sorted(rows, key=lambda row: row['_position'])
     else:
-        rows = sorted(rows, key=lambda row: (-row['score'], -row.get('recent_activity', 0),
-                                             -row.get('context_rank', 0), row['name'], str(row['id'])))
+        rows = sorted(rows, key=lambda row: (-row['score'], -row.get('context_rank', 0),
+                                             -row.get('recent_activity', 0), row['name'], row['id']))
     candidates = [row for row in rows if row['score'] >= MIN_CANDIDATE]
     plausible = [row for row in rows if row['score'] >= PLAUSIBLE]
     count = max([len(candidates)] + [int(row.get('candidate_count', 0)) for row in rows])
@@ -345,12 +351,12 @@ PRODUCT_SOURCE = '''SELECT p.id, p.name, p.odoo_code, p.type, p.label_type,
          WHEN %s = 'make' AND %s = 'floor' AND p.type = 'ingredient' THEN 3
          WHEN %s = 'make' AND p.type = 'batch' THEN 2
          WHEN %s = 'receive' AND p.type IN ('ingredient', 'packaging') THEN 2
-         WHEN %s = 'pack' AND p.type = 'finished' THEN 2 ELSE 0 END AS context_rank,
+         WHEN %s IN ('ship', 'pack') AND p.type = 'finished' THEN 2 ELSE 0 END AS context_rank,
     CASE WHEN %s = 'order' AND (p.type = 'finished' OR p.is_service) THEN 'Finished goods / services for order'
          WHEN %s = 'make' AND %s = 'floor' AND p.type = 'ingredient' THEN 'Ingredient for floor make'
          WHEN %s = 'make' AND p.type = 'batch' THEN 'Batch for make'
          WHEN %s = 'receive' AND p.type IN ('ingredient', 'packaging') THEN 'Material for receive'
-         WHEN %s = 'pack' AND p.type = 'finished' THEN 'Finished goods for pack' END AS context_boost,
+         WHEN %s IN ('ship', 'pack') AND p.type = 'finished' THEN 'Finished goods for ship / pack' END AS context_boost,
     COALESCE(activity.recent_activity, 0) AS recent_activity
     FROM products p LEFT JOIN (
         SELECT product_id, extract(epoch FROM max(activity_at))::float AS recent_activity

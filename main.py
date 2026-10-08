@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Request, Response, UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool
+from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool, Field
 from typing import Optional, List, Dict, Union, Literal, Callable, Any
 import json
 import pathlib
@@ -4225,10 +4225,12 @@ def _tiered_product_search(cur, query: str, limit: int = 5, restrict_ids=None) -
 
 
 class BulkResolveRequest(BaseModel):
-    names: List[str]
+    names: List[str] = Field(..., max_length=50)
 
     @validator('names')
-    def validate_name_lengths(cls, names):
+    def validate_names(cls, names):
+        if any('\x00' in name for name in names):
+            raise ValueError('Product names must not contain NUL bytes')
         if any(len(name) > 500 for name in names):
             raise ValueError('Each product name must be at most 500 characters')
         return names
