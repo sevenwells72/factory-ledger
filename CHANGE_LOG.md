@@ -21,6 +21,34 @@
 
 ---
 
+## 2026-10-08 14:53 — Restore A5 Git pointer after iCloud eviction
+- **File(s) changed:** A5 worktree Git HEAD metadata only
+- **What changed:** Restored the known codex/supplier-label-backfill branch pointer after iCloud made HEAD dataless and Git reads stalled. Working files, other worktrees and production were not changed by this repair.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:52 — Verify deferred 066 and record production dry-run labels
+- **File(s) changed:** docs/deployments/066-supplier-labels.md
+- **What changed:** 1877 Python and 69 JavaScript tests passed. SELECT-only production preview covered 51 suppliers: DUTC Valley DUTC; Dutch Gold DUTA; Dutch Gold Honey DUTB; Dutch Valley DUTD; Dutch Valley Food Dist. DUTE; Dutch Valley Foods DUTF. These are pre-cleanup proposals, not applied labels.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:49 — Test deferred supplier-label migration and read-only preview
+- **File(s) changed:** tests/test_supplier_label_backfill.py
+- **What changed:** Verify cleanup acknowledgment gate, collision allocation including more than 26 collisions, pseudo exclusion, inactive and retained labels, idempotent reruns, pre-schema preview, and a database-enforced read-only connection with safe URI rejection.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:48 — Split deferred supplier-label backfill into its own PR
+- **File(s) changed:** migrations/066_supplier_labels.sql; scripts/dry_run_supplier_labels.py; docs/deployments/066-supplier-labels.md
+- **What changed:** Keep 066 separate from A5 and gated on Michael-approved Dutch supplier cleanup. Add a SELECT-only production dry-run that previews every supplier label before schema or backfill exists, preserves assigned labels and never exposes credentials. No staging or production migration applied.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
 ## 2026-10-08 14:47 — A5 review fixes verified without migration 066
 - **File(s) changed:** docs/deployments/a5-lot-confirmation.md
 - **What changed:** Full local suite: 1871 Python and 69 JavaScript passed, no failures/skips, with schema-only 064 and no 066. Read-only production preflight found zero duplicate open UNIDENTIFIED_LOT exceptions per lot. No production writes or other worktree changes.
