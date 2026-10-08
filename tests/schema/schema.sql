@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fydbNNKU4wJo488v6L4mRZkQcf5PSdJpMarvOfnDG21shZCPzaaTXqXWg4FI92t
+\restrict LwwKdlcAAJzk0J5V44Ves7uNSjYPVMqhczf13Cxmp2QMpGZPghUfQNeQiKQeevV
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -2153,6 +2153,47 @@ CREATE TABLE public.scheduling_config (
 
 
 --
+-- Name: search_aliases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.search_aliases (
+    id bigint NOT NULL,
+    kind text NOT NULL,
+    alias text NOT NULL,
+    alias_norm text GENERATED ALWAYS AS (lower(btrim(regexp_replace(alias, '\s+'::text, ' '::text, 'g'::text)))) STORED,
+    expansion text,
+    product_id integer,
+    customer_id integer,
+    supplier_id integer,
+    language text DEFAULT 'any'::text NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_by integer,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    deactivated_by integer,
+    deactivated_at timestamp with time zone,
+    CONSTRAINT search_aliases_alias_check CHECK ((btrim(alias) <> ''::text)),
+    CONSTRAINT search_aliases_kind_check CHECK ((kind = ANY (ARRAY['token'::text, 'product'::text, 'customer'::text, 'supplier'::text]))),
+    CONSTRAINT search_aliases_language_check CHECK ((language = ANY (ARRAY['any'::text, 'en'::text, 'es'::text]))),
+    CONSTRAINT search_aliases_normalized_nonblank CHECK ((alias_norm <> ''::text)),
+    CONSTRAINT search_aliases_target_check CHECK ((((kind = 'token'::text) AND (expansion IS NOT NULL) AND (btrim(regexp_replace(expansion, '\s+'::text, ' '::text, 'g'::text)) <> ''::text) AND (product_id IS NULL) AND (customer_id IS NULL) AND (supplier_id IS NULL)) OR ((kind = 'product'::text) AND (product_id IS NOT NULL) AND (expansion IS NULL) AND (customer_id IS NULL) AND (supplier_id IS NULL)) OR ((kind = 'customer'::text) AND (customer_id IS NOT NULL) AND (expansion IS NULL) AND (product_id IS NULL) AND (supplier_id IS NULL)) OR ((kind = 'supplier'::text) AND (supplier_id IS NOT NULL) AND (expansion IS NULL) AND (product_id IS NULL) AND (customer_id IS NULL))))
+);
+
+
+--
+-- Name: search_aliases_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.search_aliases ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.search_aliases_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: shipment_lines; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3494,6 +3535,14 @@ ALTER TABLE ONLY public.scheduling_config
 
 
 --
+-- Name: search_aliases search_aliases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.search_aliases
+    ADD CONSTRAINT search_aliases_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: shipment_lines shipment_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4131,6 +4180,20 @@ CREATE UNIQUE INDEX products_odoo_code_unique ON public.products USING btree (od
 --
 
 CREATE UNIQUE INDEX sales_orders_customer_external_reference_uniq ON public.sales_orders USING btree (customer_id, external_order_reference) WHERE (external_order_reference IS NOT NULL);
+
+
+--
+-- Name: search_aliases_active_norm_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX search_aliases_active_norm_idx ON public.search_aliases USING btree (alias_norm) WHERE active;
+
+
+--
+-- Name: search_aliases_target_uniq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX search_aliases_target_uniq ON public.search_aliases USING btree (kind, alias_norm, COALESCE(product_id, 0), COALESCE(customer_id, 0), COALESCE(supplier_id, 0));
 
 
 --
@@ -5012,6 +5075,46 @@ ALTER TABLE ONLY public.sales_orders
 
 
 --
+-- Name: search_aliases search_aliases_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.search_aliases
+    ADD CONSTRAINT search_aliases_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.actors(id);
+
+
+--
+-- Name: search_aliases search_aliases_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.search_aliases
+    ADD CONSTRAINT search_aliases_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
+
+
+--
+-- Name: search_aliases search_aliases_deactivated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.search_aliases
+    ADD CONSTRAINT search_aliases_deactivated_by_fkey FOREIGN KEY (deactivated_by) REFERENCES public.actors(id);
+
+
+--
+-- Name: search_aliases search_aliases_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.search_aliases
+    ADD CONSTRAINT search_aliases_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: search_aliases search_aliases_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.search_aliases
+    ADD CONSTRAINT search_aliases_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id);
+
+
+--
 -- Name: shipment_lines shipment_lines_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5212,6 +5315,12 @@ ALTER TABLE public.receipt_counters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sales_order_create_receipts ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: search_aliases; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.search_aliases ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: write_tickets; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -5221,10 +5330,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fydbNNKU4wJo488v6L4mRZkQcf5PSdJpMarvOfnDG21shZCPzaaTXqXWg4FI92t
+\unrestrict LwwKdlcAAJzk0J5V44Ves7uNSjYPVMqhczf13Cxmp2QMpGZPghUfQNeQiKQeevV
 
-
-
--- Pending A4: remove after prod migration + scripts/dump_prod_schema.sh
-SET search_path TO public;
-\ir ../../migrations/060_search_aliases.sql

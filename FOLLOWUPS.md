@@ -77,6 +77,16 @@ after A7). Pilot soft-start Nov 2, gate (d) Nov 9–13, decision Nov 17, cutover
 the daily owner-acceptance slot: `~/Documents/fl-audits/lane-schedule.md`. Open: PR #78 records
 a PR-0 "rotate at cutover" override that the design doc still needs Michael to confirm.
 
+**P1.7 `/products/resolve` is master-key only — decide in A2 whether office/dashboard should reach it (found 2026-10-08, PR #81 rollout).**
+Live check after the A4 part 1 deploy: `POST /resolve` accepts the dashboard-scoped key
+(`DASHBOARD_KEY_ALLOWLIST` has `('POST', '/resolve')` and `('GET', '/aliases')`), but
+`POST /products/resolve` is on the office-GPT allowlist only, so the dashboard key gets
+`403 API key not authorized for this endpoint` and the bulk OCR/order-confirmation path
+needs the master key. Not a regression — the route was never on the dashboard list — but
+A2 (key kinds / scoped keys) must decide whether office and dashboard clients should call
+the bulk resolver, and if so add the `('POST', '/products/resolve')` pair to the relevant
+allowlist(s) with a test, or document that bulk resolution stays master/office-key only.
+
 ---
 
 ## 1. Backfill NULL addresses on recurring customers
