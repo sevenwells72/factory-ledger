@@ -7,6 +7,7 @@
 **Revision 3.3 (2026-10-07 15:48):** kosher answers — 4,000 CT standard (284 formula → 72 via catalog cleanup), Aug 12 mis-pack left as-is, paper log of extra-kosher batches until cutover + checklist step 1a (§5.3, §10.1, §11 item 19).
 **Revision 3.2 (2026-10-07 15:42):** supplier tracking approved — every receipt stores a real `supplier_id`, the lot-code prefix is a label only (§5.2, A5/D2 +1 d, gate 10(e)); Classic #9 split into Regular and Extra-Kosher tiers with owner PIN attestation and pack-source rules (§5.3, A12 3–3½ d, §3.2 alias rule, §11 items 17–18).
 **Revision 3.4 (2026-10-07 16:00):** schedule only — no rule changes. Michael approved **3 Codex lanes** and four re-sequencing changes (§10.2, §11 item 20): A3 split into A3a (tables + seeds, 1 d) and A3b so A5/A6 start a day after A1; A9 runs in parallel with A12; D3 split into D3-lite (shift-summary page + Confirm, before the pilot) and the rest after cutover; G1's engineering is built early with only the two editor pastes left for Nov 20, and A10 moves to cutover+1 in two stages. Critical path ≈ 17–18 d; staging pilot soft-starts Mon Nov 2; gate (d) window Nov 9–13. The "simplify for cutover" set (§10.2 item 9) is **held** as the Nov 6 checkpoint lever together with A8. Lane plan with dates: `~/Documents/fl-audits/lane-schedule.md` (outside the repo).
+**Revision 3.5 (2026-10-08 12:30):** decisions only — Michael approved the A9 shift-summary contract's three open points (legacy keys get a read-only all-actors view; confirm must echo `summary_hash`; re-confirming appends, history kept) and the A3a backfill rule (blank/missing legacy adjust reasons → `unknown`) on PRs #84/#85 (§11 items 21–24; §7.3 now points at `docs/contracts/shift-summary.md`; §5.1 backfill note).
 **Date:** 2026-10-07 · **Against:** `origin/main` @ `ebf153e` (PR #72; rev 3 re-verified against `cb2705c`, PR #73), MCP branch `integration/mcp-with-66` @ `2c6d625` / `feature/mcp-server` @ `d74f747`
 **Inputs read:** `FOLLOWUPS.md` (incl. P1.1 and §7), `~/Documents/fl-audits/mcp-readiness-audit.md` (2026-10-07), the GPT retirement map with the Oct 6 inventory rules R1–R10 (`~/Documents/Claude/2026-10-06/gpt-retirement-map/docs-draft/gpt-retirement-map.md`), `docs/mcp-auth-contract.md`, `docs/mcp-migration-plan.md`, `docs/named-actor-writes.md`, `docs/order-create-contract.md`, `docs/staging.md`, `audits/fresh-start/v3/*` (count packet, build backlog, Sunshine reconciliation), `IDEMPOTENCY_KEY_PLAN.md`, `main.py` and `tests/schema/schema.sql` on main, `mcp_server/` on the MCP branches.
 **Line numbers** are `main.py` on `ebf153e` and `tests/schema/schema.sql` ("schema:") unless stated. They drift; grep by function name before editing.
@@ -441,7 +442,7 @@ Seed of `correction_reasons`. These 8 are the only values accepted on `adjust`, 
 | `hydration_yield` | `unrecorded_usage` (note auto-filled "hydration/yield") | reassignment codes (`incorrect_receive`, `product_merge`, `supplier_relabel`) | stay on the admin-only `/lots/{id}/reassign` route; not exposed to tickets |
 | `other` / any free text | `unknown` with the original text as the note | `data_entry_error` (reassignment) | `data_entry_error` |
 
-Free-text `adjust_reason` rows that cannot be mapped keep their text and get `reason_code = 'unknown'`; the weekly view's first run will show the backlog of `unknown` so it can be cleaned up or left as history.
+Free-text `adjust_reason` rows that cannot be mapped keep their text and get `reason_code = 'unknown'`; the weekly view's first run will show the backlog of `unknown` so it can be cleaned up or left as history. **Decided 2026-10-08 (item 24, PR #85): adjust rows with a blank or missing `adjust_reason` are backfilled to `unknown` too** — every `type='adjust'` row carries a code; nothing is left NULL on history.
 
 ### 5.2 Supplier tracking on receipts — APPROVED by Michael 2026-10-07
 
@@ -603,7 +604,7 @@ Does this match what happened on the floor?   [Confirm]   [Confirm with notes]  
 
 Sections are driven by `write_tickets` (today's committed receipts for the plant day, `happened_at` *or* `entered_at` today — both are listed, late ones marked) + `expected_receipts` due today without a linked receive + `production_runs` planned today without a linked pack/make + `lot_on_hand()` for every lot touched + open `exceptions` owned by the actor.
 
-`POST /reports/shift-summary/confirm` → `shift_confirmations (business_date, actor_id, confirmed_at, outcome: 'match'|'discrepancy', notes, receipts_seen int, summary_snapshot jsonb)`. "Something is missing" opens `exceptions(SHIFT_DISCREPANCY)` with the note; the weekly view (§7.2 item 8) shows which days were never confirmed. Not confirming is not blocked — it is visible. The summary is bilingual (`label_es` on every section; reason codes carry `label_es`).
+`POST /reports/shift-summary/confirm` → `shift_confirmations (business_date, actor_id, confirmed_at, outcome: 'match'|'discrepancy', notes, receipts_seen int, summary_snapshot jsonb)`. **The frozen JSON contract is `docs/contracts/shift-summary.md` (PR #84, approved 2026-10-08 — §11 items 21–23); it changes only by revision of this document.** "Something is missing" opens `exceptions(SHIFT_DISCREPANCY)` with the note; the weekly view (§7.2 item 8) shows which days were never confirmed. Not confirming is not blocked — it is visible. The summary is bilingual (`label_es` on every section; reason codes carry `label_es`).
 
 ---
 
@@ -771,6 +772,15 @@ All ten were answered. Items 1–3, 5–7, 9–10 are **approved as recommended*
 | 20 | **3 Codex lanes; re-sequencing changes 5–8 approved** (A3 split A3a/A3b; A9 ∥ A12; D3 → D3-lite before the pilot, rest after cutover; G1 engineering early, A10 at cutover+1 in two stages). **Change 9 (simplify for cutover) is held** as the Nov 6 checkpoint lever together with A8. No safety rule changes. Pilot soft-start Nov 2; gate (d) window Nov 9–13; gate decision Nov 17; cutover Nov 20. | **Decided by Michael** | §10 rows A3a/A3b/A5/A6/A9/A10/G1/D3-lite/D3, §10.1 step 7, §10.2, `~/Documents/fl-audits/lane-schedule.md` |
 
 **Still open (owner):** 8(a) pouch price basis; 8(b) yield credits; **18 — confirm the §5.3 id mapping** (chip size is resolved); **§10.2 note — confirm the PR-0 "rotate at cutover" override recorded in PR #78.**
+
+### Decisions recorded 2026-10-08 12:30 — A9 contract and A3a backfill (Michael, on PRs #84 / #85)
+
+| # | Decision | Status | Effect in this document |
+|---|---|---|---|
+| 21 | **Legacy keys (master / dashboard, no actor identity) get a read-only all-actors shift summary** — `GET /reports/shift-summary` without `actor` returns `actor: null`, `can_confirm: false`; no 422. | **YES** (PR #84 a) | `docs/contracts/shift-summary.md` §1.1 / §1.2; §7.3 unchanged |
+| 22 | **Confirm must echo the `summary_hash` of the summary that was shown.** A changed summary → `409 SHIFT_SUMMARY_STALE` carrying the fresh document; the page asks again. | **YES** (PR #84 b) | contract §1.2, §3.1, §4; `shift_confirmations.summary_hash` + `summary_snapshot` (§3.4) |
+| 23 | **Re-confirming the same `(date, actor)` appends a new row; history is kept, the latest outcome is the day's status** on the weekly view (§7.2 item 8). No 409. | **YES** (PR #84 c) | contract §3.1; `shift_confirmations` append-only |
+| 24 | **Migration 061 backfill: adjust rows whose legacy `adjust_reason` is blank or missing become `reason_code='unknown'`** (not left NULL); original text/notes untouched. | **YES** (PR #85 d) | §5.1 backfill note; `migrations/061_exceptions_tables.sql` as written |
 
 ### 11.2 Part A verification (2026-10-07 15:00, against `origin/main` @ `cb2705c` and `origin/feature/mcp-server` @ `d74f747`)
 

@@ -1,10 +1,10 @@
 # Contract — end-of-shift summary (A9)
 
-**Status:** day-1 contract freeze (design rev 3.4 §10.2, lane schedule §2), written 2026-10-08 by lane 3 for Michael's Oct 8 slot. **Contract only** — no implementation. After approval this document changes only by design-doc revision; F1 (lane 2), D3-lite (lane 3) and the A9 implementation (lane 3, Oct 26–27) build against it.
+**Status:** **APPROVED by Michael 2026-10-08** (design rev 3.5 §11 items 21–23) — day-1 contract freeze (design §10.2, lane schedule §2), written 2026-10-08 by lane 3. **Contract only** — no implementation. This document now changes only by design-doc revision; F1 (lane 2), D3-lite (lane 3) and the A9 implementation (lane 3, Oct 26–27) build against it.
 **Source of truth for the rules:** `docs/design/phase1-safe-operating-system.md` §7.3 (what the summary shows), §2 (receipt numbers), §6 (happened/entered/late), §7.1 (exceptions, migration 061), §5.1 (reason codes carry `label_es`), §1.8 (receipts and the summary are endpoints first, screens second).
 **Consumers:** the D3-lite dashboard page (phone), the F1 FL Assistant ("what did I enter today" / end of shift), and after cutover the MCP read tool `endOfShift` (M3). All three render this JSON; none computes anything from ledger rows.
 
-Open decisions for Michael are marked **[DECISION]**; everything else follows the design text.
+The three points marked **[DECISION n — YES]** were approved by Michael on 2026-10-08 (PR #84); everything else follows the design text.
 
 ---
 
@@ -17,7 +17,7 @@ Read-only. Dashboard key and actor keys (both allowlists, A9 adds exactly this `
 | Param | Type | Default | Rules |
 |---|---|---|---|
 | `date` | `YYYY-MM-DD` plant day (America/New_York) | today (plant time) | future date → `422 DATE_IN_FUTURE`; any past day allowed (the page is also used to confirm yesterday) |
-| `actor` | actor **id** or exact actor **name** (same rule as `GET /receipts?actor=`) | the authenticated actor | legacy master/dashboard key with no `actor` → the summary covers **all actors** and `actor` in the response is `null` **[DECISION 1]**; unknown → `422 ACTOR_UNKNOWN`; a floor actor asking for someone else → `403 ACTOR_NOT_ALLOWED` once A2 roles land (until A2: allowed) |
+| `actor` | actor **id** or exact actor **name** (same rule as `GET /receipts?actor=`) | the authenticated actor | legacy master/dashboard key with no `actor` → the summary covers **all actors** and `actor` in the response is `null` **[DECISION 1 — YES]**; unknown → `422 ACTOR_UNKNOWN`; a floor actor asking for someone else → `403 ACTOR_NOT_ALLOWED` once A2 roles land (until A2: allowed) |
 | `lang` | `en` \| `es` | `en` | affects only `label` / `message` / `summary` convenience fields; `*_en` and `*_es` are **always** both present so clients can switch without a refetch |
 
 ### 1.2 Response envelope
@@ -213,10 +213,10 @@ Receipt rows (same object as §2.2) for every receipt **entered** on `date` whos
 | `date` | required; the plant day confirmed; future → `422 DATE_IN_FUTURE` |
 | `outcome` | `match` (Confirm), `match` + non-empty `notes` (Confirm with notes), `discrepancy` (Something is missing). `discrepancy` with blank `notes` → `422 NOTES_REQUIRED` |
 | `notes` | ≤ 2,000 chars; stored verbatim; language free |
-| `summary_hash` | required; must equal the hash of a `GET` for the same `(date, actor)` made **now** → else `409 SHIFT_SUMMARY_STALE` with the fresh summary in `detail.summary` so the client re-renders and asks again **[DECISION 2]** |
+| `summary_hash` | required; must equal the hash of a `GET` for the same `(date, actor)` made **now** → else `409 SHIFT_SUMMARY_STALE` with the fresh summary in `detail.summary` so the client re-renders and asks again **[DECISION 2 — YES]** |
 | `receipts_seen` | required; the `receipts_today` the client displayed (defence in depth with the hash; stored) |
 
-The actor is the authenticated actor — never from the body (same rule as tickets). No ticket is involved: a confirmation is not a ledger write and is never replayed; a second confirm for the same `(date, actor)` **appends** a new row (the latest is the day's status; the weekly view counts the latest) **[DECISION 3]**.
+The actor is the authenticated actor — never from the body (same rule as tickets). No ticket is involved: a confirmation is not a ledger write and is never replayed; a second confirm for the same `(date, actor)` **appends** a new row (the latest is the day's status; the weekly view counts the latest) **[DECISION 3 — YES]**.
 
 ### 3.2 Side effects
 
@@ -334,9 +334,9 @@ All errors use the standard envelope `{"error_detail": {"code", "message", "mess
 7. The all-actors view is read-only (`can_confirm: false`).
 8. Response time target: < 1.5 s for a 30-receipt day on staging (the page is opened on a phone at the end of a shift).
 
-## 7. Decisions requested from Michael (Oct 8 slot)
+## 7. Decisions — recorded 2026-10-08 (Michael, PR #84; design §11 items 21–23)
 
-- **[DECISION 1]** Legacy-key callers (today's dashboard, GPTs) get the all-actors view with `actor: null`, read-only. Alternative: require `actor` and 422.
-- **[DECISION 2]** Confirm requires the `summary_hash` from the summary shown; a changed summary is a 409 and the page re-asks. Alternative: no hash, confirm whatever is current.
-- **[DECISION 3]** Re-confirming the same day appends (latest wins) rather than 409. Alternative: one confirmation per day per actor, later ones refused.
+- **[DECISION 1 — YES]** Legacy-key callers (today's dashboard, GPTs) get the all-actors view with `actor: null`, read-only. (Rejected alternative: require `actor` and 422.)
+- **[DECISION 2 — YES]** Confirm requires the `summary_hash` from the summary shown; a changed summary is a 409 and the page re-asks. (Rejected alternative: no hash.)
+- **[DECISION 3 — YES]** Re-confirming the same day appends (latest wins, history kept) rather than 409. (Rejected alternative: one confirmation per day per actor.)
 - Section labels in Spanish (RECIBIDO / PRODUCIDO / EMPACADO / ENVIADO / AJUSTADO / ANULADO / ¿FALTA REGISTRAR? / LOTES MOVIDOS HOY / EXCEPCIONES ABIERTAS (tuyas) / ENTRADAS TARDÍAS HOY) — Arturo to confirm wording during pilot week 1 (D5 list).
