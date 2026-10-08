@@ -1,4 +1,4 @@
-"""FL-issued write tickets and receipt reads (A1 part 1: receive).
+"""FL-issued write tickets and receipt reads (A1: receive, make, pack, adjust and found).
 
 Route handlers own one database transaction. Action helpers receive its cursor;
 no nested HTTP calls, global connection overrides, or independent commits.
@@ -6,6 +6,8 @@ no nested HTTP calls, global connection overrides, or independent commits.
 import hashlib
 import json
 import secrets
+
+import ticket_actions as actions
 from datetime import date, datetime
 from typing import List, Literal, Optional
 
@@ -18,6 +20,10 @@ PositiveId = conint(strict=True, gt=0)
 PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND'}
 ROUTES = frozenset({
     ('POST', '/receive/prepare'),
+    ('POST', '/make/prepare'),
+    ('POST', '/pack/prepare'),
+    ('POST', '/adjust/prepare'),
+    ('POST', '/inventory/found/prepare'),
     ('POST', '/tickets/{ticket}/commit'),
     ('GET', '/receipts'),
     ('GET', '/receipts/{receipt_number}'),
@@ -33,7 +39,7 @@ class IdInput(BaseModel):
     @root_validator(pre=True)
     def ids_only(cls, values):
         if isinstance(values, dict) and any(k in values for k in
-                ('product_name', 'shipper_name', 'supplier_name')):
+                ('product_name', 'shipper_name', 'supplier_name', 'source_product', 'target_product')):
             fail(422, 'IDS_REQUIRED', 'Use product_id and supplier_id from the resolution endpoints.')
         return values
 
@@ -74,6 +80,80 @@ class ReceivePrepareRequest(IdInput):
         if 'product_id' not in values:
             fail(422, 'IDS_REQUIRED', 'Use product_id from the resolution endpoints.')
         return values
+
+
+class ActionPrepareRequest(IdInput):
+    occurred_at: Optional[datetime] = None
+    backfill: bool = False
+    client_source: ClientSource = 'api'
+
+    @root_validator(pre=True)
+    def happened_alias(cls, values):
+        values = dict(values)
+        if 'happened_at' in values:
+            if 'occurred_at' in values:
+                fail(422, 'AMBIGUOUS_EVENT_TIME', 'Supply only happened_at or occurred_at.')
+            values['occurred_at'] = values.pop('happened_at')
+        return values
+
+
+class IngredientLot(IdInput):
+    ingredient_product_id: PositiveId
+    lot_id: PositiveId
+
+
+class MakePrepareRequest(ActionPrepareRequest):
+    product_id: PositiveId
+    batches: conint(strict=True, gt=0)
+    lot_code: Optional[str] = None
+    ingredient_lots: List[IngredientLot] = Field(default_factory=list)
+    excluded_ingredients: List[PositiveId] = Field(default_factory=list)
+    confirmed_sku: bool = False
+
+
+class LotAllocation(IdInput):
+    lot_id: PositiveId
+    quantity_lb: confloat(gt=0)
+
+
+class PackPrepareRequest(ActionPrepareRequest):
+    source_product_id: PositiveId
+    target_product_id: PositiveId
+    cases: conint(strict=True, gt=0)
+    case_weight_lb: Optional[confloat(gt=0)] = None
+    lot_allocations: Optional[List[LotAllocation]] = None
+    target_lot_code: Optional[str] = None
+
+
+class AdjustPrepareRequest(ActionPrepareRequest):
+    lot_id: PositiveId
+    delta_lb: float
+    reason: str = Field(min_length=1)
+    reason_es: Optional[str] = None
+
+    @root_validator(pre=True)
+    def reason_alias(cls, values):
+        values = dict(values)
+        if 'reason_code' in values:
+            if 'reason' in values:
+                fail(422, 'AMBIGUOUS_REASON', 'Supply reason or reason_code, not both.')
+            values['reason'] = values.pop('reason_code')
+        if values.get('delta_lb') == 0:
+            fail(422, 'INVALID_QUANTITY', 'Adjustment must be nonzero.')
+        return values
+
+
+class FoundPrepareRequest(ActionPrepareRequest):
+    product_id: PositiveId
+    quantity: confloat(gt=0)
+    uom: Literal['lb'] = 'lb'
+    reason_code: str = Field(min_length=1)
+    lot_code: Optional[str] = None
+    found_location: Optional[str] = None
+    estimated_age: str = 'unknown'
+    suspected_supplier: Optional[str] = None
+    notes: Optional[str] = None
+    notes_es: Optional[str] = None
 
 
 class CommitRequest(BaseModel):
@@ -260,56 +340,92 @@ def receipt_detail(api, cur, number):
 
 
 def register_routes(app, api):
-    @app.post('/receive/prepare')
-    def prepare_receive(req: ReceivePrepareRequest, request: Request,
-                        _: bool = Depends(api.verify_api_key)):
+    def prepare(action, req, request):
         actor = identity(api, request)
         payload = json.loads(req.json(exclude={'client_source'}))
         event_time = req.occurred_at or api.get_plant_now()
         if event_time.tzinfo is None:
             event_time = event_time.replace(tzinfo=api.PLANT_TIMEZONE)
         payload['occurred_at'] = event_time.astimezone(api.PLANT_TIMEZONE).isoformat()
-        if payload['lot_code']:
-            payload['lot_code'] = api.normalize_lot_code_input(payload['lot_code'])
-        payload['supplier_lot_code'] = (req.supplier_lot_code or '').strip() or (req.lot_code or '').strip() or 'N/A'
+        for field in ('lot_code', 'target_lot_code'):
+            if payload.get(field):
+                payload[field] = api.normalize_lot_code_input(payload[field])
+        if action == 'receive':
+            payload['supplier_lot_code'] = (req.supplier_lot_code or '').strip() or (req.lot_code or '').strip() or 'N/A'
         with api.get_transaction() as cur:
             blockers = []
             draft = {}
             state = {}
             try:
-                draft, state, _, _, _, _, er_id = validate_receive(api, cur, payload)
-                payload['expected_receipt_id'] = er_id
-                payload['lot_code'] = draft['lot_code']
+                if action == 'receive':
+                    draft, state, _, _, _, _, er_id = validate_receive(api, cur, payload)
+                    payload['expected_receipt_id'] = er_id
+                    payload['lot_code'] = draft['lot_code']
+                else:
+                    draft, state, _, _, _, _, specification, input_plan = actions.validate(api, cur, action, payload)
+                    payload['specification'] = specification
+                    if draft.get('output_lot_id'):
+                        payload['existing_output_lot_id'] = draft['output_lot_id']
+                    if input_plan is not None:
+                        payload['input_plan'] = input_plan
+                    if action == 'pack':
+                        payload['target_lot_code'] = draft['output_lot_code']
+                        payload['case_weight_lb'] = draft['case_weight_lb']
+                    elif action in ('make', 'found'):
+                        payload['lot_code'] = draft['lot_code']
+                    elif action == 'adjust':
+                        payload['product_id'] = draft['product_id']
             except HTTPException as exc:
                 if exc.status_code >= 500:
                     raise
                 blockers = [blocker(exc)]
-            warnings = receive_duplicates(cur, payload)
+            warnings = (receive_duplicates(cur, payload) if action == 'receive' else
+                        actions.duplicates(cur, action, payload, draft))
             payload_hash = canonical_hash(payload)
             draft.update(actor=actor, happened_at=payload['occurred_at'],
                          happened_vs_now_minutes=round((api.get_plant_now()-event_time).total_seconds()/60, 1),
                          blockers=blockers)
             draft = json_value(api, draft)
             # Serialize identical prepares, including the first one (no row yet).
-            supersession = canonical_hash([actor['id'], actor['name'], actor['key_kind'], 'receive', payload_hash])
+            supersession = canonical_hash([actor['id'], actor['name'], actor['key_kind'], action, payload_hash])
             cur.execute('SELECT pg_advisory_xact_lock(%s)', (int(supersession[:15], 16),))
             cur.execute('''UPDATE write_tickets SET status='superseded'
-                           WHERE status='prepared' AND action='receive' AND payload_hash=%s
+                           WHERE status='prepared' AND action=%s AND payload_hash=%s
                              AND operator_id=%s AND key_kind=%s AND actor_id IS NOT DISTINCT FROM %s''',
-                        (payload_hash, actor['name'], actor['key_kind'], actor['id']))
+                        (action, payload_hash, actor['name'], actor['key_kind'], actor['id']))
             ticket = 'wt_' + secrets.token_urlsafe(32)
             ttl = 30 if req.client_source == 'dashboard' else 10
             cur.execute('''WITH clock AS (SELECT clock_timestamp() AS at)
                 INSERT INTO write_tickets(ticket_hash,action,actor_id,operator_id,key_kind,client_source,
                     payload,payload_hash,state_hash,draft,warnings,prepared_at,expires_at)
-                SELECT %s,'receive',%s,%s,%s,%s,%s,%s,%s,%s,%s,at,at+%s*interval '1 minute'
+                SELECT %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,at,at+%s*interval '1 minute'
                 FROM clock RETURNING id,expires_at''',
-                (token_hash(ticket), actor['id'], actor['name'], actor['key_kind'], req.client_source,
-                 Json(payload), payload_hash, canonical_hash(state), Json(draft), Json(warnings), ttl))
+                (token_hash(ticket), action, actor['id'], actor['name'], actor['key_kind'], req.client_source,
+                 Json(payload), payload_hash, canonical_hash(json_value(api, state)), Json(draft), Json(warnings), ttl))
             row = cur.fetchone()
-            return {'ticket': ticket, 'ticket_id': row['id'], 'action': 'receive',
+            return {'ticket': ticket, 'ticket_id': row['id'], 'action': action,
                     'expires_at': row['expires_at'], 'payload_hash': payload_hash, 'draft': draft,
                     'warnings': warnings, 'blockers': blockers, 'can_commit': not blockers, 'actor': actor}
+
+    @app.post('/receive/prepare')
+    def prepare_receive(req: ReceivePrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
+        return prepare('receive', req, request)
+
+    @app.post('/make/prepare')
+    def prepare_make(req: MakePrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
+        return prepare('make', req, request)
+
+    @app.post('/pack/prepare')
+    def prepare_pack(req: PackPrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
+        return prepare('pack', req, request)
+
+    @app.post('/adjust/prepare')
+    def prepare_adjust(req: AdjustPrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
+        return prepare('adjust', req, request)
+
+    @app.post('/inventory/found/prepare')
+    def prepare_found(req: FoundPrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
+        return prepare('found', req, request)
 
     @app.post('/tickets/{ticket}/commit')
     def commit_ticket(ticket: str, body: CommitRequest, request: Request,
@@ -343,19 +459,25 @@ def register_routes(app, api):
                              set(body.acknowledged_warnings))
             if missing:
                 fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.', missing=missing)
-            if row['action'] != 'receive':
-                fail(409, 'TICKET_ACTION_UNAVAILABLE', 'This A1 part supports receive tickets only.')
+            if row['action'] not in PREFIXES:
+                fail(409, 'TICKET_ACTION_UNAVAILABLE', 'Unsupported ticket action.')
             cur.execute('SAVEPOINT ticket_post')
             try:
-                # Same lock as legacy receive, before validation and posting.
-                cur.execute('SELECT pg_advisory_xact_lock(1)')
+                # Reuse the legacy lot-sequence locks before validation/posting.
+                action_lock = {'receive': 1, 'found': 2, 'make': 3}.get(row['action'])
+                if action_lock:
+                    cur.execute('SELECT pg_advisory_xact_lock(%s)', (action_lock,))
                 if actor['id'] is not None:
                     cur.execute('SELECT active FROM actors WHERE id=%s FOR SHARE', (actor['id'],))
                     current_actor = cur.fetchone()
                     if not current_actor or not current_actor['active']:
                         fail(403, 'ACTOR_INACTIVE', 'The preparing actor is no longer active.')
-                draft, state, req, product, occurred_at, source, er_id = validate_receive(
-                    api, cur, row['payload'], lock=True)
+                if row['action'] == 'receive':
+                    draft, state, req, product, occurred_at, source, er_id = validate_receive(
+                        api, cur, row['payload'], lock=True)
+                else:
+                    validated = actions.validate(api, cur, row['action'], row['payload'], lock=True)
+                    draft, state, _, _, occurred_at, source, _, _ = validated
                 if row['draft'].get('blockers'):
                     fail(409, 'DRAFT_BLOCKED', 'Prepare again after resolving the draft blockers.',
                          blockers=row['draft']['blockers'])
@@ -364,11 +486,15 @@ def register_routes(app, api):
                 if not row['draft'].get('lot_exists') and draft.get('lot_exists'):
                     fail(409, 'LOT_CODE_TAKEN',
                          'The prepared lot code is now in use; prepare again for a fresh draft.')
-                state_changed = canonical_hash(state) != row['state_hash']
+                state_changed = canonical_hash(json_value(api, state)) != row['state_hash']
                 receipt = allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
-                req.mode = 'commit'
-                response = api._receive_commit_core(cur, req, request, occurred_at, source,
-                    product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id)
+                if row['action'] == 'receive':
+                    req.mode = 'commit'
+                    response = api._receive_commit_core(cur, req, request, occurred_at, source,
+                        product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id)
+                else:
+                    response = actions.post(api, cur, row['action'], validated, row['payload'], request,
+                        row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
                 response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
                                 state_changed=state_changed)
                 response = json_value(api, response)
@@ -384,7 +510,10 @@ def register_routes(app, api):
                     'error_code': 'TICKET_STALE', 'message': 'Draft no longer valid; prepare again.',
                     'blockers': errors}})
             cur.execute('RELEASE SAVEPOINT ticket_post')
-            result_ref = {'transaction_ids': [response['transaction_id']], 'lot_ids': [response['lot_id']]}
+            cur.execute('SELECT DISTINCT lot_id FROM transaction_lines WHERE transaction_id=%s AND lot_id IS NOT NULL ORDER BY lot_id',
+                        (response['transaction_id'],))
+            result_ref = {'transaction_ids': [response['transaction_id']],
+                          'lot_ids': [line['lot_id'] for line in cur.fetchall()]}
             cur.execute('''UPDATE write_tickets SET status='committed',committed_at=clock_timestamp(),
                 receipt_number=%s,result_ref=%s,response=%s,acknowledged=%s WHERE id=%s''',
                 (receipt, Json(result_ref), Json(response), Json(sorted(set(body.acknowledged_warnings))), row['id']))

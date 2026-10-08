@@ -36,6 +36,112 @@
 - **Why:** Rev 3.4 §10.2 freezes the A9 JSON on day 1 (Thu Oct 8) so F1 (lane 2), D3-lite and the A9 implementation (lane 3) build against a contract instead of waiting; Michael approves it in the Oct 8 slot.
 
 ---
+
+## 2026-10-08 11:49 — Rebase part-2 PR onto merged A4 and preserve both changelog histories
+- **File(s) changed:** CHANGE_LOG.md, docs/deployments/a1-write-tickets-part2.md
+- **What changed:** Resolve only the changelog conflict by retaining every upstream and part-2 entry; accept upstream A4/schema housekeeping intact. Main code merges automatically; full revalidation follows.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:48 — Prepare reviewed A1 part-2 pull request
+- **File(s) changed:** work/pr-body.md
+- **What changed:** Prepare the PR description with final behavior, unchanged migration/schema, full-suite results, documented expiry schedule and four final-code staging receipts.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:47 — Verify final A1 part-2 suite and staging receipts
+- **File(s) changed:** docs/deployments/a1-write-tickets-part2.md, work/staging-receipts-final.json
+- **What changed:** Final code passes 1606 Python and 69 Node tests; 72 new part-2 tests pass. Fresh guarded staging HTTP smoke verifies MK/PK/ADJ/FND-261008-002, replay and lookups, and deactivates the synthetic actor; no production or hosted deployment changes.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:46 — Document part-2 contracts, nightly expiry operation and staging receipts
+- **File(s) changed:** docs/deployments/a1-write-tickets-part2.md
+- **What changed:** Record ID input contracts, concurrency/duplicate rules, existing scheduled-sweep command and protected staging environment, scope boundaries and four verified staging receipts.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:44 — Keep post adapters ID-bound and match stored decimal quantities
+- **File(s) changed:** main.py, ticket_actions.py, tests/test_write_tickets_part2.py
+- **What changed:** Final review binds adjust posting to lot_id, limits pack resolution to pinned source IDs, and rounds duplicate quantities like numeric(14,4), with fractional-yield regression coverage.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:43 — Extend dashboard safety assertion only for the three new ticket prepares
+- **File(s) changed:** tests/test_dashboard_api_key.py
+- **What changed:** Allow the exact POST make/pack/adjust prepare routes while continuing to prohibit direct, commit, admin and void routes.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:42 — Prepare isolated staging API smoke harness
+- **File(s) changed:** work/staging_smoke.py
+- **What changed:** Create a local-only listener backed by guarded staging, using unique synthetic inventory and an ephemeral named actor; verify replay/receipt lookups and deactivate the actor afterward without startup migrations or hosted configuration changes.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:40 — Pin existing output identities and extend recipe, add-in and lot-race coverage
+- **File(s) changed:** write_tickets.py, ticket_actions.py, tests/test_write_tickets_part2.py
+- **What changed:** Reject renamed/replaced output lots; verify strict models, blocked drafts, multiple FIFO inputs, recipe changes, pack add-ins, adjust ID stability and real different-ticket lot races.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:38 — Preserve pack allocation lock order and append-only test evidence
+- **File(s) changed:** main.py, ticket_actions.py, tests/test_write_tickets_part2.py
+- **What changed:** Acquire source lot/allocation locks before pinned input validation; use correction routes and additive ledger entries for race fixtures, plus a read-only historical view for duplicate-window tests.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:38 — Use the schema-supported finished product type in part-2 fixtures
+- **File(s) changed:** tests/test_write_tickets_part2.py
+- **What changed:** Correct the synthetic test fixture product type before exercising endpoint behavior.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:37 — Add PostgreSQL lifecycle and concurrency coverage for every part-2 action
+- **File(s) changed:** tests/test_write_tickets_part2.py
+- **What changed:** Exercise single use, replay, expiry, tamper, identity, revalidation, duplicate windows, trace rollback, legacy/ticket lot races and concurrent HTTP commits.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:35 — Correct ticket SQL bindings and preserve legacy found attribution
+- **File(s) changed:** main.py, write_tickets.py, tests/test_named_actor_writes.py, work/log_change.py
+- **What changed:** Fix extracted found INSERT and generic ticket parameter count; extend the exact auth allowlist assertion and add a changelog helper.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
+## 2026-10-08 11:34 — Register all four A1 prepare actions on shared ticket lifecycle
+- **File(s) changed:** `write_tickets.py`, `main.py`
+- **What changed:** Add strict ID request models and allowlists, reuse expiry/supersession/replay and receipt storage, revalidate under locks, and include all consumed lots in receipt references.
+- **Why:** Provide one atomic commit contract for all A1 actions without a new migration.
+
+---
+
+## 2026-10-08 11:33 — Add ID-bound ticket validation, exact input plans and action duplicate warnings
+- **File(s) changed:** `ticket_actions.py`
+- **What changed:** Validate and pin action quantities and lots, reject stale recipes/stock/lot identities, post through extracted cores, and match effective recent ledger entries.
+- **Why:** Extend A1 safety to make, pack, adjust and found.
+
+---
+
+## 2026-10-08 11:30 — Extract same-cursor action cores for A1 part 2
+- **File(s) changed:** `main.py`
+- **What changed:** Extract make/pack preview and post, adjust post, and found post; add optional ticket receipt, exact input plan and new-lot guards while retaining direct route defaults.
+- **Why:** Post ledger, trace and receipt atomically from prepared tickets.
+
+---
+
 ## 2026-10-08 11:38 — Post-A1/A4 housekeeping: schema re-dump with 058+060, FL changelog rows 163/164, FOLLOWUPS P1.7
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `chore/post-a1-a4` (worktree `~/dev/fl-chore-wt`, off `origin/main` 627b8f5). `tests/schema/schema.sql` re-dumped read-only from production with `scripts/dump_prod_schema.sh` — it now contains the real 058 (`write_tickets`, `receipt_counters`, `transactions.receipt_number`/`ticket_id`) and 060 (`search_aliases`) objects and the pending `\ir 060_search_aliases.sql` block is gone (zero data rows verified). `FACTORY_LEDGER_CHANGELOG.md` gains deployment rows 163 (A1 part 1 / 058, PR #78 → 442c675) and 164 (A4 part 1 / 060, PR #81 → 627b8f5) with apply times, verification, rollback order and live-check results. `FOLLOWUPS.md` P1.7 records that `/products/resolve` is master-key only (dashboard key → 403) and asks A2 to decide whether office/dashboard clients should reach it. Full Python suite and Node suite rerun on fresh local DB `fl_chore_20261008` built from the new schema.
