@@ -419,7 +419,7 @@ def register_routes(app, api):
             draft['entry_timing'] = entry_timing
             payload_hash = canonical_hash(payload)
             draft.update(actor=actor, happened_at=payload['occurred_at'],
-                         happened_vs_now_minutes=round((api.get_plant_now()-event_time).total_seconds()/60, 1),
+                         happened_vs_now_minutes=round(permissions.elapsed(event_time, api.get_plant_now()).total_seconds()/60, 1),
                          blockers=blockers)
             draft = json_value(api, draft)
             # Serialize identical prepares, including the first one (no row yet).
@@ -488,13 +488,15 @@ def register_routes(app, api):
             if row['status'] == 'committed':
                 return {**row['response'], 'replayed': True}
             # A2 hook: enforce again at commit on the stored action, with the
-            # role as it is NOW (a role change after prepare must deny), and
-            # re-run the back-dating rule against the commit clock.
+            # role and active flag as they are NOW, read FOR SHARE so the row
+            # cannot change between this check and the post (the lock is held
+            # to the end of the transaction; a concurrent UPDATE actors waits).
+            current_actor = None
             if actor['id'] is not None:
-                cur.execute('SELECT role FROM actors WHERE id=%s', (actor['id'],))
-                current_role = cur.fetchone()
-                if current_role:
-                    actor['role'] = current_role['role']
+                cur.execute('SELECT role, active FROM actors WHERE id=%s FOR SHARE', (actor['id'],))
+                current_actor = cur.fetchone()
+                if current_actor:
+                    actor['role'] = current_actor['role']
             permissions.require(row['action'], actor)
             entry_timing = permissions.require_backdating(
                 actor, datetime.fromisoformat(row['payload']['occurred_at']), api.get_plant_now())
@@ -522,11 +524,9 @@ def register_routes(app, api):
                 action_lock = {'receive': 1, 'found': 2, 'make': 3}.get(row['action'])
                 if action_lock:
                     cur.execute('SELECT pg_advisory_xact_lock(%s)', (action_lock,))
-                if actor['id'] is not None:
-                    cur.execute('SELECT active FROM actors WHERE id=%s FOR SHARE', (actor['id'],))
-                    current_actor = cur.fetchone()
-                    if not current_actor or not current_actor['active']:
-                        fail(403, 'ACTOR_INACTIVE', 'The preparing actor is no longer active.')
+                if actor['id'] is not None and not (current_actor and current_actor['active']):
+                    # Same locked row as the role check above.
+                    fail(403, 'ACTOR_INACTIVE', 'The preparing actor is no longer active.')
                 if row['action'] == 'receive':
                     draft, state, req, product, occurred_at, source, er_id = validate_receive(
                         api, cur, row['payload'], lock=True)

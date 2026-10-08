@@ -204,6 +204,13 @@ def test_atomic_failure_after_lines(client, db_cursor, catalog, named_actors, mo
 @pytest.mark.parametrize('actor', ['Blubber', 'Arturo', 'Luz', 'Miriam'])
 def test_named_create_and_header_audit_same_transaction(client, db_cursor, catalog, named_actors, actor):
     client.headers['X-API-Key'] = named_actors[actor]['key']
+    if actor in ('Arturo', 'Luz'):   # floor: §4.3 (A2) denies create_order on the direct route too
+        response = client.post('/sales/orders', json=payload(catalog))
+        assert response.status_code == 403, response.text
+        assert response.json()['detail']['error_code'] == 'ROLE_NOT_ALLOWED'
+        db_cursor.execute('SELECT count(*) AS n FROM actor_write_audit')
+        assert db_cursor.fetchone()['n'] == 0
+        return
     result = post(client, payload(catalog))
     assert post(client, payload(catalog)) == result
     response = client.patch(f"/sales/orders/{result['order_id']}", json={'customer_po': '000008'})

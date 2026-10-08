@@ -13,9 +13,12 @@ Actions are keyed exactly like `write_tickets.action` where a ticket exists
 (`receive`, `make`, `pack`, `adjust`, `found`), so the ticket layer enforces on
 the stored action, never on the route.
 """
-from datetime import timedelta
+from datetime import timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
+
+PLANT_TIMEZONE = ZoneInfo('America/New_York')   # = main.PLANT_TIMEZONE
 
 OWNER, FLOOR, OFFICE = 'owner', 'floor', 'office'
 # The two shared keys have no person behind them. They keep exactly what they
@@ -38,7 +41,7 @@ ROLE_PERMISSIONS = {
     'void': _NAMED_AND_MASTER - {OFFICE},             # floor: own posts, same plant day (A3b)
     'rename_lot': _NAMED_AND_MASTER,
     'update_supplier_lot': _NAMED_AND_MASTER,
-    'move_lot': _NAMED_AND_MASTER,                    # A5 pallet-move ticket (LOT receipts)
+    'move_lot': NAMED,                                # A5 pallet-move ticket: new, so no shared key
     # Shipping (A6 tickets)
     'ship_order': _NAMED_AND_MASTER,
     'ship_standalone': _NAMED_AND_MASTER - {FLOOR},
@@ -119,12 +122,110 @@ def require(action, identity):
 
 
 # ---------------------------------------------------------------------------
-# Back-dating (design §6.3, decision D6). All comparisons are absolute
-# (timezone-aware) so DST never shifts a boundary; display is plant time.
+# Direct (legacy) routes. Until A10 closes them, a named actor key reaches the
+# same writes through `POST /make` as through `/make/prepare`, so the matrix
+# is applied to the route in `_authorize_api_key` (design §4.3 header) before
+# the handler runs. The shared keys are NOT gated here: they keep today's
+# route-level allowlists unchanged (nothing new, nothing taken) until A10.
+# ---------------------------------------------------------------------------
+ROUTE_ACTIONS = {
+    ('POST', '/receive'): 'receive',
+    ('POST', '/receive/preview'): 'receive',
+    ('POST', '/receive/commit'): 'receive',
+    ('POST', '/make'): 'make',
+    ('POST', '/make/preview'): 'make',
+    ('POST', '/make/commit'): 'make',
+    ('POST', '/pack'): 'pack',
+    ('POST', '/pack/preview'): 'pack',
+    ('POST', '/pack/commit'): 'pack',
+    ('POST', '/adjust'): 'adjust',
+    ('POST', '/adjust/preview'): 'adjust',
+    ('POST', '/adjust/commit'): 'adjust',
+    ('POST', '/inventory/found'): 'found',
+    ('POST', '/inventory/found-with-new-product'): 'found',
+    ('POST', '/void/{transaction_id}'): 'void',
+    ('PATCH', '/lots/{lot_id}/rename'): 'rename_lot',
+    ('PATCH', '/lots/{lot_code}/supplier-lot'): 'update_supplier_lot',
+    ('POST', '/ship'): 'ship_standalone',
+    ('POST', '/ship/preview'): 'ship_standalone',
+    ('POST', '/ship/commit'): 'ship_standalone',
+    ('POST', '/sales/orders/{order_id}/ship'): 'ship_order',
+    ('POST', '/sales/orders/{order_id}/ship/preview'): 'ship_order',
+    ('POST', '/sales/orders/{order_id}/ship/commit'): 'ship_order',
+    ('POST', '/sales/orders'): 'create_order',
+    ('POST', '/sales/orders/extract/approve'): 'create_order',
+    ('POST', '/sales/orders/{order_id}/lines'): 'add_order_lines',
+    ('PATCH', '/sales/orders/{order_id}/lines/{line_id}/update'): 'update_order_line',
+    ('PATCH', '/sales/orders/{order_id}/lines/{line_id}/cancel'): 'cancel_order_line',
+    ('PATCH', '/sales/orders/{order_id}'): 'update_order_header',
+    ('PATCH', '/sales/orders/{order_id}/status'): 'update_order_status',
+    ('POST', '/sales-orders/{so_number}/ready'): 'mark_order_ready',
+    ('POST', '/sales/orders/{order_id}/cancel'): 'cancel_order',
+    ('POST', '/sales/orders/{order_id}/close'): 'cancel_order',   # reason shipped_not_recorded: owner-only, checked in the handler
+    ('POST', '/sales/orders/{order_id}/reopen'): 'reopen_order',
+    ('POST', '/expected-receipts'): 'create_expected_receipt',
+    ('PATCH', '/expected-receipts/{expected_receipt_id}'): 'create_expected_receipt',
+    ('POST', '/expected-receipts/extract/approve'): 'create_expected_receipt',
+    ('POST', '/customers'): 'manage_customers',
+    ('PATCH', '/customers/{customer_id}'): 'manage_customers',
+}
+# Actor-reachable writes with no §4.3 row. Listed so the completeness test
+# names every exemption; each stays open to every named role as today.
+UNGATED_ROUTES = frozenset({
+    ('POST', '/products/resolve'),                 # lookup, no business write
+    ('POST', '/resolve'),                          # A4 resolution, read-only
+    ('POST', '/sales/orders/{order_id}/allocations'),                           # planning board
+    ('POST', '/sales/orders/{order_id}/allocations/{allocation_id}/release'),
+    ('PATCH', '/lots/{lot_id}/received-at'),       # dashboard date fix, FOLLOWUPS P1.11
+    ('POST', '/suppliers'),                        # vendor list, FOLLOWUPS P1.11
+    ('POST', '/expected-receipts/extract'),        # intake: stores the document only
+    ('POST', '/expected-receipts/match'),
+    ('POST', '/sales/orders/extract'),
+    ('POST', '/sales/orders/match'),
+    ('POST', '/purchase-documents/{document_id}/extract'),
+    ('POST', '/production/runs'),                  # scheduling S1, not a ledger write
+    ('PATCH', '/production/runs/{run_id}'),
+    ('POST', '/production/runs/{run_id}/cancel'),
+    ('POST', '/production/runs/{run_id}/complete'),
+    ('PUT', '/production/runs/{run_id}/coverage'),
+    ('POST', '/dashboard/api/notes'),              # notes CRUD
+    ('PUT', '/dashboard/api/notes/{note_id}'),
+    ('PUT', '/dashboard/api/notes/{note_id}/toggle'),
+    ('DELETE', '/dashboard/api/notes/{note_id}'),
+    ('POST', '/supply-requests'),                  # supplies queue
+    ('PATCH', '/supply-requests/{supply_request_id}'),
+})
+
+
+def require_route(route_key, identity):
+    """Apply the matrix to a direct route for a NAMED actor; shared keys pass through."""
+    if identity.get('key_kind') != 'actor':
+        return None
+    action = ROUTE_ACTIONS.get(route_key)
+    return require(action, identity) if action else None
+
+
+# ---------------------------------------------------------------------------
+# Back-dating (design §6.3, decision D6). Every comparison is made on UTC
+# instants: two aware datetimes that share a ZoneInfo compare and subtract by
+# wall clock in Python, which is off by an hour across a DST change. Plant
+# time is for display and business-day math only.
 # ---------------------------------------------------------------------------
 FUTURE_GRACE = timedelta(minutes=5)   # = main.INVENTORY_OCCURRED_AT_FUTURE_GRACE (clock skew)
 LATE_ENTRY_AFTER = timedelta(hours=48)
 BACKFILL_AFTER = timedelta(days=14)   # = main.INVENTORY_OCCURRED_AT_STANDARD_WINDOW
+
+
+def as_utc(value):
+    """UTC instant for comparison; a naive value is plant time (as `validate_inventory_occurred_at`)."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=PLANT_TIMEZONE)
+    return value.astimezone(timezone.utc)
+
+
+def elapsed(happened_at, now):
+    """`now - happened_at` as real elapsed time, whatever zones the two carry."""
+    return as_utc(now) - as_utc(happened_at)
 
 
 def timing(happened_at, now):
@@ -133,7 +234,7 @@ def timing(happened_at, now):
     'future' is informational here; `validate_inventory_occurred_at` is what
     rejects it (400 OCCURRED_AT_IN_FUTURE, a draft blocker).
     """
-    delta = now - happened_at
+    delta = elapsed(happened_at, now)
     hours = round(delta.total_seconds() / 3600, 2)
     if delta < -FUTURE_GRACE:
         status = 'future'

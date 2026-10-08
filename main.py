@@ -3108,6 +3108,14 @@ def request_actor(request: Optional[Request]) -> Optional[dict]:
     return getattr(getattr(request, "state", None), "actor", None)
 
 
+def _actor_identity(request: Optional[Request]) -> dict:
+    """`permissions` identity for the request (A2): the actor row or the shared key kind."""
+    actor = request_actor(request)
+    key_kind = getattr(getattr(request, "state", None), "key_kind", None)
+    return {"id": actor["id"] if actor else None, "name": actor["name"] if actor else None,
+            "role": actor["role"] if actor else None, "key_kind": key_kind}
+
+
 def actor_name(request: Optional[Request]) -> Optional[str]:
     """The actor's name for the attribution columns, or None for a legacy key."""
     actor = request_actor(request)
@@ -3162,7 +3170,12 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
         request.state.actor = actor
         request.state.key_kind = "actor"
         _touch_actor_last_used(actor)
-        if _route_key(request) in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
+        route_key = _route_key(request)
+        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
+            # A2: the §4.3 matrix on the direct routes too, so an office key
+            # cannot post `POST /make` while `/make/prepare` denies it. 403
+            # ROLE_NOT_ALLOWED before the handler, before any body is read.
+            permissions.require_route(route_key, _actor_identity(request))
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     raise HTTPException(status_code=invalid_status, detail="Invalid API key")
@@ -3208,9 +3221,7 @@ def auth_whoami(request: Request, _: bool = Depends(verify_api_key)):
     return {
         "actor": {"id": actor["id"], "name": actor["name"], "role": actor["role"]} if actor else None,
         "key_kind": key_kind,
-        "permissions": permissions.permissions_for(
-            {"id": actor["id"] if actor else None, "role": actor["role"] if actor else None,
-             "key_kind": key_kind}),
+        "permissions": permissions.permissions_for(_actor_identity(request)),
     }
 
 
@@ -3257,14 +3268,21 @@ INVENTORY_BACKFILL_SOURCE = "api_backfill"
 
 
 def validate_inventory_occurred_at(
-    occurred_at: Optional[datetime], backfill: bool = False
+    occurred_at: Optional[datetime], backfill: bool = False,
+    request: Optional[Request] = None,
 ) -> tuple[Optional[datetime], Optional[str]]:
     """Normalize and validate an optional inventory event timestamp.
 
     Offset-free ISO timestamps are plant-local. Offset-aware timestamps are
-    converted to the plant timezone before comparison/storage. A NULL return
-    deliberately preserves the legacy insert path, where migration 039 fills
-    occurred_at from the transaction timestamp.
+    converted to the plant timezone for storage; the future / 14-day
+    comparisons are made on UTC instants (two datetimes sharing the plant
+    ZoneInfo compare by wall clock in Python, an hour off across DST). A NULL
+    return deliberately preserves the legacy insert path, where migration 039
+    fills occurred_at from the transaction timestamp.
+
+    With `request` (the direct routes), a named actor key also gets the A2
+    §6.3 rule: > 14 days is owner-only (403 BACKFILL_OWNER_ONLY, whatever
+    `backfill` says). The shared keys keep the backfill flag path unchanged.
     """
     if occurred_at is None:
         return None, None
@@ -3275,7 +3293,8 @@ def validate_inventory_occurred_at(
         event_time = occurred_at.astimezone(PLANT_TIMEZONE)
 
     now = get_plant_now()
-    if event_time > now + INVENTORY_OCCURRED_AT_FUTURE_GRACE:
+    elapsed = permissions.elapsed(event_time, now)
+    if elapsed < -INVENTORY_OCCURRED_AT_FUTURE_GRACE:
         raise HTTPException(
             status_code=400,
             detail={
@@ -3283,7 +3302,9 @@ def validate_inventory_occurred_at(
                 "message": "occurred_at cannot be more than 5 minutes in the future.",
             },
         )
-    if event_time < now - INVENTORY_OCCURRED_AT_STANDARD_WINDOW and not backfill:
+    if request_actor(request) is not None:
+        permissions.require_backdating(_actor_identity(request), event_time, now)
+    if elapsed > INVENTORY_OCCURRED_AT_STANDARD_WINDOW and not backfill:
         raise HTTPException(
             status_code=400,
             detail={
@@ -5631,7 +5652,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
 def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Receive inventory. mode=preview returns what will happen; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     # Fallback: use lot_code if supplier_lot_code not provided, then 'N/A'
     supplier_lot = (req.supplier_lot_code or "").strip()
@@ -7898,7 +7919,7 @@ def check_open_orders_for_ship(cur, customer_id: int, customer_name: str) -> dic
 def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Ship inventory. mode=preview returns allocation plan; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     if req.mode == "preview":
         try:
@@ -9131,7 +9152,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
 def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Record batch production. mode=preview returns ingredient check; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     if req.mode == "preview":
         try:
@@ -9269,7 +9290,7 @@ def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> di
 def pack(req: PackRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Pack batch into finished goods. mode=preview returns allocation plan; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     if req.mode == "preview":
         try:
@@ -9302,7 +9323,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key), request: Request =
 def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Adjust inventory. mode=preview returns balance check; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     validate_bilingual(req.reason, req.reason_es, "reason")
     if req.mode == "preview":
@@ -14089,6 +14110,11 @@ def close_sales_order(
     trace events. It only takes the order off the board and releases whatever
     stock it was still holding.
     """
+    # A2 §4.3: the route is an office/owner order edit; closing as
+    # "shipped, not recorded" (R6) is owner-only and depends on the body, so
+    # it is checked here rather than in the route gate. Shared keys pass.
+    if req.reason == "shipped_not_recorded" and request_actor(request) is not None:
+        permissions.require("close_order_shipped_not_recorded", _actor_identity(request))
     try:
         with get_transaction() as cur:
             order = _load_so_for_state_change(cur, order_id)
@@ -15458,6 +15484,7 @@ def ship_order(
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at if req else None,
         req.backfill if req else False,
+        request,
     )
     mode = "preview" if req is None else req.mode
     if mode == "preview":
