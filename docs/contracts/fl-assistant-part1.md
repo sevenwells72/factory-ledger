@@ -1,9 +1,15 @@
 # FL Assistant part 1
 
 Builder: Codex. Reviewer: Claude Code. Draft PR; do not merge.
-Base: origin/main 1f3f098. Implements phase1-safe-operating-system §1.8,
-F1 and §11 for staging only. A2 #89 and A5 #88 remain external dependencies;
-rebase after they merge, preserving their shared FL validators.
+Base: origin/main de31023 after A5 #88 and A2 #89 merged on 2026-10-08.
+Implements phase1-safe-operating-system §1.8, F1 and §11 for staging only.
+Shared FL permission and lot validators remain authoritative.
+
+Merge order: **A5 → A2 → F1**. Apply **068 by hand with lock_timeout and
+statement_timeout before ever enabling ASSISTANT_ENABLED in production**.
+See [deployment and recovery notes](../deployments/f1-assistant.md).
+GET /correction-reasons becomes a read-only route for master/actor keys even
+when the assistant is disabled; GET /dash/fl-assistant returns 404 while disabled.
 
 ## Boundaries
 
@@ -20,7 +26,8 @@ rebase after they merge, preserving their shared FL validators.
   IDs refer to the original server-held ticket and payload hash. Neither
   reaches the model/browser. Retry always commits that exact ticket.
   A durable Record-attempt marker prevents Cancel from claiming an uncertain
-  commit was cancelled. After an attempt, retry Record to establish the outcome.
+  commit was cancelled. A definitive first-attempt 4xx clears its marker for Cancel;
+  an uncertain or concurrent attempt still requires retrying Record to establish the outcome.
   FL's output-SKU blocker has a separate human confirmation button; it creates
   a fresh prepare result and still requires Record. The model cannot supply
   either SKU confirmation or lot-confirmation evidence.
@@ -45,8 +52,8 @@ rebase after they merge, preserving their shared FL validators.
 4. Complete Python/JavaScript suites; explicit staging migration and deployment;
    live staging acceptance, changelogs and reviewer handoff.
 
-Migration `068_fl_assistant.sql` is additive F1 state only; 062–066 belong
-to A5/A2 and 067 is left available to A3b. No startup migration is added.
+Migration `068_fl_assistant.sql` is additive F1 state only; merged 062–065 belong
+to A5/A2, unmerged 066 is deferred, and 067 is left available to A3b. No startup migration is added.
 `ASSISTANT_ENABLED=1` and `OPENAI_API_KEY` are set only on FastAPI-staging.
 
 ## Validation and operations
@@ -72,9 +79,10 @@ to A5/A2 and 067 is left available to A3b. No startup migration is added.
   history, receipts, attachment links and original tickets survive restarts.
   Application rollback disables `ASSISTANT_ENABLED`; retain the additive
   tables and committed evidence. No destructive down-migration is supplied.
-- A2 permissions and A5 lot rules are not copied into F1. Both PRs were still
-  open during the initial build; their core validation is exercised through
-  the same ASGI relay after rebase. Until A5, input lots are labelled suggested.
+- A2 permissions and A5 lot rules are exercised through the same ASGI relay.
+  The nine assistant transport routes are explicitly listed in A2 UNGATED_ROUTES;
+  F1 authenticates every request, and the relayed actions enforce their role and
+  lot checks. The test operator supplies confirmation evidence for make/pack.
 - A3b owns enforcement of the fixed reason catalog's applicability, sign and
   note rules. F1 exposes the eight catalog values and passes FL responses
   through; it does not implement those business rules itself.
@@ -109,3 +117,13 @@ match the workspace; actual Responses read and editable/unsent transcription
 passed again. The final smoke actor was deactivated. The quiet hourly
 `rebase-f1-after-a2-and-a5-merge` follow-up will integrate newly merged #89/#88,
 re-test and deploy only to staging, leaving #90 draft for Claude Code review.
+
+## Review fixes after A5/A2 merge — 2026-10-08
+
+Rebased onto `de31023`. Fresh local PostgreSQL 17 database `fl_f1_full`:
+**2,186 Python / 72 JavaScript passed**, no failures/skips. F1 browser checks
+passed again, including EN/ES, 390px light/dark, confirmation controls, retry,
+attachments and editable unsent dictation. A2 route completeness passes and
+real make/pack commits require A5 operator lot evidence. The integration
+follow-up described above is fulfilled by this rebase; staging verification
+for the reviewed code is recorded separately below when complete.

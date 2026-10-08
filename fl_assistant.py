@@ -6,6 +6,7 @@ renderer, hosted MCP, browser OpenAI key, or model-accessible commit tool.
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -29,6 +30,7 @@ MAX_AUDIO = 20 * 1024 * 1024
 MAX_STEPS = 8
 MODEL = 'gpt-6.1-sol'  # PoC choice; service may explicitly override it.
 TRANSCRIBE_MODEL = 'gpt-transcribe'
+logger = logging.getLogger(__name__)
 
 
 def fail(status, code, message):
@@ -79,6 +81,7 @@ async def openai(path, *, body=None, file=None):
             response = await client.post('https://api.openai.com/v1/' + path,
                                          headers={'Authorization': 'Bearer ' + key}, **kwargs)
         if response.status_code != 200:
+            logger.warning('OpenAI request failed: status=%s', response.status_code)
             fail(502, 'OPENAI_UNAVAILABLE', 'OpenAI request failed. NOT recorded / NO registrado.')
         return response.json()
     except (httpx.HTTPError, ValueError):
@@ -197,6 +200,8 @@ def register_routes(app, api):
 
     @app.get('/dash/fl-assistant', include_in_schema=False)
     def page():
+        if os.getenv('ASSISTANT_ENABLED') != '1':
+            raise HTTPException(404, 'Not found')
         return FileResponse(Path(__file__).parent / 'dashboard' / 'fl-assistant.html',
                             headers={'Cache-Control': 'no-store'})
 
@@ -289,6 +294,15 @@ def register_routes(app, api):
             cur.execute("UPDATE assistant_drafts SET status='cancelled' WHERE id=%s AND status='pending' AND record_started_at IS NULL", (str(body.draft_id),))
         return {'card': card}
 
+    def renew_lease(sid, lease):
+        # A crashed worker holds the chat for at most two minutes. Active turns
+        # renew between bounded OpenAI calls; a replaced worker cannot save.
+        with api.get_transaction() as cur:
+            cur.execute("""UPDATE assistant_sessions SET lease_until=clock_timestamp()+interval '2 minutes'
+                WHERE id=%s AND lease_id=%s""", (sid, lease))
+            if cur.rowcount != 1:
+                fail(409, 'CHAT_BUSY', 'Chat changed; reload / El chat cambió; recarga.')
+
     @app.post('/assistant/turn')
     async def turn(body: TurnBody, request: Request, actor=Depends(authenticate)):
         sid, tid, lease = str(body.session_id), str(body.turn_id), str(uuid4())
@@ -301,7 +315,7 @@ def register_routes(app, api):
                 if previous['request_hash'] != digest:
                     fail(409, 'TURN_CHANGED', 'Retry the original message / Reintenta el mensaje original.')
                 return previous['response']
-            cur.execute("""UPDATE assistant_sessions SET lease_id=%s,lease_until=clock_timestamp()+interval '10 minutes'
+            cur.execute("""UPDATE assistant_sessions SET lease_id=%s,lease_until=clock_timestamp()+interval '2 minutes'
                 WHERE id=%s AND actor_id=%s AND (lease_until IS NULL OR lease_until < clock_timestamp()) RETURNING state""",
                         (lease, sid, actor['id']))
             claimed = cur.fetchone()
@@ -352,6 +366,7 @@ def register_routes(app, api):
             allowed = {f['name'] for f in functions}
             cards = []
             for _ in range(MAX_STEPS):
+                renew_lease(sid, lease)
                 response = await openai('responses', body={
                     'model': os.getenv('ASSISTANT_MODEL', MODEL), 'store': False,
                     'instructions': catalog.INSTRUCTIONS + '\nCurrent FL plant time (America/New_York): ' + api.get_plant_now().isoformat()
@@ -410,13 +425,25 @@ def register_routes(app, api):
             row = draft_row(api, body.draft_id, actor['id'], lock=True, cur=cur)
             if row['status'] == 'cancelled':
                 fail(409, 'DRAFT_CANCELLED', 'Draft cancelled. NOT recorded / Borrador cancelado. NO registrado.')
-            cur.execute('UPDATE assistant_drafts SET record_started_at=coalesce(record_started_at,clock_timestamp()) WHERE id=%s', (str(body.draft_id),))
+            prior_attempt = row['record_started_at']
+            cur.execute('UPDATE assistant_drafts SET record_started_at=clock_timestamp() WHERE id=%s RETURNING record_started_at', (str(body.draft_id),))
+            attempt = cur.fetchone()['record_started_at']
         payload = {'payload_hash': row['payload_hash'], 'acknowledged_warnings': body.acknowledged_warnings}
         if body.lot_confirmations:
             payload['lot_confirmations'] = body.lot_confirmations
         # Always relay even after a saved result: FL re-authenticates and replays.
         status, result = await relay(app, request, 'POST', '/tickets/' + row['ticket'] + '/commit', body=payload)
         if not receipt_ok(status, result):
+            if 400 <= status < 500 and prior_attempt is None:
+                # Clear only this definitive attempt. A concurrent retry changes
+                # the marker; a prior lost response remains uncertain even when
+                # a later role check denies replay of an already-posted ticket.
+                with api.get_transaction() as cur:
+                    cur.execute("""UPDATE assistant_drafts SET record_started_at=NULL
+                        WHERE id=%s AND status='pending' AND record_started_at=%s
+                        AND NOT EXISTS (SELECT 1 FROM write_tickets
+                            WHERE ticket_hash=%s AND status='committed')""",
+                        (str(body.draft_id), attempt, write_tickets.token_hash(row['ticket'])))
             return JSONResponse(status_code=status if status >= 400 else 502,
                                 content=jsonable_encoder({'kind': 'not_recorded', 'result': catalog.safe_result(result)}))
         with api.get_transaction() as cur:

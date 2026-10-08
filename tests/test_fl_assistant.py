@@ -136,8 +136,20 @@ def test_each_action_uses_real_fl_prepare_and_commit(client, chat, items, db_cur
     r = turn(client, chat, action)
     assert r.status_code == 200, r.text
     card = r.json()['cards'][0]
-    assert card['kind'] == 'draft' and card['prepared']['can_commit'], card
-    committed = record(client, chat, card)
+    assert card['kind'] == 'draft', card
+    confirmations = []
+    if action in ('make', 'pack'):
+        assert not card['prepared']['can_commit']
+        assert {b['code'] for b in card['prepared']['blockers']} == {'LOT_NOT_CONFIRMED'}
+        denied = record(client, chat, card)
+        assert denied.status_code == 422
+        assert denied.json()['result']['detail']['error_code'] == 'LOT_NOT_CONFIRMED'
+        assert client.post('/assistant/resume', headers=chat[1], json={'session_id': chat[0]}).json()['drafts'][0]['record_started_at'] is None
+        confirmations = [{'lot_id': i['lot_id'], 'method': 'full_code', 'value': i['lot_code']}
+                         for i in card['prepared']['draft']['input_plan']]
+    else:
+        assert card['prepared']['can_commit']
+    committed = record(client, chat, card, lot_confirmations=confirmations)
     assert committed.status_code == 200, committed.text
     assert committed.json()['result']['receipt_number'].startswith({'make': 'MK-', 'pack': 'PK-', 'adjust': 'ADJ-', 'found': 'FND-'}[action])
 
@@ -153,8 +165,11 @@ def test_sku_confirmation_is_human_evidence_and_prepares_a_new_ticket(client, ch
     confirmed = client.post('/assistant/confirm-sku', headers=chat[1], json={'draft_id': card['id']})
     assert confirmed.status_code == 200, confirmed.text
     new = confirmed.json()['card']
-    assert new['id'] != card['id'] and new['prepared']['can_commit']
-    assert record(client, chat, new).status_code == 200
+    assert new['id'] != card['id']
+    assert {b['code'] for b in new['prepared']['blockers']} == {'LOT_NOT_CONFIRMED'}
+    confirmations = [{'lot_id': i['lot_id'], 'method': 'full_code', 'value': i['lot_code']}
+                     for i in new['prepared']['draft']['input_plan']]
+    assert record(client, chat, new, lot_confirmations=confirmations).status_code == 200
     assert record(client, chat, card).status_code == 409
     db_cursor.execute('SELECT payload FROM write_tickets WHERE id=%s', (new['prepared']['ticket_id'],))
     assert db_cursor.fetchone()['payload']['confirmed_sku'] is True
@@ -191,8 +206,13 @@ def test_no_receipt_on_denial_failure_or_missing_receipt(client, chat, payload, 
     r = record(client, chat, card)
     assert r.status_code >= 400
     assert r.json()['kind'] == 'not_recorded' and r.json()['result'] == result
-    db_cursor.execute('SELECT status FROM assistant_drafts WHERE id=%s', (card['id'],))
-    assert db_cursor.fetchone()['status'] == 'pending'
+    db_cursor.execute('SELECT status,record_started_at FROM assistant_drafts WHERE id=%s', (card['id'],))
+    row = db_cursor.fetchone()
+    assert row['status'] == 'pending'
+    definitive = 400 <= status < 500
+    assert (row['record_started_at'] is None) == definitive
+    cancelled = client.post('/assistant/cancel', headers=chat[1], json={'draft_id': card['id']})
+    assert cancelled.status_code == (200 if definitive else 409)
 
 
 def test_cross_actor_and_tampering_rejected(client, chat, actors, payload, db_cursor, monkeypatch):
@@ -213,14 +233,16 @@ def test_cancel_is_durable_and_prevents_record(client, chat, payload, db_cursor,
 
 def test_turn_replay_does_not_prepare_twice(client, chat, payload, db_cursor, monkeypatch):
     calls = [resolve_product(db_cursor, payload['product_id'])]
-    payload.pop('supplier_id')
+    db_cursor.execute('SELECT name FROM suppliers WHERE id=%s', (payload['supplier_id'],))
+    calls.append(('resolve', {'kind': 'supplier', 'query': db_cursor.fetchone()['name']}))
     calls.append(('prepare_receive', payload))
     requests = model(monkeypatch, *calls)
     tid = str(uuid4())
     first = turn(client, chat, turn_id=tid)
     assert first.status_code == 200, first.text
     assert turn(client, chat, turn_id=tid).json() == first.json()
-    assert len(requests) == 2
+    assert first.json()['cards'][0]['kind'] == 'draft'
+    assert len(requests) == 3
     assert turn(client, chat, 'changed', turn_id=tid).status_code == 409
 
 
@@ -416,3 +438,115 @@ def test_committed_races_lost_reply_and_cancel_safety(isolated_database, monkeyp
             assert replay.status_code == 200 and replay.json()['result']['replayed'] is True, replay.text
     finally:
         main._reset_actor_cache()
+
+
+@pytest.mark.parametrize('flag', [None, '', '0', 'true', '01', '1'])
+def test_page_hidden_unless_explicitly_enabled(client, monkeypatch, flag):
+    if flag is None:
+        monkeypatch.delenv('ASSISTANT_ENABLED', raising=False)
+    else:
+        monkeypatch.setenv('ASSISTANT_ENABLED', flag)
+    response = client.get('/dash/fl-assistant')
+    assert response.status_code == (200 if flag == '1' else 404)
+    if flag != '1':
+        assert '<html' not in response.text.lower() and 'actor-key' not in response.text
+    else:
+        assert response.headers['cache-control'] == 'no-store'
+
+
+@pytest.mark.parametrize('status', [400, 401, 403, 429, 500, 503])
+def test_openai_http_failure_logs_only_status(monkeypatch, caplog, status):
+    import httpx
+    monkeypatch.setenv('OPENAI_API_KEY', 'private-test-credential')
+    async def rejected(*args, **kwargs):
+        return httpx.Response(status, text='private-test-response')
+    monkeypatch.setattr(httpx.AsyncClient, 'post', rejected)
+    with caplog.at_level('WARNING', logger='fl_assistant'), pytest.raises(HTTPException) as exc:
+        asyncio.run(fl_assistant.openai('responses', body={}))
+    assert exc.value.status_code == 502
+    assert [r.getMessage() for r in caplog.records if r.name == 'fl_assistant'] == [f'OpenAI request failed: status={status}']
+    assert 'private-test-' not in caplog.text + str(exc.value.detail)
+
+
+def test_correction_catalog_is_readable_with_master_and_actor_keys_when_disabled(client, actors, monkeypatch):
+    monkeypatch.delenv('ASSISTANT_ENABLED')
+    for key in [main.API_KEY, *(actors[role]['key'] for role in ('owner', 'floor', 'office'))]:
+        response = client.get('/correction-reasons', headers=headers(key))
+        assert response.status_code == 200 and len(response.json()['reasons']) == 8
+    assert client.get('/correction-reasons', headers=headers(main.DASHBOARD_API_KEY)).status_code == 403
+
+
+def test_expired_record_can_be_cancelled(client, chat, payload, db_cursor, monkeypatch):
+    card, _ = make_draft(client, chat, payload, db_cursor, monkeypatch)
+    db_cursor.execute("UPDATE write_tickets SET expires_at=clock_timestamp()-interval '1 second' WHERE id=%s", (card['prepared']['ticket_id'],))
+    response = record(client, chat, card)
+    assert response.status_code == 409
+    assert response.json()['result']['detail']['error_code'] == 'TICKET_EXPIRED'
+    assert client.post('/assistant/cancel', headers=chat[1], json={'draft_id': card['id']}).status_code == 200
+
+
+def test_role_denied_record_can_be_cancelled(client, chat, actors, items, db_cursor, monkeypatch):
+    payload = action_body('found', items)
+    model(monkeypatch, resolve_product(db_cursor, payload['product_id']), ('prepare_found', payload))
+    card = turn(client, chat).json()['cards'][0]
+    db_cursor.execute("UPDATE actors SET role='office' WHERE id=%s", (actors['floor']['id'],))
+    response = record(client, chat, card)
+    assert response.status_code == 403
+    assert response.json()['result']['detail']['error_code'] == 'ROLE_NOT_ALLOWED'
+    assert client.post('/assistant/cancel', headers=chat[1], json={'draft_id': card['id']}).status_code == 200
+
+
+@pytest.mark.parametrize('uncertainty', ['prior', 'concurrent'])
+def test_rejection_preserves_other_uncertain_attempts(client, chat, payload, db_cursor, monkeypatch, uncertainty):
+    card, _ = make_draft(client, chat, payload, db_cursor, monkeypatch)
+    if uncertainty == 'prior':
+        db_cursor.execute('UPDATE assistant_drafts SET record_started_at=clock_timestamp() WHERE id=%s', (card['id'],))
+    async def denied(*args, **kwargs):
+        if uncertainty == 'concurrent':
+            # Another request durably marks its attempt while this relay runs.
+            db_cursor.execute("UPDATE assistant_drafts SET record_started_at=record_started_at+interval '1 second' WHERE id=%s", (card['id'],))
+        return 403, {'detail': {'error_code': 'ROLE_NOT_ALLOWED'}}
+    monkeypatch.setattr(fl_assistant, 'relay', denied)
+    assert record(client, chat, card).status_code == 403
+    cancelled = client.post('/assistant/cancel', headers=chat[1], json={'draft_id': card['id']})
+    assert cancelled.status_code == 409 and cancelled.json()['detail']['error_code'] == 'RECORD_OUTCOME_PENDING'
+
+
+def test_crashed_chat_recovers_and_active_turn_renews_lease(client, chat, db_cursor, monkeypatch):
+    db_cursor.execute("UPDATE assistant_sessions SET lease_id=%s,lease_until=clock_timestamp()+interval '2 minutes' WHERE id=%s", (str(uuid4()), chat[0]))
+    assert turn(client, chat).json()['detail']['error_code'] == 'CHAT_BUSY'
+    db_cursor.execute("UPDATE assistant_sessions SET lease_until=clock_timestamp()-interval '1 second' WHERE id=%s", (chat[0],))
+    calls = []
+    async def inspect(path, **kwargs):
+        db_cursor.execute('SELECT extract(epoch FROM lease_until-clock_timestamp()) AS remaining FROM assistant_sessions WHERE id=%s', (chat[0],))
+        assert 110 < db_cursor.fetchone()['remaining'] <= 120
+        calls.append(path)
+        # Simulate elapsed work between model calls; the next iteration renews.
+        db_cursor.execute("UPDATE assistant_sessions SET lease_until=clock_timestamp()-interval '1 second' WHERE id=%s", (chat[0],))
+        name, args = 'resolve', {'kind': 'product', 'query': 'missing-fixture'}
+        return {'status': 'completed', 'output': [{'type': 'function_call', 'call_id': str(uuid4()), 'name': name, 'arguments': json.dumps(args)}]}
+    # A matched resolver call continues the loop; an unmatched one finishes it.
+    real = fl_assistant.relay
+    async def lookup(app, request, method, path, **kwargs):
+        if path == '/resolve' and len(calls) == 1:
+            return 200, {'outcome': 'match', 'match': {'id': 123}, 'needs_clarification': False}
+        return await real(app, request, method, path, **kwargs)
+    monkeypatch.setattr(fl_assistant, 'relay', lookup)
+    monkeypatch.setattr(fl_assistant, 'openai', inspect)
+    assert turn(client, chat).status_code == 200
+    assert len(calls) == 2
+    db_cursor.execute('SELECT lease_id,lease_until FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert dict(db_cursor.fetchone()) == {'lease_id': None, 'lease_until': None}
+
+
+def test_replaced_worker_cannot_save_or_clear_new_lease(client, chat, db_cursor, monkeypatch):
+    replacement = str(uuid4())
+    async def replaced(path, **kwargs):
+        db_cursor.execute("UPDATE assistant_sessions SET lease_id=%s,lease_until=clock_timestamp()+interval '2 minutes' WHERE id=%s", (replacement, chat[0]))
+        return {'status': 'completed', 'output': [{'type': 'function_call', 'call_id': 'read', 'name': 'today_entries', 'arguments': '{}'}]}
+    monkeypatch.setattr(fl_assistant, 'openai', replaced)
+    assert turn(client, chat).status_code == 409
+    db_cursor.execute('SELECT lease_id FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert str(db_cursor.fetchone()['lease_id']) == replacement
+    db_cursor.execute('SELECT count(*) AS n FROM assistant_turns WHERE session_id=%s', (chat[0],))
+    assert db_cursor.fetchone()['n'] == 0

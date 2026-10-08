@@ -197,6 +197,16 @@ ROUTE_ACTIONS = {
 UNGATED_ROUTES = frozenset({
     ('POST', '/attachments'),                    # A6 named actor + per-file ownership in attachments.py
     ('POST', '/shipments/{shipment_id}/attachments'), # A6 uploader + shipment-role/context checks
+    # F1 transport authenticates every request; relayed FL actions retain A2 checks.
+    ('POST', '/assistant/session'),
+    ('POST', '/assistant/resume'),
+    ('POST', '/assistant/turn'),
+    ('POST', '/assistant/record'),
+    ('POST', '/assistant/cancel'),
+    ('POST', '/assistant/confirm-sku'),
+    ('POST', '/assistant/attachment'),
+    ('POST', '/assistant/attachment/read'),
+    ('POST', '/assistant/transcribe'),
     ('POST', '/products/resolve'),                 # lookup, no business write
     ('POST', '/resolve'),                          # A4 resolution, read-only
     ('POST', '/sales/orders/{order_id}/allocations'),                           # planning board
