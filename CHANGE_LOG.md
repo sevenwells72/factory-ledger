@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-08 14:47 — A5 review fixes verified without migration 066
+- **File(s) changed:** docs/deployments/a5-lot-confirmation.md
+- **What changed:** Full local suite: 1871 Python and 69 JavaScript passed, no failures/skips, with schema-only 064 and no 066. Read-only production preflight found zero duplicate open UNIDENTIFIED_LOT exceptions per lot. No production writes or other worktree changes.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:46 — A5 review handoff and migration preflight contract
+- **File(s) changed:** FOLLOWUPS.md; docs/deployments/a5-lot-confirmation.md; tests/test_lot_confirmation.py
+- **What changed:** Record supplier-lot correction owner and pre-Nov-2 deadline, literal last-four and full pallet values, and the A2 receive INSERT 14th placeholder merge trap. Preserve historical staging evidence while removing 066 from current prerequisites; exercise duplicate-exception lifecycle timestamps.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:44 — A5 review: ingredient identity scope and deferred supplier labels
+- **File(s) changed:** lot_confirmation.py; migrations/064,066; scripts/a5_readonly.py; scripts/check_unidentified_lots_preapply.py; staging runner; tests/schema; A5 and ticket tests
+- **What changed:** Guard identity flags by supplier-sourced ingredient eligibility; retain supplier FK schema in 064 with nullable display labels; remove 066 from A5 prerequisites; add duplicate-exception preflight and regression tests. 066 backfill will be a separate post-cleanup draft PR.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
 ## 2026-10-08 14:26 — Finish A5 full-suite and final staging receipt evidence
 - **File(s) changed:** `a5-staging-receipt-final.json`, `a5-lot-confirmation.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record 1,856 Python/69 JS passes, additive staging-only migrations, final MK-261008-005 confirmed lot with Dutch Gold Honey supplier 13, exact shared hooks/A2 integration, and rollback guidance; no merge or production access.

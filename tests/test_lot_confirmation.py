@@ -368,15 +368,15 @@ def test_supplier_change_or_deactivation_between_prepare_and_commit(client,db_cu
     assert posted_count(db_cursor,d)==0
 
 
-def test_same_prefix_suppliers_get_unique_labels_and_cannot_share_lot(client,db_cursor):
+def test_same_prefix_suppliers_without_066_cannot_share_lot(client,db_cursor):
     from tests.test_write_tickets import seed
     payload=seed(db_cursor)
     db_cursor.execute("INSERT INTO suppliers(name) VALUES ('Dutch Valley A5'),('Dutch Gold A5') RETURNING id,short_code")
     first,second=db_cursor.fetchall()
-    assert first['short_code']!=second['short_code']
+    assert first['short_code'] is None and second['short_code'] is None
     payload|={'supplier_id':first['id'],'lot_code':None}
     d=prepare(client,'receive',payload)
-    assert '-'+first['short_code']+'-' in d['draft']['lot_code']
+    assert '-DUTC-' in d['draft']['lot_code']
     result=commit(client,d);assert result.status_code==200,result.text
     wrong=prepare(client,'receive',payload|{'supplier_id':second['id'],'lot_code':result.json()['lot_code']})
     r=commit(client,wrong,acknowledged_warnings=['POSSIBLE_DUPLICATE'])
@@ -404,3 +404,87 @@ def test_commingled_entry_supplier_ids_and_missing_identity(client,db_cursor):
     r=commit(client,d);assert r.status_code==200,r.text
     db_cursor.execute('SELECT supplier_id FROM lot_supplier_codes WHERE lot_id=%s',(r.json()['lot_id'],))
     assert [v['supplier_id'] for v in db_cursor.fetchall()]==[payload['supplier_id']]*2
+
+
+@pytest.mark.parametrize('action', ['inventory/found', 'receive'])
+@pytest.mark.parametrize('kind', ['finished', 'batch', 'packaging', 'consumable'])
+def test_noningredient_lots_never_get_supplier_identity_flags(client, db_cursor, items, action, kind):
+    from tests.test_write_tickets import seed
+    if action == 'receive':
+        payload = seed(db_cursor) | {'supplier_lot_code': 'UNKNOWN'}
+    else:
+        payload = body('found', items) | {'supplier_lot_code': 'UNKNOWN'}
+    db_cursor.execute('UPDATE products SET type=%s WHERE id=%s', (kind, payload['product_id']))
+    draft = prepare(client, action, payload)
+    assert draft['can_commit'], draft
+    assert 'identity_status' not in draft['draft'] and 'identify_by' not in draft['draft']
+    response = commit(client, draft)
+    assert response.status_code == 200, response.text
+    assert 'identity_status' not in response.json() and 'exception_id' not in response.json()
+    db_cursor.execute('SELECT identity_status,identify_by FROM lots WHERE id=%s', (response.json()['lot_id'],))
+    assert dict(db_cursor.fetchone()) == {'identity_status': None, 'identify_by': None}
+    db_cursor.execute("SELECT count(*) AS n FROM exceptions WHERE kind='UNIDENTIFIED_LOT' AND ticket_id=%s", (draft['ticket_id'],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+@pytest.mark.parametrize('kind', ['service', 'excluded_input', 'internal_formula', 'has_bom'])
+def test_non_supplier_sourced_ingredients_skip_identity_in_both_hooks(client, db_cursor, items, kind):
+    pid = items['ingredient']['id']
+    if kind == 'service':
+        db_cursor.execute('UPDATE products SET is_service=true WHERE id=%s', (pid,))
+    elif kind == 'has_bom':
+        db_cursor.execute('UPDATE products SET has_bom=true WHERE id=%s', (pid,))
+    elif kind == 'excluded_input':
+        db_cursor.execute('UPDATE batch_formulas SET exclude_from_inventory=true WHERE ingredient_product_id=%s', (pid,))
+    else:
+        db_cursor.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (%s,%s,1)',
+                          (pid, items['batch']['id']))
+    draft = prepare(client, 'inventory/found', body('found', items))
+    assert draft['can_commit'], draft
+    assert 'identity_status' not in draft['draft']
+    response = commit(client, draft)
+    assert response.status_code == 200, response.text
+    assert 'identity_status' not in response.json()
+    db_cursor.execute("SELECT count(*) AS n FROM exceptions WHERE kind='UNIDENTIFIED_LOT' AND lot_id=%s", (response.json()['lot_id'],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+def test_ingredient_used_in_both_excluded_and_stock_formulas_is_flagged(client, db_cursor, items):
+    db_cursor.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb,exclude_from_inventory) VALUES (%s,%s,1,true)',
+                      (items['finished']['id'], items['ingredient']['id']))
+    d = prepare(client, 'inventory/found', body('found', items))
+    assert d['draft']['identity_status'] == 'unidentified'
+    r = commit(client, d)
+    assert r.status_code == 200, r.text
+    assert r.json()['identity_status'] == 'unidentified' and r.json()['exception_id']
+
+
+def test_preapply_detects_open_and_escalated_duplicates_but_ignores_closed(client, db_cursor, items):
+    from scripts.check_unidentified_lots_preapply import duplicate_open_lots, require_no_duplicates
+    d = prepare(client, 'inventory/found', body('found', items))
+    r = commit(client, d).json()
+    assert duplicate_open_lots(db_cursor) == []
+    # Reproduce the pre-064 database state; transaction rollback restores index.
+    db_cursor.execute('DROP INDEX exceptions_unidentified_open_lot_idx')
+    db_cursor.execute("""INSERT INTO exceptions(kind,severity,lot_id,status,resolved_at,escalated_at)
+        VALUES ('UNIDENTIFIED_LOT','warn',%s,'resolved',now(),NULL), ('UNIDENTIFIED_LOT','warn',%s,'escalated',NULL,now()) RETURNING id""",
+        (r['lot_id'], r['lot_id']))
+    duplicate_id = db_cursor.fetchall()[1]['id']
+    assert duplicate_open_lots(db_cursor) == [{'lot_id': r['lot_id'], 'open_count': 2,
+        'exception_ids': [r['exception_id'], duplicate_id]}]
+    with pytest.raises(RuntimeError, match='Duplicate open UNIDENTIFIED_LOT'):
+        require_no_duplicates(db_cursor)
+    db_cursor.execute('SAVEPOINT preapply')
+    with pytest.raises(psycopg2.errors.RaiseException, match='Duplicate open UNIDENTIFIED_LOT'):
+        db_cursor.execute((Path(__file__).parents[1]/'migrations/064_unidentified_lots.sql').read_text())
+    db_cursor.execute('ROLLBACK TO SAVEPOINT preapply')
+    db_cursor.execute("UPDATE exceptions SET status='resolved',resolved_at=now() WHERE id=%s", (duplicate_id,))
+    require_no_duplicates(db_cursor)
+
+
+def test_last4_includes_hyphen(client, db_cursor, items):
+    db_cursor.execute('UPDATE lots SET lot_code=%s WHERE id=%s', ('26-10-08-TEST-004', items['ingredient']['lot_id']))
+    draft = prepare(client, 'make', body('make', items))
+    error(commit(client, draft, lot_confirmations=[evidence(items['ingredient'], value='004')]), 422, 'LOT_CONFIRMATION_MISMATCH')
+    response = commit(client, draft, lot_confirmations=[evidence(items['ingredient'], value='-004')])
+    assert response.status_code == 200, response.text

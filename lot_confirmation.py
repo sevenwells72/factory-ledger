@@ -245,7 +245,30 @@ def unidentified(payload):
     return missing(payload.get('supplier_lot_code'))
 
 
+def supplier_lot_identity_applies(cur, product_id):
+    """Supplier-lot identity is only meaningful for purchased ingredients.
+
+    The catalog has no supplier-sourced flag. Internal formula outputs, service
+    items and ingredients used exclusively as inventory-excluded inputs (water)
+    do not have supplier-traced lots. A new purchased ingredient needs no prior
+    receipt or formula usage to qualify.
+    """
+    cur.execute('''SELECT p.type='ingredient' AND NOT p.is_service
+        AND NOT COALESCE(p.has_bom, false)
+        AND NOT EXISTS (SELECT 1 FROM batch_formulas f WHERE f.product_id=p.id)
+        AND NOT (
+            EXISTS (SELECT 1 FROM batch_formulas f WHERE f.ingredient_product_id=p.id
+                    AND f.exclude_from_inventory IS TRUE)
+            AND NOT EXISTS (SELECT 1 FROM batch_formulas f WHERE f.ingredient_product_id=p.id
+                            AND f.exclude_from_inventory IS NOT TRUE)
+        ) AS applies FROM products p WHERE p.id=%s''', (product_id,))
+    row = cur.fetchone()
+    return bool(row and row['applies'])
+
+
 def identity_draft(api, cur, payload, draft):
+    if not supplier_lot_identity_applies(cur, draft['product_id']):
+        return
     status = 'unidentified' if unidentified(payload) else 'identified'
     due = None
     lid = draft.get('existing_lot_id') or draft.get('output_lot_id')
@@ -272,6 +295,8 @@ def record_identity(cur, payload, response, ticket_id, receipt_number):
     from psycopg2.extras import Json
     cur.execute('SELECT id,product_id,identity_status,identify_by FROM lots WHERE id=%s FOR UPDATE', (response['lot_id'],))
     lot = cur.fetchone()
+    if not supplier_lot_identity_applies(cur, lot['product_id']):
+        return
     status = 'unidentified' if unidentified(payload) else 'identified'
     cur.execute('SELECT created_at FROM transactions WHERE id=%s', (response['transaction_id'],))
     entered = cur.fetchone()['created_at']
@@ -313,8 +338,9 @@ def real_supplier(cur, supplier_id, *, lock=False):
     supplier = cur.fetchone()
     if not supplier or supplier['active'] is False or supplier['pseudo']:
         fail('SUPPLIER_REQUIRED', 'Choose an active real supplier through /resolve kind=supplier; use found inventory for stock without a vendor.')
-    if not supplier['short_code']:
-        fail('SUPPLIER_LABEL_REQUIRED', f'{supplier["name"]} needs a display short code before receiving.')
+    # Nullable until the separate post-cleanup 066 backfill. The receive core
+    # uses the resolved name's existing label convention when this is NULL;
+    # provenance always comes from the selected ID, even for colliding labels.
     return supplier
 
 

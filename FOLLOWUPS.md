@@ -145,6 +145,25 @@ and the ownership flag.
 
 ---
 
+**P1.11 A5 part 2 — supplier-lot correction ticket (resolves UNIDENTIFIED_LOT inside FL).**
+**Owner: Codex. Due: before Nov 2 pilot.** Add the reason-coded supplier-lot
+correction prepare/commit flow with attribution and atomic resolution of the
+lot's open UNIDENTIFIED_LOT exception. Another receive must never clear it.
+
+**F1/D2 A5 contract:** `lot_confirmations[].method='last4'` means the literal
+last **four characters**, including the hyphen: lot `26-10-08-DUTC-004` needs
+`value="-004"` (not `"004"`). For `method='pallet'`, `value` must echo the **full
+lot code**, plus a matching latest move to production within 24 hours. Pass the
+operator's evidence; never fabricate it from FL's suggested lot.
+
+**A5 supplier labels / deferred 066:** Michael must clean up the Dutch Valley
+duplicates and `DUTC Valley` typo before the separate supplier-label backfill PR
+is applied. A5's nullable label and supplier-ID schema is in 064 and works before
+066. Re-run the read-only label dry-run after cleanup; today's labels are a
+preview of the current catalog, not an approved assignment.
+
+---
+
 ## 1. Backfill NULL addresses on recurring customers
 
 **Context.** During Pass 1 we added an address-similarity tiebreaker to

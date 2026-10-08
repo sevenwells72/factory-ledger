@@ -2,7 +2,7 @@
 """A5 acceptance on guarded staging through local HTTP, never hosted deployment.
 
 Reads only the protected staging URI; no production configuration or API keys.
---apply-migrations explicitly applies 062/063/064/066, in one transaction.
+--apply-migrations explicitly applies 062/063/064, in one transaction.
 Synthetic stock, recipes, actor and committed receipts are retained; the fresh
 actor key exists only in memory and the actor is deactivated in finally.
 """
@@ -28,7 +28,7 @@ from staging_safety import assert_staging_database, PRODUCTION_DATABASE_HOST
 from scripts.seed_staging import secret_file
 
 MIGRATIONS = ['062_lot_confirmation.sql', '063_batch_substitutions.sql',
-              '064_unidentified_lots.sql', '066_receipt_suppliers.sql']
+              '064_unidentified_lots.sql']
 
 
 def check(apply_migrations=False):
@@ -52,6 +52,8 @@ def check(apply_migrations=False):
 
     if apply_migrations:
         with connection() as conn, conn.cursor() as cur:
+            from scripts.check_unidentified_lots_preapply import require_no_duplicates
+            require_no_duplicates(cur)
             for filename in MIGRATIONS:
                 cur.execute((ROOT/'migrations'/filename).read_text())
     with connection() as conn, conn.cursor() as cur:

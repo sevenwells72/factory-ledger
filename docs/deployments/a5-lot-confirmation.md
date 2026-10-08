@@ -3,6 +3,40 @@
 Builder: Codex. Reviewer: Claude Code. Draft; do not merge.
 Base: origin/main 1f3f098 (design revision 3.7).
 
+## Claude Code review fixes
+
+Only supplier-sourced ingredient lots receive identity flags, for both receive
+and found. Finished/batch/packaging/consumable products, services, internal recipe
+outputs and exclusively inventory-excluded ingredients do not open
+UNIDENTIFIED_LOT exceptions. A new ingredient needs no prior receipt to qualify.
+The shared draft/post policy reads the authoritative product, not a client flag.
+
+Migration **066 is removed from this PR**. Supplier FK columns, the nullable
+`suppliers.short_code` column and lot-supplier immutability are schema-only parts
+of **064**. A5 works before any label backfill: NULL labels use the resolved
+supplier name's existing prefix convention, while identity always uses the ID.
+The separate 066 PR must wait for **Michael's supplier cleanup** (Dutch Valley
+duplicates / `DUTC Valley` typo). It includes a read-only production label preview;
+no production changes are part of this review fix.
+
+Before applying 064, run `scripts/check_unidentified_lots_preapply.py
+--database-url-file <protected URI file>`; exit 0 requires no duplicate open or
+escalated UNIDENTIFIED_LOT exceptions per lot. The staging apply runner and the
+migration itself repeat this check. Investigate duplicates before applying; the
+check never deletes or resolves anything.
+
+F1/D2: `last4` is literally the last four characters **including the hyphen**
+(e.g. `"-004"`). `pallet` requires the **full lot code echoed as value** and the
+latest matching production move within 24 hours. See FOLLOWUPS P1.11:
+**A5 part 2 — supplier-lot correction ticket (resolves UNIDENTIFIED_LOT inside FL),
+owner Codex, due before Nov 2 pilot.**
+
+Review-fix verification: **1,871 Python tests + 69 JavaScript tests passed**,
+zero failures/skips, using a fresh local PostgreSQL 17 database with only
+062/063/064 applied (no 066). Production preflight was **read-only** and found
+**no duplicate open UNIDENTIFIED_LOT exceptions per lot**. No migration or data
+write ran against production; no other worktree was touched.
+
 ## Checkpoints
 
 1. Lot confirmations and pallet-move evidence: complete, pushed `7c7857e`; 175 targeted tests passed.
@@ -48,14 +82,14 @@ movement. Named actors retain attribution; dashboard scope is unchanged.
 
 ## Validation and staging evidence
 
-Final complete suite: **1,856 Python tests passed**, zero failures/skips, on a
+Initial builder complete suite: **1,856 Python tests passed**, zero failures/skips, on a
 fresh dedicated local PostgreSQL 17 database (`127.0.0.1:57688/fl_a5_release`).
 **69 JavaScript tests passed**, zero failures/skips. All four migrations rerun
 idempotently with supplier labels and marker timestamps unchanged. Whitespace
 check passes. AST comparison confirms `choose_inputs` and
 `_post_prepared_inputs` are identical to origin/main.
 
-Migrations **062, 063, 064 and 066 applied to STAGING only** (one transaction,
+Historical builder acceptance: migrations **062, 063, 064 and the original 066 applied to STAGING only** (one transaction,
 app/table owner, port 5432, `lock_timeout=5s`, `search_path=public`). The local
 branch ran its real HTTP routes against the guarded staging database with
 startup migrations/sweeps disabled. The hosted staging service, production,
@@ -82,8 +116,10 @@ Reproducible runner: `scripts/check_lot_confirmation_staging.py` (URI never
 printed; it reads only the protected staging URI file). No hosted deployment,
 production query/migration, PR merge, or user notification was performed.
 
-Deployment prerequisite: apply 062/063/064/066 explicitly before this application
-code. They are additive; no historical transaction/lot supplier inference or
+Deployment prerequisite: apply 062/063/064 explicitly before this application
+code, after the duplicate-exception preflight. 066 is NOT an A5 prerequisite.
+The original staging-only 066 application above remains historical evidence; this
+review fix does not undo staging labels or apply anything to production. They are additive; no historical transaction/lot supplier inference or
 ledger rewrite occurs. Roll back application code first and retain additive
 schema/evidence; do not drop recorded confirmations, moves or substitutions.
 A2 migration 065 is independent. Claude Code review is still required.
@@ -105,10 +141,12 @@ exposes the evidence; ledger and ingredient trace consume the actual substitute.
 
 ## Unidentified lots
 
-Blank, `N/A`, `NA`, and `UNKNOWN` supplier lot codes flag a receive as
-unidentified. Internal lot labels never stand in for supplier lot evidence.
+For supplier-sourced ingredients only, blank, `N/A`, `NA`, and `UNKNOWN`
+supplier lot codes flag a receive as unidentified. Internal lot labels never stand in for supplier lot evidence.
 Commingled receipts need a real code on every entry. Found tickets use the same
-flagging (optional `supplier_lot_code`). History remains NULL/unassessed.
+ingredient-only flagging (optional `supplier_lot_code`). Non-supplier-sourced
+products remain NULL/unassessed and never open UNIDENTIFIED_LOT exceptions.
+History remains NULL/unassessed.
 The draft shows `UNIDENTIFIED — resolve by <date>` without blocking posting.
 The commit creates one open 061 `UNIDENTIFIED_LOT` exception per lot, owned by
 active floor actor Arturo when present, otherwise the first active floor actor
@@ -129,10 +167,12 @@ identity evidence, and equivalent found hooks in `ticket_actions`.
 Receive requires an active real `supplier_id` eligible in A4 `/resolve`.
 Missing, inactive and pseudo-supplier IDs return HTTP 422
 `SUPPLIER_REQUIRED` before a ticket is issued. Commit rechecks eligibility. Names and lot prefixes never select the supplier.
-`suppliers.short_code` is a unique four-letter display label, seeded from the
-name's token when available and assigned collision-safe alternatives otherwise.
-New real suppliers receive a label at INSERT. A ticket-generated label uses the
-resolved supplier's short code; a client prefix override does not override it.
+`suppliers.short_code` is a nullable unique four-letter display label. Its
+backfill and future-insert allocator belong to the deferred 066 PR, after
+Michael's cleanup. Before 066, a NULL short code uses the resolved supplier
+name's existing display prefix; duplicate prefixes are allowed because they
+are never identities. An assigned short code takes precedence. A client prefix
+override cannot choose a different supplier or override its display policy.
 Explicit physical lot labels remain allowed and carry no supplier identity.
 
 New transactions, lots and commingled supplier-code entries store supplier FKs
@@ -151,8 +191,13 @@ INSERT columns. No stock-check, `choose_inputs`, or `_post_prepared_inputs` edit
 
 Before shared edits, fetched and inspected local `feat/roles`. Initially at
 1f3f098; latest inspected commit cbe9668 adds A2 permissions and actor IDs.
-A5 supplier migration is **066**, leaving A2's **065_entered_by** untouched.
+A5 supplier schema is in **064**; **066** is deferred to a separate post-cleanup
+PR, leaving A2's **065_entered_by** untouched.
 The receive transaction INSERT is a known merge point: preserve BOTH A2
 `entered_by_actor_id` and A5 `supplier_id`, with matching VALUES/parameters.
+**feat/roles merge trap (Claude Code review): after resolving the receive INSERT
+column list (14 columns), the VALUES line needs a 14th `%s`.** Check the final
+column/value/parameter counts together; resolving only the columns will fail
+at runtime. Preserve both attribution and supplier provenance.
 A2 permission/backdating hooks must remain before A5 validation/posting.
 A2's cbe9668 role map already includes `move_lot` for named roles/master; preserve it when integrated. No A2 checkout was edited and no A2 code was merged into this PR.
