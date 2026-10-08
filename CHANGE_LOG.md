@@ -35,6 +35,10 @@
 
 ---
 
+## 2026-10-08 14:31 — F1 contract and delivery checkpoints
+- **File(s) changed:** `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Document tool/commit separation, server ticket custody, durable retries, attachment-only photos and A2/A5 interfaces.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
 ## 2026-10-08 15:24 — A2 rebased onto A5 (c532b4b): test interactions only, no app-logic change (branch feat/roles)
 - **File(s) changed:** `main.py` (conflict resolution only), `tests/schema/schema.sql`, `tests/test_write_tickets.py`, `tests/test_lot_confirmation.py`, `tests/test_roles_a2.py`, `CHANGE_LOG.md`
 - **What changed:** Merge worktree `~/dev/fl-merge-wt`. `feat/roles` (ef03576) rebased onto `feat/lot-confirmation` c532b4b (= PR #88, which is already directly on `origin/main` 1f3f098). Conflicts resolved: the receive `transactions` INSERT keeps both A5 `supplier_id` and A2 `entered_by_actor_id` (14 placeholders); `schema.sql` pending tail lists 062→063→064→065; `isolated_database` fixture applies 058, 064, 065; CHANGE_LOG blocks kept from both sides, newest-first. Test-only follow-ups for feature interaction: A5's `move()` helper in `test_lot_confirmation.py` now takes a floor actor key (A2 made `move_lot` NAMED-only, so the master key gets 403), and the replay commit uses the same key; `test_unidentified_receive_exception_uses_entry_not_happened` filters by `kind='UNIDENTIFIED_LOT'` and additionally asserts the A2 `LATE_ENTRY` exception on the 3-day-old floor entry; `test_prepare_enforces_the_matrix_per_key` re-prepares make/pack with `full_code` confirmations when the only blockers are `LOT_NOT_CONFIRMED` (same pattern A5 added to `test_write_tickets_part2.prepare`). Fresh DB from schema.sql (062–065): Python 2138 passed, Node 69/69.
