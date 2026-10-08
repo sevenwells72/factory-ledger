@@ -4224,55 +4224,14 @@ def _tiered_product_search(cur, query: str, limit: int = 5, restrict_ids=None) -
     return [dict(r, match_tier='trigram', similarity=float(r['sim'])) for r in rows]
 
 
-def _resolve_single_product(cur, raw_name: str) -> dict:
-    """Resolve a single raw product name string using 3-tier search.
-    Returns a dict with: input, match, match_tier, confidence, alternatives."""
-    results = _tiered_product_search(cur, raw_name, limit=5)
-
-    if not results:
-        return {
-            "input": raw_name,
-            "match": None,
-            "match_tier": None,
-            "confidence": "none",
-            "suggestions": []
-        }
-
-    best = results[0]
-    tier = best['match_tier']
-    sim = best['similarity']
-
-    # Determine confidence
-    if tier == 'exact':
-        confidence = 'high'
-    elif tier == 'keyword':
-        confidence = 'high' if len(results) == 1 else 'medium'
-    else:  # trigram
-        if sim > 0.4:
-            confidence = 'medium'
-        else:
-            confidence = 'low'
-
-    match_data = {"id": best['id'], "name": best['name'], "odoo_code": best['odoo_code']}
-    result = {
-        "input": raw_name,
-        "match": match_data,
-        "match_tier": tier,
-        "confidence": confidence,
-    }
-
-    # Include alternatives if there are multiple matches at tier 2/3
-    if len(results) > 1 and tier in ('keyword', 'trigram'):
-        result["alternatives"] = [
-            {"id": r['id'], "name": r['name'], "odoo_code": r['odoo_code']}
-            for r in results[1:]
-        ]
-
-    return result
-
-
 class BulkResolveRequest(BaseModel):
     names: List[str]
+
+    @validator('names')
+    def validate_name_lengths(cls, names):
+        if any(len(name) > 500 for name in names):
+            raise ValueError('Each product name must be at most 500 characters')
+        return names
 
 
 def get_sibling_skus(cur, product_id: int) -> list:
@@ -4594,7 +4553,8 @@ def products_missing_case_size(_: bool = Depends(verify_api_key)):
 @app.post("/products/resolve")
 def resolve_products_bulk(req: BulkResolveRequest, _: bool = Depends(verify_api_key)):
     """Bulk-resolve raw product name strings against the database.
-    Uses 3-tier matching: exact → keyword (word-order independent) → trigram similarity."""
+    Returns a match only for one confident identity; ambiguous inputs return
+    match=None with candidates and a clarification question."""
     try:
         with get_transaction() as cur:
             resolved_list = []

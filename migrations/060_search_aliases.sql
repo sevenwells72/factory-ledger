@@ -1,5 +1,5 @@
--- A4 READ foundation only. No seed rows, log writes, startup hook or write API.
--- Apply only through a separately approved migration. Safe to rerun.
+-- A4 part 1: read resolution and the five owner-approved token aliases.
+-- No log writes, startup hook or write API. Apply explicitly; safe to rerun.
 CREATE TABLE IF NOT EXISTS search_aliases (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     kind text NOT NULL CHECK (kind IN ('token', 'product', 'customer', 'supplier')),
@@ -36,3 +36,13 @@ CREATE INDEX IF NOT EXISTS search_aliases_active_norm_idx
     ON search_aliases (alias_norm) WHERE active;
 ALTER TABLE search_aliases ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON search_aliases FROM PUBLIC;
+
+-- Michael approved these exact spellings for A4 part 1 (2026-10-08).
+-- Never overwrite a maintained/deactivated alias on migration reruns.
+INSERT INTO search_aliases (kind, alias, expansion)
+VALUES ('token', 'SS', 'Sunshine'),
+       ('token', 'BS', 'Blue Stripes'),
+       ('token', 'CLS', 'Classic'),
+       ('token', 'choc', 'chocolate'),
+       ('token', '#9', '9')
+ON CONFLICT DO NOTHING;

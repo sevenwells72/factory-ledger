@@ -18,6 +18,8 @@ MIGRATION = Path(__file__).resolve().parents[1] / 'migrations/060_search_aliases
 def catalog(db_cursor):
     cur = db_cursor
     cur.execute(MIGRATION.read_text())
+    # Most unit cases control aliases explicitly; seed coverage reapplies 060.
+    cur.execute('DELETE FROM search_aliases')
     def product(name, type='ingredient', **fields):
         columns = ['name', 'type', 'active', *fields]
         cur.execute(f"INSERT INTO products ({','.join(columns)}) VALUES ({','.join(['%s'] * len(columns))}) RETURNING id",
@@ -298,14 +300,14 @@ def test_migration_idempotent_seed_format_constraints_and_readback(catalog):
     cur = catalog['cur']
     cur.execute(MIGRATION.read_text())
     rows = r.validate_alias_seed({'version': 1, 'aliases': [
-        {'kind': 'token', 'alias': '  SS  ', 'expansion': 'Sunshine'},
+        {'kind': 'token', 'alias': '  EXAMPLE  ', 'expansion': 'Example Brand'},
         {'kind': 'product', 'alias': 'my cereal', 'product_id': catalog['classic'][0], 'language': 'es'},
     ]})
     for row in rows:
         cur.execute(f"INSERT INTO search_aliases ({','.join(row)}) VALUES ({','.join(['%s']*len(row))})", tuple(row.values()))
     stored, available = r.read_aliases(cur)
-    assert available and len(stored) == 2
-    assert stored[0]['alias_norm'] == 'ss'
+    assert available and len(stored) == 7
+    assert next(row for row in stored if row['alias'].strip() == 'EXAMPLE')['alias_norm'] == 'example'
     for sql, params in [
         ("INSERT INTO search_aliases(kind,alias) VALUES ('token','bad')", ()),
         ("INSERT INTO search_aliases(kind,alias,expansion,product_id) VALUES ('token','bad','x',%s)", (catalog['classic'][0],)),

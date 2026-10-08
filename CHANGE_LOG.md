@@ -35,6 +35,48 @@
 
 ---
 
+## 2026-10-08 10:32 — Verify all A4 fixes and apply migration 060 to staging only
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/resolution.md`
+- **What changed:** Full fresh-local-PostgreSQL suite: 1,563 Python tests, including 91 A4; JavaScript: 69 passed. OpenAPI 30 operations before/after; diff check passed. Applied only migration 060 to the validated staging database, with its five persisted aliases. READ ONLY staging checks passed: Classic ambiguous (11; top five IDs 108/107/284/283/136), Sunshine 9 SS-only 283–290, #9 both tiers 107/108 + 283–290, CLS Specialty none, 24 pouches → 2 cases / 25 → clarification. Local core/router verification; no application deployment or production access.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:30 — Preserve database tie ordering across A4 candidate page sizes
+- **File(s) changed:** `resolution.py`, `tests/test_resolution_review.py`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:28 — Guard inactive exact lots and verify persisted staging aliases with explicit migration 060
+- **File(s) changed:** `resolution.py`, `tests/test_resolution_review.py`, `scripts/check_resolution_staging.py`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:27 — Correct A4 regression fixture import for packaged test collection
+- **File(s) changed:** `tests/test_resolution_review.py`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:26 — Add A4 review regression tests and record approved part 1 scope and pouch rule
+- **File(s) changed:** `resolution.py`, `tests/test_resolution.py`, `tests/test_resolution_review.py`, `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `docs/resolution.md`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
+## 2026-10-08 10:22 — Fix A4 identity selection, seed aliases, and add safe pagination and recency
+- **File(s) changed:** `resolution.py`, `main.py`, `migrations/060_search_aliases.sql`, `openapi-gpt-v3.yaml`
+- **What changed:** Implement the owner-requested PR #81 review corrections and A4 part 1 contract. Validation follows in a separate entry.
+- **Why:** Prevent incorrect identity selection, complete seeds/paging/recency, and reconcile the approved scope and pouch rule. No production changes or merge.
+
+---
+
 ## 2026-10-08 09:42 — Rebase A4 onto the latest Phase 1 design revision
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Preserved all A4 and main change-log entries while resolving the rebase conflict onto `cef1c16` (spec revision 3.4). Final checks: 1,511 Python tests, 69 JavaScript tests, read-only staging acceptance; no application-code change in the rebase.

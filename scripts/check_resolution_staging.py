@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""A4 acceptance on live staging data, without deploying or writing any rows.
+"""A4 acceptance on staging; optional explicit migration 060, never an app deploy.
 
 Imports only the independent resolver, never main (which has startup writes).
-SS/Sunshine is a synthetic in-memory fixture; no draft shorthand is read/seeded.
-The database enforces an explicit transaction-scoped READ ONLY transaction.
+Acceptance uses persisted aliases and a transaction-scoped READ ONLY transaction.
+--apply-migration applies only 060 in a separate, explicit staging transaction.
 """
+import argparse
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
@@ -21,7 +22,7 @@ import resolution
 from staging_safety import assert_staging_database, PRODUCTION_DATABASE_HOST
 
 
-def check():
+def check(*, apply_migration=False):
     path = Path.home() / 'Documents/fl-secrets/staging-db-url.txt'
     if path.stat().st_mode & 0o077:
         raise RuntimeError('Staging URI file must be private (mode 600)')
@@ -32,21 +33,42 @@ def check():
         raise RuntimeError('URI does not point to the documented staging host')
     conn = psycopg2.connect(uri, connect_timeout=10)
     try:
+        expected_seeds = {'ss': 'sunshine', 'bs': 'blue stripes', 'cls': 'classic',
+                          'choc': 'chocolate', '#9': '9'}
+        if apply_migration:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SET LOCAL lock_timeout = '5s'")
+                cur.execute("SET LOCAL statement_timeout = '60s'")
+                cur.execute((Path(__file__).resolve().parents[1] / 'migrations/060_search_aliases.sql').read_text())
+                rows, available = resolution.read_aliases(cur)
+                stored = {row['alias_norm']: resolution.normalize(row['expansion'])
+                          for row in rows if row['kind'] == 'token' and row['active']}
+                assert available and all(stored.get(key) == value for key, value in expected_seeds.items())
+            conn.commit()
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
             cur.execute("SET LOCAL statement_timeout = '15s'")
-            fixture = dict(id=0, kind='token', alias='SS', alias_norm='ss', expansion='Sunshine', active=True)
-            db_aliases, _ = resolution.read_aliases(cur)
-            aliases = db_aliases + [fixture]
+            rows, available = resolution.read_aliases(cur)
+            stored = {row['alias_norm']: resolution.normalize(row['expansion'])
+                      for row in rows if row['kind'] == 'token' and row['active']}
+            assert available and all(stored.get(key) == value for key, value in expected_seeds.items())
             results = []
-            for query, context in [('Classic', {}), ('chocolate chip', {}), ('Sunshine 9', {}),
-                                   ('Sunshine 9', {'action': 'make'}), ('SS', {}), ('SSX', {}), ('glass jar', {})]:
-                result = resolution.resolve(cur, resolution.ResolveRequest(kind='product', query=query, context=context), aliases=aliases)
-                if query in ('Classic', 'chocolate chip', 'Sunshine 9', 'SS'):
+            for query, context, limit in [('Classic', {}, 5), ('chocolate chip', {}, 8),
+                                           ('Sunshine 9', {}, 8), ('Sunshine 9', {'action': 'make'}, 8),
+                                           ('#9', {}, 25), ('SS 9', {}, 8), ('SS', {}, 8),
+                                           ('SSX', {}, 8), ('glass jar', {}, 8), ('CLS Specialty', {}, 8)]:
+                result = resolution.resolve(cur, resolution.ResolveRequest(kind='product', query=query, context=context, limit=limit))
+                if query in ('Classic', 'chocolate chip', 'Sunshine 9', 'SS', '#9', 'SS 9'):
                     assert result['outcome'] == 'ambiguous' and result['match'] is None
                 if query == 'Sunshine 9':
                     expected = {283, 284} if context else set(range(283, 291))
                     assert {c['id'] for c in result['candidates']} == expected
+                if query == '#9':
+                    assert {107, 108, *range(283, 291)} <= {c['id'] for c in result['candidates']}
+                if query == 'SS 9':
+                    assert {c['id'] for c in result['candidates']} == set(range(283, 291))
+                if query == 'CLS Specialty':
+                    assert result['outcome'] == 'none' and result['match'] is None
                 if query == 'SS':
                     assert all('ss' in c['name'].lower().split() for c in result['candidates'])
                     assert all(c['id'] != 136 for c in result['candidates'])
@@ -78,7 +100,8 @@ def check():
             assert cur.fetchone()['transaction_read_only'] == 'on'
             print(json.dumps({'checked_at': datetime.now(timezone.utc).isoformat(),
                               'mode': 'local A4 resolver/HTTP router against staging; no deployment',
-                              'alias_fixture': 'SS=Sunshine in memory only; alias_id=0 is synthetic',
+                              'aliases': 'persisted migration 060 seeds; no synthetic fixture',
+                              'migration_060_applied': apply_migration,
                               'transaction_read_only': True, 'results': results}, default=str, indent=2))
     finally:
         conn.rollback()
@@ -86,9 +109,12 @@ def check():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--apply-migration', action='store_true', help='Apply only migration 060 to the verified staging database before acceptance')
+    args = parser.parse_args()
     try:
-        check()
-    except (psycopg2.Error, OSError) as exc:
+        check(apply_migration=args.apply_migration)
+    except Exception as exc:
         # Connection errors can include credentials/DSNs; report only the class.
         print('Staging acceptance failed: ' + type(exc).__name__, file=sys.stderr)
         raise SystemExit(1)

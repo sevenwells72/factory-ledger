@@ -6,6 +6,7 @@ ranking never breaks a tie between plausible identities.
 """
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+from functools import partial
 import re
 from typing import Literal, Optional
 
@@ -16,6 +17,7 @@ from pydantic import BaseModel, Field, validator
 Kind = Literal['product', 'customer', 'supplier', 'order', 'lot', 'unit']
 AliasKind = Literal['token', 'product', 'customer', 'supplier']
 MAX_CANDIDATES = 8
+MAX_PAGE_SIZE = 25
 MAX_VARIANTS = 32
 PLAUSIBLE = 0.5
 MIN_CANDIDATE = 0.25
@@ -52,6 +54,8 @@ class ResolveRequest(BaseModel):
     query: str = Field(..., max_length=500)
     context: ResolutionContext = Field(default_factory=ResolutionContext)
     quantity: Optional[Decimal] = Field(None, gt=0, le=Decimal('1000000000000'))
+    limit: int = Field(MAX_CANDIDATES, ge=1, le=MAX_PAGE_SIZE, strict=True)
+    offset: int = Field(0, ge=0, le=2147483647, strict=True)
 
     @validator('quantity', pre=True)
     def finite_quantity(cls, value):
@@ -166,17 +170,22 @@ def query_variants(query, aliases):
     return variants, truncated
 
 
-def _patterns(query):
-    patterns = []
-    for token in query.split():
-        # Numeric identity and short codes cannot occur inside another word.
-        term = token.lstrip('#')
-        if not term:
-            continue
-        escaped = re.escape(term)
-        if len(term) <= 2 or term.isdigit():
-            escaped = r'\m' + escaped + r'\M'
-        patterns.append(escaped)
+def _patterns(query, aliases=()):
+    # Protect all declared alias spans, including long and multiword spellings.
+    # Retaining an original spelling must never let CLS match inside CLSX.
+    spans = {tuple(normalize(value).split()) for row in aliases
+             for value in (row.get('alias'), row.get('expansion')) if normalize(value)}
+    tokens, patterns, i = query.split(), [], 0
+    while i < len(tokens):
+        hits = [span for span in spans if tokens[i:i + len(span)] == list(span)]
+        span = max(hits, key=len) if hits else (tokens[i],)
+        terms = [token.lstrip('#') for token in span]
+        if all(terms):
+            escaped = r'\s+'.join(re.escape(term) for term in terms)
+            if hits or any(len(term) <= 2 or term.isdigit() for term in terms):
+                escaped = r'\m' + escaped + r'\M'
+            patterns.append(escaped)
+        i += len(span)
     return patterns
 
 
@@ -193,57 +202,68 @@ def _fuzzy_allowed(query, aliases):
     return True
 
 
-def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only=False):
-    """Bounded SQL ranking. Fetch 9, decide, THEN cap the public list at 8.
+def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
+    '''Count every identity before paging; retain the first three for decisions.
 
-    An exact tier searches all exact identifiers before the fallback tier. Counts
-    come from the complete SQL result, so truncation cannot turn ambiguity into a
-    match. All source SQL is module-owned; user values are bound parameters.
-    """
-    found = {}
+    The first three preserve the global best match/near misses even on an empty
+    later page. Public candidates use their global position, never a local cap.
+    ``limit=None`` is internal-only, for authoritative exact-lot eligibility.
+    '''
+    page = '' if limit is None else 'WHERE _position <= 3 OR (_position > %s AND _position <= %s)'
+    bounds = () if limit is None else (offset, offset + limit)
+    cur.execute(f'''
+        WITH scored AS ({scored_sql}), ranked AS (
+            SELECT *, count(*) FILTER (WHERE score >= 0.25) OVER () AS candidate_count,
+                      count(*) FILTER (WHERE score >= 0.5) OVER () AS plausible_count,
+                      row_number() OVER (ORDER BY score DESC, recent_activity DESC,
+                                          context_rank DESC, name, id) AS _position
+            FROM scored
+        ) SELECT * FROM ranked {page} ORDER BY _position
+    ''', tuple(params) + bounds)
+    return [dict(row) for row in cur.fetchall()]
+
+
+def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only=False,
+            limit=MAX_CANDIDATES, offset=0):
+    '''Rank the deduplicated union of spellings, then count and page in SQL.'''
+    variants = [variant for variant in variants if variant.text]
+    if not variants:
+        return []
+    values, variant_params = [], []
+    for index, variant in enumerate(variants):
+        patterns = _patterns(variant.text, aliases) if keywords else []
+        values.append('(%s::text, %s::text[], %s::boolean, %s::int, %s::int)')
+        variant_params.extend((variant.text, patterns,
+                               _fuzzy_allowed(variant.text, aliases) and not exact_only,
+                               index, len(variant.expansions)))
     for exact in (True, False):
-        for variant in variants:
-            q = variant.text
-            if not q:
-                continue
-            if exact:
-                score = '1.0::float'
-                scoring_params = ()
-                where = '''EXISTS (SELECT 1 FROM unnest(exact_terms) term
-                            WHERE lower(regexp_replace(btrim(term), '\\s+', ' ', 'g')) = %s)'''
-                where_params = (q,)
-            else:
-                patterns = _patterns(q) if keywords else []
-                fuzzy = _fuzzy_allowed(q, aliases) and not exact_only
-                score = '''CASE WHEN %s AND lower(name) ~ ALL(%s::text[])
-                           THEN 0.8 ELSE CASE WHEN %s THEN similarity(lower(name), %s)
-                           ELSE 0.0 END END'''
-                scoring_params = (bool(patterns), patterns, fuzzy, q)
-                where, where_params = 'TRUE', ()
-            cur.execute(f'''
-                WITH source AS ({source}), scored AS (
-                    SELECT source.*, {score} AS score FROM source WHERE {where}
-                ), counted AS (
-                    SELECT *, count(*) FILTER (WHERE score >= 0.25) OVER () AS candidate_count,
-                              count(*) FILTER (WHERE score >= 0.5) OVER () AS plausible_count
-                    FROM scored
-                ) SELECT * FROM counted
-                  ORDER BY score DESC, context_rank DESC, name, id LIMIT 9
-            ''', tuple(params) + scoring_params + where_params)
-            for record in cur.fetchall():
-                row = dict(record)
-                row['score'] = float(row['score'])
-                row['tier'] = ('alias' if variant.expansions else 'exact') if exact else (
-                    ('alias' if variant.expansions else 'keyword') if row['score'] == 0.8 else 'trigram')
-                row['_variant'] = variant
-                key = row['id']
-                old = found.get(key)
-                if old is None or (row['score'], -len(variant.expansions)) > (
-                        old['score'], -len(old['_variant'].expansions)):
-                    found[key] = row
-        if found or exact_only:
-            break
-    return list(found.values())
+        score = '1.0::float' if exact else '''CASE
+            WHEN cardinality(v.patterns) > 0 AND lower(s.name) ~ ALL(v.patterns) THEN 0.8
+            WHEN v.fuzzy THEN similarity(lower(s.name), v.query) ELSE 0.0 END'''
+        where = r'''WHERE EXISTS (SELECT 1 FROM unnest(s.exact_terms) term
+                    WHERE lower(btrim(regexp_replace(term, '\s+', ' ', 'g'))) = v.query)''' if exact else ''
+        scored_sql = f'''
+            WITH source AS ({source}),
+                 variants(query, patterns, fuzzy, variant_index, expansion_count) AS
+                     (VALUES {','.join(values)}),
+                 matches AS (
+                     SELECT s.*, {score} AS score, v.variant_index, v.expansion_count
+                     FROM source s CROSS JOIN variants v {where}
+                 )
+            SELECT DISTINCT ON (id) * FROM matches
+            ORDER BY id, score DESC, expansion_count, variant_index
+        '''
+        rows = _ranked_rows(cur, scored_sql, tuple(params) + tuple(variant_params),
+                            limit=limit, offset=offset)
+        for row in rows:
+            variant = variants[row['variant_index']]
+            row['score'] = float(row['score'])
+            row['tier'] = ('alias' if variant.expansions else 'exact') if exact else (
+                ('alias' if variant.expansions else 'keyword') if row['score'] == 0.8 else 'trigram')
+            row['_variant'] = variant
+        if rows or exact_only:
+            return rows
+    return []
 
 
 def _candidate(row):
@@ -263,8 +283,12 @@ def _candidate(row):
     return result
 
 
-def decide(query, rows, *, truncated=False, note=None):
-    rows = sorted(rows, key=lambda r: (-r['score'], -r.get('context_rank', 0), r['name'], str(r['id'])))
+def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, offset=0):
+    if rows and '_position' in rows[0]:
+        rows = sorted(rows, key=lambda row: row['_position'])
+    else:
+        rows = sorted(rows, key=lambda row: (-row['score'], -row.get('recent_activity', 0),
+                                             -row.get('context_rank', 0), row['name'], str(row['id'])))
     candidates = [row for row in rows if row['score'] >= MIN_CANDIDATE]
     plausible = [row for row in rows if row['score'] >= PLAUSIBLE]
     count = max([len(candidates)] + [int(row.get('candidate_count', 0)) for row in rows])
@@ -272,7 +296,8 @@ def decide(query, rows, *, truncated=False, note=None):
     outcome = 'none' if not candidates else 'ambiguous'
     if plausible_count == 1 and not truncated:
         outcome = 'match'
-    displayed = [_candidate(row) for row in candidates[:MAX_CANDIDATES]]
+    displayed = [_candidate(row) for i, row in enumerate(candidates, 1)
+                 if offset < row.get('_position', i) <= offset + limit]
     best = candidates[0] if candidates else None
     expansions = []
     for row in candidates:
@@ -283,16 +308,18 @@ def decide(query, rows, *, truncated=False, note=None):
                   'trigram': 'low', 'suffix': 'medium', 'context': 'medium'}
     result = dict(outcome=outcome, query_normalized=best['_variant'].text if best and '_variant' in best else normalize(query),
                   expansions_applied=expansions, candidates=displayed, candidate_count=count,
-                  has_more=count > MAX_CANDIDATES, match=None,
+                  has_more=count > offset + limit, limit=limit, offset=offset, match=None,
                   confidence=confidence[best['tier']] if best else 'none',
                   needs_clarification=outcome != 'match', ask=None)
     if outcome == 'match':
         result['match'] = _candidate(plausible[0])
     elif outcome == 'ambiguous':
         prefix = 'Which one?' if plausible_count > 1 else 'No confident match. Please clarify:'
-        result['ask'] = prefix + ' ' + '; '.join(f"{i}) {r['label']}" for i, r in enumerate(displayed, 1))
-        if result['has_more']:
-            result['ask'] += '; more matches exist — give a fuller name or exact code.'
+        result['ask'] = prefix + ' ' + '; '.join(f"{i}) {r['label']}" for i, r in enumerate(displayed, offset + 1))
+        if not displayed:
+            result['ask'] = 'No candidates on this page. Use a smaller offset.'
+        elif result['has_more']:
+            result['ask'] += '; more matches exist — request the next page or give an exact code.'
     else:
         result['ask'] = 'No confident match. Please give a fuller name or exact code.'
         result['near_misses'] = [_candidate(row) for row in rows[:3] if row['score'] > 0]
@@ -323,8 +350,24 @@ PRODUCT_SOURCE = '''SELECT p.id, p.name, p.odoo_code, p.type, p.label_type,
          WHEN %s = 'make' AND %s = 'floor' AND p.type = 'ingredient' THEN 'Ingredient for floor make'
          WHEN %s = 'make' AND p.type = 'batch' THEN 'Batch for make'
          WHEN %s = 'receive' AND p.type IN ('ingredient', 'packaging') THEN 'Material for receive'
-         WHEN %s = 'pack' AND p.type = 'finished' THEN 'Finished goods for pack' END AS context_boost
-    FROM products p WHERE p.active IS DISTINCT FROM false
+         WHEN %s = 'pack' AND p.type = 'finished' THEN 'Finished goods for pack' END AS context_boost,
+    COALESCE(activity.recent_activity, 0) AS recent_activity
+    FROM products p LEFT JOIN (
+        SELECT product_id, extract(epoch FROM max(activity_at))::float AS recent_activity
+        FROM (
+            SELECT tl.product_id, (t.effective_record->>'occurred_at')::timestamptz AS activity_at
+            FROM ledger_current_transaction_lines tl
+            JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+            WHERE t.effective_status = 'posted'
+            UNION ALL
+            SELECT ol.product_id, ol.created_at AS activity_at
+            FROM sales_order_lines ol JOIN sales_orders o ON o.id = ol.sales_order_id
+            WHERE o.state = 'open' AND ol.line_status NOT IN ('cancelled', 'fulfilled')
+              AND ol.quantity_lb > ol.quantity_shipped_lb
+        ) events WHERE activity_at >= CURRENT_TIMESTAMP - INTERVAL '180 days'
+        GROUP BY product_id
+    ) activity ON activity.product_id = p.id
+    WHERE p.active IS DISTINCT FROM false
       AND (%s IS DISTINCT FROM 'make' OR p.type IN ('batch', 'ingredient'))
       AND (%s IS DISTINCT FROM 'pack' OR %s::int IS NULL OR
            (p.type = 'finished' AND p.parent_batch_product_id = %s))'''
@@ -342,7 +385,7 @@ def _products(cur, req, variants, aliases):
               c.action, c.action, c.group, c.action, c.action, c.action,
               c.action, c.action, c.group, c.action, c.action, c.action,
               c.action, c.action, c.product_id, c.product_id)
-    rows = _search(cur, PRODUCT_SOURCE, params, variants, aliases)
+    rows = _search(cur, PRODUCT_SOURCE, params, variants, aliases, limit=req.limit, offset=req.offset)
     for row in rows:
         if row['score'] == 1 and (row['id'] in ids or row['_variant'].text not in
                                   (normalize(row['name']), normalize(row['odoo_code']))):
@@ -361,15 +404,15 @@ def _parties(cur, req, variants, aliases):
     params = (ids, normalize(req.query)) + ((address, '%' + address + '%') if customer else ())
     source = f'''SELECT p.id, p.name, ARRAY[p.name] || {old_aliases} ||
                   CASE WHEN p.id = ANY(%s::int[]) THEN ARRAY[%s::text] ELSE ARRAY[]::text[] END AS exact_terms,
-                  {rank} AS context_rank
+                  {rank} AS context_rank, 0::float AS recent_activity
                   FROM {'customers' if customer else 'suppliers'} p
                   WHERE p.active IS DISTINCT FROM false'''
     if not customer:
         # Migration 042 normally deactivates these; never resolve a pseudo-vendor
         # even if an old catalog import accidentally reactivates it (§5.2).
-        source += ' AND supplier_name_norm(p.name) <> ALL(%s::text[])'
+        source += ' AND btrim(supplier_name_norm(p.name)) <> ALL(%s::text[])'
         params += (list(SENTINEL_SUPPLIERS),)
-    rows = _search(cur, source, params, variants, aliases)
+    rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset)
     for row in rows:
         if row['context_rank']:
             row['context_boost'] = 'Customer address agrees; ranking only'
@@ -380,13 +423,16 @@ def _parties(cur, req, variants, aliases):
 
 def _lots(cur, req):
     c, q = req.context, normalize_lot(req.query)
+    choose = partial(decide, q, limit=req.limit, offset=req.offset)
+    # Preserve literal supplier-code identities before display suffix removal.
+    variants = [Variant(value) for value in dict.fromkeys((normalize(req.query), q))]
     if not q:
-        return decide(q, [])
+        return choose([])
     source = '''SELECT l.id, l.product_id, l.lot_code, l.lot_code AS name,
           l.status, l.merged_into_lot_id, b.on_hand_lb,
           ARRAY[regexp_replace(lower(regexp_replace(btrim(l.lot_code), '\\s+', ' ', 'g')), '\\s+lot$', ''),
                 l.supplier_lot_code] || ARRAY(SELECT supplier_lot_code FROM lot_supplier_codes WHERE lot_id = l.id) AS exact_terms,
-          0 AS context_rank
+          0 AS context_rank, 0::float AS recent_activity
           FROM lots l JOIN products p ON p.id = l.product_id
           CROSS JOIN LATERAL (
              SELECT COALESCE(sum(tl.quantity_lb), 0) AS on_hand_lb
@@ -394,44 +440,46 @@ def _lots(cur, req):
              JOIN ledger_current_transactions t ON t.id = tl.transaction_id
              WHERE tl.lot_id = l.id AND t.effective_status = 'posted'
           ) b
-          WHERE p.active IS DISTINCT FROM false AND (%s::int IS NULL OR l.product_id = %s)'''
+          WHERE (%s::int IS NULL OR l.product_id = %s)'''
     params = (c.product_id, c.product_id)
-    exact = _search(cur, source, params, [Variant(q)], [], keywords=False, exact_only=True)
+    exact = _search(cur, source, params, variants, [], keywords=False, exact_only=True, limit=None)
     merged = [r for r in exact if r['status'] == 'merged']
     if merged:
-        return decide(q, [], note='lot merged into ' + ', '.join(str(r['merged_into_lot_id']) for r in merged))
-    eligible = " AND l.status IS DISTINCT FROM 'merged' AND (%s OR b.on_hand_lb > 0)"
+        return choose([], note='lot merged into ' + ', '.join(str(r['merged_into_lot_id']) for r in merged))
+    eligible = " AND p.active IS DISTINCT FROM false AND l.status IS DISTINCT FROM 'merged' AND (%s OR b.on_hand_lb > 0)"
     source += eligible
     params += (c.action in ('adjust', 'void'),)
     # Re-query with eligibility in SQL so empty lots neither occupy the display
     # cap nor inflate ambiguity counts for positive-balance exact matches.
     if exact:
-        eligible_exact = _search(cur, source, params, [Variant(q)], [], keywords=False, exact_only=True)
+        eligible_exact = _search(cur, source, params, variants, [], keywords=False, exact_only=True,
+                                 limit=req.limit, offset=req.offset)
         if eligible_exact:
-            return decide(q, eligible_exact)
+            return choose(eligible_exact)
+        return choose([], note='Exact lot exists but its product is inactive or it has no positive posted balance for this action.')
     if len(q) == 4:
         if c.product_id is None:
-            return decide(q, [], note='A product_id is required for last-four lot matching.')
-        cur.execute(f'''WITH matches AS ({source} AND right(regexp_replace(
-            lower(regexp_replace(btrim(l.lot_code), '\\s+', ' ', 'g')), '\\s+lot$', ''), 4) = %s)
-            SELECT *, count(*) OVER () AS candidate_count, count(*) OVER () AS plausible_count
-            FROM matches ORDER BY name, id LIMIT 9''', params + (q,))
-        rows = [dict(r, score=0.8, tier='suffix') for r in cur.fetchall()]
-        result = decide(q, rows)
+            return choose([], note='A product_id is required for last-four lot matching.')
+        scored = rf'''SELECT matches.*, 0.8::float AS score FROM ({source} AND right(
+            regexp_replace(lower(btrim(regexp_replace(l.lot_code, '\s+', ' ', 'g'))), '\s+lot$', ''), 4) = %s) matches'''
+        rows = _ranked_rows(cur, scored, params + (q,), limit=req.limit, offset=req.offset)
+        rows = [dict(row, tier='suffix') for row in rows]
+        result = choose(rows)
         if result['outcome'] == 'ambiguous':
             result['ask'] += '. Type the full code or scan the lot.'
         return result
-    rows = _search(cur, source, params, [Variant(q)], [], keywords=False)
-    return decide(q, rows)
+    rows = _search(cur, source, params, variants, [], keywords=False, limit=req.limit, offset=req.offset)
+    return choose(rows)
 
 
 def _orders(cur, req, aliases):
     c, q = req.context, normalize(req.query)
+    choose = partial(decide, q, limit=req.limit, offset=req.offset)
     source = '''SELECT o.id, o.order_number AS name, o.order_number, o.customer_po,
                  o.customer_id, o.state, o.status,
                  ARRAY[o.order_number, o.customer_po] AS exact_terms,
                  extract(epoch FROM o.created_at)::float AS context_rank,
-                 'Newest order first'::text AS context_boost
+                 'Newest order first'::text AS context_boost, 0::float AS recent_activity
                  FROM sales_orders o JOIN customers c ON c.id = o.customer_id
                  WHERE c.active IS DISTINCT FROM false
                    AND (%s::int IS NULL OR o.customer_id = %s)
@@ -439,9 +487,9 @@ def _orders(cur, req, aliases):
                    AND (%s::text IS NULL OR o.state = %s)
                    AND (%s::text IS NULL OR o.status = %s)'''
     params = (c.customer_id, c.customer_id, c.order_id, c.order_id, c.state, c.state, c.status, c.status)
-    rows = _search(cur, source, params, [Variant(q)], [], exact_only=True)
+    rows = _search(cur, source, params, [Variant(q)], [], exact_only=True, limit=req.limit, offset=req.offset)
     if rows:
-        return decide(q, rows)
+        return choose(rows)
     # Controlled phrases only: an unknown identifier never falls back to any
     # convenient open order. Resolve customer text first; retain every candidate.
     browse = q in ('', 'open orders', 'orders', 'open order', 'order')
@@ -451,17 +499,17 @@ def _orders(cur, req, aliases):
     if not browse:
         parties = resolve(cur, ResolveRequest(kind='customer', query=party_query), aliases=aliases)
         if parties['outcome'] == 'none' or parties['has_more']:
-            return decide(q, [], note='Specify an exact order number or customer_id.')
+            return choose([], note='Specify an exact order number or customer_id.')
         customer_ids = [r['id'] for r in parties['candidates'] if r['score'] >= PLAUSIBLE
                         and (c.customer_id is None or r['id'] == c.customer_id)]
     if not customer_ids and not c.order_id:
-        return decide(q, [], note='Specify an order number or customer_id.')
-    cur.execute(f'''WITH matches AS ({source}
-             AND (%s OR o.customer_id = ANY(%s::int[])) AND o.state = %s)
-             SELECT *, count(*) OVER () AS candidate_count, count(*) OVER () AS plausible_count
-             FROM matches ORDER BY context_rank DESC, id DESC LIMIT 9''',
-                params + (bool(c.order_id), customer_ids, c.state or 'open'))
-    return decide(q, [dict(r, score=0.8, tier='context') for r in cur.fetchall()])
+        return choose([], note='Specify an order number or customer_id.')
+    scored = f'''SELECT matches.*, 0.8::float AS score FROM ({source}
+             AND (%s OR o.customer_id = ANY(%s::int[])) AND o.state = %s) matches'''
+    rows = _ranked_rows(cur, scored, params + (bool(c.order_id), customer_ids, c.state or 'open'),
+                        limit=req.limit, offset=req.offset)
+    return choose([dict(row, tier='context') for row in rows])
+
 
 
 UNITS = ('lb', 'cases', 'bags', 'boxes', 'each', 'oz')
@@ -473,13 +521,14 @@ def _unit_row(unit):
 
 def _units(cur, req):
     q, product = normalize(req.query), None
+    choose = partial(decide, q, limit=req.limit, offset=req.offset)
     if req.context.product_id:
         cur.execute('''SELECT id, name, type, uom, is_service, pack_format, case_size_lb,
                              bags_per_case, units_per_case, retail_bag_oz
                       FROM products WHERE id = %s AND active IS DISTINCT FROM false''', (req.context.product_id,))
         product = cur.fetchone()
         if not product:
-            return decide(q, [], note='Product is missing or inactive.')
+            return choose([], note='Product is missing or inactive.')
     allowed = list(UNITS)
     if product:
         if product['is_service']:
@@ -492,6 +541,15 @@ def _units(cur, req):
                 allowed += ['cases', 'boxes']
             if product['pack_format'] == 'bagged':
                 allowed += ['bags', 'each']
+            elif product['type'] == 'ingredient':
+                # Purchasing bags are not retail pouches. Require a declared
+                # bag UOM and a positive catalog weight; explicit weights agree.
+                uom = normalize(product['uom'])
+                bag = re.fullmatch(r'(?:(\d+(?:\.\d+)?)\s*(?:lb|lbs|pounds?)\s+)?bags?', uom)
+                weight = product['case_size_lb']
+                if bag and weight and weight > 0 and (
+                        bag[1] is None or Decimal(bag[1]) == Decimal(weight)):
+                    allowed.append('bags')
     if q in ('pouch', 'pouches'):
         reason = None
         ratio = None
@@ -529,27 +587,27 @@ def _units(cur, req):
                 if req.quantity % ratio:
                     reason = 'Needs clarification: pouch quantity does not divide evenly into whole cases.'
         if reason:
-            result = decide(q, [])
+            result = choose([])
             result.update(outcome='ambiguous', ask=reason, code='NEEDS_CLARIFICATION', allowed_units=allowed)
             return result
         row = _unit_row('cases')
         row.update(quantity=req.quantity / ratio, why='Exact catalog pouches-per-case conversion')
-        result = decide(q, [row])
+        result = choose([row])
         result.update(draft={'product_id': product['id'], 'quantity': req.quantity / ratio, 'unit': 'cases'},
                       conversion={'from_unit': 'pouches', 'from_quantity': req.quantity,
                                   'pouches_per_case': ratio}, allowed_units=allowed)
         return result
     if q in allowed:
-        result = decide(q, [_unit_row(q)])
+        result = choose([_unit_row(q)])
         if req.quantity is not None:
             result['draft'] = {'product_id': req.context.product_id, 'quantity': req.quantity, 'unit': q}
     elif not q or re.fullmatch(r'\d+(?:\.\d+)?', q):
-        result = decide(q, [_unit_row(unit) for unit in allowed])
+        result = choose([_unit_row(unit) for unit in allowed])
         # A missing unit is always a question, even for an each-only service.
         result.update(outcome='ambiguous', match=None, needs_clarification=True,
                       ask='Which unit? ' + ', '.join(allowed), code='UNIT_REQUIRED')
     else:
-        result = decide(q, [], note='Unit is unknown or not allowed for this product.')
+        result = choose([], note='Unit is unknown or not allowed for this product.')
     result['allowed_units'] = allowed
     return result
 
@@ -570,7 +628,7 @@ def resolve(cur, req, *, aliases=None):
     else:
         variants, truncated = query_variants(req.query, aliases)
         rows = (_products if req.kind == 'product' else _parties)(cur, req, variants, aliases)
-        result = decide(req.query, rows, truncated=truncated)
+        result = decide(req.query, rows, truncated=truncated, limit=req.limit, offset=req.offset)
     result['alias_table_available'] = available
     return result
 
