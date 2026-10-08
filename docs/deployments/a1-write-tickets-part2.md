@@ -10,16 +10,26 @@ changed; this uses the existing migration 058 tables and receipt counters.
 
 ## Contract
 
-Four authenticated POST prepare routes use the existing ticket envelope,
-10-minute expiry (30 minutes for dashboard), identity/hash binding,
+Four actor/master-authenticated POST prepare routes use the existing ticket envelope,
+10-minute expiry (30 minutes for `client_source=dashboard`), identity/hash binding,
 supersession, warning acknowledgement, atomic commit and saved-response replay:
 
 | Route | Required input | Optional action input |
 |---|---|---|
 | `/make/prepare` | `product_id`, positive integer `batches` | `lot_code`, `ingredient_lots: [{ingredient_product_id, lot_id}]`, `excluded_ingredients: [product_id]`, `confirmed_sku` |
 | `/pack/prepare` | `source_product_id`, `target_product_id`, positive integer `cases` | `case_weight_lb`, `lot_allocations: [{lot_id, quantity_lb}]`, `target_lot_code` |
-| `/adjust/prepare` | `lot_id`, nonzero signed `delta_lb`, `reason` | `reason_es`; `reason_code` is accepted instead of `reason` |
+| `/adjust/prepare` | `lot_id`, nonzero signed `delta_lb`, `reason_code` | `reason_es`; `reason` is accepted as an input alias |
 | `/inventory/found/prepare` | `product_id`, positive `quantity`, `reason_code` | `uom: "lb"`, `lot_code`, `found_location`, `estimated_age`, `suspected_supplier`, `notes`, `notes_es` |
+
+Adjust persists only `reason_code` in the ticket payload and draft, aligned with
+PR #85's `transactions.reason_code` vocabulary; the legacy posting adapter maps
+it to `AdjustRequest.reason`. No transaction-column migration or reason catalog
+validation is added here; A3 owns that validation. Supplying both aliases is rejected.
+
+The public dashboard key retains exactly the part-1 ticket scope: receive
+prepare, ticket commit and receipt reads. It cannot prepare make, pack, adjust
+or found tickets. Named actor keys and the master key can use all four routes;
+commit identity binding remains enforced.
 
 All accept `occurred_at` (or `happened_at`), `backfill`, and `client_source`.
 Unknown fields, caller-supplied identities, name-based product selection and
@@ -66,8 +76,8 @@ target and cases within 45 minutes; adjust matches lot and signed pounds within
 2 hours; found matches product and pounds within 2 hours. Amounts match ledger
 numeric precision. Ticket packs use stored cases; legacy packs use the anchored
 `Pack N cases of ...` note written by the existing core because there is no
-legacy pack cases column. Warnings carry the earlier receipt (or legacy
-transaction), actor and elapsed minutes, and require acknowledgement.
+legacy pack cases column. Warnings name the product and the earlier transaction’s lots, and carry its
+receipt (or legacy transaction), actor and elapsed minutes, and require acknowledgement.
 
 A2 role enforcement, A3 reason catalog/shortage rules, A4 resolution,
 A5 lot confirmations/supplier tracking, A10 direct-route cutover, A11 PIN sessions and A12 kosher
@@ -83,31 +93,62 @@ UPDATE write_tickets SET status = 'expired'
 WHERE status = 'prepared' AND expires_at < now();
 ```
 
-Configure a staging scheduler to run **once nightly, for example 07:15 UTC**,
-with this repository as its working directory and this command:
+Railway cron service setup (documentation only; no service is created by this PR):
 
-```sh
-python scripts/expire_tickets.py
-```
+1. After the reviewed code is deployed, add a separate cron service using the
+   same repository and deployed revision as FastAPI, in the intended Railway
+   environment. Keep the FastAPI web service's start command unchanged.
+2. Set the cron schedule to **`15 7 * * *`** (daily at 07:15 UTC, 03:15 EDT /
+   02:15 EST). Set its start command to **`python scripts/expire_tickets.py`**,
+   with the repository root as the working directory. Include `/scripts/**`
+   in this cron service's watch paths (the shared `railway.json` only watches
+   root Python files). The process exits after one sweep; no loop or web listener
+   is needed. See [Railway cron jobs](https://docs.railway.com/cron-jobs).
+3. In the cron service's Variables settings, reference `DATABASE_URL` from
+   the matching FastAPI service rather than copying its value into Git or the
+   start command. For a service named `FastAPI`, use Railway's variable
+   reference `${{FastAPI.DATABASE_URL}}`; select the actual service name in
+   Railway if it differs. Use FastAPI-staging for the staging cron. See
+   [Railway reference variables](https://docs.railway.com/variables#referencing-another-services-variable).
+4. For production, set **`ENVIRONMENT=production`** and
+   **`PRODUCTION_DATABASE_HOST`** to the database hostname used by that
+   FastAPI service. The parsed connection host must match this configured
+   hostname; an absent environment/host or a mismatch refuses the connection.
+   For staging, set `ENVIRONMENT=staging`, `PRODUCTION_DATABASE_HOST`,
+   `STAGING_DATABASE_HOST` and `STAGING_DATABASE_PROJECT_REF` to match
+   FastAPI-staging's existing isolation guard.
+5. Do not set libpq routing overrides (`PGHOSTADDR`, `PGSERVICE`,
+   `PGSERVICEFILE`) or URL routing parameters such as `host`, `hostaddr`,
+   `service`, `user` or `dbname`. The guards reject these before connecting.
+   Never put a URL/key in command output. Monitor failed runs and rerun after
+   recovery; the sweep is idempotent.
 
-Supply the protected staging `DATABASE_URL` through the scheduler's secret
-environment, plus `ENVIRONMENT=staging`, `PRODUCTION_DATABASE_HOST`,
-`STAGING_DATABASE_HOST`, and `STAGING_DATABASE_PROJECT_REF`, matching the
-existing staging service. Never put the URL/key in the command or job output.
-The script refuses nonlocal databases without the staging guard, returns
-nonzero on failure, and prints only an expired-row count or exception class.
-Alert on a nonzero exit and rerun safely after recovery. Committed, rejected
-and superseded evidence is never deleted or changed. Expiry is also enforced
-synchronously at commit, so scheduler downtime cannot make an expired ticket
-usable. No startup migration marker gates this sweep. This PR documents the
-schedule; it does not install a hosted job or change production scheduling.
+The script prints only an expired-row count or exception class and returns
+nonzero on failure. Committed, rejected and superseded evidence is never
+changed or deleted. Commit also enforces expiry synchronously, so scheduler
+downtime cannot make an expired ticket usable. No startup migration marker
+gates the sweep. This change does not create a hosted job or access production.
 
 ## Verification
 
-- Full Python suite: **1,729 passed**, zero failures/skips, on a dedicated fresh
-  PostgreSQL 17 database (`fl_a1p2_rebased` at loopback port 57682), including
-  all newly merged A4 tests. The pre-rebase suite also passed 1,606 tests.
-- Part-2 safety tests: **72 passed**, including the final review regressions.
+- Final PR #83 review fixes: **1,791 Python tests passed**, zero failures/skips,
+  on a fresh PostgreSQL 17 database (`fl83_final` at loopback port 57683).
+  This includes 62 added regression cases. The earlier rebased suite passed
+  1,729 tests, and the pre-rebase suite passed 1,606.
+- Part-2 safety tests: **94 passed**; expiry guard tests: **39 passed**.
+  Focused ticket/auth/expiry coverage passed 206 tests before the final
+  prior-transaction lot-label correction; the final full run covers that correction.
+- A repeated full run against the already-used test database hit the existing
+  seed test's fresh-database assumption (15 rows instead of 3). The final run
+  used a newly created database and passed every test. No test was skipped.
+- The dashboard allowlist equals the part-1 `origin/main` set exactly (89 total
+  routes, including its five ticket routes). All three deleted assertions are
+  restored. Named actors/master retain the four additional prepare routes.
+- Adjust payloads and draft receipts expose `reason_code`; both input aliases
+  produce the same payload hash. Replay and arbitrary reasons remain supported.
+- Blockers/warnings identify product names and lot codes, including prior
+  transaction lots in duplicate warnings. Example: “Oats 50 lb needs 10.0 lb;
+  prepare again after resolving the shortage.”
 - Node suite: **69 passed**, zero failures/skips.
 - New PostgreSQL tests cover every action's single use, expiry, tamper,
   revalidation, replay, actual concurrent double commit and duplicate warnings;

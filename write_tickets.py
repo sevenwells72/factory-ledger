@@ -18,16 +18,19 @@ from psycopg2.extras import Json
 ClientSource = Literal['mcp', 'dashboard', 'fl_assistant', 'api']
 PositiveId = conint(strict=True, gt=0)
 PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND'}
-ROUTES = frozenset({
+# Public dashboard scope remains exactly the ticket routes granted by A1 part 1.
+DASHBOARD_ROUTES = frozenset({
     ('POST', '/receive/prepare'),
-    ('POST', '/make/prepare'),
-    ('POST', '/pack/prepare'),
-    ('POST', '/adjust/prepare'),
-    ('POST', '/inventory/found/prepare'),
     ('POST', '/tickets/{ticket}/commit'),
     ('GET', '/receipts'),
     ('GET', '/receipts/{receipt_number}'),
     ('GET', '/receipts/by-transaction/{transaction_id}'),
+})
+ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
+    ('POST', '/make/prepare'),
+    ('POST', '/pack/prepare'),
+    ('POST', '/adjust/prepare'),
+    ('POST', '/inventory/found/prepare'),
 })
 
 
@@ -128,16 +131,16 @@ class PackPrepareRequest(ActionPrepareRequest):
 class AdjustPrepareRequest(ActionPrepareRequest):
     lot_id: PositiveId
     delta_lb: float
-    reason: str = Field(min_length=1)
+    reason_code: str = Field(min_length=1)
     reason_es: Optional[str] = None
 
     @root_validator(pre=True)
     def reason_alias(cls, values):
         values = dict(values)
-        if 'reason_code' in values:
-            if 'reason' in values:
+        if 'reason' in values:
+            if 'reason_code' in values:
                 fail(422, 'AMBIGUOUS_REASON', 'Supply reason or reason_code, not both.')
-            values['reason'] = values.pop('reason_code')
+            values['reason_code'] = values.pop('reason')
         if values.get('delta_lb') == 0:
             fail(422, 'INVALID_QUANTITY', 'Adjustment must be nonzero.')
         return values
@@ -484,8 +487,10 @@ def register_routes(app, api):
                 # A draft promising a new lot cannot silently add to a lot
                 # created after prepare. This runs under the receive lock.
                 if not row['draft'].get('lot_exists') and draft.get('lot_exists'):
+                    name = draft.get('product_name') or draft.get('target_product_name')
+                    code = draft.get('lot_code') or draft.get('output_lot_code')
                     fail(409, 'LOT_CODE_TAKEN',
-                         'The prepared lot code is now in use; prepare again for a fresh draft.')
+                         f'{name} lot {code} is now in use; prepare again for a fresh draft.')
                 state_changed = canonical_hash(json_value(api, state)) != row['state_hash']
                 receipt = allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
                 if row['action'] == 'receive':

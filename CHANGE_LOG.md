@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-10-08 12:25 — Verify all PR #83 review fixes on a fresh disposable database
+- **File(s) changed:** docs/deployments/a1-write-tickets-part2.md, CHANGE_LOG.md
+- **What changed:** Final Python suite: 1791 passed (62 new), Node: 69 passed, zero failures/skips. PostgreSQL 17 database fl83_final at 127.0.0.1:57683; Python 3.12 with ReportLab 4.4.9 for historical PDF parity. An intermediate reused-database run failed the existing seed fresh-database count (15 vs 3); the fresh final run passes all tests. Dashboard allowlist matches origin/main exactly (89 routes), prior changelog entries are intact, git diff --check passes, and migrations/schema/GPT files are unchanged.
+- **Why:** Complete the requested full verification before pushing feat/write-tickets-2 to PR #83. No production or staging database access, hosted cron creation, deployment, merge or other-worktree changes.
+
+---
+
+## 2026-10-08 12:22 — Name the earlier transaction lots in duplicate warnings
+- **File(s) changed:** ticket_actions.py, tests/test_write_tickets_part2.py, docs/deployments/a1-write-tickets-part2.md
+- **What changed:** Resolve duplicate warning lot names from the prior transaction’s effective lines, avoiding attribution to a newly generated draft lot. Clarify dashboard-source TTL and cron-only script watch paths; link official Railway configuration documentation.
+- **Why:** Final review after 1791 Python / 69 Node passed found the wording ambiguity; rerun Python after correction. No live database or hosted-service access.
+
+---
+
+## 2026-10-08 12:20 — Cover PR #83 review fixes and document the Railway expiry cron setup
+- **File(s) changed:** tests/test_expire_tickets.py, tests/test_dashboard_api_key.py, tests/test_write_tickets_part2.py, docs/deployments/a1-write-tickets-part2.md
+- **What changed:** Add fail-before-connect production/staging/local routing and redacted CLI failure tests; verify public dashboard denial, actor/master access, canonical reason payload/hash/replay and product/lot messages. Document cron 15 7 * * *, the Python start command and a DATABASE_URL reference from the matching FastAPI service.
+- **Why:** Complete the four review requirements without creating the Railway service; full disposable-local-database validation follows.
+
+---
+
+## 2026-10-08 12:18 — Fix PR #83 dashboard scope, expiry guard, readable blockers and canonical adjust reason
+- **File(s) changed:** write_tickets.py, main.py, tests/test_write_tickets.py, tests/test_dashboard_api_key.py, ticket_actions.py, scripts/expire_tickets.py
+- **What changed:** Restore the three dashboard assertions and restrict part-2 prepares to actor/master keys; require explicit production environment and pinned host before expiry connects; name products/lots in ticket shortages, warnings and races; serialize adjust reason_code with reason as an input alias.
+- **Why:** Michael’s PR #83 review requirements; no A3 reason validation, hosted job, deployment or merge. Full validation follows.
+
+---
+
 ## 2026-10-08 11:51 — Verify rebased part-2 branch with all merged A4 tests
 - **File(s) changed:** docs/deployments/a1-write-tickets-part2.md, work/pr-body.md
 - **What changed:** Fresh PostgreSQL 17 full suite passes 1729 tests with zero failures/skips; Node passes 69. Migrations and schema match origin/main exactly, and only the changelog required conflict resolution.
