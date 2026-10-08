@@ -77,7 +77,7 @@ after A7). Pilot soft-start Nov 2, gate (d) Nov 9–13, decision Nov 17, cutover
 the daily owner-acceptance slot: `~/Documents/fl-audits/lane-schedule.md`. Open: PR #78 records
 a PR-0 "rotate at cutover" override that the design doc still needs Michael to confirm.
 
-**P1.7 `/products/resolve` is master-key only — decide in A2 whether office/dashboard should reach it (found 2026-10-08, PR #81 rollout).**
+**P1.7 `/products/resolve` is master-key only — decide in A2 whether office/dashboard should reach it (found 2026-10-08, PR #81 rollout). — DECIDED in A2 (PR feat/roles, 2026-10-08): no allowlist widened; recommendation below for Michael to confirm.**
 Live check after the A4 part 1 deploy: `POST /resolve` accepts the dashboard-scoped key
 (`DASHBOARD_KEY_ALLOWLIST` has `('POST', '/resolve')` and `('GET', '/aliases')`), but
 `POST /products/resolve` is on the office-GPT allowlist only, so the dashboard key gets
@@ -86,6 +86,20 @@ needs the master key. Not a regression — the route was never on the dashboard 
 A2 (key kinds / scoped keys) must decide whether office and dashboard clients should call
 the bulk resolver, and if so add the `('POST', '/products/resolve')` pair to the relevant
 allowlist(s) with a test, or document that bulk resolution stays master/office-key only.
+*A2 decision (builder, 2026-10-08):* **office actors already reach both** — `('POST',
+'/products/resolve')` is in `ACTOR_WRITE_ALLOWLIST` and `('POST', '/resolve')` in
+`DASHBOARD_KEY_ALLOWLIST`, so Luz/Miriam with personal keys (and, after A11, PIN
+sessions) get the bulk resolver and the single resolver today; both are reads with no
+role restriction in `permissions.ROLE_PERMISSIONS` ("all reads" row of §4.3). **The
+shared dashboard key is NOT widened**: the bulk resolver returns up to 50 catalog rows
+per call with no business write, but the key is a public literal in `dashboard.js`, the
+only dashboard screen that bulk-resolves (ER/SO intake OCR) is an office screen that will
+sign in as a person under A11/D2, and the A2 brief is "no shared key gets anything new".
+Recommendation: leave `/products/resolve` off the dashboard key until D2 ships PIN
+sessions, then the intake screens call it as the signed-in office user; if the office
+needs it on the dashboard before D2, the right change is a one-line `DASHBOARD_KEY_ALLOWLIST`
+entry + test in that PR, not a key-kind change. G1 (read-only GPT key) already plans to
+accept `POST /products/resolve` as its one POST.
 
 **P1.8 `transactions.reason_code` after migration 061 — NULL window until A3b, and the effective view does not expose it (found 2026-10-08, PR #85 review).**
 061's backfill is one-time at apply: every `type='adjust'` row existing then gets a code
@@ -116,6 +130,26 @@ First manual run: restart its deployment, expect `Expired N prepared tickets` in
 verify read-only that only `write_tickets` changed. Same recipe for FastAPI-staging with
 `ENVIRONMENT=staging` + the staging guard variables. See
 `docs/deployments/a1-write-tickets-part2.md` "Nightly ticket expiry".
+
+**P1.11 A2 (roles / entered_by) follow-ups — recorded 2026-10-08, PR feat/roles.**
+(a) `ledger_current_transactions` has an explicit column list, so `entered_by_actor_id`
+(like `reason_code`, P1.8) is visible only inside `effective_record`; A9/A3b add both
+columns to the view in one replacement when they first read them. (b) Migration 065 adds
+`entered_by_actor_id` to `transactions` and `ledger_corrections` only; the design's 059
+set (`actors.email`, `shipments`/`sales_orders`/`sales_order_lines.entered_by_actor_id`,
+`lot_events`) is deferred — non-ledger writes are already attributed per actor by
+`actor_write_audit` (056), `actors.email` is M0/M2's need, `lot_events` is A5/F3's. (c) No
+history backfill: rows before 065 keep `operator_id` (the actor's name since PR #66) as
+their attribution; a one-time `UPDATE … FROM actors WHERE operator_id = actors.name` is
+possible with the 046/061 trigger dance if a report needs ids on old rows. (d) The master
+key is owner-equivalent for `backdate_over_14d` (its existing `backfill:true` path) and
+for the existing ticket actions, and gets nothing new (exceptions, aliases, kosher) — this
+holds until PR-0/cutover rotation retires it from the GPTs; Michael to confirm. (e) The
+`LATE_ENTRY` exception's `owner_actor_id` is the lowest-id active `role='owner'` actor
+(NULL if none — staging has one, prod has Michael); A3b's resolve endpoint owns
+`acknowledged`. (f) `void` is in the matrix for owner/floor/master but the own-posts /
+same-plant-day condition for floor (§4.3) is not enforced until void becomes a ticket.
+(g) `test_seed_staging` fails on a reused DB — build a fresh one per full run (known).
 
 **P1.10 Sunshine billing rules — decided by Michael 2026-10-08 (design rev 3.7, §8.5, §11 items 27–31); invoicing trigger and price list still OPEN.**
 Decided: (1) yield credits = **none** — CNS supplies all ingredients, no expected-vs-actual

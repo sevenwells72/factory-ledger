@@ -1,4 +1,10 @@
-"""FR-15 owner decision: all 14 writes and product resolution accept all actor roles.
+"""FR-15 owner decision: all 14 writes and product resolution are reachable by actor keys.
+
+Since A2 (design §4.3) a named actor's ROLE also has to allow the write:
+`permissions.ROUTE_ACTIONS` maps each direct route to its matrix action, and a
+denied role gets 403 ROLE_NOT_ALLOWED before the handler. The attribution
+assertions below therefore run as a role the matrix allows (`_actor_for`), and
+the all-roles parametrizations assert the denial where it applies.
 
 Real PostgreSQL writes through HTTP, with persisted attribution assertions.
 All fixtures use the local TEST_DATABASE_URL and roll back after each test.
@@ -10,12 +16,34 @@ from uuid import uuid4
 import pytest
 
 import main
+import permissions
 from tests.test_actor_attribution import client as actor_client, _ConnProxy, _seed, _allocate, _allocation  # noqa: F401
 from tests.test_trace_emission import _seed_make_setup, _seed_pack_setup
 from tests.test_sales_order_extract import _insert_document, _approve_payload, _approve_line
 
 MIGRATION = Path(__file__).resolve().parents[1] / 'migrations/056_actor_write_audit.sql'
 NAMES = ('Blubber', 'Arturo', 'Luz', 'Miriam')
+ROLES = {'Blubber': 'owner', 'Arturo': 'floor', 'Luz': 'floor', 'Miriam': 'office', 'Retired': 'floor'}
+
+
+def _denied(identity, method, route):
+    """True when §4.3 denies this named actor the route's action (shared key: never)."""
+    if identity == 'shared':
+        return False
+    action = permissions.ROUTE_ACTIONS.get((method, route))
+    return action is not None and not permissions.allowed(action, ROLES[identity])
+
+
+def _actor_for(preferred, method, route):
+    """`preferred` if the matrix allows it on the route, else the owner (allowed everywhere)."""
+    return preferred if not _denied(preferred, method, route) else 'Blubber'
+
+
+def _assert_role_denied(response, identity, before, cur):
+    assert response.status_code == 403, response.text
+    detail = response.json()['detail']
+    assert (detail['error_code'], detail['actor'], detail['role']) == ('ROLE_NOT_ALLOWED', identity, ROLES[identity])
+    assert _snapshot(cur) == before
 # Intentionally independent of the implementation's allowlist.
 CASES = [
     ('POST', '/receive'), ('POST', '/ship'), ('POST', '/make'),
@@ -51,7 +79,8 @@ def named_actors(db_cursor):
     db_cursor.execute((MIGRATION.parent / '052_actors.sql').read_text())
     db_cursor.execute(MIGRATION.read_text())
     result = {}
-    for name, role in zip(NAMES + ('Retired',), ('owner', 'floor', 'floor', 'office', 'floor')):
+    for name in NAMES + ('Retired',):
+        role = ROLES[name]
         key = 'test-only-' + uuid4().hex
         db_cursor.execute(
             'INSERT INTO actors (name, role, key_hash, active) VALUES (%s,%s,%s,%s) RETURNING id',
@@ -221,6 +250,9 @@ def test_each_write_persists_the_authenticated_operator(
             body.update(operator_id='Somebody Else', created_by='Somebody Else')
     before = _snapshot(db_cursor)
     response = _request(client, method, route, prepared, body, key)
+    if _denied(identity, method, route):
+        _assert_role_denied(response, identity, before, db_cursor)
+        return
     assert response.status_code == 200, response.text
     after = _snapshot(db_cursor)
     expected = 'legacy-shared-key' if identity == 'shared' else identity
@@ -289,7 +321,7 @@ def test_metadata_audit_failure_rolls_back_the_write(
     def fail_audit(cur, *args):
         cur.execute('SELECT 1 / 0')
     monkeypatch.setattr(main, '_record_actor_write', fail_audit)
-    response = _request(client, method, route, prepared, body, named_actors['Arturo']['key'])
+    response = _request(client, method, route, prepared, body, named_actors[_actor_for('Arturo', method, route)]['key'])
     assert response.status_code == 500, response.text
     assert _snapshot(db_cursor) == before
 
@@ -300,7 +332,7 @@ def test_actor_preview_has_no_business_writes(client, db_cursor, named_actors, p
     body = _payload(db_cursor, route, prepared)
     body['mode'] = 'preview'
     before = _snapshot(db_cursor)
-    response = _request(client, 'POST', route, prepared, body, named_actors['Luz']['key'])
+    response = _request(client, 'POST', route, prepared, body, named_actors[_actor_for('Luz', 'POST', route)]['key'])
     assert response.status_code == 200, response.text
     assert _snapshot(db_cursor) == before
 
@@ -332,7 +364,7 @@ def test_named_ledger_write_rolls_back_if_trace_fails(
     def fail_trace(cur, *args, **kwargs):
         cur.execute('SELECT 1 / 0')
     monkeypatch.setattr(main, 'emit_trace_event', fail_trace)
-    response = _request(client, 'POST', route, prepared, body, named_actors['Miriam']['key'])
+    response = _request(client, 'POST', route, prepared, body, named_actors[_actor_for('Miriam', 'POST', route)]['key'])
     assert response.status_code == 500, response.text
     assert _snapshot(db_cursor) == before
 
@@ -353,6 +385,9 @@ def test_actor_identity_does_not_leak_between_requests(client, db_cursor, named_
     for name in ('Arturo', 'shared', 'Luz', 'shared', 'Miriam', 'Blubber'):
         key = main.API_KEY if name == 'shared' else named_actors[name]['key']
         response = _request(client, 'POST', '/adjust', prepared, body, key)
+        if name == 'Miriam':   # office: denied, and the denial names HER, not the previous caller
+            assert response.status_code == 403 and response.json()['detail']['actor'] == 'Miriam', response.text
+            continue
         assert response.status_code == 200, response.text
         db_cursor.execute('SELECT operator_id FROM transactions WHERE id=%s',
                           (response.json()['transaction_id'],))
@@ -372,6 +407,8 @@ def test_expired_allocation_release_keeps_the_correct_identity(
         db_cursor.execute('UPDATE sales_order_lines SET product_id=%s WHERE id=%s',
                           (allocation_seed['product_id'], prepared['line_id']))
     allocation_id = _allocate(db_cursor, allocation_seed, source='auto_fifo', expired=True)
+    if identity != 'shared':
+        identity = _actor_for(identity, 'POST', route)   # floor may not ship standalone
     key = main.API_KEY if identity == 'shared' else named_actors[identity]['key']
     response = _request(client, 'POST', route, prepared, body, key)
     assert response.status_code == 200, response.text
@@ -482,7 +519,7 @@ def _auto_create_body(cur, route, seed, new_name):
 
 @pytest.mark.db
 @pytest.mark.parametrize('route', ['/sales/orders', '/ship'])
-@pytest.mark.parametrize('identity', ('Miriam', 'Luz', 'shared'))
+@pytest.mark.parametrize('identity', ('Miriam', 'Blubber', 'shared'))   # office + owner: floor may not
 def test_auto_created_customer_is_audited_with_the_business_write(
         client, db_cursor, named_actors, prepared, route, identity):
     # Unique first word: no exact, fuzzy or prefix match, so it must auto-create.
@@ -519,7 +556,7 @@ def test_auto_created_customer_audit_failure_rolls_back_everything(
     def fail_audit(cur, *args):
         cur.execute('SELECT 1 / 0')
     monkeypatch.setattr(main, '_record_actor_write', fail_audit)
-    response = _request(client, 'POST', route, prepared, body, named_actors['Arturo']['key'])
+    response = _request(client, 'POST', route, prepared, body, named_actors['Miriam']['key'])
     assert response.status_code == 500, response.text
     assert _snapshot(db_cursor) == before
 
@@ -547,12 +584,12 @@ def test_audit_table_rls_blocks_other_roles_but_not_the_owning_backend_role(
         db_cursor.execute(f'SET LOCAL ROLE {owner}')
         response = _request(client, 'POST', '/customers', prepared,
                             _payload(db_cursor, '/customers', prepared),
-                            named_actors['Arturo']['key'])
+                            named_actors['Miriam']['key'])
         assert response.status_code == 200, response.text
         customer_id = response.json()['customer_id']
         db_cursor.execute("SELECT operator_id FROM actor_write_audit "
                           "WHERE target_table = 'customers' AND target_id = %s", (customer_id,))
-        assert [r['operator_id'] for r in db_cursor.fetchall()] == ['Arturo']
+        assert [r['operator_id'] for r in db_cursor.fetchall()] == ['Miriam']
 
         db_cursor.execute(f'SET LOCAL ROLE {outsider}')
         db_cursor.execute('SELECT count(*) AS n FROM actor_write_audit')
@@ -597,6 +634,11 @@ def test_intake_creation_audits_order_and_each_line(
     before = _intake_snapshot(db_cursor)
     response = client.post('/sales/orders/extract/approve', json=body,
                            headers={'X-API-Key': key})
+    if _denied(identity, 'POST', '/sales/orders/extract/approve'):
+        assert response.status_code == 403, response.text
+        assert response.json()['detail']['error_code'] == 'ROLE_NOT_ALLOWED'
+        assert _intake_snapshot(db_cursor) == before
+        return
     assert response.status_code == 201, response.text
     result = response.json()
     assert len(result['lines']) == 2 and result['aliases_saved'] == 2
@@ -643,7 +685,7 @@ def test_core_audit_failure_rolls_back_both_creation_paths(
 
     monkeypatch.setattr(main, '_record_actor_write', fail_core_audit)
     response = client.post(route, json=body,
-                           headers={'X-API-Key': named_actors['Luz']['key']})
+                           headers={'X-API-Key': named_actors['Miriam']['key']})
     assert response.status_code == 500, response.text
     assert calls == ['sales_orders', 'sales_order_lines', 'sales_order_lines'][:fail_at]
     assert _intake_snapshot(db_cursor) == before

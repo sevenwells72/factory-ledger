@@ -170,13 +170,14 @@ def test_archive_revalidation_is_terminal_without_stock_or_counter_changes(clien
 @pytest.mark.parametrize('action', ACTIONS)
 def test_duplicate_warning_cross_actor_ack_and_effective_void(client, db_cursor, items, action, actors):
     payload = body(action, items)
-    first = prepare(client, action, payload, actors['office']['key'])
-    posted = commit(client, first, actors['office']['key'])
+    # A2: office may not post these actions, so the cross-actor pair is owner → floor.
+    first = prepare(client, action, payload, actors['owner']['key'])
+    posted = commit(client, first, actors['owner']['key'])
     assert posted.status_code == 200, posted.text
     second = prepare(client, action, payload, actors['floor']['key'])
     warning = next(w for w in second['warnings'] if w['code'] == 'POSSIBLE_DUPLICATE')
     assert warning['refs']['receipt_number'] == posted.json()['receipt_number']
-    assert warning['refs']['operator_id'] == actors['office']['name']
+    assert warning['refs']['operator_id'] == actors['owner']['name']
     expected = items[{'make': 'batch', 'pack': 'finished', 'adjust': 'ingredient', 'found': 'ingredient'}[action]]
     assert expected['name'] in warning['message']
     assert expected['name'] in warning['message_es']
@@ -482,12 +483,27 @@ def test_make_duplicate_matches_stored_decimal_yield(client, db_cursor, items):
 
 
 @pytest.mark.parametrize('action', ACTIONS)
-@pytest.mark.parametrize('which', ['master', 'floor', 'office'])
+@pytest.mark.parametrize('which', ['master', 'owner', 'floor'])
 def test_part2_actor_and_master_scope(client, db_cursor, items, actors, action, which):
     key = main.API_KEY if which == 'master' else actors[which]['key']
     prepared = prepare(client, action, body(action, items), key)
     assert prepared['can_commit'], prepared
     assert commit(client, prepared, key).status_code == 200
+
+
+@pytest.mark.parametrize('action', ACTIONS)
+def test_part2_office_is_denied_by_role_not_route(client, db_cursor, items, actors, action):
+    """A2: the route admits the actor key; the action matrix (design §4.3) denies office."""
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    before = db_cursor.fetchone()['n']
+    path = '/inventory/found/prepare' if action == 'found' else f'/{action}/prepare'
+    response = client.post(path, json=body(action, items), headers=headers(actors['office']['key']))
+    error(response, 403, 'ROLE_NOT_ALLOWED')
+    assert response.json()['detail'] | {'message': None, 'message_es': None} == {
+        'error_code': 'ROLE_NOT_ALLOWED', 'action': action, 'role': 'office',
+        'actor': actors['office']['name'], 'key_kind': 'actor', 'message': None, 'message_es': None}
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    assert db_cursor.fetchone()['n'] == before
 
 
 @pytest.mark.parametrize('action', ACTIONS)

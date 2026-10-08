@@ -48,6 +48,7 @@ except ImportError:  # pragma: no cover
     pytest.skip("fastapi/httpx not installed", allow_module_level=True)
 
 import main
+import permissions
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -167,24 +168,30 @@ ALL_KEYS = [
 ]
 
 
-def _headers(which, actors):
+# The actor-key column is the floor actor by default. The order-state tests
+# pass label="office" (reopen: "owner"): they are about attribution, and §4.3
+# (A2) closes those routes to floor.
+ACTOR_LABEL = "floor"
+
+
+def _headers(which, actors, label=ACTOR_LABEL):
     if which == MASTER:
         return {"X-API-Key": main.API_KEY}
     if which == DASHBOARD:
         return {"X-API-Key": main.DASHBOARD_API_KEY}
-    return {"X-API-Key": actors["floor"]["key"]}
+    return {"X-API-Key": actors[label]["key"]}
 
 
-def _expected(which, actors):
+def _expected(which, actors, label=ACTOR_LABEL):
     if which == MASTER:
         return None
     if which == DASHBOARD:
         return "dashboard"
-    return actors["floor"]["name"]
+    return actors[label]["name"]
 
 
-def _assert_attribution(value, which, actors):
-    expected = _expected(which, actors)
+def _assert_attribution(value, which, actors, label=ACTOR_LABEL):
+    expected = _expected(which, actors, label)
     assert value != PLACEHOLDER, (
         f"attribution must never be the {PLACEHOLDER!r} placeholder (got {value!r})"
     )
@@ -312,17 +319,17 @@ def test_close_records_the_actor(client, db_cursor, actors, which):
     resp = client.post(
         f"/sales/orders/{seeded['order_id']}/close",
         json={"reason": "short_closed", "mode": "commit"},
-        headers=_headers(which, actors),
+        headers=_headers(which, actors, "office"),
     )
     assert resp.status_code == 200, resp.text
 
     order = _state_changed_by(db_cursor, seeded["order_id"])
     assert order["state"] == "closed"
-    _assert_attribution(order["state_changed_by"], which, actors)
+    _assert_attribution(order["state_changed_by"], which, actors, "office")
 
     released = _allocation(db_cursor, allocation_id)
     assert released["status"] == "released"
-    _assert_attribution(released["released_by"], which, actors)
+    _assert_attribution(released["released_by"], which, actors, "office")
 
 
 @pytest.mark.db
@@ -334,14 +341,14 @@ def test_cancel_records_the_actor(client, db_cursor, actors, which):
     resp = client.post(
         f"/sales/orders/{seeded['order_id']}/cancel",
         json={"reason": "customer_cancelled", "mode": "commit"},
-        headers=_headers(which, actors),
+        headers=_headers(which, actors, "office"),
     )
     assert resp.status_code == 200, resp.text
 
     order = _state_changed_by(db_cursor, seeded["order_id"])
     assert order["state"] == "cancelled"
-    _assert_attribution(order["state_changed_by"], which, actors)
-    _assert_attribution(_allocation(db_cursor, allocation_id)["released_by"], which, actors)
+    _assert_attribution(order["state_changed_by"], which, actors, "office")
+    _assert_attribution(_allocation(db_cursor, allocation_id)["released_by"], which, actors, "office")
 
 
 @pytest.mark.db
@@ -357,13 +364,13 @@ def test_reopen_records_the_actor(client, db_cursor, actors, which):
     resp = client.post(
         f"/sales/orders/{seeded['order_id']}/reopen",
         json={"mode": "commit"},
-        headers=_headers(which, actors),
+        headers=_headers(which, actors, "owner"),
     )
     assert resp.status_code == 200, resp.text
 
     order = _state_changed_by(db_cursor, seeded["order_id"])
     assert order["state"] == "open"
-    _assert_attribution(order["state_changed_by"], which, actors)
+    _assert_attribution(order["state_changed_by"], which, actors, "owner")
 
 
 @pytest.mark.db
@@ -385,7 +392,7 @@ def test_ready_flag_records_the_actor(client, db_cursor, actors, which):
     row = dict(db_cursor.fetchone())
     assert row["ready"] is True
     if which == ACTOR:
-        assert row["ready_by"] == actors["floor"]["name"]
+        assert row["ready_by"] == actors[ACTOR_LABEL]["name"]
     else:
         # Untouched legacy behaviour: the body's `by`, defaulting to 'floor'.
         assert row["ready_by"] == "floor"
@@ -477,19 +484,19 @@ def test_legacy_status_cancelled_records_the_actor(client, db_cursor, actors, wh
     resp = client.patch(
         f"/sales/orders/{seeded['order_id']}/status",
         json={"status": "cancelled"},
-        headers=_headers(which, actors),
+        headers=_headers(which, actors, "office"),
     )
     assert resp.status_code == 200, resp.text
 
     row = _persisted_exit(db_cursor, seeded["order_id"])
     assert (row["status"], row["state"]) == ("cancelled", "cancelled")
     assert row["state_note"] == "via legacy status endpoint"
-    _assert_attribution(row["state_changed_by"], which, actors)
+    _assert_attribution(row["state_changed_by"], which, actors, "office")
 
     released = _allocation(db_cursor, allocation_id)
     assert released["status"] == "released"
     assert released["release_reason"] == "order_cancelled"
-    _assert_attribution(released["released_by"], which, actors)
+    _assert_attribution(released["released_by"], which, actors, "office")
 
 
 @pytest.mark.db
@@ -504,19 +511,19 @@ def test_legacy_status_invoiced_records_the_actor(client, db_cursor, actors, whi
     resp = client.patch(
         f"/sales/orders/{seeded['order_id']}/status",
         json={"status": "invoiced"},
-        headers=_headers(which, actors),
+        headers=_headers(which, actors, "office"),
     )
     assert resp.status_code == 200, resp.text
 
     row = _persisted_exit(db_cursor, seeded["order_id"])
     assert (row["status"], row["state"]) == ("invoiced", "closed")
     assert row["state_note"] == "via legacy status endpoint (invoiced)"
-    _assert_attribution(row["state_changed_by"], which, actors)
+    _assert_attribution(row["state_changed_by"], which, actors, "office")
 
     released = _allocation(db_cursor, allocation_id)
     assert released["status"] == "released"
     assert released["release_reason"] == "order_closed"
-    _assert_attribution(released["released_by"], which, actors)
+    _assert_attribution(released["released_by"], which, actors, "office")
 
 
 # update_order_line has TWO sites that write released_by, and they used to
@@ -550,7 +557,7 @@ def test_update_line_records_the_actor_at_the_shrink_site(client, db_cursor, act
     resp = client.patch(
         f"/sales/orders/{seeded['order_id']}/lines/{seeded['line_id']}/update"
         f"?quantity_lb=10",
-        headers=_headers(which, actors),
+        headers=_headers(which, actors, "office"),
     )
     assert resp.status_code == 200, resp.text
 
@@ -558,7 +565,7 @@ def test_update_line_records_the_actor_at_the_shrink_site(client, db_cursor, act
     assert released, "cutting the line must shed the excess reservation"
     for row in released:
         assert row["released_by"] != PLACEHOLDER
-        _assert_attribution(row["released_by"], which, actors)
+        _assert_attribution(row["released_by"], which, actors, "office")
 
 
 @pytest.mark.db
@@ -585,7 +592,7 @@ def test_update_line_records_the_actor_at_the_expiry_site(client, db_cursor, act
     resp = client.patch(
         f"/sales/orders/{seeded['order_id']}/lines/{seeded['line_id']}/update"
         f"?quantity_lb=150",
-        headers=_headers(which, actors),
+        headers=_headers(which, actors, "office"),
     )
     assert resp.status_code == 200, resp.text
 
@@ -593,7 +600,7 @@ def test_update_line_records_the_actor_at_the_expiry_site(client, db_cursor, act
     assert row["status"] == "released"
     assert row["release_reason"] == "expired"
     assert row["released_by"] != PLACEHOLDER
-    _assert_attribution(row["released_by"], which, actors)
+    _assert_attribution(row["released_by"], which, actors, "office")
 
     assert not _released_for_line(db_cursor, seeded["line_id"]), (
         "raising the quantity must not shed anything from the line itself — "
@@ -654,12 +661,12 @@ def test_resolved_actor_beats_body_changed_by(client, db_cursor, actors):
     resp = client.post(
         f"/sales/orders/{seeded['order_id']}/close",
         json={"reason": "short_closed", "mode": "commit", "changed_by": "Somebody Else"},
-        headers=_headers(ACTOR, actors),
+        headers=_headers(ACTOR, actors, "office"),
     )
     assert resp.status_code == 200, resp.text
 
     order = _state_changed_by(db_cursor, seeded["order_id"])
-    assert order["state_changed_by"] == actors["floor"]["name"]
+    assert order["state_changed_by"] == actors["office"]["name"]
 
 
 @pytest.mark.db
@@ -690,7 +697,7 @@ def test_over_long_changed_by_is_still_rejected_for_an_actor(client, db_cursor, 
         f"/sales/orders/{seeded['order_id']}/close",
         json={"reason": "short_closed", "mode": "commit",
               "changed_by": "x" * (main.SO_CHANGED_BY_MAX + 1)},
-        headers=_headers(ACTOR, actors),
+        headers=_headers(ACTOR, actors, "office"),
     )
     assert resp.status_code == 400, resp.text
     assert resp.json()["detail"]["error_code"] == "CHANGED_BY_TOO_LONG"
@@ -826,7 +833,15 @@ def test_every_floor_schema_operation_obeys_the_allowlist(client, actors, method
     resp = client.request(method, url, **kwargs)
 
     allowlisted = (method, template) in (main.DASHBOARD_KEY_ALLOWLIST | main.ACTOR_WRITE_ALLOWLIST)
-    if allowlisted:
+    # A2: past the route scope, the §4.3 matrix answers for a NAMED actor.
+    # The floor key used here is denied the office verbs; that denial is the
+    # structured ROLE_NOT_ALLOWED, never the route-scope string.
+    action = permissions.ROUTE_ACTIONS.get((method, template))
+    role_denied = allowlisted and action is not None and not permissions.allowed(action, actors[ACTOR_LABEL]["role"])
+    if role_denied:
+        assert resp.status_code == 403, resp.text[:200]
+        assert resp.json()["detail"]["error_code"] == "ROLE_NOT_ALLOWED"
+    elif allowlisted:
         assert resp.status_code != 403, (
             f"{method} {template} is on the actor allowlist, so an actor "
             f"key must reach it: {resp.status_code} {resp.text[:200]}"
@@ -876,24 +891,29 @@ def test_the_shared_and_floor_exclusive_halves_are_both_non_empty():
 def test_whoami_for_an_actor_key(client, actors):
     resp = client.get("/auth/whoami", headers=_headers(ACTOR, actors))
     assert resp.status_code == 200, resp.text
-    assert resp.json() == {
-        "actor": {"name": actors["floor"]["name"], "role": "floor"},
-        "key_kind": "actor",
-    }
+    body = resp.json()
+    # A2: actor.id and the per-action permissions map (display only) are added.
+    assert body["actor"] == {"id": actors["floor"]["id"], "name": actors["floor"]["name"], "role": "floor"}
+    assert body["key_kind"] == "actor"
+    assert body["permissions"]["make"] is True and body["permissions"]["create_order"] is False
 
 
 @pytest.mark.db
 def test_whoami_for_the_dashboard_key(client, actors):
     resp = client.get("/auth/whoami", headers=_headers(DASHBOARD, actors))
     assert resp.status_code == 200, resp.text
-    assert resp.json() == {"actor": None, "key_kind": "legacy_dashboard"}
+    body = resp.json()
+    assert (body["actor"], body["key_kind"]) == (None, "legacy_dashboard")
+    assert body["permissions"]["receive"] is True and body["permissions"]["make"] is False
 
 
 @pytest.mark.db
 def test_whoami_for_the_master_key(client, actors):
     resp = client.get("/auth/whoami", headers=_headers(MASTER, actors))
     assert resp.status_code == 200, resp.text
-    assert resp.json() == {"actor": None, "key_kind": "legacy_ledger"}
+    body = resp.json()
+    assert (body["actor"], body["key_kind"]) == (None, "legacy_ledger")
+    assert body["permissions"]["make"] is True and body["permissions"]["list_exceptions"] is False
 
 
 @pytest.mark.db
@@ -901,7 +921,7 @@ def test_whoami_reports_each_role(client, actors):
     for label in ("owner", "floor", "office"):
         resp = client.get("/auth/whoami", headers={"X-API-Key": actors[label]["key"]})
         assert resp.status_code == 200, resp.text
-        assert resp.json()["actor"] == {"name": actors[label]["name"],
+        assert resp.json()["actor"] == {"id": actors[label]["id"], "name": actors[label]["name"],
                                         "role": actors[label]["role"]}
 
 
@@ -1408,13 +1428,13 @@ def test_a_failing_last_used_write_never_fails_the_request(client, db_cursor, ac
 
     monkeypatch.setattr(main, "_write_actor_last_used", _explode)
 
-    headers = _headers(ACTOR, actors)
-    key_hash = sha256(actors["floor"]["key"].encode()).hexdigest()
+    headers = _headers(ACTOR, actors, "office")
+    key_hash = sha256(actors["office"]["key"].encode()).hexdigest()
 
     resp = client.get("/auth/whoami", headers=headers)
     assert resp.status_code == 200, resp.text
     assert resp.json()["key_kind"] == "actor"
-    assert attempts == [actors["floor"]["id"]]
+    assert attempts == [actors["office"]["id"]]
 
     # The in-memory stamp is given back, so one transient failure does not
     # take the column dark for ten minutes.
@@ -1432,7 +1452,7 @@ def test_a_failing_last_used_write_never_fails_the_request(client, db_cursor, ac
 
     order = _state_changed_by(db_cursor, seeded["order_id"])
     assert order["state"] == "closed"
-    _assert_attribution(order["state_changed_by"], ACTOR, actors)
+    _assert_attribution(order["state_changed_by"], ACTOR, actors, "office")
 
 
 @pytest.mark.db

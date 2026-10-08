@@ -34,6 +34,7 @@ import extraction
 import write_tickets
 import lot_confirmation
 import resolution
+import permissions
 import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
@@ -3107,6 +3108,14 @@ def request_actor(request: Optional[Request]) -> Optional[dict]:
     return getattr(getattr(request, "state", None), "actor", None)
 
 
+def _actor_identity(request: Optional[Request]) -> dict:
+    """`permissions` identity for the request (A2): the actor row or the shared key kind."""
+    actor = request_actor(request)
+    key_kind = getattr(getattr(request, "state", None), "key_kind", None)
+    return {"id": actor["id"] if actor else None, "name": actor["name"] if actor else None,
+            "role": actor["role"] if actor else None, "key_kind": key_kind}
+
+
 def actor_name(request: Optional[Request]) -> Optional[str]:
     """The actor's name for the attribution columns, or None for a legacy key."""
     actor = request_actor(request)
@@ -3161,7 +3170,12 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
         request.state.actor = actor
         request.state.key_kind = "actor"
         _touch_actor_last_used(actor)
-        if _route_key(request) in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
+        route_key = _route_key(request)
+        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
+            # A2: the §4.3 matrix on the direct routes too, so an office key
+            # cannot post `POST /make` while `/make/prepare` denies it. 403
+            # ROLE_NOT_ALLOWED before the handler, before any body is read.
+            permissions.require_route(route_key, _actor_identity(request))
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     raise HTTPException(status_code=invalid_status, detail="Invalid API key")
@@ -3201,9 +3215,13 @@ def auth_whoami(request: Request, _: bool = Depends(verify_api_key)):
     30-operation ceiling and no GPT needs this route.
     """
     actor = request_actor(request)
+    key_kind = getattr(request.state, "key_kind", None)
+    # A2: the per-action map from permissions.ROLE_PERMISSIONS, for display
+    # only (greying out) — FL enforces the same matrix at ticket prepare/commit.
     return {
-        "actor": {"name": actor["name"], "role": actor["role"]} if actor else None,
-        "key_kind": getattr(request.state, "key_kind", None),
+        "actor": {"id": actor["id"], "name": actor["name"], "role": actor["role"]} if actor else None,
+        "key_kind": key_kind,
+        "permissions": permissions.permissions_for(_actor_identity(request)),
     }
 
 
@@ -3250,14 +3268,21 @@ INVENTORY_BACKFILL_SOURCE = "api_backfill"
 
 
 def validate_inventory_occurred_at(
-    occurred_at: Optional[datetime], backfill: bool = False
+    occurred_at: Optional[datetime], backfill: bool = False,
+    request: Optional[Request] = None,
 ) -> tuple[Optional[datetime], Optional[str]]:
     """Normalize and validate an optional inventory event timestamp.
 
     Offset-free ISO timestamps are plant-local. Offset-aware timestamps are
-    converted to the plant timezone before comparison/storage. A NULL return
-    deliberately preserves the legacy insert path, where migration 039 fills
-    occurred_at from the transaction timestamp.
+    converted to the plant timezone for storage; the future / 14-day
+    comparisons are made on UTC instants (two datetimes sharing the plant
+    ZoneInfo compare by wall clock in Python, an hour off across DST). A NULL
+    return deliberately preserves the legacy insert path, where migration 039
+    fills occurred_at from the transaction timestamp.
+
+    With `request` (the direct routes), a named actor key also gets the A2
+    §6.3 rule: > 14 days is owner-only (403 BACKFILL_OWNER_ONLY, whatever
+    `backfill` says). The shared keys keep the backfill flag path unchanged.
     """
     if occurred_at is None:
         return None, None
@@ -3268,7 +3293,8 @@ def validate_inventory_occurred_at(
         event_time = occurred_at.astimezone(PLANT_TIMEZONE)
 
     now = get_plant_now()
-    if event_time > now + INVENTORY_OCCURRED_AT_FUTURE_GRACE:
+    elapsed = permissions.elapsed(event_time, now)
+    if elapsed < -INVENTORY_OCCURRED_AT_FUTURE_GRACE:
         raise HTTPException(
             status_code=400,
             detail={
@@ -3276,7 +3302,9 @@ def validate_inventory_occurred_at(
                 "message": "occurred_at cannot be more than 5 minutes in the future.",
             },
         )
-    if event_time < now - INVENTORY_OCCURRED_AT_STANDARD_WINDOW and not backfill:
+    if request_actor(request) is not None:
+        permissions.require_backdating(_actor_identity(request), event_time, now)
+    if elapsed > INVENTORY_OCCURRED_AT_STANDARD_WINDOW and not backfill:
         raise HTTPException(
             status_code=400,
             detail={
@@ -5541,14 +5569,15 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
             type, timestamp, bol_reference, shipper_name,
             shipper_code, cases_received, case_size_lb,
             expected_receipt_id, occurred_at, created_at_source, operator_id,
-            ticket_id, receipt_number, supplier_id
+            ticket_id, receipt_number, supplier_id, entered_by_actor_id
         )
-        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, req.bol_reference, req.shipper_name, shipper_code,
         req.cases, req.case_size_lb, expected_receipt_id,
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number, supplier_id,
+        _entered_by_actor_id(request),
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -5623,7 +5652,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
 def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Receive inventory. mode=preview returns what will happen; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     # Fallback: use lot_code if supplier_lot_code not provided, then 'N/A'
     supplier_lot = (req.supplier_lot_code or "").strip()
@@ -7890,7 +7919,7 @@ def check_open_orders_for_ship(cur, customer_id: int, customer_name: str) -> dic
 def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Ship inventory. mode=preview returns allocation plan; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     if req.mode == "preview":
         try:
@@ -8091,13 +8120,15 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request =
                     cur.execute("""
                         INSERT INTO transactions (
                             type, timestamp, customer_name, order_reference,
-                            notes, occurred_at, created_at_source, operator_id
+                            notes, occurred_at, created_at_source, operator_id,
+                            entered_by_actor_id
                         )
-                        VALUES ('ship', %s, %s, %s, %s, %s, %s, %s)
+                        VALUES ('ship', %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id, occurred_at, business_date
                     """, (
                         now, canonical_customer, req.order_reference, txn_notes,
                         occurred_at, created_at_source, _operator_id(request),
+                        _entered_by_actor_id(request),
                     ))
                     txn_row = cur.fetchone()
                     txn_id = txn_row['id']
@@ -8457,13 +8488,15 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
 
     cur.execute("""
         INSERT INTO transactions (
-            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number
+            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
+            entered_by_actor_id
         )
-        VALUES ('make', %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('make', %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+        _entered_by_actor_id(request),
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -8827,14 +8860,16 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
     cur.execute("""
         INSERT INTO transactions (
-            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number
+            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
+            entered_by_actor_id
         )
-        VALUES ('pack', %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('pack', %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now,
         f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+        _entered_by_actor_id(request),
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -8973,14 +9008,16 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
     cur.execute("""
         INSERT INTO transactions (
             type, timestamp, adjust_reason, adjust_reason_es,
-            notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number
+            notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
+            entered_by_actor_id
         )
-        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, req.reason, req.reason_es,
         f"Adjustment: {req.adjustment_lb} lb",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+        _entered_by_actor_id(request),
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -9047,13 +9084,15 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
 
     cur.execute("""
         INSERT INTO transactions (
-            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number
+            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
+            entered_by_actor_id
         )
-        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, f"Found inventory: {req.reason_code}",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+        _entered_by_actor_id(request),
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -9113,7 +9152,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
 def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Record batch production. mode=preview returns ingredient check; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     if req.mode == "preview":
         try:
@@ -9251,7 +9290,7 @@ def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> di
 def pack(req: PackRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Pack batch into finished goods. mode=preview returns allocation plan; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     if req.mode == "preview":
         try:
@@ -9284,7 +9323,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key), request: Request =
 def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Adjust inventory. mode=preview returns balance check; mode=commit executes."""
     occurred_at, created_at_source = validate_inventory_occurred_at(
-        req.occurred_at, req.backfill
+        req.occurred_at, req.backfill, request
     )
     validate_bilingual(req.reason, req.reason_es, "reason")
     if req.mode == "preview":
@@ -9367,6 +9406,18 @@ def _operator_id(auth_context: Any) -> str:
     return "legacy-shared-key"
 
 
+def _entered_by_actor_id(auth_context: Any) -> Optional[int]:
+    """A2 (migration 065): the authenticated person's actors.id for
+    entered_by_actor_id, or None for the two shared keys — which keep
+    operator_id = 'legacy-shared-key' exactly as before. Never from the body."""
+    if isinstance(auth_context, Request):
+        actor = request_actor(auth_context)
+        return actor["id"] if actor else None
+    if isinstance(auth_context, dict) and auth_context.get("entered_by_actor_id"):
+        return int(auth_context["entered_by_actor_id"])
+    return None
+
+
 _TRANSACTION_AMENDABLE_FIELDS = {
     "occurred_at", "business_date", "notes", "bol_reference",
     "shipper_name", "shipper_code", "cases_received", "case_size_lb",
@@ -9383,6 +9434,7 @@ def _append_transaction_correction(
     operator_id: str,
     *,
     trace_operator_id: Optional[str] = None,
+    entered_by_actor_id: Optional[int] = None,
 ):
     reason = (reason or "").strip()
     if not reason:
@@ -9439,8 +9491,8 @@ def _append_transaction_correction(
     cur.execute(
         """INSERT INTO ledger_corrections
                (target_table, target_id, event_type, previous_values,
-                replacement_values, reason, operator_id)
-           VALUES ('transactions', %s, %s, %s::jsonb, %s::jsonb, %s, %s)
+                replacement_values, reason, operator_id, entered_by_actor_id)
+           VALUES ('transactions', %s, %s, %s::jsonb, %s::jsonb, %s, %s, %s)
            RETURNING id, created_at, operator_id""",
         (
             transaction_id,
@@ -9449,6 +9501,7 @@ def _append_transaction_correction(
             json.dumps(replacement, default=str),
             reason,
             operator_id,
+            entered_by_actor_id,
         ),
     )
     event = cur.fetchone()
@@ -9517,6 +9570,7 @@ def _append_transaction_line_correction(
     replacement_values: Dict[str, Any],
     reason: str,
     operator_id: str,
+    entered_by_actor_id: Optional[int] = None,
 ):
     allowed = {"product_id", "lot_id", "quantity_lb"}
     forbidden = set(replacement_values) - allowed
@@ -9535,8 +9589,8 @@ def _append_transaction_line_correction(
     cur.execute(
         """INSERT INTO ledger_corrections
                (target_table, target_id, event_type, previous_values,
-                replacement_values, reason, operator_id)
-           VALUES ('transaction_lines', %s, 'amend', %s::jsonb, %s::jsonb, %s, %s)
+                replacement_values, reason, operator_id, entered_by_actor_id)
+           VALUES ('transaction_lines', %s, 'amend', %s::jsonb, %s::jsonb, %s, %s, %s)
            RETURNING id""",
         (
             line_id,
@@ -9544,6 +9598,7 @@ def _append_transaction_line_correction(
             json.dumps(replacement, default=str),
             reason,
             operator_id,
+            entered_by_actor_id,
         ),
     )
     return str(cur.fetchone()["id"])
@@ -9571,6 +9626,7 @@ def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(ve
                     None,
                     _operator_id(request),
                     trace_operator_id=actor_name(request),
+                    entered_by_actor_id=_entered_by_actor_id(request),
                 )
 
                 logger.info(
@@ -9614,6 +9670,7 @@ def correct_transaction(
                 req.reason,
                 req.replacement_values,
                 _operator_id(_),
+                entered_by_actor_id=_entered_by_actor_id(_),
             )
             return {"transaction_id": transaction_id, **event}
     except HTTPException:
@@ -14053,6 +14110,11 @@ def close_sales_order(
     trace events. It only takes the order off the board and releases whatever
     stock it was still holding.
     """
+    # A2 §4.3: the route is an office/owner order edit; closing as
+    # "shipped, not recorded" (R6) is owner-only and depends on the body, so
+    # it is checked here rather than in the route gate. Shared keys pass.
+    if req.reason == "shipped_not_recorded" and request_actor(request) is not None:
+        permissions.require("close_order_shipped_not_recorded", _actor_identity(request))
     try:
         with get_transaction() as cur:
             order = _load_so_for_state_change(cur, order_id)
@@ -15422,6 +15484,7 @@ def ship_order(
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at if req else None,
         req.backfill if req else False,
+        request,
     )
     mode = "preview" if req is None else req.mode
     if mode == "preview":
@@ -15715,14 +15778,16 @@ def ship_order(
                         cur.execute("""
                             INSERT INTO transactions (
                                 type, timestamp, customer_name, notes,
-                                occurred_at, created_at_source, operator_id
+                                occurred_at, created_at_source, operator_id,
+                                entered_by_actor_id
                             )
-                            VALUES ('ship', %s, %s, %s, %s, %s, %s)
+                            VALUES ('ship', %s, %s, %s, %s, %s, %s, %s)
                             RETURNING id, occurred_at, business_date
                         """, (
                             now, order_row['name'],
                             f"Sales order {order_row['order_number']} — {item['product_name']}",
                             occurred_at, created_at_source, _operator_id(request),
+                            _entered_by_actor_id(request),
                         ))
                         txn_row = cur.fetchone()
                         txn_id = txn_row['id']

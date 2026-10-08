@@ -94,21 +94,23 @@ def test_every_fifo_lot_and_pack_addin_needs_evidence(client, db_cursor, items):
     error(commit(client,pack,lot_confirmations=[evidence(items['batch'],'full_code')]),422,'LOT_NOT_CONFIRMED')
 
 
-def move(client, item, **changes):
+def move(client, item, key, **changes):
+    # move_lot is NAMED-only after A2: the master key no longer reaches it.
     r=client.post(f'/lots/{item["lot_id"]}/move/prepare',json={
-        'to_location':'production','method':'full_code','value':item['lot_code'], **changes},headers=headers())
+        'to_location':'production','method':'full_code','value':item['lot_code'], **changes},headers=headers(key))
     assert r.status_code==200,r.text
     draft=r.json()
-    result=commit(client,draft)
+    result=commit(client,draft,key)
     assert result.status_code==200,result.text
     return draft,result.json()
 
 
-def test_pallet_move_receipt_and_replay(client,db_cursor,items):
+def test_pallet_move_receipt_and_replay(client,db_cursor,items,actors):
+    key=actors['floor']['key']
     draft=prepare(client,'make',body('make',items))
     error(commit(client,draft,lot_confirmations=[evidence(items['ingredient'],'pallet')]),422,'PALLET_MOVE_REQUIRED')
-    md,mr=move(client,items['ingredient'])
-    assert commit(client,md).json()==mr | {'replayed':True}
+    md,mr=move(client,items['ingredient'],key)
+    assert commit(client,md,key).json()==mr | {'replayed':True}
     detail=client.get('/receipts/'+mr['receipt_number'],headers=headers()).json()
     assert detail['transactions']==[] and detail['lots'][0]['id']==items['ingredient']['lot_id']
     result=commit(client,draft,lot_confirmations=[evidence(items['ingredient'],'pallet')])
@@ -118,12 +120,13 @@ def test_pallet_move_receipt_and_replay(client,db_cursor,items):
 
 
 @pytest.mark.parametrize('kind',['old','moved_back'])
-def test_pallet_evidence_must_be_recent_and_in_production(client,items,kind):
+def test_pallet_evidence_must_be_recent_and_in_production(client,items,actors,kind):
+    key=actors['floor']['key']
     if kind=='old':
-        move(client,items['ingredient'],occurred_at=(main.get_plant_now()-timedelta(hours=25)).isoformat())
+        move(client,items['ingredient'],key,occurred_at=(main.get_plant_now()-timedelta(hours=25)).isoformat())
     else:
-        move(client,items['ingredient'])
-        move(client,items['ingredient'],to_location='storage')
+        move(client,items['ingredient'],key)
+        move(client,items['ingredient'],key,to_location='storage')
     draft=prepare(client,'make',body('make',items))
     error(commit(client,draft,lot_confirmations=[evidence(items['ingredient'],'pallet')]),422,'PALLET_MOVE_REQUIRED')
 
@@ -265,7 +268,8 @@ def test_unidentified_receive_exception_uses_entry_not_happened(client,db_cursor
     assert d['draft']['identity_notice'].startswith('UNIDENTIFIED')
     r=commit(client,d,actors['floor']['key']); assert r.status_code==200,r.text
     result=r.json()
-    db_cursor.execute('SELECT * FROM exceptions WHERE ticket_id=%s',(d['ticket_id'],))
+    # A2 also opens a LATE_ENTRY exception on this 3-day-old floor entry.
+    db_cursor.execute("SELECT * FROM exceptions WHERE ticket_id=%s AND kind='UNIDENTIFIED_LOT'",(d['ticket_id'],))
     exc=db_cursor.fetchone()
     db_cursor.execute('SELECT created_at FROM transactions WHERE id=%s',(result['transaction_id'],))
     entered=db_cursor.fetchone()['created_at']
@@ -275,7 +279,9 @@ def test_unidentified_receive_exception_uses_entry_not_happened(client,db_cursor
     db_cursor.execute('SELECT identity_status,identify_by FROM lots WHERE id=%s',(result['lot_id'],))
     assert dict(db_cursor.fetchone())=={'identity_status':'unidentified','identify_by':identification_deadline(entered).date()}
     assert commit(client,d,actors['floor']['key']).json()==result|{'replayed':True}
-    db_cursor.execute('SELECT count(*) AS n FROM exceptions WHERE ticket_id=%s',(d['ticket_id'],))
+    db_cursor.execute("SELECT count(*) AS n FROM exceptions WHERE ticket_id=%s AND kind='UNIDENTIFIED_LOT'",(d['ticket_id'],))
+    assert db_cursor.fetchone()['n']==1
+    db_cursor.execute("SELECT count(*) AS n FROM exceptions WHERE ticket_id=%s AND kind='LATE_ENTRY'",(d['ticket_id'],))
     assert db_cursor.fetchone()['n']==1
 
 

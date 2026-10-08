@@ -7,6 +7,7 @@ import hashlib
 import json
 import secrets
 
+import permissions
 import ticket_actions as actions
 import lot_confirmation as a5
 from datetime import date, datetime
@@ -363,6 +364,9 @@ def receipt_detail(api, cur, number):
 def register_routes(app, api):
     def prepare(action, req, request, *, lot_id=None):
         actor = identity(api, request)
+        # A2 hook: role matrix on the ticket action (not the route), then the
+        # back-dating rule — both 403 before any ticket row exists.
+        permissions.require(action, actor)
         payload = json.loads(req.json(exclude={'client_source'}))
         if lot_id is not None:
             payload['lot_id'] = lot_id
@@ -370,6 +374,7 @@ def register_routes(app, api):
         if event_time.tzinfo is None:
             event_time = event_time.replace(tzinfo=api.PLANT_TIMEZONE)
         payload['occurred_at'] = event_time.astimezone(api.PLANT_TIMEZONE).isoformat()
+        entry_timing = permissions.require_backdating(actor, event_time, api.get_plant_now())
         for field in ('lot_code', 'target_lot_code'):
             if payload.get(field):
                 payload[field] = api.normalize_lot_code_input(payload[field])
@@ -408,9 +413,13 @@ def register_routes(app, api):
             blockers = blockers or draft.get('blockers', [])
             warnings = (receive_duplicates(cur, payload) if action == 'receive' else
                         actions.duplicates(cur, action, payload, draft))
+            late = permissions.late_entry_warning(actor, entry_timing)   # A2 hook
+            if late:
+                warnings.append(late)
+            draft['entry_timing'] = entry_timing
             payload_hash = canonical_hash(payload)
             draft.update(actor=actor, happened_at=payload['occurred_at'],
-                         happened_vs_now_minutes=round((api.get_plant_now()-event_time).total_seconds()/60, 1),
+                         happened_vs_now_minutes=round(permissions.elapsed(event_time, api.get_plant_now()).total_seconds()/60, 1),
                          blockers=blockers)
             draft = json_value(api, draft)
             # Serialize identical prepares, including the first one (no row yet).
@@ -478,6 +487,19 @@ def register_routes(app, api):
                 fail(409, 'TICKET_PAYLOAD_MISMATCH', 'The payload hash does not match the prepared draft.')
             if row['status'] == 'committed':
                 return {**row['response'], 'replayed': True}
+            # A2 hook: enforce again at commit on the stored action, with the
+            # role and active flag as they are NOW, read FOR SHARE so the row
+            # cannot change between this check and the post (the lock is held
+            # to the end of the transaction; a concurrent UPDATE actors waits).
+            current_actor = None
+            if actor['id'] is not None:
+                cur.execute('SELECT role, active FROM actors WHERE id=%s FOR SHARE', (actor['id'],))
+                current_actor = cur.fetchone()
+                if current_actor:
+                    actor['role'] = current_actor['role']
+            permissions.require(row['action'], actor)
+            entry_timing = permissions.require_backdating(
+                actor, datetime.fromisoformat(row['payload']['occurred_at']), api.get_plant_now())
             if row['status'] != 'prepared':
                 fail(409, 'TICKET_NOT_COMMITTABLE', 'Prepare a new ticket.', status=row['status'])
             cur.execute('SELECT clock_timestamp() > %s AS expired', (row['expires_at'],))
@@ -502,11 +524,9 @@ def register_routes(app, api):
                 action_lock = {'receive': 1, 'found': 2, 'make': 3}.get(row['action'])
                 if action_lock:
                     cur.execute('SELECT pg_advisory_xact_lock(%s)', (action_lock,))
-                if actor['id'] is not None:
-                    cur.execute('SELECT active FROM actors WHERE id=%s FOR SHARE', (actor['id'],))
-                    current_actor = cur.fetchone()
-                    if not current_actor or not current_actor['active']:
-                        fail(403, 'ACTOR_INACTIVE', 'The preparing actor is no longer active.')
+                if actor['id'] is not None and not (current_actor and current_actor['active']):
+                    # Same locked row as the role check above.
+                    fail(403, 'ACTOR_INACTIVE', 'The preparing actor is no longer active.')
                 if row['action'] == 'receive':
                     draft, state, req, product, occurred_at, source, er_id = validate_receive(
                         api, cur, row['payload'], lock=True)
@@ -537,6 +557,22 @@ def register_routes(app, api):
                         row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
                 response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
                                 state_changed=state_changed)
+                # A2: 48 h–14 d late entries open exceptions(LATE_ENTRY) for the
+                # owner to acknowledge (§6.3) in the same transaction as the post.
+                cur.execute('SELECT COALESCE((SELECT created_at FROM transactions WHERE id=%s), clock_timestamp()) AS at',
+                            (response.get('transaction_id'),))
+                entered_at = cur.fetchone()['at']
+                exception_id = None
+                if permissions.opens_late_entry(actor, entry_timing):
+                    exception_id = permissions.open_late_entry(
+                        cur, identity=actor, info=entry_timing, action=row['action'],
+                        transaction_id=response.get('transaction_id'), receipt_number=receipt,
+                        ticket_id=row['id'], entered_at=entered_at,
+                        product_id=row['payload'].get('product_id') or row['payload'].get('target_product_id'),
+                        lot_id=response.get('lot_id') or response.get('output_lot_id'),
+                        client_source=row['client_source'])
+                response['entry_timing'] = {**entry_timing, 'entered_at': entered_at,
+                                            'entered_by': actor, 'late_entry_exception_id': exception_id}
                 response = json_value(api, response)
             except HTTPException as exc:
                 if exc.status_code >= 500:

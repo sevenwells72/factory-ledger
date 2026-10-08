@@ -414,6 +414,8 @@ def isolated_database(_db_connection):
             cur.execute('SET LOCAL search_path TO public')
             cur.execute((ROOT/'migrations/058_write_tickets.sql').read_text())
             cur.execute((ROOT/'migrations/064_unidentified_lots.sql').read_text())
+            # Pending A2 migration 065 (the \ir include above is dropped with the meta-commands).
+            cur.execute((ROOT/'migrations/065_entered_by.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:
