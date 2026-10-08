@@ -1,10 +1,10 @@
 # Contract — end-of-shift summary (A9)
 
-**Status:** **APPROVED by Michael 2026-10-08** (design rev 3.5 §11 items 21–23) — day-1 contract freeze (design §10.2, lane schedule §2), written 2026-10-08 by lane 3. **Contract only** — no implementation. This document now changes only by design-doc revision; F1 (lane 2), D3-lite (lane 3) and the A9 implementation (lane 3, Oct 26–27) build against it.
+**Status:** **APPROVED by Michael 2026-10-08** (design rev 3.5 §11 items 21–23; review fixes and item 25 in rev 3.6) — day-1 contract freeze (design §10.2, lane schedule §2), written 2026-10-08 by lane 3. **Contract only** — no implementation. This document now changes only by design-doc revision; F1 (lane 2), D3-lite (lane 3) and the A9 implementation (lane 3, Oct 26–27) build against it.
 **Source of truth for the rules:** `docs/design/phase1-safe-operating-system.md` §7.3 (what the summary shows), §2 (receipt numbers), §6 (happened/entered/late), §7.1 (exceptions, migration 061), §5.1 (reason codes carry `label_es`), §1.8 (receipts and the summary are endpoints first, screens second).
 **Consumers:** the D3-lite dashboard page (phone), the F1 FL Assistant ("what did I enter today" / end of shift), and after cutover the MCP read tool `endOfShift` (M3). All three render this JSON; none computes anything from ledger rows.
 
-The three points marked **[DECISION n — YES]** were approved by Michael on 2026-10-08 (PR #84); everything else follows the design text.
+The four points marked **[DECISION n — YES]** were approved by Michael on 2026-10-08 (PR #84; decision 4 after the independent review); everything else follows the design text.
 
 ---
 
@@ -18,7 +18,7 @@ Read-only. Dashboard key and actor keys (both allowlists, A9 adds exactly this `
 |---|---|---|---|
 | `date` | `YYYY-MM-DD` plant day (America/New_York) | today (plant time) | future date → `422 DATE_IN_FUTURE`; any past day allowed (the page is also used to confirm yesterday) |
 | `actor` | actor **id** or exact actor **name** (same rule as `GET /receipts?actor=`) | the authenticated actor | legacy master/dashboard key with no `actor` → the summary covers **all actors** and `actor` in the response is `null` **[DECISION 1 — YES]**; unknown → `422 ACTOR_UNKNOWN`; a floor actor asking for someone else → `403 ACTOR_NOT_ALLOWED` once A2 roles land (until A2: allowed) |
-| `lang` | `en` \| `es` | `en` | affects only `label` / `message` / `summary` convenience fields; `*_en` and `*_es` are **always** both present so clients can switch without a refetch |
+| `lang` | `en` \| `es` | `en` | selects the language of the **un-suffixed convenience fields** — `title`, `label`, `empty`, `message`, `line`, `summary`, `rollup`, `reason` — each a copy of its `*_en` or `*_es` twin; the `*_en` and `*_es` pairs are **always** both present so clients can switch without a refetch. A client that renders only the un-suffixed fields gets a fully localised page from one parameter |
 
 ### 1.2 Response envelope
 
@@ -28,28 +28,38 @@ Read-only. Dashboard key and actor keys (both allowlists, A9 adds exactly this `
   "plant_timezone": "America/New_York",
   "generated_at": "2026-10-07T17:02:14-04:00",
   "actor": {"id": 7, "name": "Arturo", "role": "floor"},
+  "lang": "en",
+  "title": "SHIFT SUMMARY — Tue Oct 7 — Arturo",
   "title_en": "SHIFT SUMMARY — Tue Oct 7 — Arturo",
   "title_es": "RESUMEN DEL TURNO — mar 7 oct — Arturo",
   "receipts_today": 11,
-  "summary_hash": "sha256-hex of the canonical JSON of `sections` (sorted keys, no whitespace)",
+  "summary_hash": "sha256-hex of the canonical JSON of the receipt rows (§1.3)",
   "confirmation": {
     "status": "unconfirmed",
     "latest": null,
     "can_confirm": true,
-    "reason_en": null, "reason_es": null
+    "reason": null, "reason_en": null, "reason_es": null
   },
   "sections": [ "...ten section objects, fixed order, see §2..." ]
 }
 ```
 
 - `receipts_today` = number of receipt rows across RECEIVED … VOIDED (each receipt counted once even when it appears again under LATE ENTRIES).
-- `summary_hash` is echoed back on confirm (§3) so the server knows the person confirmed **what was shown**; it covers `sections` only (not `generated_at`).
+- `summary_hash` is echoed back on confirm (§3) so the server knows the person confirmed **what was shown**; what it covers is defined in §1.3.
 - `confirmation.status`: `unconfirmed` \| `match` \| `discrepancy` — the **latest** `shift_confirmations` row for `(date, actor)`; `latest` is that row (§3.3 shape) or `null`. `can_confirm` is `false` with a reason only when the caller has no actor identity (legacy key, all-actors view) — confirmations are always by a person.
-- `actor` is `null` for the all-actors view; `title_*` then ends with "— all / — todos".
+- **All-actors view** (`actor` is `null`): `confirmation` is always `{"status": "unconfirmed", "latest": null, "can_confirm": false, "reason_en": "Sign in as a person to confirm a shift", "reason_es": "Inicia sesión como persona para confirmar el turno"}` — confirmations are per person, so no single "latest" exists for the whole plant; per-actor confirmation state is the weekly view's job (§7.2 item 8). `title_*` ends with "— all / — todos".
+
+### 1.3 What `summary_hash` covers — decided by Michael 2026-10-08 (design §11 item 25)
+
+The hash covers **only the shift's entries**: the `rows` of the seven receipt sections (`received`, `made`, `packed`, `shipped`, `adjusted`, `voided`, `late_entries`), each row reduced to its stable fields — `receipt_number`, `action`, `status`, `effective_status`, `happened_at`, `entered_at`, `late_entry`, `product.id`, `lot.id`, `quantity.lb`, `quantity.cases`, `detail`, `transaction_ids`, and `flags[]` as `{code, refs}`. It is `sha256` of the canonical JSON (sorted keys, no whitespace, numbers as the server serialises them in the response) of `[{"key": …, "rows": [reduced rows…]}, …]` in section order.
+
+It does **not** cover live balances (`lot_balances_touched.before_lb/after_lb`), time-derived fields (`open_exceptions[].overdue`, `escalated`, `hours_late` drift), `not_entered_yet`, `open_exceptions`, `generated_at`, `confirmation`, labels or `line_*`/`message_*` text. Consequence: a confirm is refused as stale (§3.1, `409 SHIFT_SUMMARY_STALE`) **only when a new receipt appears in, or an existing receipt changes in, that person's summary** — someone else posting against a shared lot, an exception escalating, or the clock moving past a due date does not invalidate what Arturo saw. (Rejected alternative: hash all of `sections`, which would 409 whenever another actor touched a shared lot.)
 
 ## 2. Sections
 
 `sections` is an **array in this fixed order**; a section with nothing to show is still present with `rows: []` and `count: 0` (the page prints the `empty_*` text, e.g. "VOIDED (none)"). Clients key on `key`, never on position or label.
+
+**Which actions can actually appear on day 1.** Receipts exist only for ticketed actions. Migration 058's `write_tickets.action` CHECK allows `receive`, `make`, `pack`, `adjust`, `found` (A1 part 1 ships `receive`; PR #83 / A1 part 2 ships the other four). `ship_order` / `ship_standalone` / `ship_bulk`, `void`, `rename_lot` and `update_supplier_lot` get tickets from A5/A6/A8 (which must also widen the 058 CHECK). Until then SHIPPED and VOIDED are always `rows: []`, and ADJUSTED carries only `adjust` / `found`. A9 renders whatever `GET /receipts` returns and never synthesises rows for actions that have no tickets yet.
 
 | # | `key` | `label_en` | `label_es` | `empty_en` / `empty_es` | Row type |
 |---|---|---|---|---|---|
@@ -67,9 +77,11 @@ Read-only. Dashboard key and actor keys (both allowlists, A9 adds exactly this `
 Section object:
 
 ```json
-{"key": "received", "label_en": "RECEIVED", "label_es": "RECIBIDO",
- "empty_en": "none", "empty_es": "ninguno", "count": 2, "rows": [ "..." ]}
+{"key": "received", "label": "RECEIVED", "label_en": "RECEIVED", "label_es": "RECIBIDO",
+ "empty": "none", "empty_en": "none", "empty_es": "ninguno", "count": 2, "rows": [ "..." ]}
 ```
+
+(`label` / `empty` follow `lang`, §1.1; the `_en`/`_es` pairs are always present.)
 
 ### 2.1 Which receipts are "today's"
 
@@ -92,12 +104,14 @@ Pre-ticket (legacy) transactions never appear: no receipt number = not recorded 
   "late_entry": false, "days_late": 0, "hours_late": 0, "entered_on_later_day": false,
   "product": {"id": 283, "name": "Batch SS Classic Granola #9 (Kosher Ignition)", "odoo_code": "90025", "type": "batch"},
   "lot": {"id": 9321, "lot_code": "26-10-07-CLS9-001", "supplier_lot_code": null, "identity_status": "identified"},
-  "quantity": {"lb": 323, "cases": null, "unit": "lb", "display_en": "323 lb", "display_es": "323 lb"},
+  "quantity": {"lb": 323, "cases": null, "unit": "lb", "display": "323 lb", "display_en": "323 lb", "display_es": "323 lb"},
+  "line": "MK-261007-001  SS Classic #9 Batch 90025  323 lb  lot 26-10-07-CLS9-001",
   "line_en": "MK-261007-001  SS Classic #9 Batch 90025  323 lb  lot 26-10-07-CLS9-001",
   "line_es": "MK-261007-001  SS Classic #9 Lote de producción 90025  323 lb  lote 26-10-07-CLS9-001",
   "detail": { "...per-action object, §2.2.1..." },
   "flags": [
     {"code": "SHORT", "severity": "warn",
+     "message": "SHORT 12 lb oats lot 26-09-30-OATS-002 — resolve by Oct 9",
      "message_en": "SHORT 12 lb oats lot 26-09-30-OATS-002 — resolve by Oct 9",
      "message_es": "FALTAN 12 lb avena lote 26-09-30-OATS-002 — resolver antes del 9 oct",
      "due_at": "2026-10-09T23:59:59-04:00",
@@ -110,6 +124,8 @@ Pre-ticket (legacy) transactions never appear: no receipt number = not recorded 
 ```
 
 - `status` is the ticket status (always `committed` here); `effective_status` is the ledger's current state of the posted transaction(s): `posted` or `voided` (a voided receipt stays in its section with flag `VOIDED` and its `VD-` receipt under VOIDED).
+- `actor` is the ticket's identity as A1 stores it (`write_tickets.draft.actor`). Tickets committed with a **legacy key** (master / dashboard — A1 allows this during the overlap; `key_kind` `legacy_ledger` / `legacy_dashboard`, `actor_id NULL`) carry `{"id": null, "name": "<operator_id, e.g. legacy-shared-key or the X-Operator name>", "role": null}`. Clients must tolerate `actor.id` and `actor.role` being `null`; such receipts appear in the all-actors view and in any `actor=<name>` view whose name equals their `operator_id` (the merged `GET /receipts?actor=` rule).
+- `line`, `quantity.display` and `flags[].message` are the `lang` copies of their `_en`/`_es` twins (§1.1).
 - `quantity.lb` is always present (ledger truth); `cases` only for pack/ship/receive-by-case; `display_*` is the human form the page prints ("120 cases (900 lb)").
 - `line_en` / `line_es` is the one-line rendering from §7.3's mock for clients that do not want to compose it (F1 chat, SMS-style). Fields, not lines, are the contract; the line is a convenience and may be truncated by the server.
 - `flags[]` is the only place warnings live. Codes (closed list; clients render unknown codes generically):
@@ -151,6 +167,7 @@ What FL expected today and has not seen a receipt for (design §7.3): open expec
  "product": {"id": 41, "name": "Graham Cracker Crumbs – 50 LB", "odoo_code": "…"},
  "expected": {"quantity": 1000, "unit": "lb", "date": "2026-10-07", "supplier": {"id": 12, "name": "…"}},
  "status": "open",
+ "line": "expected receipt ER-… (Graham crumbs, due today) — no RCV receipt",
  "line_en": "expected receipt ER-… (Graham crumbs, due today) — no RCV receipt",
  "line_es": "recepción esperada ER-… (Graham crumbs, vence hoy) — sin recibo RCV"}
 ```
@@ -166,6 +183,7 @@ One row per lot that any of today's listed receipts posted a line against, order
  "before_lb": 260, "after_lb": 220, "delta_lb": -40,
  "short": false, "negative": false,
  "receipts": ["MK-261007-001"],
+ "line": "coconut lot 24-09-30-COCO-001 260 → 220 lb",
  "line_en": "coconut lot 24-09-30-COCO-001 260 → 220 lb",
  "line_es": "coco lote 24-09-30-COCO-001 260 → 220 lb"}
 ```
@@ -182,11 +200,12 @@ Open or escalated `exceptions` (061) whose `owner_actor_id` is the actor (all ow
  "opened_at": "2026-10-07T13:01:00-04:00", "due_at": "2026-10-09T23:59:59-04:00", "overdue": false,
  "owner": {"id": 7, "name": "Arturo"},
  "refs": {"receipt_number": "MK-261007-002", "lot_id": 9123, "product_id": 12, "transaction_id": 2452, "shortage_flag_id": 12},
+ "summary": "SHORT 12 lb oats lot 26-09-30-OATS-002 (from MK-261007-002) — resolve by Oct 9",
  "summary_en": "SHORT 12 lb oats lot 26-09-30-OATS-002 (from MK-261007-002) — resolve by Oct 9",
  "summary_es": "FALTAN 12 lb avena lote 26-09-30-OATS-002 (de MK-261007-002) — resolver antes del 9 oct"}
 ```
 
-The section also carries a roll-up for the header line of §7.3's mock: `"rollup_en": "2 shortages (1 due Oct 9), 1 unidentified lot (due Oct 14)"`, `"rollup_es": "…"` on the section object (next to `count`). `kind` values are the 061 enum; `resolution` is **not** part of this read — resolving goes through `POST /exceptions/{id}/resolve/prepare` (A3b), not through the summary.
+The section also carries a roll-up for the header line of §7.3's mock: `"rollup_en": "2 shortages (1 due Oct 9), 1 unidentified lot (due Oct 14)"`, `"rollup_es": "…"` and the `lang` copy `"rollup"` on the section object (next to `count`). `kind` values are the 061 enum; `resolution` is **not** part of this read — resolving goes through `POST /exceptions/{id}/resolve/prepare` (A3b), not through the summary.
 
 ### 2.6 LATE ENTRIES TODAY
 
@@ -196,7 +215,7 @@ Receipt rows (same object as §2.2) for every receipt **entered** on `date` whos
 
 ## 3. `POST /reports/shift-summary/confirm`
 
-"Does this match what happened on the floor?  [Confirm]  [Confirm with notes]  [Something is missing]". One call, three outcomes. Actor keys only (a confirmation is always by a person); dashboard key → `403 ACTOR_REQUIRED` until D2 sign-in (A11) gives the page an FL session. Both allowlists gain this one `POST`.
+"Does this match what happened on the floor?  [Confirm]  [Confirm with notes]  [Something is missing]". One call, three outcomes. Actor keys only (a confirmation is always by a person); dashboard key → `403 ACTOR_REQUIRED` until D2 sign-in (A11) gives the page an FL session. Both allowlists gain this one `POST` now (so the route is reachable and the dashboard page can be wired), but the handler refuses any key without an actor identity — allowlisted today, usable from the dashboard only once A11 lands.
 
 ### 3.1 Request
 
@@ -213,7 +232,7 @@ Receipt rows (same object as §2.2) for every receipt **entered** on `date` whos
 | `date` | required; the plant day confirmed; future → `422 DATE_IN_FUTURE` |
 | `outcome` | `match` (Confirm), `match` + non-empty `notes` (Confirm with notes), `discrepancy` (Something is missing). `discrepancy` with blank `notes` → `422 NOTES_REQUIRED` |
 | `notes` | ≤ 2,000 chars; stored verbatim; language free |
-| `summary_hash` | required; must equal the hash of a `GET` for the same `(date, actor)` made **now** → else `409 SHIFT_SUMMARY_STALE` with the fresh summary in `detail.summary` so the client re-renders and asks again **[DECISION 2 — YES]** |
+| `summary_hash` | required; must equal the §1.3 hash of a `GET` for the same `(date, actor)` computed **now** → else `409 SHIFT_SUMMARY_STALE` with the fresh summary in `detail.summary` so the client re-renders and asks again **[DECISION 2 — YES]**. Because the hash covers only the receipt rows (§1.3, **[DECISION 4 — YES]**), the 409 fires only when a receipt was added to or changed in this person's summary since it was shown |
 | `receipts_seen` | required; the `receipts_today` the client displayed (defence in depth with the hash; stored) |
 
 The actor is the authenticated actor — never from the body (same rule as tickets). No ticket is involved: a confirmation is not a ledger write and is never replayed; a second confirm for the same `(date, actor)` **appends** a new row (the latest is the day's status; the weekly view counts the latest) **[DECISION 3 — YES]**.
@@ -233,6 +252,7 @@ The actor is the authenticated actor — never from the body (same rule as ticke
  "confirmed_at": "2026-10-07T17:05:02-04:00", "confirmed_late": false,
  "receipts_seen": 11, "summary_hash": "…",
  "exception": {"id": 52, "kind": "SHIFT_DISCREPANCY"} ,
+ "message": "Shift recorded as: something is missing. Michael will see this on the weekly view.",
  "message_en": "Shift recorded as: something is missing. Michael will see this on the weekly view.",
  "message_es": "Turno registrado como: falta algo. Michael lo verá en la vista semanal."}
 ```
@@ -262,7 +282,7 @@ CREATE INDEX ON shift_confirmations (business_date, actor_id, confirmed_at DESC)
 
 ## 4. Errors
 
-All errors use the standard envelope `{"error_detail": {"code", "message", "message_es", ...}}`.
+All errors are raised the way A1 raises them — `fail(status, code, message, **extras)` → `{"detail": {"error_code", "message", "message_es", ...extras}}` — so extras such as the fresh summary live at **`detail.summary`** (same place as `TICKET_STALE`'s `detail.blockers`). The write-response middleware mirrors `detail` as `error_detail: {code, message}`; **A9 extends `_structured_error` (main.py) to copy `message_es` through** so `error_detail` becomes `{code, message, message_es}` for every route, not only these two. Clients read `error_detail.code` for the code and `detail.*` for extras.
 
 | HTTP | `code` | When |
 |---|---|---|
@@ -278,8 +298,10 @@ All errors use the standard envelope `{"error_detail": {"code", "message", "mess
 
 ## 5. Worked example — the §7.3 mock as JSON (abridged)
 
+(Un-suffixed `lang` copies omitted for brevity — they are present in real responses.)
+
 ```json
-{"date":"2026-10-07","plant_timezone":"America/New_York","generated_at":"2026-10-07T17:02:14-04:00",
+{"date":"2026-10-07","plant_timezone":"America/New_York","generated_at":"2026-10-07T17:02:14-04:00","lang":"en",
  "actor":{"id":7,"name":"Arturo","role":"floor"},
  "title_en":"SHIFT SUMMARY — Tue Oct 7 — Arturo","title_es":"RESUMEN DEL TURNO — mar 7 oct — Arturo",
  "receipts_today":11,"summary_hash":"…",
@@ -329,14 +351,16 @@ All errors use the standard envelope `{"error_detail": {"code", "message", "mess
 2. Receipt set == `GET /receipts?date&actor` (same filter, same `late_entry` rule); no legacy transactions, no direct-route writes.
 3. Lot balances are `lot_on_hand()` (posted-only, effective) — the summary never sums raw lines.
 4. Reason codes are read from `correction_reasons` (061) so the Spanish label is never hard-coded in a client.
-5. `summary_hash` is deterministic for identical data; confirm refuses a stale hash with the fresh document.
+5. `summary_hash` is deterministic for identical receipt rows and covers only them (§1.3) — a changed lot balance, an escalation or the clock never invalidates it; confirm refuses a stale hash with the fresh document.
 6. A `discrepancy` always opens exactly one `SHIFT_DISCREPANCY` exception owned by the owner, and the weekly view (§7.2 item 8) can count days by latest outcome.
-7. The all-actors view is read-only (`can_confirm: false`).
+7. The all-actors view is read-only (`can_confirm: false`, `confirmation.status` always `unconfirmed`); legacy-key receipts render with `actor.id`/`actor.role` `null`.
+7a. Every `*_en`/`*_es` pair has an un-suffixed `lang` copy (`title`, `label`, `empty`, `line`, `display`, `message`, `summary`, `rollup`, `reason`); sections for actions without tickets yet are present and empty.
 8. Response time target: < 1.5 s for a 30-receipt day on staging (the page is opened on a phone at the end of a shift).
 
-## 7. Decisions — recorded 2026-10-08 (Michael, PR #84; design §11 items 21–23)
+## 7. Decisions — recorded 2026-10-08 (Michael, PR #84; design §11 items 21–23 and 25)
 
 - **[DECISION 1 — YES]** Legacy-key callers (today's dashboard, GPTs) get the all-actors view with `actor: null`, read-only. (Rejected alternative: require `actor` and 422.)
 - **[DECISION 2 — YES]** Confirm requires the `summary_hash` from the summary shown; a changed summary is a 409 and the page re-asks. (Rejected alternative: no hash.)
 - **[DECISION 3 — YES]** Re-confirming the same day appends (latest wins, history kept) rather than 409. (Rejected alternative: one confirmation per day per actor.)
+- **[DECISION 4 — YES]** (after review, 2026-10-08) `summary_hash` covers only the shift's receipt rows and their flags (§1.3) — not live balances or time-based fields — so confirm is rejected only when new or changed entries appear in that person's summary. (Rejected alternative: hash all of `sections`.)
 - Section labels in Spanish (RECIBIDO / PRODUCIDO / EMPACADO / ENVIADO / AJUSTADO / ANULADO / ¿FALTA REGISTRAR? / LOTES MOVIDOS HOY / EXCEPCIONES ABIERTAS (tuyas) / ENTRADAS TARDÍAS HOY) — Arturo to confirm wording during pilot week 1 (D5 list).
