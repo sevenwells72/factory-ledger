@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <title>FL Assistant · Factory Ledger</title>
+  <link rel="stylesheet" href="/dashboard/fl-assistant.css?v=1">
+  <script defer src="/dashboard/fl-assistant.js?v=1"></script>
+</head>
+<body>
+  <aside class="rail">
+    <a class="brand" href="/dashboard/" aria-label="Factory Ledger dashboard"><span class="brand-mark">FL</span><span>Factory Ledger<small>Operations workspace</small></span></a>
+    <button id="new-chat" class="new-chat" disabled>＋ <span data-en="New chat" data-es="Nuevo chat">New chat</span></button>
+    <div class="rail-label" data-en="YOUR WORKSPACE" data-es="TU ESPACIO">YOUR WORKSPACE</div>
+    <a class="nav-current" href="/dash/fl-assistant"><span>✧</span> FL Assistant</a>
+    <a class="nav-link" href="/dashboard/" data-en="← Dashboard" data-es="← Panel">← Dashboard</a>
+    <div class="rail-foot"><span class="small-mark">✓</span><p data-en="You review. You record." data-es="Tú revisas. Tú registras.">You review. You record.</p><small data-en="Every entry needs an FL receipt." data-es="Cada entrada necesita un recibo FL.">Every entry needs an FL receipt.</small></div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <div><h1>FL Assistant <span class="part-label">PART 1</span></h1><p id="identity" data-en="Sign in to your workspace" data-es="Inicia sesión en tu espacio">Sign in to your workspace</p></div>
+      <div class="header-actions"><button id="language" aria-label="Cambiar a español">ES</button><button id="sign-out" hidden data-en="Sign out" data-es="Cerrar sesión">Sign out</button></div>
+    </header>
+    <div id="sign-in-panel" class="sign-in-panel">
+      <span class="hero-icon">✧</span><h2 data-en="Your work, in your words." data-es="Tu trabajo, en tus palabras.">Your work, in your words.</h2>
+      <p data-en="Receive, make, pack, adjust or find stock. Review every draft before it becomes an entry." data-es="Recibe, produce, empaca, ajusta o encuentra inventario. Revisa cada borrador antes de registrarlo.">Receive, make, pack, adjust or find stock. Review every draft before it becomes an entry.</p>
+      <form id="sign-in-form"><label for="actor-key" data-en="Personal actor key / session" data-es="Clave personal / sesión">Personal actor key / session</label><input id="actor-key" type="password" autocomplete="off" required placeholder="Enter your personal key"><button class="primary" type="submit" data-en="Continue →" data-es="Continuar →">Continue →</button></form>
+      <small data-en="Your key stays in memory for this tab. PIN sign-in is coming later." data-es="Tu clave queda en memoria en esta pestaña. El acceso con PIN llegará después.">Your key stays in memory for this tab. PIN sign-in is coming later.</small>
+    </div>
+    <div id="chat-panel" class="chat-panel" hidden>
+      <section id="messages" class="messages" aria-label="Conversation / Conversación" aria-live="polite" aria-relevant="additions">
+        <div class="welcome" id="welcome"><span class="hero-icon">✧</span><h2 data-en="What happened on the floor?" data-es="¿Qué pasó en producción?">What happened on the floor?</h2><p data-en="Tell me in English or Spanish. We’ll review the details together." data-es="Cuéntame en inglés o español. Revisaremos los detalles juntos.">Tell me in English or Spanish. We’ll review the details together.</p>
+          <div class="suggestions"><button data-prompt="What did I enter today?"><strong data-en="Review my day" data-es="Revisar mi día">Review my day</strong><span data-en="See today’s entries" data-es="Ver las entradas de hoy">See today’s entries</span></button><button data-prompt="Look up inventory for "><strong data-en="Check inventory" data-es="Consultar inventario">Check inventory</strong><span data-en="Find a product or lot" data-es="Buscar un producto o lote">Find a product or lot</span></button></div>
+        </div>
+      </section>
+      <div class="composer-wrap"><div id="attachments" class="attachments"></div>
+        <form id="composer" class="composer"><label for="message" class="sr-only">Message / Mensaje</label><textarea id="message" rows="2" maxlength="4000" placeholder="Tell me what happened… / Cuéntame qué pasó…"></textarea><div class="composer-tools"><div><button type="button" id="photo-button" data-en="＋ Photo" data-es="＋ Foto">＋ Photo</button><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" id="dictate" aria-pressed="false" data-en="◉ Hold to talk" data-es="◉ Mantén para hablar">◉ Hold to talk</button></div><button id="send" class="primary" type="submit" data-en="Send ↑" data-es="Enviar ↑">Send ↑</button></div></form>
+        <p id="composer-hint" class="composer-hint" data-en="Dictation is editable before sending. Photos are stored as attachments only." data-es="Puedes editar el dictado antes de enviarlo. Las fotos se guardan solo como adjuntos.">Dictation is editable before sending. Photos are stored as attachments only.</p>
+      </div>
+    </div>
+    <div id="notice" class="notice" role="status" hidden></div>
+  </main>
+</body>
+</html>
