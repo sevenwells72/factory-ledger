@@ -1,16 +1,9 @@
 # Change Log
 
-## 2026-10-07 16:05 — Phase 1 design doc rev 3.4: 3-lane schedule, A3 split, A9 ∥ A12, D3-lite, G1 early, A10 at cutover+1
-- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
-- **What changed:** Branch `docs/rev34-schedule` (worktree `~/dev/fl-docs-wt`, off `origin/main` ac14219). Schedule only, no rule changes. §10 table: A3 split into A3a `feat/exceptions-tables` (migration 061 tables + 8-reason seed, 1 d) and A3b `feat/exceptions-core` (enforcement, with make/pack file ownership vs A5); A5/A6 now depend on A3a; A9 marked pilot-critical for the shift summary, parallel to A12, weekly report may land after cutover; A10 moves to cutover+1 in two stages (ledger routes Nov 23, order routes after A7); G1 engineering built Oct 30 behind an unset key; D3 split into D3-lite `dash/shift-summary` (1 d, before the pilot) and D3 `dash/aliases-weekly` (Nov 23–27). New §10.2 with the gate-10(d) analysis, the four approved changes with risks, the held change 9 (Nov 6 lever with A8), the rev 3.4 critical path (≈17–18 d), dates (pilot soft-start Nov 2, checkpoint Nov 6, gate (d) Nov 9–13, decision Nov 17, cutover Nov 20), 2- vs 3-lane estimates, day-1 contract freezes, and a note that PR #78 records a PR-0 "rotate at cutover" override for Michael to confirm. §10.1 step 7 updated. §11 item 20 added; open-items line extended. Header gains Revision 3.4. FOLLOWUPS gains P1.6 pointing at `~/Documents/fl-audits/lane-schedule.md`. No FL data changed.
-- **Why:** Michael approved 3 Codex lanes + changes 5–8 from the 2026-10-07 read-only schedule analysis; change 9 held as the Nov 6 lever.
-
----
-
-## 2026-10-07 15:49 — Phase 1 design doc rev 3.3: kosher answers (chip size, Aug 12 mis-pack, paper log until cutover)
-- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
-- **What changed:** Branch `docs/kosher-answers` (worktree `~/dev/fl-docs-wt`, off `origin/main` 199c3b5). §5.3: 284 chip-size flag resolved (interchangeable; 4,000 CT standard; 284 formula → 72 via catalog cleanup, pre-approved; 1,000 CT stays a recorded substitution); Aug 12 mis-pack of 286 recorded as a probable recording error with no historical correction; new interim procedure — extra-kosher batches logged on paper (date + lot number) until cutover. §10.1 cutover checklist gains step 1a: tag the paper-logged lots `extra_kosher` in FL, attach the photographed log, exception for unmatched rows. §11 item 19 added; item 18 and "still open" trimmed to the id mapping only. FOLLOWUPS P1.5 updated with the same three points. Header gains Revision 3.3. No FL data changed.
-- **Why:** Michael's kosher answers, 2026-10-07.
+## 2026-10-08 11:11 — Rebase feat/write-tickets (PR #78) onto origin/main cef1c16 for merge
+- **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md` (conflict resolution only)
+- **What changed:** Replayed the 7 A1 part-1 commits (d211ca5..7c7687f) onto `origin/main` at `cef1c16` (rev 3.4) in worktree `~/dev/fl-a1-merge-wt`; the branch's own doc merge commit f6be4a2 was dropped by the rebase because main already contains it. Conflicts were confined to this change log (both sides added entries at the top; both kept, newest first) and the status paragraph of the A1 deployment notes (kept the 7c7687f wording). Application code, migration 058 and tests are byte-identical to 7c7687f. Full Python suite and Node suite rerun on a fresh local DB `fl_a1merge_20261008` before force-with-lease push.
+- **Why:** PR #78 was CONFLICTING against main after rev 3.4 merged; Michael asked for a rebase in a separate worktree ahead of the production 058 migration and merge.
 
 ---
 
@@ -39,6 +32,20 @@
 - **File(s) changed:** `tests/test_write_tickets.py`
 - **What changed:** Add four prepare/commit race cases covering ticket and legacy writers, with and without a shipper-code override; require persistent LOT_CODE_TAKEN rejection, unchanged stock/counters and a fresh-code retry. Update the valid-state-change case to prepare an explicitly existing lot.
 - **Why:** PR #78 review requires stale generated lot codes to reject instead of combining separate deliveries.
+
+---
+
+## 2026-10-07 16:05 — Phase 1 design doc rev 3.4: 3-lane schedule, A3 split, A9 ∥ A12, D3-lite, G1 early, A10 at cutover+1
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** Branch `docs/rev34-schedule` (worktree `~/dev/fl-docs-wt`, off `origin/main` ac14219). Schedule only, no rule changes. §10 table: A3 split into A3a `feat/exceptions-tables` (migration 061 tables + 8-reason seed, 1 d) and A3b `feat/exceptions-core` (enforcement, with make/pack file ownership vs A5); A5/A6 now depend on A3a; A9 marked pilot-critical for the shift summary, parallel to A12, weekly report may land after cutover; A10 moves to cutover+1 in two stages (ledger routes Nov 23, order routes after A7); G1 engineering built Oct 30 behind an unset key; D3 split into D3-lite `dash/shift-summary` (1 d, before the pilot) and D3 `dash/aliases-weekly` (Nov 23–27). New §10.2 with the gate-10(d) analysis, the four approved changes with risks, the held change 9 (Nov 6 lever with A8), the rev 3.4 critical path (≈17–18 d), dates (pilot soft-start Nov 2, checkpoint Nov 6, gate (d) Nov 9–13, decision Nov 17, cutover Nov 20), 2- vs 3-lane estimates, day-1 contract freezes, and a note that PR #78 records a PR-0 "rotate at cutover" override for Michael to confirm. §10.1 step 7 updated. §11 item 20 added; open-items line extended. Header gains Revision 3.4. FOLLOWUPS gains P1.6 pointing at `~/Documents/fl-audits/lane-schedule.md`. No FL data changed.
+- **Why:** Michael approved 3 Codex lanes + changes 5–8 from the 2026-10-07 read-only schedule analysis; change 9 held as the Nov 6 lever.
+
+---
+
+## 2026-10-07 15:49 — Phase 1 design doc rev 3.3: kosher answers (chip size, Aug 12 mis-pack, paper log until cutover)
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** Branch `docs/kosher-answers` (worktree `~/dev/fl-docs-wt`, off `origin/main` 199c3b5). §5.3: 284 chip-size flag resolved (interchangeable; 4,000 CT standard; 284 formula → 72 via catalog cleanup, pre-approved; 1,000 CT stays a recorded substitution); Aug 12 mis-pack of 286 recorded as a probable recording error with no historical correction; new interim procedure — extra-kosher batches logged on paper (date + lot number) until cutover. §10.1 cutover checklist gains step 1a: tag the paper-logged lots `extra_kosher` in FL, attach the photographed log, exception for unmatched rows. §11 item 19 added; item 18 and "still open" trimmed to the id mapping only. FOLLOWUPS P1.5 updated with the same three points. Header gains Revision 3.3. No FL data changed.
+- **Why:** Michael's kosher answers, 2026-10-07.
 
 ---
 
