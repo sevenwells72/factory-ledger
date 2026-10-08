@@ -421,10 +421,16 @@ def isolated_database(_db_connection):
 def test_migration_up_down_up_and_marker_stability(isolated_database):
     up = (ROOT/'migrations/058_write_tickets.sql').read_text()
     down = (ROOT/'migrations/down/058_write_tickets_down.sql').read_text()
+    # 061 (exceptions/shortage_flags) holds FKs to write_tickets, so it must
+    # come off before 058 can and go back on afterwards.
+    up_061 = (ROOT/'migrations/061_exceptions_tables.sql').read_text()
+    down_061 = (ROOT/'migrations/down/061_exceptions_tables_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SELECT oid FROM pg_class WHERE relname IN (%s,%s) ORDER BY oid',
                     ('ledger_current_transactions', 'ledger_current_transaction_lines'))
         views = cur.fetchall()
+        cur.execute('SET LOCAL search_path TO public')
+        cur.execute(down_061)
         cur.execute(down)
         cur.execute("SELECT to_regclass('public.write_tickets')")
         assert cur.fetchone()[0] is None
@@ -436,6 +442,7 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         assert cur.fetchone()[0] == applied
         cur.execute("SELECT relrowsecurity,relforcerowsecurity FROM pg_class WHERE relname IN ('write_tickets','receipt_counters')")
         assert cur.fetchall() == [(True, False), (True, False)]
+        cur.execute(up_061)
         cur.execute('SELECT oid FROM pg_class WHERE relname IN (%s,%s) ORDER BY oid',
                     ('ledger_current_transactions', 'ledger_current_transaction_lines'))
         assert cur.fetchall() == views
