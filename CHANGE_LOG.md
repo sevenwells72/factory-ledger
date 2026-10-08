@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-08 14:02 — Start isolated A5 builder checkpoint and review record
+- **File(s) changed:** `docs/deployments/a5-lot-confirmation.md`
+- **What changed:** Record four checkpoints, scope and actual A1 baseline.
+- **Why:** Preserve handoff progress and keep A2/A3b ownership explicit.
+
+---
+
 ## 2026-10-08 13:45 — Design rev 3.7: Sunshine billing rules (§8.5, §11 items 27–31) + FOLLOWUPS P1.10
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/sunshine-billing-rules` (worktree `~/dev/fl-docs-wt`, off `origin/main` 1cd54ee). Recorded Michael's 2026-10-08 Sunshine decisions verbatim: yield credits = none (8(b) resolved); billed only for finished product sold — pouches/Mini 100 per case, bulk per actual lb sold (8(a) resolved); one batch may split between bulk and pouches/minis, only quantity sold as bulk is billable as bulk, never double-billed; **automatic invoicing at packing NOT approved** — "invoiced at pack" wording struck/superseded in R7, §7.2 item 7, §7.3 sample, §8.3 (D8 closed), §8.4 heading/body, A8 row (`pouch_pack` trigger dropped, dependency on the trigger decision added); QuickBooks is the price source of truth, FL price list DRAFT. New §8.5 with rules 1–5, §8.5.1 QBO reconciliation table (customer 157, 35 invoices Apr 1–Oct 8, latest Aug 13), §8.5.2 FL product mapping from a read-only production lookup (9/10 rows mapped: 146, 145, 147, 148+149, 285, 185, 183, 288, 184; unmapped Chocolate Chip #9 Mini 100), §8.5.3 DRAFT price list. New §11 decisions table items 27–31 and an 8-item open-question list (Michael's five + three found in the lookup: QBO Low Carb item 72 covers FL 148 and 149; FL 185 Mini 100 is inactive/per-lb/parented to batch #1; FL ships TX2535/2536 of 2026-09-30 have no QBO invoice after Aug 13). §11 item 8 status and the "Still open" line updated. `FOLLOWUPS.md` P1.10 summarises the decisions, mapping, findings and open questions.
