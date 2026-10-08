@@ -5734,3 +5734,4 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 \ir ../../migrations/062_lot_confirmation.sql
 \ir ../../migrations/063_batch_substitutions.sql
 \ir ../../migrations/064_unidentified_lots.sql
+\ir ../../migrations/066_receipt_suppliers.sql

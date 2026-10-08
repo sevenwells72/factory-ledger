@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-10-08 14:17 — Checkpoint real receipt suppliers and coordinate A2 migration number
+- **File(s) changed:** `066_receipt_suppliers.sql`, `schema.sql`, `test_write_tickets.py`, `a5-lot-confirmation.md`
+- **What changed:** Preserve A2 migration 065 by numbering supplier migration 066; document exact receive INSERT overlap and 335 passing targeted tests.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:16 — Align A1 supplier tests with required real-supplier rule
+- **File(s) changed:** `test_write_tickets.py`, `test_lot_confirmation.py`, `write_tickets.py`
+- **What changed:** Preserve happened-time and code-pinning checks after blocking missing suppliers; validate existing lot supplier mismatch at prepare as well as the INSERT race boundary.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:15 — Add real-supplier receipt regression coverage
+- **File(s) changed:** `test_lot_confirmation.py`
+- **What changed:** Test all pseudo-supplier exclusions, /resolve-selected identity, same-prefix collisions, immutable provenance, expected receipts, deactivation and commingled identity.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:14 — Implement supplier IDs on ticket receipts and new lots
+- **File(s) changed:** `lot_confirmation.py`, `write_tickets.py`, `main.py`, `065_receipt_suppliers.sql`, `schema.sql`, `test_write_tickets.py`
+- **What changed:** Require real resolved suppliers, mint unique four-letter display labels, persist supplier FKs at INSERT and expose receipt evidence without decoding lot prefixes.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
 ## 2026-10-08 14:12 — Checkpoint A5 unidentified-lot enforcement validated
 - **File(s) changed:** `a5-lot-confirmation.md`
 - **What changed:** Document seven-business-day semantics, floor ownership and repeat-entry preservation; 200 targeted tests pass.

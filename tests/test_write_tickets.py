@@ -212,6 +212,8 @@ def direct_receive(client, cur, payload, **changes):
 @pytest.mark.parametrize('winner', ['legacy', 'ticket'])
 def test_generated_lot_taken_after_prepare_requires_fresh_ticket(
         client, db_cursor, payload, shipper_code_override, winner):
+    if shipper_code_override:
+        db_cursor.execute('UPDATE suppliers SET short_code=%s WHERE id=%s', (shipper_code_override,payload['supplier_id']))
     payload = payload | {'lot_code': None, 'shipper_code_override': shipper_code_override}
     first = prepare(client, payload)
     reserved_code = first['draft']['lot_code']
@@ -412,6 +414,7 @@ def isolated_database(_db_connection):
             cur.execute('SET LOCAL search_path TO public')
             cur.execute((ROOT/'migrations/058_write_tickets.sql').read_text())
             cur.execute((ROOT/'migrations/064_unidentified_lots.sql').read_text())
+            cur.execute((ROOT/'migrations/066_receipt_suppliers.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:
@@ -502,7 +505,7 @@ def test_merged_and_code_twin_lots_are_blockers_without_posting(client, db_curso
 
 
 def test_missing_supplier_and_unknown_product_still_issue_blocked_tickets(client, db_cursor, payload):
-    for changes, code in (({'supplier_id': 2147483647}, 'SUPPLIER_NOT_FOUND'),
+    for changes, code in (({'supplier_id': 2147483647}, 'SUPPLIER_REQUIRED'),
                           ({'product_id': 2147483647}, 'PRODUCT_NOT_FOUND')):
         prepared = prepare(client, payload | changes)
         assert prepared['can_commit'] is False
@@ -529,10 +532,12 @@ def test_rls_hides_tickets_and_counters_from_nonowner(client, db_cursor, payload
     db_cursor.execute('ROLLBACK TO SAVEPOINT rls_test')
 
 
-def test_missing_supplier_defaults_and_happened_alias_freeze_the_draft(client, db_cursor, payload):
+def test_missing_supplier_blocks_and_happened_alias_freezes_the_draft(client, db_cursor, payload):
     body = {k: v for k, v in payload.items() if k not in ('supplier_id', 'occurred_at', 'lot_code')}
     body['happened_at'] = payload['occurred_at']
-    prepared = prepare(client, body)
+    missing = prepare(client, body)
+    assert not missing['can_commit'] and missing['blockers'][0]['code'] == 'SUPPLIER_REQUIRED'
+    prepared = prepare(client, body | {'supplier_id': payload['supplier_id']})
     assert prepared['can_commit'] is True
     receipt = commit(client, prepared).json()
     assert receipt['lot_code'] == prepared['draft']['lot_code']

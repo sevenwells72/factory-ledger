@@ -8,7 +8,7 @@ Base: origin/main 1f3f098 (design revision 3.7).
 1. Lot confirmations and pallet-move evidence: complete; 175 targeted tests passed.
 2. Substitutions with reasons: complete; 122 confirmation/substitution/A1 tests passed.
 3. Unidentified lots and seven-business-day deadline: complete; 200 targeted tests passed.
-4. Real supplier identity on receipts: pending.
+4. Real supplier identity on receipts: complete; 335 A5/ticket/resolver tests passed.
 
 Commit and push each finished part. Recheck `feat/roles` before shared edits.
 A5 owns confirmation validators; A3b owns insufficient-stock behavior.
@@ -85,3 +85,37 @@ lot requires the future supplier-lot correction ticket; another receive cannot
 silently clear its exception. The correction ticket is absent from this baseline.
 Shared hooks: `write_tickets.validate_receive` identity draft, receive commit
 identity evidence, and equivalent found hooks in `ticket_actions`.
+
+## Supplier identity
+
+Receive requires an active real `supplier_id` eligible in A4 `/resolve`.
+Missing, inactive and pseudo-supplier IDs issue a blocked draft with
+`SUPPLIER_REQUIRED`. Names and lot prefixes never select the supplier.
+`suppliers.short_code` is a unique four-letter display label, seeded from the
+name's token when available and assigned collision-safe alternatives otherwise.
+New real suppliers receive a label at INSERT. A ticket-generated label uses the
+resolved supplier's short code; a client prefix override does not override it.
+Explicit physical lot labels remain allowed and carry no supplier identity.
+
+New transactions, lots and commingled supplier-code entries store supplier FKs
+at INSERT. Lot supplier IDs are immutable; historical NULL lots stay unassessed
+when topped up, while the new receipt transaction records the chosen supplier.
+Known lots cannot be topped up from another supplier. Expected-receipt matching
+is pinned by the same supplier ID. Receipt reads expose supplier FKs/names,
+confirmations and substitutions. Legacy direct endpoints keep their behavior.
+
+Shared supplier hooks: `write_tickets.supplier`, `validate_receive`, commit
+and `receipt_detail`; `main.find_or_create_lot` optional supplier INSERT/check;
+`main._receive_commit_core` optional supplier argument and receive/commingled
+INSERT columns. No stock-check, `choose_inputs`, or `_post_prepared_inputs` edit.
+
+## A2 coordination
+
+Before shared edits, fetched and inspected local `feat/roles`. Initially at
+1f3f098; latest inspected commit cbe9668 adds A2 permissions and actor IDs.
+A5 supplier migration is **066**, leaving A2's **065_entered_by** untouched.
+The receive transaction INSERT is a known merge point: preserve BOTH A2
+`entered_by_actor_id` and A5 `supplier_id`, with matching VALUES/parameters.
+A2 permission/backdating hooks must remain before A5 validation/posting.
+A2's role map must include `move_lot` for the intended inventory roles when
+integrated. No A2 checkout was edited and no A2 code was merged into this PR.

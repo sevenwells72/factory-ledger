@@ -215,14 +215,8 @@ def json_value(api, value):
 
 
 def supplier(cur, supplier_id, *, lock=False):
-    if supplier_id is None:
-        return None
-    cur.execute('SELECT id, name, active FROM suppliers WHERE id=%s' +
-                (' FOR SHARE' if lock else ''), (supplier_id,))
-    row = cur.fetchone()
-    if not row or not row['active']:
-        fail(422, 'SUPPLIER_NOT_FOUND', 'Supplier is missing or inactive; resolve an active supplier.')
-    return row
+    # A5 hook: use the same real-supplier eligibility as /resolve.
+    return a5.real_supplier(cur, supplier_id, lock=lock)
 
 
 def validate_receive(api, cur, payload, *, lock=False):
@@ -241,22 +235,27 @@ def validate_receive(api, cur, payload, *, lock=False):
     shipper = supplier(cur, payload.get('supplier_id'), lock=lock)
     entries = []
     for entry in payload.get('supplier_lot_entries') or []:
-        party = supplier(cur, entry.get('supplier_id'), lock=lock)
+        party = supplier(cur, entry.get('supplier_id') or shipper['id'], lock=lock)
         entries.append({k: v for k, v in entry.items() if k != 'supplier_id'} |
-                       {'supplier_name': party['name'] if party else None})
+                       {'supplier_name': party['name'], 'supplier_id': party['id']})
     fields = {k: v for k, v in payload.items()
               if k not in ('product_id', 'supplier_id', 'expected_receipt_id')}
     fields.update(product_name=product['name'], shipper_name=shipper['name'] if shipper else '',
                   supplier_lot_entries=entries or None, mode='preview')
+    # A5 hook: labels come from the resolved supplier; labels never select IDs.
+    fields['shipper_code_override'] = shipper['short_code']
     req = api.ReceiveRequest(**fields)
     draft = api._receive_preview_core(cur, req, product=product)
+    draft.update(supplier_id=shipper['id'], supplier_name=shipper['name'])
     lots = []
-    cur.execute('SELECT id, status FROM lots WHERE product_id=%s AND lot_code=%s' +
+    cur.execute('SELECT id, status, supplier_id FROM lots WHERE product_id=%s AND lot_code=%s' +
                 (' FOR UPDATE' if lock else ''), (product['id'], draft['lot_code']))
     lot = cur.fetchone()
     if lot:
         if lot['status'] == 'merged':
             fail(409, 'LOT_MERGED', 'This lot was merged; prepare again with the surviving lot.')
+        if lot['supplier_id'] is not None and lot['supplier_id'] != shipper['id']:
+            fail(422, 'LOT_SUPPLIER_MISMATCH', 'This lot belongs to a different supplier; receive into a new lot.')
         lots.append({'id': lot['id'], 'status': lot['status'],
                      'on_hand_lb': api.lot_on_hand(cur, lot['id'])})
     api._validate_lot_code_twin(cur, product['id'], draft['lot_code'])
@@ -280,7 +279,7 @@ def validate_receive(api, cur, payload, *, lock=False):
         draft['expected_receipt_match'] = None
     # A5 hook: unresolved supplier lot identity is a flag, not a stock blocker.
     a5.identity_draft(api, cur, payload, draft)
-    state = {'product': {'id': product['id'], 'active': product['active']},
+    state = {'supplier': dict(shipper), 'product': {'id': product['id'], 'active': product['active']},
              'lots': lots, 'expected_receipt': dict(expected) if expected else None}
     return draft, state, req, product, occurred_at, source, er_id
 
@@ -348,6 +347,8 @@ def receipt_detail(api, cur, number):
     lots = [dict(row) for row in cur.fetchall()]
     for lot in lots:
         lot['on_hand_lb'] = api.lot_on_hand(cur, lot['id'])
+    # A5 hook: explicit supplier and lot evidence in interface-neutral receipts.
+    a5.receipt_evidence(cur, transactions, lots)
     happened = datetime.fromisoformat(ticket['payload']['occurred_at'])
     late = happened.astimezone(api.PLANT_TIMEZONE).date() != ticket['committed_at'].astimezone(api.PLANT_TIMEZONE).date()
     return {'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
@@ -525,8 +526,9 @@ def register_routes(app, api):
                 if row['action'] == 'receive':
                     req.mode = 'commit'
                     response = api._receive_commit_core(cur, req, request, occurred_at, source,
-                        product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id)
+                        product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id, supplier_id=row['payload']['supplier_id'])
                     a5.record_identity(cur, row['payload'], response, row['id'], receipt)
+                    a5.supplier_receipt(cur, response)
                 else:
                     response = actions.post(api, cur, row['action'], validated, effective_payload, request,
                         row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))

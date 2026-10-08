@@ -300,3 +300,41 @@ def record_identity(cur, payload, response, ticket_id, receipt_number):
     from zoneinfo import ZoneInfo
     response.update(identity_status=status,identify_by=due.astimezone(ZoneInfo('America/New_York')).date() if due else None,
                     identification_due_at=due,exception_id=exception['id'] if exception else None)
+
+
+def real_supplier(cur, supplier_id, *, lock=False):
+    from resolution import SENTINEL_SUPPLIERS
+    if supplier_id is None:
+        fail('SUPPLIER_REQUIRED', 'Choose a real supplier through /resolve kind=supplier.')
+    cur.execute('''SELECT id,name,active,short_code,
+        btrim(supplier_name_norm(name)) = ANY(%s::text[]) AS pseudo
+        FROM suppliers WHERE id=%s''' + (' FOR SHARE' if lock else ''),
+        (list(SENTINEL_SUPPLIERS),supplier_id))
+    supplier = cur.fetchone()
+    if not supplier or supplier['active'] is False or supplier['pseudo']:
+        fail('SUPPLIER_REQUIRED', 'Choose an active real supplier through /resolve kind=supplier; use found inventory for stock without a vendor.')
+    if not supplier['short_code']:
+        fail('SUPPLIER_LABEL_REQUIRED', f'{supplier["name"]} needs a display short code before receiving.')
+    return supplier
+
+
+def supplier_receipt(cur, response):
+    cur.execute('''SELECT t.supplier_id,s.name AS supplier_name FROM transactions t
+        JOIN suppliers s ON s.id=t.supplier_id WHERE t.id=%s''', (response['transaction_id'],))
+    response.update(dict(cur.fetchone()))
+
+
+def receipt_evidence(cur, transactions, lots):
+    """Read identities from FK columns, never from a lot label prefix."""
+    for transaction in transactions:
+        cur.execute('''SELECT t.supplier_id,s.name AS supplier_name FROM transactions t
+            LEFT JOIN suppliers s ON s.id=t.supplier_id WHERE t.id=%s''', (transaction['id'],))
+        transaction.update(dict(cur.fetchone()))
+        cur.execute('SELECT lot_id,method,value,actor_id,move_id,created_at FROM transaction_lot_confirmations WHERE transaction_id=%s ORDER BY lot_id', (transaction['id'],))
+        transaction['lot_confirmations'] = [dict(row) for row in cur.fetchall()]
+        cur.execute('SELECT ingredient_product_id,substitute_product_id,lot_id,reason_code,note,actor_id FROM transaction_substitutions WHERE transaction_id=%s ORDER BY ingredient_product_id', (transaction['id'],))
+        transaction['substitutions'] = [dict(row) for row in cur.fetchall()]
+    for lot in lots:
+        cur.execute('''SELECT l.supplier_id,s.name AS supplier_name,l.identity_status,l.identify_by
+            FROM lots l LEFT JOIN suppliers s ON s.id=l.supplier_id WHERE l.id=%s''', (lot['id'],))
+        lot.update(dict(cur.fetchone()))

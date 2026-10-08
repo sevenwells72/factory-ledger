@@ -312,3 +312,95 @@ def test_found_unidentified_and_exception_failure_rolls_back(client,db_cursor,it
     assert posted_count(db_cursor,d)==0
     db_cursor.execute('SELECT count(*) AS n FROM exceptions WHERE ticket_id=%s',(d['ticket_id'],))
     assert db_cursor.fetchone()['n']==0
+
+
+@pytest.mark.parametrize('supplier_name',[None,'FOUND','initial inventory','PHYSICAL COUNT','UNKNOWN','found inventory','Inventory Intake'])
+def test_receipt_without_real_supplier_blocked(client,db_cursor,supplier_name):
+    from tests.test_write_tickets import seed
+    payload=seed(db_cursor)
+    if supplier_name is None: payload['supplier_id']=None
+    else:
+        db_cursor.execute('INSERT INTO suppliers(name,active) VALUES (%s,true) RETURNING id',(supplier_name,))
+        payload['supplier_id']=db_cursor.fetchone()['id']
+    d=prepare(client,'receive',payload)
+    assert not d['can_commit'] and d['blockers'][0]['code']=='SUPPLIER_REQUIRED'
+    assert commit(client,d).status_code==409
+    assert posted_count(db_cursor,d)==0
+    if supplier_name:
+        r=client.post('/resolve',json={'kind':'supplier','query':supplier_name},headers=headers())
+        assert r.status_code==200,r.text
+        assert payload['supplier_id'] not in [c['id'] for c in r.json().get('candidates',[])]
+
+
+def test_supplier_id_is_saved_at_insert_never_inferred_from_prefix(client,db_cursor):
+    from tests.test_write_tickets import seed
+    payload=seed(db_cursor)|{'lot_code':'26-10-08-DUTC-001'}
+    db_cursor.execute('SELECT name FROM suppliers WHERE id=%s',(payload['supplier_id'],))
+    name=db_cursor.fetchone()['name']
+    resolved=client.post('/resolve',json={'kind':'supplier','query':name},headers=headers()).json()
+    assert resolved['outcome']=='match'
+    assert resolved['match']['id']==payload['supplier_id']
+    d=prepare(client,'receive',payload)
+    assert d['draft']['supplier_id']==payload['supplier_id']
+    result=commit(client,d); assert result.status_code==200,result.text
+    result=result.json()
+    db_cursor.execute('SELECT supplier_id FROM transactions WHERE id=%s',(result['transaction_id'],))
+    assert db_cursor.fetchone()['supplier_id']==payload['supplier_id']
+    db_cursor.execute('SELECT supplier_id FROM lots WHERE id=%s',(result['lot_id'],))
+    assert db_cursor.fetchone()['supplier_id']==payload['supplier_id']
+    detail=client.get('/receipts/'+result['receipt_number'],headers=headers()).json()
+    assert detail['lots'][0]['supplier_id']==payload['supplier_id']
+    assert detail['transactions'][0]['supplier_name']==name
+    # The committed lot supplier is immutable, even when no stock is changed.
+    db_cursor.execute('SAVEPOINT supplier_immutable')
+    with pytest.raises(psycopg2.IntegrityError):
+        db_cursor.execute('UPDATE lots SET supplier_id=NULL WHERE id=%s',(result['lot_id'],))
+    db_cursor.execute('ROLLBACK TO SAVEPOINT supplier_immutable')
+
+
+def test_supplier_change_or_deactivation_between_prepare_and_commit(client,db_cursor):
+    from tests.test_write_tickets import seed
+    payload=seed(db_cursor)
+    d=prepare(client,'receive',payload)
+    db_cursor.execute('UPDATE suppliers SET active=false WHERE id=%s',(payload['supplier_id'],))
+    r=commit(client,d)
+    assert r.status_code==409 and r.json()['detail']['blockers'][0]['code']=='SUPPLIER_REQUIRED'
+    assert posted_count(db_cursor,d)==0
+
+
+def test_same_prefix_suppliers_get_unique_labels_and_cannot_share_lot(client,db_cursor):
+    from tests.test_write_tickets import seed
+    payload=seed(db_cursor)
+    db_cursor.execute("INSERT INTO suppliers(name) VALUES ('Dutch Valley A5'),('Dutch Gold A5') RETURNING id,short_code")
+    first,second=db_cursor.fetchall()
+    assert first['short_code']!=second['short_code']
+    payload|={'supplier_id':first['id'],'lot_code':None}
+    d=prepare(client,'receive',payload)
+    assert '-'+first['short_code']+'-' in d['draft']['lot_code']
+    result=commit(client,d);assert result.status_code==200,result.text
+    wrong=prepare(client,'receive',payload|{'supplier_id':second['id'],'lot_code':result.json()['lot_code']})
+    r=commit(client,wrong,acknowledged_warnings=['POSSIBLE_DUPLICATE'])
+    assert r.status_code==409 and r.json()['detail']['blockers'][0]['code']=='LOT_SUPPLIER_MISMATCH'
+
+
+def test_expected_receipt_carries_real_supplier_identity(client,db_cursor):
+    from tests.test_write_tickets import seed
+    payload=seed(db_cursor)
+    db_cursor.execute("INSERT INTO expected_receipts(product_id,supplier_id,expected_qty,status) VALUES (%s,%s,50,'open') RETURNING id",(payload['product_id'],payload['supplier_id']))
+    er=db_cursor.fetchone()['id']
+    d=prepare(client,'receive',payload);r=commit(client,d)
+    assert r.status_code==200,r.text
+    db_cursor.execute('SELECT expected_receipt_id,supplier_id FROM transactions WHERE id=%s',(r.json()['transaction_id'],))
+    assert dict(db_cursor.fetchone())=={'expected_receipt_id':er,'supplier_id':payload['supplier_id']}
+
+
+def test_commingled_entry_supplier_ids_and_missing_identity(client,db_cursor):
+    from tests.test_write_tickets import seed
+    payload=seed(db_cursor)
+    payload|={'supplier_lot_entries':[{'supplier_id':payload['supplier_id'],'supplier_lot_code':'REAL-1','quantity_lb':25},
+        {'supplier_lot_code':'UNKNOWN','quantity_lb':25}]}
+    d=prepare(client,'receive',payload)
+    assert d['draft']['identity_status']=='unidentified'
+    r=commit(client,d);assert r.status_code==200,r.text
+    db_cursor.execute('SELECT supplier_id FROM lot_supplier_codes WHERE lot_id=%s',(r.json()['lot_id'],))
+    assert [v['supplier_id'] for v in db_cursor.fetchall()]==[payload['supplier_id']]*2
