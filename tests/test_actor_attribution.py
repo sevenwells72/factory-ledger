@@ -876,24 +876,29 @@ def test_the_shared_and_floor_exclusive_halves_are_both_non_empty():
 def test_whoami_for_an_actor_key(client, actors):
     resp = client.get("/auth/whoami", headers=_headers(ACTOR, actors))
     assert resp.status_code == 200, resp.text
-    assert resp.json() == {
-        "actor": {"name": actors["floor"]["name"], "role": "floor"},
-        "key_kind": "actor",
-    }
+    body = resp.json()
+    # A2: actor.id and the per-action permissions map (display only) are added.
+    assert body["actor"] == {"id": actors["floor"]["id"], "name": actors["floor"]["name"], "role": "floor"}
+    assert body["key_kind"] == "actor"
+    assert body["permissions"]["make"] is True and body["permissions"]["create_order"] is False
 
 
 @pytest.mark.db
 def test_whoami_for_the_dashboard_key(client, actors):
     resp = client.get("/auth/whoami", headers=_headers(DASHBOARD, actors))
     assert resp.status_code == 200, resp.text
-    assert resp.json() == {"actor": None, "key_kind": "legacy_dashboard"}
+    body = resp.json()
+    assert (body["actor"], body["key_kind"]) == (None, "legacy_dashboard")
+    assert body["permissions"]["receive"] is True and body["permissions"]["make"] is False
 
 
 @pytest.mark.db
 def test_whoami_for_the_master_key(client, actors):
     resp = client.get("/auth/whoami", headers=_headers(MASTER, actors))
     assert resp.status_code == 200, resp.text
-    assert resp.json() == {"actor": None, "key_kind": "legacy_ledger"}
+    body = resp.json()
+    assert (body["actor"], body["key_kind"]) == (None, "legacy_ledger")
+    assert body["permissions"]["make"] is True and body["permissions"]["list_exceptions"] is False
 
 
 @pytest.mark.db
@@ -901,7 +906,7 @@ def test_whoami_reports_each_role(client, actors):
     for label in ("owner", "floor", "office"):
         resp = client.get("/auth/whoami", headers={"X-API-Key": actors[label]["key"]})
         assert resp.status_code == 200, resp.text
-        assert resp.json()["actor"] == {"name": actors[label]["name"],
+        assert resp.json()["actor"] == {"id": actors[label]["id"], "name": actors[label]["name"],
                                         "role": actors[label]["role"]}
 
 

@@ -5735,3 +5735,5 @@ SET search_path TO public;
 \ir ../../migrations/062_lot_confirmation.sql
 \ir ../../migrations/063_batch_substitutions.sql
 \ir ../../migrations/064_unidentified_lots.sql
+-- Pending A2: remove after prod migration + scripts/dump_prod_schema.sh
+\ir ../../migrations/065_entered_by.sql
