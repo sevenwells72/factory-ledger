@@ -32,6 +32,7 @@ from collections import defaultdict, deque
 # the module attributes and both sides see it.
 import extraction
 import write_tickets
+import lot_confirmation
 import resolution
 import sys
 from staging_safety import assert_staging_database
@@ -5313,7 +5314,7 @@ def _validate_lot_code_twin(cur, product_id: int, lot_code: str):
 
 def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
                        entry_source_notes: str = None, entry_source_notes_es: str = None,
-                       found_location: str = None, estimated_age: str = None) -> tuple:
+                       found_location: str = None, estimated_age: str = None, supplier_id: int = None) -> tuple:
     """Find existing lot or create a new one. Returns (lot_id, is_new, lot_uuid).
 
     Uses INSERT ... ON CONFLICT DO NOTHING + SELECT to guarantee exactly one lot
@@ -5331,6 +5332,12 @@ def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
     columns = ["product_id", "lot_code", "entry_source"]
     values = [product_id, lot_code, entry_source]
     placeholders = ["%s", "%s", "%s"]
+
+    # A5 hook: supplier provenance is set only at lot INSERT for ticket receipts.
+    if supplier_id is not None:
+        columns.append("supplier_id")
+        values.append(supplier_id)
+        placeholders.append("%s")
 
     if entry_source_notes:
         columns.append("entry_source_notes")
@@ -5374,6 +5381,12 @@ def find_or_create_lot(cur, product_id: int, lot_code: str, entry_source: str,
     cur.execute("SELECT id, lot_uuid FROM lots WHERE product_id = %s AND lot_code = %s", (product_id, lot_code))
     row = cur.fetchone()
     lot_id = row['id']
+    if supplier_id is not None and not is_new:
+        cur.execute('SELECT supplier_id FROM lots WHERE id=%s FOR UPDATE', (lot_id,))
+        prior_supplier = cur.fetchone()['supplier_id']
+        if prior_supplier is not None and prior_supplier != supplier_id:
+            raise HTTPException(422, {'error_code': 'LOT_SUPPLIER_MISMATCH',
+                'message': 'This lot belongs to a different supplier; receive into a new lot.'})
 
     if not is_new:
         logger.info(f"Found existing lot {lot_code} (id={lot_id}) for product_id={product_id}")
@@ -5481,7 +5494,7 @@ def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
 
 def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
                          created_at_source, *, product=None, ticket_id=None,
-                         receipt_number=None, expected_receipt_id=None):
+                         receipt_number=None, expected_receipt_id=None, supplier_id=None):
     """Receive post on the caller's transaction, preserving the legacy locks."""
     cur.execute("SELECT pg_advisory_xact_lock(1)")
     product = product if product is not None else resolve_product_full(cur, req.product_name)
@@ -5497,7 +5510,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     # Determine lot_type
     lot_type = req.lot_type or ("commingled" if req.supplier_lot_entries else "single_supplier")
 
-    lot_id, is_new_lot, lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'received')
+    lot_id, is_new_lot, lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'received', supplier_id=supplier_id)
     code_similarity = (
         check_suspicious_code_similarity(cur, product['id'], lot_id, lot_code)
         if is_new_lot else None
@@ -5528,14 +5541,14 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
             type, timestamp, bol_reference, shipper_name,
             shipper_code, cases_received, case_size_lb,
             expected_receipt_id, occurred_at, created_at_source, operator_id,
-            ticket_id, receipt_number
+            ticket_id, receipt_number, supplier_id
         )
-        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, req.bol_reference, req.shipper_name, shipper_code,
         req.cases, req.case_size_lb, expected_receipt_id,
-        occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+        occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number, supplier_id,
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -5555,11 +5568,11 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     if req.supplier_lot_entries:
         for entry in req.supplier_lot_entries:
             cur.execute("""
-                INSERT INTO lot_supplier_codes (lot_id, supplier_lot_code, supplier_name, quantity_lb, notes)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO lot_supplier_codes (lot_id, supplier_lot_code, supplier_name, quantity_lb, notes, supplier_id)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (lot_id, entry.get('supplier_lot_code'), entry.get('supplier_name'),
-                  entry.get('quantity_lb'), entry.get('notes')))
+                  entry.get('quantity_lb'), entry.get('notes'), entry.get('supplier_id')))
             supplier_entries_saved.append(cur.fetchone()['id'])
 
     # Trace emission (§4): last write before commit, fail-hard.
@@ -8373,7 +8386,7 @@ def _make_preview_core(cur, req, *, product=None):
     return response
 
 
-def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None):
+def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
 
     siblings = get_sibling_skus(cur, product['id'])
@@ -8426,6 +8439,9 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         FROM batch_formulas bf WHERE bf.product_id = %s
     """, (product['id'],))
     formula = cur.fetchall()
+    # A5 hook: only ticket calls pass validated substitutions.
+    if substitutions:
+        formula = lot_confirmation.substituted_formula(formula, substitutions)
 
     auto_excluded_ids = set()
     for ing in formula:

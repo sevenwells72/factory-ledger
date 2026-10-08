@@ -1,5 +1,166 @@
 # Change Log
 
+## 2026-10-08 14:47 — A5 review fixes verified without migration 066
+- **File(s) changed:** docs/deployments/a5-lot-confirmation.md
+- **What changed:** Full local suite: 1871 Python and 69 JavaScript passed, no failures/skips, with schema-only 064 and no 066. Read-only production preflight found zero duplicate open UNIDENTIFIED_LOT exceptions per lot. No production writes or other worktree changes.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:46 — A5 review handoff and migration preflight contract
+- **File(s) changed:** FOLLOWUPS.md; docs/deployments/a5-lot-confirmation.md; tests/test_lot_confirmation.py
+- **What changed:** Record supplier-lot correction owner and pre-Nov-2 deadline, literal last-four and full pallet values, and the A2 receive INSERT 14th placeholder merge trap. Preserve historical staging evidence while removing 066 from current prerequisites; exercise duplicate-exception lifecycle timestamps.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:44 — A5 review: ingredient identity scope and deferred supplier labels
+- **File(s) changed:** lot_confirmation.py; migrations/064,066; scripts/a5_readonly.py; scripts/check_unidentified_lots_preapply.py; staging runner; tests/schema; A5 and ticket tests
+- **What changed:** Guard identity flags by supplier-sourced ingredient eligibility; retain supplier FK schema in 064 with nullable display labels; remove 066 from A5 prerequisites; add duplicate-exception preflight and regression tests. 066 backfill will be a separate post-cleanup draft PR.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:26 — Finish A5 full-suite and final staging receipt evidence
+- **File(s) changed:** `a5-staging-receipt-final.json`, `a5-lot-confirmation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record 1,856 Python/69 JS passes, additive staging-only migrations, final MK-261008-005 confirmed lot with Dutch Gold Honey supplier 13, exact shared hooks/A2 integration, and rollback guidance; no merge or production access.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:23 — Enforce the supplier-required HTTP 422 contract
+- **File(s) changed:** `write_tickets.py`, `test_write_tickets.py`, `test_lot_confirmation.py`, `check_lot_confirmation_staging.py`, `a5-lot-confirmation.md`
+- **What changed:** Match design §5.2 by refusing absent/ineligible suppliers before issuing a ticket; retain commit-time revalidation and update acceptance assertions.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:23 — Record successful A5 staging migration and receipt acceptance
+- **File(s) changed:** `a5-staging-receipt.json`
+- **What changed:** Applied 062/063/064/066 to staging only; local branch HTTP issued MK-261008-003 with confirmed lot 26-10-08-DUTB-001 and Dutch Gold Honey supplier 13, plus pallet/substitution/unidentified receipts; temporary actor deactivated.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:20 — Add guarded A5 staging acceptance and exact actor scope assertion
+- **File(s) changed:** `check_lot_confirmation_staging.py`, `test_named_actor_writes.py`, `a5-lot-confirmation.md`
+- **What changed:** Prepare a staging-only receipt/substitution/exception check with startup disabled and synthetic actor deactivation; explicitly include the authorized pallet route in the existing allowlist regression.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:18 — Fix fresh-schema A5 migration search path
+- **File(s) changed:** `schema.sql`
+- **What changed:** Restore public search_path after pg_dump before pending A5 includes; the first full-suite attempt failed during schema setup, so rerun on a fresh local database.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:17 — Checkpoint real receipt suppliers and coordinate A2 migration number
+- **File(s) changed:** `066_receipt_suppliers.sql`, `schema.sql`, `test_write_tickets.py`, `a5-lot-confirmation.md`
+- **What changed:** Preserve A2 migration 065 by numbering supplier migration 066; document exact receive INSERT overlap and 335 passing targeted tests.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:16 — Align A1 supplier tests with required real-supplier rule
+- **File(s) changed:** `test_write_tickets.py`, `test_lot_confirmation.py`, `write_tickets.py`
+- **What changed:** Preserve happened-time and code-pinning checks after blocking missing suppliers; validate existing lot supplier mismatch at prepare as well as the INSERT race boundary.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:15 — Add real-supplier receipt regression coverage
+- **File(s) changed:** `test_lot_confirmation.py`
+- **What changed:** Test all pseudo-supplier exclusions, /resolve-selected identity, same-prefix collisions, immutable provenance, expected receipts, deactivation and commingled identity.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:14 — Implement supplier IDs on ticket receipts and new lots
+- **File(s) changed:** `lot_confirmation.py`, `write_tickets.py`, `main.py`, `065_receipt_suppliers.sql`, `schema.sql`, `test_write_tickets.py`
+- **What changed:** Require real resolved suppliers, mint unique four-letter display labels, persist supplier FKs at INSERT and expose receipt evidence without decoding lot prefixes.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:12 — Checkpoint A5 unidentified-lot enforcement validated
+- **File(s) changed:** `a5-lot-confirmation.md`
+- **What changed:** Document seven-business-day semantics, floor ownership and repeat-entry preservation; 200 targeted tests pass.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:12 — Test unidentified identity clocks and atomic exception evidence
+- **File(s) changed:** `lot_confirmation.py`, `test_lot_confirmation.py`
+- **What changed:** Cover weekends, both DST transitions, backdated receipts, placeholder labels, top-up deadline preservation and failure rollback; serialize identify_by in plant time.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:11 — Implement unidentified lots and seven-business-day exception clocks
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `write_tickets.py`, `064_unidentified_lots.sql`, `schema.sql`, `test_write_tickets.py`
+- **What changed:** Flag unidentified receive/found lots using 061 exceptions, start clock at transaction entry, preserve top-up deadlines and keep history unassessed; never infer supplier identity from internal labels.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:10 — Checkpoint A5 substitutions with 122 passing tests
+- **File(s) changed:** `lot_confirmation.py`, `a5-lot-confirmation.md`
+- **What changed:** Document replacement consumption and shared hook ownership; reject output-product or auto-excluded substitutes; checkpoint part 2.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:09 — Add substitution and exclusion regression tests
+- **File(s) changed:** `test_lot_confirmation.py`
+- **What changed:** Verify replacement ledger/trace consumption, batch reason evidence, invalid selections, blank reasons, exclusions and atomic rollback.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:08 — Implement recorded batch substitutions and exclusion reasons
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `write_tickets.py`, `main.py`, `063_batch_substitutions.sql`, `schema.sql`, `test_write_tickets_part2.py`
+- **What changed:** Add explicit substitute inputs with reasons, immutable per-batch records and actual substitute consumption through a named make-formula hook; legacy calls and shortage branches unchanged.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:07 — Checkpoint A5 part 1 validated
+- **File(s) changed:** `a5-lot-confirmation.md`
+- **What changed:** Record confirmation contract, exact shared hook points and 175 passing targeted tests; full suite and staging remain pending.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:06 — Correct A5 isolated race and pack-add-in test setup
+- **File(s) changed:** `test_lot_confirmation.py`, `test_write_tickets_part2.py`
+- **What changed:** Load A5 evidence tables in disposable concurrent-test databases and model pack add-ins using the real intermediate formula relationship.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:06 — Test confirmation rules and retain A1 lifecycle coverage
+- **File(s) changed:** `test_lot_confirmation.py`, `test_write_tickets_part2.py`
+- **What changed:** Exercise missing and matching evidence, suffix collisions, every input, pallet evidence and atomicity; existing A1 happy paths now supply explicit full-code evidence.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:05 — Implement A5 lot confirmations and ticketed pallet moves
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `write_tickets.py`, `062_lot_confirmation.sql`, `schema.sql`
+- **What changed:** Add typed evidence, unconfirmed blockers, late-evidence revalidation, immutable audit tables and pallet move tickets; preserve legacy and shortage paths.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:02 — Start isolated A5 builder checkpoint and review record
+- **File(s) changed:** `docs/deployments/a5-lot-confirmation.md`
+- **What changed:** Record four checkpoints, scope and actual A1 baseline.
+- **Why:** Preserve handoff progress and keep A2/A3b ownership explicit.
+
+---
+
 ## 2026-10-08 13:45 — Design rev 3.7: Sunshine billing rules (§8.5, §11 items 27–31) + FOLLOWUPS P1.10
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/sunshine-billing-rules` (worktree `~/dev/fl-docs-wt`, off `origin/main` 1cd54ee). Recorded Michael's 2026-10-08 Sunshine decisions verbatim: yield credits = none (8(b) resolved); billed only for finished product sold — pouches/Mini 100 per case, bulk per actual lb sold (8(a) resolved); one batch may split between bulk and pouches/minis, only quantity sold as bulk is billable as bulk, never double-billed; **automatic invoicing at packing NOT approved** — "invoiced at pack" wording struck/superseded in R7, §7.2 item 7, §7.3 sample, §8.3 (D8 closed), §8.4 heading/body, A8 row (`pouch_pack` trigger dropped, dependency on the trigger decision added); QuickBooks is the price source of truth, FL price list DRAFT. New §8.5 with rules 1–5, §8.5.1 QBO reconciliation table (customer 157, 35 invoices Apr 1–Oct 8, latest Aug 13), §8.5.2 FL product mapping from a read-only production lookup (9/10 rows mapped: 146, 145, 147, 148+149, 285, 185, 183, 288, 184; unmapped Chocolate Chip #9 Mini 100), §8.5.3 DRAFT price list. New §11 decisions table items 27–31 and an 8-item open-question list (Michael's five + three found in the lookup: QBO Low Carb item 72 covers FL 148 and 149; FL 185 Mini 100 is inactive/per-lb/parented to batch #1; FL ships TX2535/2536 of 2026-09-30 have no QBO invoice after Aug 13). §11 item 8 status and the "Still open" line updated. `FOLLOWUPS.md` P1.10 summarises the decisions, mapping, findings and open questions.

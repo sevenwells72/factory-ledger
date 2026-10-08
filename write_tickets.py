@@ -8,6 +8,7 @@ import json
 import secrets
 
 import ticket_actions as actions
+import lot_confirmation as a5
 from datetime import date, datetime
 from typing import List, Literal, Optional
 
@@ -17,7 +18,7 @@ from psycopg2.extras import Json
 
 ClientSource = Literal['mcp', 'dashboard', 'fl_assistant', 'api']
 PositiveId = conint(strict=True, gt=0)
-PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND'}
+PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT'}
 # Public dashboard scope remains exactly the ticket routes granted by A1 part 1.
 DASHBOARD_ROUTES = frozenset({
     ('POST', '/receive/prepare'),
@@ -27,6 +28,7 @@ DASHBOARD_ROUTES = frozenset({
     ('GET', '/receipts/by-transaction/{transaction_id}'),
 })
 ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
+    ('POST', '/lots/{lot_id}/move/prepare'),
     ('POST', '/make/prepare'),
     ('POST', '/pack/prepare'),
     ('POST', '/adjust/prepare'),
@@ -105,7 +107,17 @@ class IngredientLot(IdInput):
     lot_id: PositiveId
 
 
+class MovePrepareRequest(ActionPrepareRequest):
+    to_location: Literal['storage', 'staging', 'production']
+    method: Literal['last4', 'full_code', 'scan']
+    value: str = Field(min_length=1, max_length=200)
+
+
 class MakePrepareRequest(ActionPrepareRequest):
+    substitutions: List[a5.Substitution] = Field(default_factory=list)
+    reason_code: Optional[str] = None
+    note: Optional[str] = None
+    lot_confirmations: List[a5.LotConfirmation] = Field(default_factory=list)
     product_id: PositiveId
     batches: conint(strict=True, gt=0)
     lot_code: Optional[str] = None
@@ -120,6 +132,7 @@ class LotAllocation(IdInput):
 
 
 class PackPrepareRequest(ActionPrepareRequest):
+    lot_confirmations: List[a5.LotConfirmation] = Field(default_factory=list)
     source_product_id: PositiveId
     target_product_id: PositiveId
     cases: conint(strict=True, gt=0)
@@ -155,11 +168,13 @@ class FoundPrepareRequest(ActionPrepareRequest):
     found_location: Optional[str] = None
     estimated_age: str = 'unknown'
     suspected_supplier: Optional[str] = None
+    supplier_lot_code: Optional[str] = None
     notes: Optional[str] = None
     notes_es: Optional[str] = None
 
 
 class CommitRequest(BaseModel):
+    lot_confirmations: List[a5.LotConfirmation] = Field(default_factory=list)
     payload_hash: str
     acknowledged_warnings: List[str] = Field(default_factory=list)
 
@@ -200,14 +215,8 @@ def json_value(api, value):
 
 
 def supplier(cur, supplier_id, *, lock=False):
-    if supplier_id is None:
-        return None
-    cur.execute('SELECT id, name, active FROM suppliers WHERE id=%s' +
-                (' FOR SHARE' if lock else ''), (supplier_id,))
-    row = cur.fetchone()
-    if not row or not row['active']:
-        fail(422, 'SUPPLIER_NOT_FOUND', 'Supplier is missing or inactive; resolve an active supplier.')
-    return row
+    # A5 hook: use the same real-supplier eligibility as /resolve.
+    return a5.real_supplier(cur, supplier_id, lock=lock)
 
 
 def validate_receive(api, cur, payload, *, lock=False):
@@ -226,22 +235,27 @@ def validate_receive(api, cur, payload, *, lock=False):
     shipper = supplier(cur, payload.get('supplier_id'), lock=lock)
     entries = []
     for entry in payload.get('supplier_lot_entries') or []:
-        party = supplier(cur, entry.get('supplier_id'), lock=lock)
+        party = supplier(cur, entry.get('supplier_id') or shipper['id'], lock=lock)
         entries.append({k: v for k, v in entry.items() if k != 'supplier_id'} |
-                       {'supplier_name': party['name'] if party else None})
+                       {'supplier_name': party['name'], 'supplier_id': party['id']})
     fields = {k: v for k, v in payload.items()
               if k not in ('product_id', 'supplier_id', 'expected_receipt_id')}
     fields.update(product_name=product['name'], shipper_name=shipper['name'] if shipper else '',
                   supplier_lot_entries=entries or None, mode='preview')
+    # A5 hook: labels come from the resolved supplier; labels never select IDs.
+    fields['shipper_code_override'] = shipper['short_code']
     req = api.ReceiveRequest(**fields)
     draft = api._receive_preview_core(cur, req, product=product)
+    draft.update(supplier_id=shipper['id'], supplier_name=shipper['name'])
     lots = []
-    cur.execute('SELECT id, status FROM lots WHERE product_id=%s AND lot_code=%s' +
+    cur.execute('SELECT id, status, supplier_id FROM lots WHERE product_id=%s AND lot_code=%s' +
                 (' FOR UPDATE' if lock else ''), (product['id'], draft['lot_code']))
     lot = cur.fetchone()
     if lot:
         if lot['status'] == 'merged':
             fail(409, 'LOT_MERGED', 'This lot was merged; prepare again with the surviving lot.')
+        if lot['supplier_id'] is not None and lot['supplier_id'] != shipper['id']:
+            fail(422, 'LOT_SUPPLIER_MISMATCH', 'This lot belongs to a different supplier; receive into a new lot.')
         lots.append({'id': lot['id'], 'status': lot['status'],
                      'on_hand_lb': api.lot_on_hand(cur, lot['id'])})
     api._validate_lot_code_twin(cur, product['id'], draft['lot_code'])
@@ -263,7 +277,9 @@ def validate_receive(api, cur, payload, *, lock=False):
             ('id', 'expected_qty', 'remaining', 'expected_date', 'reference_number')}
     else:
         draft['expected_receipt_match'] = None
-    state = {'product': {'id': product['id'], 'active': product['active']},
+    # A5 hook: unresolved supplier lot identity is a flag, not a stock blocker.
+    a5.identity_draft(api, cur, payload, draft)
+    state = {'supplier': dict(shipper), 'product': {'id': product['id'], 'active': product['active']},
              'lots': lots, 'expected_receipt': dict(expected) if expected else None}
     return draft, state, req, product, occurred_at, source, er_id
 
@@ -318,7 +334,7 @@ def receipt_detail(api, cur, number):
                    JOIN transactions raw ON raw.id=t.id WHERE raw.ticket_id=%s ORDER BY t.id''',
                 (ticket['id'],))
     transactions = [dict(row) for row in cur.fetchall()]
-    lot_ids = set()
+    lot_ids = set(ticket.get('result_ref', {}).get('lot_ids', []))
     for txn in transactions:
         cur.execute('''SELECT l.product_id,p.name AS product_name,l.lot_id,lot.lot_code,l.quantity_lb
                        FROM ledger_current_transaction_lines l JOIN products p ON p.id=l.product_id
@@ -331,6 +347,8 @@ def receipt_detail(api, cur, number):
     lots = [dict(row) for row in cur.fetchall()]
     for lot in lots:
         lot['on_hand_lb'] = api.lot_on_hand(cur, lot['id'])
+    # A5 hook: explicit supplier and lot evidence in interface-neutral receipts.
+    a5.receipt_evidence(cur, transactions, lots)
     happened = datetime.fromisoformat(ticket['payload']['occurred_at'])
     late = happened.astimezone(api.PLANT_TIMEZONE).date() != ticket['committed_at'].astimezone(api.PLANT_TIMEZONE).date()
     return {'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
@@ -343,9 +361,11 @@ def receipt_detail(api, cur, number):
 
 
 def register_routes(app, api):
-    def prepare(action, req, request):
+    def prepare(action, req, request, *, lot_id=None):
         actor = identity(api, request)
         payload = json.loads(req.json(exclude={'client_source'}))
+        if lot_id is not None:
+            payload['lot_id'] = lot_id
         event_time = req.occurred_at or api.get_plant_now()
         if event_time.tzinfo is None:
             event_time = event_time.replace(tzinfo=api.PLANT_TIMEZONE)
@@ -354,7 +374,7 @@ def register_routes(app, api):
             if payload.get(field):
                 payload[field] = api.normalize_lot_code_input(payload[field])
         if action == 'receive':
-            payload['supplier_lot_code'] = (req.supplier_lot_code or '').strip() or (req.lot_code or '').strip() or 'N/A'
+            payload['supplier_lot_code'] = (req.supplier_lot_code or '').strip() or 'N/A'
         with api.get_transaction() as cur:
             blockers = []
             draft = {}
@@ -381,7 +401,11 @@ def register_routes(app, api):
             except HTTPException as exc:
                 if exc.status_code >= 500:
                     raise
+                # A5 §5.2: choose a real resolved supplier before issuing a receipt draft.
+                if action == 'receive' and isinstance(exc.detail, dict) and exc.detail.get('error_code') == 'SUPPLIER_REQUIRED':
+                    raise
                 blockers = [blocker(exc)]
+            blockers = blockers or draft.get('blockers', [])
             warnings = (receive_duplicates(cur, payload) if action == 'receive' else
                         actions.duplicates(cur, action, payload, draft))
             payload_hash = canonical_hash(payload)
@@ -413,6 +437,10 @@ def register_routes(app, api):
     @app.post('/receive/prepare')
     def prepare_receive(req: ReceivePrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
         return prepare('receive', req, request)
+
+    @app.post('/lots/{lot_id}/move/prepare')
+    def prepare_move(lot_id: int, req: MovePrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
+        return prepare('move_lot', req, request, lot_id=lot_id)
 
     @app.post('/make/prepare')
     def prepare_make(req: MakePrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
@@ -464,6 +492,10 @@ def register_routes(app, api):
                 fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.', missing=missing)
             if row['action'] not in PREFIXES:
                 fail(409, 'TICKET_ACTION_UNAVAILABLE', 'Unsupported ticket action.')
+            # A5 hook: late evidence never mutates the signed draft payload.
+            if body.lot_confirmations and row['action'] not in ('make', 'pack'):
+                fail(422, 'UNUSED_LOT_CONFIRMATION', 'This action does not consume ingredient lots.')
+            effective_payload = a5.merge_confirmations(row['payload'], [e.dict() for e in body.lot_confirmations])
             cur.execute('SAVEPOINT ticket_post')
             try:
                 # Reuse the legacy lot-sequence locks before validation/posting.
@@ -479,11 +511,12 @@ def register_routes(app, api):
                     draft, state, req, product, occurred_at, source, er_id = validate_receive(
                         api, cur, row['payload'], lock=True)
                 else:
-                    validated = actions.validate(api, cur, row['action'], row['payload'], lock=True)
+                    validated = actions.validate(api, cur, row['action'], effective_payload, lock=True)
                     draft, state, _, _, occurred_at, source, _, _ = validated
-                if row['draft'].get('blockers'):
+                unresolved = [b for b in row['draft'].get('blockers', []) if b['code'] != 'LOT_NOT_CONFIRMED']
+                if unresolved:
                     fail(409, 'DRAFT_BLOCKED', 'Prepare again after resolving the draft blockers.',
-                         blockers=row['draft']['blockers'])
+                         blockers=unresolved)
                 # A draft promising a new lot cannot silently add to a lot
                 # created after prepare. This runs under the receive lock.
                 if not row['draft'].get('lot_exists') and draft.get('lot_exists'):
@@ -496,9 +529,11 @@ def register_routes(app, api):
                 if row['action'] == 'receive':
                     req.mode = 'commit'
                     response = api._receive_commit_core(cur, req, request, occurred_at, source,
-                        product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id)
+                        product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id, supplier_id=row['payload']['supplier_id'])
+                    a5.record_identity(cur, row['payload'], response, row['id'], receipt)
+                    a5.supplier_receipt(cur, response)
                 else:
-                    response = actions.post(api, cur, row['action'], validated, row['payload'], request,
+                    response = actions.post(api, cur, row['action'], validated, effective_payload, request,
                         row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
                 response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
                                 state_changed=state_changed)
@@ -509,6 +544,9 @@ def register_routes(app, api):
                 cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
                 errors = exc.detail.get('blockers') if isinstance(exc.detail, dict) else None
                 errors = errors or [blocker(exc)]
+                if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION'):
+                    return api.JSONResponse(status_code=422, content={'detail': {
+                        'error_code': errors[0]['code'], 'message': errors[0]['message'], 'blockers': errors}})
                 cur.execute("UPDATE write_tickets SET status='rejected',reject_reason=%s WHERE id=%s",
                             (json.dumps(errors), row['id']))
                 return api.JSONResponse(status_code=409, content={'detail': {
@@ -516,9 +554,11 @@ def register_routes(app, api):
                     'blockers': errors}})
             cur.execute('RELEASE SAVEPOINT ticket_post')
             cur.execute('SELECT DISTINCT lot_id FROM transaction_lines WHERE transaction_id=%s AND lot_id IS NOT NULL ORDER BY lot_id',
-                        (response['transaction_id'],))
-            result_ref = {'transaction_ids': [response['transaction_id']],
+                        (response.get('transaction_id'),))
+            result_ref = {'transaction_ids': [response['transaction_id']] if response.get('transaction_id') else [],
                           'lot_ids': [line['lot_id'] for line in cur.fetchall()]}
+            if row['action'] == 'move_lot':
+                result_ref['lot_ids'] = [response['lot_id']]
             cur.execute('''UPDATE write_tickets SET status='committed',committed_at=clock_timestamp(),
                 receipt_number=%s,result_ref=%s,response=%s,acknowledged=%s WHERE id=%s''',
                 (receipt, Json(result_ref), Json(response), Json(sorted(set(body.acknowledged_warnings))), row['id']))

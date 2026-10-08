@@ -1,0 +1,338 @@
+{
+  "reference": "STG-A5-E25438A1C0FC",
+  "mode": "local branch HTTP routes against STAGING; no hosted deployment",
+  "migrations_applied": true,
+  "supplier_id": 13,
+  "supplier_name": "Dutch Gold Honey",
+  "receive_receipt": "RCV-261008-001",
+  "make_receipt": "MK-261008-003",
+  "confirmed_lot": "26-10-08-DUTB-001",
+  "lot_id": 1000000013,
+  "confirmation": {
+    "lot_id": 1000000013,
+    "method": "last4",
+    "value": "-001"
+  },
+  "move_receipt": "LOT-261008-001",
+  "substitution_receipt": "MK-261008-004",
+  "unidentified_receipt": "RCV-261008-003",
+  "unidentified_due_at": "2026-10-20T03:59:00+00:00",
+  "actor_id": 1000000007,
+  "actor_deactivated_after_check": true,
+  "receipt": {
+    "receipt_number": "MK-261008-003",
+    "action": "make",
+    "status": "committed",
+    "actor": {
+      "id": 1000000007,
+      "name": "STG-A5-E25438A1C0FC",
+      "role": "floor",
+      "key_kind": "actor"
+    },
+    "operator_id": "STG-A5-E25438A1C0FC",
+    "client_source": "api",
+    "happened_at": "2026-10-08T14:21:33.016276-04:00",
+    "entered_at": "2026-10-08T18:21:41.113210+00:00",
+    "late_entry": false,
+    "draft": {
+      "mode": "preview",
+      "actor": {
+        "id": 1000000007,
+        "name": "STG-A5-E25438A1C0FC",
+        "role": "floor",
+        "key_kind": "actor"
+      },
+      "batches": 1,
+      "blockers": [
+        {
+          "code": "LOT_NOT_CONFIRMED",
+          "message": "Confirm STG-A5-E25438A1C0FC ingredient lot 26-10-08-DUTB-001: type last four characters, full code, or record a pallet move."
+        }
+      ],
+      "lot_code": "B26-1008-003",
+      "input_plan": [
+        {
+          "lot_id": 1000000013,
+          "lot_code": "26-10-08-DUTB-001",
+          "confirmed": false,
+          "product_id": 1000000010,
+          "quantity_lb": 0.1,
+          "suggested_lot": {
+            "lot_id": 1000000013,
+            "lot_code": "26-10-08-DUTB-001",
+            "confirmed": false
+          }
+        }
+      ],
+      "lot_exists": false,
+      "product_id": 1000000012,
+      "happened_at": "2026-10-08T14:21:33.016276-04:00",
+      "ingredients": [
+        {
+          "needed_lb": 0.1,
+          "sufficient": true,
+          "available_lb": 2.0,
+          "override_lot": "26-10-08-DUTB-001",
+          "ingredient_id": 1000000010,
+          "ingredient_name": "STG-A5-E25438A1C0FC ingredient"
+        }
+      ],
+      "product_name": "STG-A5-E25438A1C0FC batch",
+      "batch_size_lb": 0.1,
+      "lot_overrides": [
+        {
+          "lot_code": "26-10-08-DUTB-001",
+          "needed_lb": 0.1,
+          "sufficient": true,
+          "available_lb": 2.0,
+          "ingredient_id": 1000000010,
+          "ingredient_name": "STG-A5-E25438A1C0FC ingredient"
+        }
+      ],
+      "output_lot_id": null,
+      "substitutions": [],
+      "preview_message": "Ready to make 1 batch(es) of STG-A5-E25438A1C0FC batch (0.1 lb) (with 1 lot override(s))",
+      "total_output_lb": 0.1,
+      "yield_multiplier": 1.0,
+      "formula_weight_lb": 0.1,
+      "estimated_yield_lb": 0.1,
+      "original_ingredients": [
+        {
+          "needed_lb": 0.1,
+          "sufficient": true,
+          "available_lb": 2.0,
+          "override_lot": "26-10-08-DUTB-001",
+          "ingredient_id": 1000000010,
+          "ingredient_name": "STG-A5-E25438A1C0FC ingredient"
+        }
+      ],
+      "exclusion_reason_code": null,
+      "happened_vs_now_minutes": 0.0,
+      "all_ingredients_available": true
+    },
+    "response": {
+      "mode": "commit",
+      "lot_id": 1000000015,
+      "message": "Produced 0.1 lb as lot B26-1008-003",
+      "success": true,
+      "lot_code": "B26-1008-003",
+      "lot_uuid": "b5097262-927c-445e-b91a-6d9f8e29e0d6",
+      "replayed": false,
+      "output_lb": 0.1,
+      "ticket_id": 12,
+      "input_plan": [
+        {
+          "lot_id": 1000000013,
+          "lot_code": "26-10-08-DUTB-001",
+          "confirmed": true,
+          "product_id": 1000000010,
+          "quantity_lb": 0.1,
+          "confirmation": {
+            "value": "-001",
+            "lot_id": 1000000013,
+            "method": "last4"
+          },
+          "suggested_lot": {
+            "lot_id": 1000000013,
+            "lot_code": "26-10-08-DUTB-001",
+            "confirmed": false
+          }
+        }
+      ],
+      "state_changed": false,
+      "substitutions": [],
+      "receipt_number": "MK-261008-003",
+      "transaction_id": 1000000016,
+      "yield_multiplier": 1.0,
+      "confirmation_code": "TXN-C0B82E",
+      "formula_weight_lb": 0.1,
+      "estimated_yield_lb": 0.1,
+      "ingredients_consumed": [
+        {
+          "lot_id": 1000000013,
+          "lot_code": "26-10-08-DUTB-001",
+          "consumed_lb": 0.1,
+          "ingredient_id": 1000000010,
+          "ingredient_name": "STG-A5-E25438A1C0FC ingredient"
+        }
+      ],
+      "exclusion_reason_code": null,
+      "daily_production_summary": {
+        "production": [
+          {
+            "total_lb": 0.1,
+            "product_name": "STG-A1P2-294CDA1C784E batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.0,
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.1,
+            "product_name": "STG-A1P2-57FB94002B5A batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.0,
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.1,
+            "product_name": "STG-A5-E25438A1C0FC batch",
+            "product_type": "batch",
+            "transaction_type": "make",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.0,
+            "product_name": "STG-A5-E25438A1C0FC ingredient",
+            "product_type": "ingredient",
+            "transaction_type": "make",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.0,
+            "product_name": "STG-A1P2-294CDA1C784E batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.05,
+            "product_name": "STG-A1P2-294CDA1C784E finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.0,
+            "product_name": "STG-A1P2-57FB94002B5A batch",
+            "product_type": "batch",
+            "transaction_type": "pack",
+            "transaction_count": 1
+          },
+          {
+            "total_lb": 0.05,
+            "product_name": "STG-A1P2-57FB94002B5A finished",
+            "product_type": "finished",
+            "transaction_type": "pack",
+            "transaction_count": 1
+          }
+        ],
+        "adjustments": [
+          {
+            "reason": "STG-A1P2-294CDA1C784E synthetic count",
+            "lot_code": "STG-A1P2-294CDA1C784E-INPUT",
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "adjustment_lb": -0.01
+          },
+          {
+            "reason": null,
+            "lot_code": "26-10-08-FOUND-001",
+            "product_name": "STG-A1P2-294CDA1C784E ingredient",
+            "adjustment_lb": 0.01
+          },
+          {
+            "reason": "STG-A1P2-57FB94002B5A synthetic count",
+            "lot_code": "STG-A1P2-57FB94002B5A-INPUT",
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "adjustment_lb": -0.01
+          },
+          {
+            "reason": null,
+            "lot_code": "26-10-08-FOUND-002",
+            "product_name": "STG-A1P2-57FB94002B5A ingredient",
+            "adjustment_lb": 0.01
+          }
+        ]
+      },
+      "ingredients_consumed_grouped": [
+        {
+          "lots": [
+            {
+              "lot_id": 1000000013,
+              "lot_code": "26-10-08-DUTB-001",
+              "consumed_lb": 0.1
+            }
+          ],
+          "ingredient_id": 1000000010,
+          "ingredient_name": "STG-A5-E25438A1C0FC ingredient",
+          "total_consumed_lb": 0.1
+        }
+      ]
+    },
+    "warnings": [],
+    "acknowledged": [],
+    "transactions": [
+      {
+        "id": 1000000016,
+        "type": "make",
+        "effective_status": "posted",
+        "lines": [
+          {
+            "product_id": 1000000012,
+            "product_name": "STG-A5-E25438A1C0FC batch",
+            "lot_id": 1000000015,
+            "lot_code": "B26-1008-003",
+            "quantity_lb": 0.1
+          },
+          {
+            "product_id": 1000000010,
+            "product_name": "STG-A5-E25438A1C0FC ingredient",
+            "lot_id": 1000000013,
+            "lot_code": "26-10-08-DUTB-001",
+            "quantity_lb": -0.1
+          }
+        ],
+        "supplier_id": null,
+        "supplier_name": null,
+        "lot_confirmations": [
+          {
+            "lot_id": 1000000013,
+            "method": "last4",
+            "value": "-001",
+            "actor_id": 1000000007,
+            "move_id": null,
+            "created_at": "2026-10-08T18:21:40.933851+00:00"
+          }
+        ],
+        "substitutions": []
+      }
+    ],
+    "lots": [
+      {
+        "id": 1000000013,
+        "product_id": 1000000010,
+        "lot_code": "26-10-08-DUTB-001",
+        "status": "active",
+        "on_hand_lb": 1.9,
+        "supplier_id": 13,
+        "supplier_name": "Dutch Gold Honey",
+        "identity_status": "identified",
+        "identify_by": null
+      },
+      {
+        "id": 1000000015,
+        "product_id": 1000000012,
+        "lot_code": "B26-1008-003",
+        "status": "active",
+        "on_hand_lb": 0.1,
+        "supplier_id": null,
+        "supplier_name": null,
+        "identity_status": null,
+        "identify_by": null
+      }
+    ]
+  }
+}

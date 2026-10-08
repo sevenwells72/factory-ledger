@@ -3,6 +3,8 @@ from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 import json
 
+import lot_confirmation as a5
+
 from fastapi import HTTPException
 
 
@@ -66,6 +68,9 @@ def choose_inputs(api, cur, requirements, overrides):
 
 
 def validate(api, cur, action, payload, lock=False):
+    # A5 hook: non-ledger pallet evidence uses the same ticket lifecycle.
+    if action == 'move_lot':
+        return a5.validate_move(api, cur, payload, lock)
     occurred_at, time_source = api.validate_inventory_occurred_at(
         datetime.fromisoformat(payload['occurred_at']), payload['backfill'])
     common = {'occurred_at': occurred_at, 'backfill': payload['backfill']}
@@ -93,16 +98,19 @@ def validate(api, cur, action, payload, lock=False):
             fail('INVALID_OUTPUT', f'{p["name"]} requires a positive configured batch weight.')
         if draft.get('sku_confirmation_required') and not req.confirmed_sku:
             fail('SKU_CONFIRMATION_REQUIRED', f'Confirm {p["name"]} as the output SKU and prepare again.')
+        # A5 hook: explicitly substitute recipe inputs before selecting lots.
+        substitutions = a5.prepare_substitutions(api, cur, payload, draft, overrides, lock)
         for ingredient in draft['ingredients']:
             pid = ingredient['ingredient_id']
-            requirements[pid] = float(api.to_decimal(ingredient['needed_lb']))
+            requirements[pid] = requirements.get(pid, 0) + float(api.to_decimal(ingredient['needed_lb']))
         if set(overrides) - set(requirements):
             fail('UNUSED_LOT_SELECTION', 'An ingredient override is not part of this batch.')
         input_plan = input_plan if input_plan is not None else choose_inputs(api, cur, requirements, overrides)
         output_product, output_code = p, draft['lot_code']
-        options = {'product': p, 'input_plan': input_plan}
+        options = {'product': p, 'input_plan': input_plan, 'substitutions': substitutions}
         specification = {'requirements': requirements, 'output_lb': draft['total_output_lb'],
-                         'excluded': draft.get('excluded_ingredients', [])}
+                         'excluded': draft.get('excluded_ingredients', []),
+                         'original_requirements': {i['ingredient_id']: i['needed_lb'] for i in draft['original_ingredients']}}
     elif action == 'pack':
         if lock:
             # Keep the legacy source-lot/allocation lock order before any pinned input locks.
@@ -218,11 +226,21 @@ def validate(api, cur, action, payload, lock=False):
             req.lot_code = output_code
     draft['input_plan'] = [dict(item, lot_code=next(s['lot_code'] for s in states if s['id'] == item['lot_id']))
                            for item in input_plan or []]
+    # A5 hook: validate actual lot evidence without changing stock policy.
+    if action in ('make', 'pack'):
+        input_plan, draft['blockers'] = a5.validate_plan(
+            api, cur, input_plan or [], states, payload.get('lot_confirmations'), commit=lock)
+        draft['input_plan'] = input_plan
+        options['input_plan'] = input_plan
+    if action == 'found':
+        a5.identity_draft(api, cur, payload, draft)
     state = {'products': products, 'lots': states, 'specification': specification}
     return draft, state, req, options, occurred_at, time_source, specification, input_plan
 
 
 def post(api, cur, action, validated, payload, request, ticket_id, receipt_number, require_new_lot):
+    if action == 'move_lot':
+        return a5.post_move(api, cur, payload, request, ticket_id, receipt_number)
     draft, _, req, options, occurred_at, source, _, _ = validated
     if action == 'found':
         req.performed_by = api._operator_id(request)
@@ -230,8 +248,19 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         options['require_new_lot'] = require_new_lot
     response = response_dict(getattr(api, f'_{action}_commit_core')(
         cur, req, request, occurred_at, source, ticket_id=ticket_id, receipt_number=receipt_number, **options))
+    # A5 hook: evidence is atomic with the ledger and saved receipt.
+    if action in ('make', 'pack'):
+        actor = api.request_actor(request)
+        a5.record_confirmations(cur, response['transaction_id'], draft['input_plan'], actor['id'] if actor else None)
+        response['input_plan'] = draft['input_plan']
+        if action == 'make':
+            a5.record_substitutions(cur, response['transaction_id'], payload, actor['id'] if actor else None)
+            response['substitutions'] = draft['substitutions']
+            response['exclusion_reason_code'] = draft['exclusion_reason_code']
     if action == 'pack':
         response['lot_id'] = response['output_lot_id']
+    elif action == 'found':
+        a5.record_identity(cur, payload, response, ticket_id, receipt_number)
     elif action == 'adjust':
         response['lot_id'] = payload['lot_id']
     return response
