@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict j6tUwHUOKWxZ5zJHWGtQie2cMMdcopymLX0pMRUOplt3FhNIBI3hLkW5H6JZZBX
+\restrict UGvhm8AwsieGUCv92NArmgZh74dZdwN1WtjofjhsKa1QYqlmJg8ax8Uy5fp9Qzb
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -63,6 +63,21 @@ CREATE TYPE public.production_context AS ENUM (
     'private_label',
     'one_off'
 );
+
+
+--
+-- Name: a5_lot_supplier_immutable(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.a5_lot_supplier_immutable() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.supplier_id IS DISTINCT FROM OLD.supplier_id THEN
+        RAISE EXCEPTION 'Lot supplier identity is set at insert; use a new lot' USING ERRCODE='23000';
+    END IF;
+    RETURN NEW;
+END $$;
 
 
 --
@@ -1084,6 +1099,7 @@ CREATE TABLE public.ledger_corrections (
     operator_id text DEFAULT 'legacy-shared-key'::text NOT NULL,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     created_at_source text DEFAULT 'database'::text NOT NULL,
+    entered_by_actor_id integer,
     CONSTRAINT ledger_corrections_event_type_check CHECK ((event_type = ANY (ARRAY['amend'::text, 'void'::text, 'restore'::text]))),
     CONSTRAINT ledger_corrections_previous_values_check CHECK ((jsonb_typeof(previous_values) = 'object'::text)),
     CONSTRAINT ledger_corrections_reason_check CHECK ((btrim(reason) <> ''::text)),
@@ -1168,7 +1184,9 @@ CREATE TABLE public.transactions (
     entry_backfilled boolean DEFAULT false NOT NULL,
     receipt_number text,
     ticket_id bigint,
-    reason_code text
+    reason_code text,
+    supplier_id integer,
+    entered_by_actor_id integer
 );
 
 
@@ -1284,6 +1302,41 @@ SELECT
 
 
 --
+-- Name: lot_moves; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.lot_moves (
+    id bigint NOT NULL,
+    lot_id integer NOT NULL,
+    lot_code text NOT NULL,
+    to_location text NOT NULL,
+    moved_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    actor_id integer,
+    ticket_id bigint NOT NULL,
+    method text NOT NULL,
+    value text NOT NULL,
+    CONSTRAINT lot_moves_method_check CHECK ((method = ANY (ARRAY['last4'::text, 'full_code'::text, 'scan'::text]))),
+    CONSTRAINT lot_moves_to_location_check CHECK ((to_location = ANY (ARRAY['storage'::text, 'staging'::text, 'production'::text]))),
+    CONSTRAINT lot_moves_value_check CHECK ((btrim(value) <> ''::text))
+);
+
+
+--
+-- Name: lot_moves_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.lot_moves ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.lot_moves_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: lot_reassignments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1340,7 +1393,8 @@ CREATE TABLE public.lot_supplier_codes (
     quantity_lb numeric,
     notes text,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
-    created_at_source text DEFAULT 'database'::text NOT NULL
+    created_at_source text DEFAULT 'database'::text NOT NULL,
+    supplier_id integer
 );
 
 
@@ -1386,7 +1440,11 @@ CREATE TABLE public.lots (
     lot_type text,
     received_at timestamp with time zone,
     created_at_source text DEFAULT 'database'::text NOT NULL,
-    lot_uuid uuid DEFAULT gen_random_uuid() NOT NULL
+    lot_uuid uuid DEFAULT gen_random_uuid() NOT NULL,
+    identity_status text,
+    identify_by date,
+    supplier_id integer,
+    CONSTRAINT lots_identity_status_check CHECK ((identity_status = ANY (ARRAY['identified'::text, 'unidentified'::text])))
 );
 
 
@@ -2431,7 +2489,9 @@ CREATE TABLE public.suppliers (
     id integer NOT NULL,
     name text NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    short_code text,
+    CONSTRAINT suppliers_short_code_check CHECK ((short_code ~ '^[A-Z]{4}$'::text))
 );
 
 
@@ -2598,6 +2658,43 @@ CREATE SEQUENCE public.transaction_lines_id_seq
 --
 
 ALTER SEQUENCE public.transaction_lines_id_seq OWNED BY public.transaction_lines.id;
+
+
+--
+-- Name: transaction_lot_confirmations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.transaction_lot_confirmations (
+    transaction_id integer NOT NULL,
+    lot_id integer NOT NULL,
+    method text NOT NULL,
+    value text NOT NULL,
+    actor_id integer,
+    move_id bigint,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT transaction_lot_confirmations_check CHECK (((method = 'pallet'::text) = (move_id IS NOT NULL))),
+    CONSTRAINT transaction_lot_confirmations_method_check CHECK ((method = ANY (ARRAY['last4'::text, 'full_code'::text, 'scan'::text, 'pallet'::text]))),
+    CONSTRAINT transaction_lot_confirmations_value_check CHECK ((btrim(value) <> ''::text))
+);
+
+
+--
+-- Name: transaction_substitutions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.transaction_substitutions (
+    transaction_id integer NOT NULL,
+    ingredient_product_id integer NOT NULL,
+    substitute_product_id integer,
+    lot_id integer,
+    reason_code text NOT NULL,
+    note text,
+    actor_id integer,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT transaction_substitutions_check CHECK (((substitute_product_id IS NULL) = (lot_id IS NULL))),
+    CONSTRAINT transaction_substitutions_check1 CHECK ((substitute_product_id IS DISTINCT FROM ingredient_product_id)),
+    CONSTRAINT transaction_substitutions_reason_code_check CHECK ((btrim(reason_code) <> ''::text))
+);
 
 
 --
@@ -2931,7 +3028,7 @@ CREATE TABLE public.write_tickets (
     response jsonb,
     acknowledged jsonb DEFAULT '[]'::jsonb NOT NULL,
     reject_reason text,
-    CONSTRAINT write_tickets_action_check CHECK ((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text]))),
+    CONSTRAINT write_tickets_action_check CHECK (((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text])) OR (action = 'move_lot'::text))),
     CONSTRAINT write_tickets_check CHECK (((key_kind = 'actor'::text) = (actor_id IS NOT NULL))),
     CONSTRAINT write_tickets_client_source_check CHECK ((client_source = ANY (ARRAY['mcp'::text, 'dashboard'::text, 'fl_assistant'::text, 'api'::text]))),
     CONSTRAINT write_tickets_key_kind_check CHECK ((key_kind = ANY (ARRAY['actor'::text, 'legacy_ledger'::text, 'legacy_dashboard'::text]))),
@@ -3355,6 +3452,22 @@ ALTER TABLE ONLY public.ledger_corrections
 
 ALTER TABLE ONLY public.line_capacity_modes
     ADD CONSTRAINT line_capacity_modes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lot_moves lot_moves_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_moves
+    ADD CONSTRAINT lot_moves_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lot_moves lot_moves_ticket_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_moves
+    ADD CONSTRAINT lot_moves_ticket_id_key UNIQUE (ticket_id);
 
 
 --
@@ -3798,6 +3911,22 @@ ALTER TABLE ONLY public.transaction_lines
 
 
 --
+-- Name: transaction_lot_confirmations transaction_lot_confirmations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_lot_confirmations
+    ADD CONSTRAINT transaction_lot_confirmations_pkey PRIMARY KEY (transaction_id, lot_id);
+
+
+--
+-- Name: transaction_substitutions transaction_substitutions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_substitutions
+    ADD CONSTRAINT transaction_substitutions_pkey PRIMARY KEY (transaction_id, ingredient_product_id);
+
+
+--
 -- Name: transactions transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3891,6 +4020,13 @@ CREATE INDEX exceptions_ticket_idx ON public.exceptions USING btree (ticket_id) 
 --
 
 CREATE INDEX exceptions_transaction_idx ON public.exceptions USING btree (transaction_id) WHERE (transaction_id IS NOT NULL);
+
+
+--
+-- Name: exceptions_unidentified_open_lot_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX exceptions_unidentified_open_lot_idx ON public.exceptions USING btree (lot_id) WHERE ((kind = 'UNIDENTIFIED_LOT'::text) AND (status = ANY (ARRAY['open'::text, 'escalated'::text])));
 
 
 --
@@ -4363,10 +4499,31 @@ CREATE INDEX idx_transactions_timestamp ON public.transactions USING btree ("tim
 
 
 --
+-- Name: lot_moves_latest_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX lot_moves_latest_idx ON public.lot_moves USING btree (lot_id, moved_at DESC, id DESC);
+
+
+--
 -- Name: lots_product_code_norm_uniq; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX lots_product_code_norm_uniq ON public.lots USING btree (product_id, regexp_replace(regexp_replace(upper(btrim(lot_code)), '\s+'::text, ' '::text, 'g'::text), '\s+LOT$'::text, ''::text)) WHERE (status IS DISTINCT FROM 'merged'::text);
+
+
+--
+-- Name: lots_supplier_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX lots_supplier_idx ON public.lots USING btree (supplier_id) WHERE (supplier_id IS NOT NULL);
+
+
+--
+-- Name: lots_unidentified_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX lots_unidentified_due_idx ON public.lots USING btree (identify_by) WHERE (identity_status = 'unidentified'::text);
 
 
 --
@@ -4475,6 +4632,13 @@ CREATE UNIQUE INDEX suppliers_name_norm_uidx ON public.suppliers USING btree (pu
 
 
 --
+-- Name: suppliers_short_code_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX suppliers_short_code_unique ON public.suppliers USING btree (short_code);
+
+
+--
 -- Name: tel_lot_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4510,6 +4674,13 @@ CREATE INDEX trace_events_txn_idx ON public.trace_events USING btree (transactio
 
 
 --
+-- Name: transactions_entered_by_actor_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX transactions_entered_by_actor_idx ON public.transactions USING btree (entered_by_actor_id) WHERE (entered_by_actor_id IS NOT NULL);
+
+
+--
 -- Name: transactions_reason_code_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4521,6 +4692,13 @@ CREATE INDEX transactions_reason_code_idx ON public.transactions USING btree (re
 --
 
 CREATE INDEX transactions_receipt_number_idx ON public.transactions USING btree (receipt_number) WHERE (receipt_number IS NOT NULL);
+
+
+--
+-- Name: transactions_supplier_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX transactions_supplier_idx ON public.transactions USING btree (supplier_id) WHERE (supplier_id IS NOT NULL);
 
 
 --
@@ -4698,6 +4876,34 @@ CREATE OR REPLACE VIEW public.production_history AS
   WHERE ((t.effective_status = 'posted'::text) AND ((t.type = 'make'::text) AND (tl.quantity_lb > (0)::numeric)))
   GROUP BY t.id, t."timestamp", p.id, l.id
   ORDER BY t."timestamp" DESC;
+
+
+--
+-- Name: lot_moves a5_evidence_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER a5_evidence_append_only BEFORE DELETE OR UPDATE ON public.lot_moves FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: transaction_lot_confirmations a5_evidence_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER a5_evidence_append_only BEFORE DELETE OR UPDATE ON public.transaction_lot_confirmations FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: transaction_substitutions a5_evidence_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER a5_evidence_append_only BEFORE DELETE OR UPDATE ON public.transaction_substitutions FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: lots a5_lot_supplier_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER a5_lot_supplier_immutable BEFORE UPDATE OF supplier_id ON public.lots FOR EACH ROW EXECUTE FUNCTION public.a5_lot_supplier_immutable();
 
 
 --
@@ -5096,6 +5302,14 @@ ALTER TABLE ONLY public.ingredient_lot_consumption
 
 
 --
+-- Name: ledger_corrections ledger_corrections_entered_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ledger_corrections
+    ADD CONSTRAINT ledger_corrections_entered_by_actor_id_fkey FOREIGN KEY (entered_by_actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: line_capacity_modes line_capacity_modes_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5104,11 +5318,43 @@ ALTER TABLE ONLY public.line_capacity_modes
 
 
 --
+-- Name: lot_moves lot_moves_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_moves
+    ADD CONSTRAINT lot_moves_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: lot_moves lot_moves_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_moves
+    ADD CONSTRAINT lot_moves_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.lots(id);
+
+
+--
+-- Name: lot_moves lot_moves_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_moves
+    ADD CONSTRAINT lot_moves_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
 -- Name: lot_supplier_codes lot_supplier_codes_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.lot_supplier_codes
     ADD CONSTRAINT lot_supplier_codes_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.lots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: lot_supplier_codes lot_supplier_codes_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_supplier_codes
+    ADD CONSTRAINT lot_supplier_codes_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id);
 
 
 --
@@ -5125,6 +5371,14 @@ ALTER TABLE ONLY public.lots
 
 ALTER TABLE ONLY public.lots
     ADD CONSTRAINT lots_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: lots lots_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lots
+    ADD CONSTRAINT lots_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id);
 
 
 --
@@ -5632,6 +5886,86 @@ ALTER TABLE ONLY public.transaction_lines
 
 
 --
+-- Name: transaction_lot_confirmations transaction_lot_confirmations_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_lot_confirmations
+    ADD CONSTRAINT transaction_lot_confirmations_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: transaction_lot_confirmations transaction_lot_confirmations_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_lot_confirmations
+    ADD CONSTRAINT transaction_lot_confirmations_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.lots(id);
+
+
+--
+-- Name: transaction_lot_confirmations transaction_lot_confirmations_move_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_lot_confirmations
+    ADD CONSTRAINT transaction_lot_confirmations_move_id_fkey FOREIGN KEY (move_id) REFERENCES public.lot_moves(id);
+
+
+--
+-- Name: transaction_lot_confirmations transaction_lot_confirmations_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_lot_confirmations
+    ADD CONSTRAINT transaction_lot_confirmations_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+
+
+--
+-- Name: transaction_substitutions transaction_substitutions_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_substitutions
+    ADD CONSTRAINT transaction_substitutions_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: transaction_substitutions transaction_substitutions_ingredient_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_substitutions
+    ADD CONSTRAINT transaction_substitutions_ingredient_product_id_fkey FOREIGN KEY (ingredient_product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: transaction_substitutions transaction_substitutions_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_substitutions
+    ADD CONSTRAINT transaction_substitutions_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.lots(id);
+
+
+--
+-- Name: transaction_substitutions transaction_substitutions_substitute_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_substitutions
+    ADD CONSTRAINT transaction_substitutions_substitute_product_id_fkey FOREIGN KEY (substitute_product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: transaction_substitutions transaction_substitutions_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_substitutions
+    ADD CONSTRAINT transaction_substitutions_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+
+
+--
+-- Name: transactions transactions_entered_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_entered_by_actor_id_fkey FOREIGN KEY (entered_by_actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: transactions transactions_expected_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5645,6 +5979,14 @@ ALTER TABLE ONLY public.transactions
 
 ALTER TABLE ONLY public.transactions
     ADD CONSTRAINT transactions_reason_code_fkey FOREIGN KEY (reason_code) REFERENCES public.correction_reasons(code);
+
+
+--
+-- Name: transactions transactions_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id);
 
 
 --
@@ -5688,6 +6030,12 @@ ALTER TABLE public.correction_reasons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exceptions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: lot_moves; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.lot_moves ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: migration_markers; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -5718,6 +6066,18 @@ ALTER TABLE public.search_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shortage_flags ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: transaction_lot_confirmations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.transaction_lot_confirmations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: transaction_substitutions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.transaction_substitutions ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: write_tickets; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -5727,13 +6087,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict j6tUwHUOKWxZ5zJHWGtQie2cMMdcopymLX0pMRUOplt3FhNIBI3hLkW5H6JZZBX
+\unrestrict UGvhm8AwsieGUCv92NArmgZh74dZdwN1WtjofjhsKa1QYqlmJg8ax8Uy5fp9Qzb
 
-
--- Pending A5 migrations. pg_dump leaves search_path empty; restore it for standalone DDL.
-SET search_path TO public;
-\ir ../../migrations/062_lot_confirmation.sql
-\ir ../../migrations/063_batch_substitutions.sql
-\ir ../../migrations/064_unidentified_lots.sql
--- Pending A2: remove after prod migration + scripts/dump_prod_schema.sh
-\ir ../../migrations/065_entered_by.sql
