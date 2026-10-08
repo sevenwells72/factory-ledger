@@ -560,5 +560,20 @@
   },
   "acceptance_deployment_id": "7c03a200-e38b-4413-8687-a83d032c8132",
   "acceptance_commit": "deec0da",
-  "temporary_actor_deactivated": true
+  "temporary_actor_deactivated": true,
+  "final_deployment": {
+    "deployment_id": "6117e0d1-17e4-41a7-a562-e29dc88f8108",
+    "code_commit": "337ea51",
+    "page": 200,
+    "javascript_bytes_match": true,
+    "real_responses_read": true,
+    "transcript": {
+      "text": "I received two cases.",
+      "editable": true,
+      "sent": false,
+      "success": true
+    }
+  },
+  "final_smoke_actor_deactivated": true,
+  "followup_automation": "rebase-f1-after-a2-and-a5-merge"
 }

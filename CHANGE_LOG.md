@@ -32,6 +32,20 @@
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_write_tickets.py`, `CHANGE_LOG.md`
 - **What changed:** `scripts/dump_prod_schema.sh` re-run against production after 062–065 were applied (19:29–19:33Z): the pending `\ir` tail is gone and the dump now carries `lot_moves`, `transaction_lot_confirmations`, `transaction_substitutions`, `a5_lot_supplier_immutable`, the `move_lot` action CHECK, `lots.identity_status/identify_by/supplier_id`, `transactions.supplier_id/entered_by_actor_id`, `ledger_corrections.entered_by_actor_id`, `suppliers.short_code`. FACTORY_LEDGER_CHANGELOG rows 168 (A5 rollout: PR #88 → 7580338, 062/063/064 applied, Railway fb4d3912/db939e88) and 169 (A2 rollout: PR #89 → de31023, 065 applied staging+prod, Railway 9a5948bd/6c838631). `test_migration_up_down_up_and_marker_stability` drops the two 062 tables (whose `lot_moves.ticket_id` FK now blocks the 058 down) before the 061/058 down and re-runs the idempotent 062 after 058 is back — the pending-include era hid this because the fixture strips `\ir` lines. Fresh DB from the new dump: Python 2138 passed, Node 69/69.
 - **Why:** Same housekeeping as PRs #82/#86 after a production migration; keeps the local test schema identical to prod and the regression-guard changelog current.
+## 2026-10-08 15:13 — F1 final hosted smoke and handoff
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Final deployment 6117e0d1 serves code 337ea51 and exact JavaScript bytes; real Responses read and editable/unsent transcription pass again. Final temporary actor deactivated. Record dependency follow-up ID; PR 90 remains OPEN/DRAFT.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:11 — F1 final staging deployment and dependency follow-up
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record successful staging deployment 6117e0d1 from verified code 337ea51, unchanged production, and the requested quiet hourly rebase follow-up for PRs 88/89; both integrations remain draft for Claude Code review.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
 ## 2026-10-08 15:07 — F1 final code checkpoint verified
 - **File(s) changed:** `fl_assistant.py`, `tests/test_fl_assistant.py`, `dashboard/fl-assistant.html`, `dashboard/fl-assistant.js`, `scripts/check_assistant_staging.py`, `docs/contracts/fl-assistant-part1.md`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/fl-assistant-*`
 - **What changed:** Final code: 1829 Python tests passed on fresh fl_f1_final, 72 JavaScript passed, browser harness passed, all five hosted staging write flows and real transcription passed. Includes plant-clock context and navigation isolated from legacy production dashboard URLs.

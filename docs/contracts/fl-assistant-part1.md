@@ -102,3 +102,10 @@ merge; production readiness including owner-managed spend cap and email alerts.
 
 API references: [function calling](https://developers.openai.com/api/docs/guides/function-calling)
 and [transcription](https://developers.openai.com/api/docs/guides/speech-to-text).
+
+Final hosted code: `337ea51`, successful staging deployment
+`6117e0d1-17e4-41a7-a562-e29dc88f8108`. Post-deploy page and JavaScript bytes
+match the workspace; actual Responses read and editable/unsent transcription
+passed again. The final smoke actor was deactivated. The quiet hourly
+`rebase-f1-after-a2-and-a5-merge` follow-up will integrate newly merged #89/#88,
+re-test and deploy only to staging, leaving #90 draft for Claude Code review.
