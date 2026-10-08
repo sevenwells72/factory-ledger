@@ -5729,3 +5729,6 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 
 \unrestrict j6tUwHUOKWxZ5zJHWGtQie2cMMdcopymLX0pMRUOplt3FhNIBI3hLkW5H6JZZBX
 
+
+-- Pending A5 migration, applied explicitly on staging only.
+\ir ../../migrations/062_lot_confirmation.sql

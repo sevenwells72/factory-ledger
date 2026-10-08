@@ -5,7 +5,7 @@ Base: origin/main 1f3f098 (design revision 3.7).
 
 ## Checkpoints
 
-1. Lot confirmations and pallet-move evidence: pending.
+1. Lot confirmations and pallet-move evidence: complete; 175 targeted tests passed.
 2. Substitutions with reasons: pending.
 3. Unidentified lots and seven-business-day deadline: pending.
 4. Real supplier identity on receipts: pending.
@@ -23,7 +23,25 @@ adapters can use the same interface-neutral confirmation module.
 
 ## Shared hook points
 
-To be recorded with each implementation checkpoint.
+- `ticket_actions.validate`: dispatch `move_lot`; call A5 confirmation validator after stock validation.
+- `ticket_actions.post`: dispatch move evidence and save confirmations after core posting.
+- `write_tickets`: typed request fields/move route; late-evidence merge before validation;
+  recoverable 422 confirmation blockers; non-ledger move result refs/receipt reads.
+- `main.py`, `choose_inputs`, `_post_prepared_inputs`: unchanged in part 1.
+
+The original payload/hash stays immutable. Prepare returns `confirmed:false`
+and `LOT_NOT_CONFIRMED` until evidence is supplied. Commit can add only
+`lot_confirmations`; it cannot replace lot selections or quantities. Missing or
+invalid evidence returns 422 and leaves the ticket prepared for a retry.
+`last4` requires exactly four matching characters and a unique suffix among
+positive-stock, non-merged lots of that product; `full_code`/`scan` match the full
+code. `pallet` uses the full lot code plus the latest move being to production,
+within 24 hours. A later storage/staging move invalidates that evidence.
+
+Pallet moves use `/lots/{lot_id}/move/prepare` with `to_location`, `method`
+(`last4`, `full_code`, `scan`) and `value`, followed by normal ticket commit.
+They create a `LOT` receipt and immutable `lot_moves` row, without ledger stock
+movement. Named actors retain attribution; dashboard scope is unchanged.
 
 ## Validation and staging evidence
 

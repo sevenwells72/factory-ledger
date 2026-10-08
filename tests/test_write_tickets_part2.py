@@ -13,10 +13,18 @@ import pytest
 import main
 from tests.test_actor_attribution import client, actors  # noqa: F401
 from tests.test_write_tickets import (headers, commit, ticket_row, posted_count, error,
-                                      isolated_database)  # noqa: F401
+                                      isolated_database as a1_isolated_database)  # noqa: F401
 
 pytestmark = pytest.mark.db
 ACTIONS = ['make', 'pack', 'adjust', 'found']
+
+
+@pytest.fixture
+def isolated_database(a1_isolated_database):
+    from pathlib import Path
+    with psycopg2.connect(a1_isolated_database) as conn, conn.cursor() as cur:
+        cur.execute((Path(__file__).parents[1]/'migrations/062_lot_confirmation.sql').read_text())
+    yield a1_isolated_database
 
 
 def seed(cur):
@@ -66,7 +74,17 @@ def prepare(client, action, payload, key=None):
     path = '/inventory/found/prepare' if action == 'found' else f'/{action}/prepare'
     response = client.post(path, json=payload, headers=headers(key))
     assert response.status_code == 200, response.text
-    return response.json()
+    prepared = response.json()
+    # A1 lifecycle scenarios explicitly supply matching A5 evidence. The A5
+    # suite separately tests raw, unconfirmed prepares and late confirmations.
+    if action in ('make', 'pack') and prepared['draft'].get('input_plan') and all(
+            b['code'] == 'LOT_NOT_CONFIRMED' for b in prepared['blockers']):
+        confirmations = [{'lot_id': i['lot_id'], 'method': 'full_code', 'value': i['lot_code']}
+                         for i in prepared['draft']['input_plan']]
+        response = client.post(path, json=payload | {'lot_confirmations': confirmations}, headers=headers(key))
+        assert response.status_code == 200, response.text
+        prepared = response.json()
+    return prepared
 
 
 def output_product(action, items):

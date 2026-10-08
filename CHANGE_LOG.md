@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-10-08 14:07 — Checkpoint A5 part 1 validated
+- **File(s) changed:** `a5-lot-confirmation.md`
+- **What changed:** Record confirmation contract, exact shared hook points and 175 passing targeted tests; full suite and staging remain pending.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:06 — Correct A5 isolated race and pack-add-in test setup
+- **File(s) changed:** `test_lot_confirmation.py`, `test_write_tickets_part2.py`
+- **What changed:** Load A5 evidence tables in disposable concurrent-test databases and model pack add-ins using the real intermediate formula relationship.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:06 — Test confirmation rules and retain A1 lifecycle coverage
+- **File(s) changed:** `test_lot_confirmation.py`, `test_write_tickets_part2.py`
+- **What changed:** Exercise missing and matching evidence, suffix collisions, every input, pallet evidence and atomicity; existing A1 happy paths now supply explicit full-code evidence.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:05 — Implement A5 lot confirmations and ticketed pallet moves
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `write_tickets.py`, `062_lot_confirmation.sql`, `schema.sql`
+- **What changed:** Add typed evidence, unconfirmed blockers, late-evidence revalidation, immutable audit tables and pallet move tickets; preserve legacy and shortage paths.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
 ## 2026-10-08 14:02 — Start isolated A5 builder checkpoint and review record
 - **File(s) changed:** `docs/deployments/a5-lot-confirmation.md`
 - **What changed:** Record four checkpoints, scope and actual A1 baseline.

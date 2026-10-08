@@ -3,6 +3,8 @@ from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 import json
 
+import lot_confirmation as a5
+
 from fastapi import HTTPException
 
 
@@ -66,6 +68,9 @@ def choose_inputs(api, cur, requirements, overrides):
 
 
 def validate(api, cur, action, payload, lock=False):
+    # A5 hook: non-ledger pallet evidence uses the same ticket lifecycle.
+    if action == 'move_lot':
+        return a5.validate_move(api, cur, payload, lock)
     occurred_at, time_source = api.validate_inventory_occurred_at(
         datetime.fromisoformat(payload['occurred_at']), payload['backfill'])
     common = {'occurred_at': occurred_at, 'backfill': payload['backfill']}
@@ -218,11 +223,19 @@ def validate(api, cur, action, payload, lock=False):
             req.lot_code = output_code
     draft['input_plan'] = [dict(item, lot_code=next(s['lot_code'] for s in states if s['id'] == item['lot_id']))
                            for item in input_plan or []]
+    # A5 hook: validate actual lot evidence without changing stock policy.
+    if action in ('make', 'pack'):
+        input_plan, draft['blockers'] = a5.validate_plan(
+            api, cur, input_plan or [], states, payload.get('lot_confirmations'), commit=lock)
+        draft['input_plan'] = input_plan
+        options['input_plan'] = input_plan
     state = {'products': products, 'lots': states, 'specification': specification}
     return draft, state, req, options, occurred_at, time_source, specification, input_plan
 
 
 def post(api, cur, action, validated, payload, request, ticket_id, receipt_number, require_new_lot):
+    if action == 'move_lot':
+        return a5.post_move(api, cur, payload, request, ticket_id, receipt_number)
     draft, _, req, options, occurred_at, source, _, _ = validated
     if action == 'found':
         req.performed_by = api._operator_id(request)
@@ -230,6 +243,11 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         options['require_new_lot'] = require_new_lot
     response = response_dict(getattr(api, f'_{action}_commit_core')(
         cur, req, request, occurred_at, source, ticket_id=ticket_id, receipt_number=receipt_number, **options))
+    # A5 hook: evidence is atomic with the ledger and saved receipt.
+    if action in ('make', 'pack'):
+        actor = api.request_actor(request)
+        a5.record_confirmations(cur, response['transaction_id'], draft['input_plan'], actor['id'] if actor else None)
+        response['input_plan'] = draft['input_plan']
     if action == 'pack':
         response['lot_id'] = response['output_lot_id']
     elif action == 'adjust':
