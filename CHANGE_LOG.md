@@ -32,6 +32,13 @@
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_write_tickets.py`, `CHANGE_LOG.md`
 - **What changed:** `scripts/dump_prod_schema.sh` re-run against production after 062–065 were applied (19:29–19:33Z): the pending `\ir` tail is gone and the dump now carries `lot_moves`, `transaction_lot_confirmations`, `transaction_substitutions`, `a5_lot_supplier_immutable`, the `move_lot` action CHECK, `lots.identity_status/identify_by/supplier_id`, `transactions.supplier_id/entered_by_actor_id`, `ledger_corrections.entered_by_actor_id`, `suppliers.short_code`. FACTORY_LEDGER_CHANGELOG rows 168 (A5 rollout: PR #88 → 7580338, 062/063/064 applied, Railway fb4d3912/db939e88) and 169 (A2 rollout: PR #89 → de31023, 065 applied staging+prod, Railway 9a5948bd/6c838631). `test_migration_up_down_up_and_marker_stability` drops the two 062 tables (whose `lot_moves.ticket_id` FK now blocks the 058 down) before the 061/058 down and re-runs the idempotent 062 after 058 is back — the pending-include era hid this because the fixture strips `\ir` lines. Fresh DB from the new dump: Python 2138 passed, Node 69/69.
 - **Why:** Same housekeeping as PRs #82/#86 after a production migration; keeps the local test schema identical to prod and the regression-guard changelog current.
+## 2026-10-08 14:56 — F1 page checkpoint verified
+- **File(s) changed:** `dashboard/fl-assistant.html`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`, `tests/test_fl_assistant_ui.js`, `tests/visual/run-fl-assistant.mjs`, `scripts/check_assistant_staging.py`
+- **What changed:** Desktop and 390px light/dark checks passed: exact-draft retry, manual lot evidence, warnings, editable unsent dictation, attachment-only upload, choices/XSS, Spanish and reload recovery. Add guarded hosted-staging acceptance runner.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
 ## 2026-10-08 14:55 — F1 backend checkpoint verified
 - **File(s) changed:** `assistant_tools.py`, `fl_assistant.py`, `main.py`, `migrations/068_fl_assistant.sql`, `tests/schema/schema.sql`, `tests/test_fl_assistant.py`, `tests/test_named_actor_writes.py`
 - **What changed:** Fresh PostgreSQL full suite: 1829 Python passed, zero failures/skips; 72 JavaScript passed. Real concurrent commits and lost-response retries post once; original ticket/hash remain server-only. GPT OpenAPI remains 30 operations.
