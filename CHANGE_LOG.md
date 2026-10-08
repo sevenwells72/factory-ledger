@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-08 13:05 — Rebase PR #83 (A1 part 2) onto main 7e40af8 after PRs #84/#85; verify fixes and re-run suites
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Rebased `feat/write-tickets-2` (57d1be8, 3 commits) onto `origin/main` 7e40af8 in worktree `~/dev/fl-a1p2-merge-wt` (temp branch `wip/a1p2-rebase-20261008`) → head f993807, force-pushed with lease on 57d1be8. All three conflicts were in `CHANGE_LOG.md` only (both sides kept, 2026-10-08 blocks re-sorted newest-first within the conflict region); `main.py`, `write_tickets.py`, `ticket_actions.py`, `scripts/expire_tickets.py` and all tests are byte-identical to 57d1be8. Verified at 57d1be8: `write_tickets.DASHBOARD_ROUTES` is exactly the 5 part-1 routes and `test_ticket_dashboard_scope_is_exactly_part1` carries the three allowlist assertions; `scripts/expire_tickets.py` allows production only under `ENVIRONMENT=production` + `PRODUCTION_DATABASE_HOST` match (tests/test_expire_tickets.py, 40 cases) and the Railway cron is documented, not created (docs/deployments/a1-write-tickets-part2.md); blockers/warnings name products and lot codes; the adjust ticket payload/draft/receipt carry `reason_code` (alias `reason`, 422 AMBIGUOUS_REASON on both); no migration in the PR. Fresh local DB `fl_a1p2_merge_20261008` built from `tests/schema/schema.sql` (+ pending 061 include): Python 1800 passed, Node 69/69. Probe on that DB: an adjust ticket commit writes `transactions.adjust_reason` and leaves `transactions.reason_code` NULL — the documented FOLLOWUPS P1.8 window (061 re-run sweeps it; A3b sets it at INSERT), not a regression.
+- **Why:** PR #83 was CONFLICTING against main after the lane-3 merges; Michael asked for verification of the review fixes, a rebase, full suite and a production plan before GO.
+
+---
+
 ## 2026-10-08 12:41 — Design §11 item 26: pattern list gains %physical inventory%; dry-run counts 391 / 32 / 205
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/shift-summary-contract` (PR #84). Item 26, the §5.1 note and the rev 3.6 header now list `%physical inventory%` among the count-like patterns and record the final read-only prod dry-run of the PR #85 backfill: `physical_count` 391, `missing_receipt` 32, `unknown` 205 (of 628 adjust rows).
