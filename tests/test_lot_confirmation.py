@@ -238,3 +238,77 @@ def test_substitution_reason_rows_rollback_with_ledger(client,db_cursor,items,su
     monkeypatch.setattr(a5,'record_substitutions',crash)
     with pytest.raises(RuntimeError,match='substitution failure'): commit(client,d)
     assert posted_count(db_cursor,d)==0
+
+
+@pytest.mark.parametrize('entered,expected',[
+    ('2026-10-09T12:00:00-04:00','2026-10-20T23:59:00-04:00'),
+    ('2026-10-10T12:00:00-04:00','2026-10-20T23:59:00-04:00'),
+    ('2026-10-12T12:00:00-04:00','2026-10-21T23:59:00-04:00'),
+    ('2026-10-30T12:00:00-04:00','2026-11-10T23:59:00-05:00'),
+    ('2026-03-06T12:00:00-05:00','2026-03-17T23:59:00-04:00'),
+    ('2026-10-10T01:00:00+00:00','2026-10-20T23:59:00-04:00'),
+])
+def test_seven_business_day_deadline_across_weekends_and_dst(entered,expected):
+    from datetime import datetime
+    from lot_confirmation import identification_deadline
+    assert identification_deadline(datetime.fromisoformat(entered)).isoformat()==expected
+
+
+@pytest.mark.parametrize('code',[None,'','   ','N/A','unknown'])
+def test_unidentified_receive_exception_uses_entry_not_happened(client,db_cursor,actors,code):
+    from tests.test_write_tickets import seed
+    from lot_confirmation import identification_deadline
+    payload=seed(db_cursor)|{'supplier_lot_code':code,'occurred_at':(main.get_plant_now()-timedelta(days=3)).isoformat()}
+    d=prepare(client,'receive',payload,actors['floor']['key'])
+    assert d['can_commit'],d
+    assert d['draft']['identity_status']=='unidentified'
+    assert d['draft']['identity_notice'].startswith('UNIDENTIFIED')
+    r=commit(client,d,actors['floor']['key']); assert r.status_code==200,r.text
+    result=r.json()
+    db_cursor.execute('SELECT * FROM exceptions WHERE ticket_id=%s',(d['ticket_id'],))
+    exc=db_cursor.fetchone()
+    db_cursor.execute('SELECT created_at FROM transactions WHERE id=%s',(result['transaction_id'],))
+    entered=db_cursor.fetchone()['created_at']
+    assert exc['kind']=='UNIDENTIFIED_LOT' and exc['owner_actor_id']==actors['floor']['id']
+    assert exc['opened_at']==entered and exc['due_at']==identification_deadline(entered)
+    assert result['identify_by']==identification_deadline(entered).date().isoformat()
+    db_cursor.execute('SELECT identity_status,identify_by FROM lots WHERE id=%s',(result['lot_id'],))
+    assert dict(db_cursor.fetchone())=={'identity_status':'unidentified','identify_by':identification_deadline(entered).date()}
+    assert commit(client,d,actors['floor']['key']).json()==result|{'replayed':True}
+    db_cursor.execute('SELECT count(*) AS n FROM exceptions WHERE ticket_id=%s',(d['ticket_id'],))
+    assert db_cursor.fetchone()['n']==1
+
+
+def test_identified_receive_no_exception(client,db_cursor):
+    from tests.test_write_tickets import seed
+    d=prepare(client,'receive',seed(db_cursor))
+    r=commit(client,d); assert r.status_code==200,r.text
+    assert r.json()['identity_status']=='identified' and r.json()['exception_id'] is None
+    db_cursor.execute('SELECT count(*) AS n FROM exceptions WHERE ticket_id=%s',(d['ticket_id'],))
+    assert db_cursor.fetchone()['n']==0
+
+
+def test_unidentified_topup_preserves_original_deadline(client,db_cursor):
+    from tests.test_write_tickets import seed
+    payload=seed(db_cursor)|{'supplier_lot_code':'N/A'}
+    d=prepare(client,'receive',payload); first=commit(client,d).json()
+    second=prepare(client,'receive',payload|{'cases':1})
+    r=commit(client,second,acknowledged_warnings=['POSSIBLE_DUPLICATE']);assert r.status_code==200,r.text
+    assert r.json()['exception_id']==first['exception_id'] and r.json()['identification_due_at']==first['identification_due_at']
+    correction=prepare(client,'receive',payload|{'supplier_lot_code':'REAL-CODE'})
+    assert correction['blockers'][0]['code']=='LOT_IDENTITY_REQUIRES_CORRECTION'
+
+
+def test_found_unidentified_and_exception_failure_rolls_back(client,db_cursor,items,monkeypatch):
+    import lot_confirmation as a5
+    d=prepare(client,'inventory/found',body('found',items))
+    assert d['draft']['identity_status']=='unidentified'
+    original=a5.record_identity
+    def crash(*args):
+        original(*args)
+        raise RuntimeError('exception failure')
+    monkeypatch.setattr(a5,'record_identity',crash)
+    with pytest.raises(RuntimeError,match='exception failure'): commit(client,d)
+    assert posted_count(db_cursor,d)==0
+    db_cursor.execute('SELECT count(*) AS n FROM exceptions WHERE ticket_id=%s',(d['ticket_id'],))
+    assert db_cursor.fetchone()['n']==0

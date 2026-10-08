@@ -7,7 +7,7 @@ Base: origin/main 1f3f098 (design revision 3.7).
 
 1. Lot confirmations and pallet-move evidence: complete; 175 targeted tests passed.
 2. Substitutions with reasons: complete; 122 confirmation/substitution/A1 tests passed.
-3. Unidentified lots and seven-business-day deadline: pending.
+3. Unidentified lots and seven-business-day deadline: complete; 200 targeted tests passed.
 4. Real supplier identity on receipts: pending.
 
 Commit and push each finished part. Recheck `feat/roles` before shared edits.
@@ -64,3 +64,24 @@ catalog explicitly applies to corrections, not make substitutions.
 `transaction_substitutions` stores original/replacement/lot/reason/note/actor
 atomically, including null replacement for a manual exclusion. Receipt JSON
 exposes the evidence; ledger and ingredient trace consume the actual substitute.
+
+## Unidentified lots
+
+Blank, `N/A`, `NA`, and `UNKNOWN` supplier lot codes flag a receive as
+unidentified. Internal lot labels never stand in for supplier lot evidence.
+Commingled receipts need a real code on every entry. Found tickets use the same
+flagging (optional `supplier_lot_code`). History remains NULL/unassessed.
+The draft shows `UNIDENTIFIED — resolve by <date>` without blocking posting.
+The commit creates one open 061 `UNIDENTIFIED_LOT` exception per lot, owned by
+active floor actor Arturo when present, otherwise the first active floor actor
+(or unassigned if no active floor actor exists). It links ticket/receipt/transaction.
+
+The clock starts at `transactions.created_at` (entry, never backdated happened
+or lot received time). Count seven Mon–Fri days after the local entry date,
+skipping weekends, not holidays; deadline is 23:59 America/New_York. Friday
+Oct 9 => Tuesday Oct 20, 2026. DST uses the deadline date's local offset.
+Top-ups preserve the original exception/deadline. Identifying an already flagged
+lot requires the future supplier-lot correction ticket; another receive cannot
+silently clear its exception. The correction ticket is absent from this baseline.
+Shared hooks: `write_tickets.validate_receive` identity draft, receive commit
+identity evidence, and equivalent found hooks in `ticket_actions`.

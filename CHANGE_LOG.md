@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-08 14:12 — Checkpoint A5 unidentified-lot enforcement validated
+- **File(s) changed:** `a5-lot-confirmation.md`
+- **What changed:** Document seven-business-day semantics, floor ownership and repeat-entry preservation; 200 targeted tests pass.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:12 — Test unidentified identity clocks and atomic exception evidence
+- **File(s) changed:** `lot_confirmation.py`, `test_lot_confirmation.py`
+- **What changed:** Cover weekends, both DST transitions, backdated receipts, placeholder labels, top-up deadline preservation and failure rollback; serialize identify_by in plant time.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
+## 2026-10-08 14:11 — Implement unidentified lots and seven-business-day exception clocks
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `write_tickets.py`, `064_unidentified_lots.sql`, `schema.sql`, `test_write_tickets.py`
+- **What changed:** Flag unidentified receive/found lots using 061 exceptions, start clock at transaction entry, preserve top-up deadlines and keep history unassessed; never infer supplier identity from internal labels.
+- **Why:** Implement A5 with isolated policy and preserve continuation checkpoints.
+
+---
+
 ## 2026-10-08 14:10 — Checkpoint A5 substitutions with 122 passing tests
 - **File(s) changed:** `lot_confirmation.py`, `a5-lot-confirmation.md`
 - **What changed:** Document replacement consumption and shared hook ownership; reject output-product or auto-excluded substitutes; checkpoint part 2.

@@ -232,6 +232,8 @@ def validate(api, cur, action, payload, lock=False):
             api, cur, input_plan or [], states, payload.get('lot_confirmations'), commit=lock)
         draft['input_plan'] = input_plan
         options['input_plan'] = input_plan
+    if action == 'found':
+        a5.identity_draft(api, cur, payload, draft)
     state = {'products': products, 'lots': states, 'specification': specification}
     return draft, state, req, options, occurred_at, time_source, specification, input_plan
 
@@ -257,6 +259,8 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
             response['exclusion_reason_code'] = draft['exclusion_reason_code']
     if action == 'pack':
         response['lot_id'] = response['output_lot_id']
+    elif action == 'found':
+        a5.record_identity(cur, payload, response, ticket_id, receipt_number)
     elif action == 'adjust':
         response['lot_id'] = payload['lot_id']
     return response

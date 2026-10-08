@@ -218,3 +218,85 @@ def record_substitutions(cur, transaction_id, payload, actor_id):
             VALUES (%s,%s,%s,%s,%s,%s,%s)''',
             (transaction_id,row['ingredient_product_id'],row['substitute_product_id'],row['lot_id'],
              row['reason_code'],row.get('note'),actor_id))
+
+
+# R8 counts seven weekdays AFTER the local entry date; holidays are not skipped.
+def identification_deadline(entered_at):
+    from datetime import timedelta, time
+    from zoneinfo import ZoneInfo
+    if entered_at.tzinfo is None:
+        raise ValueError('entered_at must have a timezone')
+    zone = ZoneInfo('America/New_York')
+    day = entered_at.astimezone(zone).date()
+    remaining = 7
+    while remaining:
+        day += timedelta(days=1)
+        if day.weekday() < 5:
+            remaining -= 1
+    return datetime.combine(day, time(23, 59), tzinfo=zone)
+
+
+def unidentified(payload):
+    def missing(value):
+        return (value or '').strip().upper() in ('', 'N/A', 'NA', 'UNKNOWN')
+    entries = payload.get('supplier_lot_entries') or []
+    if entries:
+        return any(missing(e.get('supplier_lot_code')) for e in entries)
+    return missing(payload.get('supplier_lot_code'))
+
+
+def identity_draft(api, cur, payload, draft):
+    status = 'unidentified' if unidentified(payload) else 'identified'
+    due = None
+    lid = draft.get('existing_lot_id') or draft.get('output_lot_id')
+    if lid:
+        cur.execute('SELECT identity_status,identify_by,supplier_lot_code FROM lots WHERE id=%s', (lid,))
+        prior = cur.fetchone()
+        if prior['identity_status'] == 'unidentified':
+            if status == 'identified':
+                fail('LOT_IDENTITY_REQUIRES_CORRECTION', 'Identify this lot through a supplier-lot correction with a reason, not another receipt.')
+            due = prior['identify_by']
+        elif prior['identity_status'] == 'identified' and status == 'unidentified':
+            fail('LOT_IDENTITY_MISMATCH', 'An unidentified delivery needs its own lot; this lot is already identified.')
+        elif prior['identity_status'] == 'identified' and prior['supplier_lot_code'] != payload.get('supplier_lot_code'):
+            fail('LOT_IDENTITY_MISMATCH', 'This delivery has a different supplier lot code; use a new lot.')
+    if status == 'unidentified' and due is None:
+        cur.execute('SELECT clock_timestamp() AS entered_at')
+        due = identification_deadline(cur.fetchone()['entered_at']).date()
+    draft.update(identity_status=status, identify_by=due,
+                 identity_notice=f'UNIDENTIFIED — resolve by {due}' if due else None)
+
+
+def record_identity(cur, payload, response, ticket_id, receipt_number):
+    """One open clock per unidentified lot, anchored to ledger entry time."""
+    from psycopg2.extras import Json
+    cur.execute('SELECT id,product_id,identity_status,identify_by FROM lots WHERE id=%s FOR UPDATE', (response['lot_id'],))
+    lot = cur.fetchone()
+    status = 'unidentified' if unidentified(payload) else 'identified'
+    cur.execute('SELECT created_at FROM transactions WHERE id=%s', (response['transaction_id'],))
+    entered = cur.fetchone()['created_at']
+    due = identification_deadline(entered) if status == 'unidentified' else None
+    if lot['identity_status'] is None:
+        cur.execute('UPDATE lots SET identity_status=%s,identify_by=%s,supplier_lot_code=COALESCE(%s,supplier_lot_code) WHERE id=%s',
+                    (status,due.date() if due else None,payload.get('supplier_lot_code'),lot['id']))
+    else:
+        status = lot['identity_status']
+    exception = None
+    if status == 'unidentified':
+        cur.execute("SELECT id,due_at FROM exceptions WHERE kind='UNIDENTIFIED_LOT' AND lot_id=%s AND status IN ('open','escalated') ORDER BY id LIMIT 1", (lot['id'],))
+        exception = cur.fetchone()
+        if exception is None:
+            cur.execute("""SELECT id FROM actors WHERE role='floor' AND active
+                ORDER BY CASE WHEN lower(name)='arturo' THEN 0 ELSE 1 END,id LIMIT 1""")
+            owner = cur.fetchone()
+            cur.execute('''INSERT INTO exceptions(kind,severity,product_id,lot_id,transaction_id,receipt_number,
+                    ticket_id,detail,owner_actor_id,opened_at,due_at)
+                VALUES ('UNIDENTIFIED_LOT','warn',%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id,due_at''',
+                (lot['product_id'],lot['id'],response['transaction_id'],receipt_number,ticket_id,
+                 Json({'supplier_lot_code':payload.get('supplier_lot_code'), 'clock':'7 business days; Mon–Fri; entry date excluded; 23:59 America/New_York'}),
+                 owner['id'] if owner else None,entered,due))
+            exception = cur.fetchone()
+        due = exception['due_at']
+    from zoneinfo import ZoneInfo
+    response.update(identity_status=status,identify_by=due.astimezone(ZoneInfo('America/New_York')).date() if due else None,
+                    identification_due_at=due,exception_id=exception['id'] if exception else None)

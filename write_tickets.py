@@ -168,6 +168,7 @@ class FoundPrepareRequest(ActionPrepareRequest):
     found_location: Optional[str] = None
     estimated_age: str = 'unknown'
     suspected_supplier: Optional[str] = None
+    supplier_lot_code: Optional[str] = None
     notes: Optional[str] = None
     notes_es: Optional[str] = None
 
@@ -277,6 +278,8 @@ def validate_receive(api, cur, payload, *, lock=False):
             ('id', 'expected_qty', 'remaining', 'expected_date', 'reference_number')}
     else:
         draft['expected_receipt_match'] = None
+    # A5 hook: unresolved supplier lot identity is a flag, not a stock blocker.
+    a5.identity_draft(api, cur, payload, draft)
     state = {'product': {'id': product['id'], 'active': product['active']},
              'lots': lots, 'expected_receipt': dict(expected) if expected else None}
     return draft, state, req, product, occurred_at, source, er_id
@@ -370,7 +373,7 @@ def register_routes(app, api):
             if payload.get(field):
                 payload[field] = api.normalize_lot_code_input(payload[field])
         if action == 'receive':
-            payload['supplier_lot_code'] = (req.supplier_lot_code or '').strip() or (req.lot_code or '').strip() or 'N/A'
+            payload['supplier_lot_code'] = (req.supplier_lot_code or '').strip() or 'N/A'
         with api.get_transaction() as cur:
             blockers = []
             draft = {}
@@ -523,6 +526,7 @@ def register_routes(app, api):
                     req.mode = 'commit'
                     response = api._receive_commit_core(cur, req, request, occurred_at, source,
                         product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id)
+                    a5.record_identity(cur, row['payload'], response, row['id'], receipt)
                 else:
                     response = actions.post(api, cur, row['action'], validated, effective_payload, request,
                         row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
