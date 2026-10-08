@@ -32,6 +32,20 @@
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_write_tickets.py`, `CHANGE_LOG.md`
 - **What changed:** `scripts/dump_prod_schema.sh` re-run against production after 062–065 were applied (19:29–19:33Z): the pending `\ir` tail is gone and the dump now carries `lot_moves`, `transaction_lot_confirmations`, `transaction_substitutions`, `a5_lot_supplier_immutable`, the `move_lot` action CHECK, `lots.identity_status/identify_by/supplier_id`, `transactions.supplier_id/entered_by_actor_id`, `ledger_corrections.entered_by_actor_id`, `suppliers.short_code`. FACTORY_LEDGER_CHANGELOG rows 168 (A5 rollout: PR #88 → 7580338, 062/063/064 applied, Railway fb4d3912/db939e88) and 169 (A2 rollout: PR #89 → de31023, 065 applied staging+prod, Railway 9a5948bd/6c838631). `test_migration_up_down_up_and_marker_stability` drops the two 062 tables (whose `lot_moves.ticket_id` FK now blocks the 058 down) before the 061/058 down and re-runs the idempotent 062 after 058 is back — the pending-include era hid this because the fixture strips `\ir` lines. Fresh DB from the new dump: Python 2138 passed, Node 69/69.
 - **Why:** Same housekeeping as PRs #82/#86 after a production migration; keeps the local test schema identical to prod and the regression-guard changelog current.
+## 2026-10-08 15:44 — F1 reviewed staging acceptance passed all five actions
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Preserve initial evidence and append reviewed-code acceptance: receive009, make009, pack005, adjust004, found004; real OpenAI drafts, same-ticket replay yields one post, A2 actor attribution and A5 lot confirmations verified directly in staging, temporary actor inactive, health/assets verified. No production access or merge.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:42 — F1 review code deployed successfully to isolated staging
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** FastAPI-staging e922cda2-182a-4fb8-b558-48c98f34a031 SUCCESS from 04f42a0. Add deployment regression row 169 immediately; F1 original row 168 is preserved. No production access or migration. Proceed to authorized live synthetic receive/make/pack/adjust/found acceptance.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
 ## 2026-10-08 15:39 — F1 review fixes pass full fresh-database and browser validation
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/contracts/fl-assistant-part1.md`
 - **What changed:** 2186 Python / 72 JavaScript passed, zero failures/skips, against fresh localhost PostgreSQL 17 fl_f1_full; browser harness passed. All upstream changelog lines preserved and GPT OpenAPI remains 30 operations. Final merged-main recheck has maximum row 167, so F1 uses next row 168 (correcting the provisional 169 reservation). Staging prerequisites 062–065/068 already exist; no migration needed.
