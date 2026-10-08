@@ -6233,3 +6233,7 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 --
 
 \unrestrict XaPsfTXvQYUEHaAzVXcRiJVaN9zvto2nZ7sBb7XwOOZm9mfHMGuOyxJCLf8SPIy
+
+-- F1 additive state; apply 068 manually before production enablement.
+SET search_path = public;
+\ir ../../migrations/068_fl_assistant.sql
