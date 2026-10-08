@@ -98,6 +98,13 @@ def check(audio_file=None):
                     candidates = card['result']['candidates']
                     exact = card['result'].get('query_normalized', '').lower()
                     selected = [c for c in candidates if c.get('name', '').lower() == exact]
+                    # The test operator knows its synthetic product and presses
+                    # that actual FL choice. The application/model never picks.
+                    if not selected and card['resolution_kind'] == 'product' and action != 'pack':
+                        expected = products['batch' if action == 'make' else 'ingredient']['id']
+                        selected = [c for c in candidates if c['id'] == expected]
+                    if not selected and card['resolution_kind'] == 'supplier':
+                        selected = [c for c in candidates if c['id'] == supplier_id]
                     assert len(selected) == 1, f'Unexpected choices: {card}'
                     result = post('/assistant/turn', json={'session_id': sid, 'turn_id': str(uuid4()), 'choice_id': card['id'], 'selected_id': selected[0]['id'], 'attachment_ids': attachments or []})
                 assert card['kind'] == 'draft', f'Expected {action} draft: {card}'

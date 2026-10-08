@@ -263,6 +263,7 @@
     catch (error) { notice(errorText(error)); setBusy(false); }
   });
   $('language').addEventListener('click', () => { language = language === 'en' ? 'es' : 'en'; localStorage.setItem('fl-assistant-language', language); applyLanguage(); });
+  $('today-entries').addEventListener('click', () => { if (session) sendTurn({ text: t('What did I enter today?', '¿Qué registré hoy?') }); else $('actor-key').focus(); });
   $('composer').addEventListener('submit', event => { event.preventDefault(); const text = $('message').value.trim(); if (text && !busy) { $('message').value = ''; sendTurn({ text }); } });
   $('message').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); $('composer').requestSubmit(); } });
   document.querySelectorAll('[data-prompt]').forEach(b => b.addEventListener('click', () => {

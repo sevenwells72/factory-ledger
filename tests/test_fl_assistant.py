@@ -49,6 +49,7 @@ def model(monkeypatch, *calls):
         assert body['tool_choice'] == 'required'
         assert body['parallel_tool_calls'] is False
         assert body['store'] is False
+        assert 'Current FL plant time (America/New_York):' in body['instructions']
         assert all(t['type'] == 'function' and t['strict'] for t in body['tools'])
         assert not any('commit' in t['name'] or 'chat' in t['name'] for t in body['tools'])
         requests.append(copy.deepcopy(body))

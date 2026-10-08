@@ -354,7 +354,8 @@ def register_routes(app, api):
             for _ in range(MAX_STEPS):
                 response = await openai('responses', body={
                     'model': os.getenv('ASSISTANT_MODEL', MODEL), 'store': False,
-                    'instructions': catalog.INSTRUCTIONS + '\nFL reason catalog: ' + json.dumps(reasons['reasons'], ensure_ascii=False),
+                    'instructions': catalog.INSTRUCTIONS + '\nCurrent FL plant time (America/New_York): ' + api.get_plant_now().isoformat()
+                        + '\nFL reason catalog: ' + json.dumps(reasons['reasons'], ensure_ascii=False),
                     'input': history, 'tools': functions, 'tool_choice': 'required',
                     'parallel_tool_calls': False, 'max_output_tokens': 4000,
                     'reasoning': {'effort': 'low'},
