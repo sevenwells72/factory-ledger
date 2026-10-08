@@ -74,6 +74,8 @@ LEGACY_ROWS = [
     ('adjust', 'Count correction — lot not present per 2026-05-14 physical inventory', 'x', 'physical_count'),
     ('adjust', 'Physical cycle count 2026-07-21, floor count by Arturo', 'x', 'physical_count'),
     ('adjust', 'COCONUT-WIP-RECON-2026-09-15: Reconcile coconut batch WIP to stated physical zero', 'x', 'physical_count'),
+    ('adjust', 'Physical inventory review performed with Arturo on June 8, 2026. Batch granola', 'x', 'physical_count'),
+    ('adjust', 'physical inventory zero - full lot closeout', 'x', 'physical_count'),
     ('adjust', 'Inventory correction to support production', 'x', 'unknown'),
     ('adjust', 'Product merge – SKU deprecated', 'x', 'unknown'),
     # the tier never applies to found-inventory note codes
@@ -281,6 +283,7 @@ def test_backfill_maps_history_restores_guard_and_is_rerunnable(isolated_databas
         assert preview[('<no reason at all>', '<null>')] == 'unknown'   # NULL and blank adjust_reason
         assert preview[('adjust', 'Physical cycle count 2026-07-21, floor count by Arturo')] == 'physical_count'
         assert preview[('adjust', 'Inventory correction to support production')] == 'unknown'
+        assert preview[('adjust', 'physical inventory zero - full lot closeout')] == 'physical_count'
         assert preview[('found', 'physical count recon')] == 'unknown'
         assert all(k[0] != 'make' for k in preview)
     apply(isolated_database, UP)

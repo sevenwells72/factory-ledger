@@ -116,8 +116,9 @@ ON CONFLICT (source, legacy_code) DO NOTHING;
 --    in priority order: (1) legacy code / description → mapped code;
 --    (2) a value that already is one of the eight new codes → kept;
 --    (3) free-text adjust reasons that describe a count (Michael, 2026-10-08,
---        design §11 item 26: ILIKE %physical%count%, %inventory count%,
---        %cycle count%, %count correction%, %recon%) → 'physical_count';
+--        design §11 item 26: ILIKE %physical%count%, %physical inventory%,
+--        %inventory count%, %cycle count%, %count correction%, %recon%)
+--        → 'physical_count';
 --    (4) anything else, blank or NULL → 'unknown' (item 24), original text
 --        kept in adjust_reason/notes. The read-only prod dry-run without tier
 --        (3) put 499 of 628 rows in 'unknown', 312 of them literally saying
@@ -157,7 +158,7 @@ BEGIN
        SET reason_code = COALESCE(
                m.reason_code, already.code,
                CASE WHEN src.source = 'adjust'
-                     AND src.raw ~* '(physical.*count|inventory count|cycle count|count correction|recon)'
+                     AND src.raw ~* '(physical.*count|physical inventory|inventory count|cycle count|count correction|recon)'
                     THEN 'physical_count' END,
                'unknown')
       FROM src
