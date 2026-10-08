@@ -87,10 +87,9 @@ def test_allowlist_never_grants_admin_or_dangerous_routes():
         assert not path.startswith("/admin"), (method, path)
         assert path not in {"/ship", "/receive", "/make", "/pack", "/adjust", "/schedule"}, (method, path)
         assert not path.startswith("/void"), (method, path)
-        # A1 exposes only the ticket prepares; legacy action writes stay scoped.
-        for action in ("make", "pack", "adjust"):
-            if path.startswith("/" + action):
-                assert (method, path) == ("POST", "/" + action + "/prepare"), (method, path)
+        assert not path.startswith("/make"), (method, path)
+        assert not path.startswith("/pack"), (method, path)
+        assert not path.startswith("/adjust"), (method, path)
         if method == "DELETE":
             assert path.startswith("/dashboard/api/notes"), (method, path)
 
@@ -125,6 +124,10 @@ def test_dashboard_key_matches_route_template_not_raw_url(client):
 
 def _forbidden_calls(client):
     return [
+        ("POST /make/prepare", client.post("/make/prepare", json={}, headers=DASH)),
+        ("POST /pack/prepare", client.post("/pack/prepare", json={}, headers=DASH)),
+        ("POST /adjust/prepare", client.post("/adjust/prepare", json={}, headers=DASH)),
+        ("POST /inventory/found/prepare", client.post("/inventory/found/prepare", json={}, headers=DASH)),
         ("POST /make", client.post("/make", json={}, headers=DASH)),
         ("POST /pack", client.post("/pack", json={}, headers=DASH)),
         ("POST /adjust", client.post("/adjust", json={}, headers=DASH)),
@@ -188,3 +191,14 @@ def test_missing_key_401_and_wrong_key_403(client):
     # packing-slip flexible dep keeps its historical 401-on-wrong-key
     r = client.get("/sales/orders/1/packing-slip?key=nope")
     assert r.status_code == 401 and r.json()["detail"] == "Invalid API key", r.text
+
+
+def test_ticket_dashboard_scope_is_exactly_part1():
+    import write_tickets
+    assert write_tickets.DASHBOARD_ROUTES == frozenset({
+        ('POST', '/receive/prepare'), ('POST', '/tickets/{ticket}/commit'),
+        ('GET', '/receipts'), ('GET', '/receipts/{receipt_number}'),
+        ('GET', '/receipts/by-transaction/{transaction_id}'),
+    })
+    assert main.DASHBOARD_KEY_ALLOWLIST & write_tickets.ACTOR_ROUTES == write_tickets.DASHBOARD_ROUTES
+    assert write_tickets.ACTOR_ROUTES <= main.ACTOR_WRITE_ALLOWLIST

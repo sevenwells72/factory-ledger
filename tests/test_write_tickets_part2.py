@@ -158,6 +158,11 @@ def test_duplicate_warning_cross_actor_ack_and_effective_void(client, db_cursor,
     warning = next(w for w in second['warnings'] if w['code'] == 'POSSIBLE_DUPLICATE')
     assert warning['refs']['receipt_number'] == posted.json()['receipt_number']
     assert warning['refs']['operator_id'] == actors['office']['name']
+    expected = items[{'make': 'batch', 'pack': 'finished', 'adjust': 'ingredient', 'found': 'ingredient'}[action]]
+    assert expected['name'] in warning['message']
+    assert expected['name'] in warning['message_es']
+    lot_code = first['draft'].get('lot_code') or first['draft'].get('output_lot_code')
+    assert lot_code in warning['message']
     error(commit(client, second, actors['floor']['key']), 409, 'WARNING_NOT_ACKNOWLEDGED')
     assert commit(client, second, actors['floor']['key'], acknowledged_warnings=['POSSIBLE_DUPLICATE']).status_code == 200
     for prepared in (first, second):
@@ -231,6 +236,11 @@ def test_stock_revalidation_keeps_pinned_inputs(client, db_cursor, items, action
     result = commit(client, prepared)
     if remaining == 1:
         error(result, 409, 'TICKET_STALE')
+        expected = items['ingredient' if action == 'make' else 'batch']
+        message = result.json()['detail']['blockers'][0]['message']
+        assert expected['name'] in message
+        assert expected['lot_code'] in message
+        assert str(expected['id']) not in message
         assert posted_count(db_cursor, prepared) == 0
     else:
         assert result.status_code == 200, result.text
@@ -450,3 +460,86 @@ def test_make_duplicate_matches_stored_decimal_yield(client, db_cursor, items):
     assert response.status_code == 200, response.text
     duplicate = prepare(client, 'make', payload)
     assert duplicate['warnings'][0]['refs']['receipt_number'] == response.json()['receipt_number']
+
+
+@pytest.mark.parametrize('action', ACTIONS)
+@pytest.mark.parametrize('which', ['master', 'floor', 'office'])
+def test_part2_actor_and_master_scope(client, db_cursor, items, actors, action, which):
+    key = main.API_KEY if which == 'master' else actors[which]['key']
+    prepared = prepare(client, action, body(action, items), key)
+    assert prepared['can_commit'], prepared
+    assert commit(client, prepared, key).status_code == 200
+
+
+@pytest.mark.parametrize('action', ACTIONS)
+def test_part2_dashboard_cannot_prepare_even_with_valid_body(client, db_cursor, items, action):
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    before = db_cursor.fetchone()['n']
+    path = '/inventory/found/prepare' if action == 'found' else f'/{action}/prepare'
+    response = client.post(path, json=body(action, items), headers=headers(main.DASHBOARD_API_KEY))
+    assert response.status_code == 403, response.text
+    assert response.json()['detail'] == 'API key not authorized for this endpoint'
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    assert db_cursor.fetchone()['n'] == before
+
+
+@pytest.mark.parametrize('input_key', ['reason', 'reason_code'])
+def test_adjust_persists_canonical_reason_code_and_replays(client, db_cursor, items, input_key):
+    import write_tickets
+    payload = body('adjust', items)
+    payload.pop('reason')
+    # A3 owns catalog validation: a free-form value must still work here.
+    payload[input_key] = 'Count correction outside the future catalog'
+    prepared = prepare(client, 'adjust', payload)
+    assert prepared['can_commit'], prepared
+    row = ticket_row(db_cursor, prepared)
+    assert row['payload']['reason_code'] == payload[input_key]
+    assert 'reason' not in row['payload']
+    assert row['payload_hash'] == write_tickets.canonical_hash(row['payload'])
+    assert prepared['draft']['reason_code'] == payload[input_key]
+    response = commit(client, prepared)
+    assert response.status_code == 200, response.text
+    assert commit(client, prepared).json() == response.json() | {'replayed': True}
+    detail = client.get('/receipts/' + response.json()['receipt_number'], headers=headers()).json()
+    assert detail['draft']['reason_code'] == payload[input_key]
+
+
+def test_adjust_reason_aliases_share_hash_and_supersession(client, db_cursor, items):
+    payload = body('adjust', items)
+    alias = prepare(client, 'adjust', payload)
+    payload['reason_code'] = payload.pop('reason')
+    canonical = prepare(client, 'adjust', payload)
+    assert canonical['payload_hash'] == alias['payload_hash']
+    assert ticket_row(db_cursor, alias)['status'] == 'superseded'
+    response = client.post('/adjust/prepare', json=payload | {'reason': 'another'}, headers=headers())
+    error(response, 422, 'AMBIGUOUS_REASON')
+
+
+@pytest.mark.parametrize('override', [False, True])
+def test_make_shortage_names_product_and_selected_lot(client, db_cursor, items, override):
+    ing = items['ingredient']
+    db_cursor.execute('UPDATE products SET name=%s WHERE id=%s', ('Oats 50 lb', ing['id']))
+    db_cursor.execute("INSERT INTO transactions(type) VALUES ('adjust') RETURNING id")
+    txn = db_cursor.fetchone()['id']
+    db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,-99)',
+                      (txn, ing['id'], ing['lot_id']))
+    payload = body('make', items)
+    if override:
+        payload['ingredient_lots'] = [{'ingredient_product_id': ing['id'], 'lot_id': ing['lot_id']}]
+    prepared = prepare(client, 'make', payload)
+    assert not prepared['can_commit']
+    message = prepared['blockers'][0]['message']
+    assert message.startswith('Oats 50 lb needs 10.0 lb')
+    assert str(ing['id']) not in message
+    if override:
+        assert ing['lot_code'] in message
+    assert posted_count(db_cursor, prepared) == 0
+
+
+def test_adjust_negative_balance_warning_names_product_and_lot(client, items):
+    prepared = prepare(client, 'adjust', body('adjust', items) | {'delta_lb': -101})
+    assert prepared['can_commit']
+    warning = prepared['draft']['balance_warning']
+    assert items['ingredient']['name'] in warning
+    assert items['ingredient']['lot_code'] in warning
+    assert str(items['ingredient']['id']) not in warning

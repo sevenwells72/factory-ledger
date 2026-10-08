@@ -6,30 +6,70 @@
 - **Why:** Keep the design record in step with PR #85 commit bc5a01e before PR #84 merges.
 
 ---
+
 ## 2026-10-08 12:40 — Shift-summary contract review fixes (lang fields, all-actors confirmation, day-1 action scope, legacy-key actors, error envelope) + design rev 3.6 items 25–26
 - **File(s) changed:** `docs/contracts/shift-summary.md`, `docs/design/phase1-safe-operating-system.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/shift-summary-contract` (PR #84), after the independent review. Contract: (1) `lang` now defined — every `*_en`/`*_es` pair has an un-suffixed copy (`title`, `label`, `empty`, `line`, `display`, `message`, `summary`, `rollup`, `reason`) in the requested language, pairs always present; (2) all-actors view `confirmation` fixed to `{status:'unconfirmed', latest:null, can_confirm:false, reason_*}`; (3) new §2 note: only ticketed actions produce receipts — 058's CHECK covers receive/make/pack/adjust/found, so SHIPPED/VOIDED stay empty and ADJUSTED has no rename/supplier-lot rows until A5/A6/A8 widen it; (4) receipt-row `actor.id`/`role` may be `null` on legacy-key tickets; §4 now states errors are `fail()`-shaped (`detail.error_code`, extras at `detail.*`) and that A9 must extend `_structured_error` to pass `message_es`; (5) new §1.3 **[DECISION 4]**: `summary_hash` covers only the receipt rows of the seven receipt sections (stable fields + `flags[].{code,refs}`), never `after_lb`, `overdue`, expectations or exceptions — 409 only when that person's entries changed; §3.1, §6 and §7 updated. Design doc: Revision 3.6 line; §11 table "Decisions recorded 2026-10-08 12:40" with item 25 (hash scope) and item 26 (061 count-like text tier → `physical_count`, prod dry-run 91→342 / 32 / 499→248); §5.1 mapping note for item 26.
 - **Why:** Review verdict "merge after fixes" (A9 would otherwise guess on `lang`, the all-actors confirmation, day-1 actions and the envelope); Michael decided the hash scope and the backfill tier on 2026-10-08.
+
+---
+
 ## 2026-10-08 12:40 — 061 text tier: add %physical inventory% → physical_count (prod dry-run unknown 248 → 205)
 - **File(s) changed:** `migrations/061_exceptions_tables.sql`, `migrations/dry-runs/061_reason_code_backfill_dry_run.sql`, `tests/test_exceptions_tables_061.py`, `CHANGE_LOG.md`
 - **What changed:** Branch `feat/exceptions-tables` (PR #85). The count-like text tier (design §11 item 26) now also matches `%physical inventory%` (case-insensitive) in both the migration's DO block and the dry-run SELECT; two new `LEGACY_ROWS` ("Physical inventory review performed with Arturo…", "physical inventory zero - full lot closeout") and one dry-run preview assertion. Read-only prod dry-run (628 adjust rows, exact SQL totals): `physical_count` 342 → **391**, `missing_receipt` **32**, `unknown` 248 → **205**. Fresh local DB: Python 1,662 passed, Node 69/69, `git diff --check` clean.
 - **Why:** Michael's pre-merge instruction 2026-10-08 — the 31-row "Physical inventory review…" cluster and similar "physical inventory" texts are counts and should not sit in the `unknown` backlog.
 
 ---
+
 ## 2026-10-08 12:32 — 061 review fixes: count-like text tier in the reason_code backfill, apply-mode note, FOLLOWUPS P1.8
 - **File(s) changed:** `migrations/061_exceptions_tables.sql`, `migrations/dry-runs/061_reason_code_backfill_dry_run.sql`, `tests/test_exceptions_tables_061.py`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `feat/exceptions-tables` (PR #85), after the independent review. Backfill priority is now legacy code → already-new code → **count-like adjust text → `physical_count`** (Michael's decision 2026-10-08, design §11 item 26: `adjust_reason ~* '(physical.*count|inventory count|cycle count|count correction|recon)'`, adjust_reason only, never found-inventory note codes) → `unknown`; the dry-run SELECT mirrors it. Header now insists on the wrapped apply (BEGIN / `lock_timeout='5s'` / COMMIT), explains that an autocommit apply leaves a partial-but-rerunnable state and never a disabled guard, and records the measured lock profile at production size (~40 ms server work, ADD COLUMN holds ACCESS EXCLUSIVE until COMMIT). Tests: 8 new `LEGACY_ROWS` (five tier hits incl. the COCONUT-WIP-RECON text, two non-hits, one found-note non-hit) and three dry-run preview assertions. `FOLLOWUPS.md` P1.8: rows inserted by PR #83 tickets between the prod apply and A3b carry `reason_code NULL` (061 is rerunnable as a sweep) and `ledger_current_transactions` must gain `reason_code` before A3b/A9 read it. Read-only prod dry-run re-run (628 adjust rows): `physical_count` 91 → **342**, `missing_receipt` 32, `unknown` 499 → **248** (largest remaining: "Physical inventory review performed with Arturo on June 8" ×31, "Inventory correction…" variants). Review facts: trigger-disable proven safe on failure in wrapped and autocommit modes; 7/7 test mutations caught; none of the six `/reason-codes` adjust codes exist in prod data.
 - **Why:** Review verdict "merge after fixes": the approved free-text → `unknown` rule would have put 79 % of history (312 rows literally saying "physical count") in the weekly-view backlog, and re-mapping later needs another append-only-trigger migration.
+
+---
+
 ## 2026-10-08 12:30 — Design rev 3.5: Michael's decisions on the A9 contract (items 21–23) and the A3a backfill (item 24)
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `docs/contracts/shift-summary.md`, `CHANGE_LOG.md`
 - **What changed:** Branch `docs/shift-summary-contract` (PR #84). Design doc: Revision 3.5 header line; new §11 table "Decisions recorded 2026-10-08 12:30" with items 21 (legacy keys → read-only all-actors summary), 22 (confirm must echo `summary_hash`, 409 `SHIFT_SUMMARY_STALE`), 23 (re-confirm appends, history kept) and 24 (061 backfill: blank/missing legacy adjust reasons → `unknown`); §7.3 now points at `docs/contracts/shift-summary.md` as the frozen contract; §5.1 records the NULL → `unknown` backfill rule. Contract doc: status APPROVED, the three [DECISION] markers resolved to YES, §7 rewritten as the record. No code or migration changes; PR #85's migration already implements item 24.
 - **Why:** Michael approved (a)–(d) on PRs #84/#85 and asked for them to be recorded in the PRs and in design §11 before Codex reviews.
 
 ---
+
+## 2026-10-08 12:25 — Verify all PR #83 review fixes on a fresh disposable database
+- **File(s) changed:** docs/deployments/a1-write-tickets-part2.md, CHANGE_LOG.md
+- **What changed:** Final Python suite: 1791 passed (62 new), Node: 69 passed, zero failures/skips. PostgreSQL 17 database fl83_final at 127.0.0.1:57683; Python 3.12 with ReportLab 4.4.9 for historical PDF parity. An intermediate reused-database run failed the existing seed fresh-database count (15 vs 3); the fresh final run passes all tests. Dashboard allowlist matches origin/main exactly (89 routes), prior changelog entries are intact, git diff --check passes, and migrations/schema/GPT files are unchanged.
+- **Why:** Complete the requested full verification before pushing feat/write-tickets-2 to PR #83. No production or staging database access, hosted cron creation, deployment, merge or other-worktree changes.
+
+---
+
+## 2026-10-08 12:22 — Name the earlier transaction lots in duplicate warnings
+- **File(s) changed:** ticket_actions.py, tests/test_write_tickets_part2.py, docs/deployments/a1-write-tickets-part2.md
+- **What changed:** Resolve duplicate warning lot names from the prior transaction’s effective lines, avoiding attribution to a newly generated draft lot. Clarify dashboard-source TTL and cron-only script watch paths; link official Railway configuration documentation.
+- **Why:** Final review after 1791 Python / 69 Node passed found the wording ambiguity; rerun Python after correction. No live database or hosted-service access.
+
+---
+
+## 2026-10-08 12:20 — Cover PR #83 review fixes and document the Railway expiry cron setup
+- **File(s) changed:** tests/test_expire_tickets.py, tests/test_dashboard_api_key.py, tests/test_write_tickets_part2.py, docs/deployments/a1-write-tickets-part2.md
+- **What changed:** Add fail-before-connect production/staging/local routing and redacted CLI failure tests; verify public dashboard denial, actor/master access, canonical reason payload/hash/replay and product/lot messages. Document cron 15 7 * * *, the Python start command and a DATABASE_URL reference from the matching FastAPI service.
+- **Why:** Complete the four review requirements without creating the Railway service; full disposable-local-database validation follows.
+
+---
+
+## 2026-10-08 12:18 — Fix PR #83 dashboard scope, expiry guard, readable blockers and canonical adjust reason
+- **File(s) changed:** write_tickets.py, main.py, tests/test_write_tickets.py, tests/test_dashboard_api_key.py, ticket_actions.py, scripts/expire_tickets.py
+- **What changed:** Restore the three dashboard assertions and restrict part-2 prepares to actor/master keys; require explicit production environment and pinned host before expiry connects; name products/lots in ticket shortages, warnings and races; serialize adjust reason_code with reason as an input alias.
+- **Why:** Michael’s PR #83 review requirements; no A3 reason validation, hosted job, deployment or merge. Full validation follows.
+
+---
+
 ## 2026-10-08 12:15 — A3a: migration 061 exceptions, shortage_flags, correction_reasons seeds + reason_code backfill (tables and seeds only)
 - **File(s) changed:** `migrations/061_exceptions_tables.sql` (new), `migrations/down/061_exceptions_tables_down.sql` (new), `migrations/dry-runs/061_reason_code_backfill_dry_run.sql` (new), `tests/test_exceptions_tables_061.py` (new), `tests/schema/schema.sql` (pending `\ir 061` include block), `CHANGE_LOG.md`
 - **What changed:** Branch `feat/exceptions-tables` (worktree `~/dev/fl-a3-wt`, off `origin/main` f3f5cf8; A1 merged so `write_tickets` FKs exist). Migration 061 per design rev 3.4 §5.1/§7.1/R3: `correction_reasons` seeded with Michael's fixed list of 8 (EN/ES labels, `applies_to[]`, `note_required` only on `unknown`, plus `adjust_sign` for the §5.1 +/− restriction and `sort_order`); `correction_reason_legacy_codes` (16 rows: the six `/reason-codes` adjust codes and their descriptions, the four found codes, with `note_prefill` for hydration/yield and predates-system); nullable `transactions.reason_code` FK + partial index with a one-time history-only backfill of `type='adjust'` rows (legacy code → new code, an already-new code kept, anything else → `unknown`; the 039 append-only trigger is disabled for that one statement and re-enabled in the same transaction, 046 precedent); `exceptions` exactly per §7.1 (10 kinds, 4 statuses, 3 severities, FKs to products/lots/transactions/sales_orders/shipments/actors/write_tickets, two consistency CHECKs, 6 partial indexes); `shortage_flags` per R3 (+ `exception_id`, resolution columns, CHECKs, 3 indexes). RLS on + PUBLIC revoked on all four tables; marker `061_exceptions_tables`; no startup hook (060 precedent), no route or main.py change. Guarded down migration (refuses populated queue tables unless `factory_ledger.confirm_exceptions_export='yes'`) and a read-only dry-run SELECT that previews the backfill classification. 9 new tests (seed exactness, legacy map vs the live `/reason-codes` route, CHECK/FK rejection, RLS/marker, backfill with the guard present and absent, rerun idempotence without overwriting a maintained row, down-refuse/down/up). Applied to STAGING only: 16:04:42Z, then down+up at 16:05:35Z after the already-new-code fix (4 adjust rows backfilled: 2 → physical_count, 2 synthetic → unknown; guard re-enabled `O`; 8/16/0/0 rows). Full suite on fresh local DB `fl_a3a_20261008` (schema + pending include): 1,662 collected / exit 0 / 0 failures (955 db-marked); Node 69/69; `git diff --check` clean.
 - **Why:** Rev 3.4 split A3 so A5 and A6 can start the day after A3a; this is the table/seed contract A3b, A5, A6 and A9 build against. Production apply and merge are Michael's Oct 12 slot (migration before merge).
+
+---
+
 ## 2026-10-08 12:10 — A9 shift-summary JSON contract (day-1 freeze): docs/contracts/shift-summary.md
 - **File(s) changed:** `docs/contracts/shift-summary.md` (new), `CHANGE_LOG.md`
 - **What changed:** Branch `docs/shift-summary-contract` (clone `~/dev/fl-docs-wt`, off `origin/main` f3f5cf8). New contract document for `GET /reports/shift-summary?date&actor&lang` and `POST /reports/shift-summary/confirm` per design rev 3.4 §7.3 and lane schedule §2: response envelope (`actor`, `receipts_today`, `summary_hash`, `confirmation`), the ten fixed sections (`received`, `made`, `packed`, `shipped`, `adjusted`, `voided`, `not_entered_yet`, `lot_balances_touched`, `open_exceptions`, `late_entries`) each with `label_en`/`label_es`/`empty_*`, the receipt-row shape (receipt_number, happened_at/entered_at/late_entry, product/lot/quantity, per-action `detail`, bilingual `flags[]` with a closed code list), expectation/lot/exception row shapes, the confirm request/response/side effects (`SHIFT_DISCREPANCY` exception), the `shift_confirmations` table for A9's migration, error codes, a worked JSON example of the §7.3 mock, an acceptance checklist and three decisions for Michael (legacy-key all-actors view, `summary_hash` echo on confirm, append-on-reconfirm). Contract only — no code, no migration.

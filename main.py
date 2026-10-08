@@ -2786,7 +2786,7 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("GET", "/supply-requests"),
     ("POST", "/supply-requests"),
     ("PATCH", "/supply-requests/{supply_request_id}"),
-}) | write_tickets.ROUTES
+}) | write_tickets.DASHBOARD_ROUTES
 
 
 def _route_key(request: Request):
@@ -2843,7 +2843,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-}) | write_tickets.ROUTES
+}) | write_tickets.ACTOR_ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -8413,7 +8413,7 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'production_output')
     if require_new_lot and not is_new_lot:
         raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
-                                  'message': 'The prepared lot code is now in use; prepare again.'})
+                                  'message': f'{product["name"]} lot {lot_code} is now in use; prepare again.'})
 
     code_similarity = (
         check_suspicious_code_similarity(cur, product['id'], output_lot_id, lot_code)
@@ -8802,7 +8802,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
     if require_new_lot and not is_new_lot:
         raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
-                                  'message': 'The prepared lot code is now in use; prepare again.'})
+                                  'message': f'{target["name"]} lot {output_lot_code} is now in use; prepare again.'})
 
     code_similarity = (
         check_suspicious_code_similarity(cur, target['id'], output_lot_id, output_lot_code)
@@ -9022,7 +9022,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
     )
     if require_new_lot and not is_new_lot:
         raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
-                                  'message': 'The prepared lot code is now in use; prepare again.'})
+                                  'message': f'{product["name"]} lot {lot_code} is now in use; prepare again.'})
 
     code_similarity = (
         check_suspicious_code_similarity(cur, req.product_id, lot_id, lot_code)

@@ -13,19 +13,26 @@ def fail(code, message):
 def product(api, cur, product_id, lock=False):
     cur.execute('SELECT * FROM products WHERE id=%s' + (' FOR SHARE' if lock else ''), (product_id,))
     row = cur.fetchone()
-    if not row or row['active'] is False:
-        fail('PRODUCT_NOT_FOUND', 'Product is missing or inactive; resolve an active product.')
+    if not row:
+        fail('PRODUCT_NOT_FOUND', 'Product is missing; resolve an active product.')
+    if row['active'] is False:
+        fail('PRODUCT_NOT_FOUND', f'{row["name"]} is inactive; resolve an active product.')
     return row
 
 
 def lot(api, cur, lot_id, product_id=None, lock=False):
-    cur.execute('SELECT id,product_id,lot_code,status FROM lots WHERE id=%s' +
-                (' FOR UPDATE' if lock else ''), (lot_id,))
+    cur.execute('''SELECT l.id,l.product_id,l.lot_code,l.status,p.name AS product_name
+                   FROM lots l JOIN products p ON p.id=l.product_id WHERE l.id=%s''' +
+                (' FOR UPDATE OF l' if lock else ''), (lot_id,))
     row = cur.fetchone()
-    if not row or (product_id is not None and row['product_id'] != product_id):
-        fail('LOT_NOT_FOUND', 'Lot is missing or belongs to a different product.')
+    if not row:
+        fail('LOT_NOT_FOUND', 'Lot is missing; resolve an existing lot.')
+    label = f'{row["product_name"]} lot {row["lot_code"]}'
+    if product_id is not None and row['product_id'] != product_id:
+        expected = product(api, cur, product_id)
+        fail('LOT_NOT_FOUND', f'{label} does not belong to {expected["name"]}.')
     if row['status'] == 'merged':
-        fail('LOT_MERGED', 'This lot was merged; prepare again with the surviving lot.')
+        fail('LOT_MERGED', f'{label} was merged; prepare again with the surviving lot.')
     return dict(row, on_hand_lb=api.lot_on_hand(cur, lot_id))
 
 
@@ -52,7 +59,9 @@ def choose_inputs(api, cur, requirements, overrides):
                 plan.append({'product_id': pid, 'lot_id': row['id'], 'quantity_lb': take})
                 remaining -= take
         if remaining > api.BALANCE_EPSILON:
-            fail('INSUFFICIENT_STOCK', f'Ingredient {pid} needs {needed} lb; prepare again after resolving the shortage.')
+            name = product(api, cur, pid)['name']
+            selected = f' from lot {rows[0]["lot_code"]}' if pid in overrides else ''
+            fail('INSUFFICIENT_STOCK', f'{name} needs {float(needed)} lb{selected}; prepare again after resolving the shortage.')
     return plan
 
 
@@ -81,9 +90,9 @@ def validate(api, cur, action, payload, lock=False):
             confirmed_sku=payload['confirmed_sku'], ingredient_lot_overrides=override_codes)
         draft = api._make_preview_core(cur, req, product=p)
         if draft['total_output_lb'] <= 0:
-            fail('INVALID_OUTPUT', 'Make requires a positive configured batch weight.')
+            fail('INVALID_OUTPUT', f'{p["name"]} requires a positive configured batch weight.')
         if draft.get('sku_confirmation_required') and not req.confirmed_sku:
-            fail('SKU_CONFIRMATION_REQUIRED', 'Confirm the selected output SKU and prepare again.')
+            fail('SKU_CONFIRMATION_REQUIRED', f'Confirm {p["name"]} as the output SKU and prepare again.')
         for ingredient in draft['ingredients']:
             pid = ingredient['ingredient_id']
             requirements[pid] = float(api.to_decimal(ingredient['needed_lb']))
@@ -118,7 +127,9 @@ def validate(api, cur, action, payload, lock=False):
                    for a in draft['allocations'] if a.get('lot_id')]
         if (not draft['all_lots_sufficient'] or
                 abs(sum(a['quantity_lb'] for a in primary) - draft['total_lb']) > api.BALANCE_EPSILON):
-            fail('INSUFFICIENT_STOCK', 'The selected source lots cannot supply the pack quantity.')
+            codes = ', '.join(a['lot_code'] for a in draft['allocations'])
+            selected = f' from lots {codes}' if codes else ''
+            fail('INSUFFICIENT_STOCK', f'{source["name"]} needs {draft["total_lb"]} lb{selected} to pack {target["name"]}; resolve the shortage and prepare again.')
         for ingredient in draft.get('add_in_ingredients', []):
             requirements[ingredient['ingredient_id']] = ingredient['needed_lb']
         if input_plan is None:
@@ -137,7 +148,7 @@ def validate(api, cur, action, payload, lock=False):
         p = product(api, cur, current['product_id'], lock)
         products.append(p)
         req = api.AdjustRequest(**common, product_name=p['name'], lot_code=current['lot_code'],
-            adjustment_lb=payload['delta_lb'], reason=payload['reason'], reason_es=payload.get('reason_es'))
+            adjustment_lb=payload['delta_lb'], reason=payload['reason_code'], reason_es=payload.get('reason_es'))
         api.validate_bilingual(req.reason, req.reason_es, 'reason')
         warning = api.check_private_label_merge(p['name'], p.get('label_type') or 'house', req.reason, req.adjustment_lb)
         if warning:
@@ -145,9 +156,9 @@ def validate(api, cur, action, payload, lock=False):
         draft = {'product_id': p['id'], 'product_name': p['name'], 'lot_id': current['id'],
                  'lot_code': current['lot_code'], 'current_quantity_lb': current['on_hand_lb'],
                  'delta_lb': req.adjustment_lb, 'new_balance_lb': float(current['on_hand_lb']) + req.adjustment_lb,
-                 'reason': req.reason, 'reason_es': req.reason_es}
+                 'reason_code': req.reason, 'reason_es': req.reason_es}
         if draft['new_balance_lb'] < 0:
-            draft['balance_warning'] = 'This adjustment will result in negative inventory.'
+            draft['balance_warning'] = f'{p["name"]} lot {current["lot_code"]} will have negative inventory ({draft["new_balance_lb"]} lb).'
         options = {'product': p, 'lot_id': payload['lot_id']}
         specification = {'product_id': p['id'], 'lot_id': current['id'], 'delta_lb': req.adjustment_lb}
     elif action == 'found':
@@ -184,7 +195,7 @@ def validate(api, cur, action, payload, lock=False):
         current = lot(api, cur, item['lot_id'], item['product_id'], lock)
         totals[item['product_id']] = totals.get(item['product_id'], 0) + item['quantity_lb']
         if float(current['on_hand_lb']) + api.BALANCE_EPSILON < item['quantity_lb']:
-            fail('INSUFFICIENT_STOCK', f'Lot {current["lot_code"]} no longer has the prepared quantity.')
+            fail('INSUFFICIENT_STOCK', f'{current["product_name"]} lot {current["lot_code"]} needs {item["quantity_lb"]} lb; only {float(current["on_hand_lb"])} lb remains.')
         states.append(current)
     if any(abs(totals.get(pid, 0) - qty) > api.BALANCE_EPSILON for pid, qty in requirements.items()):
         fail('INPUT_PLAN_CHANGED', 'The pinned input quantities do not match current requirements.')
@@ -196,7 +207,7 @@ def validate(api, cur, action, payload, lock=False):
         cur.execute('SELECT id FROM lots WHERE product_id=%s AND lot_code=%s', (output_product['id'], output_code))
         existing = cur.fetchone()
         if payload.get('existing_output_lot_id') and (not existing or existing['id'] != payload['existing_output_lot_id']):
-            fail('LOT_IDENTITY_CHANGED', 'The prepared output lot no longer has this code; prepare again.')
+            fail('LOT_IDENTITY_CHANGED', f'{output_product["name"]} lot {output_code} no longer matches the prepared lot; prepare again.')
         draft['lot_exists'] = bool(existing)
         draft['output_lot_id'] = existing['id'] if existing else None
         if existing:
@@ -261,10 +272,19 @@ def duplicates(cur, action, payload, draft):
     row = cur.fetchone()
     if not row:
         return []
+    cur.execute("""SELECT p.name,
+                   array_agg(DISTINCT lot.lot_code ORDER BY lot.lot_code)
+                       FILTER (WHERE lot.lot_code IS NOT NULL) AS lot_codes
+                   FROM ledger_current_transaction_lines l JOIN products p ON p.id=l.product_id
+                   LEFT JOIN lots lot ON lot.id=l.lot_id
+                   WHERE l.transaction_id=%s AND l.product_id=%s GROUP BY p.name""", (row['id'], pid))
+    previous = cur.fetchone()
+    codes = ', '.join(previous['lot_codes'] or [])
+    label = f'{previous["name"]} (lots {codes})' if codes else previous['name']
     ago = max(0, int(row['minutes_ago']))
     ref = row['receipt_number'] or f'transaction {row["id"]} (legacy; no receipt number)'
     return [{'code': 'POSSIBLE_DUPLICATE', 'requires_ack': True,
-             'message': f'A matching {action} was posted {ago} minutes ago as {ref} by {row["operator_id"]}.',
-             'message_es': f'Una operación similar se registró hace {ago} minutos como {ref} por {row["operator_id"]}.',
+             'message': f'A matching {action} for {label} was posted {ago} minutes ago as {ref} by {row["operator_id"]}.',
+             'message_es': f'Una operación similar para {label} se registró hace {ago} minutos como {ref} por {row["operator_id"]}.',
              'refs': {'transaction_id': row['id'], 'receipt_number': row['receipt_number'],
                       'operator_id': row['operator_id'], 'minutes_ago': ago}}]

@@ -368,7 +368,7 @@ def test_route_auth_matrix_and_attribution(client, db_cursor, payload, actors, w
     assert db_cursor.fetchone()['operator_id'] == (actors[which]['name'] if which in actors else 'legacy-shared-key')
 
 
-@pytest.mark.parametrize('method,path', sorted(tickets.ROUTES))
+@pytest.mark.parametrize('method,path', sorted(tickets.ACTOR_ROUTES))
 def test_every_new_route_rejects_unknown_key(client, method, path):
     path = path.replace('{ticket}', 'wt_unknown').replace('{transaction_id}', '1').replace('{receipt_number}', 'NOPE')
     response = client.request(method, path, json={}, headers=headers('unknown-key'))
