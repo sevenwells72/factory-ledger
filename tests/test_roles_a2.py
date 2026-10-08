@@ -147,6 +147,15 @@ def test_prepare_enforces_the_matrix_per_key(client, db_cursor, items, actors, a
     response = client.post(path, json=payload, headers=headers(key_for(which, actors)))
     if which in EXPECTED[action].split():
         assert response.status_code == 200, response.text
+        # A5: make/pack prepares never pre-confirm lots; the matrix answered
+        # 200, so re-prepare with matching evidence to reach can_commit.
+        if action in ('make', 'pack') and response.json()['draft'].get('input_plan') and all(
+                b['code'] == 'LOT_NOT_CONFIRMED' for b in response.json()['blockers']):
+            confirmations = [{'lot_id': i['lot_id'], 'method': 'full_code', 'value': i['lot_code']}
+                             for i in response.json()['draft']['input_plan']]
+            response = client.post(path, json=payload | {'lot_confirmations': confirmations},
+                                   headers=headers(key_for(which, actors)))
+            assert response.status_code == 200, response.text
         assert response.json()['can_commit'], response.text
         assert response.json()['actor']['role'] == (which if which in ('owner', 'floor', 'office') else None)
     elif which == 'legacy_dashboard':
