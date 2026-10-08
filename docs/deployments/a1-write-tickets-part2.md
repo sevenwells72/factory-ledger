@@ -104,8 +104,9 @@ schedule; it does not install a hosted job or change production scheduling.
 
 ## Verification
 
-- Full Python suite: **1,606 passed**, zero failures/skips, on a dedicated fresh
-  PostgreSQL 17 database (`fl_a1p2_final` at loopback port 57682).
+- Full Python suite: **1,729 passed**, zero failures/skips, on a dedicated fresh
+  PostgreSQL 17 database (`fl_a1p2_rebased` at loopback port 57682), including
+  all newly merged A4 tests. The pre-rebase suite also passed 1,606 tests.
 - Part-2 safety tests: **72 passed**, including the final review regressions.
 - Node suite: **69 passed**, zero failures/skips.
 - New PostgreSQL tests cover every action's single use, expiry, tamper,
