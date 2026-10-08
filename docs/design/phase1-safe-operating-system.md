@@ -7,6 +7,7 @@
 **Revision 3.3 (2026-10-07 15:48):** kosher answers — 4,000 CT standard (284 formula → 72 via catalog cleanup), Aug 12 mis-pack left as-is, paper log of extra-kosher batches until cutover + checklist step 1a (§5.3, §10.1, §11 item 19).
 **Revision 3.2 (2026-10-07 15:42):** supplier tracking approved — every receipt stores a real `supplier_id`, the lot-code prefix is a label only (§5.2, A5/D2 +1 d, gate 10(e)); Classic #9 split into Regular and Extra-Kosher tiers with owner PIN attestation and pack-source rules (§5.3, A12 3–3½ d, §3.2 alias rule, §11 items 17–18).
 **Revision 3.4 (2026-10-07 16:00):** schedule only — no rule changes. Michael approved **3 Codex lanes** and four re-sequencing changes (§10.2, §11 item 20): A3 split into A3a (tables + seeds, 1 d) and A3b so A5/A6 start a day after A1; A9 runs in parallel with A12; D3 split into D3-lite (shift-summary page + Confirm, before the pilot) and the rest after cutover; G1's engineering is built early with only the two editor pastes left for Nov 20, and A10 moves to cutover+1 in two stages. Critical path ≈ 17–18 d; staging pilot soft-starts Mon Nov 2; gate (d) window Nov 9–13. The "simplify for cutover" set (§10.2 item 9) is **held** as the Nov 6 checkpoint lever together with A8. Lane plan with dates: `~/Documents/fl-audits/lane-schedule.md` (outside the repo).
+**Revision 3.7 (2026-10-08 13:40):** Sunshine billing rules — decisions only, no schedule change. Michael resolved §11 item 8's two open questions: **8(b) yield credits = none** (CNS supplies all ingredients; no expected-vs-actual adjustment of any kind); **8(a) price basis = finished product sold** — pouches (12×10 oz) and Mini 100 **per case**, bulk granola **per actual lb sold**; the same batch may go partly to bulk and partly into pouches/minis, FL tracks the split, only the quantity *sold as bulk* is billable as bulk, never double-billed. **Automatic invoicing at packing is NOT approved** — every earlier "invoiced at pack" wording (R7, §7.2, §8.4, A8) is superseded and the invoicing trigger is **unresolved**. Prices: **QuickBooks is the source of truth**; the FL price list (§8.5) stays **DRAFT** until every row is reconciled with QBO and confirmed by Michael; conflicts are flagged, never guessed. The 2026-10-08 read-only QBO reconciliation, the FL product mapping and the open questions are in §8.5 and §11 items 27–31.
 **Revision 3.6 (2026-10-08 12:40):** decisions only, after the independent review of PRs #84/#85 — `summary_hash` covers only the shift's receipt rows and their flags, never live balances or time-based fields (§11 item 25, contract §1.3); the 061 backfill gains a count-like free-text tier (physical…count / physical inventory / inventory count / cycle count / count correction / recon → `physical_count`) because the read-only prod dry-run put 499 of 628 adjust rows in `unknown`; with the tier: 391 / 32 / 205 (§11 item 26, §5.1).
 **Revision 3.5 (2026-10-08 12:30):** decisions only — Michael approved the A9 shift-summary contract's three open points (legacy keys get a read-only all-actors view; confirm must echo `summary_hash`; re-confirming appends, history kept) and the A3a backfill rule (blank/missing legacy adjust reasons → `unknown`) on PRs #84/#85 (§11 items 21–24; §7.3 now points at `docs/contracts/shift-summary.md`; §5.1 backfill note).
 **Date:** 2026-10-07 · **Against:** `origin/main` @ `ebf153e` (PR #72; rev 3 re-verified against `cb2705c`, PR #73), MCP branch `integration/mcp-with-66` @ `2c6d625` / `feature/mcp-server` @ `d74f747`
@@ -412,7 +413,7 @@ Every ✗ is a 403 `ROLE_NOT_ALLOWED {action, role}` from FL. The MCP lists tool
 | **R4** actual ingredient lot confirmed; FL may suggest oldest, no click-through default; pallet lot recorded on move to production; case items need last-4 typed | `make/pack/ship` prepare returns `suggested_lot` with `confirmed:false`; commit → 422 `LOT_NOT_CONFIRMED` unless every consumed lot has a `lot_confirmations[]` entry `{lot_id, method: 'last4'|'full_code'|'scan'|'pallet', value}` where `value` matches the lot (`last4` = last 4 chars of `lot_code`, unique within the product's active lots else `AMBIGUOUS_SUFFIX`; `pallet` = a `lot_moves` row for that lot with `to_location='production'` within the last 24 h). The adapter cannot fabricate this: it must pass what the user typed. Stored in `transaction_lot_confirmations (transaction_id, lot_id, method, value, actor_id, created_at)`. Pallet moves: `POST /lots/{id}/move/prepare` (`to_location` enum `storage|staging|production`) — a small `lot_moves` table, not full locations (build backlog "Storage locations" 8–12 d stays Phase 2) | 1 (last-4 / full / pallet move); scan = client feature later |
 | **R5** substitutions recorded on the batch with a reason | `make/prepare` body `substitutions[] {ingredient_product_id, substitute_product_id, lot_id, reason_code, note}`; stored in `transaction_substitutions`; `excluded_ingredients` requires a `reason_code` too; shown on the trace page and the day summary | 1 |
 | **R6** order can't close as shipped without a recorded shipment (proof = loaded truck + BOL, same day) | Already: status `shipped` only via `ship_order` (main:14736 400 on manual). Add: `ship_order` commit → 422 `BOL_REQUIRED` unless `bol_reference` non-blank; stored on `shipments.bol_reference` (new column — today it only exists on `transactions`); `shipments.proof_status` (`complete`|`photo_pending`) — photo attachment required by end of the plant day else `exceptions(SHIPMENT_PROOF_MISSING)` auto-opened at 23:00 local; same-day check: `occurred_at::date = current plant date` else blocker `SHIP_NOT_SAME_DAY` (owner may acknowledge); `close_order` with `shipped_not_recorded` → owner only (§4.3) | 1 |
-| **R7** Sunshine bulk: weighed bins (bin ID + tare) leave as a sale, invoiced immediately; pouches invoiced at packing, tracked as Sunshine-owned stock at CNS | §8.3–8.4: `bins`, `ship_bulk` action, `invoice_triggers`; pouch packs set `lots.ownership='sunshine'` + invoice trigger; on-hand reports split by ownership. Full custody/ownership model (backlog 7–12 d) is Phase 2 | 1-lite |
+| **R7** Sunshine bulk: weighed bins (bin ID + tare) leave as a sale, invoiced immediately; ~~pouches invoiced at packing~~, tracked as Sunshine-owned stock at CNS. **Rev 3.7:** "pouches invoiced at packing" is **superseded** — automatic invoicing at packing is not approved and the invoicing trigger is unresolved (§8.5, §11 item 30) | §8.3–8.4: `bins`, `ship_bulk` action, `invoice_triggers`; pouch packs set `lots.ownership='sunshine'` (the pack-time invoice trigger is on hold, §8.5); on-hand reports split by ownership. Billing rules (what is billable, per what unit) in §8.5. Full custody/ownership model (backlog 7–12 d) is Phase 2 | 1-lite |
 | **R8** unidentified lots allowed but flagged; resolved within 7 days | `lots.identity_status` (`identified`|`unidentified`) + `identify_by date`; `receive/prepare` with blank/`N/A`/`UNKNOWN` `supplier_lot_code` → draft shows "UNIDENTIFIED — resolve by <date>", commit sets status + `exceptions(UNIDENTIFIED_LOT, due_at = received_at + 7 d, owner = floor)`; `supplier-lot/prepare` with a real code and `reason_code` resolves it; the count packet's "Unidentified lot" rows land here too | 1 |
 | **R9** weekly/monthly recounts and a monthly mock recall | `recount_schedule` from `audits/fresh-start/v3/recount-groups.csv` (77 weekly / 131 monthly, pending owner approval) → dashboard To-Do reminders + `recounts (product_id, counted_lb, fl_lb_at_count, actor_id, counted_at)`; mock recall = a saved `traceSupplierLot` run with `recall_drills (supplier_lot, run_by, run_at, lots_found, orders_affected)` | 2 (reminders in 1) |
 | **R10** full physical count — separate workstream; connection points only | `adjust` reason `physical_count` + R2 thresholds; `FND` receipts with reason `physical_count` or `missing_receipt`; unidentified-lot queue; `apply_reset.py` keeps using the master key on the internal-only direct routes (§1.7) and must write `receipt_number`s so the reset is auditable like everything else | — |
@@ -575,7 +576,7 @@ Nightly job (`scripts/exceptions_sweep.py`, run by Railway cron or GitHub Action
 4. Late entries (> 48 h) and back-fills (R-§6).
 5. Unidentified lots opened / resolved / overdue (R8).
 6. Shipments without proof; orders closed `shipped_not_recorded` (R6).
-7. Sunshine: bulk dispatches awaiting invoice; pouch packs awaiting invoice (R7).
+7. Sunshine: bulk dispatches awaiting invoice; ~~pouch packs awaiting invoice (R7)~~ — **rev 3.7:** what creates a Sunshine invoice trigger is unresolved (§8.5, §11 item 30); until Michael decides, this line lists bulk dispatches only.
 8. Shift summaries: days confirmed / confirmed with discrepancies / not confirmed (§7.3).
 9. Recount reminders due (R9) — Phase 2 data, Phase 1 shows the schedule.
 
@@ -591,7 +592,7 @@ RECEIVED   RCV-261007-001  Coconut Flake Desiccated   1,100 lb  lot 24-09-30-…
            RCV-261007-002  Oats Rolled                2,000 lb  lot …  ⚠ UNIDENTIFIED — resolve by Oct 14
 MADE       MK-261007-001   SS Classic #9 Batch 90025    323 lb  lot 26-10-07-CLS9-001   ingredients: coconut lot …(last-4 typed), …
            MK-261007-002   …                                                      ⚠ SHORT 12 lb oats lot … — resolve by Oct 9
-PACKED     PK-261007-001   SS Original 12x10 OZ       120 cases (900 lb) from lot 26-10-07-CLS9-001   ownership: Sunshine → invoice pending
+PACKED     PK-261007-001   SS Original 12x10 OZ       120 cases (900 lb) from lot 26-10-07-CLS9-001   ownership: Sunshine   (rev 3.7: no "invoice pending" at pack — trigger unresolved, §8.5)
 SHIPPED    SHP-261007-001  SO-261003-004 Setton Farms  40 cases  BOL 55821  photo ✓
 ADJUSTED   ADJ-261007-001  Almonds lot …  −35 lb  reason: damage
 VOIDED     (none)
@@ -633,11 +634,82 @@ Standalone ship (`/ship/prepare`): `customer_id` only, `OPEN_SALES_ORDER_EXISTS`
 
 Tables: `bins (id, bin_code UNIQUE, tare_lb numeric, tare_verified_at, tare_verified_by_actor_id, active)`; `bulk_dispatch_lines (shipment_id, bin_id, lot_id, product_id, gross_lb, tare_lb, net_lb, weighed_at, scale_note, estimated bool)`; `invoice_triggers (id, kind: 'bulk_dispatch'|'pouch_pack', shipment_id, transaction_id, customer_id, product_id, qty, unit, price_basis, status: 'pending'|'invoiced'|'void', invoice_reference, invoiced_by_actor_id, invoiced_at)`.
 
-Flow: `POST /ship/bulk/prepare {customer_id (Sunshine), bins:[{bin_code, lot_id, gross_lb}], happened_at}` → draft computes `net_lb = gross − tare` per bin (tare missing or unverified → blocker `BIN_TARE_UNVERIFIED`; owner can verify tare on the dashboard), total net lb, warns if a bin was dispatched in the last 24 h (possible duplicate). Commit posts one `SHP` ship transaction per lot (balances leave CNS — it *is* a sale), `bulk_dispatch_lines`, and an `invoice_triggers(bulk_dispatch, pending)` row. Office works `GET /invoice-triggers?status=pending` on the dashboard and marks each `invoiced` with the QuickBooks invoice number (ticketed); pending triggers older than 1 business day appear as `SUNSHINE_INVOICE_PENDING` exceptions. Price basis and the later yield-credit question are **not** modelled (build backlog flags it as an owner decision — D8).
+Flow: `POST /ship/bulk/prepare {customer_id (Sunshine), bins:[{bin_code, lot_id, gross_lb}], happened_at}` → draft computes `net_lb = gross − tare` per bin (tare missing or unverified → blocker `BIN_TARE_UNVERIFIED`; owner can verify tare on the dashboard), total net lb, warns if a bin was dispatched in the last 24 h (possible duplicate). Commit posts one `SHP` ship transaction per lot (balances leave CNS — it *is* a sale), `bulk_dispatch_lines`, and an `invoice_triggers(bulk_dispatch, pending)` row. Office works `GET /invoice-triggers?status=pending` on the dashboard and marks each `invoiced` with the QuickBooks invoice number (ticketed); pending triggers older than 1 business day appear as `SUNSHINE_INVOICE_PENDING` exceptions. ~~Price basis and the later yield-credit question are **not** modelled (build backlog flags it as an owner decision — D8).~~ **Rev 3.7:** price basis for bulk = **per actual lb sold** (`net_lb` of the dispatch, §8.5 rule 2) and **yield credits = none** (§8.5 rule 1) — D8 is closed. The *bulk dispatch* trigger kind above is the only trigger wording that is not superseded, and even it is **not approved as the invoicing trigger** until Michael decides §8.5 rule 4; it stays in the design as the candidate.
 
-### 8.4 Sunshine pouches (invoice at pack, Sunshine-owned stock at CNS)
+### 8.4 Sunshine pouches (~~invoice at pack~~ Sunshine-owned stock at CNS; invoicing trigger unresolved — rev 3.7)
 
-Products 145–149 (`70003, 70002, 70011, 70070, 70010`, 12×10 oz) are flagged `products.ownership_on_pack = 'sunshine'` (new column, default NULL). `pack/prepare` of such a product: draft says "This pack becomes Sunshine-owned stock held at CNS and triggers an invoice." Commit: output lot gets `lots.ownership='sunshine'` (new column, default `'cns'`), an `invoice_triggers(pouch_pack, pending)` row for the cases packed, and a `lot_events(ownership)` row. Inventory reports (`/inventory/lookup`, FG tab, count sheet) show ownership as a column and totals split `CNS-owned / Sunshine-owned`. A later ship of that lot to Sunshine posts normally but does **not** create a second invoice trigger (already invoiced at pack); a ship of a Sunshine-owned lot to anyone else → blocker `OWNED_BY_OTHER_PARTY` (owner acknowledge only). The historical reconciliation of today's pouch stock (`audits/fresh-start/v3/sunshine-ownership-reconciliation.md`) is an office review after the count, not a Phase 1 code path.
+Products 145–149 (`70003, 70002, 70011, 70070, 70010`, 12×10 oz) are flagged `products.ownership_on_pack = 'sunshine'` (new column, default NULL). `pack/prepare` of such a product: draft says "This pack becomes Sunshine-owned stock held at CNS~~ and triggers an invoice~~." Commit: output lot gets `lots.ownership='sunshine'` (new column, default `'cns'`), ~~an `invoice_triggers(pouch_pack, pending)` row for the cases packed,~~ and a `lot_events(ownership)` row. Inventory reports (`/inventory/lookup`, FG tab, count sheet) show ownership as a column and totals split `CNS-owned / Sunshine-owned`. ~~A later ship of that lot to Sunshine posts normally but does **not** create a second invoice trigger (already invoiced at pack);~~ a ship of a Sunshine-owned lot to anyone else → blocker `OWNED_BY_OTHER_PARTY` (owner acknowledge only). The historical reconciliation of today's pouch stock (`audits/fresh-start/v3/sunshine-ownership-reconciliation.md`) is an office review after the count, not a Phase 1 code path.
+
+**Rev 3.7 (Michael, 2026-10-08):** the struck text is **superseded** — automatic invoicing at packing is **not approved**. The ownership flag and the `OWNED_BY_OTHER_PARTY` blocker stand; the `pouch_pack` trigger kind is **removed from the A8 build** until the invoicing trigger is decided (§8.5 rule 4, §11 item 30). Pouches and minis are billed **per case of finished product sold** (§8.5 rule 2); nothing in this section fixes *when* that invoice is created.
+
+### 8.5 Sunshine billing rules — decided by Michael 2026-10-08 (§11 items 27–31)
+
+Scope: what CNS bills Sunshine Granola (FL customer 217; QBO customer id 157) for, in what unit, and where the price comes from. **No FL data and no QuickBooks data were changed to record this.** The FL product ids below come from a read-only production lookup on 2026-10-08.
+
+1. **Yield credits — RESOLVED: none.** CNS supplies all ingredients; there are no expected-vs-actual yield adjustments of any kind. `invoice_triggers` needs no credit/adjustment model; the build-backlog D8 question is closed.
+2. **Sunshine is billed only for finished product sold:** pouches (12×10 oz) and Mini 100 **per case**; bulk granola **per actual lb sold**. Nothing else is billable — not batches made, not bulk packed, not stock held.
+3. **Bulk granola split.** The same batch can be partly sold as bulk and partly packed into pouches/minis. FL tracks the quantity going each way *from the batch* (the existing make → pack / ship lot lineage); there are **no permanently separate batches** for "bulk" vs "pouch" granola. Only quantity **sold as bulk** is billable as bulk (§8.3 `net_lb`); quantity packed into pouches/minis is billed **only** through those finished products (rule 2). **Never double-bill.** Bulk awaiting packing is intermediate inventory, not billable.
+4. **Invoicing trigger — UNRESOLVED.** Automatic invoicing at packing is **not approved**; every earlier "invoiced at packing" wording (R7, §7.2 item 7, §7.3 sample, §8.4, A8 `pouch_pack`) is superseded. What creates a Sunshine invoice (bulk departure? pouch shipment? a periodic statement?) is Michael's open question (§11 item 30, FOLLOWUPS P1.10). Until then A8 builds the ownership flag and the bulk `bins`/`bulk_dispatch_lines` tables; `invoice_triggers` rows are not created automatically by any commit.
+5. **Source of truth for prices = QuickBooks.** The FL price list below stays **DRAFT** until every row is reconciled with QuickBooks and confirmed by Michael. On any conflict FL **flags** it (exception / dashboard warning) — it never guesses a price. `invoice_triggers.price_basis` stays nullable and informational.
+
+#### 8.5.1 QuickBooks reconciliation (read-only, Michael's planning chat, 2026-10-08)
+
+Customer "Sunshine Granola", QBO customer id 157; 35 invoices Apr 1 – Oct 8, 2026; latest invoice Aug 13.
+
+| Item | QBO item id | QBO list price | Last billed | Status |
+|---|---|---|---|---|
+| Original 12x10 | 64 | 19.44/case | 19.44 | match |
+| Chocolate Chip 12x10 | 65 | 19.44/case | 19.44 | match |
+| Cranberry 12x10 | 73 | 21.50/case | 21.50 | match |
+| Low Carb 12x10 | 72 | 35.77/case | 35.77 | match |
+| Original #9 bulk | 143 | 1.45/lb | 1.45 | match |
+| Original #9 Mini 100 | 68 | 9.00/case | 9.00 | match — but billed in fractional quantities (172.5, 17.5, 12.5): unit unconfirmed |
+| Chocolate Chip #9 Mini 100 | 144 | 12.75/case | 11.00 (Jul 24) | Michael's updated price, already in QBO list; not yet billed at it |
+| Original #1 bulk | 66 | 1.97/lb | 1.85 (Jun 18; earlier 1.97) | **CONFLICT** |
+| Chocolate Chip #9 bulk | none | — | never | **MISSING in QBO**; Michael states 1.70/lb |
+| B'gan Chocolate /lb | 67 (deleted) | — | 2.10 (Apr 16) | deleted item used on an invoice |
+
+#### 8.5.2 FL product mapping (read-only production lookup, 2026-10-08)
+
+Lookup: `products` by name/`customer_name`, `sales_order_lines` for customer 217, posted `ship` transactions with `customer_name ILIKE '%sunshine%'` — one `BEGIN TRANSACTION READ ONLY` per query via `scripts/psql_ro.sh`. Column `FL use` = what Sunshine's FL orders/ships actually reference.
+
+| QBO item (id) | FL product id(s) | FL name (`odoo_code`) | Parent batch | FL use (customer 217) | Mapping status |
+|---|---|---|---|---|---|
+| Original 12x10 (64) | **146** | Granola SS Original 12x10 OZ Case (70002) | 116 Batch SS Original #1 | 3 SOs; 6 posted ships, 18,112.5 lb | mapped |
+| Chocolate Chip 12x10 (65) | **145** | Granola SS Chocolate Chip 12x10 OZ Case (70003) | 114 Batch SS Chocolate Chip #2 | 3 SOs; 14 ships, 64,620 lb | mapped |
+| Cranberry 12x10 (73) | **147** | Granola SS Cranberry 12x10 OZ Case (70011) | 118 Batch SS Cranberry #3 | 1 SO; 1 ship, 2,122.5 lb | mapped |
+| Low Carb 12x10 (72) | **148 + 149** | Granola SS Chocolate Chip Low Carb 12x10 OZ Case (70070); Granola SS Original Low Carb 12x10 OZ Case (70010) | 119 (#8) / 120 (#7) | 1 SO each; 2 ships each (3,667.5 lb / 3,562.5 lb) | mapped **one QBO item → two FL products** (same price; the Aug 14 reconciliation ship `QB-LOWCARB-YTD-NET` already combined them). FL must bill both to QBO item 72 — or Michael splits the QBO item |
+| Original #9 bulk (143) | **285** | Granola SS Classic #9 Bulk per/lb (70013) — extra-kosher | 283 Batch SS Classic Granola #9 (Kosher Ignition) | SO-260817-001 4,000 lb open; 1 ship 12,115 lb (Aug 14 YTD reconciliation) | mapped (extra-kosher tier per §5.3). Same batch also packs as **286** (25 LB, 70014) / **287** (10 LB, 70015) — bulk in boxes, billed per lb if sold as bulk (rule 2). Regular tier 107 finished goods (136/129/137/138/144) are not Sunshine items |
+| Original #9 Mini 100 (68) | **185** (⚠) | Granola SS Mini 100 (70006) | **116 Batch SS Original #1** | never ordered or shipped in FL | **CONFLICT (new):** FL row is **inactive**, `uom = lb` (QBO bills a case), and parented to the **#1** Original batch, not #9. Needs reactivation + case definition + re-parenting (283 if extra-kosher #9) before it can be billed through FL |
+| Chocolate Chip #9 Mini 100 (144) | — | — | — | — | **UNMAPPED** — no FL product exists (would sit under 284) |
+| Original #1 bulk (66) | **183** | Granola SS Original Bulk per/lb (70004) | 116 Batch SS Original #1 | 1 ship 1,875 lb (Aug 14 YTD reconciliation) | mapped |
+| Chocolate Chip #9 bulk (no QBO item) | **288** | Granola SS Classic Chocolate Chip #9 Bulk per/lb (70016) — extra-kosher | 284 Batch SS Classic Chocolate Chip #9 (Kosher Ignition) | SO-260817-001 6,000 lb open; no ship yet | mapped in FL, **missing in QBO** (also packs as **289** 25 LB / **290** 10 LB) |
+| B'gan Chocolate /lb (67, deleted) | **184** | Granola SS B'gan Chocolate per/lb (70005) | none | never in FL orders/ships | mapped; **inactive in FL** and deleted in QBO — consistent with "retired", pending Michael |
+
+Not in the QBO table but present in FL under the SS family (for completeness, not billable until Michael says so): **186** Granola SS Evergreen 12 pack (70009, inactive); batches **115** SS Chocolate Chip #5 and **117** SS Original #4 (no finished goods of their own).
+
+**New findings from the lookup (not decisions):**
+- **Low Carb:** one QBO item (72) vs two FL products (148, 149) — see the row above.
+- **Mini 100:** FL 185 is inactive, per-lb and parented to #1; QBO bills it per "case" in fractional quantities. Both sides need Michael's unit decision (§11 open question).
+- **Ships after the last QBO invoice:** FL has posted ships to Sunshine on **2026-09-30** — TX2535 (600 cases of 145) and TX2536 (1,500 cases of 146, 11,250 lb), cited against SO-260909-001 — while QBO shows **no Sunshine invoice after Aug 13**. Either they are not yet invoiced or they were billed under another QBO customer; reconcile before the price list leaves DRAFT.
+
+#### 8.5.3 FL price list — **DRAFT** (QBO is the source of truth; rule 5)
+
+| FL product | Unit | QBO item | Price (QBO list) | State |
+|---|---|---|---|---|
+| 146 SS Original 12x10 | case | 64 | 19.44 | reconciled, awaiting Michael's confirmation |
+| 145 SS Chocolate Chip 12x10 | case | 65 | 19.44 | reconciled, awaiting confirmation |
+| 147 SS Cranberry 12x10 | case | 73 | 21.50 | reconciled, awaiting confirmation |
+| 148 SS Chocolate Chip Low Carb 12x10 | case | 72 | 35.77 | reconciled, awaiting confirmation (shared QBO item) |
+| 149 SS Original Low Carb 12x10 | case | 72 | 35.77 | reconciled, awaiting confirmation (shared QBO item) |
+| 285 SS Classic #9 Bulk | lb | 143 | 1.45 | reconciled, awaiting confirmation |
+| 185 SS Mini 100 (Original #9) | case? | 68 | 9.00 | **unit unconfirmed**; FL product needs fixing |
+| — Chocolate Chip #9 Mini 100 | case | 144 | 12.75 | **no FL product** |
+| 183 SS Original #1 Bulk | lb | 66 | 1.97 list / 1.85 last billed | **CONFLICT — flag, do not guess** |
+| 288 SS Classic Chocolate Chip #9 Bulk | lb | none | 1.70 (Michael) | **no QBO item** |
+| 184 SS B'gan Chocolate | lb | 67 (deleted) | 2.10 last billed | retired? |
+
+Nothing in this table is loaded into FL; there is no FL price table yet. When one is built (A8 or later) it is seeded from QBO, carries a `qbo_item_id`, and refuses to resolve a price for any row whose state is not "confirmed".
 
 ---
 
@@ -672,7 +744,7 @@ Four tracks that can run in parallel once PR-A1 defines the contract: API, dashb
 | A5 | `feat/lot-confirmation` | API | R4 `lot_confirmations` + `transaction_lot_confirmations` + `lot_moves`; R5 `substitutions`; R8 `lots.identity_status`/`identify_by` + receive flagging + UNIDENTIFIED_LOT exceptions; **§5.2 supplier tracking:** `transactions.supplier_id`/`lots.supplier_id`, `POST /resolve kind=supplier`, 422 `SUPPLIER_REQUIRED`, `suppliers.short_code` (lot prefix = label only) | A1, **A3a** (rev 3.4: the tables, not A3b) | **4½ d** (+½ supplier) |
 | A6 | `feat/ship-gate` | API | migration 063 `attachments`, `shipments.bol_reference/proof_status`; `/ship/prepare`, `/sales/orders/{id}/ship/prepare`, BOL/photo/same-day gate, signed packing-slip link; standalone ship by `customer_id` only | A1, **A3a** | 3 d |
 | A7 | `feat/order-tickets` | API | prepare/commit wrappers for create/lines/header/status/close/cancel/expected-receipt (thin: reuse `_create_sales_order_core`; ticket receipt = `external_order_reference`) | A1 | 2–3 d |
-| A8 | `feat/sunshine-lite` | API | migration 064 `bins`, `bulk_dispatch_lines`, `invoice_triggers`, `products.ownership_on_pack`, `lots.ownership`; `/ship/bulk/prepare`; pouch pack ownership + trigger; `/invoice-triggers` | A1, A6 | 4–5 d |
+| A8 | `feat/sunshine-lite` | API | migration 064 `bins`, `bulk_dispatch_lines`, `invoice_triggers`, `products.ownership_on_pack`, `lots.ownership`; `/ship/bulk/prepare`; pouch pack ownership ~~+ trigger~~; `/invoice-triggers`. **Rev 3.7:** no automatic trigger at pack (`pouch_pack` kind dropped until §8.5 rule 4 is decided); bulk billed per actual lb sold, no yield credits; prices from QBO only, FL price list DRAFT (§8.5) | A1, A6, **§8.5 rule 4 decided** | 4–5 d |
 | A9 | `feat/reports` | API | `/reports/shift-summary` + confirm (**pilot-critical, 1½ d, JSON frozen day 1 — §10.2**), `/reports/weekly` (1½ d, may land after cutover; first weekly review is Nov 27) | A2, A3b, A5, A6 — **not A12** (rev 3.4: runs in parallel with A12; A12 adds its EXTRA-KOSHER line as a ½-d follow-up) | 3 d |
 | A10 | `chore/internal-only-routes` | API | remove direct write routes from both allowlists (§1.7); delete `confirmation_code`. **Rev 3.4: lands at cutover+1 as a pre-approved PR, in two stages** — stage 1 (Mon Nov 23) the ledger routes (`/receive\|make\|pack\|adjust\|found\|ship\|void`, lot PATCHes); stage 2 (after A7 is verified on the dashboard) the order routes, otherwise the office loses order editing | all A, D2 live, GPTs read-only (G1); stage 2 also A7 | 1 d (prepared Nov 3) |
 | A12 | `feat/kosher-tier` | API | **§5.3:** `products.kosher_tier`, `lots.kosher_tier`, `ticket_attestations`, `POST /tickets/{t}/attest` (owner PIN), `KOSHER_ATTESTATION_REQUIRED` / `KOSHER_SOURCE_REQUIRED` blockers, downgrade recording + `lot_events`, `/resolve` tier field + SS/#9 alias rule, EXTRA-KOSHER on receipts/labels/trace/shift summary, data update + renames per the §5.3 mapping | A1, A5, A11 | **3–3½ d** (incl. ~½ d F1/D2 attest UI) |
@@ -740,7 +812,7 @@ All ten were answered. Items 1–3, 5–7, 9–10 are **approved as recommended*
 | 5 | Aliases are added/deactivated by owner + office on the dashboard only; chat never. Arturo's Spanish shorthand collected and seeded in week 1. | **Approved** | §3.3 |
 | 6 | Back-dating: 0–48 h free; 48 h–14 d allowed and flagged `LATE_ENTRY` for owner acknowledgement; > 14 d owner-only with `backfill`. Revisit 48 h after a month of weekly views. | **Approved** | §6.3 |
 | 7 | Large corrections (> 500 lb or > 10 %) post immediately with a photo required; held only when the photo is missing. | **Approved** | §4.3, §5 R2, §7.1 |
-| 8 | Sunshine-lite (A8: bins + invoice trigger + pouch ownership) ships if the critical tracks are green at the **Nov 6 checkpoint**; otherwise deferred, bulk stays on standalone ship to Sunshine (`customer_id`) + paper bin log. **PENDING Michael:** (a) pouch invoice-at-pack price basis (per case? fixed?); (b) how later Sunshine yield reports / credits alter the invoice trigger. Both are left as open questions; `invoice_triggers.price_basis` is nullable and no credit model is designed. | **Approved; two open questions** | §8.3–8.4, A8 |
+| 8 | Sunshine-lite (A8: bins + invoice trigger + pouch ownership) ships if the critical tracks are green at the **Nov 6 checkpoint**; otherwise deferred, bulk stays on standalone ship to Sunshine (`customer_id`) + paper bin log. ~~**PENDING Michael:** (a) pouch invoice-at-pack price basis (per case? fixed?); (b) how later Sunshine yield reports / credits alter the invoice trigger. Both are left as open questions;~~ `invoice_triggers.price_basis` is nullable and no credit model is designed. **Rev 3.7:** (a) and (b) resolved — items 27–31 below; "invoice-at-pack" is superseded. | **Approved; 8(a)/8(b) resolved rev 3.7** | §8.3–8.5, A8 |
 | 9 | Shipment photo required by end of plant day (exception if missing); BOL number at commit is the hard gate. | **Approved** | §8.2, §7.1 |
 | 10 | Fallback operator = Luz on the dashboard forms. Readiness gate for Nov 20: (a) PR-0 master-key rotation done; (b) A1–A6 + A11 + **F1** + D1 + D2 + G1 ready on staging with the §3.1, §4.4 (10,000-PIN sweep signs nobody in) and §7.3 acceptance scripts passed by Michael, Arturo and one office user (rev 3: MCP writes M1–M4 are **removed** from the gate); (c) physical count reviewed and reset approved; (d) five consecutive confirmed shift summaries on staging with zero unexplained discrepancies; **(e) rev 3.2:** every `RCV` receipt in those five days carries a resolved `supplier_id` (§5.2) and at least one extra-kosher make + pack has run on staging with the owner attestation and the `KOSHER_SOURCE_REQUIRED` refusal exercised (§5.3). If (d) is not met by Nov 17, cutover moves — the date does not override the gate. | **Approved; (b) amended rev 3, (e) added rev 3.2** | §9, §10, §10.1 |
 
@@ -772,7 +844,7 @@ All ten were answered. Items 1–3, 5–7, 9–10 are **approved as recommended*
 |---|---|---|---|
 | 20 | **3 Codex lanes; re-sequencing changes 5–8 approved** (A3 split A3a/A3b; A9 ∥ A12; D3 → D3-lite before the pilot, rest after cutover; G1 engineering early, A10 at cutover+1 in two stages). **Change 9 (simplify for cutover) is held** as the Nov 6 checkpoint lever together with A8. No safety rule changes. Pilot soft-start Nov 2; gate (d) window Nov 9–13; gate decision Nov 17; cutover Nov 20. | **Decided by Michael** | §10 rows A3a/A3b/A5/A6/A9/A10/G1/D3-lite/D3, §10.1 step 7, §10.2, `~/Documents/fl-audits/lane-schedule.md` |
 
-**Still open (owner):** 8(a) pouch price basis; 8(b) yield credits; **18 — confirm the §5.3 id mapping** (chip size is resolved); **§10.2 note — confirm the PR-0 "rotate at cutover" override recorded in PR #78.**
+**Still open (owner):** ~~8(a) pouch price basis; 8(b) yield credits~~ (resolved rev 3.7, items 27–31); **Sunshine open questions under item 31**; **18 — confirm the §5.3 id mapping** (chip size is resolved); **§10.2 note — confirm the PR-0 "rotate at cutover" override recorded in PR #78.**
 
 ### Decisions recorded 2026-10-08 12:30 — A9 contract and A3a backfill (Michael, on PRs #84 / #85)
 
@@ -789,6 +861,28 @@ All ten were answered. Items 1–3, 5–7, 9–10 are **approved as recommended*
 |---|---|---|---|
 | 25 | **`summary_hash` covers ONLY the shift's entries — the receipt rows of the seven receipt sections and their flags — not live balances (`after_lb`), time-based fields (`overdue`) or the expectation/exception sections.** Confirm is rejected as stale only when new or changed entries appear in that person's summary; another actor posting on a shared lot never invalidates it. | **YES** | contract §1.3, §3.1, §6 item 5; `shift_confirmations.summary_snapshot` still stores the full `sections` |
 | 26 | **061 backfill text tier:** free-text `adjust_reason` values matching `%physical%count%`, `%physical inventory%`, `%inventory count%`, `%cycle count%`, `%count correction%` or `%recon%` (case-insensitive) become `physical_count`, after the legacy map and already-new codes and before `unknown`; adjust text only, never found-inventory note codes. Prod dry-run (628 adjust rows): `physical_count` 91 → 391, `missing_receipt` 32, `unknown` 499 → 205 (`%physical inventory%` added at merge time, 2026-10-08). | **YES** | §5.1 mapping; `migrations/061_exceptions_tables.sql` + its dry-run file |
+
+### Decisions recorded 2026-10-08 13:40 — Sunshine billing rules (Michael; resolves item 8's open questions)
+
+Recorded exactly as decided. No FL data and no QuickBooks data were changed; the product mapping is a read-only lookup (§8.5.2).
+
+| # | Decision | Status | Effect in this document |
+|---|---|---|---|
+| 27 | **Yield credits: RESOLVED — none.** CNS supplies all ingredients; no expected-vs-actual yield adjustments of any kind. | **Decided by Michael** | §8.5 rule 1; §8.3 (D8 closed); item 8(b) |
+| 28 | **Sunshine is billed only for finished product sold:** pouches (12×10 oz) and Mini 100 **per case**; bulk granola **per actual lb sold**. | **Decided by Michael** | §8.5 rule 2; §8.3 price basis; item 8(a) |
+| 29 | **Bulk granola split:** the same batch can be partly sold as bulk and partly packed into pouches/minis. FL tracks the quantity going each way from the batch; no permanently separate batches. Only quantity **sold as bulk** is billable as bulk; quantity packed into pouches/minis is billed only through those finished products. **Never double-bill.** Bulk awaiting packing is intermediate inventory, not billable. | **Decided by Michael** | §8.5 rule 3 |
+| 30 | **Invoicing trigger: UNRESOLVED.** Automatic invoicing at packing is **NOT approved**; all earlier "invoiced at packing" wording is **superseded** (R7, §7.2 item 7, §7.3 sample, §8.4, A8 `pouch_pack`). | **Open — Michael** | §8.5 rule 4; §8.4; A8 row (trigger dropped, dependency added); FOLLOWUPS P1.10 |
+| 31 | **Source of truth for prices = QuickBooks.** The FL price list stays **DRAFT** until every row is reconciled with QuickBooks and confirmed by Michael. On conflict, flag it — never guess. QBO reconciliation of 2026-10-08 recorded in §8.5.1; FL mapping in §8.5.2; draft list in §8.5.3. | **Decided by Michael** | §8.5 rule 5, §8.5.1–8.5.3 |
+
+**Open questions for Michael (from items 30–31 and the §8.5.2 lookup):**
+1. Original #1 bulk (QBO 66 / FL 183): agreed price **1.97 or 1.85**?
+2. Create a QBO item for **Chocolate Chip #9 bulk** (FL 288) at **1.70/lb**?
+3. Original #9 Mini 100 (QBO 68 / FL 185): is the unit really a **case** (fractional quantities 172.5, 17.5, 12.5 were billed)? FL's row is inactive, per-lb and parented to the #1 batch — how should it be defined?
+4. B'gan Chocolate (QBO 67 deleted / FL 184 inactive): **still sold or retired**?
+5. **Invoicing trigger** — when is a Sunshine invoice created (bulk departure, pouch shipment, periodic statement, something else)?
+6. *(new from the lookup)* Low Carb 12x10: one QBO item (72) covers both FL 148 and 149 — keep one QBO item, or split?
+7. *(new from the lookup)* FL ships TX2535/TX2536 to Sunshine on 2026-09-30 (600 cs of 145 + 1,500 cs of 146) have no QBO invoice after Aug 13 — not yet invoiced, or billed elsewhere?
+8. Chocolate Chip #9 Mini 100 (QBO 144) has no FL product — create one under batch 284?
 
 ### 11.2 Part A verification (2026-10-07 15:00, against `origin/main` @ `cb2705c` and `origin/feature/mcp-server` @ `d74f747`)
 

@@ -117,6 +117,32 @@ verify read-only that only `write_tickets` changed. Same recipe for FastAPI-stag
 `ENVIRONMENT=staging` + the staging guard variables. See
 `docs/deployments/a1-write-tickets-part2.md` "Nightly ticket expiry".
 
+**P1.10 Sunshine billing rules — decided by Michael 2026-10-08 (design rev 3.7, §8.5, §11 items 27–31); invoicing trigger and price list still OPEN.**
+Decided: (1) yield credits = **none** — CNS supplies all ingredients, no expected-vs-actual
+adjustments of any kind; (2) Sunshine is billed only for **finished product sold** —
+pouches (12x10 oz) and Mini 100 **per case**, bulk granola **per actual lb sold**; (3) one
+batch may go partly to bulk and partly into pouches/minis, FL tracks the split from the
+batch, only quantity *sold as bulk* is billable as bulk, packed quantity is billed only
+through the finished product, never double-billed, bulk awaiting packing is not billable;
+(4) **automatic invoicing at packing is NOT approved** — every "invoiced at pack" wording
+in the design (R7, §7.2, §7.3, §8.4, A8 `pouch_pack`) is superseded and the trigger is
+**unresolved**; (5) **QuickBooks is the source of truth for prices** — the FL price list
+(design §8.5.3) stays **DRAFT** until every row is reconciled with QBO and confirmed by
+Michael; conflicts are flagged, never guessed. No FL data and no QBO data were changed.
+Read-only lookup 2026-10-08 (design §8.5.2): 9 of the 10 QBO rows map to FL products
+(146, 145, 147, 148+149, 285 [+286/287], 185, 183, 288 [+289/290], 184); **unmapped:**
+Chocolate Chip #9 Mini 100 (QBO 144) — no FL product. Found on the way: QBO "Low Carb
+12x10" (72) covers two FL products (148, 149); FL 185 "SS Mini 100" is inactive, per-lb and
+parented to batch #1 (116), not #9; FL ships TX2535/TX2536 to Sunshine on 2026-09-30 (600 cs
+of 145 + 1,500 cs of 146, SO-260909-001) have no QBO invoice after Aug 13.
+**Open for Michael** (design §11 after item 31): Original #1 bulk 1.97 or 1.85; create a QBO
+item for Chocolate Chip #9 bulk at 1.70/lb; is Original #9 Mini 100 really a case (fractional
+quantities billed) and how to fix FL 185; B'gan Chocolate sold or retired; **when an
+invoice is created**; keep or split QBO Low Carb item 72; the Sep 30 ships' invoice status;
+create an FL product for Chocolate Chip #9 Mini 100. A8 cannot build `invoice_triggers`
+creation until the trigger is decided; it can still build `bins`, `bulk_dispatch_lines`
+and the ownership flag.
+
 ---
 
 ## 1. Backfill NULL addresses on recurring customers
