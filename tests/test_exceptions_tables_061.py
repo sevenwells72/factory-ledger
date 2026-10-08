@@ -104,6 +104,16 @@ def violates(cur, sql, params=()):
     cur.execute('ROLLBACK TO SAVEPOINT a3a')
 
 
+@pytest.fixture
+def seeded(db_cursor):
+    """The schema dump is schema-only: it carries the 061 tables and column but
+    not the seeds, legacy map or marker (data). Rerun the idempotent migration
+    inside the test savepoint so those rows exist and roll back afterwards."""
+    db_cursor.execute('SET LOCAL search_path TO public')
+    db_cursor.execute(UP)
+
+
+@pytest.mark.usefixtures('seeded')
 def test_seed_matches_design_5_1_exactly(db_cursor):
     db_cursor.execute('SELECT code,label_en,label_es,note_required,applies_to,adjust_sign,active '
                       'FROM correction_reasons ORDER BY sort_order')
@@ -120,6 +130,7 @@ def test_seed_matches_design_5_1_exactly(db_cursor):
                         "VALUES ('newcode','x','y',ARRAY[]::text[],99)")
 
 
+@pytest.mark.usefixtures('seeded')
 def test_legacy_map_covers_every_code_the_live_route_still_offers(db_cursor):
     live = main.get_reason_codes(True)
     db_cursor.execute('SELECT source,legacy_code,reason_code,note_prefill FROM correction_reason_legacy_codes')
@@ -187,6 +198,7 @@ def test_shortage_flags_shape_and_constraints(db_cursor):
     assert db_cursor.fetchone()['status'] == 'resolved'
 
 
+@pytest.mark.usefixtures('seeded')
 def test_transactions_reason_code_is_nullable_and_fk_checked(db_cursor):
     db_cursor.execute("INSERT INTO transactions(type,timestamp,notes,occurred_at,adjust_reason,reason_code) "
                       "VALUES ('adjust',now(),'A3a',now(),'damage','damage_disposal') RETURNING reason_code")
@@ -198,6 +210,7 @@ def test_transactions_reason_code_is_nullable_and_fk_checked(db_cursor):
                         "VALUES ('adjust',now(),'A3a',now(),'damage')")
 
 
+@pytest.mark.usefixtures('seeded')
 def test_owner_only_posture_and_marker(db_cursor):
     db_cursor.execute("SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY(%s)", (list(TABLES),))
     rows = {r['relname']: r for r in db_cursor.fetchall()}
@@ -212,7 +225,9 @@ def test_owner_only_posture_and_marker(db_cursor):
 # ---------------------------------------------------------------------------
 # Reversible DDL and the history backfill need a database the migration has
 # NOT been applied to yet: build one from the schema dump minus psql
-# meta-commands (so the pending \ir include is skipped), as the 058 tests do.
+# meta-commands, as the 058 tests do, then run the 061 down file so the
+# fixture starts before 061 (the dump has carried its objects since the
+# 2026-10-08 prod apply; its tables are empty, so down needs no confirmation).
 # ---------------------------------------------------------------------------
 @contextmanager
 def connect(url):
@@ -256,6 +271,7 @@ def isolated_database():
         with connect(url) as cur:
             cur.execute('CREATE EXTENSION pg_trgm')
             cur.execute(schema)
+        apply(url, DOWN)
         yield url
     finally:
         with admin.cursor() as cur:

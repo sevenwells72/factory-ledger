@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LwwKdlcAAJzk0J5V44Ves7uNSjYPVMqhczf13Cxmp2QMpGZPghUfQNeQiKQeevV
+\restrict j6tUwHUOKWxZ5zJHWGtQie2cMMdcopymLX0pMRUOplt3FhNIBI3hLkW5H6JZZBX
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -729,6 +729,42 @@ CREATE TABLE public.certifications (
 
 
 --
+-- Name: correction_reason_legacy_codes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.correction_reason_legacy_codes (
+    source text NOT NULL,
+    legacy_code text NOT NULL,
+    reason_code text NOT NULL,
+    note_prefill text,
+    CONSTRAINT correction_reason_legacy_codes_legacy_code_check CHECK (((legacy_code <> ''::text) AND (legacy_code = lower(btrim(regexp_replace(legacy_code, '\s+'::text, ' '::text, 'g'::text)))))),
+    CONSTRAINT correction_reason_legacy_codes_source_check CHECK ((source = ANY (ARRAY['adjust'::text, 'found'::text])))
+);
+
+
+--
+-- Name: correction_reasons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.correction_reasons (
+    code text NOT NULL,
+    label_en text NOT NULL,
+    label_es text NOT NULL,
+    applies_to text[] NOT NULL,
+    adjust_sign text DEFAULT 'any'::text NOT NULL,
+    note_required boolean DEFAULT false NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    sort_order smallint NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT correction_reasons_adjust_sign_check CHECK ((adjust_sign = ANY (ARRAY['any'::text, 'positive'::text, 'negative'::text]))),
+    CONSTRAINT correction_reasons_applies_to_check CHECK (((cardinality(applies_to) > 0) AND (applies_to <@ ARRAY['adjust'::text, 'found'::text, 'void'::text, 'rename_lot'::text, 'update_supplier_lot'::text, 'resolve_exception'::text]))),
+    CONSTRAINT correction_reasons_code_check CHECK ((code ~ '^[a-z][a-z0-9_]{1,39}$'::text)),
+    CONSTRAINT correction_reasons_label_en_check CHECK ((btrim(label_en) <> ''::text)),
+    CONSTRAINT correction_reasons_label_es_check CHECK ((btrim(label_es) <> ''::text))
+);
+
+
+--
 -- Name: current_certifications; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -850,6 +886,55 @@ CREATE SEQUENCE public.customers_id_seq
 --
 
 ALTER SEQUENCE public.customers_id_seq OWNED BY public.customers.id;
+
+
+--
+-- Name: exceptions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.exceptions (
+    id bigint NOT NULL,
+    kind text NOT NULL,
+    status text DEFAULT 'open'::text NOT NULL,
+    severity text NOT NULL,
+    product_id integer,
+    lot_id integer,
+    transaction_id integer,
+    sales_order_id integer,
+    shipment_id integer,
+    receipt_number text,
+    ticket_id bigint,
+    detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+    owner_actor_id integer,
+    opened_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    due_at timestamp with time zone,
+    escalated_at timestamp with time zone,
+    resolved_at timestamp with time zone,
+    resolved_by_actor_id integer,
+    resolution_kind text,
+    resolution_note text,
+    resolution_ticket_id bigint,
+    CONSTRAINT exceptions_detail_check CHECK ((jsonb_typeof(detail) = 'object'::text)),
+    CONSTRAINT exceptions_escalated_needs_time CHECK (((status <> 'escalated'::text) OR (escalated_at IS NOT NULL))),
+    CONSTRAINT exceptions_kind_check CHECK ((kind = ANY (ARRAY['SHORTAGE'::text, 'UNIDENTIFIED_LOT'::text, 'LARGE_CORRECTION'::text, 'LATE_ENTRY'::text, 'SHIPMENT_PROOF_MISSING'::text, 'NEGATIVE_BALANCE'::text, 'POSSIBLE_DUPLICATE_ACK'::text, 'UNSHIPPED_PAST_DUE'::text, 'SUNSHINE_INVOICE_PENDING'::text, 'SHIFT_DISCREPANCY'::text]))),
+    CONSTRAINT exceptions_resolved_needs_time CHECK (((status <> ALL (ARRAY['resolved'::text, 'waived'::text])) OR (resolved_at IS NOT NULL))),
+    CONSTRAINT exceptions_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'warn'::text, 'block'::text]))),
+    CONSTRAINT exceptions_status_check CHECK ((status = ANY (ARRAY['open'::text, 'resolved'::text, 'waived'::text, 'escalated'::text])))
+);
+
+
+--
+-- Name: exceptions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.exceptions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.exceptions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
 
 
 --
@@ -1082,7 +1167,8 @@ CREATE TABLE public.transactions (
     expected_receipt_id integer,
     entry_backfilled boolean DEFAULT false NOT NULL,
     receipt_number text,
-    ticket_id bigint
+    ticket_id bigint,
+    reason_code text
 );
 
 
@@ -2265,6 +2351,47 @@ ALTER SEQUENCE public.shipments_id_seq OWNED BY public.shipments.id;
 
 
 --
+-- Name: shortage_flags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.shortage_flags (
+    id bigint NOT NULL,
+    transaction_id integer NOT NULL,
+    product_id integer NOT NULL,
+    lot_id integer NOT NULL,
+    short_lb numeric(14,4) NOT NULL,
+    exception_id bigint,
+    opened_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    due_at timestamp with time zone NOT NULL,
+    owner_actor_id integer,
+    status text DEFAULT 'open'::text NOT NULL,
+    resolution_kind text,
+    resolution_ticket_id bigint,
+    resolved_at timestamp with time zone,
+    resolved_by_actor_id integer,
+    CONSTRAINT shortage_flags_closed_needs_time CHECK (((status <> ALL (ARRAY['resolved'::text, 'waived'::text])) OR (resolved_at IS NOT NULL))),
+    CONSTRAINT shortage_flags_resolution_kind_check CHECK ((resolution_kind = ANY (ARRAY['counted'::text, 'missing_movement'::text, 'voided'::text]))),
+    CONSTRAINT shortage_flags_resolved_needs_kind CHECK (((status = 'resolved'::text) = (resolution_kind IS NOT NULL))),
+    CONSTRAINT shortage_flags_short_lb_check CHECK ((short_lb > (0)::numeric)),
+    CONSTRAINT shortage_flags_status_check CHECK ((status = ANY (ARRAY['open'::text, 'resolved'::text, 'waived'::text, 'escalated'::text])))
+);
+
+
+--
+-- Name: shortage_flags_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.shortage_flags ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.shortage_flags_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: supplier_product_aliases; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3135,6 +3262,22 @@ ALTER TABLE ONLY public.certifications
 
 
 --
+-- Name: correction_reason_legacy_codes correction_reason_legacy_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.correction_reason_legacy_codes
+    ADD CONSTRAINT correction_reason_legacy_codes_pkey PRIMARY KEY (source, legacy_code);
+
+
+--
+-- Name: correction_reasons correction_reasons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.correction_reasons
+    ADD CONSTRAINT correction_reasons_pkey PRIMARY KEY (code);
+
+
+--
 -- Name: customer_aliases customer_aliases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3164,6 +3307,14 @@ ALTER TABLE ONLY public.customers
 
 ALTER TABLE ONLY public.customers
     ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: exceptions exceptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_pkey PRIMARY KEY (id);
 
 
 --
@@ -3559,6 +3710,14 @@ ALTER TABLE ONLY public.shipments
 
 
 --
+-- Name: shortage_flags shortage_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_flags
+    ADD CONSTRAINT shortage_flags_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: supplier_product_aliases supplier_product_aliases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3690,6 +3849,48 @@ CREATE INDEX actor_write_audit_target_idx ON public.actor_write_audit USING btre
 --
 
 CREATE UNIQUE INDEX customer_product_aliases_uidx ON public.customer_product_aliases USING btree (customer_id, alias_key);
+
+
+--
+-- Name: exceptions_lot_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX exceptions_lot_idx ON public.exceptions USING btree (lot_id) WHERE (lot_id IS NOT NULL);
+
+
+--
+-- Name: exceptions_open_kind_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX exceptions_open_kind_idx ON public.exceptions USING btree (kind, opened_at) WHERE (status = ANY (ARRAY['open'::text, 'escalated'::text]));
+
+
+--
+-- Name: exceptions_open_owner_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX exceptions_open_owner_idx ON public.exceptions USING btree (owner_actor_id, due_at) WHERE (status = ANY (ARRAY['open'::text, 'escalated'::text]));
+
+
+--
+-- Name: exceptions_receipt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX exceptions_receipt_idx ON public.exceptions USING btree (receipt_number) WHERE (receipt_number IS NOT NULL);
+
+
+--
+-- Name: exceptions_ticket_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX exceptions_ticket_idx ON public.exceptions USING btree (ticket_id) WHERE (ticket_id IS NOT NULL);
+
+
+--
+-- Name: exceptions_transaction_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX exceptions_transaction_idx ON public.exceptions USING btree (transaction_id) WHERE (transaction_id IS NOT NULL);
 
 
 --
@@ -4197,6 +4398,27 @@ CREATE UNIQUE INDEX search_aliases_target_uniq ON public.search_aliases USING bt
 
 
 --
+-- Name: shortage_flags_open_lot_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shortage_flags_open_lot_idx ON public.shortage_flags USING btree (lot_id) WHERE (status = ANY (ARRAY['open'::text, 'escalated'::text]));
+
+
+--
+-- Name: shortage_flags_open_product_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shortage_flags_open_product_idx ON public.shortage_flags USING btree (product_id) WHERE (status = ANY (ARRAY['open'::text, 'escalated'::text]));
+
+
+--
+-- Name: shortage_flags_transaction_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shortage_flags_transaction_idx ON public.shortage_flags USING btree (transaction_id);
+
+
+--
 -- Name: soa_active_lot_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4285,6 +4507,13 @@ CREATE INDEX trace_events_occurred_idx ON public.trace_events USING btree (occur
 --
 
 CREATE INDEX trace_events_txn_idx ON public.trace_events USING btree (transaction_id);
+
+
+--
+-- Name: transactions_reason_code_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX transactions_reason_code_idx ON public.transactions USING btree (reason_code) WHERE (reason_code IS NOT NULL);
 
 
 --
@@ -4715,6 +4944,14 @@ ALTER TABLE ONLY public.certifications
 
 
 --
+-- Name: correction_reason_legacy_codes correction_reason_legacy_codes_reason_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.correction_reason_legacy_codes
+    ADD CONSTRAINT correction_reason_legacy_codes_reason_code_fkey FOREIGN KEY (reason_code) REFERENCES public.correction_reasons(code);
+
+
+--
 -- Name: customer_aliases customer_aliases_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4736,6 +4973,78 @@ ALTER TABLE ONLY public.customer_product_aliases
 
 ALTER TABLE ONLY public.customer_product_aliases
     ADD CONSTRAINT customer_product_aliases_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: exceptions exceptions_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.lots(id);
+
+
+--
+-- Name: exceptions exceptions_owner_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_owner_actor_id_fkey FOREIGN KEY (owner_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: exceptions exceptions_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: exceptions exceptions_resolution_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_resolution_ticket_id_fkey FOREIGN KEY (resolution_ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
+-- Name: exceptions exceptions_resolved_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_resolved_by_actor_id_fkey FOREIGN KEY (resolved_by_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: exceptions exceptions_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_sales_order_id_fkey FOREIGN KEY (sales_order_id) REFERENCES public.sales_orders(id);
+
+
+--
+-- Name: exceptions exceptions_shipment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_shipment_id_fkey FOREIGN KEY (shipment_id) REFERENCES public.shipments(id);
+
+
+--
+-- Name: exceptions exceptions_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
+-- Name: exceptions exceptions_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
 
 
 --
@@ -5171,6 +5480,62 @@ ALTER TABLE ONLY public.shipments
 
 
 --
+-- Name: shortage_flags shortage_flags_exception_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_flags
+    ADD CONSTRAINT shortage_flags_exception_id_fkey FOREIGN KEY (exception_id) REFERENCES public.exceptions(id);
+
+
+--
+-- Name: shortage_flags shortage_flags_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_flags
+    ADD CONSTRAINT shortage_flags_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.lots(id);
+
+
+--
+-- Name: shortage_flags shortage_flags_owner_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_flags
+    ADD CONSTRAINT shortage_flags_owner_actor_id_fkey FOREIGN KEY (owner_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: shortage_flags shortage_flags_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_flags
+    ADD CONSTRAINT shortage_flags_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: shortage_flags shortage_flags_resolution_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_flags
+    ADD CONSTRAINT shortage_flags_resolution_ticket_id_fkey FOREIGN KEY (resolution_ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
+-- Name: shortage_flags shortage_flags_resolved_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_flags
+    ADD CONSTRAINT shortage_flags_resolved_by_actor_id_fkey FOREIGN KEY (resolved_by_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: shortage_flags shortage_flags_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_flags
+    ADD CONSTRAINT shortage_flags_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+
+
+--
 -- Name: supplier_product_aliases supplier_product_aliases_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5275,6 +5640,14 @@ ALTER TABLE ONLY public.transactions
 
 
 --
+-- Name: transactions transactions_reason_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_reason_code_fkey FOREIGN KEY (reason_code) REFERENCES public.correction_reasons(code);
+
+
+--
 -- Name: transactions transactions_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5295,6 +5668,24 @@ ALTER TABLE ONLY public.write_tickets
 --
 
 ALTER TABLE public.actor_write_audit ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: correction_reason_legacy_codes; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.correction_reason_legacy_codes ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: correction_reasons; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.correction_reasons ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: exceptions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.exceptions ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: migration_markers; Type: ROW SECURITY; Schema: public; Owner: -
@@ -5321,6 +5712,12 @@ ALTER TABLE public.sales_order_create_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.search_aliases ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: shortage_flags; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.shortage_flags ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: write_tickets; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -5330,11 +5727,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LwwKdlcAAJzk0J5V44Ves7uNSjYPVMqhczf13Cxmp2QMpGZPghUfQNeQiKQeevV
+\unrestrict j6tUwHUOKWxZ5zJHWGtQie2cMMdcopymLX0pMRUOplt3FhNIBI3hLkW5H6JZZBX
 
-
-
-
--- Pending A3a: remove after prod migration + scripts/dump_prod_schema.sh
-SET search_path TO public;
-\ir ../../migrations/061_exceptions_tables.sql

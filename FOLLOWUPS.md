@@ -103,6 +103,22 @@ effective rows. The §7.3 contract (`docs/contracts/shift-summary.md` §2.2.1) r
 
 ---
 
+**P1.9 Create the `expire-tickets` Railway cron service before the F1 pilot (deferred by Michael 2026-10-08 after PR #83 rollout).**
+`scripts/expire_tickets.py` is live but nothing schedules it (commit still enforces expiry
+synchronously, so this is hygiene, not safety). Before pilot: add a service from the same
+repo/branch as FastAPI with `ENVIRONMENT=production`, `PRODUCTION_DATABASE_HOST` = the host of
+FastAPI's `DATABASE_URL` (`aws-1-us-east-1.pooler.supabase.com`), and
+`DATABASE_URL=${{FastAPI.DATABASE_URL}}` as a reference variable; dashboard-set schedule
+`15 7 * * *` + start command `python scripts/expire_tickets.py`. No `railway.cron.json`
+(Railway config-as-code is deprecated after 2026-12-01), so the shared `railway.json`
+watch patterns apply and `scripts/` changes require a manual redeploy of that service.
+First manual run: restart its deployment, expect `Expired N prepared tickets` in the log,
+verify read-only that only `write_tickets` changed. Same recipe for FastAPI-staging with
+`ENVIRONMENT=staging` + the staging guard variables. See
+`docs/deployments/a1-write-tickets-part2.md` "Nightly ticket expiry".
+
+---
+
 ## 1. Backfill NULL addresses on recurring customers
 
 **Context.** During Pass 1 we added an address-similarity tiebreaker to
