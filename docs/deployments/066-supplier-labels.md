@@ -1,12 +1,20 @@
 # Migration 066: supplier display labels (after the Dutch supplier cleanup)
 
+**Status 2026-10-08:** the Dutch cleanup (step 2) is APPLIED on staging (23:54:15Z) and
+production (23:54:43Z) — FL changelog row 170. **066 is ON HOLD**: not applied to
+production, PR not merged, until Michael decides the remaining duplicate groups
+(A1 ×3, Essex ×2, Euro ×3, Jack's ×2, Phildesco ×2, JOEL, NEW ENGLAND / Sweet New
+England); running 066 first would give those duplicates permanent labels. The
+label table below will be recalculated after those decisions.
+
 **Gated on Michael's supplier cleanup.** Decided 2026-10-08: only two real
 companies — **13 Dutch Gold Honey = `DUTG`** and **16 Dutch Valley Foods = `DUTV`**
 (explicit labels, not auto-assigned). 12 Dutch Gold merges into 13; 11 DUTC Valley
 (typo), 14 Dutch Valley and 15 Dutch Valley Food Dist. merge into 16. Merge =
 repoint every FK reference (`lots`, `transactions`, `lot_supplier_codes`,
 `expected_receipts`, `supplier_product_aliases`, `search_aliases`) to the canonical
-id, then **deactivate** the duplicate. Rows are never deleted; historical lot codes
+id, then **deactivate** the duplicate, and add exact-match `search_aliases`
+(kind `supplier`) old name → canonical. Rows are never deleted; historical lot codes
 (`DUTC…`) and free-text supplier names stay as typed.
 
 A5 already works with nullable labels: migration 064 supplies the supplier FK

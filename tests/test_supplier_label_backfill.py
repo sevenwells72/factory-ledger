@@ -132,6 +132,14 @@ def test_dutch_cleanup_script_merges_deactivates_and_labels(db_cursor):
     rows = {row['id']: (row['active'], row['short_code']) for row in db_cursor.fetchall()}
     assert rows == {11: (False, None), 12: (False, None), 13: (True, 'DUTG'),
                     14: (False, None), 15: (False, None), 16: (True, 'DUTV')}
+    db_cursor.execute("""SELECT alias, supplier_id FROM search_aliases WHERE kind='supplier'
+        AND alias IN ('Dutch Gold','Dutch Valley','Dutch Valley Food Dist.','DUTC Valley') ORDER BY alias""")
+    assert [(r['alias'], r['supplier_id']) for r in db_cursor.fetchall()] == [
+        ('DUTC Valley', 16), ('Dutch Gold', 13), ('Dutch Valley', 16), ('Dutch Valley Food Dist.', 16)]
+    # Re-running the script is a no-op (idempotent aliases, guards still pass).
+    db_cursor.execute(CLEANUP.read_text().replace('BEGIN;', '').replace('COMMIT;', ''))
+    db_cursor.execute("SELECT count(*) AS n FROM search_aliases WHERE kind='supplier' AND supplier_id IN (13,16)")
+    assert db_cursor.fetchone()['n'] == 4
     # 066 afterwards keeps the explicit labels and skips the deactivated rows.
     acknowledge(db_cursor)
     db_cursor.execute(MIGRATION.read_text())

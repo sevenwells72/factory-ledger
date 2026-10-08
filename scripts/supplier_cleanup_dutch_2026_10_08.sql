@@ -3,7 +3,7 @@
 --   12 Dutch Gold                      → 13
 --   11 DUTC Valley (typo), 14 Dutch Valley, 15 Dutch Valley Food Dist. → 16
 -- Merge = repoint every FK reference to the canonical id, then DEACTIVATE the
--- duplicate (never delete). Historical lot codes (e.g. "DUTC…") and free-text
+-- duplicate (never delete), and add exact-match search aliases old name → canonical. Historical lot codes (e.g. "DUTC…") and free-text
 -- supplier names are left unchanged. Run as table owner, ON_ERROR_STOP, in ONE
 -- transaction; psql prints the UPDATE counts per statement:
 --   psql "$URL" -v ON_ERROR_STOP=1 -X -f scripts/supplier_cleanup_dutch_2026_10_08.sql
@@ -50,7 +50,16 @@ UPDATE suppliers SET active = false, short_code = NULL WHERE id IN (11,12,14,15)
 UPDATE suppliers SET short_code = 'DUTG' WHERE id = 13;
 UPDATE suppliers SET short_code = 'DUTV' WHERE id = 16;
 
--- 4. Verify: zero remaining references to the deactivated ids, labels in place.
+-- 3b. Exact-match search aliases (kind='supplier', used by /resolve as tier 'alias';
+--     receive still resolves by supplier name only). Idempotent via the unique index.
+INSERT INTO search_aliases (kind, alias, supplier_id) VALUES
+    ('supplier', 'Dutch Gold',              13),
+    ('supplier', 'Dutch Valley',            16),
+    ('supplier', 'Dutch Valley Food Dist.', 16),
+    ('supplier', 'DUTC Valley',             16)
+ON CONFLICT DO NOTHING;
+
+-- 4. Verify: zero remaining references to the deactivated ids, labels + aliases in place.
 DO $$ DECLARE remaining integer; BEGIN
     SELECT (SELECT count(*) FROM lots                     WHERE supplier_id IN (11,12,14,15))
          + (SELECT count(*) FROM transactions             WHERE supplier_id IN (11,12,14,15))
@@ -64,6 +73,11 @@ DO $$ DECLARE remaining integer; BEGIN
        OR (SELECT short_code FROM suppliers WHERE id = 13) <> 'DUTG'
        OR (SELECT short_code FROM suppliers WHERE id = 16) <> 'DUTV' THEN
         RAISE EXCEPTION 'Dutch supplier end state not as planned';
+    END IF;
+    IF (SELECT count(*) FROM search_aliases WHERE kind='supplier' AND active
+            AND ((supplier_id=13 AND alias_norm='dutch gold')
+              OR (supplier_id=16 AND alias_norm IN ('dutch valley','dutch valley food dist.','dutc valley')))) <> 4 THEN
+        RAISE EXCEPTION 'Dutch supplier search aliases missing';
     END IF;
 END $$;
 SELECT id, name, active, short_code FROM suppliers WHERE id IN (11,12,13,14,15,16) ORDER BY id;
