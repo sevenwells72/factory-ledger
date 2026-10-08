@@ -5332,3 +5332,9 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 
 \unrestrict LwwKdlcAAJzk0J5V44Ves7uNSjYPVMqhczf13Cxmp2QMpGZPghUfQNeQiKQeevV
 
+
+
+
+-- Pending A3a: remove after prod migration + scripts/dump_prod_schema.sh
+SET search_path TO public;
+\ir ../../migrations/061_exceptions_tables.sql
