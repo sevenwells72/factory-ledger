@@ -8209,6 +8209,890 @@ def build_production_warning(product: dict) -> dict | None:
     return warning
 
 
+def _post_prepared_inputs(cur, txn_id, product_id, needed, plan):
+    """Consume the exact ID/quantity plan validated and locked by a ticket."""
+    selected = [item for item in plan if item['product_id'] == product_id]
+    if abs(sum(item['quantity_lb'] for item in selected) - needed) > BALANCE_EPSILON:
+        raise HTTPException(409, {'error_code': 'INPUT_PLAN_CHANGED',
+                                  'message': 'The ingredient requirements changed; prepare again.'})
+    consumed = []
+    for item in selected:
+        cur.execute('SELECT id, lot_code FROM lots WHERE id=%s FOR UPDATE', (item['lot_id'],))
+        lot = cur.fetchone()
+        qty = item['quantity_lb']
+        validate_lot_deduction(cur, lot['id'], lot['lot_code'], qty)
+        cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,%s)',
+                    (txn_id, product_id, lot['id'], -qty))
+        cur.execute('INSERT INTO ingredient_lot_consumption(transaction_id,ingredient_product_id,ingredient_lot_id,quantity_lb) VALUES (%s,%s,%s,%s)',
+                    (txn_id, product_id, lot['id'], qty))
+        consumed.append({'lot_id': lot['id'], 'lot_code': lot['lot_code'], 'consumed_lb': qty})
+    return consumed
+
+
+def _make_preview_core(cur, req, *, product=None):
+    product = product if product is not None else resolve_product_full(cur, req.product_name)
+    batch_size = float(product.get('default_batch_lb') or 0)
+    yield_multiplier = float(product.get('yield_multiplier') or 1.0)
+    formula_weight_lb = batch_size * req.batches
+    total_output = formula_weight_lb * yield_multiplier
+    manual_excluded_ids = set(req.excluded_ingredients or [])
+
+    cur.execute("""
+        SELECT bf.ingredient_product_id, p.name as ingredient_name, bf.quantity_lb,
+               COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
+        FROM batch_formulas bf
+        JOIN products p ON p.id = bf.ingredient_product_id
+        WHERE bf.product_id = %s
+    """, (product['id'],))
+    formula = cur.fetchall()
+
+    auto_excluded_ids = set()
+    for ing in formula:
+        if ing.get('exclude_from_inventory'):
+            auto_excluded_ids.add(ing['ingredient_product_id'])
+    excluded_ids = manual_excluded_ids | auto_excluded_ids
+
+    ingredients_needed = []
+    excluded_ingredients = []
+    lot_overrides_applied = []
+    lot_overrides = req.get_lot_overrides()
+
+    all_ing_ids = [ing['ingredient_product_id'] for ing in formula
+                   if ing['ingredient_product_id'] not in excluded_ids]
+    ingredient_lots_map = {}
+    if all_ing_ids:
+        cur.execute(f"""
+            SELECT l.product_id, l.id, l.lot_code,
+                   COALESCE(SUM(tl.quantity_lb), 0) as available
+            FROM lots l
+            LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
+            WHERE l.product_id = ANY(%s)
+            GROUP BY l.id
+            HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+            ORDER BY l.product_id, COALESCE(l.received_at, l.created_at) ASC
+        """, (all_ing_ids,))
+        for row in cur.fetchall():
+            pid = row['product_id']
+            if pid not in ingredient_lots_map:
+                ingredient_lots_map[pid] = []
+            ingredient_lots_map[pid].append(dict(row))
+
+    for ing in formula:
+        ing_id = ing['ingredient_product_id']
+        needed = float(ing['quantity_lb']) * req.batches
+        if ing_id in excluded_ids:
+            excluded_ingredients.append({
+                "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
+                "would_need_lb": needed, "excluded": True,
+                "exclusion_type": "auto" if ing_id in auto_excluded_ids else "manual"
+            })
+            continue
+        if lot_overrides and str(ing_id) in lot_overrides:
+            override_code = lot_overrides[str(ing_id)]
+            cur.execute(f"""
+                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
+                WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s) GROUP BY l.id
+            """, (ing_id, override_code))
+            override_lot = cur.fetchone()
+            if not override_lot:
+                ingredients_needed.append({
+                    "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
+                    "needed_lb": needed, "available_lb": 0, "sufficient": False,
+                    "override_lot": override_code,
+                    "override_error": f"Lot '{override_code}' not found for this ingredient"
+                })
+                continue
+            avail = float(override_lot['available'])
+            lot_overrides_applied.append({
+                "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
+                "lot_code": override_lot['lot_code'], "needed_lb": needed,
+                "available_lb": avail, "sufficient": avail >= needed
+            })
+            ingredients_needed.append({
+                "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
+                "needed_lb": needed, "available_lb": avail, "sufficient": avail >= needed,
+                "override_lot": override_lot['lot_code']
+            })
+        else:
+            available_lots = ingredient_lots_map.get(ing_id, [])
+            total_avail = sum(float(lot['available']) for lot in available_lots)
+            lot_details = [{"lot_code": lot['lot_code'], "available_lb": float(lot['available'])} for lot in available_lots]
+            ingredients_needed.append({
+                "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
+                "needed_lb": needed, "available_lb": total_avail, "sufficient": total_avail >= needed,
+                "lot_count": len(available_lots), "lots": lot_details
+            })
+
+    all_sufficient = all(i['sufficient'] for i in ingredients_needed)
+    if req.lot_code:
+        lot_code = normalize_lot_code_input(req.lot_code)
+    else:
+        now = get_plant_now()
+        date_part = now.strftime("%y-%m%d")
+        seq = next_lot_sequence(cur, f"B{date_part}-%")
+        lot_code = f"B{date_part}-{seq:03d}"
+
+    siblings = get_sibling_skus(cur, product['id'])
+    yield_note = f" (estimated yield with {yield_multiplier}x multiplier; actual weight may differ)" if yield_multiplier != 1.0 else ""
+
+    response = {
+        "mode": "preview",
+        "product_id": product['id'], "product_name": product['name'],
+        "batches": req.batches, "batch_size_lb": batch_size,
+        "yield_multiplier": yield_multiplier, "formula_weight_lb": formula_weight_lb,
+        "estimated_yield_lb": total_output, "total_output_lb": total_output,
+        "lot_code": lot_code, "ingredients": ingredients_needed,
+        "all_ingredients_available": all_sufficient,
+        "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({total_output} lb){yield_note}"
+    }
+    production_warning = build_production_warning(product)
+    if production_warning:
+        response["production_warning"] = production_warning
+        response["preview_message"] += f" ⚠ {production_warning['verification_notes']}"
+    if siblings:
+        sibling_names = [s['name'] for s in siblings]
+        response["sibling_skus"] = siblings
+        response["sku_confirmation_required"] = True
+        response["sku_warning"] = (
+            f"This batch source has {len(siblings) + 1} finished-good SKUs with the same formula. "
+            f"You selected '{product['name']}'. Other options: {sibling_names}. "
+            f"Confirm this is the correct output SKU before committing."
+        )
+    if lot_overrides_applied:
+        response["lot_overrides"] = lot_overrides_applied
+        response["preview_message"] += f" (with {len(lot_overrides_applied)} lot override(s))"
+    if excluded_ingredients:
+        auto_count = sum(1 for e in excluded_ingredients if e.get('exclusion_type') == 'auto')
+        manual_count = len(excluded_ingredients) - auto_count
+        response["excluded_ingredients"] = excluded_ingredients
+        parts = []
+        if auto_count: parts.append(f"{auto_count} auto-excluded")
+        if manual_count: parts.append(f"{manual_count} manually excluded")
+        response["preview_message"] += f" ({', '.join(parts)} ingredient(s))"
+    return response
+
+
+def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None):
+    product = product if product is not None else resolve_product_full(cur, req.product_name)
+
+    siblings = get_sibling_skus(cur, product['id'])
+    if siblings and not req.confirmed_sku:
+        sibling_names = [s['name'] for s in siblings]
+        raise HTTPException(status_code=400, detail=(
+            f"SKU confirmation required. '{product['name']}' shares a batch formula with: "
+            f"{sibling_names}. Set confirmed_sku=true to confirm this is the correct "
+            f"output SKU. Never assume — ask the operator which SKU they are packing."
+        ))
+
+    batch_size = float(product.get('default_batch_lb') or 0)
+    yield_multiplier = float(product.get('yield_multiplier') or 1.0)
+    formula_weight_lb = float(to_decimal(batch_size) * to_decimal(req.batches))
+    total_output = float(to_decimal(formula_weight_lb) * to_decimal(yield_multiplier))
+    if total_output <= 0:
+        raise HTTPException(400, f"Make rejected: output quantity is 0 lb. Product '{product['name']}' has batch_size={batch_size}, batches={req.batches}.")
+    now = get_plant_now()
+    manual_excluded_ids = set(req.excluded_ingredients or [])
+    auto_excluded_ids = set()
+
+    # Serialize make commits with each other for lot-code
+    # generation (receive holds advisory lock 1, found-inventory
+    # holds 2). Without this, two concurrent makes read the same
+    # MAX sequence and mint identical B-codes — and for the same
+    # product, find_or_create_lot's ON CONFLICT DO NOTHING
+    # silently folds two production runs into one lot.
+    cur.execute("SELECT pg_advisory_xact_lock(3)")
+
+    if req.lot_code:
+        lot_code = normalize_lot_code_input(req.lot_code)
+    else:
+        date_part = now.strftime("%y-%m%d")
+        seq = next_lot_sequence(cur, f"B{date_part}-%")
+        lot_code = f"B{date_part}-{seq:03d}"
+
+    output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'production_output')
+    if require_new_lot and not is_new_lot:
+        raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
+                                  'message': 'The prepared lot code is now in use; prepare again.'})
+
+    code_similarity = (
+        check_suspicious_code_similarity(cur, product['id'], output_lot_id, lot_code)
+        if is_new_lot else None
+    )
+
+    cur.execute("""
+        SELECT bf.ingredient_product_id, bf.quantity_lb,
+               COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
+        FROM batch_formulas bf WHERE bf.product_id = %s
+    """, (product['id'],))
+    formula = cur.fetchall()
+
+    auto_excluded_ids = set()
+    for ing in formula:
+        if ing.get('exclude_from_inventory'):
+            auto_excluded_ids.add(ing['ingredient_product_id'])
+    excluded_ids = manual_excluded_ids | auto_excluded_ids
+
+    exclusion_note = ""
+    if manual_excluded_ids:
+        exclusion_note += f" (manually excluded IDs: {sorted(manual_excluded_ids)})"
+    if auto_excluded_ids:
+        exclusion_note += f" (auto-excluded IDs: {sorted(auto_excluded_ids)})"
+
+    cur.execute("""
+        INSERT INTO transactions (
+            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number
+        )
+        VALUES ('make', %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, occurred_at, business_date
+    """, (
+        now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
+        occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+    ))
+    txn_row = cur.fetchone()
+    txn_id = txn_row['id']
+
+    cur.execute("""
+        INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
+        VALUES (%s, %s, %s, %s)
+    """, (txn_id, product['id'], output_lot_id, total_output))
+
+    consumed_by_ingredient = {}
+    excluded_from_run = []
+    trace_inputs = []  # (lot_id, 'input', -qty) mirroring each ILC row
+    lot_overrides = req.get_lot_overrides()
+
+    all_formula_ids = [ing['ingredient_product_id'] for ing in formula]
+    ing_names = {}
+    if all_formula_ids:
+        cur.execute("SELECT id, name FROM products WHERE id = ANY(%s)", (all_formula_ids,))
+        for row in cur.fetchall():
+            ing_names[row['id']] = row['name']
+
+    for ing in formula:
+        ing_id = ing['ingredient_product_id']
+        needed = float(to_decimal(ing['quantity_lb']) * to_decimal(req.batches))
+        ing_name = ing_names.get(ing_id, f"ID {ing_id}")
+        if ing_id in excluded_ids:
+            excluded_from_run.append({
+                "ingredient_id": ing_id, "ingredient_name": ing_name,
+                "skipped_lb": needed,
+                "exclusion_type": "auto" if ing_id in auto_excluded_ids else "manual"
+            })
+            continue
+        if ing_id not in consumed_by_ingredient:
+            consumed_by_ingredient[ing_id] = {
+                "ingredient_id": ing_id, "ingredient_name": ing_name,
+                "total_consumed_lb": 0.0, "lots": []
+            }
+        if input_plan is not None:
+            consumed = _post_prepared_inputs(cur, txn_id, ing_id, needed, input_plan)
+            trace_inputs.extend((lot['lot_id'], 'input', -lot['consumed_lb']) for lot in consumed)
+            consumed_by_ingredient[ing_id]['total_consumed_lb'] = needed
+            consumed_by_ingredient[ing_id]['lots'] = consumed
+            continue
+        override_lot = None
+        if lot_overrides and str(ing_id) in lot_overrides:
+            override_code = lot_overrides[str(ing_id)]
+            cur.execute("SELECT l.id, l.lot_code FROM lots l WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s)", (ing_id, override_code))
+            override_lot = cur.fetchone()
+        if override_lot:
+            cur.execute("SELECT id FROM lots WHERE id = %s FOR UPDATE", (override_lot['id'],))
+            available = validate_lot_deduction(cur, override_lot['id'], override_lot['lot_code'], needed)
+            cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, override_lot['id'], -needed))
+            cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, override_lot['id'], needed))
+            trace_inputs.append((override_lot['id'], 'input', -needed))
+            consumed_by_ingredient[ing_id]["total_consumed_lb"] += needed
+            consumed_by_ingredient[ing_id]["lots"].append({"lot_code": override_lot['lot_code'], "consumed_lb": needed, "override": True})
+        else:
+            cur.execute(f"""
+                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
+                WHERE l.product_id = %s GROUP BY l.id
+                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
+            """, (ing_id,))
+            candidate_lots = cur.fetchall()
+            if not candidate_lots:
+                raise HTTPException(status_code=400, detail=f"No inventory available for ingredient ID {ing_id}")
+            lot_ids = [lot['id'] for lot in candidate_lots]
+            cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
+            cur.execute(f"""
+                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
+                WHERE l.id = ANY(%s) GROUP BY l.id
+                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
+            """, (lot_ids,))
+            lots = cur.fetchall()
+            remaining = needed
+            for lot in lots:
+                if remaining <= BALANCE_EPSILON: break
+                avail = float(lot['available'])
+                if avail < BALANCE_EPSILON: continue
+                take = min(avail, remaining)
+                cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], -take))
+                cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], take))
+                trace_inputs.append((lot['id'], 'input', -take))
+                consumed_by_ingredient[ing_id]["total_consumed_lb"] += take
+                consumed_by_ingredient[ing_id]["lots"].append({"lot_code": lot['lot_code'], "consumed_lb": take})
+                remaining -= take
+            if remaining > BALANCE_EPSILON:
+                raise HTTPException(status_code=400, detail=f"Insufficient inventory for ingredient ID {ing_id}. Missing {remaining:.2f} lb")
+
+    # Trace emission (§4): after every transaction_lines/ILC
+    # write, fail-hard. /make has no allocation side-writes.
+    if trace_emit_enabled():
+        emit_trace_event(
+            cur, txn_id, 'make', 'transformation',
+            trace_inputs + [(output_lot_id, 'output', total_output)],
+            txn_row['occurred_at'], txn_row['business_date'],
+            operator_id=actor_name(request),
+        )
+
+    consumed_flat = []
+    for group in consumed_by_ingredient.values():
+        for lot_entry in group["lots"]:
+            consumed_flat.append({"ingredient_id": group["ingredient_id"], "ingredient_name": group["ingredient_name"], **lot_entry})
+
+    logger.info(f"Make committed: {lot_code} - {total_output} lb of {product['name']}")
+
+    response = {
+        "mode": "commit",
+        "success": True, "transaction_id": txn_id,
+        "confirmation_code": generate_confirmation_code(txn_id),
+        "lot_id": output_lot_id, "lot_uuid": str(output_lot_uuid), "lot_code": lot_code,
+        "yield_multiplier": yield_multiplier, "formula_weight_lb": formula_weight_lb,
+        "estimated_yield_lb": total_output, "output_lb": total_output,
+        "ingredients_consumed": consumed_flat,
+        "ingredients_consumed_grouped": list(consumed_by_ingredient.values()),
+        "message": f"Produced {total_output} lb as lot {lot_code}"
+    }
+    if code_similarity:
+        response.setdefault("warnings", []).append(code_similarity)
+    production_warning = build_production_warning(product)
+    if production_warning:
+        response["production_warning"] = production_warning
+    if siblings:
+        response["confirmed_sku"] = True
+        response["sibling_skus"] = [s['name'] for s in siblings]
+    if excluded_from_run:
+        auto_count = sum(1 for e in excluded_from_run if e.get('exclusion_type') == 'auto')
+        manual_count = len(excluded_from_run) - auto_count
+        response["excluded_ingredients"] = excluded_from_run
+        parts = []
+        if auto_count: parts.append(f"{auto_count} auto-excluded")
+        if manual_count: parts.append(f"{manual_count} manually excluded")
+        response["message"] += f" ({', '.join(parts)} ingredient(s))"
+
+    # Fix 2: Auto-prompt /pack after /make — query FG products that
+    # can be packed from this batch product via parent_batch_product_id.
+    # This tells the GPT/operator which /pack calls to make next.
+    cur.execute("""
+        SELECT id, name, case_size_lb
+        FROM products
+        WHERE parent_batch_product_id = %s
+          AND type != 'ingredient'
+        ORDER BY name
+    """, (product['id'],))
+    fg_products = cur.fetchall()
+    if fg_products:
+        response["pack_needed"] = {
+            "batch_lot_code": lot_code,
+            "batch_product_name": product['name'],
+            "batch_on_hand_lb": total_output,
+            "finished_goods": [
+                {
+                    "product_id": fg['id'],
+                    "name": fg['name'],
+                    "case_size_lb": float(fg['case_size_lb']) if fg['case_size_lb'] else None
+                }
+                for fg in fg_products
+            ],
+            "message": (
+                f"Run /pack to convert {product['name']} lot {lot_code} "
+                f"into finished goods: {', '.join(fg['name'] for fg in fg_products)}"
+            )
+        }
+
+    response["daily_production_summary"] = get_daily_production_summary(cur)
+    return response
+
+
+def _pack_preview_core(cur, req, *, source=None, target=None):
+    source = source if source is not None else resolve_product_full(cur, req.source_product)
+    target = target if target is not None else resolve_product_full(cur, req.target_product)
+    case_weight = req.case_weight_lb
+    if case_weight is None:
+        case_weight = float(target.get('case_size_lb') or 0)
+    if case_weight <= 0:
+        raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no case_size_lb set. Provide case_weight_lb parameter to override.")
+    total_lb = req.cases * case_weight
+
+    available_lots = available_lots_for_product(cur, int(source['id']))
+    reservation_summary = _allocation_reservation_summary(
+        cur, int(source['id'])
+    )
+    total_available = sum(float(lot['on_hand']) for lot in available_lots)
+
+    if req.lot_allocations:
+        allocations = []
+        can_pack = 0.0
+        reserved_taken = 0.0
+        for alloc in req.lot_allocations:
+            matched = next((l for l in available_lots if l['lot_code'].lower() == alloc.lot_code.lower()), None)
+            if not matched:
+                allocations.append({"lot_code": alloc.lot_code, "available_lb": 0, "allocated_lb": alloc.quantity_lb, "sufficient": False, "error": f"Lot '{alloc.lot_code}' not found or has no inventory for {source['name']}"})
+                continue
+            physical = float(matched['on_hand'])
+            takeable = float(matched['takeable'])
+            can_pack += min(float(alloc.quantity_lb), takeable)
+            reserved_taken += max(
+                0.0,
+                min(float(alloc.quantity_lb), physical)
+                - min(float(alloc.quantity_lb), takeable),
+            )
+            allocations.append({"lot_id": matched['lot_id'], "lot_code": matched['lot_code'], "available_lb": physical, "takeable_lb": takeable, "allocated_lb": alloc.quantity_lb, "sufficient": physical >= alloc.quantity_lb})
+        alloc_total = sum(a['allocated_lb'] for a in allocations)
+        if abs(alloc_total - total_lb) > 0.01:
+            return JSONResponse(status_code=400, content={"error": f"Lot allocations sum to {alloc_total} lb but {total_lb} lb needed ({req.cases} cases x {case_weight} lb)"})
+    else:
+        plan = _takeable_deduction_plan(available_lots, total_lb)
+        can_pack = plan["can_take_lb"]
+        reserved_taken = plan["reserved_taken_lb"]
+        allocations = [
+            {
+                "lot_id": item["lot"]["lot_id"],
+                "lot_code": item["lot"]["lot_code"],
+                "available_lb": float(item["lot"]["on_hand"]),
+                "takeable_lb": float(item["lot"]["takeable"]),
+                "allocated_lb": float(item["quantity_lb"]),
+                "sufficient": plan["short_lb"] <= BALANCE_EPSILON,
+            }
+            for item in plan["lots"]
+        ]
+
+    all_sufficient = all(a.get('sufficient', False) for a in allocations)
+    if req.target_lot_code:
+        output_lot_code = normalize_lot_code_input(req.target_lot_code)
+    elif allocations and allocations[0].get('lot_code'):
+        output_lot_code = allocations[0]['lot_code']
+    else:
+        output_lot_code = "UNKNOWN"
+
+    allocation_warning = _allocation_observe_warning(
+        "Pack",
+        total_lb,
+        can_pack,
+        reserved_taken,
+        reservation_summary,
+        preview=True,
+    )
+    result = {
+        "mode": "preview",
+        "source_product_id": source['id'], "source_product_name": source['name'],
+        "target_product_id": target['id'], "target_product_name": target['name'],
+        "cases": req.cases, "case_weight_lb": case_weight, "total_lb": total_lb,
+        "output_lot_code": output_lot_code, "allocations": allocations,
+        "all_lots_sufficient": all_sufficient, "total_batch_available_lb": total_available,
+        "total_takeable_lb": sum(float(lot['takeable']) for lot in available_lots),
+        "can_pack_lb": can_pack,
+        "reserved_others_lb": reservation_summary["reserved_others_lb"],
+        "reserved_by_orders": reservation_summary["reserved_by_orders"],
+        "source_lot_count": len(available_lots),
+        "source_lots": [{"lot_code": lot['lot_code'], "available_lb": float(lot['on_hand']), "takeable_lb": float(lot['takeable'])} for lot in available_lots],
+        "preview_message": f"Ready to pack {req.cases} cases ({total_lb} lb) of {target['name']} from {source['name']} ({len(available_lots)} batch lot(s))"
+    }
+    if allocation_warning:
+        result["allocation_warning"] = allocation_warning
+        result["warning"] = allocation_warning["message"]
+    add_in_info = resolve_pack_add_ins(cur, source, target, total_lb)
+    if add_in_info:
+        # Strip internal keys before returning
+        public_info = {k: v for k, v in add_in_info.items() if not k.startswith('_')}
+        result.update(public_info)
+    return result
+
+
+def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, source=None, target=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None):
+    source = source if source is not None else resolve_product_full(cur, req.source_product)
+    target = target if target is not None else resolve_product_full(cur, req.target_product)
+    case_weight = req.case_weight_lb
+    if case_weight is None:
+        case_weight = float(target.get('case_size_lb') or 0)
+    if case_weight <= 0:
+        raise HTTPException(400, f"Case weight required for '{target['name']}'. Provide case_weight_lb parameter to override.")
+    total_lb = req.cases * case_weight
+    now = get_plant_now()
+
+    lots = available_lots_for_product(
+        cur,
+        int(source['id']),
+        lock=True,
+        persist_expired=True,
+        released_by=_operator_id(request),
+    )
+    reservation_summary = _allocation_reservation_summary(
+        cur, int(source['id'])
+    )
+    if not lots:
+        raise HTTPException(400, f"No batch inventory available for {source['name']}")
+
+    if input_plan is not None:
+        pinned_ids = {item['lot_id'] for item in input_plan if item['product_id'] == source['id']}
+        lots = [lot for lot in lots if lot['lot_id'] in pinned_ids]
+    lots_by_code = {lot['lot_code'].lower(): lot for lot in lots}
+
+    if req.lot_allocations:
+        alloc_plan = []
+        can_pack = 0.0
+        reserved_taken = 0.0
+        for alloc in req.lot_allocations:
+            lot = lots_by_code.get(alloc.lot_code.lower())
+            if not lot:
+                raise HTTPException(400, f"Lot '{alloc.lot_code}' not found or empty for {source['name']}")
+            validate_lot_deduction(cur, lot['lot_id'], lot['lot_code'], alloc.quantity_lb)
+            takeable = float(lot['takeable'])
+            physical = float(lot['on_hand'])
+            # Clamp by physical for symmetry with the preview
+            # arithmetic. validate_lot_deduction already
+            # guarantees quantity <= physical here, but the
+            # clamp keeps commit == preview by construction
+            # rather than by reliance on that guard.
+            can_pack += min(float(alloc.quantity_lb), takeable)
+            reserved_taken += max(
+                0.0,
+                min(float(alloc.quantity_lb), physical)
+                - min(float(alloc.quantity_lb), takeable),
+            )
+            alloc_plan.append((lot, alloc.quantity_lb))
+        alloc_total = sum(qty for _, qty in alloc_plan)
+        if abs(alloc_total - total_lb) > 0.01:
+            raise HTTPException(400, f"Allocations sum to {alloc_total} lb, need {total_lb} lb ({req.cases} cases x {case_weight} lb)")
+    else:
+        plan = _takeable_deduction_plan(lots, total_lb)
+        if plan["short_lb"] > BALANCE_EPSILON:
+            raise HTTPException(400, f"Insufficient batch inventory. Have {plan['total_on_hand_lb']:.4f} lb, need {total_lb} lb")
+        can_pack = plan["can_take_lb"]
+        reserved_taken = plan["reserved_taken_lb"]
+        alloc_plan = [
+            (item["lot"], float(item["quantity_lb"]))
+            for item in plan["lots"]
+        ]
+
+    allocation_warning = _allocation_observe_warning(
+        "Pack",
+        total_lb,
+        can_pack,
+        reserved_taken,
+        reservation_summary,
+    )
+    _enforce_allocation_takeable(
+        "Pack",
+        total_lb,
+        can_pack,
+        reserved_taken,
+        reservation_summary,
+        product_id=int(source["id"]),
+    )
+
+    if req.target_lot_code:
+        output_lot_code = normalize_lot_code_input(req.target_lot_code)
+    else:
+        output_lot_code = alloc_plan[0][0]['lot_code']
+
+    output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
+    if require_new_lot and not is_new_lot:
+        raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
+                                  'message': 'The prepared lot code is now in use; prepare again.'})
+
+    code_similarity = (
+        check_suspicious_code_similarity(cur, target['id'], output_lot_id, output_lot_code)
+        if is_new_lot else None
+    )
+    source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
+    cur.execute("""
+        INSERT INTO transactions (
+            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number
+        )
+        VALUES ('pack', %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, occurred_at, business_date
+    """, (
+        now,
+        f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
+        occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+    ))
+    txn_row = cur.fetchone()
+    txn_id = txn_row['id']
+
+    cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, target['id'], output_lot_id, total_lb))
+
+    consumed = []
+    trace_inputs = []  # (lot_id, 'input', -qty) mirroring each ILC row
+    for lot, qty in alloc_plan:
+        cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['lot_id'], -qty))
+        cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['lot_id'], qty))
+        trace_inputs.append((lot['lot_id'], 'input', -qty))
+        consumed.append({"lot_code": lot['lot_code'], "consumed_lb": qty})
+
+    # --- Add-in ingredient deduction ---
+    add_in_info = resolve_pack_add_ins(cur, source, target, total_lb)
+    add_in_consumed = []
+    if add_in_info and 'add_in_ingredients' in add_in_info:
+        # Check all add-ins are sufficient before deducting
+        if not add_in_info.get('all_add_ins_sufficient'):
+            short = [ai for ai in add_in_info['add_in_ingredients'] if not ai['sufficient']]
+            short_msg = "; ".join(f"{ai['ingredient_name']}: have {ai['available_lb']} lb, need {ai['needed_lb']} lb" for ai in short)
+            raise HTTPException(400, f"Insufficient inventory for add-in ingredient(s): {short_msg}")
+
+        ratio = total_lb / add_in_info['_base_qty']
+        for ing in add_in_info['_add_in_formulas']:
+            ing_id = ing['ingredient_product_id']
+            needed = round(float(ing['quantity_lb']) * ratio, 2)
+            if input_plan is not None:
+                consumed_inputs = _post_prepared_inputs(cur, txn_id, ing_id, needed, input_plan)
+                trace_inputs.extend((lot['lot_id'], 'input', -lot['consumed_lb']) for lot in consumed_inputs)
+                add_in_consumed.extend(dict(ingredient_name=ing['ingredient_name'], **lot)
+                                       for lot in consumed_inputs)
+                continue
+            # FIFO deduction with locking
+            cur.execute(f"""
+                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
+                WHERE l.product_id = %s GROUP BY l.id
+                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                ORDER BY COALESCE(l.received_at, l.created_at) ASC
+            """, (ing_id,))
+            candidate_lots = cur.fetchall()
+            lot_ids = [lot['id'] for lot in candidate_lots]
+            cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
+            cur.execute(f"""
+                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
+                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
+                WHERE l.id = ANY(%s) GROUP BY l.id
+                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
+                ORDER BY COALESCE(l.received_at, l.created_at) ASC
+            """, (lot_ids,))
+            ing_lots = cur.fetchall()
+            remaining = needed
+            cur.execute("SELECT name FROM products WHERE id = %s", (ing_id,))
+            ing_name = cur.fetchone()['name']
+            for lot in ing_lots:
+                if remaining <= BALANCE_EPSILON:
+                    break
+                avail = float(lot['available'])
+                if avail < BALANCE_EPSILON:
+                    continue
+                take = min(avail, remaining)
+                cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], -take))
+                cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], take))
+                trace_inputs.append((lot['id'], 'input', -take))
+                add_in_consumed.append({"ingredient_name": ing_name, "lot_code": lot['lot_code'], "consumed_lb": round(take, 2)})
+                remaining -= take
+            if remaining > BALANCE_EPSILON:
+                raise HTTPException(400, f"Insufficient inventory for add-in ingredient {ing_name}: need {needed} lb, could only allocate {needed - remaining:.2f} lb")
+
+    # Trace emission (§4, §10): after the source + add-in ILC
+    # writes and the allocation expiry that ran inside
+    # available_lots_for_product(persist_expired=True) above;
+    # fail-hard, last write before commit.
+    if trace_emit_enabled():
+        emit_trace_event(
+            cur, txn_id, 'pack', 'transformation',
+            trace_inputs + [(output_lot_id, 'output', total_lb)],
+            txn_row['occurred_at'], txn_row['business_date'],
+            operator_id=actor_name(request),
+        )
+
+    logger.info(f"Pack committed: {output_lot_code} - {total_lb} lb of {target['name']} from {source['name']}")
+
+    response = {
+        "mode": "commit",
+        "success": True, "transaction_id": txn_id,
+        "confirmation_code": generate_confirmation_code(txn_id),
+        "output_lot_id": output_lot_id, "output_lot_uuid": str(output_lot_uuid),
+        "output_lot_code": output_lot_code,
+        "target_product_name": target['name'], "source_product_name": source['name'],
+        "cases": req.cases, "case_weight_lb": case_weight, "total_lb": total_lb,
+        "can_pack_lb": can_pack,
+        "reserved_others_lb": reservation_summary["reserved_others_lb"],
+        "reserved_by_orders": reservation_summary["reserved_by_orders"],
+        "batch_lots_consumed": consumed,
+        "message": f"Packed {req.cases} cases ({total_lb} lb) of {target['name']} as lot {output_lot_code}"
+    }
+    if code_similarity:
+        response.setdefault("warnings", []).append(code_similarity)
+    if allocation_warning:
+        response["allocation_warning"] = allocation_warning
+        response["warning"] = allocation_warning["message"]
+    if add_in_consumed:
+        response["add_in_ingredients_consumed"] = add_in_consumed
+        add_in_names = ", ".join(set(ai['ingredient_name'] for ai in add_in_consumed))
+        response["add_in_note"] = f"Add-in ingredients deducted: {add_in_names}"
+        response["message"] += f" (with add-ins: {add_in_names})"
+    elif add_in_info and add_in_info.get('warning'):
+        response["warning"] = add_in_info["warning"]
+        if add_in_info.get('warning_es'):
+            response["warning_es"] = add_in_info["warning_es"]
+    response["daily_production_summary"] = get_daily_production_summary(cur)
+    return response
+
+
+def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, lot_id=None, ticket_id=None, receipt_number=None):
+    product = product if product is not None else resolve_product_full(cur, req.product_name)
+    if lot_id is None:
+        cur.execute("SELECT id as lot_id, lot_code FROM lots WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)", (product['id'], req.lot_code))
+    else:
+        cur.execute('SELECT id as lot_id,lot_code FROM lots WHERE id=%s AND product_id=%s', (lot_id, product['id']))
+    lot = cur.fetchone()
+    if not lot:
+        raise HTTPException(404, f"Lot '{req.lot_code}' not found for product '{product['name']}'")
+    cur.execute("SELECT COALESCE(label_type, 'house') as label_type FROM products WHERE id = %s", (product['id'],))
+    lt_row = cur.fetchone()
+    result = {**product, 'product_id': product['id'], 'lot_id': lot['lot_id'], 'lot_code': lot['lot_code'],
+              'label_type': lt_row['label_type'] if lt_row else 'house'}
+    warning = check_private_label_merge(result['name'], result['label_type'], req.reason, req.adjustment_lb)
+    if warning:
+        return JSONResponse(status_code=403, content={"blocked": True, "warning": warning, "product_name": result['name'], "label_type": result['label_type']})
+
+    now = get_plant_now()
+    cur.execute("""
+        INSERT INTO transactions (
+            type, timestamp, adjust_reason, adjust_reason_es,
+            notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number
+        )
+        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, occurred_at, business_date
+    """, (
+        now, req.reason, req.reason_es,
+        f"Adjustment: {req.adjustment_lb} lb",
+        occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+    ))
+    txn_row = cur.fetchone()
+    txn_id = txn_row['id']
+    cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
+
+    # Trace emission (§4): signed adjust, fail-hard.
+    if trace_emit_enabled():
+        emit_trace_event(
+            cur, txn_id, 'adjust', 'object',
+            [(result['lot_id'], 'adjusted', req.adjustment_lb)],
+            txn_row['occurred_at'], txn_row['business_date'],
+            operator_id=actor_name(request),
+        )
+
+    new_balance = lot_on_hand(cur, result['lot_id'])
+    logger.info(f"Adjust committed: {req.adjustment_lb} lb to lot {result['lot_code']} (balance: {new_balance} lb)")
+
+    response = {
+        "mode": "commit",
+        "success": True, "transaction_id": txn_id,
+        "confirmation_code": generate_confirmation_code(txn_id),
+        "product_id": result['product_id'], "product_name": result['name'],
+        "lot_code": result['lot_code'], "adjustment_lb": req.adjustment_lb,
+        "new_balance_lb": new_balance, "reason": req.reason,
+        "message": f"Adjusted lot {result['lot_code']} by {req.adjustment_lb} lb (new balance: {new_balance} lb)"
+    }
+    if req.reason_es:
+        response["reason_es"] = req.reason_es
+    return response
+
+
+def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False):
+    cur.execute("SELECT id, name FROM products WHERE id = %s", (req.product_id,))
+    product = cur.fetchone()
+
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product ID {req.product_id} not found")
+
+    cur.execute("SELECT pg_advisory_xact_lock(2)")
+
+    now = get_plant_now()
+
+    # Lot Identity Policy: honor physical lot code if provided
+    if req.lot_code:
+        lot_code = normalize_lot_code_input(req.lot_code)
+    else:
+        date_part = now.strftime("%y-%m-%d")
+        seq = next_lot_sequence(cur, f"{date_part}-FOUND-%")
+        lot_code = f"{date_part}-FOUND-{seq:03d}"
+
+    lot_id, is_new_lot, lot_uuid = find_or_create_lot(
+        cur, req.product_id, lot_code, 'found_inventory',
+        entry_source_notes=req.notes, entry_source_notes_es=req.notes_es,
+        found_location=req.found_location, estimated_age=req.estimated_age
+    )
+    if require_new_lot and not is_new_lot:
+        raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
+                                  'message': 'The prepared lot code is now in use; prepare again.'})
+
+    code_similarity = (
+        check_suspicious_code_similarity(cur, req.product_id, lot_id, lot_code)
+        if is_new_lot else None
+    )
+
+    cur.execute("""
+        INSERT INTO transactions (
+            type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number
+        )
+        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, occurred_at, business_date
+    """, (
+        now, f"Found inventory: {req.reason_code}",
+        occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
+    ))
+    txn_row = cur.fetchone()
+    txn_id = txn_row['id']
+
+    cur.execute("""
+        INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
+        VALUES (%s, %s, %s, %s)
+    """, (txn_id, req.product_id, lot_id, req.quantity))
+
+    _, audit_error = best_effort_audit_insert(
+        cur, "inventory_adjustments",
+        """
+            INSERT INTO inventory_adjustments
+            (lot_id, product_id, adjustment_type, quantity_before, quantity_adjustment, quantity_after,
+             uom, reason_code, reason_notes, reason_notes_es, found_location, estimated_age, suspected_supplier, adjusted_by)
+            VALUES (%s, %s, 'found', 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (lot_id, req.product_id, req.quantity, req.quantity, req.uom,
+         req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
+         req.suspected_supplier, req.performed_by),
+    )
+
+    # Trace emission (§4): found inventory is a signed adjust.
+    # Fail-hard — deliberately OUTSIDE the best-effort savepoint
+    # scope released above.
+    if trace_emit_enabled():
+        emit_trace_event(
+            cur, txn_id, 'adjust', 'object',
+            [(lot_id, 'adjusted', req.quantity)],
+            txn_row['occurred_at'], txn_row['business_date'],
+                operator_id=actor_name(request) if ticket_id else None,
+        )
+
+    logger.info(f"Added found inventory: {lot_code} - {req.quantity} {req.uom} of {product['name']}")
+
+    response = {
+        "success": True,
+        "lot_id": lot_id,
+        "lot_uuid": str(lot_uuid),
+        "lot_code": lot_code,
+        "product_name": product['name'],
+        "quantity": req.quantity,
+        "uom": req.uom,
+        "entry_source": "found_inventory",
+        "message": f"Added {req.quantity} {req.uom} of {product['name']} as lot {lot_code}"
+    }
+    if ticket_id is not None:
+        response["transaction_id"] = txn_id
+    if code_similarity:
+        response.setdefault("warnings", []).append(code_similarity)
+    if audit_error:
+        response["audit_warning"] = audit_error
+    return response
+
+
 @app.post("/make")
 def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Record batch production. mode=preview returns ingredient check; mode=commit executes."""
@@ -8218,147 +9102,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request =
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
-                product = resolve_product_full(cur, req.product_name)
-                batch_size = float(product.get('default_batch_lb') or 0)
-                yield_multiplier = float(product.get('yield_multiplier') or 1.0)
-                formula_weight_lb = batch_size * req.batches
-                total_output = formula_weight_lb * yield_multiplier
-                manual_excluded_ids = set(req.excluded_ingredients or [])
-
-                cur.execute("""
-                    SELECT bf.ingredient_product_id, p.name as ingredient_name, bf.quantity_lb,
-                           COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
-                    FROM batch_formulas bf
-                    JOIN products p ON p.id = bf.ingredient_product_id
-                    WHERE bf.product_id = %s
-                """, (product['id'],))
-                formula = cur.fetchall()
-
-                auto_excluded_ids = set()
-                for ing in formula:
-                    if ing.get('exclude_from_inventory'):
-                        auto_excluded_ids.add(ing['ingredient_product_id'])
-                excluded_ids = manual_excluded_ids | auto_excluded_ids
-
-                ingredients_needed = []
-                excluded_ingredients = []
-                lot_overrides_applied = []
-                lot_overrides = req.get_lot_overrides()
-
-                all_ing_ids = [ing['ingredient_product_id'] for ing in formula
-                               if ing['ingredient_product_id'] not in excluded_ids]
-                ingredient_lots_map = {}
-                if all_ing_ids:
-                    cur.execute(f"""
-                        SELECT l.product_id, l.id, l.lot_code,
-                               COALESCE(SUM(tl.quantity_lb), 0) as available
-                        FROM lots l
-                        LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                        WHERE l.product_id = ANY(%s)
-                        GROUP BY l.id
-                        HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                        ORDER BY l.product_id, COALESCE(l.received_at, l.created_at) ASC
-                    """, (all_ing_ids,))
-                    for row in cur.fetchall():
-                        pid = row['product_id']
-                        if pid not in ingredient_lots_map:
-                            ingredient_lots_map[pid] = []
-                        ingredient_lots_map[pid].append(dict(row))
-
-                for ing in formula:
-                    ing_id = ing['ingredient_product_id']
-                    needed = float(ing['quantity_lb']) * req.batches
-                    if ing_id in excluded_ids:
-                        excluded_ingredients.append({
-                            "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
-                            "would_need_lb": needed, "excluded": True,
-                            "exclusion_type": "auto" if ing_id in auto_excluded_ids else "manual"
-                        })
-                        continue
-                    if lot_overrides and str(ing_id) in lot_overrides:
-                        override_code = lot_overrides[str(ing_id)]
-                        cur.execute(f"""
-                            SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                            FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                            WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s) GROUP BY l.id
-                        """, (ing_id, override_code))
-                        override_lot = cur.fetchone()
-                        if not override_lot:
-                            ingredients_needed.append({
-                                "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
-                                "needed_lb": needed, "available_lb": 0, "sufficient": False,
-                                "override_lot": override_code,
-                                "override_error": f"Lot '{override_code}' not found for this ingredient"
-                            })
-                            continue
-                        avail = float(override_lot['available'])
-                        lot_overrides_applied.append({
-                            "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
-                            "lot_code": override_lot['lot_code'], "needed_lb": needed,
-                            "available_lb": avail, "sufficient": avail >= needed
-                        })
-                        ingredients_needed.append({
-                            "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
-                            "needed_lb": needed, "available_lb": avail, "sufficient": avail >= needed,
-                            "override_lot": override_lot['lot_code']
-                        })
-                    else:
-                        available_lots = ingredient_lots_map.get(ing_id, [])
-                        total_avail = sum(float(lot['available']) for lot in available_lots)
-                        lot_details = [{"lot_code": lot['lot_code'], "available_lb": float(lot['available'])} for lot in available_lots]
-                        ingredients_needed.append({
-                            "ingredient_id": ing_id, "ingredient_name": ing['ingredient_name'],
-                            "needed_lb": needed, "available_lb": total_avail, "sufficient": total_avail >= needed,
-                            "lot_count": len(available_lots), "lots": lot_details
-                        })
-
-                all_sufficient = all(i['sufficient'] for i in ingredients_needed)
-                if req.lot_code:
-                    lot_code = normalize_lot_code_input(req.lot_code)
-                else:
-                    now = get_plant_now()
-                    date_part = now.strftime("%y-%m%d")
-                    seq = next_lot_sequence(cur, f"B{date_part}-%")
-                    lot_code = f"B{date_part}-{seq:03d}"
-
-                siblings = get_sibling_skus(cur, product['id'])
-                yield_note = f" (estimated yield with {yield_multiplier}x multiplier; actual weight may differ)" if yield_multiplier != 1.0 else ""
-
-                response = {
-                    "mode": "preview",
-                    "product_id": product['id'], "product_name": product['name'],
-                    "batches": req.batches, "batch_size_lb": batch_size,
-                    "yield_multiplier": yield_multiplier, "formula_weight_lb": formula_weight_lb,
-                    "estimated_yield_lb": total_output, "total_output_lb": total_output,
-                    "lot_code": lot_code, "ingredients": ingredients_needed,
-                    "all_ingredients_available": all_sufficient,
-                    "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({total_output} lb){yield_note}"
-                }
-                production_warning = build_production_warning(product)
-                if production_warning:
-                    response["production_warning"] = production_warning
-                    response["preview_message"] += f" ⚠ {production_warning['verification_notes']}"
-                if siblings:
-                    sibling_names = [s['name'] for s in siblings]
-                    response["sibling_skus"] = siblings
-                    response["sku_confirmation_required"] = True
-                    response["sku_warning"] = (
-                        f"This batch source has {len(siblings) + 1} finished-good SKUs with the same formula. "
-                        f"You selected '{product['name']}'. Other options: {sibling_names}. "
-                        f"Confirm this is the correct output SKU before committing."
-                    )
-                if lot_overrides_applied:
-                    response["lot_overrides"] = lot_overrides_applied
-                    response["preview_message"] += f" (with {len(lot_overrides_applied)} lot override(s))"
-                if excluded_ingredients:
-                    auto_count = sum(1 for e in excluded_ingredients if e.get('exclusion_type') == 'auto')
-                    manual_count = len(excluded_ingredients) - auto_count
-                    response["excluded_ingredients"] = excluded_ingredients
-                    parts = []
-                    if auto_count: parts.append(f"{auto_count} auto-excluded")
-                    if manual_count: parts.append(f"{manual_count} manually excluded")
-                    response["preview_message"] += f" ({', '.join(parts)} ingredient(s))"
-                return response
+                return _make_preview_core(cur, req)
         except HTTPException:
             raise
         except Exception as e:
@@ -8369,237 +9113,7 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request =
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    product = resolve_product_full(cur, req.product_name)
-
-                    siblings = get_sibling_skus(cur, product['id'])
-                    if siblings and not req.confirmed_sku:
-                        sibling_names = [s['name'] for s in siblings]
-                        raise HTTPException(status_code=400, detail=(
-                            f"SKU confirmation required. '{product['name']}' shares a batch formula with: "
-                            f"{sibling_names}. Set confirmed_sku=true to confirm this is the correct "
-                            f"output SKU. Never assume — ask the operator which SKU they are packing."
-                        ))
-
-                    batch_size = float(product.get('default_batch_lb') or 0)
-                    yield_multiplier = float(product.get('yield_multiplier') or 1.0)
-                    formula_weight_lb = float(to_decimal(batch_size) * to_decimal(req.batches))
-                    total_output = float(to_decimal(formula_weight_lb) * to_decimal(yield_multiplier))
-                    if total_output <= 0:
-                        raise HTTPException(400, f"Make rejected: output quantity is 0 lb. Product '{product['name']}' has batch_size={batch_size}, batches={req.batches}.")
-                    now = get_plant_now()
-                    manual_excluded_ids = set(req.excluded_ingredients or [])
-                    auto_excluded_ids = set()
-
-                    # Serialize make commits with each other for lot-code
-                    # generation (receive holds advisory lock 1, found-inventory
-                    # holds 2). Without this, two concurrent makes read the same
-                    # MAX sequence and mint identical B-codes — and for the same
-                    # product, find_or_create_lot's ON CONFLICT DO NOTHING
-                    # silently folds two production runs into one lot.
-                    cur.execute("SELECT pg_advisory_xact_lock(3)")
-
-                    if req.lot_code:
-                        lot_code = normalize_lot_code_input(req.lot_code)
-                    else:
-                        date_part = now.strftime("%y-%m%d")
-                        seq = next_lot_sequence(cur, f"B{date_part}-%")
-                        lot_code = f"B{date_part}-{seq:03d}"
-
-                    output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'production_output')
-                    code_similarity = (
-                        check_suspicious_code_similarity(cur, product['id'], output_lot_id, lot_code)
-                        if is_new_lot else None
-                    )
-
-                    cur.execute("""
-                        SELECT bf.ingredient_product_id, bf.quantity_lb,
-                               COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
-                        FROM batch_formulas bf WHERE bf.product_id = %s
-                    """, (product['id'],))
-                    formula = cur.fetchall()
-
-                    auto_excluded_ids = set()
-                    for ing in formula:
-                        if ing.get('exclude_from_inventory'):
-                            auto_excluded_ids.add(ing['ingredient_product_id'])
-                    excluded_ids = manual_excluded_ids | auto_excluded_ids
-
-                    exclusion_note = ""
-                    if manual_excluded_ids:
-                        exclusion_note += f" (manually excluded IDs: {sorted(manual_excluded_ids)})"
-                    if auto_excluded_ids:
-                        exclusion_note += f" (auto-excluded IDs: {sorted(auto_excluded_ids)})"
-
-                    cur.execute("""
-                        INSERT INTO transactions (
-                            type, timestamp, notes, occurred_at, created_at_source, operator_id
-                        )
-                        VALUES ('make', %s, %s, %s, %s, %s)
-                        RETURNING id, occurred_at, business_date
-                    """, (
-                        now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
-                        occurred_at, created_at_source, _operator_id(request),
-                    ))
-                    txn_row = cur.fetchone()
-                    txn_id = txn_row['id']
-
-                    cur.execute("""
-                        INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
-                        VALUES (%s, %s, %s, %s)
-                    """, (txn_id, product['id'], output_lot_id, total_output))
-
-                    consumed_by_ingredient = {}
-                    excluded_from_run = []
-                    trace_inputs = []  # (lot_id, 'input', -qty) mirroring each ILC row
-                    lot_overrides = req.get_lot_overrides()
-
-                    all_formula_ids = [ing['ingredient_product_id'] for ing in formula]
-                    ing_names = {}
-                    if all_formula_ids:
-                        cur.execute("SELECT id, name FROM products WHERE id = ANY(%s)", (all_formula_ids,))
-                        for row in cur.fetchall():
-                            ing_names[row['id']] = row['name']
-
-                    for ing in formula:
-                        ing_id = ing['ingredient_product_id']
-                        needed = float(to_decimal(ing['quantity_lb']) * to_decimal(req.batches))
-                        ing_name = ing_names.get(ing_id, f"ID {ing_id}")
-                        if ing_id in excluded_ids:
-                            excluded_from_run.append({
-                                "ingredient_id": ing_id, "ingredient_name": ing_name,
-                                "skipped_lb": needed,
-                                "exclusion_type": "auto" if ing_id in auto_excluded_ids else "manual"
-                            })
-                            continue
-                        if ing_id not in consumed_by_ingredient:
-                            consumed_by_ingredient[ing_id] = {
-                                "ingredient_id": ing_id, "ingredient_name": ing_name,
-                                "total_consumed_lb": 0.0, "lots": []
-                            }
-                        override_lot = None
-                        if lot_overrides and str(ing_id) in lot_overrides:
-                            override_code = lot_overrides[str(ing_id)]
-                            cur.execute("SELECT l.id, l.lot_code FROM lots l WHERE l.product_id = %s AND LOWER(l.lot_code) = LOWER(%s)", (ing_id, override_code))
-                            override_lot = cur.fetchone()
-                        if override_lot:
-                            cur.execute("SELECT id FROM lots WHERE id = %s FOR UPDATE", (override_lot['id'],))
-                            available = validate_lot_deduction(cur, override_lot['id'], override_lot['lot_code'], needed)
-                            cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, override_lot['id'], -needed))
-                            cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, override_lot['id'], needed))
-                            trace_inputs.append((override_lot['id'], 'input', -needed))
-                            consumed_by_ingredient[ing_id]["total_consumed_lb"] += needed
-                            consumed_by_ingredient[ing_id]["lots"].append({"lot_code": override_lot['lot_code'], "consumed_lb": needed, "override": True})
-                        else:
-                            cur.execute(f"""
-                                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                                WHERE l.product_id = %s GROUP BY l.id
-                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                            """, (ing_id,))
-                            candidate_lots = cur.fetchall()
-                            if not candidate_lots:
-                                raise HTTPException(status_code=400, detail=f"No inventory available for ingredient ID {ing_id}")
-                            lot_ids = [lot['id'] for lot in candidate_lots]
-                            cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
-                            cur.execute(f"""
-                                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                                WHERE l.id = ANY(%s) GROUP BY l.id
-                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0 ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                            """, (lot_ids,))
-                            lots = cur.fetchall()
-                            remaining = needed
-                            for lot in lots:
-                                if remaining <= BALANCE_EPSILON: break
-                                avail = float(lot['available'])
-                                if avail < BALANCE_EPSILON: continue
-                                take = min(avail, remaining)
-                                cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], -take))
-                                cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], take))
-                                trace_inputs.append((lot['id'], 'input', -take))
-                                consumed_by_ingredient[ing_id]["total_consumed_lb"] += take
-                                consumed_by_ingredient[ing_id]["lots"].append({"lot_code": lot['lot_code'], "consumed_lb": take})
-                                remaining -= take
-                            if remaining > BALANCE_EPSILON:
-                                raise HTTPException(status_code=400, detail=f"Insufficient inventory for ingredient ID {ing_id}. Missing {remaining:.2f} lb")
-
-                    # Trace emission (§4): after every transaction_lines/ILC
-                    # write, fail-hard. /make has no allocation side-writes.
-                    if trace_emit_enabled():
-                        emit_trace_event(
-                            cur, txn_id, 'make', 'transformation',
-                            trace_inputs + [(output_lot_id, 'output', total_output)],
-                            txn_row['occurred_at'], txn_row['business_date'],
-                            operator_id=actor_name(request),
-                        )
-
-                    consumed_flat = []
-                    for group in consumed_by_ingredient.values():
-                        for lot_entry in group["lots"]:
-                            consumed_flat.append({"ingredient_id": group["ingredient_id"], "ingredient_name": group["ingredient_name"], **lot_entry})
-
-                    logger.info(f"Make committed: {lot_code} - {total_output} lb of {product['name']}")
-
-                    response = {
-                        "mode": "commit",
-                        "success": True, "transaction_id": txn_id,
-                        "confirmation_code": generate_confirmation_code(txn_id),
-                        "lot_id": output_lot_id, "lot_uuid": str(output_lot_uuid), "lot_code": lot_code,
-                        "yield_multiplier": yield_multiplier, "formula_weight_lb": formula_weight_lb,
-                        "estimated_yield_lb": total_output, "output_lb": total_output,
-                        "ingredients_consumed": consumed_flat,
-                        "ingredients_consumed_grouped": list(consumed_by_ingredient.values()),
-                        "message": f"Produced {total_output} lb as lot {lot_code}"
-                    }
-                    if code_similarity:
-                        response.setdefault("warnings", []).append(code_similarity)
-                    production_warning = build_production_warning(product)
-                    if production_warning:
-                        response["production_warning"] = production_warning
-                    if siblings:
-                        response["confirmed_sku"] = True
-                        response["sibling_skus"] = [s['name'] for s in siblings]
-                    if excluded_from_run:
-                        auto_count = sum(1 for e in excluded_from_run if e.get('exclusion_type') == 'auto')
-                        manual_count = len(excluded_from_run) - auto_count
-                        response["excluded_ingredients"] = excluded_from_run
-                        parts = []
-                        if auto_count: parts.append(f"{auto_count} auto-excluded")
-                        if manual_count: parts.append(f"{manual_count} manually excluded")
-                        response["message"] += f" ({', '.join(parts)} ingredient(s))"
-
-                    # Fix 2: Auto-prompt /pack after /make — query FG products that
-                    # can be packed from this batch product via parent_batch_product_id.
-                    # This tells the GPT/operator which /pack calls to make next.
-                    cur.execute("""
-                        SELECT id, name, case_size_lb
-                        FROM products
-                        WHERE parent_batch_product_id = %s
-                          AND type != 'ingredient'
-                        ORDER BY name
-                    """, (product['id'],))
-                    fg_products = cur.fetchall()
-                    if fg_products:
-                        response["pack_needed"] = {
-                            "batch_lot_code": lot_code,
-                            "batch_product_name": product['name'],
-                            "batch_on_hand_lb": total_output,
-                            "finished_goods": [
-                                {
-                                    "product_id": fg['id'],
-                                    "name": fg['name'],
-                                    "case_size_lb": float(fg['case_size_lb']) if fg['case_size_lb'] else None
-                                }
-                                for fg in fg_products
-                            ],
-                            "message": (
-                                f"Run /pack to convert {product['name']} lot {lot_code} "
-                                f"into finished goods: {', '.join(fg['name'] for fg in fg_products)}"
-                            )
-                        }
-
-                    response["daily_production_summary"] = get_daily_production_summary(cur)
-                    return response
+                    return _make_commit_core(cur, req, request, occurred_at, created_at_source)
         except HTTPException:
             raise
         except Exception as e:
@@ -8726,98 +9240,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key), request: Request =
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
-                source = resolve_product_full(cur, req.source_product)
-                target = resolve_product_full(cur, req.target_product)
-                case_weight = req.case_weight_lb
-                if case_weight is None:
-                    case_weight = float(target.get('case_size_lb') or 0)
-                if case_weight <= 0:
-                    raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no case_size_lb set. Provide case_weight_lb parameter to override.")
-                total_lb = req.cases * case_weight
-
-                available_lots = available_lots_for_product(cur, int(source['id']))
-                reservation_summary = _allocation_reservation_summary(
-                    cur, int(source['id'])
-                )
-                total_available = sum(float(lot['on_hand']) for lot in available_lots)
-
-                if req.lot_allocations:
-                    allocations = []
-                    can_pack = 0.0
-                    reserved_taken = 0.0
-                    for alloc in req.lot_allocations:
-                        matched = next((l for l in available_lots if l['lot_code'].lower() == alloc.lot_code.lower()), None)
-                        if not matched:
-                            allocations.append({"lot_code": alloc.lot_code, "available_lb": 0, "allocated_lb": alloc.quantity_lb, "sufficient": False, "error": f"Lot '{alloc.lot_code}' not found or has no inventory for {source['name']}"})
-                            continue
-                        physical = float(matched['on_hand'])
-                        takeable = float(matched['takeable'])
-                        can_pack += min(float(alloc.quantity_lb), takeable)
-                        reserved_taken += max(
-                            0.0,
-                            min(float(alloc.quantity_lb), physical)
-                            - min(float(alloc.quantity_lb), takeable),
-                        )
-                        allocations.append({"lot_id": matched['lot_id'], "lot_code": matched['lot_code'], "available_lb": physical, "takeable_lb": takeable, "allocated_lb": alloc.quantity_lb, "sufficient": physical >= alloc.quantity_lb})
-                    alloc_total = sum(a['allocated_lb'] for a in allocations)
-                    if abs(alloc_total - total_lb) > 0.01:
-                        return JSONResponse(status_code=400, content={"error": f"Lot allocations sum to {alloc_total} lb but {total_lb} lb needed ({req.cases} cases x {case_weight} lb)"})
-                else:
-                    plan = _takeable_deduction_plan(available_lots, total_lb)
-                    can_pack = plan["can_take_lb"]
-                    reserved_taken = plan["reserved_taken_lb"]
-                    allocations = [
-                        {
-                            "lot_id": item["lot"]["lot_id"],
-                            "lot_code": item["lot"]["lot_code"],
-                            "available_lb": float(item["lot"]["on_hand"]),
-                            "takeable_lb": float(item["lot"]["takeable"]),
-                            "allocated_lb": float(item["quantity_lb"]),
-                            "sufficient": plan["short_lb"] <= BALANCE_EPSILON,
-                        }
-                        for item in plan["lots"]
-                    ]
-
-                all_sufficient = all(a.get('sufficient', False) for a in allocations)
-                if req.target_lot_code:
-                    output_lot_code = normalize_lot_code_input(req.target_lot_code)
-                elif allocations and allocations[0].get('lot_code'):
-                    output_lot_code = allocations[0]['lot_code']
-                else:
-                    output_lot_code = "UNKNOWN"
-
-                allocation_warning = _allocation_observe_warning(
-                    "Pack",
-                    total_lb,
-                    can_pack,
-                    reserved_taken,
-                    reservation_summary,
-                    preview=True,
-                )
-                result = {
-                    "mode": "preview",
-                    "source_product_id": source['id'], "source_product_name": source['name'],
-                    "target_product_id": target['id'], "target_product_name": target['name'],
-                    "cases": req.cases, "case_weight_lb": case_weight, "total_lb": total_lb,
-                    "output_lot_code": output_lot_code, "allocations": allocations,
-                    "all_lots_sufficient": all_sufficient, "total_batch_available_lb": total_available,
-                    "total_takeable_lb": sum(float(lot['takeable']) for lot in available_lots),
-                    "can_pack_lb": can_pack,
-                    "reserved_others_lb": reservation_summary["reserved_others_lb"],
-                    "reserved_by_orders": reservation_summary["reserved_by_orders"],
-                    "source_lot_count": len(available_lots),
-                    "source_lots": [{"lot_code": lot['lot_code'], "available_lb": float(lot['on_hand']), "takeable_lb": float(lot['takeable'])} for lot in available_lots],
-                    "preview_message": f"Ready to pack {req.cases} cases ({total_lb} lb) of {target['name']} from {source['name']} ({len(available_lots)} batch lot(s))"
-                }
-                if allocation_warning:
-                    result["allocation_warning"] = allocation_warning
-                    result["warning"] = allocation_warning["message"]
-                add_in_info = resolve_pack_add_ins(cur, source, target, total_lb)
-                if add_in_info:
-                    # Strip internal keys before returning
-                    public_info = {k: v for k, v in add_in_info.items() if not k.startswith('_')}
-                    result.update(public_info)
-                return result
+                return _pack_preview_core(cur, req)
         except HTTPException:
             raise
         except Exception as e:
@@ -8828,214 +9251,7 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key), request: Request =
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    source = resolve_product_full(cur, req.source_product)
-                    target = resolve_product_full(cur, req.target_product)
-                    case_weight = req.case_weight_lb
-                    if case_weight is None:
-                        case_weight = float(target.get('case_size_lb') or 0)
-                    if case_weight <= 0:
-                        raise HTTPException(400, f"Case weight required for '{target['name']}'. Provide case_weight_lb parameter to override.")
-                    total_lb = req.cases * case_weight
-                    now = get_plant_now()
-
-                    lots = available_lots_for_product(
-                        cur,
-                        int(source['id']),
-                        lock=True,
-                        persist_expired=True,
-                        released_by=_operator_id(request),
-                    )
-                    reservation_summary = _allocation_reservation_summary(
-                        cur, int(source['id'])
-                    )
-                    if not lots:
-                        raise HTTPException(400, f"No batch inventory available for {source['name']}")
-
-                    lots_by_code = {lot['lot_code'].lower(): lot for lot in lots}
-
-                    if req.lot_allocations:
-                        alloc_plan = []
-                        can_pack = 0.0
-                        reserved_taken = 0.0
-                        for alloc in req.lot_allocations:
-                            lot = lots_by_code.get(alloc.lot_code.lower())
-                            if not lot:
-                                raise HTTPException(400, f"Lot '{alloc.lot_code}' not found or empty for {source['name']}")
-                            validate_lot_deduction(cur, lot['lot_id'], lot['lot_code'], alloc.quantity_lb)
-                            takeable = float(lot['takeable'])
-                            physical = float(lot['on_hand'])
-                            # Clamp by physical for symmetry with the preview
-                            # arithmetic. validate_lot_deduction already
-                            # guarantees quantity <= physical here, but the
-                            # clamp keeps commit == preview by construction
-                            # rather than by reliance on that guard.
-                            can_pack += min(float(alloc.quantity_lb), takeable)
-                            reserved_taken += max(
-                                0.0,
-                                min(float(alloc.quantity_lb), physical)
-                                - min(float(alloc.quantity_lb), takeable),
-                            )
-                            alloc_plan.append((lot, alloc.quantity_lb))
-                        alloc_total = sum(qty for _, qty in alloc_plan)
-                        if abs(alloc_total - total_lb) > 0.01:
-                            raise HTTPException(400, f"Allocations sum to {alloc_total} lb, need {total_lb} lb ({req.cases} cases x {case_weight} lb)")
-                    else:
-                        plan = _takeable_deduction_plan(lots, total_lb)
-                        if plan["short_lb"] > BALANCE_EPSILON:
-                            raise HTTPException(400, f"Insufficient batch inventory. Have {plan['total_on_hand_lb']:.4f} lb, need {total_lb} lb")
-                        can_pack = plan["can_take_lb"]
-                        reserved_taken = plan["reserved_taken_lb"]
-                        alloc_plan = [
-                            (item["lot"], float(item["quantity_lb"]))
-                            for item in plan["lots"]
-                        ]
-
-                    allocation_warning = _allocation_observe_warning(
-                        "Pack",
-                        total_lb,
-                        can_pack,
-                        reserved_taken,
-                        reservation_summary,
-                    )
-                    _enforce_allocation_takeable(
-                        "Pack",
-                        total_lb,
-                        can_pack,
-                        reserved_taken,
-                        reservation_summary,
-                        product_id=int(source["id"]),
-                    )
-
-                    if req.target_lot_code:
-                        output_lot_code = normalize_lot_code_input(req.target_lot_code)
-                    else:
-                        output_lot_code = alloc_plan[0][0]['lot_code']
-
-                    output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
-                    code_similarity = (
-                        check_suspicious_code_similarity(cur, target['id'], output_lot_id, output_lot_code)
-                        if is_new_lot else None
-                    )
-                    source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
-                    cur.execute("""
-                        INSERT INTO transactions (
-                            type, timestamp, notes, occurred_at, created_at_source, operator_id
-                        )
-                        VALUES ('pack', %s, %s, %s, %s, %s)
-                        RETURNING id, occurred_at, business_date
-                    """, (
-                        now,
-                        f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
-                        occurred_at, created_at_source, _operator_id(request),
-                    ))
-                    txn_row = cur.fetchone()
-                    txn_id = txn_row['id']
-
-                    cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, target['id'], output_lot_id, total_lb))
-
-                    consumed = []
-                    trace_inputs = []  # (lot_id, 'input', -qty) mirroring each ILC row
-                    for lot, qty in alloc_plan:
-                        cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['lot_id'], -qty))
-                        cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, source['id'], lot['lot_id'], qty))
-                        trace_inputs.append((lot['lot_id'], 'input', -qty))
-                        consumed.append({"lot_code": lot['lot_code'], "consumed_lb": qty})
-
-                    # --- Add-in ingredient deduction ---
-                    add_in_info = resolve_pack_add_ins(cur, source, target, total_lb)
-                    add_in_consumed = []
-                    if add_in_info and 'add_in_ingredients' in add_in_info:
-                        # Check all add-ins are sufficient before deducting
-                        if not add_in_info.get('all_add_ins_sufficient'):
-                            short = [ai for ai in add_in_info['add_in_ingredients'] if not ai['sufficient']]
-                            short_msg = "; ".join(f"{ai['ingredient_name']}: have {ai['available_lb']} lb, need {ai['needed_lb']} lb" for ai in short)
-                            raise HTTPException(400, f"Insufficient inventory for add-in ingredient(s): {short_msg}")
-
-                        ratio = total_lb / add_in_info['_base_qty']
-                        for ing in add_in_info['_add_in_formulas']:
-                            ing_id = ing['ingredient_product_id']
-                            needed = round(float(ing['quantity_lb']) * ratio, 2)
-                            # FIFO deduction with locking
-                            cur.execute(f"""
-                                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                                WHERE l.product_id = %s GROUP BY l.id
-                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                                ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                            """, (ing_id,))
-                            candidate_lots = cur.fetchall()
-                            lot_ids = [lot['id'] for lot in candidate_lots]
-                            cur.execute("SELECT id FROM lots WHERE id = ANY(%s) ORDER BY id ASC FOR UPDATE", (lot_ids,))
-                            cur.execute(f"""
-                                SELECT l.id, l.lot_code, COALESCE(SUM(tl.quantity_lb), 0) as available
-                                FROM lots l LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                                WHERE l.id = ANY(%s) GROUP BY l.id
-                                HAVING COALESCE(SUM(tl.quantity_lb), 0) > 0
-                                ORDER BY COALESCE(l.received_at, l.created_at) ASC
-                            """, (lot_ids,))
-                            ing_lots = cur.fetchall()
-                            remaining = needed
-                            cur.execute("SELECT name FROM products WHERE id = %s", (ing_id,))
-                            ing_name = cur.fetchone()['name']
-                            for lot in ing_lots:
-                                if remaining <= BALANCE_EPSILON:
-                                    break
-                                avail = float(lot['available'])
-                                if avail < BALANCE_EPSILON:
-                                    continue
-                                take = min(avail, remaining)
-                                cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], -take))
-                                cur.execute("INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, ing_id, lot['id'], take))
-                                trace_inputs.append((lot['id'], 'input', -take))
-                                add_in_consumed.append({"ingredient_name": ing_name, "lot_code": lot['lot_code'], "consumed_lb": round(take, 2)})
-                                remaining -= take
-                            if remaining > BALANCE_EPSILON:
-                                raise HTTPException(400, f"Insufficient inventory for add-in ingredient {ing_name}: need {needed} lb, could only allocate {needed - remaining:.2f} lb")
-
-                    # Trace emission (§4, §10): after the source + add-in ILC
-                    # writes and the allocation expiry that ran inside
-                    # available_lots_for_product(persist_expired=True) above;
-                    # fail-hard, last write before commit.
-                    if trace_emit_enabled():
-                        emit_trace_event(
-                            cur, txn_id, 'pack', 'transformation',
-                            trace_inputs + [(output_lot_id, 'output', total_lb)],
-                            txn_row['occurred_at'], txn_row['business_date'],
-                            operator_id=actor_name(request),
-                        )
-
-                    logger.info(f"Pack committed: {output_lot_code} - {total_lb} lb of {target['name']} from {source['name']}")
-
-                    response = {
-                        "mode": "commit",
-                        "success": True, "transaction_id": txn_id,
-                        "confirmation_code": generate_confirmation_code(txn_id),
-                        "output_lot_id": output_lot_id, "output_lot_uuid": str(output_lot_uuid),
-                        "output_lot_code": output_lot_code,
-                        "target_product_name": target['name'], "source_product_name": source['name'],
-                        "cases": req.cases, "case_weight_lb": case_weight, "total_lb": total_lb,
-                        "can_pack_lb": can_pack,
-                        "reserved_others_lb": reservation_summary["reserved_others_lb"],
-                        "reserved_by_orders": reservation_summary["reserved_by_orders"],
-                        "batch_lots_consumed": consumed,
-                        "message": f"Packed {req.cases} cases ({total_lb} lb) of {target['name']} as lot {output_lot_code}"
-                    }
-                    if code_similarity:
-                        response.setdefault("warnings", []).append(code_similarity)
-                    if allocation_warning:
-                        response["allocation_warning"] = allocation_warning
-                        response["warning"] = allocation_warning["message"]
-                    if add_in_consumed:
-                        response["add_in_ingredients_consumed"] = add_in_consumed
-                        add_in_names = ", ".join(set(ai['ingredient_name'] for ai in add_in_consumed))
-                        response["add_in_note"] = f"Add-in ingredients deducted: {add_in_names}"
-                        response["message"] += f" (with add-ins: {add_in_names})"
-                    elif add_in_info and add_in_info.get('warning'):
-                        response["warning"] = add_in_info["warning"]
-                        if add_in_info.get('warning_es'):
-                            response["warning_es"] = add_in_info["warning_es"]
-                    response["daily_production_summary"] = get_daily_production_summary(cur)
-                    return response
+                    return _pack_commit_core(cur, req, request, occurred_at, created_at_source)
         except HTTPException:
             raise
         except Exception as e:
@@ -9101,60 +9317,7 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Reque
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    product = resolve_product_full(cur, req.product_name)
-                    cur.execute("SELECT id as lot_id, lot_code FROM lots WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)", (product['id'], req.lot_code))
-                    lot = cur.fetchone()
-                    if not lot:
-                        raise HTTPException(404, f"Lot '{req.lot_code}' not found for product '{product['name']}'")
-                    cur.execute("SELECT COALESCE(label_type, 'house') as label_type FROM products WHERE id = %s", (product['id'],))
-                    lt_row = cur.fetchone()
-                    result = {**product, 'product_id': product['id'], 'lot_id': lot['lot_id'], 'lot_code': lot['lot_code'],
-                              'label_type': lt_row['label_type'] if lt_row else 'house'}
-                    warning = check_private_label_merge(result['name'], result['label_type'], req.reason, req.adjustment_lb)
-                    if warning:
-                        return JSONResponse(status_code=403, content={"blocked": True, "warning": warning, "product_name": result['name'], "label_type": result['label_type']})
-
-                    now = get_plant_now()
-                    cur.execute("""
-                        INSERT INTO transactions (
-                            type, timestamp, adjust_reason, adjust_reason_es,
-                            notes, occurred_at, created_at_source, operator_id
-                        )
-                        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id, occurred_at, business_date
-                    """, (
-                        now, req.reason, req.reason_es,
-                        f"Adjustment: {req.adjustment_lb} lb",
-                        occurred_at, created_at_source, _operator_id(request),
-                    ))
-                    txn_row = cur.fetchone()
-                    txn_id = txn_row['id']
-                    cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
-
-                    # Trace emission (§4): signed adjust, fail-hard.
-                    if trace_emit_enabled():
-                        emit_trace_event(
-                            cur, txn_id, 'adjust', 'object',
-                            [(result['lot_id'], 'adjusted', req.adjustment_lb)],
-                            txn_row['occurred_at'], txn_row['business_date'],
-                            operator_id=actor_name(request),
-                        )
-
-                    new_balance = lot_on_hand(cur, result['lot_id'])
-                    logger.info(f"Adjust committed: {req.adjustment_lb} lb to lot {result['lot_code']} (balance: {new_balance} lb)")
-
-                    response = {
-                        "mode": "commit",
-                        "success": True, "transaction_id": txn_id,
-                        "confirmation_code": generate_confirmation_code(txn_id),
-                        "product_id": result['product_id'], "product_name": result['name'],
-                        "lot_code": result['lot_code'], "adjustment_lb": req.adjustment_lb,
-                        "new_balance_lb": new_balance, "reason": req.reason,
-                        "message": f"Adjusted lot {result['lot_code']} by {req.adjustment_lb} lb (new balance: {new_balance} lb)"
-                    }
-                    if req.reason_es:
-                        response["reason_es"] = req.reason_es
-                    return response
+                    return _adjust_commit_core(cur, req, request, occurred_at, created_at_source)
         except HTTPException:
             raise
         except Exception as e:
@@ -10853,93 +11016,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT id, name FROM products WHERE id = %s", (req.product_id,))
-                product = cur.fetchone()
-                
-                if not product:
-                    raise HTTPException(status_code=404, detail=f"Product ID {req.product_id} not found")
-                
-                cur.execute("SELECT pg_advisory_xact_lock(2)")
-
-                now = get_plant_now()
-
-                # Lot Identity Policy: honor physical lot code if provided
-                if req.lot_code:
-                    lot_code = normalize_lot_code_input(req.lot_code)
-                else:
-                    date_part = now.strftime("%y-%m-%d")
-                    seq = next_lot_sequence(cur, f"{date_part}-FOUND-%")
-                    lot_code = f"{date_part}-FOUND-{seq:03d}"
-
-                lot_id, is_new_lot, lot_uuid = find_or_create_lot(
-                    cur, req.product_id, lot_code, 'found_inventory',
-                    entry_source_notes=req.notes, entry_source_notes_es=req.notes_es,
-                    found_location=req.found_location, estimated_age=req.estimated_age
-                )
-                code_similarity = (
-                    check_suspicious_code_similarity(cur, req.product_id, lot_id, lot_code)
-                    if is_new_lot else None
-                )
-
-                cur.execute("""
-                    INSERT INTO transactions (
-                        type, timestamp, notes, occurred_at, created_at_source
-                    )
-                    VALUES ('adjust', %s, %s, %s, %s)
-                    RETURNING id, occurred_at, business_date
-                """, (
-                    now, f"Found inventory: {req.reason_code}",
-                    occurred_at, created_at_source,
-                ))
-                txn_row = cur.fetchone()
-                txn_id = txn_row['id']
-
-                cur.execute("""
-                    INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
-                    VALUES (%s, %s, %s, %s)
-                """, (txn_id, req.product_id, lot_id, req.quantity))
-
-                _, audit_error = best_effort_audit_insert(
-                    cur, "inventory_adjustments",
-                    """
-                        INSERT INTO inventory_adjustments
-                        (lot_id, product_id, adjustment_type, quantity_before, quantity_adjustment, quantity_after,
-                         uom, reason_code, reason_notes, reason_notes_es, found_location, estimated_age, suspected_supplier, adjusted_by)
-                        VALUES (%s, %s, 'found', 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (lot_id, req.product_id, req.quantity, req.quantity, req.uom,
-                     req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
-                     req.suspected_supplier, req.performed_by),
-                )
-
-                # Trace emission (§4): found inventory is a signed adjust.
-                # Fail-hard — deliberately OUTSIDE the best-effort savepoint
-                # scope released above.
-                if trace_emit_enabled():
-                    emit_trace_event(
-                        cur, txn_id, 'adjust', 'object',
-                        [(lot_id, 'adjusted', req.quantity)],
-                        txn_row['occurred_at'], txn_row['business_date'],
-                    )
-
-                logger.info(f"Added found inventory: {lot_code} - {req.quantity} {req.uom} of {product['name']}")
-
-                response = {
-                    "success": True,
-                    "lot_id": lot_id,
-                    "lot_uuid": str(lot_uuid),
-                    "lot_code": lot_code,
-                    "product_name": product['name'],
-                    "quantity": req.quantity,
-                    "uom": req.uom,
-                    "entry_source": "found_inventory",
-                    "message": f"Added {req.quantity} {req.uom} of {product['name']} as lot {lot_code}"
-                }
-                if code_similarity:
-                    response.setdefault("warnings", []).append(code_similarity)
-                if audit_error:
-                    response["audit_warning"] = audit_error
-                return response
+                return _found_commit_core(cur, req, None, occurred_at, created_at_source)
     except HTTPException:
         raise
     except Exception as e:

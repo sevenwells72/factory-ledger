@@ -87,9 +87,10 @@ def test_allowlist_never_grants_admin_or_dangerous_routes():
         assert not path.startswith("/admin"), (method, path)
         assert path not in {"/ship", "/receive", "/make", "/pack", "/adjust", "/schedule"}, (method, path)
         assert not path.startswith("/void"), (method, path)
-        assert not path.startswith("/make"), (method, path)
-        assert not path.startswith("/pack"), (method, path)
-        assert not path.startswith("/adjust"), (method, path)
+        # A1 exposes only the ticket prepares; legacy action writes stay scoped.
+        for action in ("make", "pack", "adjust"):
+            if path.startswith("/" + action):
+                assert (method, path) == ("POST", "/" + action + "/prepare"), (method, path)
         if method == "DELETE":
             assert path.startswith("/dashboard/api/notes"), (method, path)
 
