@@ -37,6 +37,13 @@
 
 ---
 
+## 2026-10-08 11:51 — Verify rebased part-2 branch with all merged A4 tests
+- **File(s) changed:** docs/deployments/a1-write-tickets-part2.md, work/pr-body.md
+- **What changed:** Fresh PostgreSQL 17 full suite passes 1729 tests with zero failures/skips; Node passes 69. Migrations and schema match origin/main exactly, and only the changelog required conflict resolution.
+- **Why:** A1 part 2 implementation and verification.
+
+---
+
 ## 2026-10-08 11:49 — Rebase part-2 PR onto merged A4 and preserve both changelog histories
 - **File(s) changed:** CHANGE_LOG.md, docs/deployments/a1-write-tickets-part2.md
 - **What changed:** Resolve only the changelog conflict by retaining every upstream and part-2 entry; accept upstream A4/schema housekeeping intact. Main code merges automatically; full revalidation follows.
