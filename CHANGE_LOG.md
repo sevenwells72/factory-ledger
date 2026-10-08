@@ -1,5 +1,11 @@
 # Change Log
 
+## 2026-10-08 11:30 — Rebase feat/resolution (PR #81) onto origin/main 442c675; re-dump tests/schema/schema.sql with 058
+- **File(s) changed:** `CHANGE_LOG.md`, `main.py` (import block only), `tests/schema/schema.sql`
+- **What changed:** Replayed the 3 A4 part-1 commits (56077a3, 9f0ebb2, 2294a55) onto `origin/main` at `442c675` (A1 part 1 merged) in worktree `~/dev/fl-a4-merge-wt`. Conflicts: this change log (both sides kept, newest first) and the adjacent import lines at the top of `main.py` (`import write_tickets` from A1 + `import resolution` from A4; both kept). Resolver code, migration 060, tests and docs are identical to 2294a55. `tests/schema/schema.sql` re-dumped read-only from production (now contains the 058 `write_tickets`/`receipt_counters` objects and `transactions.receipt_number`/`ticket_id`; the pending 058 include is gone) plus a pending `\ir 060_search_aliases.sql` block that must be removed by a re-dump after 060 is applied to production. Full Python suite 1,653 passed / 0 failed / 0 skipped and Node 69/69 on fresh local DB `fl_a4merge_20261008`.
+- **Why:** PR #81 was CONFLICTING after PR #78 merged; Michael asked for the rebase and schema re-dump ahead of the production 060 migration and merge.
+
+---
 ## 2026-10-08 11:11 — Rebase feat/write-tickets (PR #78) onto origin/main cef1c16 for merge
 - **File(s) changed:** `CHANGE_LOG.md`, `docs/deployments/a1-write-tickets-part1.md` (conflict resolution only)
 - **What changed:** Replayed the 7 A1 part-1 commits (d211ca5..7c7687f) onto `origin/main` at `cef1c16` (rev 3.4) in worktree `~/dev/fl-a1-merge-wt`; the branch's own doc merge commit f6be4a2 was dropped by the rebase because main already contains it. Conflicts were confined to this change log (both sides added entries at the top; both kept, newest first) and the status paragraph of the A1 deployment notes (kept the 7c7687f wording). Application code, migration 058 and tests are byte-identical to 7c7687f. Full Python suite and Node suite rerun on a fresh local DB `fl_a1merge_20261008` before force-with-lease push.
