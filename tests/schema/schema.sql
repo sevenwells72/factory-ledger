@@ -6233,3 +6233,7 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 --
 
 \unrestrict XaPsfTXvQYUEHaAzVXcRiJVaN9zvto2nZ7sBb7XwOOZm9mfHMGuOyxJCLf8SPIy
+
+-- A11 additive identity/session storage (not yet in production dump).
+SET search_path TO public;
+\ir ../../migrations/072_pin_sessions.sql

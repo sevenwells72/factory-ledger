@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-10-09 10:09 — A11: prevent auth validation from echoing secrets and use explicit credentialed CORS origins
+- **File(s) changed:** main.py
+- **What changed:** A11: prevent auth validation from echoing secrets and use explicit credentialed CORS origins
+- **Why:** Malformed PIN/key bodies stay private; cross-origin device cookies require explicit allowed dashboard origins.
+
+---
+
+## 2026-10-09 10:09 — A11: keep session activity separate from the actor-key cache throttle
+- **File(s) changed:** main.py
+- **What changed:** A11: keep session activity separate from the actor-key cache throttle
+- **Why:** Sessions already persist activity and intentionally expose only public actor identity, not actor key hashes.
+
+---
+
+## 2026-10-09 10:08 — A11: initialize schema search path before pending migration and bind direct test helpers to fixtures
+- **File(s) changed:** tests/schema/schema.sql, tests/test_pin_sessions.py
+- **What changed:** A11: initialize schema search path before pending migration and bind direct test helpers to fixtures
+- **Why:** The production dump clears search_path; the additive migration must explicitly restore public before replay.
+
+---
+
+## 2026-10-09 10:08 — A11: add real-Postgres security acceptance tests and isolated local test cluster
+- **File(s) changed:** tests/test_pin_sessions.py, .venv-test (ignored local test runtime)
+- **What changed:** A11: add real-Postgres security acceptance tests and isolated local test cluster
+- **Why:** Exercise exhaustive sweep, atomic distributed limit, identity, idle, reset, wrong-person and per-request step-up behavior without production access.
+
+---
+
+## 2026-10-09 10:06 — A11: implement durable PIN limits, actor sessions, PIN administration and owner step-up
+- **File(s) changed:** pin_sessions.py, main.py, permissions.py, write_tickets.py, exceptions_enforcement.py, tests/schema/schema.sql
+- **What changed:** A11: implement durable PIN limits, actor sessions, PIN administration and owner step-up
+- **Why:** Server-enforced person identity with atomic source/global limits and fresh owner proof for protected actions.
+
+---
+
 ## 2026-10-09 10:04 — A11: reserve additive migration 072 and document isolated build scope
 - **File(s) changed:** migrations/072_pin_sessions.sql, docs/deployments/a11-pin-sessions.md
 - **What changed:** A11: reserve additive migration 072 and document isolated build scope

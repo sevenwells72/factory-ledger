@@ -207,7 +207,7 @@ def identity(api, request):
         'id': actor['id'] if actor else None,
         'name': api._operator_id(request),
         'role': actor['role'] if actor else None,
-        'key_kind': request.state.key_kind,
+        'key_kind': 'actor' if request.state.key_kind == 'session' else request.state.key_kind,
     }
 
 
@@ -384,6 +384,8 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
     entry_timing = permissions.require_backdating(
         approval['approved_by'] | {'key_kind': 'actor'} if approval else actor,
         datetime.fromisoformat(row['payload']['occurred_at']), api.get_plant_now())
+    if entry_timing['status'] == 'backfill' and not approval and actor['id'] is not None:
+        api.pin_sessions.require_owner_pin(api, request, purpose='backdate_over_14d')
     cur.execute('SAVEPOINT ticket_post')
     try:
         # Reuse the legacy lot-sequence locks before validation/posting.
