@@ -16,6 +16,11 @@ import main
 ROOT = Path(__file__).resolve().parents[1]
 UP = (ROOT / 'migrations/061_exceptions_tables.sql').read_text()
 DOWN = (ROOT / 'migrations/down/061_exceptions_tables_down.sql').read_text()
+# The dump has carried A3b's 069–071 since the 2026-10-09 prod apply; they depend on
+# 061 (view columns, FKs to shortage_flags/exceptions), so they roll back FIRST, in
+# the documented order 071 → 070 → 069 → 061 (their tables are empty on a fresh dump).
+A3B_DOWNS = [(ROOT / f'migrations/down/{name}_down.sql').read_text()
+             for name in ('071_shortage_evidence_claims', '070_pre_make_adjust', '069_exceptions_enforcement')]
 DRY_RUN = (ROOT / 'migrations/dry-runs/061_reason_code_backfill_dry_run.sql').read_text()
 pytestmark = pytest.mark.db
 
@@ -227,7 +232,8 @@ def test_owner_only_posture_and_marker(db_cursor):
 # NOT been applied to yet: build one from the schema dump minus psql
 # meta-commands, as the 058 tests do, then run the 061 down file so the
 # fixture starts before 061 (the dump has carried its objects since the
-# 2026-10-08 prod apply; its tables are empty, so down needs no confirmation).
+# 2026-10-08 prod apply, and A3b's 069–071 since 2026-10-09; all tables are
+# empty on a fresh dump, so the downs need no export confirmation).
 # ---------------------------------------------------------------------------
 @contextmanager
 def connect(url):
@@ -271,6 +277,8 @@ def isolated_database():
         with connect(url) as cur:
             cur.execute('CREATE EXTENSION pg_trgm')
             cur.execute(schema)
+        for down in A3B_DOWNS:
+            apply(url, down)
         apply(url, DOWN)
         yield url
     finally:

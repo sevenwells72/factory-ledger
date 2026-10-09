@@ -412,11 +412,13 @@ def isolated_database(_db_connection):
             cur.execute('CREATE EXTENSION pg_trgm')
             cur.execute(schema)
             cur.execute('SET LOCAL search_path TO public')
+            # The dump is schema-only: it carries every object of 058–071 but no
+            # migration_markers rows. Re-apply the migrations whose markers the
+            # up/down tests below assert (all idempotent → no-ops on the DDL).
             cur.execute((ROOT/'migrations/058_write_tickets.sql').read_text())
             cur.execute((ROOT/'migrations/064_unidentified_lots.sql').read_text())
-            # Pending A2 migration 065 (the \ir include above is dropped with the meta-commands).
             cur.execute((ROOT/'migrations/065_entered_by.sql').read_text())
-            # A3b: the fixed correction-reason seed (schema-only dump has none) + pending 069.
+            # A3b: the fixed correction-reason seed (schema-only dump has none), then 069–071 markers.
             from tests.conftest import reference_seed_sql
             cur.execute(reference_seed_sql())
             cur.execute((ROOT/'migrations/069_exceptions_enforcement.sql').read_text())
