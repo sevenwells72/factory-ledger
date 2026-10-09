@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict UGvhm8AwsieGUCv92NArmgZh74dZdwN1WtjofjhsKa1QYqlmJg8ax8Uy5fp9Qzb
+\restrict XaPsfTXvQYUEHaAzVXcRiJVaN9zvto2nZ7sBb7XwOOZm9mfHMGuOyxJCLf8SPIy
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -518,7 +518,7 @@ CREATE TABLE public.actor_write_audit (
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     CONSTRAINT actor_write_audit_method_check CHECK ((method = ANY (ARRAY['POST'::text, 'PATCH'::text]))),
     CONSTRAINT actor_write_audit_operator_id_check CHECK ((btrim(operator_id) <> ''::text)),
-    CONSTRAINT actor_write_audit_target_table_check CHECK ((target_table = ANY (ARRAY['customers'::text, 'lots'::text, 'sales_orders'::text, 'sales_order_lines'::text])))
+    CONSTRAINT actor_write_audit_target_table_check CHECK (((target_table = ANY (ARRAY['customers'::text, 'lots'::text, 'sales_orders'::text, 'sales_order_lines'::text])) OR (target_table = 'exceptions'::text)))
 );
 
 
@@ -931,7 +931,7 @@ CREATE TABLE public.exceptions (
     resolution_ticket_id bigint,
     CONSTRAINT exceptions_detail_check CHECK ((jsonb_typeof(detail) = 'object'::text)),
     CONSTRAINT exceptions_escalated_needs_time CHECK (((status <> 'escalated'::text) OR (escalated_at IS NOT NULL))),
-    CONSTRAINT exceptions_kind_check CHECK ((kind = ANY (ARRAY['SHORTAGE'::text, 'UNIDENTIFIED_LOT'::text, 'LARGE_CORRECTION'::text, 'LATE_ENTRY'::text, 'SHIPMENT_PROOF_MISSING'::text, 'NEGATIVE_BALANCE'::text, 'POSSIBLE_DUPLICATE_ACK'::text, 'UNSHIPPED_PAST_DUE'::text, 'SUNSHINE_INVOICE_PENDING'::text, 'SHIFT_DISCREPANCY'::text]))),
+    CONSTRAINT exceptions_kind_check CHECK (((kind = ANY (ARRAY['SHORTAGE'::text, 'UNIDENTIFIED_LOT'::text, 'LARGE_CORRECTION'::text, 'LATE_ENTRY'::text, 'SHIPMENT_PROOF_MISSING'::text, 'NEGATIVE_BALANCE'::text, 'POSSIBLE_DUPLICATE_ACK'::text, 'UNSHIPPED_PAST_DUE'::text, 'SUNSHINE_INVOICE_PENDING'::text, 'SHIFT_DISCREPANCY'::text])) OR (kind = 'PRE_MAKE_ADJUST'::text))),
     CONSTRAINT exceptions_resolved_needs_time CHECK (((status <> ALL (ARRAY['resolved'::text, 'waived'::text])) OR (resolved_at IS NOT NULL))),
     CONSTRAINT exceptions_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'warn'::text, 'block'::text]))),
     CONSTRAINT exceptions_status_check CHECK ((status = ANY (ARRAY['open'::text, 'resolved'::text, 'waived'::text, 'escalated'::text])))
@@ -1231,7 +1231,9 @@ CREATE VIEW public.ledger_current_transactions AS
             WHEN (correction.event_type = 'restore'::text) THEN 'posted'::text
             WHEN (correction.event_type = 'amend'::text) THEN COALESCE((correction.replacement_values ->> 'status'::text), t.status, 'posted'::text)
             ELSE COALESCE(t.status, 'posted'::text)
-        END)) AS effective_record
+        END)) AS effective_record,
+    t.reason_code,
+    t.entered_by_actor_id
    FROM (public.transactions t
      LEFT JOIN LATERAL ( SELECT c.id,
             c.target_table,
@@ -2409,6 +2411,38 @@ ALTER SEQUENCE public.shipments_id_seq OWNED BY public.shipments.id;
 
 
 --
+-- Name: shortage_evidence_claims; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.shortage_evidence_claims (
+    id bigint NOT NULL,
+    exception_id bigint NOT NULL,
+    shortage_flag_id bigint,
+    evidence_ticket_id bigint NOT NULL,
+    evidence_receipt_number text NOT NULL,
+    lot_id integer NOT NULL,
+    claimed_lb numeric(14,4) NOT NULL,
+    claimed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    claimed_by_actor_id integer,
+    CONSTRAINT shortage_evidence_claims_claimed_lb_check CHECK ((claimed_lb > (0)::numeric))
+);
+
+
+--
+-- Name: shortage_evidence_claims_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.shortage_evidence_claims ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.shortage_evidence_claims_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: shortage_flags; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3034,7 +3068,7 @@ CREATE TABLE public.write_tickets (
     CONSTRAINT write_tickets_key_kind_check CHECK ((key_kind = ANY (ARRAY['actor'::text, 'legacy_ledger'::text, 'legacy_dashboard'::text]))),
     CONSTRAINT write_tickets_payload_hash_check CHECK ((length(payload_hash) = 64)),
     CONSTRAINT write_tickets_state_hash_check CHECK ((length(state_hash) = 64)),
-    CONSTRAINT write_tickets_status_check CHECK ((status = ANY (ARRAY['prepared'::text, 'committed'::text, 'expired'::text, 'rejected'::text, 'superseded'::text]))),
+    CONSTRAINT write_tickets_status_check CHECK ((status = ANY (ARRAY['prepared'::text, 'committed'::text, 'expired'::text, 'rejected'::text, 'superseded'::text, 'awaiting_approval'::text]))),
     CONSTRAINT write_tickets_ticket_hash_check CHECK ((length(ticket_hash) = 64))
 );
 
@@ -3823,6 +3857,14 @@ ALTER TABLE ONLY public.shipments
 
 
 --
+-- Name: shortage_evidence_claims shortage_evidence_claims_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_evidence_claims
+    ADD CONSTRAINT shortage_evidence_claims_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: shortage_flags shortage_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3985,6 +4027,34 @@ CREATE UNIQUE INDEX customer_product_aliases_uidx ON public.customer_product_ali
 --
 
 CREATE INDEX exceptions_lot_idx ON public.exceptions USING btree (lot_id) WHERE (lot_id IS NOT NULL);
+
+
+--
+-- Name: exceptions_one_hold_per_ticket_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX exceptions_one_hold_per_ticket_idx ON public.exceptions USING btree (ticket_id) WHERE (kind = 'LARGE_CORRECTION'::text);
+
+
+--
+-- Name: exceptions_one_pre_make_tag_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX exceptions_one_pre_make_tag_idx ON public.exceptions USING btree (transaction_id) WHERE (kind = 'PRE_MAKE_ADJUST'::text);
+
+
+--
+-- Name: exceptions_one_shortage_per_line_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX exceptions_one_shortage_per_line_idx ON public.exceptions USING btree (transaction_id, lot_id) WHERE (kind = 'SHORTAGE'::text);
+
+
+--
+-- Name: exceptions_open_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX exceptions_open_due_idx ON public.exceptions USING btree (due_at) WHERE ((status = 'open'::text) AND (due_at IS NOT NULL));
 
 
 --
@@ -4555,6 +4625,34 @@ CREATE UNIQUE INDEX search_aliases_target_uniq ON public.search_aliases USING bt
 
 
 --
+-- Name: shortage_evidence_claims_exception_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shortage_evidence_claims_exception_idx ON public.shortage_evidence_claims USING btree (exception_id);
+
+
+--
+-- Name: shortage_evidence_claims_receipt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shortage_evidence_claims_receipt_idx ON public.shortage_evidence_claims USING btree (evidence_ticket_id, lot_id);
+
+
+--
+-- Name: shortage_flags_one_per_line_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX shortage_flags_one_per_line_idx ON public.shortage_flags USING btree (transaction_id, lot_id);
+
+
+--
+-- Name: shortage_flags_open_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shortage_flags_open_due_idx ON public.shortage_flags USING btree (due_at) WHERE (status = 'open'::text);
+
+
+--
 -- Name: shortage_flags_open_lot_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4720,6 +4818,13 @@ CREATE UNIQUE INDEX uq_certifications_original_business_date ON public.certifica
 --
 
 CREATE INDEX write_tickets_actor_prepared_idx ON public.write_tickets USING btree (actor_id, prepared_at DESC);
+
+
+--
+-- Name: write_tickets_awaiting_approval_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX write_tickets_awaiting_approval_idx ON public.write_tickets USING btree (prepared_at) WHERE (status = 'awaiting_approval'::text);
 
 
 --
@@ -5734,6 +5839,46 @@ ALTER TABLE ONLY public.shipments
 
 
 --
+-- Name: shortage_evidence_claims shortage_evidence_claims_claimed_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_evidence_claims
+    ADD CONSTRAINT shortage_evidence_claims_claimed_by_actor_id_fkey FOREIGN KEY (claimed_by_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: shortage_evidence_claims shortage_evidence_claims_evidence_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_evidence_claims
+    ADD CONSTRAINT shortage_evidence_claims_evidence_ticket_id_fkey FOREIGN KEY (evidence_ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
+-- Name: shortage_evidence_claims shortage_evidence_claims_exception_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_evidence_claims
+    ADD CONSTRAINT shortage_evidence_claims_exception_id_fkey FOREIGN KEY (exception_id) REFERENCES public.exceptions(id);
+
+
+--
+-- Name: shortage_evidence_claims shortage_evidence_claims_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_evidence_claims
+    ADD CONSTRAINT shortage_evidence_claims_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.lots(id);
+
+
+--
+-- Name: shortage_evidence_claims shortage_evidence_claims_shortage_flag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shortage_evidence_claims
+    ADD CONSTRAINT shortage_evidence_claims_shortage_flag_id_fkey FOREIGN KEY (shortage_flag_id) REFERENCES public.shortage_flags(id);
+
+
+--
 -- Name: shortage_flags shortage_flags_exception_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6087,12 +6232,4 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict UGvhm8AwsieGUCv92NArmgZh74dZdwN1WtjofjhsKa1QYqlmJg8ax8Uy5fp9Qzb
-
-
--- Pending A3b migration (remove after prod migration + scripts/dump_prod_schema.sh).
--- pg_dump leaves search_path empty; restore it for standalone DDL.
-SET search_path TO public;
-\ir ../../migrations/069_exceptions_enforcement.sql
-\ir ../../migrations/070_pre_make_adjust.sql
-\ir ../../migrations/071_shortage_evidence_claims.sql
+\unrestrict XaPsfTXvQYUEHaAzVXcRiJVaN9zvto2nZ7sBb7XwOOZm9mfHMGuOyxJCLf8SPIy

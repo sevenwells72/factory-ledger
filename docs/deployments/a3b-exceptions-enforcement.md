@@ -297,3 +297,19 @@ calls and the `record_pre_make_adjusts` call in `ticket_actions.post`.
 - **P2 `counted_lb` finite** — `Field(ge=0, le=MAX_COUNTED_LB, allow_inf_nan=False)` and the
   `RequestValidationError` handler in `main.py` (non-finite `input` rendered as text) so the answer is
   422, never 500.
+
+## Production rollout (2026-10-09)
+
+Owner GO at ~13:26Z after the read-only pre-checks (0 active backends, 0 rows violating the new
+CHECKs, `write_tickets` / `exceptions` / `shortage_flags` empty, 2 adjust rows with NULL `reason_code`).
+Applied as `postgres` on port 5432, each migration in its own transaction (`lock_timeout='5s'`,
+`statement_timeout='60s'`, `search_path=public`): **069** 13:27:00Z (swept rows 2613 and 2617 →
+`unknown`), **070** 13:27:27Z, **071** 13:27:28Z. Read-only verification: three markers, the three
+widened CHECKs, `reason_code` + `entered_by_actor_id` on the view, nine indexes, the claims table, both
+ledger triggers enabled, nine dependent views, 0 NULL reason codes. PR #94 merged as **c66d676**;
+Railway `FastAPI` 8a3a429f and `FastAPI-staging` eba8e534 SUCCESS at 13:29Z; `/health` 200 on both;
+startup log clean; OpenAPI 136 paths incl. the five `/exceptions` routes; the master key gets 403
+`ROLE_NOT_ALLOWED` on `GET /exceptions`. No production test writes. Housekeeping (schema re-dump,
+FL changelog row 170) followed in `chore/post-a3b`. The pending `\ir 069/070/071` tails in
+`tests/schema/schema.sql` are gone with the re-dump; the isolated-DB fixture keeps re-applying them
+only to seed `migration_markers` rows (the dump is schema-only).
