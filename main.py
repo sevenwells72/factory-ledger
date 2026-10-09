@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Request, Response, UploadFile, File
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool, Field
@@ -33,6 +35,7 @@ from collections import defaultdict, deque
 import extraction
 import write_tickets
 import lot_confirmation
+import exceptions_enforcement
 import resolution
 import permissions
 import sys
@@ -287,6 +290,26 @@ async def _exception_receipt_response(request: Request, exc: Exception) -> JSONR
         status_code=500,
         content={"success": False, "error_code": "INTERNAL_SERVER_ERROR", "error": str(exc)},
     )
+
+
+def _json_finite(value):
+    """Replace non-finite floats (NaN, ±inf) with their names so a 422 can be rendered."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, dict):
+        return {k: _json_finite(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_finite(v) for v in value]
+    return value
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_handler(request: Request, exc: RequestValidationError):
+    # Same body as FastAPI's default ({"detail": errors}), but a body that carried
+    # NaN / Infinity (json.loads accepts them) must still get its 422: the default
+    # handler echoes the offending `input` and the strict encoder then raises → 500
+    # (A3b P2, `counted_lb`). Non-finite floats are rendered as their names.
+    return DecimalSafeJSONResponse(status_code=422, content={"detail": _json_finite(jsonable_encoder(exc.errors()))})
 
 
 @app.exception_handler(psycopg2.Error)
@@ -2845,7 +2868,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-}) | write_tickets.ACTOR_ROUTES
+}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -8264,7 +8287,9 @@ def _post_prepared_inputs(cur, txn_id, product_id, needed, plan):
         cur.execute('SELECT id, lot_code FROM lots WHERE id=%s FOR UPDATE', (item['lot_id'],))
         lot = cur.fetchone()
         qty = item['quantity_lb']
-        validate_lot_deduction(cur, lot['id'], lot['lot_code'], qty)
+        # A3b (R3): no validate_lot_deduction here. ticket_actions.validate(lock=True)
+        # measured the shortfall against this lot under the same FOR UPDATE lock and
+        # ticket_actions.post records the shortage flag; the balance may go negative.
         cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,%s)',
                     (txn_id, product_id, lot['id'], -qty))
         cur.execute('INSERT INTO ingredient_lot_consumption(transaction_id,ingredient_product_id,ingredient_lot_id,quantity_lb) VALUES (%s,%s,%s,%s)',
@@ -8782,12 +8807,14 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     reservation_summary = _allocation_reservation_summary(
         cur, int(source['id'])
     )
-    if not lots:
-        raise HTTPException(400, f"No batch inventory available for {source['name']}")
-
     if input_plan is not None:
         pinned_ids = {item['lot_id'] for item in input_plan if item['product_id'] == source['id']}
         lots = [lot for lot in lots if lot['lot_id'] in pinned_ids]
+        # A3b (R3): a pinned lot at or below zero is absent from the FIFO list but is
+        # still the lot the shortage posts against (ticket_actions.validate locked it).
+        lots += exceptions_enforcement.pinned_lot_rows(cur, source['id'], pinned_ids - {lot['lot_id'] for lot in lots})
+    if not lots:
+        raise HTTPException(400, f"No batch inventory available for {source['name']}")
     lots_by_code = {lot['lot_code'].lower(): lot for lot in lots}
 
     if req.lot_allocations:
@@ -8798,7 +8825,8 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
             lot = lots_by_code.get(alloc.lot_code.lower())
             if not lot:
                 raise HTTPException(400, f"Lot '{alloc.lot_code}' not found or empty for {source['name']}")
-            validate_lot_deduction(cur, lot['lot_id'], lot['lot_code'], alloc.quantity_lb)
+            if input_plan is None:   # A3b (R3): ticket packs post the shortfall; direct route unchanged
+                validate_lot_deduction(cur, lot['lot_id'], lot['lot_code'], alloc.quantity_lb)
             takeable = float(lot['takeable'])
             physical = float(lot['on_hand'])
             # Clamp by physical for symmetry with the preview
@@ -8889,7 +8917,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     add_in_consumed = []
     if add_in_info and 'add_in_ingredients' in add_in_info:
         # Check all add-ins are sufficient before deducting
-        if not add_in_info.get('all_add_ins_sufficient'):
+        if input_plan is None and not add_in_info.get('all_add_ins_sufficient'):   # A3b (R3): ticket path flags instead
             short = [ai for ai in add_in_info['add_in_ingredients'] if not ai['sufficient']]
             short_msg = "; ".join(f"{ai['ingredient_name']}: have {ai['available_lb']} lb, need {ai['needed_lb']} lb" for ai in short)
             raise HTTPException(400, f"Insufficient inventory for add-in ingredient(s): {short_msg}")
@@ -8987,7 +9015,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     return response
 
 
-def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, lot_id=None, ticket_id=None, receipt_number=None):
+def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, lot_id=None, ticket_id=None, receipt_number=None, reason_code=None, note=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     if lot_id is None:
         cur.execute("SELECT id as lot_id, lot_code FROM lots WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)", (product['id'], req.lot_code))
@@ -9005,19 +9033,23 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
         return JSONResponse(status_code=403, content={"blocked": True, "warning": warning, "product_name": result['name'], "label_type": result['label_type']})
 
     now = get_plant_now()
+    # A3b (R2, P1.8): every adjust row carries a fixed-list reason_code at INSERT —
+    # the ticket's validated code, or the 061 mapping of the direct route's free text.
+    if reason_code is None:
+        reason_code = exceptions_enforcement.legacy_reason_code(cur, 'adjust', req.reason)
     cur.execute("""
         INSERT INTO transactions (
             type, timestamp, adjust_reason, adjust_reason_es,
             notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
-            entered_by_actor_id
+            entered_by_actor_id, reason_code
         )
-        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, req.reason, req.reason_es,
-        f"Adjustment: {req.adjustment_lb} lb",
+        f"Adjustment: {req.adjustment_lb} lb" + (f" — {note}" if note else ""),
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
-        _entered_by_actor_id(request),
+        _entered_by_actor_id(request), reason_code,
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -9041,7 +9073,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
         "confirmation_code": generate_confirmation_code(txn_id),
         "product_id": result['product_id'], "product_name": result['name'],
         "lot_code": result['lot_code'], "adjustment_lb": req.adjustment_lb,
-        "new_balance_lb": new_balance, "reason": req.reason,
+        "new_balance_lb": new_balance, "reason": req.reason, "reason_code": reason_code,
         "message": f"Adjusted lot {result['lot_code']} by {req.adjustment_lb} lb (new balance: {new_balance} lb)"
     }
     if req.reason_es:
@@ -9049,7 +9081,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
     return response
 
 
-def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False):
+def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False, reason_code=None):
     cur.execute("SELECT id, name FROM products WHERE id = %s", (req.product_id,))
     product = cur.fetchone()
 
@@ -9082,17 +9114,20 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
         if is_new_lot else None
     )
 
+    # A3b (R2, P1.8): fixed-list reason_code at INSERT (ticket) or the 061 mapping of the legacy code.
+    if reason_code is None:
+        reason_code = exceptions_enforcement.legacy_reason_code(cur, 'found', req.reason_code)
     cur.execute("""
         INSERT INTO transactions (
             type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
-            entered_by_actor_id
+            entered_by_actor_id, reason_code
         )
-        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, f"Found inventory: {req.reason_code}",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
-        _entered_by_actor_id(request),
+        _entered_by_actor_id(request), reason_code,
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -11149,13 +11184,14 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 
                 cur.execute("""
                     INSERT INTO transactions (
-                        type, timestamp, notes, occurred_at, created_at_source
+                        type, timestamp, notes, occurred_at, created_at_source, reason_code
                     )
-                    VALUES ('adjust', %s, %s, %s, %s)
+                    VALUES ('adjust', %s, %s, %s, %s, %s)
                     RETURNING id, occurred_at, business_date
                 """, (
                     now, f"Found inventory with new product: {req.reason_code}",
                     occurred_at, created_at_source,
+                    exceptions_enforcement.legacy_reason_code(cur, 'found', req.reason_code),   # A3b P1.8
                 ))
                 txn_row = cur.fetchone()
                 txn_id = txn_row['id']
@@ -20635,3 +20671,5 @@ if _dashboard_dir.is_dir():
 
 # A1: plain HTTP ticket/receipt routes share the same FL action cores.
 write_tickets.register_routes(app, sys.modules[__name__])
+# A3b: /exceptions list/view/resolve/approve/reject (named actors only).
+exceptions_enforcement.register_routes(app, sys.modules[__name__])

@@ -60,6 +60,15 @@ else
     echo "Database $DB_NAME created and schema loaded."
 fi
 
+# Reference data the schema-only dump cannot carry: the fixed correction-reason
+# list + legacy map (migration 061 §1–2; A3b validates every ticket correction
+# against it). Idempotent (ON CONFLICT DO NOTHING); tests/conftest.py re-applies
+# the same slice at session start, so this is only a convenience.
+awk '/CREATE TABLE IF NOT EXISTS correction_reasons/,/^-- 3\. transactions\.reason_code/' \
+        "$ROOT/migrations/061_exceptions_tables.sql" | sed '$d' \
+    | "$PG_BIN/psql" -h "$HOST" -p "$PORT" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q
+echo "Reference seed (correction_reasons) applied."
+
 echo
 echo "Run tests with:"
 echo "  TEST_DATABASE_URL=postgresql://$HOST:$PORT/$DB_NAME python3 -m pytest"

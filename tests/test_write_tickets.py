@@ -416,6 +416,12 @@ def isolated_database(_db_connection):
             cur.execute((ROOT/'migrations/064_unidentified_lots.sql').read_text())
             # Pending A2 migration 065 (the \ir include above is dropped with the meta-commands).
             cur.execute((ROOT/'migrations/065_entered_by.sql').read_text())
+            # A3b: the fixed correction-reason seed (schema-only dump has none) + pending 069.
+            from tests.conftest import reference_seed_sql
+            cur.execute(reference_seed_sql())
+            cur.execute((ROOT/'migrations/069_exceptions_enforcement.sql').read_text())
+            cur.execute((ROOT/'migrations/070_pre_make_adjust.sql').read_text())
+            cur.execute((ROOT/'migrations/071_shortage_evidence_claims.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:
@@ -434,11 +440,23 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
     # schema dump since 2026-10-08; it has no down file, so drop its two tables
     # here and re-run 062 (idempotent) after 058 is back.
     up_062 = (ROOT/'migrations/062_lot_confirmation.sql').read_text()
+    # 069 (A3b) replaces ledger_current_transactions with reason_code in it and
+    # widens the write_tickets status CHECK, so it rolls back before 061/058 and
+    # goes back on last (rollback order documented in the 069 down file).
+    up_069 = (ROOT/'migrations/069_exceptions_enforcement.sql').read_text()
+    down_069 = (ROOT/'migrations/down/069_exceptions_enforcement_down.sql').read_text()
+    up_070 = (ROOT/'migrations/070_pre_make_adjust.sql').read_text()
+    down_070 = (ROOT/'migrations/down/070_pre_make_adjust_down.sql').read_text()
+    up_071 = (ROOT/'migrations/071_shortage_evidence_claims.sql').read_text()
+    down_071 = (ROOT/'migrations/down/071_shortage_evidence_claims_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
+        cur.execute('SET LOCAL search_path TO public')
+        cur.execute(down_071)
+        cur.execute(down_070)
+        cur.execute(down_069)
         cur.execute('SELECT oid FROM pg_class WHERE relname IN (%s,%s) ORDER BY oid',
                     ('ledger_current_transactions', 'ledger_current_transaction_lines'))
         views = cur.fetchall()
-        cur.execute('SET LOCAL search_path TO public')
         cur.execute('DROP TABLE IF EXISTS transaction_lot_confirmations, lot_moves')
         cur.execute(down_061)
         cur.execute(down)
@@ -454,6 +472,9 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         assert cur.fetchall() == [(True, False), (True, False)]
         cur.execute(up_061)
         cur.execute(up_062)
+        cur.execute(up_069)
+        cur.execute(up_070)
+        cur.execute(up_071)
         cur.execute("SELECT to_regclass('public.lot_moves') IS NOT NULL")
         assert cur.fetchone()[0]
         cur.execute('SELECT oid FROM pg_class WHERE relname IN (%s,%s) ORDER BY oid',

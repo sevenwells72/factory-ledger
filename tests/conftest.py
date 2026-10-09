@@ -115,6 +115,39 @@ def _connection_url():
 # DB fixtures
 # ─────────────────────────────────────────────────────────────────
 
+def reference_seed_sql():
+    """The fixed correction-reason list and its legacy map (migration 061 §1–2).
+
+    tests/schema/schema.sql is a schema-only dump, so these configuration rows —
+    which every A3b ticket correction validates against — are not in it. The
+    slice is the two CREATE TABLE IF NOT EXISTS + INSERT … ON CONFLICT DO NOTHING
+    sections of 061, i.e. idempotent and free of the migration's table rewrites.
+    """
+    text = (ROOT / "migrations" / "061_exceptions_tables.sql").read_text()
+    start = text.index("CREATE TABLE IF NOT EXISTS correction_reasons")
+    end = text.index("-- 3. transactions.reason_code")
+    section = text[start:end]
+    assert "correction_reason_legacy_codes" in section
+    return section
+
+
+def _seed_reference_data(url):
+    """Committed once per session on its own connection (never inside the suite's
+    rolled-back transaction: an FK to an uncommitted row would block other
+    connections). Idempotent, so an already-seeded database is untouched."""
+    import psycopg2
+
+    conn = psycopg2.connect(url)
+    conn.autocommit = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT to_regclass('public.correction_reasons') IS NOT NULL")
+            if cur.fetchone()[0]:
+                cur.execute(reference_seed_sql())
+    finally:
+        conn.close()
+
+
 @pytest.fixture(scope="session")
 def _db_connection():
     url = _connection_url()
@@ -128,6 +161,7 @@ def _db_connection():
     except ImportError:
         pytest.skip("psycopg2 not installed")
     try:
+        _seed_reference_data(url)
         conn = psycopg2.connect(url)
     except Exception as e:
         pytest.skip(f"Test DB connection failed ({type(e).__name__}): {e}")

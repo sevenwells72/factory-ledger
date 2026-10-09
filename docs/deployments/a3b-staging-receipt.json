@@ -1,0 +1,75 @@
+{
+  "reference": "STG-A3B-0D78DDA6AF2C",
+  "mode": "local branch HTTP routes against STAGING; no hosted deployment",
+  "migration_applied_now": true,
+  "example_1_short_make": {
+    "receipt": "MK-261008-010",
+    "transaction_id": 1000000038,
+    "lot_id": 1000000034,
+    "lot_code": "STG-A3B-0D78DDA6AF2C-ING",
+    "short_lb": 6.0,
+    "balance_after_lb": -6.0,
+    "exception_id": 4,
+    "shortage_flag_id": 1,
+    "due_at": "2026-10-12T23:59:00-04:00",
+    "warning": "STG-A3B-0D78DDA6AF2C ingredient lot STG-A3B-0D78DDA6AF2C-ING has 4.0 lb; posting 10.0 lb leaves it short 6.0 lb. A shortage flag opens for the floor to resolve within 2 business days."
+  },
+  "example_2_large_correction": {
+    "ticket_id": 41,
+    "held_response": {
+      "held": true,
+      "status": "awaiting_approval",
+      "ticket_id": 41,
+      "exception_id": 5,
+      "exception_status": "open",
+      "error_code": "PHOTO_REQUIRED",
+      "message": "Corrections over 500 lb need a photo. Nothing was posted; the entry is held for the owner to approve, or commit again with attachment_ref.",
+      "message_es": "Las correcciones de más de 500 lb necesitan foto. No se registró nada; queda en espera de la aprobación del dueño, o vuelva a confirmar con attachment_ref.",
+      "correction_review": {
+        "unit": "lb",
+        "rules": [
+          "BOOK_BALANCE_NOT_POSITIVE",
+          "OVER_500_LB"
+        ],
+        "action": "adjust",
+        "lb_rule": "applied",
+        "message": "STG-A3B-0D78DDA6AF2C ingredient: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+        "quantity": -600.0,
+        "highlighted": true,
+        "pct_of_book": null,
+        "weekly_view": true,
+        "lb_equivalent": -600.0,
+        "photo_required": true,
+        "book_balance_before": -6.0
+      },
+      "success": true
+    },
+    "exception_id": 5,
+    "approved_receipt": "ADJ-261008-005",
+    "transaction_id": 1000000039,
+    "entered_by_actor_id": 1000000015,
+    "approved_by_actor_id": 1000000016,
+    "balance_after_lb": -606.0
+  },
+  "example_3_denied": {
+    "floor_approve": "ROLE_NOT_ALLOWED",
+    "office_resolve": "ROLE_NOT_ALLOWED",
+    "master_key_list": "ROLE_NOT_ALLOWED",
+    "cover_up_adjust": "SHORTAGE_OPEN_RESOLVE_INSTEAD"
+  },
+  "shortage_resolved_by": {
+    "id": 1000000015,
+    "name": "STG-A3B-0D78DDA6AF2C floor"
+  },
+  "shortage_resolved_at": "2026-10-09T01:48:11.605914+00:00",
+  "actors": {
+    "floor": 1000000015,
+    "owner": 1000000016,
+    "office": 1000000017
+  },
+  "actors_deactivated_after_check": true,
+  "products": {
+    "ingredient": 1000000027,
+    "batch": 1000000028
+  }
+}

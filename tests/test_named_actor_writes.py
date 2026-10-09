@@ -168,6 +168,11 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/adjust/prepare'), ('POST', '/inventory/found/prepare'),
         ('GET', '/receipts'), ('GET', '/receipts/{receipt_number}'),
         ('GET', '/receipts/by-transaction/{transaction_id}'),
+        # A3b: the exceptions queue is named-actor only (shared keys get nothing new).
+        ('GET', '/exceptions'), ('GET', '/exceptions/{exception_id}'),
+        ('POST', '/exceptions/{exception_id}/resolve'),
+        ('POST', '/exceptions/{exception_id}/approve'),
+        ('POST', '/exceptions/{exception_id}/reject'),
     }
     assert ('POST', '/products/resolve') not in main.DASHBOARD_KEY_ALLOWLIST
 

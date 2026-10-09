@@ -729,8 +729,19 @@ def test_migration_065_up_down_up(isolated_database):
                        WHERE column_name='entered_by_actor_id' ORDER BY 1""")
         return [r[0] for r in cur.fetchall()]
 
+    # A3b's 069 view passes entered_by_actor_id through; it rolls back first and
+    # goes back on last (rollback order documented in the 069 down file).
+    up_069 = (ROOT / 'migrations/069_exceptions_enforcement.sql').read_text()
+    down_069 = (ROOT / 'migrations/down/069_exceptions_enforcement_down.sql').read_text()
+    up_070 = (ROOT / 'migrations/070_pre_make_adjust.sql').read_text()
+    down_070 = (ROOT / 'migrations/down/070_pre_make_adjust_down.sql').read_text()
+    up_071 = (ROOT / 'migrations/071_shortage_evidence_claims.sql').read_text()
+    down_071 = (ROOT / 'migrations/down/071_shortage_evidence_claims_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
+        cur.execute(down_071)
+        cur.execute(down_070)
+        cur.execute(down_069)
         assert columns(cur) == ['ledger_corrections', 'transactions']
         cur.execute(up)   # rerun is a no-op
         cur.execute("SELECT tgenabled FROM pg_trigger WHERE tgname='trg_transactions_original_append_only'")
@@ -748,3 +759,7 @@ def test_migration_065_up_down_up(isolated_database):
                          AND conkey=ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid='transactions'::regclass
                                                                              AND attname='entered_by_actor_id')]""")
         assert cur.fetchone()[0] == 'actors'
+        cur.execute(up_069)
+        cur.execute(up_070)
+        cur.execute(up_071)
+        assert 'ledger_current_transactions' in columns(cur)
