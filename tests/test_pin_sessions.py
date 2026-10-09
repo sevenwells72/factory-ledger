@@ -229,3 +229,21 @@ def test_migration_replay_preserves_sessions_and_protects_actor_hashes(client, d
     assert client.get('/auth/session', headers=headers(token)).status_code == 200
     db_cursor.execute("SELECT relrowsecurity FROM pg_class WHERE relname IN ('actors','actor_sessions','pin_attempts','pin_rate_limits','pin_management_audit')")
     assert all(r['relrowsecurity'] for r in db_cursor.fetchall())
+
+
+def test_demotion_between_owner_proof_and_pin_write_denies(client, db_cursor, people, monkeypatch):
+    owner = login(client, people['owner'])
+    verify = pins.require_owner_pin
+    def demote_after_proof(api, request, **options):
+        result = verify(api, request, **options)
+        db_cursor.execute("UPDATE actors SET role='office' WHERE id=%s", (people['owner']['id'],))
+        return result
+    monkeypatch.setattr(pins, 'require_owner_pin', demote_after_proof)
+    target = people['floor']['id']
+    before = pins.pin_hash(people['floor']['pin'])
+    candidate = next(str(i) for i in range(1100,2000) if pins.valid_pin(str(i)))
+    response = client.post('/actors/'+str(target)+'/pin',json={'pin':candidate},
+                           headers=headers(owner)|{'X-FL-Owner-PIN':people['owner']['pin']})
+    error(response,403,'ROLE_NOT_ALLOWED')
+    db_cursor.execute('SELECT pin_hash FROM actors WHERE id=%s',(target,))
+    assert db_cursor.fetchone()['pin_hash'] == before

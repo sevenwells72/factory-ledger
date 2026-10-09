@@ -306,10 +306,12 @@ def register_routes(app, api):
         # so a simultaneous reset cannot authorize a stale credential.
         with api.get_transaction() as cur:
             cur.execute('SELECT pg_advisory_xact_lock(724111)')
-            cur.execute('SELECT id,active,pin_hash FROM actors WHERE id=ANY(%s) ORDER BY id FOR UPDATE', ([actor['id'], actor_id],))
+            cur.execute('SELECT id,active,role,pin_hash FROM actors WHERE id=ANY(%s) ORDER BY id FOR UPDATE', ([actor['id'], actor_id],))
             rows = {r['id']: r for r in cur.fetchall()}
             if actor_id not in rows or not rows[actor_id]['active']:
                 fail(404, 'ACTOR_NOT_FOUND', 'Active person not found.')
+            if (actor_id != actor['id'] or bootstrap) and rows[actor['id']]['role'] != 'owner':
+                fail(403, 'ROLE_NOT_ALLOWED', 'Only an active owner may administer PINs.')
             if not rows[actor['id']]['active'] or rows[actor['id']]['pin_hash'] != previous:
                 fail(401, 'SESSION_EXPIRED', 'Identity changed. Sign in again.')
             cur.execute('SELECT id FROM actors WHERE pin_hash=%s AND id<>%s', (hashed, actor_id))

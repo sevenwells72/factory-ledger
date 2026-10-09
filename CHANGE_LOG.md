@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-09 10:31 — A11: cover demotion between owner proof and PIN mutation
+- **File(s) changed:** tests/test_pin_sessions.py
+- **What changed:** A11: cover demotion between owner proof and PIN mutation
+- **Why:** Prove a formerly authorized owner cannot finish another person’s PIN reset after losing the role.
+
+---
+
+## 2026-10-09 10:30 — A11: recheck PIN administrator role under the final actor lock
+- **File(s) changed:** pin_sessions.py
+- **What changed:** A11: recheck PIN administrator role under the final actor lock
+- **Why:** A concurrent role change must not let a former owner finish changing another person’s PIN after step-up.
+
+---
+
+## 2026-10-09 10:30 — A11: configure staging PIN pepper and upload verified branch to FastAPI-staging
+- **File(s) changed:** FastAPI-staging configuration/deployment (staging only)
+- **What changed:** A11: configure staging PIN pepper and upload verified branch to FastAPI-staging
+- **Why:** Configure server-only PIN hashing without printing the value; deploy the tested snapshot for owner onboarding and live smoke checks, with no main merge or production deploy.
+
+---
+
 ## 2026-10-09 10:27 — A11: document session contract, staging onboarding and exact F1 integration handoff
 - **File(s) changed:** docs/deployments/a11-pin-sessions.md, docs/validation/a11-login-mobile.png, docs/validation/a11-pin-admin-desktop.png, dashboard/session.js
 - **What changed:** A11: document session contract, staging onboarding and exact F1 integration handoff
