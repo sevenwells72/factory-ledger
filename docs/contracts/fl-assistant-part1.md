@@ -163,3 +163,19 @@ holds, same-ticket approval checks, editable dictation, attachments and
 390px light/dark layouts. The A2 completeness, disabled-page flag matrix,
 definitive-4xx cancellation, status-only logging and crash-lease recovery
 regressions all pass. Production was not accessed; no merge.
+
+Staging deployment `3ef82577-7bcf-47dc-9591-4715b58bee17` is **SUCCESS**
+from tested code `ca201d8`. Live real-model acceptance passed all five actions:
+**RCV-261009-002, MK-261009-001, PK-261009-001, ADJ-261009-001, FND-261009-001**. Make and pack each flagged a 10 lb
+shortage; the 600 lb adjustment held with zero posts until synthetic owner
+approval, then replayed the same receipt. Direct staging reads verified one
+ledger post per ticket, floor actor attribution on all five and persisted
+A5 lot evidence. Both temporary actors are inactive. Health is 200 and page,
+JavaScript and CSS bytes match the tested worktree.
+
+An earlier attempt retained receive `RCV-261009-001`, then stopped on an
+OpenAI HTTP 503 before a make draft was saved; both actors were deactivated.
+The final runner recovers transient provider failures with bounded retries
+of the identical turn ID/body. Evidence is preserved under
+`a3b_integration_acceptance` in the validation JSON. No production access,
+additional migration or merge.
