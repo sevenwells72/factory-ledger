@@ -11,14 +11,21 @@ await fs.mkdir(out, { recursive: true });
 const server = await startStaticServer(root);
 const browser = await chromium.launch({ headless: true });
 const sid = '0c101ab1-8c56-42a2-8f29-c048330030c3', did = '616eac35-0b6e-4288-b40f-920639a83525';
-const receipt = { success: true, receipt_number: 'MK-261008-001', transaction_id: 17, product_name: 'Classic Test Batch', lot_code: 'B26-10-08-001' };
-let records = [], turns = [], uploaded = 0, transcribed = 0;
+const receipt = { success: true, receipt_number: 'MK-261008-001', transaction_id: 17, product_name: 'Classic Test Batch', lot_code: 'B26-10-08-001',
+  shortages: [{ product_name: 'Rolled Oats', lot_code: '26-10-08-OATS-004', short_lb: 10, exception_id: 26, due_at: '2026-10-12T23:59:00-04:00' }] };
+let records = [], turns = [], uploaded = 0, transcribed = 0, heldRequested = false, approved = false;
+const heldId = 'c9246549-acd4-44c2-8a21-3d3858848286';
+const heldResult = { held: true, status: 'awaiting_approval', exception_id: 27 };
+const heldDraft = { kind: 'draft', id: heldId, prepared: { action: 'found', can_commit: true,
+  actor: { name: 'Arturo' }, blockers: [], warnings: [], draft: { product_name: 'Counted ingredient', quantity: 600 } } };
+const heldReceipt = { success: true, receipt_number: 'FND-261009-001', transaction_id: 18 };
 const draft = { kind: 'draft', id: did, attachment_ids: [], prepared: {
   action: 'make', can_commit: false, expires_at: '2026-10-08T18:30:00-04:00', actor: { name: 'Arturo', role: 'floor' },
   blockers: [{ code: 'LOT_NOT_CONFIRMED', message: 'Confirm the physical lot / Confirma el lote físico.' }],
-  warnings: [{ code: 'POSSIBLE_DUPLICATE', message: 'A similar entry exists.', message_es: 'Existe una entrada similar.', requires_ack: true }],
+  warnings: [{ code: 'POSSIBLE_DUPLICATE', message: 'A similar entry exists.', message_es: 'Existe una entrada similar.', requires_ack: true },
+    { code: 'WILL_CREATE_SHORTAGE', message: 'Will create a shortage of 10 lb.', message_es: 'Creará un faltante de 10 lb.', requires_ack: false }],
   draft: { product_name: 'Classic Test Batch', batches: 2, total_output_lb: 800, happened_at: '2026-10-08T18:20:00-04:00',
-    input_plan: [{ lot_id: 19, lot_code: '26-10-08-OATS-1234', quantity_lb: 800, product_name: 'Rolled Oats', confirmed: false }] }
+    input_plan: [{ lot_id: 19, lot_code: '26-10-08-OATS-004', quantity_lb: 800, product_name: 'Rolled Oats', confirmed: false }] }
 } };
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -32,14 +39,21 @@ try {
   await page.route('**/assistant/**', async route => {
     const url = new URL(route.request().url()), data = route.request().postDataJSON?.bind(route.request());
     if (url.pathname.endsWith('/session')) return route.fulfill({ json: { session_id: sid } });
-    if (url.pathname.endsWith('/resume')) return route.fulfill({ json: { turns: [{ text: 'Made two batches', cards: [draft] }], drafts: [{ id: did, card: draft, status: 'committed', result: receipt }] } });
+    if (url.pathname.endsWith('/resume')) return route.fulfill({ json: { turns: [{ text: 'Made two batches', cards: [draft] }], drafts: [{ id: did, card: draft, status: 'committed', result: receipt },
+      ...(heldRequested ? [{ id: heldId, card: heldDraft, status: 'pending', result: heldResult }] : [])] } });
     if (url.pathname.endsWith('/turn')) {
       const body = data(); turns.push(body);
       const cards = body.text === 'ambiguous' ? [{ kind: 'choices', id: '811eac35-0b6e-4288-b40f-920639a83525', result: { ask: 'Which product?', candidates: [{ id: 1, label: '<img src=x onerror=alert(1)> Classic' }, { id: 2, label: 'Classic Chocolate Chip' }] } }] : [draft];
-      return route.fulfill({ json: { cards } });
+      return route.fulfill({ json: { cards: body.text === 'held' ? [heldDraft] : cards } });
     }
     if (url.pathname.endsWith('/record')) {
       records.push(data());
+      if (data().draft_id === heldId) {
+        heldRequested = true;
+        return route.fulfill({ status: approved ? 200 : 202, json: approved
+          ? { kind: 'receipt', draft_id: heldId, result: heldReceipt }
+          : { kind: 'awaiting_approval', draft_id: heldId, result: heldResult } });
+      }
       if (records.length === 1) return route.abort('failed');
       return route.fulfill({ json: { kind: 'receipt', result: { ...receipt, replayed: true } } });
     }
@@ -57,14 +71,22 @@ try {
   const record = page.getByRole('button', { name: 'Record', exact: true });
   await record.waitFor(); assert.equal(await record.isDisabled(), true);
   const lotInput = page.locator('.lot-controls input'); assert.equal(await lotInput.inputValue(), '');
-  await lotInput.fill('1234'); await page.locator('.warning input').check();
+  await page.getByText('Will create a shortage of 10 lb.', { exact: true }).waitFor();
+  await page.getByText('including the hyphen (for example, "-004").', { exact: false }).waitFor();
+  await page.locator('.lot-controls select').selectOption('pallet');
+  await page.getByText('Enter the full lot code from the pallet tag.', { exact: false }).waitFor();
+  assert.equal(await lotInput.inputValue(), '');
+  await page.locator('.lot-controls select').selectOption('last4');
+  await lotInput.fill('-004'); await page.locator('.warning input').check();
   await page.screenshot({ path: path.join(out, 'draft-desktop.png'), fullPage: true });
   await record.click(); await page.getByText('NOT recorded — no receipt confirmed.', { exact: false }).waitFor();
   assert.equal(await page.locator('.receipt').count(), 0);
   await record.click(); await page.locator('.receipt').waitFor();
   assert.deepEqual(records[0], records[1]); assert.equal(records[0].draft_id, did);
-  assert.deepEqual(records[0].lot_confirmations, [{ lot_id: 19, method: 'last4', value: '1234' }]);
+  assert.deepEqual(records[0].lot_confirmations, [{ lot_id: 19, method: 'last4', value: '-004' }]);
   assert.equal(JSON.stringify(records).includes('payload_hash'), false);
+  await page.getByText('Shortage recorded', { exact: true }).waitFor();
+  await page.getByText('short 10 lb. The floor must resolve this shortage.', { exact: false }).waitFor();
   await page.screenshot({ path: path.join(out, 'receipt-desktop.png'), fullPage: true });
   // Dictation never submits a turn and the resulting text is editable.
   const priorTurns = turns.length;
@@ -85,6 +107,20 @@ try {
   // Recovered receipt comes from saved commit JSON, with no duplicate Record.
   await page.reload(); await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click();
   await page.locator('.receipt').waitFor(); assert.equal(records.length, 2);
+  await page.locator('#message').fill('held'); await page.locator('#send').click();
+  await page.getByRole('button', { name: 'Record', exact: true }).click();
+  await page.getByRole('heading', { name: 'Waiting for owner approval', exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Cancel', exact: true }).count(), 0);
+  assert.equal(await page.locator('.receipt').count(), 1);
+  await page.reload(); await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click();
+  await page.getByRole('heading', { name: 'Waiting for owner approval', exact: true }).waitFor();
+  await page.locator('#language').click();
+  await page.getByRole('heading', { name: 'En espera de la aprobación del dueño', exact: true }).waitFor();
+  await page.locator('#language').click();
+  approved = true;
+  await page.getByRole('button', { name: 'Check approval', exact: true }).click();
+  await page.getByRole('heading', { name: 'FND-261009-001', exact: true }).waitFor();
+  assert.equal(records.at(-1).draft_id, heldId);
   await page.locator('#language').click(); assert.equal(await page.locator('#send').textContent(), 'Enviar ↑');
   for (const scheme of ['light', 'dark']) {
     await page.emulateMedia({ colorScheme: scheme }); await page.setViewportSize({ width: 390, height: 844 });

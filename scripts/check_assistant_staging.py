@@ -51,13 +51,17 @@ def migrate():
 def check(audio_file=None):
     token = 'STG-F1-' + uuid4().hex[:10].upper()
     raw_key = secrets.token_urlsafe(40)
-    actor_id = None
+    actor_id = owner_id = None
+    owner_key = secrets.token_urlsafe(40)
     evidence = {'reference': token, 'base_url': BASE, 'builder': 'Codex', 'receipts': {}, 'checks': []}
     try:
         with connect() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("SET LOCAL lock_timeout='5s'; SET LOCAL search_path=public")
             cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES (%s,'floor',%s,true) RETURNING id", (token, sha256(raw_key.encode()).hexdigest()))
             actor_id = cur.fetchone()['id']
+            cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES (%s,'owner',%s,true) RETURNING id",
+                        (token + ' owner', sha256(owner_key.encode()).hexdigest()))
+            owner_id = cur.fetchone()['id']
             products = {}
             for kind in ('ingredient', 'batch', 'finished'):
                 name = f'{token} {kind}'
@@ -78,7 +82,7 @@ def check(audio_file=None):
             assert who.status_code == 200, 'Staging actor authentication failed'
             def post(path, **kwargs):
                 response = http.post(path, **kwargs)
-                assert response.status_code == 200, f'{path} HTTP {response.status_code}: {response.json().get("detail", response.json().get("result", {}))}'
+                assert response.status_code in (200, 202), f'{path} HTTP {response.status_code}'
                 return response.json()
             def conversation(text, action, attachments=None):
                 sid = post('/assistant/session')['session_id']
@@ -101,7 +105,7 @@ def check(audio_file=None):
                     # The test operator knows its synthetic product and presses
                     # that actual FL choice. The application/model never picks.
                     if not selected and card['resolution_kind'] == 'product' and action != 'pack':
-                        expected = products['batch' if action == 'make' else 'ingredient']['id']
+                        expected = products[{'make': 'batch', 'found': 'finished'}.get(action, 'ingredient')]['id']
                         selected = [c for c in candidates if c['id'] == expected]
                     if not selected and card['resolution_kind'] == 'supplier':
                         selected = [c for c in candidates if c['id'] == supplier_id]
@@ -113,6 +117,25 @@ def check(audio_file=None):
                     card = post('/assistant/confirm-sku', json={'draft_id': card['id']})['card']
                 assert card['prepared']['can_commit'] or (card['prepared']['blockers'] and all(b['code'] == 'LOT_NOT_CONFIRMED' for b in card['prepared']['blockers'])), card['prepared']['blockers']
                 assert 'ticket' not in card['prepared'] and 'payload_hash' not in card['prepared']
+                if action in ('make', 'pack'):
+                    assert any(w['code'] == 'WILL_CREATE_SHORTAGE' for w in card['prepared']['warnings'])
+                if action == 'adjust':
+                    held = post('/assistant/record', json={'draft_id': card['id']})
+                    assert held['kind'] == 'awaiting_approval' and held['result']['held']
+                    assert 'receipt_number' not in held['result']
+                    assert post('/assistant/record', json={'draft_id': card['id']}) == held
+                    resumed = post('/assistant/resume', json={'session_id': sid})
+                    assert any(d['result'] == held['result'] for d in resumed['drafts'])
+                    assert http.post('/assistant/cancel', json={'draft_id': card['id']}).status_code == 409
+                    with connect() as conn, conn.cursor() as cur:
+                        cur.execute('SELECT count(*) FROM transactions WHERE ticket_id=%s', (card['prepared']['ticket_id'],))
+                        assert cur.fetchone()[0] == 0
+                    approved = http.post(f"/exceptions/{held['result']['exception_id']}/approve",
+                        headers={'X-API-Key': owner_key}, json={'note': 'Synthetic F1 acceptance: verified staged correction'})
+                    assert approved.status_code == 200, f'Owner approval HTTP {approved.status_code}'
+                    evidence['held_correction'] = {'exception_id': held['result']['exception_id'],
+                        'kind': held['kind'], 'no_post_before_approval': True, 'resume_verified': True,
+                        'receipt_number': approved.json()['receipt_number']}
                 commit_body = {'draft_id': card['id'], 'acknowledged_warnings': [w['code'] for w in card['prepared']['warnings'] if w.get('requires_ack')]}
                 if action in ('make', 'pack'):
                     # Synthetic test operator explicitly confirms the displayed
@@ -126,15 +149,19 @@ def check(audio_file=None):
                 resumed = post('/assistant/resume', json={'session_id': sid})
                 assert any(d['result'] and d['result']['receipt_number'] == responses[0]['result']['receipt_number'] for d in resumed['drafts'])
                 evidence['receipts'][action] = responses[0]['result']
+                if action in ('make', 'pack'):
+                    assert responses[0]['result']['shortages'][0]['short_lb'] == 10
+                if action == 'adjust':
+                    assert responses[0]['result']['receipt_number'] == evidence['held_correction']['receipt_number']
                 print(action + ': ' + responses[0]['result']['receipt_number'], flush=True)
                 return responses[0]['result'], sid
 
             lot = token + '-LOT'
             receive, _ = conversation(f'Receive 10 cases of {products["ingredient"]["name"]}, 10 lb per case, from {supplier}. BOL {token}. Supplier lot {token}-SUP. Internal lot code {lot}.', 'receive', [])
-            conversation(f'Make 1 batch of {products["batch"]["name"]}.', 'make')
-            conversation(f'Pack 2 cases of {products["finished"]["name"]}, 5 lb per case, from {products["batch"]["name"]}.', 'pack')
-            conversation(f'Adjust lot {lot} of {products["ingredient"]["name"]} down by 2 lb. Correction reason physical_count.', 'adjust')
-            _, last_sid = conversation(f'Encontré 2 lb de {products["ingredient"]["name"]}. Motivo: physical_count. Lote nuevo {token}-FOUND.', 'found')
+            conversation(f'Make 11 batches of {products["batch"]["name"]}.', 'make')
+            conversation(f'Pack 24 cases of {products["finished"]["name"]}, 5 lb per case, from {products["batch"]["name"]}.', 'pack')
+            conversation(f'Adjust lot {lot} of {products["ingredient"]["name"]} down by 600 lb. Correction reason physical_count.', 'adjust')
+            _, last_sid = conversation(f'Encontré 2 lb de {products["finished"]["name"]}. Motivo: physical_count. Lote nuevo {token}-FOUND.', 'found')
             for query in ('What did I enter today?', f'Look up inventory for {products["ingredient"]["name"]}'):
                 result = post('/assistant/turn', json={'session_id': last_sid, 'turn_id': str(uuid4()), 'text': query})
                 assert result['cards'][0]['kind'] == 'read', result
@@ -152,14 +179,27 @@ def check(audio_file=None):
             rows = [dict(r) for r in cur.fetchall()]
             assert len(rows) == 5 and all(r['ledger_posts'] == 1 and r['client_source'] == 'fl_assistant' for r in rows)
             evidence['verified_tickets'] = rows
+            cur.execute('SELECT count(*) FROM transactions WHERE ticket_id=ANY(%s) AND entered_by_actor_id=%s',
+                        ([r['id'] for r in rows], actor_id))
+            assert cur.fetchone()['count'] == 5
+            cur.execute('SELECT count(*) FROM transaction_lot_confirmations c JOIN transactions t ON t.id=c.transaction_id WHERE t.ticket_id=ANY(%s)',
+                        ([r['id'] for r in rows],))
+            assert cur.fetchone()['count'] == 2
+            evidence['checks'] += ['A2 entered-by actor on all five posts', 'A5 persisted lot evidence',
+                'A3b make/pack shortage warnings and flagged receipts', 'A3b held correction: replay, resume, no Cancel, owner approval then one post']
         evidence['actor_id'] = actor_id
+        evidence['owner_id'] = owner_id
         evidence['synthetic_products'] = products
         return evidence
     finally:
         if actor_id:
             with connect() as conn, conn.cursor() as cur:
-                cur.execute('UPDATE actors SET active=false WHERE id=%s', (actor_id,))
-            print('Temporary staging actor deactivated.', flush=True)
+                ids = [i for i in (actor_id, owner_id) if i is not None]
+                cur.execute('UPDATE actors SET active=false WHERE id=ANY(%s)', (ids,))
+                cur.execute('SELECT count(*) FROM actors WHERE id=ANY(%s) AND active', (ids,))
+                assert cur.fetchone()[0] == 0
+            evidence['temporary_actors_inactive'] = True
+            print('Temporary staging actors deactivated.', flush=True)
 
 
 if __name__ == '__main__':
@@ -176,7 +216,6 @@ if __name__ == '__main__':
             Path(args.output).write_text(json.dumps(result, indent=2, default=str) + '\n')
             print('Staging acceptance passed. Evidence: ' + args.output)
     except Exception as exc:
-        # Connection exceptions can contain URI credentials. Only controlled
-        # assertion text (HTTP response data) is printable; no traceback/locals.
-        print('Staging check failed: ' + type(exc).__name__ + (': ' + str(exc) if isinstance(exc, AssertionError) else ''), file=sys.stderr)
+        # Never print exception text, HTTP bodies, credentials or locals.
+        print('Staging check failed: ' + type(exc).__name__, file=sys.stderr)
         raise SystemExit(1)

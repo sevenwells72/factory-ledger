@@ -1,8 +1,9 @@
 # F1 assistant deployment
 
-Merge order: **A5 #88 → A2 #89 → F1 #90**. A5 and A2 are merged;
-F1 was rebased onto `de31023`. F1 must remain unmerged until approved.
-The `tests/schema/schema.sql` tail includes 062, 063, 064, 065 and 068.
+Merge order: **A5 #88 → A2 #89 → A3b #94 → F1 #90**. A5, A2 and A3b
+are merged; F1 is rebased onto `ce7bb57`. F1 remains unmerged.
+The `tests/schema/schema.sql` tail includes **068 only**; 062–065 and
+069–071 are already in the merged production schema dump.
 Migration 066 is a separate, unmerged supplier-label backfill; do not include
 or apply it as an F1 prerequisite. Add its include only after it merges.
 
@@ -17,7 +18,7 @@ existing A3a reason catalog; the dashboard key remains denied.
 Before ever setting `ASSISTANT_ENABLED=1` in production, apply
 `migrations/068_fl_assistant.sql` **by hand**, as the app/table owner, on the
 verified production database through port **5432**. First confirm the A5
-062–064 and A2 065 prerequisites were applied by their owners. F1 has no
+062–064, A2 065 and A3b 069–071 prerequisites were applied by their owners. F1 has no
 startup migration. Use psql with `ON_ERROR_STOP=1` and a protected connection
 configuration; never echo the URI or put credentials in shell arguments.
 Run from the repository root in that authenticated psql session:
@@ -69,3 +70,9 @@ Chat leases last two minutes and renew between bounded model calls. After a
 worker crash, retry once its lease expires; a replaced worker cannot save the
 turn or clear the new worker's lease. OpenAI HTTP failures log only the status
 code, never the response body, authorization header or credential.
+
+A3b holds return HTTP 202 with `kind=awaiting_approval`. The assistant stores
+that result without a receipt and keeps Cancel unavailable; Check approval
+relays the same ticket to FL. Make/pack shortages remain warnings before
+recording and visible flagged outcomes afterward. Photo attachments in F1
+part 1 are not approval evidence: the model cannot set `attachment_ref`.

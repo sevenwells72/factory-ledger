@@ -13,7 +13,7 @@ PREPARES = {
     'prepare_found': ('/inventory/found/prepare', write_tickets.FoundPrepareRequest),
 }
 # These fields are UI evidence, never model assertions. Client source is server-set.
-UI_FIELDS = {'client_source', 'lot_confirmations', 'confirmed_sku'}
+UI_FIELDS = {'client_source', 'lot_confirmations', 'confirmed_sku', 'attachment_ref'}
 
 
 def strict_schema(model):
