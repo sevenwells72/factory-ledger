@@ -55,9 +55,12 @@ ROLE_PERMISSIONS = {
     'update_order_status': _NAMED_AND_MASTER - {FLOOR},
     'mark_order_ready': _NAMED_AND_MASTER,            # floor's only status change
     'cancel_order': _NAMED_AND_MASTER - {FLOOR},
+    'close_order': _NAMED_AND_MASTER - {FLOOR},            # A7 ticket action; reason shipped_not_recorded ALSO needs the row below
     'close_order_shipped_not_recorded': frozenset({OWNER, LEGACY_LEDGER}),
     'reopen_order': frozenset({OWNER, LEGACY_LEDGER}),
     'create_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
+    'update_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
+    'cancel_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
     'manage_customers': _NAMED_AND_MASTER - {FLOOR},
     # New in Phase 1 — no shared key reaches any of these.
     'manage_aliases': frozenset({OWNER, OFFICE}),
@@ -81,6 +84,19 @@ _LABELS = {
     'approve_exception': ('approve or decline a held correction', 'aprobar o rechazar una corrección retenida'),
     'void': ('void a posting', 'anular un registro'),
     'move_lot': ('move a lot', 'mover un lote'),
+    # A7 order tickets
+    'create_order': ('create a sales order', 'crear un pedido de venta'),
+    'add_order_lines': ('add order lines', 'agregar líneas al pedido'),
+    'update_order_line': ('update an order line', 'modificar una línea del pedido'),
+    'cancel_order_line': ('cancel an order line', 'cancelar una línea del pedido'),
+    'update_order_header': ('update an order header', 'modificar el encabezado del pedido'),
+    'update_order_status': ('change an order status', 'cambiar el estado del pedido'),
+    'mark_order_ready': ('mark an order ready', 'marcar un pedido como listo'),
+    'cancel_order': ('cancel an order', 'cancelar un pedido'),
+    'close_order': ('close an order', 'cerrar un pedido'),
+    'close_order_shipped_not_recorded': ('close an order as shipped without a recorded shipment',
+                                         'cerrar un pedido como enviado sin envío registrado'),
+    'reopen_order': ('reopen an order', 'reabrir un pedido'),
     'backdate_over_14d': ('record an entry more than 14 days old', 'registrar una entrada de más de 14 días'),
 }
 _ROLE_NAMES = {OWNER: 'owner', FLOOR: 'floor', OFFICE: 'office',

@@ -6176,50 +6176,46 @@ def get_expected_receipt(expected_receipt_id: int, _: bool = Depends(verify_api_
     return record
 
 
-@app.patch("/expected-receipts/{expected_receipt_id}")
-def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate, _: bool = Depends(verify_api_key)):
-    """Edit qty/date/reference/notes while open; or move status to closed /
-    cancelled (only from open). Omitted fields untouched; null clears."""
+def _update_expected_receipt_core(cur, expected_receipt_id, req):
     data = req.dict(exclude_unset=True)
     if not data:
         raise HTTPException(status_code=422, detail={"error_code": "NO_FIELDS", "message": "No fields to update"})
     field_edits = {k: v for k, v in data.items() if k != "status"}
     new_status = data.get("status")
 
-    with get_transaction() as cur:
-        cur.execute("SELECT id, status FROM expected_receipts WHERE id = %s FOR UPDATE", (expected_receipt_id,))
-        er = cur.fetchone()
-        if not er:
-            raise HTTPException(status_code=404, detail={"error_code": "EXPECTED_RECEIPT_NOT_FOUND", "message": f"Expected receipt {expected_receipt_id} not found"})
-        if er["status"] != "open":
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "error_code": "EXPECTED_RECEIPT_NOT_OPEN",
-                    "message": f"Expected receipt {expected_receipt_id} is {er['status']}; only open records can be edited or closed/cancelled.",
-                    "status": er["status"],
-                },
-            )
-        sets, params = [], []
-        if "expected_qty" in field_edits:
-            q = field_edits["expected_qty"]
-            if q is None or q <= 0:
-                raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be > 0 (lb)"})
-            sets.append("expected_qty = %s"); params.append(q)
-        if "expected_date" in field_edits:
-            sets.append("expected_date = %s"); params.append(field_edits["expected_date"])
-        if "reference_number" in field_edits:
-            v = (field_edits["reference_number"] or "").strip() or None
-            sets.append("reference_number = %s"); params.append(v)
-        if "notes" in field_edits:
-            v = (field_edits["notes"] or "").strip() or None
-            sets.append("notes = %s"); params.append(v)
-        if new_status:
-            sets.append("status = %s"); params.append(new_status)
-        sets.append("updated_at = clock_timestamp()")
-        params.append(expected_receipt_id)
-        cur.execute(f"UPDATE expected_receipts SET {', '.join(sets)} WHERE id = %s", params)
-        record = fetch_expected_receipt(cur, expected_receipt_id)
+    cur.execute("SELECT id, status FROM expected_receipts WHERE id = %s FOR UPDATE", (expected_receipt_id,))
+    er = cur.fetchone()
+    if not er:
+        raise HTTPException(status_code=404, detail={"error_code": "EXPECTED_RECEIPT_NOT_FOUND", "message": f"Expected receipt {expected_receipt_id} not found"})
+    if er["status"] != "open":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error_code": "EXPECTED_RECEIPT_NOT_OPEN",
+                "message": f"Expected receipt {expected_receipt_id} is {er['status']}; only open records can be edited or closed/cancelled.",
+                "status": er["status"],
+            },
+        )
+    sets, params = [], []
+    if "expected_qty" in field_edits:
+        q = field_edits["expected_qty"]
+        if q is None or q <= 0:
+            raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be > 0 (lb)"})
+        sets.append("expected_qty = %s"); params.append(q)
+    if "expected_date" in field_edits:
+        sets.append("expected_date = %s"); params.append(field_edits["expected_date"])
+    if "reference_number" in field_edits:
+        v = (field_edits["reference_number"] or "").strip() or None
+        sets.append("reference_number = %s"); params.append(v)
+    if "notes" in field_edits:
+        v = (field_edits["notes"] or "").strip() or None
+        sets.append("notes = %s"); params.append(v)
+    if new_status:
+        sets.append("status = %s"); params.append(new_status)
+    sets.append("updated_at = clock_timestamp()")
+    params.append(expected_receipt_id)
+    cur.execute(f"UPDATE expected_receipts SET {', '.join(sets)} WHERE id = %s", params)
+    record = fetch_expected_receipt(cur, expected_receipt_id)
 
     changed = sorted(field_edits.keys()) + (["status"] if new_status else [])
     return {
@@ -6228,6 +6224,13 @@ def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate
         "changed_fields": changed,
         "message": f"Expected receipt {expected_receipt_id} " + (f"{new_status}" if new_status else "updated"),
     }
+
+
+@app.patch("/expected-receipts/{expected_receipt_id}")
+def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate, _: bool = Depends(verify_api_key)):
+    """Edit an open expected receipt; omitted fields untouched, null clears."""
+    with get_transaction() as cur:
+        return _update_expected_receipt_core(cur, expected_receipt_id, req)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -7278,11 +7281,7 @@ def match_expected_receipt_extraction(req: ExpectedReceiptMatchRequest, _: bool 
         return match_extraction(cur, req.extraction.dict())
 
 
-@app.post("/expected-receipts/extract/approve", status_code=201)
-def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Request, _: bool = Depends(verify_api_key)):
-    """Step 3: create ONE expected receipt per reviewed line — atomically, via
-    the same _create_expected_receipt_core() the manual endpoint uses — and
-    learn supplier_product_aliases (latest-wins) for lines with save_alias."""
+def _approve_extracted_receipts_core(cur, req, request):
     if not req.lines:
         raise HTTPException(status_code=422, detail={"error_code": "NO_LINES", "message": "At least one line is required"})
     # Audit fix 11: NaN/±inf pass pydantic's float type and `<= 0` alike —
@@ -7315,66 +7314,66 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
                 )
 
     created_by = caller_source_tag(request, req.created_by)
-    with get_transaction() as cur:
-        cur.execute("SELECT id, status, storage_path FROM purchase_documents WHERE id = %s FOR UPDATE", (req.document_id,))
-        doc = cur.fetchone()
-        if not doc:
-            raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
-        if doc["status"] == "approved":
-            raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
-        if doc["status"] != "extracted":
-            # Audit fix 12: only a successfully extracted document is
-            # reviewable — 'uploaded'/'upload_failed'/'extraction_failed'
-            # rows have nothing a human could have reviewed.
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "DOCUMENT_NOT_EXTRACTED",
-                        "message": f"Purchase document {req.document_id} has status '{doc['status']}' — approval requires a successful extraction"},
-            )
-
-        cur.execute("SELECT id, name, active FROM suppliers WHERE id = %s", (req.supplier_id,))
-        supplier = cur.fetchone()
-        if not supplier:
-            raise HTTPException(status_code=404, detail={"error_code": "SUPPLIER_NOT_FOUND", "message": f"Supplier id {req.supplier_id} not found"})
-        if not supplier["active"]:
-            raise HTTPException(status_code=422, detail={"error_code": "SUPPLIER_INACTIVE", "message": f"Supplier '{supplier['name']}' is inactive."})
-
-        # Audit fix 10: serialize on the (supplier, normalized reference) pair
-        # BEFORE the duplicate check — the per-document FOR UPDATE above can't
-        # see a concurrent approval of a different document with the same ref.
-        _lock_supplier_reference(cur, req.supplier_id, req.reference_number)
-        duplicates = _dedupe_existing_receipts(cur, req.supplier_id, req.reference_number)
-        if duplicates and not req.force:
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "DUPLICATE_REFERENCE",
-                        "message": f"Supplier '{supplier['name']}' already has expected receipt(s) with reference '{req.reference_number}'. Pass force=true to create anyway.",
-                        "existing": duplicates},
-            )
-
-        created, aliases_saved = [], 0
-        for line in req.lines:
-            cur.execute("SELECT id FROM products WHERE id = %s", (line.product_id,))
-            if not cur.fetchone():
-                raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {line.product_id} not found"})
-            note = (f"PO {req.reference_number}: " if req.reference_number else "PO: ") + line.vendor_description
-            if line.quantity is not None:
-                note += f" — {line.quantity:g} {line.unit or 'unit(s)'}"
-            record = _create_expected_receipt_core(
-                cur, line.product_id, req.supplier_id, line.expected_qty_lb,
-                line.expected_date or req.expected_date, req.reference_number,
-                note, created_by, source_document_id=req.document_id,
-            )
-            created.append(record)
-            if line.save_alias:
-                upsert_supplier_alias(cur, req.supplier_id, line.vendor_description,
-                                      line.product_id, line.lb_per_unit, line.unit, created_by)
-                aliases_saved += 1
-
-        cur.execute(
-            "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
-            (req.document_id,),
+    cur.execute("SELECT id, status, storage_path FROM purchase_documents WHERE id = %s FOR UPDATE", (req.document_id,))
+    doc = cur.fetchone()
+    if not doc:
+        raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
+    if doc["status"] == "approved":
+        raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
+    if doc["status"] != "extracted":
+        # Audit fix 12: only a successfully extracted document is
+        # reviewable — 'uploaded'/'upload_failed'/'extraction_failed'
+        # rows have nothing a human could have reviewed.
+        raise HTTPException(
+            status_code=409,
+            detail={"error_code": "DOCUMENT_NOT_EXTRACTED",
+                    "message": f"Purchase document {req.document_id} has status '{doc['status']}' — approval requires a successful extraction"},
         )
+
+    cur.execute("SELECT id, name, active FROM suppliers WHERE id = %s", (req.supplier_id,))
+    supplier = cur.fetchone()
+    if not supplier:
+        raise HTTPException(status_code=404, detail={"error_code": "SUPPLIER_NOT_FOUND", "message": f"Supplier id {req.supplier_id} not found"})
+    if not supplier["active"]:
+        raise HTTPException(status_code=422, detail={"error_code": "SUPPLIER_INACTIVE", "message": f"Supplier '{supplier['name']}' is inactive."})
+
+    # Audit fix 10: serialize on the (supplier, normalized reference) pair
+    # BEFORE the duplicate check — the per-document FOR UPDATE above can't
+    # see a concurrent approval of a different document with the same ref.
+    _lock_supplier_reference(cur, req.supplier_id, req.reference_number)
+    duplicates = _dedupe_existing_receipts(cur, req.supplier_id, req.reference_number)
+    if duplicates and not req.force:
+        raise HTTPException(
+            status_code=409,
+            detail={"error_code": "DUPLICATE_REFERENCE",
+                    "message": f"Supplier '{supplier['name']}' already has expected receipt(s) with reference '{req.reference_number}'. Pass force=true to create anyway.",
+                    "existing": duplicates},
+        )
+
+    created, aliases_saved = [], 0
+    for line in req.lines:
+        cur.execute("SELECT id FROM products WHERE id = %s", (line.product_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {line.product_id} not found"})
+        note = (f"PO {req.reference_number}: " if req.reference_number else "PO: ") + line.vendor_description
+        if line.quantity is not None:
+            note += f" — {line.quantity:g} {line.unit or 'unit(s)'}"
+        record = _create_expected_receipt_core(
+            cur, line.product_id, req.supplier_id, line.expected_qty_lb,
+            line.expected_date or req.expected_date, req.reference_number,
+            note, created_by, source_document_id=req.document_id,
+        )
+        created.append(record)
+        if line.save_alias:
+            upsert_supplier_alias(cur, req.supplier_id, line.vendor_description,
+                                  line.product_id, line.lb_per_unit, line.unit, created_by)
+            aliases_saved += 1
+
+    cur.execute(
+        "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
+        (req.document_id,),
+    )
+
 
     logger.info(f"Intake approve: document {req.document_id} → {len(created)} expected receipt(s), {aliases_saved} alias(es)")
     return {
@@ -7384,6 +7383,13 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
         "duplicate_overridden": bool(duplicates and req.force),
         "message": f"Created {len(created)} expected receipt(s) from document {req.document_id}",
     }
+
+
+@app.post("/expected-receipts/extract/approve", status_code=201)
+def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Request, _: bool = Depends(verify_api_key)):
+    """Atomically approve every reviewed line and learn its supplier alias."""
+    with get_transaction() as cur:
+        return _approve_extracted_receipts_core(cur, req, request)
 
 
 @app.get("/purchase-documents/{document_id}/url")
@@ -11629,7 +11635,7 @@ def _check_order_po(cur, customer_id, customer_po, allow_duplicate=False, order_
 
 def _lock_order_reference(cur, customer_id, reference):
     cur.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))',
-                (f'order-create-reference:{customer_id}:{reference}',))
+                (f'order-create-reference:{reference}',))
 
 
 def _lock_order_customer_reference(cur, customer_name, reference):
@@ -11641,7 +11647,7 @@ def _lock_order_customer_reference(cur, customer_name, reference):
 def _order_reference_conflict():
     raise HTTPException(409, detail={
         'error_code': 'EXTERNAL_ORDER_REFERENCE_CONFLICT',
-        'message': 'This customer already has an order with this external_order_reference and different request details. Use the original request to retry or choose a new reference.',
+        'message': 'An order already has this external_order_reference and different request details. Use the original request to retry or choose a new reference.',
     })
 
 
@@ -11711,34 +11717,13 @@ def _order_line_contract(line, product, product_name):
             'case_weight_lb': weight, 'amount': amount, 'is_service': service}
 
 
-def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_date,
-                             notes, notes_es, lines, *, order_date=None,
-                             customer_po=None, source_document_id=None,
-                             external_order_reference=None, save_contract=False,
-                             request: Optional[Request] = None):
-    """The single INSERT path for sales orders — used by both the manual
-    POST /sales/orders endpoint and the SO intake approve flow, so the two
-    can never drift (docs/designs/sales-order-intake.md). Callers resolve the
-    customer + products first; each line is a dict with product_id /
-    product_name plus the OrderLineInput fields (quantity, unit,
-    case_weight_lb, quantity_lb, unit_price, notes, notes_es). The per-line
-    logic (service items, case-weight auto-lookup, unit + low-quantity
-    warnings) is verbatim from the original handler."""
-    cur.execute(
-        """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number, status,
-                                     order_date, customer_po, source_document_id)
-           VALUES (%s, %s, %s, %s, '', 'confirmed', COALESCE(%s, CURRENT_DATE), %s, %s)
-           RETURNING id, order_number""",
-        (customer_id, requested_ship_date, notes, notes_es,
-         order_date, customer_po, source_document_id)
-    )
-    row = cur.fetchone()
-    order_id, order_number = row['id'], row['order_number']
-    _record_actor_write(cur, request, "sales_orders", order_id)
-    if external_order_reference is not None:
-        cur.execute('UPDATE sales_orders SET external_order_reference=%s WHERE id=%s',
-                    (external_order_reference, order_id))
-
+def _insert_order_lines_core(cur, request, order_id, customer_id, customer_name, lines,
+                             save_contract=False):
+    """The per-line INSERT loop of _create_sales_order_core, verbatim, so the
+    A7 add-lines ticket shares it (service items, case-weight auto-lookup,
+    unit + low-quantity warnings, PR #67 contract columns). Returns
+    (line_results, total_lb, warnings). Callers resolve products first.
+    """
     line_results = []
     total_lb = 0
     warnings = []
@@ -11843,6 +11828,39 @@ def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_dat
                 amount=float(contract['amount']) if contract['amount'] is not None else None,
                 is_service=contract['is_service'],
             )
+    return line_results, total_lb, warnings
+
+
+def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_date,
+                             notes, notes_es, lines, *, order_date=None,
+                             customer_po=None, source_document_id=None,
+                             external_order_reference=None, save_contract=False,
+                             request: Optional[Request] = None):
+    """The single INSERT path for sales orders — used by both the manual
+    POST /sales/orders endpoint and the SO intake approve flow, so the two
+    can never drift (docs/designs/sales-order-intake.md). Callers resolve the
+    customer + products first; each line is a dict with product_id /
+    product_name plus the OrderLineInput fields (quantity, unit,
+    case_weight_lb, quantity_lb, unit_price, notes, notes_es). The per-line
+    logic (service items, case-weight auto-lookup, unit + low-quantity
+    warnings) is verbatim from the original handler."""
+    cur.execute(
+        """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number, status,
+                                     order_date, customer_po, source_document_id)
+           VALUES (%s, %s, %s, %s, '', 'confirmed', COALESCE(%s, CURRENT_DATE), %s, %s)
+           RETURNING id, order_number""",
+        (customer_id, requested_ship_date, notes, notes_es,
+         order_date, customer_po, source_document_id)
+    )
+    row = cur.fetchone()
+    order_id, order_number = row['id'], row['order_number']
+    _record_actor_write(cur, request, "sales_orders", order_id)
+    if external_order_reference is not None:
+        cur.execute('UPDATE sales_orders SET external_order_reference=%s WHERE id=%s',
+                    (external_order_reference, order_id))
+
+    line_results, total_lb, warnings = _insert_order_lines_core(
+        cur, request, order_id, customer_id, customer_name, lines, save_contract)
 
     logger.info(f"Created sales order {order_number} for {customer_name} with {len(line_results)} lines")
     return {
@@ -11883,16 +11901,16 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
                     _lock_order_reference(cur, customer_id, reference)
                     request_hash = _order_request_hash(req, customer_id)
                     cur.execute('''SELECT request_hash, response FROM sales_order_create_receipts
-                                   WHERE customer_id=%s AND external_order_reference=%s''',
-                                (customer_id, reference))
+                                   WHERE external_order_reference=%s''',
+                                (reference,))
                     receipt = cur.fetchone()
                     if receipt:
                         if receipt['request_hash'] != request_hash:
                             _order_reference_conflict()
                         return receipt['response']
                     cur.execute('''SELECT id FROM sales_orders
-                                   WHERE customer_id=%s AND external_order_reference=%s''',
-                                (customer_id, reference))
+                                   WHERE external_order_reference=%s''',
+                                (reference,))
                     if cur.fetchone():
                         _order_reference_conflict()
 
@@ -11961,7 +11979,8 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
         raise
     except psycopg2.errors.UniqueViolation as e:
         if e.diag.constraint_name in ('sales_orders_customer_external_reference_uniq',
-                                      'sales_order_create_receipts_pkey'):
+                                      'sales_order_create_receipts_pkey',
+                                      'sales_orders_external_reference_uniq', 'sales_order_receipts_reference_uniq'):
             _order_reference_conflict()
         raise
     except Exception as e:
@@ -13577,55 +13596,62 @@ def _sales_order_flag_row_to_dict(row):
     return d
 
 
+def _set_sales_order_ready_flag_core(cur, request, so_number: str, req: "SalesOrderReadyFlagRequest"):
+    """A7 hook: the Factory Ready handler body, verbatim, on the caller's cursor
+    (shared by the direct route and the mark_order_ready ticket). Returns a
+    JSONResponse for the two legacy error answers, as the route always has."""
+    cur.execute(
+        """
+        SELECT order_number, state
+        FROM sales_orders
+        WHERE order_number = %s
+        FOR NO KEY UPDATE
+        """,
+        (so_number,)
+    )
+    order = cur.fetchone()
+    if not order:
+        return JSONResponse(status_code=404, content={"error": "Sales order not found"})
+    # Physically shipped orders stay administratively open until an
+    # explicit exit; their Ready to ship annotation remains editable.
+    # The row lock keeps an exit from racing this state check.
+    if order["state"] != "open":
+        return JSONResponse(status_code=400, content={"error": "Ready to ship can only be set on open sales orders"})
+
+    # FR-15: an actor key names the person who flipped the flag.
+    # Without one the legacy default is untouched — body `by`, else
+    # the literal 'floor' this column has defaulted to since
+    # migration 037.
+    ready_by = actor_name(request) or (req.by or "floor").strip() or "floor"
+    note = req.note.strip() if isinstance(req.note, str) else req.note
+
+    cur.execute(
+        """
+        INSERT INTO sales_order_flags (so_number, ready, ready_at, ready_by, note, updated_at)
+        VALUES (%s, %s, CASE WHEN %s THEN NOW() ELSE NULL END, %s, %s, NOW())
+        ON CONFLICT (so_number) DO UPDATE SET
+            ready = EXCLUDED.ready,
+            ready_at = CASE
+                WHEN EXCLUDED.ready THEN COALESCE(sales_order_flags.ready_at, EXCLUDED.ready_at)
+                ELSE NULL
+            END,
+            ready_by = EXCLUDED.ready_by,
+            note = EXCLUDED.note,
+            updated_at = NOW()
+        RETURNING so_number, ready, ready_at, ready_by, note, updated_at
+        """,
+        (order["order_number"], req.ready, req.ready, ready_by, note)
+    )
+    return _sales_order_flag_row_to_dict(cur.fetchone())
+
+
 @app.post("/sales-orders/{so_number}/ready")
 def set_sales_order_ready_flag(so_number: str, req: SalesOrderReadyFlagRequest,
                                request: Request, _: bool = Depends(verify_api_key)):
     """Upsert the dashboard-only Factory Ready annotation for a sales order."""
     try:
         with get_transaction() as cur:
-            cur.execute(
-                """
-                SELECT order_number, state
-                FROM sales_orders
-                WHERE order_number = %s
-                FOR NO KEY UPDATE
-                """,
-                (so_number,)
-            )
-            order = cur.fetchone()
-            if not order:
-                return JSONResponse(status_code=404, content={"error": "Sales order not found"})
-            # Physically shipped orders stay administratively open until an
-            # explicit exit; their Ready to ship annotation remains editable.
-            # The row lock keeps an exit from racing this state check.
-            if order["state"] != "open":
-                return JSONResponse(status_code=400, content={"error": "Ready to ship can only be set on open sales orders"})
-
-            # FR-15: an actor key names the person who flipped the flag.
-            # Without one the legacy default is untouched — body `by`, else
-            # the literal 'floor' this column has defaulted to since
-            # migration 037.
-            ready_by = actor_name(request) or (req.by or "floor").strip() or "floor"
-            note = req.note.strip() if isinstance(req.note, str) else req.note
-
-            cur.execute(
-                """
-                INSERT INTO sales_order_flags (so_number, ready, ready_at, ready_by, note, updated_at)
-                VALUES (%s, %s, CASE WHEN %s THEN NOW() ELSE NULL END, %s, %s, NOW())
-                ON CONFLICT (so_number) DO UPDATE SET
-                    ready = EXCLUDED.ready,
-                    ready_at = CASE
-                        WHEN EXCLUDED.ready THEN COALESCE(sales_order_flags.ready_at, EXCLUDED.ready_at)
-                        ELSE NULL
-                    END,
-                    ready_by = EXCLUDED.ready_by,
-                    note = EXCLUDED.note,
-                    updated_at = NOW()
-                RETURNING so_number, ready, ready_at, ready_by, note, updated_at
-                """,
-                (order["order_number"], req.ready, req.ready, ready_by, note)
-            )
-            return _sales_order_flag_row_to_dict(cur.fetchone())
+            return _set_sales_order_ready_flag_core(cur, request, so_number, req)
     except Exception as e:
         if _is_readonly_error(e): raise
         logger.error(f"Sales order ready flag update failed: {e}")
@@ -14133,6 +14159,60 @@ def _state_change_response(order: dict, updated: dict, released: list,
     return payload
 
 
+def _close_sales_order_core(cur, request, order_id: int, req):
+    """A7 hook: the state-change handler body, verbatim (preview and commit), on
+    the caller's cursor — shared by the direct route and the matching order
+    ticket. Permission checks stay with the callers."""
+    order = _load_so_for_state_change(cur, order_id)
+    if order["state"] != "open":
+        _so_state_error(
+            "ORDER_NOT_OPEN",
+            f"Order {order['order_number']} is already "
+            f"'{order['state']}' — only an open order can be closed.",
+            status_code=409, order_id=order_id,
+            state=order["state"], state_reason=order["state_reason"],
+        )
+    _validate_state_reason(req.reason, req.note, req.related_so_id,
+                           cur, order_id)
+
+    # Validated in preview too, so an over-long changed_by is reported
+    # before the operator commits rather than after.
+    changed_by = _state_changed_by(request, req.changed_by, order_id)
+
+    if req.mode == "preview":
+        return {
+            "mode": "preview",
+            "order_id": order_id,
+            "order_number": order["order_number"],
+            "state": order["state"],
+            "resulting_state": "closed",
+            "resulting_state_reason": req.reason,
+            "resulting_status": "shipped",
+            "resulting_state_changed_by": changed_by,
+            "fulfillment": order["fulfillment"],
+            "reservations_to_release": _preview_order_reservations(cur, order_id),
+            "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
+            "message": (
+                f"Order {order['order_number']} would be closed "
+                f"({req.reason}). Set mode=commit in request body."
+            ),
+        }
+
+    released = _release_order_reservations(
+        cur, order_id, "order_closed", caller_source_tag(request))
+    updated = _apply_state_change(
+        cur, order, state="closed", reason=req.reason,
+        note=req.note, related_so_id=req.related_so_id,
+        changed_by=changed_by)
+    logger.info(
+        f"Order {updated['order_number']} closed ({req.reason}); "
+        f"{len(released)} reservation(s) released"
+    )
+    return _state_change_response(
+        order, updated, released, "commit",
+        f"Order {updated['order_number']} closed ({req.reason})")
+
+
 @app.post("/sales/orders/{order_id}/close")
 def close_sales_order(
     req: SalesOrderCloseRequest,
@@ -14153,54 +14233,7 @@ def close_sales_order(
         permissions.require("close_order_shipped_not_recorded", _actor_identity(request))
     try:
         with get_transaction() as cur:
-            order = _load_so_for_state_change(cur, order_id)
-            if order["state"] != "open":
-                _so_state_error(
-                    "ORDER_NOT_OPEN",
-                    f"Order {order['order_number']} is already "
-                    f"'{order['state']}' — only an open order can be closed.",
-                    status_code=409, order_id=order_id,
-                    state=order["state"], state_reason=order["state_reason"],
-                )
-            _validate_state_reason(req.reason, req.note, req.related_so_id,
-                                   cur, order_id)
-
-            # Validated in preview too, so an over-long changed_by is reported
-            # before the operator commits rather than after.
-            changed_by = _state_changed_by(request, req.changed_by, order_id)
-
-            if req.mode == "preview":
-                return {
-                    "mode": "preview",
-                    "order_id": order_id,
-                    "order_number": order["order_number"],
-                    "state": order["state"],
-                    "resulting_state": "closed",
-                    "resulting_state_reason": req.reason,
-                    "resulting_status": "shipped",
-                    "resulting_state_changed_by": changed_by,
-                    "fulfillment": order["fulfillment"],
-                    "reservations_to_release": _preview_order_reservations(cur, order_id),
-                    "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
-                    "message": (
-                        f"Order {order['order_number']} would be closed "
-                        f"({req.reason}). Set mode=commit in request body."
-                    ),
-                }
-
-            released = _release_order_reservations(
-                cur, order_id, "order_closed", caller_source_tag(request))
-            updated = _apply_state_change(
-                cur, order, state="closed", reason=req.reason,
-                note=req.note, related_so_id=req.related_so_id,
-                changed_by=changed_by)
-            logger.info(
-                f"Order {updated['order_number']} closed ({req.reason}); "
-                f"{len(released)} reservation(s) released"
-            )
-            return _state_change_response(
-                order, updated, released, "commit",
-                f"Order {updated['order_number']} closed ({req.reason})")
+            return _close_sales_order_core(cur, request, order_id, req)
     except HTTPException:
         raise
     except Exception as e:
@@ -14208,6 +14241,69 @@ def close_sales_order(
             raise
         logger.error(f"Close sales order failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+def _cancel_sales_order_core(cur, request, order_id: int, req):
+    """A7 hook: the state-change handler body, verbatim (preview and commit), on
+    the caller's cursor — shared by the direct route and the matching order
+    ticket. Permission checks stay with the callers."""
+    order = _load_so_for_state_change(cur, order_id)
+    if order["state"] != "open":
+        _so_state_error(
+            "ORDER_NOT_OPEN",
+            f"Order {order['order_number']} is already "
+            f"'{order['state']}' — only an open order can be cancelled.",
+            status_code=409, order_id=order_id,
+            state=order["state"], state_reason=order["state_reason"],
+        )
+    if order["fulfillment"] != "unshipped":
+        _so_state_error(
+            "ORDER_ALREADY_SHIPPED",
+            f"Order {order['order_number']} is '{order['fulfillment']}' — "
+            f"pounds have already shipped, so it cannot be cancelled. "
+            f"Close it instead: POST /sales/orders/{order_id}/close with "
+            f"reason 'short_closed'.",
+            status_code=409, order_id=order_id,
+            fulfillment=order["fulfillment"],
+            suggested_action="close", suggested_reason="short_closed",
+        )
+    _validate_state_reason(req.reason, req.note, req.related_so_id,
+                           cur, order_id)
+
+    changed_by = _state_changed_by(request, req.changed_by, order_id)
+
+    if req.mode == "preview":
+        return {
+            "mode": "preview",
+            "order_id": order_id,
+            "order_number": order["order_number"],
+            "state": order["state"],
+            "resulting_state": "cancelled",
+            "resulting_state_reason": req.reason,
+            "resulting_status": "cancelled",
+            "resulting_state_changed_by": changed_by,
+            "fulfillment": order["fulfillment"],
+            "reservations_to_release": _preview_order_reservations(cur, order_id),
+            "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
+            "message": (
+                f"Order {order['order_number']} would be cancelled "
+                f"({req.reason}). Set mode=commit in request body."
+            ),
+        }
+
+    released = _release_order_reservations(
+        cur, order_id, "order_cancelled", caller_source_tag(request))
+    updated = _apply_state_change(
+        cur, order, state="cancelled", reason=req.reason,
+        note=req.note, related_so_id=req.related_so_id,
+        changed_by=changed_by)
+    logger.info(
+        f"Order {updated['order_number']} cancelled ({req.reason}); "
+        f"{len(released)} reservation(s) released"
+    )
+    return _state_change_response(
+        order, updated, released, "commit",
+        f"Order {updated['order_number']} cancelled ({req.reason})")
 
 
 @app.post("/sales/orders/{order_id}/cancel")
@@ -14225,63 +14321,7 @@ def cancel_sales_order(
     """
     try:
         with get_transaction() as cur:
-            order = _load_so_for_state_change(cur, order_id)
-            if order["state"] != "open":
-                _so_state_error(
-                    "ORDER_NOT_OPEN",
-                    f"Order {order['order_number']} is already "
-                    f"'{order['state']}' — only an open order can be cancelled.",
-                    status_code=409, order_id=order_id,
-                    state=order["state"], state_reason=order["state_reason"],
-                )
-            if order["fulfillment"] != "unshipped":
-                _so_state_error(
-                    "ORDER_ALREADY_SHIPPED",
-                    f"Order {order['order_number']} is '{order['fulfillment']}' — "
-                    f"pounds have already shipped, so it cannot be cancelled. "
-                    f"Close it instead: POST /sales/orders/{order_id}/close with "
-                    f"reason 'short_closed'.",
-                    status_code=409, order_id=order_id,
-                    fulfillment=order["fulfillment"],
-                    suggested_action="close", suggested_reason="short_closed",
-                )
-            _validate_state_reason(req.reason, req.note, req.related_so_id,
-                                   cur, order_id)
-
-            changed_by = _state_changed_by(request, req.changed_by, order_id)
-
-            if req.mode == "preview":
-                return {
-                    "mode": "preview",
-                    "order_id": order_id,
-                    "order_number": order["order_number"],
-                    "state": order["state"],
-                    "resulting_state": "cancelled",
-                    "resulting_state_reason": req.reason,
-                    "resulting_status": "cancelled",
-                    "resulting_state_changed_by": changed_by,
-                    "fulfillment": order["fulfillment"],
-                    "reservations_to_release": _preview_order_reservations(cur, order_id),
-                    "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
-                    "message": (
-                        f"Order {order['order_number']} would be cancelled "
-                        f"({req.reason}). Set mode=commit in request body."
-                    ),
-                }
-
-            released = _release_order_reservations(
-                cur, order_id, "order_cancelled", caller_source_tag(request))
-            updated = _apply_state_change(
-                cur, order, state="cancelled", reason=req.reason,
-                note=req.note, related_so_id=req.related_so_id,
-                changed_by=changed_by)
-            logger.info(
-                f"Order {updated['order_number']} cancelled ({req.reason}); "
-                f"{len(released)} reservation(s) released"
-            )
-            return _state_change_response(
-                order, updated, released, "commit",
-                f"Order {updated['order_number']} cancelled ({req.reason})")
+            return _cancel_sales_order_core(cur, request, order_id, req)
     except HTTPException:
         raise
     except Exception as e:
@@ -14289,6 +14329,55 @@ def cancel_sales_order(
             raise
         logger.error(f"Cancel sales order failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+def _reopen_sales_order_core(cur, request, order_id: int, req):
+    """A7 hook: the state-change handler body, verbatim (preview and commit), on
+    the caller's cursor — shared by the direct route and the matching order
+    ticket. Permission checks stay with the callers."""
+    order = _load_so_for_state_change(cur, order_id)
+    if order["state"] not in ("closed", "cancelled"):
+        _so_state_error(
+            "ORDER_NOT_CLOSED",
+            f"Order {order['order_number']} is '{order['state']}' — "
+            f"only a closed or cancelled order can be reopened.",
+            status_code=409, order_id=order_id, state=order["state"],
+        )
+
+    restored_status = order.get("status_before_exit") or "confirmed"
+    changed_by = _state_changed_by(request, req.changed_by, order_id)
+
+    if req.mode == "preview":
+        return {
+            "mode": "preview",
+            "order_id": order_id,
+            "order_number": order["order_number"],
+            "state": order["state"],
+            "resulting_state": "open",
+            "resulting_state_reason": None,
+            "resulting_status": restored_status,
+            "resulting_state_changed_by": changed_by,
+            "fulfillment": order["fulfillment"],
+            "reservations_to_release": [],
+            "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
+            "message": (
+                f"Order {order['order_number']} would reopen with status "
+                f"'{restored_status}'. Reservations are not restored. "
+                f"Set mode=commit in request body."
+            ),
+        }
+
+    updated = _apply_state_change(
+        cur, order, state="open", reason=None,
+        note=req.note, related_so_id=None, changed_by=changed_by)
+    logger.info(
+        f"Order {updated['order_number']} reopened "
+        f"(status restored to '{updated['status']}')"
+    )
+    return _state_change_response(
+        order, updated, [], "commit",
+        f"Order {updated['order_number']} reopened with status "
+        f"'{updated['status']}'; reservations were not restored")
 
 
 @app.post("/sales/orders/{order_id}/reopen")
@@ -14307,49 +14396,7 @@ def reopen_sales_order(
     """
     try:
         with get_transaction() as cur:
-            order = _load_so_for_state_change(cur, order_id)
-            if order["state"] not in ("closed", "cancelled"):
-                _so_state_error(
-                    "ORDER_NOT_CLOSED",
-                    f"Order {order['order_number']} is '{order['state']}' — "
-                    f"only a closed or cancelled order can be reopened.",
-                    status_code=409, order_id=order_id, state=order["state"],
-                )
-
-            restored_status = order.get("status_before_exit") or "confirmed"
-            changed_by = _state_changed_by(request, req.changed_by, order_id)
-
-            if req.mode == "preview":
-                return {
-                    "mode": "preview",
-                    "order_id": order_id,
-                    "order_number": order["order_number"],
-                    "state": order["state"],
-                    "resulting_state": "open",
-                    "resulting_state_reason": None,
-                    "resulting_status": restored_status,
-                    "resulting_state_changed_by": changed_by,
-                    "fulfillment": order["fulfillment"],
-                    "reservations_to_release": [],
-                    "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
-                    "message": (
-                        f"Order {order['order_number']} would reopen with status "
-                        f"'{restored_status}'. Reservations are not restored. "
-                        f"Set mode=commit in request body."
-                    ),
-                }
-
-            updated = _apply_state_change(
-                cur, order, state="open", reason=None,
-                note=req.note, related_so_id=None, changed_by=changed_by)
-            logger.info(
-                f"Order {updated['order_number']} reopened "
-                f"(status restored to '{updated['status']}')"
-            )
-            return _state_change_response(
-                order, updated, [], "commit",
-                f"Order {updated['order_number']} reopened with status "
-                f"'{updated['status']}'; reservations were not restored")
+            return _reopen_sales_order_core(cur, request, order_id, req)
     except HTTPException:
         raise
     except Exception as e:
@@ -14912,6 +14959,121 @@ def update_lot_received_at(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+def _validate_requested_order_status(status: str):
+    """The two pre-connection 400s of PATCH .../status, verbatim (A7 hook: the
+    update_order_status ticket applies them at prepare and again at commit)."""
+    all_statuses = list(VALID_TRANSITIONS.keys())
+    if status not in all_statuses:
+        raise HTTPException(400, f"Invalid status. Must be one of: {all_statuses}")
+
+    # Block manual setting of shipped/partial_ship — those are auto-only via shipOrderCommit
+    if status in ('shipped', 'partial_ship'):
+        raise HTTPException(400,
+            f"'{status}' status is set automatically when an order is shipped. "
+            f"Use the ship endpoint instead."
+        )
+
+
+def _update_order_status_core(cur, request, order_id: int, req: "OrderStatusUpdate"):
+    """A7 hook: the status handler body, verbatim, on the caller's cursor (the
+    direct route and the update_order_status ticket share it). Validation of
+    the requested status stays in the route, before any connection is taken."""
+    # Order row lock first, per the normative lock order — the
+    # exit branches below take product locks after it.
+    order = _load_so_for_state_change(cur, order_id)
+    current = order['status']
+
+    # The exit guards run BEFORE the MANUAL_TRANSITIONS gate.
+    # Order matters for the operator: a fully shipped open order
+    # asked to go 'cancelled' should be told "pounds already
+    # shipped — close it with short_closed instead", not the
+    # generic "invalid transition: shipped → cancelled". The
+    # specific, actionable answer has to win over the generic one.
+    if req.status in ('cancelled', 'invoiced'):
+        _require_open_state(order['state'], order['order_number'],
+                            order_id, f"setting status '{req.status}'")
+        if req.status == 'cancelled' and order['fulfillment'] != 'unshipped':
+            _so_state_error(
+                "ORDER_ALREADY_SHIPPED",
+                f"Order {order['order_number']} is "
+                f"'{order['fulfillment']}' — pounds have already "
+                f"shipped, so it cannot be cancelled. Close it "
+                f"instead: POST /sales/orders/{order_id}/close "
+                f"with reason 'short_closed'.",
+                status_code=409, order_id=order_id,
+                fulfillment=order['fulfillment'],
+                suggested_action="close",
+                suggested_reason="short_closed",
+            )
+
+    allowed = MANUAL_TRANSITIONS.get(current, [])
+    if req.status not in allowed:
+        if not allowed:
+            raise HTTPException(400,
+                f"Order {order['order_number']} is '{current}' — this is a terminal status. "
+                f"No further status changes are allowed."
+            )
+        raise HTTPException(400,
+            f"Invalid status transition: '{current}' → '{req.status}'. "
+            f"Allowed transitions from '{current}': {allowed}."
+        )
+
+    released_allocations = []
+    state_fields = {}
+
+    if req.status in ('cancelled', 'invoiced'):
+        if req.status == 'cancelled':
+            target_state = 'cancelled'
+            reason = 'other'
+            note = 'via legacy status endpoint'
+            mirror = 'cancelled'
+            release_reason = 'order_cancelled'
+        else:
+            target_state = 'closed'
+            reason = _shipped_close_reason(order)
+            note = 'via legacy status endpoint (invoiced)'
+            # NOT close's usual 'shipped': this endpoint's callers
+            # asked for 'invoiced' and legacy readers distinguish
+            # the two.
+            mirror = 'invoiced'
+            release_reason = 'order_closed'
+
+        released_allocations = _release_order_reservations(
+            cur, order_id, release_reason, caller_source_tag(request))
+        updated_row = _apply_state_change(
+            cur, order, state=target_state, reason=reason,
+            note=note, related_so_id=None,
+            changed_by=caller_source_tag(request),
+            mirror_status=mirror)
+        updated = updated_row
+        state_fields = {
+            "state": updated_row["state"],
+            "state_reason": updated_row["state_reason"],
+            "state_note": updated_row["state_note"],
+            "state_changed_by": updated_row["state_changed_by"],
+            "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
+        }
+    else:
+        # Purely operational: status only, state untouched.
+        cur.execute(
+            "UPDATE sales_orders SET status = %s WHERE id = %s RETURNING order_number, status",
+            (req.status, order_id)
+        )
+        updated = cur.fetchone()
+
+    logger.info(f"Order {updated['order_number']} status: {current} → {req.status}")
+    response = {
+        "order_id": order_id,
+        "order_number": updated['order_number'],
+        "previous_status": current,
+        "status": updated['status'],
+        "allocations_released": released_allocations,
+        "message": f"Order {updated['order_number']}: {current} → {req.status}"
+    }
+    response.update(state_fields)
+    return response
+
+
 @app.patch("/sales/orders/{order_id}/status")
 def update_order_status(request: Request, order_id: int = Depends(resolve_order_id), req: OrderStatusUpdate = ..., _: bool = Depends(verify_api_key)):
     """Legacy operational status transitions, plus the legacy-cancellation policy.
@@ -14933,114 +15095,12 @@ def update_order_status(request: Request, order_id: int = Depends(resolve_order_
     The other four values — new, confirmed, in_production, ready — are purely
     operational, behave exactly as they always have, and never touch state.
     """
-    all_statuses = list(VALID_TRANSITIONS.keys())
-    if req.status not in all_statuses:
-        raise HTTPException(400, f"Invalid status. Must be one of: {all_statuses}")
-
-    # Block manual setting of shipped/partial_ship — those are auto-only via shipOrderCommit
-    if req.status in ('shipped', 'partial_ship'):
-        raise HTTPException(400,
-            f"'{req.status}' status is set automatically when an order is shipped. "
-            f"Use the ship endpoint instead."
-        )
+    _validate_requested_order_status(req.status)
 
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Order row lock first, per the normative lock order — the
-                # exit branches below take product locks after it.
-                order = _load_so_for_state_change(cur, order_id)
-                current = order['status']
-
-                # The exit guards run BEFORE the MANUAL_TRANSITIONS gate.
-                # Order matters for the operator: a fully shipped open order
-                # asked to go 'cancelled' should be told "pounds already
-                # shipped — close it with short_closed instead", not the
-                # generic "invalid transition: shipped → cancelled". The
-                # specific, actionable answer has to win over the generic one.
-                if req.status in ('cancelled', 'invoiced'):
-                    _require_open_state(order['state'], order['order_number'],
-                                        order_id, f"setting status '{req.status}'")
-                    if req.status == 'cancelled' and order['fulfillment'] != 'unshipped':
-                        _so_state_error(
-                            "ORDER_ALREADY_SHIPPED",
-                            f"Order {order['order_number']} is "
-                            f"'{order['fulfillment']}' — pounds have already "
-                            f"shipped, so it cannot be cancelled. Close it "
-                            f"instead: POST /sales/orders/{order_id}/close "
-                            f"with reason 'short_closed'.",
-                            status_code=409, order_id=order_id,
-                            fulfillment=order['fulfillment'],
-                            suggested_action="close",
-                            suggested_reason="short_closed",
-                        )
-
-                allowed = MANUAL_TRANSITIONS.get(current, [])
-                if req.status not in allowed:
-                    if not allowed:
-                        raise HTTPException(400,
-                            f"Order {order['order_number']} is '{current}' — this is a terminal status. "
-                            f"No further status changes are allowed."
-                        )
-                    raise HTTPException(400,
-                        f"Invalid status transition: '{current}' → '{req.status}'. "
-                        f"Allowed transitions from '{current}': {allowed}."
-                    )
-
-                released_allocations = []
-                state_fields = {}
-
-                if req.status in ('cancelled', 'invoiced'):
-                    if req.status == 'cancelled':
-                        target_state = 'cancelled'
-                        reason = 'other'
-                        note = 'via legacy status endpoint'
-                        mirror = 'cancelled'
-                        release_reason = 'order_cancelled'
-                    else:
-                        target_state = 'closed'
-                        reason = _shipped_close_reason(order)
-                        note = 'via legacy status endpoint (invoiced)'
-                        # NOT close's usual 'shipped': this endpoint's callers
-                        # asked for 'invoiced' and legacy readers distinguish
-                        # the two.
-                        mirror = 'invoiced'
-                        release_reason = 'order_closed'
-
-                    released_allocations = _release_order_reservations(
-                        cur, order_id, release_reason, caller_source_tag(request))
-                    updated_row = _apply_state_change(
-                        cur, order, state=target_state, reason=reason,
-                        note=note, related_so_id=None,
-                        changed_by=caller_source_tag(request),
-                        mirror_status=mirror)
-                    updated = updated_row
-                    state_fields = {
-                        "state": updated_row["state"],
-                        "state_reason": updated_row["state_reason"],
-                        "state_note": updated_row["state_note"],
-                        "state_changed_by": updated_row["state_changed_by"],
-                        "attribution_note": SO_STATE_ATTRIBUTION_NOTE,
-                    }
-                else:
-                    # Purely operational: status only, state untouched.
-                    cur.execute(
-                        "UPDATE sales_orders SET status = %s WHERE id = %s RETURNING order_number, status",
-                        (req.status, order_id)
-                    )
-                    updated = cur.fetchone()
-
-                logger.info(f"Order {updated['order_number']} status: {current} → {req.status}")
-                response = {
-                    "order_id": order_id,
-                    "order_number": updated['order_number'],
-                    "previous_status": current,
-                    "status": updated['status'],
-                    "allocations_released": released_allocations,
-                    "message": f"Order {updated['order_number']}: {current} → {req.status}"
-                }
-                response.update(state_fields)
-                return response
+                return _update_order_status_core(cur, request, order_id, req)
     except HTTPException:
         raise
     except Exception as e:
@@ -15049,120 +15109,126 @@ def update_order_status(request: Request, order_id: int = Depends(resolve_order_
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+def _update_order_header_core(cur, request, order_id: int, req: "OrderHeaderUpdate"):
+    """A7 hook: the header-update handler body, verbatim, on the caller's cursor
+    (shared by the direct route and the update_order_header ticket)."""
+    cur.execute(
+        "SELECT id, order_number, status, customer_id, requested_ship_date, notes, notes_es, customer_po, external_order_reference FROM sales_orders WHERE id = %s FOR NO KEY UPDATE",
+        (order_id,)
+    )
+    order = cur.fetchone()
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "ORDER_NOT_FOUND",
+                "message": f"Order #{order_id} not found",
+                "input": order_id,
+                "suggestions": [],
+            }
+        )
+
+    if order['status'] not in ('new', 'confirmed'):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "ORDER_HEADER_LOCKED",
+                "message": f"Order {order['order_number']} is '{order['status']}' — header edits only allowed when status is 'new' or 'confirmed'.",
+                "input": str(order_id),
+                "suggestions": [],
+            }
+        )
+
+    updates = {}
+    if 'customer_po' in req.__fields_set__:
+        updates['customer_po'] = req.customer_po
+    if req.requested_ship_date is not None:
+        updates['requested_ship_date'] = req.requested_ship_date if req.requested_ship_date else None
+    if req.notes is not None:
+        updates['notes'] = req.notes if req.notes else None
+    if req.notes_es is not None:
+        updates['notes_es'] = req.notes_es if req.notes_es else None
+    if req.customer_id is not None:
+        # Verify customer exists
+        cur.execute("SELECT id, name FROM customers WHERE id = %s", (req.customer_id,))
+        cust = cur.fetchone()
+        if not cust:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error_code": "CUSTOMER_NOT_FOUND",
+                    "message": f"Customer ID {req.customer_id} not found",
+                    "input": str(req.customer_id),
+                    "suggestions": [],
+                }
+            )
+        updates['customer_id'] = req.customer_id
+
+    if 'customer_po' in updates or 'customer_id' in updates:
+        customer_id = updates.get('customer_id', order['customer_id'])
+        reference = order['external_order_reference']
+        if 'customer_id' in updates and reference is not None:
+            _lock_order_reference(cur, customer_id, reference)
+            cur.execute('''SELECT order_id AS id FROM sales_order_create_receipts
+                           WHERE external_order_reference=%s
+                           UNION ALL SELECT id FROM sales_orders
+                           WHERE external_order_reference=%s''',
+                        (reference, reference))
+            if any(row['id'] != order_id for row in cur.fetchall()):
+                _order_reference_conflict()
+        _check_order_po(cur, customer_id, updates.get('customer_po', order['customer_po']),
+                        req.allow_duplicate_po, order_id)
+
+    if not updates:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "NO_FIELDS_TO_UPDATE",
+                "message": "No fields to update",
+                "input": "",
+                "suggestions": [],
+            }
+        )
+
+    set_clause = ", ".join(f"{k} = %s" for k in updates)
+    values = list(updates.values()) + [order_id]
+    cur.execute(
+        f"UPDATE sales_orders SET {set_clause} WHERE id = %s RETURNING id, order_number, status, customer_id, requested_ship_date, notes, notes_es, customer_po, external_order_reference",
+        values
+    )
+    updated = cur.fetchone()
+    _record_actor_write(cur, request, 'sales_orders', order_id)
+
+    # Get customer name for response
+    cur.execute("SELECT name FROM customers WHERE id = %s", (updated['customer_id'],))
+    customer_name = cur.fetchone()['name']
+
+    changes = list(updates.keys())
+    logger.info(f"Order {updated['order_number']} header updated: {changes}")
+    return {
+        "order_id": updated['id'],
+        "order_number": updated['order_number'],
+        "status": updated['status'],
+        "customer_id": updated['customer_id'],
+        "customer_name": customer_name,
+        "requested_ship_date": str(updated['requested_ship_date']) if updated['requested_ship_date'] else None,
+        "notes": updated['notes'],
+        "notes_es": updated['notes_es'],
+        "customer_po": updated['customer_po'],
+        "customer_po_status": 'No PO' if not updated['customer_po'] else 'PO provided',
+        "external_order_reference": updated['external_order_reference'],
+        "fields_updated": changes,
+        "message": f"Order {updated['order_number']} updated: {', '.join(changes)}"
+    }
+
+
 @app.patch("/sales/orders/{order_id}")
 def update_order_header(order_id: int = Depends(resolve_order_id), req: OrderHeaderUpdate = ..., _: bool = Depends(verify_api_key), request: Request = None):
     """Update order header fields (ship date, notes, customer). Only allowed when status is 'new' or 'confirmed'."""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(
-                    "SELECT id, order_number, status, customer_id, requested_ship_date, notes, notes_es, customer_po, external_order_reference FROM sales_orders WHERE id = %s FOR NO KEY UPDATE",
-                    (order_id,)
-                )
-                order = cur.fetchone()
-                if not order:
-                    raise HTTPException(
-                        status_code=404,
-                        detail={
-                            "error_code": "ORDER_NOT_FOUND",
-                            "message": f"Order #{order_id} not found",
-                            "input": order_id,
-                            "suggestions": [],
-                        }
-                    )
-
-                if order['status'] not in ('new', 'confirmed'):
-                    raise HTTPException(
-                        status_code=400,
-                        detail={
-                            "error_code": "ORDER_HEADER_LOCKED",
-                            "message": f"Order {order['order_number']} is '{order['status']}' — header edits only allowed when status is 'new' or 'confirmed'.",
-                            "input": str(order_id),
-                            "suggestions": [],
-                        }
-                    )
-
-                updates = {}
-                if 'customer_po' in req.__fields_set__:
-                    updates['customer_po'] = req.customer_po
-                if req.requested_ship_date is not None:
-                    updates['requested_ship_date'] = req.requested_ship_date if req.requested_ship_date else None
-                if req.notes is not None:
-                    updates['notes'] = req.notes if req.notes else None
-                if req.notes_es is not None:
-                    updates['notes_es'] = req.notes_es if req.notes_es else None
-                if req.customer_id is not None:
-                    # Verify customer exists
-                    cur.execute("SELECT id, name FROM customers WHERE id = %s", (req.customer_id,))
-                    cust = cur.fetchone()
-                    if not cust:
-                        raise HTTPException(
-                            status_code=404,
-                            detail={
-                                "error_code": "CUSTOMER_NOT_FOUND",
-                                "message": f"Customer ID {req.customer_id} not found",
-                                "input": str(req.customer_id),
-                                "suggestions": [],
-                            }
-                        )
-                    updates['customer_id'] = req.customer_id
-
-                if 'customer_po' in updates or 'customer_id' in updates:
-                    customer_id = updates.get('customer_id', order['customer_id'])
-                    reference = order['external_order_reference']
-                    if 'customer_id' in updates and reference is not None:
-                        _lock_order_reference(cur, customer_id, reference)
-                        cur.execute('''SELECT order_id AS id FROM sales_order_create_receipts
-                                       WHERE customer_id=%s AND external_order_reference=%s
-                                       UNION ALL SELECT id FROM sales_orders
-                                       WHERE customer_id=%s AND external_order_reference=%s''',
-                                    (customer_id, reference, customer_id, reference))
-                        if any(row['id'] != order_id for row in cur.fetchall()):
-                            _order_reference_conflict()
-                    _check_order_po(cur, customer_id, updates.get('customer_po', order['customer_po']),
-                                    req.allow_duplicate_po, order_id)
-
-                if not updates:
-                    raise HTTPException(
-                        status_code=400,
-                        detail={
-                            "error_code": "NO_FIELDS_TO_UPDATE",
-                            "message": "No fields to update",
-                            "input": "",
-                            "suggestions": [],
-                        }
-                    )
-
-                set_clause = ", ".join(f"{k} = %s" for k in updates)
-                values = list(updates.values()) + [order_id]
-                cur.execute(
-                    f"UPDATE sales_orders SET {set_clause} WHERE id = %s RETURNING id, order_number, status, customer_id, requested_ship_date, notes, notes_es, customer_po, external_order_reference",
-                    values
-                )
-                updated = cur.fetchone()
-                _record_actor_write(cur, request, 'sales_orders', order_id)
-
-                # Get customer name for response
-                cur.execute("SELECT name FROM customers WHERE id = %s", (updated['customer_id'],))
-                customer_name = cur.fetchone()['name']
-
-                changes = list(updates.keys())
-                logger.info(f"Order {updated['order_number']} header updated: {changes}")
-                return {
-                    "order_id": updated['id'],
-                    "order_number": updated['order_number'],
-                    "status": updated['status'],
-                    "customer_id": updated['customer_id'],
-                    "customer_name": customer_name,
-                    "requested_ship_date": str(updated['requested_ship_date']) if updated['requested_ship_date'] else None,
-                    "notes": updated['notes'],
-                    "notes_es": updated['notes_es'],
-                    "customer_po": updated['customer_po'],
-                    "customer_po_status": 'No PO' if not updated['customer_po'] else 'PO provided',
-                    "external_order_reference": updated['external_order_reference'],
-                    "fields_updated": changes,
-                    "message": f"Order {updated['order_number']} updated: {', '.join(changes)}"
-                }
+                return _update_order_header_core(cur, request, order_id, req)
     except HTTPException:
         raise
     except Exception as e:
@@ -15279,6 +15345,43 @@ def add_order_lines(order_id: int = Depends(resolve_order_id), req: AddOrderLine
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+def _cancel_order_line_core(cur, request, order_id: int, line_id: int):
+    """A7 hook: the line-cancel handler body, verbatim, on the caller's cursor
+    (shared by the direct route and the cancel_order_line ticket)."""
+    # Normative lock order: order row, then the line, then the
+    # product. Cancelling a line releases its reservations, so it
+    # races the administrative exits over the same rows — without
+    # the order lock, a line cancel could interleave with a close
+    # and release stock the close had already accounted for.
+    _lock_sales_order(cur, order_id)
+    _lock_sales_order_lines(cur, order_id, [line_id])
+    cur.execute(
+        """UPDATE sales_order_lines SET line_status = 'cancelled'
+           WHERE id = %s AND sales_order_id = %s AND line_status != 'fulfilled'
+           RETURNING id, product_id""",
+        (line_id, order_id)
+    )
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(404, "Line not found or already fulfilled")
+    _lock_allocation_product(cur, int(row['product_id']))
+    # released_by comes from caller_source_tag, the same source the
+    # manual release endpoint uses — never the shared-key operator
+    # placeholder, which is the constant 'legacy-shared-key' on 100%
+    # of calls and puts a second, incompatible kind of value in this
+    # column.
+    _expire_auto_fifo_allocations(cur, int(row['product_id']), caller_source_tag(request))
+    released = _release_active_allocations(
+        cur,
+        line_id=line_id,
+        reason='line_cancelled',
+        released_by=caller_source_tag(request),
+    )
+    _record_actor_write(cur, request, "sales_order_lines", line_id)
+    return {"order_id": order_id, "line_id": line_id, "line_status": "cancelled",
+            "allocations_released": released, "message": "Line cancelled"}
+
+
 @app.patch("/sales/orders/{order_id}/lines/{line_id}/cancel")
 def cancel_order_line(
     request: Request,
@@ -15289,44 +15392,153 @@ def cancel_order_line(
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Normative lock order: order row, then the line, then the
-                # product. Cancelling a line releases its reservations, so it
-                # races the administrative exits over the same rows — without
-                # the order lock, a line cancel could interleave with a close
-                # and release stock the close had already accounted for.
-                _lock_sales_order(cur, order_id)
-                _lock_sales_order_lines(cur, order_id, [line_id])
-                cur.execute(
-                    """UPDATE sales_order_lines SET line_status = 'cancelled'
-                       WHERE id = %s AND sales_order_id = %s AND line_status != 'fulfilled'
-                       RETURNING id, product_id""",
-                    (line_id, order_id)
-                )
-                row = cur.fetchone()
-                if not row:
-                    raise HTTPException(404, "Line not found or already fulfilled")
-                _lock_allocation_product(cur, int(row['product_id']))
-                # released_by comes from caller_source_tag, the same source the
-                # manual release endpoint uses — never the shared-key operator
-                # placeholder, which is the constant 'legacy-shared-key' on 100%
-                # of calls and puts a second, incompatible kind of value in this
-                # column.
-                _expire_auto_fifo_allocations(cur, int(row['product_id']), caller_source_tag(request))
-                released = _release_active_allocations(
-                    cur,
-                    line_id=line_id,
-                    reason='line_cancelled',
-                    released_by=caller_source_tag(request),
-                )
-                _record_actor_write(cur, request, "sales_order_lines", line_id)
-                return {"order_id": order_id, "line_id": line_id, "line_status": "cancelled",
-                        "allocations_released": released, "message": "Line cancelled"}
+                return _cancel_order_line_core(cur, request, order_id, line_id)
     except HTTPException:
         raise
     except Exception as e:
         if _is_readonly_error(e): raise
         logger.error(f"Cancel order line failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+def _update_order_line_core(cur, request, order_id: int, line_id: int,
+                            quantity_lb: Optional[float], unit_price: Optional[float]):
+    """A7 hook: the line-update handler body, verbatim, on the caller's cursor
+    (shared by the direct route and the update_order_line ticket)."""
+    # Normative lock order: order row first. A quantity reduction
+    # shrinks the line's reservations, so it contends with the
+    # exits for the same allocation rows.
+    _lock_sales_order(cur, order_id)
+    cur.execute(
+        """SELECT id, product_id, quantity_lb, unit_price, line_status,
+                  ordered_quantity, ordered_unit, ordered_case_weight_lb
+             FROM sales_order_lines
+            WHERE id = %s AND sales_order_id = %s
+              AND line_status NOT IN ('fulfilled', 'cancelled')
+            FOR NO KEY UPDATE""",
+        (line_id, order_id),
+    )
+    existing = cur.fetchone()
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error_code": "LINE_NOT_FOUND",
+                "message": "Line not found or already fulfilled/cancelled",
+                "input": str(line_id),
+                "suggestions": [],
+            }
+        )
+    fields = []
+    values = []
+    allocations_released = []
+    if quantity_lb is not None:
+        if existing['ordered_unit'] == 'each':
+            raise HTTPException(422, 'Service counts cannot be edited as quantity_lb')
+        if quantity_lb <= 0:
+            _allocation_error(
+                "INVALID_LINE_QUANTITY",
+                "quantity_lb must be greater than zero",
+                status_code=422,
+                line_id=line_id,
+                quantity_lb=quantity_lb,
+            )
+        shipped_effective = _line_shipped_effective(
+            cur, line_id, int(existing['product_id'])
+        )
+        if quantity_lb + BALANCE_EPSILON < shipped_effective:
+            _allocation_error(
+                "QTY_BELOW_SHIPPED_EFFECTIVE",
+                f"Line #{line_id} cannot be reduced below {shipped_effective:.4f} lb already shipped",
+                status_code=422,
+                line_id=line_id,
+                requested_lb=quantity_lb,
+                shipped_effective_lb=shipped_effective,
+            )
+        fields.append("quantity_lb = %s")
+        values.append(quantity_lb)
+    if unit_price is not None:
+        fields.append("unit_price = %s")
+        values.append(unit_price)
+    if not fields:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error_code": "NO_FIELDS_TO_UPDATE",
+                "message": "Nothing to update",
+                "input": "",
+                "suggestions": [],
+            }
+        )
+    values.extend([line_id, order_id])
+    cur.execute(
+        f"""UPDATE sales_order_lines SET {', '.join(fields)}
+            WHERE id = %s AND sales_order_id = %s AND line_status NOT IN ('fulfilled', 'cancelled')
+            RETURNING id, quantity_lb, unit_price, product_id""",
+        values
+    )
+    row = cur.fetchone()
+    if existing['ordered_quantity'] is not None:
+        # Keep saved commercial values consistent after existing
+        # physical-quantity and price edits; receipt stays original.
+        cur.execute('SELECT name, case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id=%s',
+                    (row['product_id'],))
+        product = cur.fetchone()
+        product['case_size_lb'] = existing['ordered_case_weight_lb']
+        contract = _order_line_contract({
+            'quantity': existing['ordered_quantity'] if quantity_lb is None else None,
+            'quantity_lb': row['quantity_lb'], 'unit': existing['ordered_unit'],
+            'case_weight_lb': existing['ordered_case_weight_lb'],
+            'unit_price': row['unit_price'],
+        }, product, product['name'])
+        cur.execute('UPDATE sales_order_lines SET ordered_quantity=%s, amount=%s WHERE id=%s',
+                    (contract['quantity'], contract['amount'], line_id))
+    _record_actor_write(cur, request, 'sales_order_lines', line_id)
+    if quantity_lb is not None:
+        product_id = int(row['product_id'])
+        # released_by comes from caller_source_tag, the same source
+        # every other allocation writer uses. It used to come from
+        # the operator-id placeholder, which is the constant
+        # 'legacy-shared-key' on 100% of calls — a second,
+        # incompatible vocabulary in one column. This handler was
+        # the last of the four to be fixed; see the "no-op
+        # placeholder" follow-up in
+        # docs/design/so-state-model-findings.md.
+        released_by = caller_source_tag(request)
+        _lock_allocation_product(cur, product_id)
+        _expire_auto_fifo_allocations(cur, product_id, released_by)
+        remaining_effective = max(
+            0.0,
+            float(quantity_lb) - _line_shipped_effective(cur, line_id, product_id),
+        )
+        cur.execute(
+            """SELECT * FROM sales_order_allocations
+                 WHERE sales_order_line_id = %s AND status = 'active'
+                   AND (expires_at IS NULL OR expires_at > clock_timestamp())
+                 ORDER BY created_at DESC, id DESC FOR UPDATE""",
+            (line_id,),
+        )
+        active_rows = cur.fetchall()
+        allocated = sum(float(item['quantity_lb']) for item in active_rows)
+        excess = max(0.0, allocated - remaining_effective)
+        if excess > BALANCE_EPSILON:
+            allocations_released = _shrink_active_allocations(
+                cur,
+                active_rows,
+                excess,
+                'line_quantity_reduced',
+                released_by,
+            )
+    # Fetch case_size_lb for unit count
+    cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (row['product_id'],))
+    prow = cur.fetchone()
+    cs = float(prow['case_size_lb']) if prow and prow['case_size_lb'] else None
+    qty = float(row['quantity_lb'])
+    price = (float(row['unit_price']) if row['unit_price'] is not None
+             and (existing['ordered_quantity'] is not None or row['unit_price']) else None)
+    return {"line_id": row['id'], "quantity_lb": qty, "unit_price": price,
+            "case_size_lb": cs, "unit_count": round(qty / cs) if cs else None,
+            "allocations_released": allocations_released}
 
 
 @app.patch("/sales/orders/{order_id}/lines/{line_id}/update")
@@ -15341,140 +15553,7 @@ def update_order_line(
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Normative lock order: order row first. A quantity reduction
-                # shrinks the line's reservations, so it contends with the
-                # exits for the same allocation rows.
-                _lock_sales_order(cur, order_id)
-                cur.execute(
-                    """SELECT id, product_id, quantity_lb, unit_price, line_status,
-                              ordered_quantity, ordered_unit, ordered_case_weight_lb
-                         FROM sales_order_lines
-                        WHERE id = %s AND sales_order_id = %s
-                          AND line_status NOT IN ('fulfilled', 'cancelled')
-                        FOR NO KEY UPDATE""",
-                    (line_id, order_id),
-                )
-                existing = cur.fetchone()
-                if not existing:
-                    raise HTTPException(
-                        status_code=404,
-                        detail={
-                            "error_code": "LINE_NOT_FOUND",
-                            "message": "Line not found or already fulfilled/cancelled",
-                            "input": str(line_id),
-                            "suggestions": [],
-                        }
-                    )
-                fields = []
-                values = []
-                allocations_released = []
-                if quantity_lb is not None:
-                    if existing['ordered_unit'] == 'each':
-                        raise HTTPException(422, 'Service counts cannot be edited as quantity_lb')
-                    if quantity_lb <= 0:
-                        _allocation_error(
-                            "INVALID_LINE_QUANTITY",
-                            "quantity_lb must be greater than zero",
-                            status_code=422,
-                            line_id=line_id,
-                            quantity_lb=quantity_lb,
-                        )
-                    shipped_effective = _line_shipped_effective(
-                        cur, line_id, int(existing['product_id'])
-                    )
-                    if quantity_lb + BALANCE_EPSILON < shipped_effective:
-                        _allocation_error(
-                            "QTY_BELOW_SHIPPED_EFFECTIVE",
-                            f"Line #{line_id} cannot be reduced below {shipped_effective:.4f} lb already shipped",
-                            status_code=422,
-                            line_id=line_id,
-                            requested_lb=quantity_lb,
-                            shipped_effective_lb=shipped_effective,
-                        )
-                    fields.append("quantity_lb = %s")
-                    values.append(quantity_lb)
-                if unit_price is not None:
-                    fields.append("unit_price = %s")
-                    values.append(unit_price)
-                if not fields:
-                    raise HTTPException(
-                        status_code=400,
-                        detail={
-                            "error_code": "NO_FIELDS_TO_UPDATE",
-                            "message": "Nothing to update",
-                            "input": "",
-                            "suggestions": [],
-                        }
-                    )
-                values.extend([line_id, order_id])
-                cur.execute(
-                    f"""UPDATE sales_order_lines SET {', '.join(fields)}
-                        WHERE id = %s AND sales_order_id = %s AND line_status NOT IN ('fulfilled', 'cancelled')
-                        RETURNING id, quantity_lb, unit_price, product_id""",
-                    values
-                )
-                row = cur.fetchone()
-                if existing['ordered_quantity'] is not None:
-                    # Keep saved commercial values consistent after existing
-                    # physical-quantity and price edits; receipt stays original.
-                    cur.execute('SELECT name, case_size_lb, COALESCE(is_service, false) AS is_service FROM products WHERE id=%s',
-                                (row['product_id'],))
-                    product = cur.fetchone()
-                    product['case_size_lb'] = existing['ordered_case_weight_lb']
-                    contract = _order_line_contract({
-                        'quantity': existing['ordered_quantity'] if quantity_lb is None else None,
-                        'quantity_lb': row['quantity_lb'], 'unit': existing['ordered_unit'],
-                        'case_weight_lb': existing['ordered_case_weight_lb'],
-                        'unit_price': row['unit_price'],
-                    }, product, product['name'])
-                    cur.execute('UPDATE sales_order_lines SET ordered_quantity=%s, amount=%s WHERE id=%s',
-                                (contract['quantity'], contract['amount'], line_id))
-                _record_actor_write(cur, request, 'sales_order_lines', line_id)
-                if quantity_lb is not None:
-                    product_id = int(row['product_id'])
-                    # released_by comes from caller_source_tag, the same source
-                    # every other allocation writer uses. It used to come from
-                    # the operator-id placeholder, which is the constant
-                    # 'legacy-shared-key' on 100% of calls — a second,
-                    # incompatible vocabulary in one column. This handler was
-                    # the last of the four to be fixed; see the "no-op
-                    # placeholder" follow-up in
-                    # docs/design/so-state-model-findings.md.
-                    released_by = caller_source_tag(request)
-                    _lock_allocation_product(cur, product_id)
-                    _expire_auto_fifo_allocations(cur, product_id, released_by)
-                    remaining_effective = max(
-                        0.0,
-                        float(quantity_lb) - _line_shipped_effective(cur, line_id, product_id),
-                    )
-                    cur.execute(
-                        """SELECT * FROM sales_order_allocations
-                             WHERE sales_order_line_id = %s AND status = 'active'
-                               AND (expires_at IS NULL OR expires_at > clock_timestamp())
-                             ORDER BY created_at DESC, id DESC FOR UPDATE""",
-                        (line_id,),
-                    )
-                    active_rows = cur.fetchall()
-                    allocated = sum(float(item['quantity_lb']) for item in active_rows)
-                    excess = max(0.0, allocated - remaining_effective)
-                    if excess > BALANCE_EPSILON:
-                        allocations_released = _shrink_active_allocations(
-                            cur,
-                            active_rows,
-                            excess,
-                            'line_quantity_reduced',
-                            released_by,
-                        )
-                # Fetch case_size_lb for unit count
-                cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (row['product_id'],))
-                prow = cur.fetchone()
-                cs = float(prow['case_size_lb']) if prow and prow['case_size_lb'] else None
-                qty = float(row['quantity_lb'])
-                price = (float(row['unit_price']) if row['unit_price'] is not None
-                         and (existing['ordered_quantity'] is not None or row['unit_price']) else None)
-                return {"line_id": row['id'], "quantity_lb": qty, "unit_price": price,
-                        "case_size_lb": cs, "unit_count": round(qty / cs) if cs else None,
-                        "allocations_released": allocations_released}
+                return _update_order_line_core(cur, request, order_id, line_id, quantity_lb, unit_price)
     except HTTPException:
         raise
     except Exception as e:

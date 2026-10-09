@@ -333,7 +333,9 @@ def test_allocation_release_paths_keep_their_source_tag_contract():
     import ast
     import inspect
 
-    for fn in (main.cancel_order_line, main.ship_order, main.update_order_status):
+    # A7: cancel_order_line and update_order_status delegate to `_*_core`; guard those too.
+    for fn in (main.cancel_order_line, main._cancel_order_line_core, main.ship_order,
+               main.update_order_status, main._update_order_status_core):
         tree = ast.parse(inspect.getsource(fn))
         parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
         for call in ast.walk(tree):

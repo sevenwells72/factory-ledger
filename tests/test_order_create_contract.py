@@ -157,7 +157,7 @@ def test_conflicting_reference_is_clear_and_atomic(client, db_cursor, catalog, c
     assert counts(db_cursor) == before
 
 
-def test_reference_is_unique_per_customer_in_database(client, db_cursor, catalog):
+def test_reference_is_globally_unique_in_database(client, db_cursor, catalog):
     original = post(client, payload(catalog))
     db_cursor.execute('SAVEPOINT uniqueness')
     with pytest.raises(psycopg2.errors.UniqueViolation):
@@ -165,8 +165,9 @@ def test_reference_is_unique_per_customer_in_database(client, db_cursor, catalog
     db_cursor.execute('ROLLBACK TO SAVEPOINT uniqueness')
     db_cursor.execute("INSERT INTO customers(name) VALUES (%s) RETURNING id", ('Other ' + uuid4().hex,))
     other = db_cursor.fetchone()['id']
-    second = post(client, payload((other, catalog[1])))
-    assert second['order_id'] != original['order_id']
+    response = client.post('/sales/orders', json=payload((other, catalog[1])))
+    assert response.status_code == 409
+    assert response.json()['detail']['error_code'] == 'EXTERNAL_ORDER_REFERENCE_CONFLICT'
 
 
 @pytest.mark.parametrize('bad_line', [
@@ -234,8 +235,11 @@ def test_header_po_clear_duplicate_override_customer_move_and_locked_state(clien
     assert client.patch(url, json={'customer_po': None}).json()['customer_po_status'] == 'No PO'
     db_cursor.execute("INSERT INTO customers(name) VALUES (%s) RETURNING id", ('Move ' + uuid4().hex,))
     other = db_cursor.fetchone()['id']
-    post(client, payload((other, catalog[1]), external_order_reference='SECOND'))
-    assert client.patch(url, json={'customer_id': other}).status_code == 409
+    # A reference is reserved globally; moving the original order does not free it.
+    conflict = client.post('/sales/orders', json=payload((other, catalog[1]), external_order_reference='SECOND'))
+    assert conflict.status_code == 409
+    assert client.patch(url, json={'customer_id': other}).status_code == 200
+    assert post(client, payload(catalog, customer_po=None, external_order_reference='SECOND')) == second
     first_url = f"/sales/orders/{first['order_id']}"
     assert client.patch(first_url, json={'customer_po': '062732'}).status_code == 200  # excludes self
     db_cursor.execute("UPDATE sales_orders SET status='ready' WHERE id=%s", (first['order_id'],))
