@@ -1,4 +1,5 @@
-"""FL-issued write tickets and receipt reads (A1: receive, make, pack, adjust and found).
+"""FL-issued write tickets and receipt reads (A1: receive, make, pack, adjust and found;
+A7 order tickets register through the hooks marked "A7 hook").
 
 Route handlers own one database transaction. Action helpers receive its cursor;
 no nested HTTP calls, global connection overrides, or independent commits.
@@ -20,7 +21,27 @@ from psycopg2.extras import Json
 
 ClientSource = Literal['mcp', 'dashboard', 'fl_assistant', 'api']
 PositiveId = conint(strict=True, gt=0)
-PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT'}
+# A7 hook: order tickets (metadata writes) — logic in order_tickets.py; the
+# registry (actions, receipt prefix, routes) lives here so the ticket lifecycle
+# is defined in one place. 'ORD', not the design's 'SO': order NUMBERS already
+# use SO-YYMMDD-NNN and a receipt box that accepts both must not collide.
+ORDER_ACTIONS = ('create_order', 'add_order_lines', 'update_order_line', 'cancel_order_line',
+                 'update_order_header', 'update_order_status', 'mark_order_ready',
+                 'cancel_order', 'close_order', 'reopen_order')
+PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT',
+            **{action: 'ORD' for action in ORDER_ACTIONS}}
+ORDER_PREPARE_ROUTES = frozenset({
+    ('POST', '/sales/orders/prepare'),
+    ('POST', '/sales/orders/{order_id}/lines/prepare'),
+    ('POST', '/sales/orders/{order_id}/lines/{line_id}/update/prepare'),
+    ('POST', '/sales/orders/{order_id}/lines/{line_id}/cancel/prepare'),
+    ('POST', '/sales/orders/{order_id}/header/prepare'),
+    ('POST', '/sales/orders/{order_id}/status/prepare'),
+    ('POST', '/sales/orders/{order_id}/ready/prepare'),
+    ('POST', '/sales/orders/{order_id}/cancel/prepare'),
+    ('POST', '/sales/orders/{order_id}/close/prepare'),
+    ('POST', '/sales/orders/{order_id}/reopen/prepare'),
+})
 # Public dashboard scope remains exactly the ticket routes granted by A1 part 1.
 DASHBOARD_ROUTES = frozenset({
     ('POST', '/receive/prepare'),
@@ -35,7 +56,7 @@ ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
     ('POST', '/pack/prepare'),
     ('POST', '/adjust/prepare'),
     ('POST', '/inventory/found/prepare'),
-})
+}) | ORDER_PREPARE_ROUTES   # A7: actor + master keys only; the dashboard key gets nothing new
 
 
 def fail(http_status, code, message, **extra):
@@ -361,7 +382,10 @@ def receipt_detail(api, cur, number):
     a5.receipt_evidence(cur, transactions, lots)
     happened = datetime.fromisoformat(ticket['payload']['occurred_at'])
     late = happened.astimezone(api.PLANT_TIMEZONE).date() != ticket['committed_at'].astimezone(api.PLANT_TIMEZONE).date()
+    import order_tickets   # A7 hook: the order an order receipt created or edited (None otherwise)
+    order = order_tickets.receipt_order(cur, ticket)
     return {'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
+            'order': order,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
             'entered_at': ticket['committed_at'], 'late_entry': late,
@@ -490,6 +514,38 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
     return response
 
 
+def issue_ticket(api, cur, *, actor, action, payload, draft, state, warnings, blockers,
+                 client_source, event_time):
+    """Insert the ticket row (supersession, hashes, expiry) and return the prepare
+    envelope. A7 hook: shared by the ledger prepares below and order_tickets.
+    `draft` gains actor/happened_at/happened_vs_now_minutes/blockers here."""
+    payload_hash = canonical_hash(payload)
+    draft.update(actor=actor, happened_at=payload['occurred_at'],
+                 happened_vs_now_minutes=round(permissions.elapsed(event_time, api.get_plant_now()).total_seconds()/60, 1),
+                 blockers=blockers)
+    draft = json_value(api, draft)
+    # Serialize identical prepares, including the first one (no row yet).
+    supersession = canonical_hash([actor['id'], actor['name'], actor['key_kind'], action, payload_hash])
+    cur.execute('SELECT pg_advisory_xact_lock(%s)', (int(supersession[:15], 16),))
+    cur.execute('''UPDATE write_tickets SET status='superseded'
+                   WHERE status='prepared' AND action=%s AND payload_hash=%s
+                     AND operator_id=%s AND key_kind=%s AND actor_id IS NOT DISTINCT FROM %s''',
+                (action, payload_hash, actor['name'], actor['key_kind'], actor['id']))
+    ticket = 'wt_' + secrets.token_urlsafe(32)
+    ttl = 30 if client_source == 'dashboard' else 10
+    cur.execute('''WITH clock AS (SELECT clock_timestamp() AS at)
+        INSERT INTO write_tickets(ticket_hash,action,actor_id,operator_id,key_kind,client_source,
+            payload,payload_hash,state_hash,draft,warnings,prepared_at,expires_at)
+        SELECT %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,at,at+%s*interval '1 minute'
+        FROM clock RETURNING id,expires_at''',
+        (token_hash(ticket), action, actor['id'], actor['name'], actor['key_kind'], client_source,
+         Json(payload), payload_hash, canonical_hash(json_value(api, state)), Json(draft), Json(warnings), ttl))
+    row = cur.fetchone()
+    return {'ticket': ticket, 'ticket_id': row['id'], 'action': action,
+            'expires_at': row['expires_at'], 'payload_hash': payload_hash, 'draft': draft,
+            'warnings': warnings, 'blockers': blockers, 'can_commit': not blockers, 'actor': actor}
+
+
 def register_routes(app, api):
     def prepare(action, req, request, *, lot_id=None):
         actor = identity(api, request)
@@ -550,31 +606,9 @@ def register_routes(app, api):
                 warnings.append(late)
             warnings.extend(a3b.shortage_warnings(draft))   # A3b hook (R3): warns, never blocks
             draft['entry_timing'] = entry_timing
-            payload_hash = canonical_hash(payload)
-            draft.update(actor=actor, happened_at=payload['occurred_at'],
-                         happened_vs_now_minutes=round(permissions.elapsed(event_time, api.get_plant_now()).total_seconds()/60, 1),
-                         blockers=blockers)
-            draft = json_value(api, draft)
-            # Serialize identical prepares, including the first one (no row yet).
-            supersession = canonical_hash([actor['id'], actor['name'], actor['key_kind'], action, payload_hash])
-            cur.execute('SELECT pg_advisory_xact_lock(%s)', (int(supersession[:15], 16),))
-            cur.execute('''UPDATE write_tickets SET status='superseded'
-                           WHERE status='prepared' AND action=%s AND payload_hash=%s
-                             AND operator_id=%s AND key_kind=%s AND actor_id IS NOT DISTINCT FROM %s''',
-                        (action, payload_hash, actor['name'], actor['key_kind'], actor['id']))
-            ticket = 'wt_' + secrets.token_urlsafe(32)
-            ttl = 30 if req.client_source == 'dashboard' else 10
-            cur.execute('''WITH clock AS (SELECT clock_timestamp() AS at)
-                INSERT INTO write_tickets(ticket_hash,action,actor_id,operator_id,key_kind,client_source,
-                    payload,payload_hash,state_hash,draft,warnings,prepared_at,expires_at)
-                SELECT %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,at,at+%s*interval '1 minute'
-                FROM clock RETURNING id,expires_at''',
-                (token_hash(ticket), action, actor['id'], actor['name'], actor['key_kind'], req.client_source,
-                 Json(payload), payload_hash, canonical_hash(json_value(api, state)), Json(draft), Json(warnings), ttl))
-            row = cur.fetchone()
-            return {'ticket': ticket, 'ticket_id': row['id'], 'action': action,
-                    'expires_at': row['expires_at'], 'payload_hash': payload_hash, 'draft': draft,
-                    'warnings': warnings, 'blockers': blockers, 'can_commit': not blockers, 'actor': actor}
+            return issue_ticket(api, cur, actor=actor, action=action, payload=payload, draft=draft,
+                                state=state, warnings=warnings, blockers=blockers,
+                                client_source=req.client_source, event_time=event_time)
 
     @app.post('/receive/prepare')
     def prepare_receive(req: ReceivePrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
@@ -648,6 +682,11 @@ def register_routes(app, api):
                              set(body.acknowledged_warnings))
             if missing:
                 fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.', missing=missing)
+            # A7 hook: order tickets post through their own module (metadata
+            # writes, no ledger lines); every lifecycle check above is shared.
+            if row['action'] in ORDER_ACTIONS:
+                import order_tickets
+                return order_tickets.commit(api, cur, row, body, actor, request, entry_timing)
             if row['action'] not in PREFIXES:
                 fail(409, 'TICKET_ACTION_UNAVAILABLE', 'Unsupported ticket action.')
             # A5 hook: late evidence never mutates the signed draft payload.
@@ -692,3 +731,7 @@ def register_routes(app, api):
     def get_receipt(receipt_number: str, _: bool = Depends(api.verify_api_key)):
         with api.get_transaction() as cur:
             return receipt_detail(api, cur, receipt_number)
+
+    # A7 hook: the ten order prepares (ORDER_PREPARE_ROUTES) live in order_tickets.
+    import order_tickets
+    order_tickets.register_routes(app, api)

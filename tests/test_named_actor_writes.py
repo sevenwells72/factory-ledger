@@ -173,6 +173,17 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/exceptions/{exception_id}/resolve'),
         ('POST', '/exceptions/{exception_id}/approve'),
         ('POST', '/exceptions/{exception_id}/reject'),
+        # A7 order tickets (actor + master keys; the dashboard key gets none)
+        ('POST', '/sales/orders/prepare'),
+        ('POST', '/sales/orders/{order_id}/lines/prepare'),
+        ('POST', '/sales/orders/{order_id}/lines/{line_id}/update/prepare'),
+        ('POST', '/sales/orders/{order_id}/lines/{line_id}/cancel/prepare'),
+        ('POST', '/sales/orders/{order_id}/header/prepare'),
+        ('POST', '/sales/orders/{order_id}/status/prepare'),
+        ('POST', '/sales/orders/{order_id}/ready/prepare'),
+        ('POST', '/sales/orders/{order_id}/cancel/prepare'),
+        ('POST', '/sales/orders/{order_id}/close/prepare'),
+        ('POST', '/sales/orders/{order_id}/reopen/prepare'),
     }
     assert ('POST', '/products/resolve') not in main.DASHBOARD_KEY_ALLOWLIST
 

@@ -372,7 +372,8 @@ def test_route_auth_matrix_and_attribution(client, db_cursor, payload, actors, w
 
 @pytest.mark.parametrize('method,path', sorted(tickets.ACTOR_ROUTES))
 def test_every_new_route_rejects_unknown_key(client, method, path):
-    path = path.replace('{ticket}', 'wt_unknown').replace('{transaction_id}', '1').replace('{receipt_number}', 'NOPE')
+    path = (path.replace('{ticket}', 'wt_unknown').replace('{transaction_id}', '1').replace('{receipt_number}', 'NOPE')
+            .replace('{order_id}', '1').replace('{line_id}', '1'))
     response = client.request(method, path, json={}, headers=headers('unknown-key'))
     assert response.status_code == 403
 
@@ -424,6 +425,8 @@ def isolated_database(_db_connection):
             cur.execute((ROOT/'migrations/069_exceptions_enforcement.sql').read_text())
             cur.execute((ROOT/'migrations/070_pre_make_adjust.sql').read_text())
             cur.execute((ROOT/'migrations/071_shortage_evidence_claims.sql').read_text())
+            # Pending A7 migration 067 (same reason).
+            cur.execute((ROOT/'migrations/067_order_tickets.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:
@@ -451,6 +454,10 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
     down_070 = (ROOT/'migrations/down/070_pre_make_adjust_down.sql').read_text()
     up_071 = (ROOT/'migrations/071_shortage_evidence_claims.sql').read_text()
     down_071 = (ROOT/'migrations/down/071_shortage_evidence_claims_down.sql').read_text()
+    # 067 (A7 order tickets: sales_orders/sales_order_lines → write_tickets FKs)
+    # has a down file; it comes off before 058 and goes back on after 062.
+    up_067 = (ROOT/'migrations/067_order_tickets.sql').read_text()
+    down_067 = (ROOT/'migrations/down/067_order_tickets_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
         cur.execute(down_071)
@@ -460,6 +467,7 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
                     ('ledger_current_transactions', 'ledger_current_transaction_lines'))
         views = cur.fetchall()
         cur.execute('DROP TABLE IF EXISTS transaction_lot_confirmations, lot_moves')
+        cur.execute(down_067)
         cur.execute(down_061)
         cur.execute(down)
         cur.execute("SELECT to_regclass('public.write_tickets')")
@@ -479,6 +487,12 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         cur.execute(up_071)
         cur.execute("SELECT to_regclass('public.lot_moves') IS NOT NULL")
         assert cur.fetchone()[0]
+        cur.execute(up_067)
+        cur.execute(up_067)   # rerunnable
+        cur.execute("SELECT count(*) FROM migration_markers WHERE name='067_order_tickets'")
+        assert cur.fetchone()[0] == 1
+        cur.execute("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='write_tickets_action_check'")
+        assert 'reopen_order' in cur.fetchone()[0]
         cur.execute('SELECT oid FROM pg_class WHERE relname IN (%s,%s) ORDER BY oid',
                     ('ledger_current_transactions', 'ledger_current_transaction_lines'))
         assert cur.fetchall() == views
