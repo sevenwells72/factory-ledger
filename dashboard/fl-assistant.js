@@ -11,7 +11,8 @@
     if (detail && typeof detail === 'object') return [detail.error_code || detail.code, detail.message, detail.action, detail.role].filter(Boolean).join(' · ') || JSON.stringify(detail);
     return String(detail || 'Request failed / Solicitud fallida');
   }
-  const exports = { validReceipt, canRecord, errorText };
+  const awaitingApproval = value => !!(value && value.held === true && value.status === 'awaiting_approval');
+  const exports = { validReceipt, canRecord, errorText, awaitingApproval };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
   const $ = id => document.getElementById(id);
@@ -66,6 +67,7 @@
     ['send', 'photo-button', 'new-chat'].forEach(id => $(id).disabled = value || !session);
     $('dictate').disabled = value || !session || !navigator.mediaDevices?.getUserMedia || !root.MediaRecorder;
     $('sign-out').disabled = value;
+    drafts.forEach(node => node.refreshRecord?.());
   }
   function userMessage(text) { if (text) $('messages').append(el('div', text, 'message user-message')); }
   function shell() {
@@ -89,7 +91,37 @@
     node.append(el('span', t('✓ RECORDED IN FACTORY LEDGER', '✓ REGISTRADO EN FACTORY LEDGER'), 'eyebrow'), el('h3', result.receipt_number, 'receipt-number'));
     node.append(el('p', result.replayed ? t('Same entry, same receipt. Your retry did not create another entry.', 'Misma entrada, mismo recibo. El reintento no creó otra entrada.') : t('FL confirmed this entry.', 'FL confirmó esta entrada.')));
     fields(node, [[t('Transaction', 'Transacción'), result.transaction_id], [t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code]]);
+    for (const shortage of result.shortages || []) {
+      const warning = el('div', undefined, 'warning'); warning.setAttribute('role', 'status');
+      warning.append(el('strong', t('Shortage recorded', 'Faltante registrado')),
+        el('p', t(`${shortage.product_name} · ${shortage.lot_code}: short ${shortage.short_lb} lb. The floor must resolve this shortage.`,
+          `${shortage.product_name} · ${shortage.lot_code}: faltan ${shortage.short_lb} lb. El piso debe resolver este faltante.`)));
+      fields(warning, [[t('Due', 'Vence'), shortage.due_at], [t('Exception', 'Excepción'), shortage.exception_id]]);
+      node.append(warning);
+    }
     details(node, result);
+  }
+  function renderRecordOutcome(node, response) {
+    if (response.kind === 'receipt' && validReceipt(response.result)) renderReceipt(node, response.result);
+    else if (response.kind === 'awaiting_approval' && awaitingApproval(response.result)) renderHeld(node, response.draft_id, response.result);
+    else throw response;
+  }
+  function renderHeld(node, draftId, result) {
+    node.replaceChildren(); node.className = 'card';
+    const warning = el('div', undefined, 'warning'); warning.setAttribute('role', 'status');
+    warning.append(el('h3', t('Waiting for owner approval', 'En espera de la aprobación del dueño')),
+      el('p', t('NOT recorded. FL is holding this correction for the owner to review.',
+        'NO registrado. FL retiene esta corrección para que el dueño la revise.')));
+    node.append(warning);
+    fields(node, [[t('Exception', 'Excepción'), result.exception_id]]);
+    const errorArea = el('div');
+    const check = button(t('Check approval', 'Consultar aprobación'), async () => {
+      if (busy) return; setBusy(true); check.disabled = true; errorArea.replaceChildren();
+      try { renderRecordOutcome(node, await api('/assistant/record', { body: { draft_id: draftId } })); }
+      catch (error) { failed(errorArea, error); }
+      finally { setBusy(false); check.disabled = false; }
+    });
+    node.append(check, errorArea); details(node, result);
   }
   function renderDraft(card, existing) {
     const node = existing || shell(), prepared = card.prepared, draft = prepared.draft;
@@ -112,23 +144,38 @@
       const title = el('label', lotLabel); row.append(title);
       if (lot.confirmed === false) {
         const controls = el('div', undefined, 'lot-controls'), method = el('select'), input = el('input');
-        [['last4', t('Last 4 characters', 'Últimos 4 caracteres')], ['full_code', t('Full lot code', 'Código de lote completo')]].forEach(([value, label]) => {
+        [['last4', t('Last 4, including hyphen', 'Últimos 4, incluido el guion')],
+          ['full_code', t('Full lot code', 'Código de lote completo')],
+          ['scan', t('Scan full lot code', 'Escanear código completo')],
+          ['pallet', t('Pallet — full lot code', 'Palé — código de lote completo')]].forEach(([value, label]) => {
           const option = el('option', label); option.value = value; method.append(option);
         });
         method.setAttribute('aria-label', t('Confirmation method', 'Método de confirmación'));
         input.type = 'text'; input.autocomplete = 'off'; input.maxLength = 200;
         input.id = 'lot-' + card.id + '-' + lot.lot_id; title.htmlFor = input.id;
         input.placeholder = t('Read the physical tag', 'Lee la etiqueta física');
-        controls.append(method, input); row.append(controls);
+        const hint = el('small', undefined, 'muted'); hint.id = input.id + '-hint';
+        input.setAttribute('aria-describedby', hint.id);
+        function updateHint() {
+          hint.replaceChildren(el('span', method.value === 'last4'
+            ? t('Type the last 4 characters from the physical tag, including the hyphen (for example, "-004").',
+              'Escribe los últimos 4 caracteres de la etiqueta física, incluido el guion (por ejemplo, "-004").')
+            : method.value === 'pallet'
+              ? t('Enter the full lot code from the pallet tag. FL checks its move to production within the last 24 hours.',
+                'Escribe el código completo de la etiqueta del palé. FL verifica su traslado a producción en las últimas 24 horas.')
+              : t('Enter or scan the full lot code from the physical tag.', 'Escribe o escanea el código completo de la etiqueta física.')));
+        }
+        method.addEventListener('change', updateHint); updateHint();
+        controls.append(method, input); row.append(controls, hint);
         confirmations.push({ lot, method, input });
       } else row.append(el('small', lot.confirmed ? t('Confirmed by FL', 'Confirmado por FL') : t('Suggested by FL', 'Sugerido por FL'), 'muted'));
       node.append(row);
     }
     for (const warning of prepared.warnings || []) {
-      const row = el('div', undefined, 'warning'), message = language === 'es' ? warning.message_es || warning.message : warning.message;
+      const row = el('div', undefined, 'warning'), message = t(warning.message || warning.code, warning.message_es || warning.message || warning.code);
       if (warning.requires_ack) {
         const label = el('label'), checkbox = el('input'); checkbox.type = 'checkbox'; label.append(checkbox, el('span', message || warning.code)); row.append(label); warningChecks.push({ warning, checkbox });
-      } else row.textContent = message || warning.code;
+      } else row.append(el('span', message));
       node.append(row);
     }
     for (const blocker of prepared.blockers || []) {
@@ -154,8 +201,7 @@
         lot_confirmations: confirmations.map(c => ({ lot_id: c.lot.lot_id, method: c.method.value, value: c.input.value.trim() })) };
       try {
         const response = await api('/assistant/record', { body: recordBody });
-        if (response.kind !== 'receipt' || !validReceipt(response.result)) throw response;
-        renderReceipt(node, response.result);
+        renderRecordOutcome(node, response);
       } catch (error) { failed(errorArea, error); errorArea.append(el('p', t('Try Record again to check the same ticket. You can also check today’s entries.', 'Pulsa Registrar otra vez para verificar el mismo ticket. También puedes consultar las entradas de hoy.'), 'muted')); }
       finally { setBusy(false); cancelButton.disabled = false; refreshRecord(); }
     }, 'primary');
@@ -167,6 +213,7 @@
     });
     function refreshRecord() { recordButton.disabled = busy || !canRecord(prepared) || warningChecks.some(w => !w.checkbox.checked) || confirmations.some(c => !c.input.value.trim()); }
     [...confirmations.map(c => c.input), ...warningChecks.map(w => w.checkbox)].forEach(input => input.addEventListener('input', refreshRecord));
+    node.refreshRecord = refreshRecord;
     refreshRecord(); actions.append(recordButton, cancelButton); node.append(errorArea, actions);
   }
   function renderCard(card) {
@@ -239,6 +286,7 @@
       let node = drafts.get(draft.id);
       if (!node) { renderDraft(draft.card); node = drafts.get(draft.id); }
       if (draft.status === 'committed' && validReceipt(draft.result)) renderReceipt(node, draft.result);
+      else if (awaitingApproval(draft.result)) renderHeld(node, draft.id, draft.result);
       if (draft.status === 'cancelled') node.replaceChildren(el('p', t('Cancelled · NOT recorded', 'Cancelado · NO registrado')));
     }
   }

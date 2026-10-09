@@ -271,6 +271,60 @@
 - **What changed:** Verified and staged all five conflict resolutions; retained A3b exception/approval hooks, A7 order dispatch, combined actor scope, migration fixture ordering, production schema plus pending 067, and both branches' historical log entries.
 - **Why:** PR #93 review fixes must build on merged A2, A5 and A3b.
 
+## 2026-10-09 10:12 — Record full fresh-database and browser validation after A3b
+- **File(s) changed:** `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`
+- **What changed:** 2272 Python / 73 JavaScript passed, zero failures/skips, plus browser checks. Staging identity/configuration and all eight prerequisite markers verified without printing secrets; no migration needed. GPT schema remains 30 operations and merged changelog history is intact.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:10 — Extend hosted acceptance to merged A3b outcomes
+- **File(s) changed:** `scripts/check_assistant_staging.py`
+- **What changed:** Five real-model actions now exercise make/pack shortages, held adjust with zero posts before owner approval, hold replay/resume/no-Cancel and final receipt replay. Synthetic found uses finished goods to avoid covering up the deliberate ingredient shortage. Verify A2 attribution and A5 evidence; deactivate both temporary actors; log only safe failure types.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:10 — Enable Record when a completed chat turn releases its busy state
+- **File(s) changed:** `dashboard/fl-assistant.js`
+- **What changed:** Browser held-correction scenario exposed that drafts without lot inputs or acknowledgement boxes remained disabled after a turn. Recompute existing Record controls whenever busy state changes, retaining all FL blockers and evidence checks.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:09 — Use the A3b rejection contract in assistant regressions
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Owner-rejection cases now supply the required declined resolution kind; approval and actual hold/shortage cases already passed.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:08 — Exercise A5 prompts and A3b outcomes in the browser
+- **File(s) changed:** `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Browser harness checks -004 evidence, empty physical-tag input, pallet full-code hint, draft and receipt shortages, held correction without Cancel/receipt, restored hold, bilingual approval message and same-ticket approved receipt.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:08 — Cover A3b assistant holds, shortages and photo-evidence custody
+- **File(s) changed:** `tests/test_fl_assistant.py`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Add actual FL make/pack shortage warning and replay tests, held adjust/found resume/no-Cancel/owner approve-or-reject tests, and model photo-evidence exclusion. Explicit holds cannot render as receipts.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:07 — Show A5 tag prompts and A3b shortage/approval outcomes
+- **File(s) changed:** `dashboard/fl-assistant.js`
+- **What changed:** Last-four prompt includes hyphen example -004; scan/full-code and pallet evidence controls explain the full physical lot code and recent production move. Draft shortage warnings switch EN/ES, receipt shortages remain visible, and held corrections show waiting for owner approval with a same-ticket status check and resume recovery.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:06 — Rebase F1 onto merged A5/A2/A3b and preserve held corrections
+- **File(s) changed:** `main.py`, `tests/schema/schema.sql`, `tests/test_named_actor_writes.py`, `assistant_tools.py`, `fl_assistant.py`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/f1-assistant.md`
+- **What changed:** Rebase onto ce7bb57 preserving both route registrations and all upstream history; schema include 068 only; renumber F1 rows 171–172 after merged rollouts. Relay and durably restore A3b 202 holds without receipts or Cancel. Exclude model-invented attachment_ref from tools/evidence so the photo gate cannot be bypassed. Production manual migration timeouts and read-only correction-catalog reachability retained.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
 ---
 
 ## 2026-10-09 09:35 — Post-A3b housekeeping: production schema re-dump (069–071 in the dump, pending \ir tails gone), FL changelog row 170, rollout section in the A3b deployment doc (branch chore/post-a3b)

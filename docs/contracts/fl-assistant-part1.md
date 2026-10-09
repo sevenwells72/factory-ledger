@@ -137,3 +137,29 @@ on all five and A5 lot confirmations on make/pack. Temporary actor
 `1000000012` is verified inactive. Health is 200 and hosted page/JS
 bytes match the tested worktree. Production was not accessed; PR #90 remains
 unmerged. Full evidence is under `review_fixes_acceptance` in the validation JSON.
+
+## Merged A3b integration — 2026-10-09
+
+Rebased onto `origin/main` at `ce7bb57` after A5, A2 and A3b. The schema
+dump includes 062–065 and 069–071; its only pending include is 068.
+F1 history rows are 171–172, after the unchanged merged rollout rows 168–170.
+
+The physical-tag prompt spells out the last four characters **including the
+hyphen**, e.g. `-004`. Full-code, scan and pallet options send the operator's
+input unchanged; pallet evidence requires the full lot code and FL verifies
+its recent move to production. The assistant never fills lot evidence itself.
+
+A3b shortage warnings appear on make/pack drafts and flagged receipts.
+A definitive HTTP 202 hold shows **Waiting for owner approval**, without a
+receipt or Cancel. Reload restores that state; Check approval retries the
+same FL ticket and shows its receipt only after FL confirms the post.
+Photos remain attachment-only in part 1. The model cannot supply
+`attachment_ref` to bypass the owner-approval gate.
+
+Fresh local PostgreSQL 17 database `fl_f1_review_full_20261009`:
+**2,272 Python / 73 JavaScript passed**, zero failures/skips. Browser checks
+passed for lot prompts, draft and receipt shortages, restored bilingual
+holds, same-ticket approval checks, editable dictation, attachments and
+390px light/dark layouts. The A2 completeness, disabled-page flag matrix,
+definitive-4xx cancellation, status-only logging and crash-lease recovery
+regressions all pass. Production was not accessed; no merge.

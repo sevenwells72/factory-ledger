@@ -15,3 +15,10 @@ test('permission refusals retain FL error code, action and role', () => {
   assert.equal(ui.errorText({ result: { detail: { error_code: 'ROLE_NOT_ALLOWED', action: 'make', role: 'office', message: 'Not allowed' } } }), 'ROLE_NOT_ALLOWED · Not allowed · make · office');
   assert.equal(ui.errorText({ detail: [{ loc: ['body', 'cases'], msg: 'Field required' }] }), 'cases: Field required');
 });
+
+test('A3b hold is an explicit pending outcome and cannot become a receipt', () => {
+  const held = { held: true, status: 'awaiting_approval', exception_id: 17 };
+  assert.equal(ui.awaitingApproval(held), true);
+  assert.equal(ui.validReceipt(held), false);
+  for (const value of [null, {}, { held: true }, { status: 'awaiting_approval' }, { held: false, status: 'awaiting_approval' }]) assert.equal(ui.awaitingApproval(value), false);
+});

@@ -550,3 +550,75 @@ def test_replaced_worker_cannot_save_or_clear_new_lease(client, chat, db_cursor,
     assert str(db_cursor.fetchone()['lease_id']) == replacement
     db_cursor.execute('SELECT count(*) AS n FROM assistant_turns WHERE session_id=%s', (chat[0],))
     assert db_cursor.fetchone()['n'] == 0
+
+
+@pytest.mark.parametrize('action', ['make', 'pack'])
+def test_a3b_shortage_warning_and_receipt_survive_assistant(client, chat, items, db_cursor, monkeypatch, action):
+    payload = action_body(action, items)
+    payload['batches' if action == 'make' else 'cases'] = 11 if action == 'make' else 22
+    calls = [resolve_product(db_cursor, payload[f]) for f in
+             ('product_id', 'source_product_id', 'target_product_id') if f in payload]
+    model(monkeypatch, *calls, ('prepare_' + action, payload))
+    card = turn(client, chat).json()['cards'][0]
+    warnings = card['prepared']['warnings']
+    assert any(w['code'] == 'WILL_CREATE_SHORTAGE' and w['message_es'] and not w['requires_ack'] for w in warnings)
+    confirmations = [{'lot_id': i['lot_id'], 'method': 'full_code', 'value': i['lot_code']}
+                     for i in card['prepared']['draft']['input_plan']]
+    response = record(client, chat, card, lot_confirmations=confirmations)
+    assert response.status_code == 200, response.text
+    result = response.json()['result']
+    assert response.json()['kind'] == 'receipt'
+    assert result['shortages'][0]['short_lb'] == 10
+    assert result['shortages'][0]['exception_id']
+    assert record(client, chat, card, lot_confirmations=confirmations).json()['result'] == result | {'replayed': True}
+    db_cursor.execute('SELECT count(*) AS n FROM shortage_flags WHERE transaction_id=%s', (result['transaction_id'],))
+    assert db_cursor.fetchone()['n'] == 1
+
+
+@pytest.mark.parametrize('action', ['adjust', 'found'])
+@pytest.mark.parametrize('decision', ['approve', 'reject'])
+def test_a3b_hold_resume_cancel_and_owner_outcome(client, chat, actors, items, db_cursor, monkeypatch, action, decision):
+    payload = action_body(action, items)
+    payload.pop('reason', None)
+    payload['reason_code'] = 'physical_count'
+    payload['delta_lb' if action == 'adjust' else 'quantity'] = -600 if action == 'adjust' else 600
+    calls = ([('resolve', {'kind': 'lot', 'query': items['ingredient']['lot_code']})] if action == 'adjust'
+             else [resolve_product(db_cursor, payload['product_id'])])
+    model(monkeypatch, *calls, ('prepare_' + action, payload))
+    card = turn(client, chat).json()['cards'][0]
+    response = record(client, chat, card)
+    assert response.status_code == 202, response.text
+    held = response.json()
+    assert held['kind'] == 'awaiting_approval'
+    assert held['result']['held'] and held['result']['status'] == 'awaiting_approval'
+    assert 'receipt_number' not in held['result']
+    assert record(client, chat, card).json() == held
+    saved = client.post('/assistant/resume', headers=chat[1], json={'session_id': chat[0]}).json()['drafts'][0]
+    assert saved['status'] == 'pending' and saved['result'] == held['result']
+    assert saved['record_started_at']
+    assert client.post('/assistant/cancel', headers=chat[1], json={'draft_id': card['id']}).status_code == 409
+    ticket_id = card['prepared']['ticket_id']
+    db_cursor.execute('SELECT count(*) AS n FROM transactions WHERE ticket_id=%s', (ticket_id,))
+    assert db_cursor.fetchone()['n'] == 0
+    decision_response = client.post(f"/exceptions/{held['result']['exception_id']}/{decision}",
+        headers=headers(actors['owner']['key']), json={'note': 'Synthetic owner review',
+            **({'resolution_kind': 'declined'} if decision == 'reject' else {})})
+    assert decision_response.status_code == 200, decision_response.text
+    final = record(client, chat, card)
+    if decision == 'approve':
+        assert final.status_code == 200 and final.json()['kind'] == 'receipt'
+        assert final.json()['result']['receipt_number'] == decision_response.json()['receipt_number']
+        assert record(client, chat, card).json() == final.json()
+    else:
+        assert final.status_code == 409 and final.json()['kind'] == 'not_recorded'
+    db_cursor.execute('SELECT count(*) AS n FROM transactions WHERE ticket_id=%s', (ticket_id,))
+    assert db_cursor.fetchone()['n'] == (1 if decision == 'approve' else 0)
+
+
+def test_model_cannot_invent_a3b_photo_evidence(client, chat, monkeypatch):
+    for tool in assistant_tools.tools([{'code': 'physical_count'}]):
+        assert 'attachment_ref' not in json.dumps(tool['parameters'])
+    model(monkeypatch, ('prepare_found', {'quantity': 600, 'attachment_ref': 'invented-photo'}))
+    response = turn(client, chat)
+    assert response.status_code == 502
+    assert response.json()['detail']['error_code'] == 'MODEL_EVIDENCE_FORBIDDEN'

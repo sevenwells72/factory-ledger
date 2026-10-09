@@ -433,6 +433,16 @@ def register_routes(app, api):
             payload['lot_confirmations'] = body.lot_confirmations
         # Always relay even after a saved result: FL re-authenticates and replays.
         status, result = await relay(app, request, 'POST', '/tickets/' + row['ticket'] + '/commit', body=payload)
+        if status == 202 and result.get('held') is True and result.get('status') == 'awaiting_approval':
+            # A3b accepted a hold, not a ledger post. Keep the attempt marker:
+            # only FL's owner approval/rejection can settle this ticket.
+            with api.get_transaction() as cur:
+                cur.execute("""UPDATE assistant_drafts SET result=%s
+                    WHERE id=%s AND status='pending' AND record_started_at=%s""",
+                    (Json(result), str(body.draft_id), attempt))
+            return JSONResponse(status_code=202, content=jsonable_encoder({
+                'kind': 'awaiting_approval', 'draft_id': str(body.draft_id),
+                'result': catalog.safe_result(result)}))
         if not receipt_ok(status, result):
             if 400 <= status < 500 and prior_attempt is None:
                 # Clear only this definitive attempt. A concurrent retry changes
