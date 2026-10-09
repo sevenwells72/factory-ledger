@@ -373,7 +373,7 @@ def test_route_auth_matrix_and_attribution(client, db_cursor, payload, actors, w
 @pytest.mark.parametrize('method,path', sorted(tickets.ACTOR_ROUTES))
 def test_every_new_route_rejects_unknown_key(client, method, path):
     path = (path.replace('{ticket}', 'wt_unknown').replace('{transaction_id}', '1').replace('{receipt_number}', 'NOPE')
-            .replace('{order_id}', '1').replace('{line_id}', '1'))
+            .replace('{order_id}', '1').replace('{line_id}', '1').replace('{expected_receipt_id}', '1'))
     response = client.request(method, path, json={}, headers=headers('unknown-key'))
     assert response.status_code == 403
 
@@ -427,6 +427,7 @@ def isolated_database(_db_connection):
             cur.execute((ROOT/'migrations/071_shortage_evidence_claims.sql').read_text())
             # Pending A7 migration 067 (same reason).
             cur.execute((ROOT/'migrations/067_order_tickets.sql').read_text())
+            cur.execute((ROOT/'migrations/072_order_ticket_review_fixes.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:
@@ -467,6 +468,7 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
                     ('ledger_current_transactions', 'ledger_current_transaction_lines'))
         views = cur.fetchall()
         cur.execute('DROP TABLE IF EXISTS transaction_lot_confirmations, lot_moves')
+        cur.execute((ROOT/'migrations/down/072_order_ticket_review_fixes_down.sql').read_text())
         cur.execute(down_067)
         cur.execute(down_061)
         cur.execute(down)
@@ -489,6 +491,7 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         assert cur.fetchone()[0]
         cur.execute(up_067)
         cur.execute(up_067)   # rerunnable
+        cur.execute((ROOT/'migrations/072_order_ticket_review_fixes.sql').read_text())
         cur.execute("SELECT count(*) FROM migration_markers WHERE name='067_order_tickets'")
         assert cur.fetchone()[0] == 1
         cur.execute("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='write_tickets_action_check'")

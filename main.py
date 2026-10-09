@@ -6176,50 +6176,46 @@ def get_expected_receipt(expected_receipt_id: int, _: bool = Depends(verify_api_
     return record
 
 
-@app.patch("/expected-receipts/{expected_receipt_id}")
-def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate, _: bool = Depends(verify_api_key)):
-    """Edit qty/date/reference/notes while open; or move status to closed /
-    cancelled (only from open). Omitted fields untouched; null clears."""
+def _update_expected_receipt_core(cur, expected_receipt_id, req):
     data = req.dict(exclude_unset=True)
     if not data:
         raise HTTPException(status_code=422, detail={"error_code": "NO_FIELDS", "message": "No fields to update"})
     field_edits = {k: v for k, v in data.items() if k != "status"}
     new_status = data.get("status")
 
-    with get_transaction() as cur:
-        cur.execute("SELECT id, status FROM expected_receipts WHERE id = %s FOR UPDATE", (expected_receipt_id,))
-        er = cur.fetchone()
-        if not er:
-            raise HTTPException(status_code=404, detail={"error_code": "EXPECTED_RECEIPT_NOT_FOUND", "message": f"Expected receipt {expected_receipt_id} not found"})
-        if er["status"] != "open":
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "error_code": "EXPECTED_RECEIPT_NOT_OPEN",
-                    "message": f"Expected receipt {expected_receipt_id} is {er['status']}; only open records can be edited or closed/cancelled.",
-                    "status": er["status"],
-                },
-            )
-        sets, params = [], []
-        if "expected_qty" in field_edits:
-            q = field_edits["expected_qty"]
-            if q is None or q <= 0:
-                raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be > 0 (lb)"})
-            sets.append("expected_qty = %s"); params.append(q)
-        if "expected_date" in field_edits:
-            sets.append("expected_date = %s"); params.append(field_edits["expected_date"])
-        if "reference_number" in field_edits:
-            v = (field_edits["reference_number"] or "").strip() or None
-            sets.append("reference_number = %s"); params.append(v)
-        if "notes" in field_edits:
-            v = (field_edits["notes"] or "").strip() or None
-            sets.append("notes = %s"); params.append(v)
-        if new_status:
-            sets.append("status = %s"); params.append(new_status)
-        sets.append("updated_at = clock_timestamp()")
-        params.append(expected_receipt_id)
-        cur.execute(f"UPDATE expected_receipts SET {', '.join(sets)} WHERE id = %s", params)
-        record = fetch_expected_receipt(cur, expected_receipt_id)
+    cur.execute("SELECT id, status FROM expected_receipts WHERE id = %s FOR UPDATE", (expected_receipt_id,))
+    er = cur.fetchone()
+    if not er:
+        raise HTTPException(status_code=404, detail={"error_code": "EXPECTED_RECEIPT_NOT_FOUND", "message": f"Expected receipt {expected_receipt_id} not found"})
+    if er["status"] != "open":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error_code": "EXPECTED_RECEIPT_NOT_OPEN",
+                "message": f"Expected receipt {expected_receipt_id} is {er['status']}; only open records can be edited or closed/cancelled.",
+                "status": er["status"],
+            },
+        )
+    sets, params = [], []
+    if "expected_qty" in field_edits:
+        q = field_edits["expected_qty"]
+        if q is None or q <= 0:
+            raise HTTPException(status_code=422, detail={"error_code": "INVALID_QUANTITY", "message": "expected_qty must be > 0 (lb)"})
+        sets.append("expected_qty = %s"); params.append(q)
+    if "expected_date" in field_edits:
+        sets.append("expected_date = %s"); params.append(field_edits["expected_date"])
+    if "reference_number" in field_edits:
+        v = (field_edits["reference_number"] or "").strip() or None
+        sets.append("reference_number = %s"); params.append(v)
+    if "notes" in field_edits:
+        v = (field_edits["notes"] or "").strip() or None
+        sets.append("notes = %s"); params.append(v)
+    if new_status:
+        sets.append("status = %s"); params.append(new_status)
+    sets.append("updated_at = clock_timestamp()")
+    params.append(expected_receipt_id)
+    cur.execute(f"UPDATE expected_receipts SET {', '.join(sets)} WHERE id = %s", params)
+    record = fetch_expected_receipt(cur, expected_receipt_id)
 
     changed = sorted(field_edits.keys()) + (["status"] if new_status else [])
     return {
@@ -6228,6 +6224,13 @@ def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate
         "changed_fields": changed,
         "message": f"Expected receipt {expected_receipt_id} " + (f"{new_status}" if new_status else "updated"),
     }
+
+
+@app.patch("/expected-receipts/{expected_receipt_id}")
+def update_expected_receipt(expected_receipt_id: int, req: ExpectedReceiptUpdate, _: bool = Depends(verify_api_key)):
+    """Edit an open expected receipt; omitted fields untouched, null clears."""
+    with get_transaction() as cur:
+        return _update_expected_receipt_core(cur, expected_receipt_id, req)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -7278,11 +7281,7 @@ def match_expected_receipt_extraction(req: ExpectedReceiptMatchRequest, _: bool 
         return match_extraction(cur, req.extraction.dict())
 
 
-@app.post("/expected-receipts/extract/approve", status_code=201)
-def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Request, _: bool = Depends(verify_api_key)):
-    """Step 3: create ONE expected receipt per reviewed line — atomically, via
-    the same _create_expected_receipt_core() the manual endpoint uses — and
-    learn supplier_product_aliases (latest-wins) for lines with save_alias."""
+def _approve_extracted_receipts_core(cur, req, request):
     if not req.lines:
         raise HTTPException(status_code=422, detail={"error_code": "NO_LINES", "message": "At least one line is required"})
     # Audit fix 11: NaN/±inf pass pydantic's float type and `<= 0` alike —
@@ -7315,66 +7314,66 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
                 )
 
     created_by = caller_source_tag(request, req.created_by)
-    with get_transaction() as cur:
-        cur.execute("SELECT id, status, storage_path FROM purchase_documents WHERE id = %s FOR UPDATE", (req.document_id,))
-        doc = cur.fetchone()
-        if not doc:
-            raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
-        if doc["status"] == "approved":
-            raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
-        if doc["status"] != "extracted":
-            # Audit fix 12: only a successfully extracted document is
-            # reviewable — 'uploaded'/'upload_failed'/'extraction_failed'
-            # rows have nothing a human could have reviewed.
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "DOCUMENT_NOT_EXTRACTED",
-                        "message": f"Purchase document {req.document_id} has status '{doc['status']}' — approval requires a successful extraction"},
-            )
-
-        cur.execute("SELECT id, name, active FROM suppliers WHERE id = %s", (req.supplier_id,))
-        supplier = cur.fetchone()
-        if not supplier:
-            raise HTTPException(status_code=404, detail={"error_code": "SUPPLIER_NOT_FOUND", "message": f"Supplier id {req.supplier_id} not found"})
-        if not supplier["active"]:
-            raise HTTPException(status_code=422, detail={"error_code": "SUPPLIER_INACTIVE", "message": f"Supplier '{supplier['name']}' is inactive."})
-
-        # Audit fix 10: serialize on the (supplier, normalized reference) pair
-        # BEFORE the duplicate check — the per-document FOR UPDATE above can't
-        # see a concurrent approval of a different document with the same ref.
-        _lock_supplier_reference(cur, req.supplier_id, req.reference_number)
-        duplicates = _dedupe_existing_receipts(cur, req.supplier_id, req.reference_number)
-        if duplicates and not req.force:
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "DUPLICATE_REFERENCE",
-                        "message": f"Supplier '{supplier['name']}' already has expected receipt(s) with reference '{req.reference_number}'. Pass force=true to create anyway.",
-                        "existing": duplicates},
-            )
-
-        created, aliases_saved = [], 0
-        for line in req.lines:
-            cur.execute("SELECT id FROM products WHERE id = %s", (line.product_id,))
-            if not cur.fetchone():
-                raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {line.product_id} not found"})
-            note = (f"PO {req.reference_number}: " if req.reference_number else "PO: ") + line.vendor_description
-            if line.quantity is not None:
-                note += f" — {line.quantity:g} {line.unit or 'unit(s)'}"
-            record = _create_expected_receipt_core(
-                cur, line.product_id, req.supplier_id, line.expected_qty_lb,
-                line.expected_date or req.expected_date, req.reference_number,
-                note, created_by, source_document_id=req.document_id,
-            )
-            created.append(record)
-            if line.save_alias:
-                upsert_supplier_alias(cur, req.supplier_id, line.vendor_description,
-                                      line.product_id, line.lb_per_unit, line.unit, created_by)
-                aliases_saved += 1
-
-        cur.execute(
-            "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
-            (req.document_id,),
+    cur.execute("SELECT id, status, storage_path FROM purchase_documents WHERE id = %s FOR UPDATE", (req.document_id,))
+    doc = cur.fetchone()
+    if not doc:
+        raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
+    if doc["status"] == "approved":
+        raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
+    if doc["status"] != "extracted":
+        # Audit fix 12: only a successfully extracted document is
+        # reviewable — 'uploaded'/'upload_failed'/'extraction_failed'
+        # rows have nothing a human could have reviewed.
+        raise HTTPException(
+            status_code=409,
+            detail={"error_code": "DOCUMENT_NOT_EXTRACTED",
+                    "message": f"Purchase document {req.document_id} has status '{doc['status']}' — approval requires a successful extraction"},
         )
+
+    cur.execute("SELECT id, name, active FROM suppliers WHERE id = %s", (req.supplier_id,))
+    supplier = cur.fetchone()
+    if not supplier:
+        raise HTTPException(status_code=404, detail={"error_code": "SUPPLIER_NOT_FOUND", "message": f"Supplier id {req.supplier_id} not found"})
+    if not supplier["active"]:
+        raise HTTPException(status_code=422, detail={"error_code": "SUPPLIER_INACTIVE", "message": f"Supplier '{supplier['name']}' is inactive."})
+
+    # Audit fix 10: serialize on the (supplier, normalized reference) pair
+    # BEFORE the duplicate check — the per-document FOR UPDATE above can't
+    # see a concurrent approval of a different document with the same ref.
+    _lock_supplier_reference(cur, req.supplier_id, req.reference_number)
+    duplicates = _dedupe_existing_receipts(cur, req.supplier_id, req.reference_number)
+    if duplicates and not req.force:
+        raise HTTPException(
+            status_code=409,
+            detail={"error_code": "DUPLICATE_REFERENCE",
+                    "message": f"Supplier '{supplier['name']}' already has expected receipt(s) with reference '{req.reference_number}'. Pass force=true to create anyway.",
+                    "existing": duplicates},
+        )
+
+    created, aliases_saved = [], 0
+    for line in req.lines:
+        cur.execute("SELECT id FROM products WHERE id = %s", (line.product_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {line.product_id} not found"})
+        note = (f"PO {req.reference_number}: " if req.reference_number else "PO: ") + line.vendor_description
+        if line.quantity is not None:
+            note += f" — {line.quantity:g} {line.unit or 'unit(s)'}"
+        record = _create_expected_receipt_core(
+            cur, line.product_id, req.supplier_id, line.expected_qty_lb,
+            line.expected_date or req.expected_date, req.reference_number,
+            note, created_by, source_document_id=req.document_id,
+        )
+        created.append(record)
+        if line.save_alias:
+            upsert_supplier_alias(cur, req.supplier_id, line.vendor_description,
+                                  line.product_id, line.lb_per_unit, line.unit, created_by)
+            aliases_saved += 1
+
+    cur.execute(
+        "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
+        (req.document_id,),
+    )
+
 
     logger.info(f"Intake approve: document {req.document_id} → {len(created)} expected receipt(s), {aliases_saved} alias(es)")
     return {
@@ -7384,6 +7383,13 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
         "duplicate_overridden": bool(duplicates and req.force),
         "message": f"Created {len(created)} expected receipt(s) from document {req.document_id}",
     }
+
+
+@app.post("/expected-receipts/extract/approve", status_code=201)
+def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Request, _: bool = Depends(verify_api_key)):
+    """Atomically approve every reviewed line and learn its supplier alias."""
+    with get_transaction() as cur:
+        return _approve_extracted_receipts_core(cur, req, request)
 
 
 @app.get("/purchase-documents/{document_id}/url")
@@ -11629,7 +11635,7 @@ def _check_order_po(cur, customer_id, customer_po, allow_duplicate=False, order_
 
 def _lock_order_reference(cur, customer_id, reference):
     cur.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))',
-                (f'order-create-reference:{customer_id}:{reference}',))
+                (f'order-create-reference:{reference}',))
 
 
 def _lock_order_customer_reference(cur, customer_name, reference):
@@ -11641,7 +11647,7 @@ def _lock_order_customer_reference(cur, customer_name, reference):
 def _order_reference_conflict():
     raise HTTPException(409, detail={
         'error_code': 'EXTERNAL_ORDER_REFERENCE_CONFLICT',
-        'message': 'This customer already has an order with this external_order_reference and different request details. Use the original request to retry or choose a new reference.',
+        'message': 'An order already has this external_order_reference and different request details. Use the original request to retry or choose a new reference.',
     })
 
 
@@ -11895,16 +11901,16 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
                     _lock_order_reference(cur, customer_id, reference)
                     request_hash = _order_request_hash(req, customer_id)
                     cur.execute('''SELECT request_hash, response FROM sales_order_create_receipts
-                                   WHERE customer_id=%s AND external_order_reference=%s''',
-                                (customer_id, reference))
+                                   WHERE external_order_reference=%s''',
+                                (reference,))
                     receipt = cur.fetchone()
                     if receipt:
                         if receipt['request_hash'] != request_hash:
                             _order_reference_conflict()
                         return receipt['response']
                     cur.execute('''SELECT id FROM sales_orders
-                                   WHERE customer_id=%s AND external_order_reference=%s''',
-                                (customer_id, reference))
+                                   WHERE external_order_reference=%s''',
+                                (reference,))
                     if cur.fetchone():
                         _order_reference_conflict()
 
@@ -11973,7 +11979,8 @@ def create_sales_order(req: OrderCreate, _: bool = Depends(verify_api_key), requ
         raise
     except psycopg2.errors.UniqueViolation as e:
         if e.diag.constraint_name in ('sales_orders_customer_external_reference_uniq',
-                                      'sales_order_create_receipts_pkey'):
+                                      'sales_order_create_receipts_pkey',
+                                      'sales_orders_external_reference_uniq', 'sales_order_receipts_reference_uniq'):
             _order_reference_conflict()
         raise
     except Exception as e:
@@ -15163,10 +15170,10 @@ def _update_order_header_core(cur, request, order_id: int, req: "OrderHeaderUpda
         if 'customer_id' in updates and reference is not None:
             _lock_order_reference(cur, customer_id, reference)
             cur.execute('''SELECT order_id AS id FROM sales_order_create_receipts
-                           WHERE customer_id=%s AND external_order_reference=%s
+                           WHERE external_order_reference=%s
                            UNION ALL SELECT id FROM sales_orders
-                           WHERE customer_id=%s AND external_order_reference=%s''',
-                        (customer_id, reference, customer_id, reference))
+                           WHERE external_order_reference=%s''',
+                        (reference, reference))
             if any(row['id'] != order_id for row in cur.fetchall()):
                 _order_reference_conflict()
         _check_order_po(cur, customer_id, updates.get('customer_po', order['customer_po']),

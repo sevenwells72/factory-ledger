@@ -28,8 +28,16 @@ PositiveId = conint(strict=True, gt=0)
 ORDER_ACTIONS = ('create_order', 'add_order_lines', 'update_order_line', 'cancel_order_line',
                  'update_order_header', 'update_order_status', 'mark_order_ready',
                  'cancel_order', 'close_order', 'reopen_order')
+EXPECTED_RECEIPT_ACTIONS = ('create_expected_receipt', 'update_expected_receipt', 'cancel_expected_receipt')
+EXPECTED_RECEIPT_PREPARE_ROUTES = frozenset({
+    ('POST', '/expected-receipts/prepare'),
+    ('POST', '/expected-receipts/{expected_receipt_id}/update/prepare'),
+    ('POST', '/expected-receipts/{expected_receipt_id}/cancel/prepare'),
+    ('POST', '/expected-receipts/extract/approve/prepare'),
+})
 PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT',
-            **{action: 'ORD' for action in ORDER_ACTIONS}}
+            **{action: 'ORD' for action in ORDER_ACTIONS},
+            **{action: 'ER' for action in EXPECTED_RECEIPT_ACTIONS}}
 ORDER_PREPARE_ROUTES = frozenset({
     ('POST', '/sales/orders/prepare'),
     ('POST', '/sales/orders/{order_id}/lines/prepare'),
@@ -56,7 +64,7 @@ ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
     ('POST', '/pack/prepare'),
     ('POST', '/adjust/prepare'),
     ('POST', '/inventory/found/prepare'),
-}) | ORDER_PREPARE_ROUTES   # A7: actor + master keys only; the dashboard key gets nothing new
+}) | ORDER_PREPARE_ROUTES | EXPECTED_RECEIPT_PREPARE_ROUTES   # A7: actor + master keys only; the dashboard key gets nothing new
 
 
 def fail(http_status, code, message, **extra):
@@ -384,8 +392,10 @@ def receipt_detail(api, cur, number):
     late = happened.astimezone(api.PLANT_TIMEZONE).date() != ticket['committed_at'].astimezone(api.PLANT_TIMEZONE).date()
     import order_tickets   # A7 hook: the order an order receipt created or edited (None otherwise)
     order = order_tickets.receipt_order(cur, ticket)
+    import expected_receipt_tickets
+    expected = expected_receipt_tickets.receipt_records(api, cur, ticket)
     return {'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
-            'order': order,
+            'order': order, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
             'entered_at': ticket['committed_at'], 'late_entry': late,
@@ -684,7 +694,7 @@ def register_routes(app, api):
                 fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.', missing=missing)
             # A7 hook: order tickets post through their own module (metadata
             # writes, no ledger lines); every lifecycle check above is shared.
-            if row['action'] in ORDER_ACTIONS:
+            if row['action'] in ORDER_ACTIONS + EXPECTED_RECEIPT_ACTIONS:
                 import order_tickets
                 return order_tickets.commit(api, cur, row, body, actor, request, entry_timing)
             if row['action'] not in PREFIXES:

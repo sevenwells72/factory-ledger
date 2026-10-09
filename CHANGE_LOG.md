@@ -1,5 +1,68 @@
 # Change Log
 
+## 2026-10-09 10:17 — Correct A7 review-regression case tally
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Collection confirms 29 cases in tests/test_a7_review_fixes.py, correcting the prior entry's 31-case typo. The verified full-suite totals remain 2,315 Python and 69 Node, all passed.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
+## 2026-10-09 10:16 — Validate all four A7 review fixes on a rebuilt local database
+- **File(s) changed:** `docs/deployments/a7-order-tickets.md`, `tests/test_a7_review_fixes.py`, `CHANGE_LOG.md`
+- **What changed:** Full suite on a freshly rebuilt factory_ledger_test_a7_review from the rebased schema plus 067/072: 2,315 Python passed, zero failures/skips (36.67s); Node 69 passed, zero failures/skips. The initial 13 regressions all failed on the rebased pre-fix code and pass after fixes; 31 review-regression cases now cover replay, live races, mixed quantities and expected-receipt tickets. git diff --check clean. No production/staging writes, no merge; migration 072 applied only to disposable local databases.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
+## 2026-10-09 10:15 — Document revised A7 scope and migration 072 deployment contract
+- **File(s) changed:** `docs/deployments/a7-order-tickets.md`
+- **What changed:** Replace superseded out-of-scope expected-receipt notes with all fourteen prepare routes, immutable reference replay, number allocation, A1/A2 guarantees, dashboard cutover backend mapping, legacy PO-sync compatibility and 067→072 deploy / 072→067 rollback order. Preserve the original staging evidence as explicitly historical; revised code and 072 were tested locally only. Node suite: 69 passed.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
+## 2026-10-09 10:14 — Make 072 preflight compatible with schema-only test loading
+- **File(s) changed:** `migrations/072_order_ticket_review_fixes.sql`
+- **What changed:** Keep the reference-consistency preflight lock inside its DO transaction; deployment still requires the documented explicit outer transaction, while psql schema loading can include 072 safely. Focused review and legacy-reference suite: 67 passed.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
+## 2026-10-09 10:13 — Complete concurrent ticket and global-reference compatibility checks
+- **File(s) changed:** `tests/test_a7_review_fixes.py`, `tests/test_order_create_contract.py`, `order_tickets.py`, `main.py`, `expected_receipt_tickets.py`, `migrations/072_order_ticket_review_fixes.sql`
+- **What changed:** Focused run found two older tests that intentionally allowed customer-scoped reference reuse; update them to the required global-reference contract, retaining immutable direct replay after moves. Correct expiry test to existing A1 409 behavior. Cover concurrent prepares/commits and ER double-commit; exclude replay aliases from duplicate warning receipts, preserve unused-photo refusal, and make migration 072 refuse ambiguous historical references without discarding data.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
+## 2026-10-09 10:11 — Expand A7 lifecycle, intake and migration regression coverage
+- **File(s) changed:** `tests/test_a7_review_fixes.py`, `tests/test_order_tickets.py`, `tests/test_roles_a2.py`, `tests/test_named_actor_writes.py`
+- **What changed:** The initial 13 review regressions now pass. Add immutable replay across catalog changes and independent tickets, expected-receipt strict input/lifecycle/stale-state/duplicate/intake tests, legacy sync API compatibility, A10 allowlist removal compatibility, migration rerun/down/up and SO numbers past 999. Update existing route/matrix contracts and original-reference retry expectations.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
+## 2026-10-09 10:10 — Add expected-receipt ticket adapters and migration 072
+- **File(s) changed:** `expected_receipt_tickets.py`, `migrations/072_order_ticket_review_fixes.sql`, `migrations/down/072_order_ticket_review_fixes_down.sql`, `tests/schema/schema.sql`, `tests/test_write_tickets.py`
+- **What changed:** Implement ID-only manual create, update/close, cancel and atomic extracted-document approval tickets using the existing cores and A1 lifecycle. Migration 072 adds atomic daily SO counters, global external-reference indexes and ER ticket provenance/actions; provide an evidence-preserving down script and test-schema/isolated-database wiring. QBO/direct legacy paths retain their core signatures.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
+## 2026-10-09 10:08 — Implement durable order reference replay and shared expected-receipt ticket hooks
+- **File(s) changed:** `main.py`, `order_tickets.py`, `write_tickets.py`, `permissions.py`
+- **What changed:** Key reference locks and lookups on the reference alone; replay immutable create-ticket payload/response before mutable catalog checks; compare mixed duplicate lines without comparing null to numbers. Extract expected-receipt edit/intake cores for reuse and preserve A3b lifecycle hooks while routing expected-receipt tickets with office/owner permissions.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
+## 2026-10-09 10:07 — Add failing regressions for all four A7 review requests
+- **File(s) changed:** `tests/test_a7_review_fixes.py`
+- **What changed:** Exercise original-reference replay after reassignment, both mixed-line duplicate paths, a synchronized live prepare/commit race, expected-receipt create/edit/cancel/intake tickets, replay and office/owner permission checks. Run these on the rebased pre-fix code first.
+- **Why:** Required fixes from the PR #93 A7 review.
+
+---
+
 ## 2026-10-09 10:04 — Rebase A7 onto ce7bb57 preserving A3b and A7 ticket hooks
 - **File(s) changed:** `CHANGE_LOG.md`, `write_tickets.py`, `tests/test_named_actor_writes.py`, `tests/test_write_tickets.py`, `tests/schema/schema.sql`
 - **What changed:** Verified and staged all five conflict resolutions; retained A3b exception/approval hooks, A7 order dispatch, combined actor scope, migration fixture ordering, production schema plus pending 067, and both branches' historical log entries.

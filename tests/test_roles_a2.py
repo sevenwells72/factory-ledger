@@ -52,6 +52,8 @@ EXPECTED = {
     'close_order_shipped_not_recorded': 'owner legacy_ledger',
     'reopen_order':                     'owner legacy_ledger',
     'create_expected_receipt':          'owner office legacy_ledger',
+    'update_expected_receipt':          'owner office legacy_ledger',
+    'cancel_expected_receipt':          'owner office legacy_ledger',
     'manage_customers':                 'owner office legacy_ledger',
     'manage_aliases':                   'owner office',
     'list_exceptions':                  'owner floor office',
