@@ -735,8 +735,11 @@ def test_migration_065_up_down_up(isolated_database):
     down_069 = (ROOT / 'migrations/down/069_exceptions_enforcement_down.sql').read_text()
     up_070 = (ROOT / 'migrations/070_pre_make_adjust.sql').read_text()
     down_070 = (ROOT / 'migrations/down/070_pre_make_adjust_down.sql').read_text()
+    up_071 = (ROOT / 'migrations/071_shortage_evidence_claims.sql').read_text()
+    down_071 = (ROOT / 'migrations/down/071_shortage_evidence_claims_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
+        cur.execute(down_071)
         cur.execute(down_070)
         cur.execute(down_069)
         assert columns(cur) == ['ledger_corrections', 'transactions']
@@ -758,4 +761,5 @@ def test_migration_065_up_down_up(isolated_database):
         assert cur.fetchone()[0] == 'actors'
         cur.execute(up_069)
         cur.execute(up_070)
+        cur.execute(up_071)
         assert 'ledger_current_transactions' in columns(cur)

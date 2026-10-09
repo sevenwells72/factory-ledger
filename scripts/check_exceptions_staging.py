@@ -4,7 +4,7 @@
 Same shape as scripts/check_lot_confirmation_staging.py and
 check_order_tickets_staging.py: reads only the protected staging URI; no
 production configuration or API keys; TestClient without a lifespan context, so
-no startup migrations or sweeps run. `--apply-migration` applies 069 and 070 in one
+no startup migrations or sweeps run. `--apply-migration` applies 069, 070 and 071 in one
 guarded transaction each (the script refuses to run the examples without them);
 `--migrations-only` stops after that and reports the markers.
 
@@ -38,7 +38,7 @@ sys.path.insert(0, str(ROOT))
 from staging_safety import assert_staging_database, PRODUCTION_DATABASE_HOST
 from scripts.seed_staging import secret_file
 
-MIGRATIONS = ('069_exceptions_enforcement', '070_pre_make_adjust')
+MIGRATIONS = ('069_exceptions_enforcement', '070_pre_make_adjust', '071_shortage_evidence_claims')
 
 
 def check(apply_migration=False, migrations_only=False):
@@ -65,7 +65,7 @@ def check(apply_migration=False, migrations_only=False):
             with connection() as conn, conn.cursor() as cur:
                 cur.execute("SELECT 1 FROM migration_markers WHERE name IN ('061_exceptions_tables','065_entered_by')")
                 if len(cur.fetchall()) != 2:
-                    raise RuntimeError('069/070 need 061 and 065 on staging first')
+                    raise RuntimeError('069/070/071 need 061 and 065 on staging first')
                 cur.execute((ROOT / 'migrations' / f'{migration}.sql').read_text())
     with connection() as conn, conn.cursor() as cur:
         cur.execute("SELECT name, applied_at FROM migration_markers WHERE name = ANY(%s) ORDER BY name", (list(MIGRATIONS),))

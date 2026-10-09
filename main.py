@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Request, Response, UploadFile, File
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool, Field
@@ -288,6 +290,26 @@ async def _exception_receipt_response(request: Request, exc: Exception) -> JSONR
         status_code=500,
         content={"success": False, "error_code": "INTERNAL_SERVER_ERROR", "error": str(exc)},
     )
+
+
+def _json_finite(value):
+    """Replace non-finite floats (NaN, ±inf) with their names so a 422 can be rendered."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, dict):
+        return {k: _json_finite(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_finite(v) for v in value]
+    return value
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_handler(request: Request, exc: RequestValidationError):
+    # Same body as FastAPI's default ({"detail": errors}), but a body that carried
+    # NaN / Infinity (json.loads accepts them) must still get its 422: the default
+    # handler echoes the offending `input` and the strict encoder then raises → 500
+    # (A3b P2, `counted_lb`). Non-finite floats are rendered as their names.
+    return DecimalSafeJSONResponse(status_code=422, content={"detail": _json_finite(jsonable_encoder(exc.errors()))})
 
 
 @app.exception_handler(psycopg2.Error)

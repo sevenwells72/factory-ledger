@@ -6095,3 +6095,4 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 SET search_path TO public;
 \ir ../../migrations/069_exceptions_enforcement.sql
 \ir ../../migrations/070_pre_make_adjust.sql
+\ir ../../migrations/071_shortage_evidence_claims.sql

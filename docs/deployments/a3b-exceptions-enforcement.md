@@ -153,6 +153,16 @@ Anywhere else the script refuses non-local hosts.
 11. **(Codex round 1) A shared-key preparer never enters a hold**: over 500 lb without a photo the
     master key's commit gets 422 `PHOTO_REQUIRED` (`held: false`) and the ticket stays `prepared`
     until it expires or is committed again with `attachment_ref`. The owner approves people, not keys.
+12. **(Codex re-check) Receipt evidence is consumed through a claims table**, `shortage_evidence_claims`
+    (migration **071**): each `missing_movement` resolution records the pounds of the evidence receipt it
+    used on that lot, computed under `FOR UPDATE` on the receipt's `write_tickets` row, so a 20 lb
+    receipt can never close 26 lb of shortages. A receipt that covers less than what is still open is
+    claimed in part and the shortage **stays open** for the remainder (200 with `status: open`,
+    `evidence.remaining_lb`, `detail.last_claim`); a spent receipt is 409 `RECEIPT_NOT_MATCHING`.
+13. **(Codex re-check) `counted_lb` must be finite and ≤ 100,000 lb** (pydantic `allow_inf_nan=False`,
+    `le`), and `main.py` gains a `RequestValidationError` handler that renders the default 422 body with
+    non-finite floats as their names — FastAPI's default handler echoed the NaN `input` and the strict
+    encoder turned the 422 into a 500. App-wide, same body shape as before.
 
 ## Coordination with the open PRs
 
@@ -216,6 +226,19 @@ floor cannot acknowledge); migration 070 rerun / down (refuses tagged rows until
 Results (2026-10-09 ET): fresh local database `factory_ledger_test_a3b2` from `tests/schema/schema.sql`
 (+ pending 069 and 070 tails + reference seed): **2,207 Python tests passed, 0 failed**; **Node 69/69**.
 
+**Codex re-check (2026-10-09, P1/P2)** added 10 tests and rewrote the receipt test for partial coverage,
+run first against the pre-fix snapshot (41dafcf): the receipt-consumption tests, the live two-resolutions
+race, the four non-finite `counted_lb` cases and the 071 migration test all fail there (NaN/±inf were a
+500); after the fixes all pass. Cases: one 20 lb receipt closes a 6 lb shortage, covers 14 of a 20 lb
+shortage (still open, remaining 6), is then spent (409, `receipt_used_lb` 20), a further 6 lb receipt
+closes the remainder, claims total 26 = 20 + 6; two concurrent resolutions against the same 20 lb
+receipt claim exactly 20 and leave exactly one shortage open; `counted_lb` NaN / Infinity / −Infinity /
+1e400 / 1e9 / −1 / "two" → 422, nothing posted; migration 071 rerun / down (refuses claims without the
+export GUC) / up.
+
+Results (2026-10-09 ET, head after re-check): fresh local database from `tests/schema/schema.sql`
+(+ pending 069, 070, 071 tails + reference seed): **2,217 Python tests passed, 0 failed**; **Node 69/69**.
+
 ## Staging acceptance
 
 `scripts/check_exceptions_staging.py --apply-migration --output docs/deployments/a3b-staging-receipt.json`
@@ -231,6 +254,10 @@ on 2026-10-09 12:53:34Z (069 marker from 01:47:54Z confirmed). No examples were 
 rows were written beyond the CHECK rebuild, the index and the marker. The acceptance script's
 shortage resolution now sends `counted_lb: 0` (the counted correction posts atomically), so a future
 full run records `shortage_resolution` in the receipt. **Rollback order is now 070 → 069 → 065/061.**
+
+**Migration 071 on staging (Codex re-check):** same command applied `071_shortage_evidence_claims` on
+2026-10-09 13:23:29Z (evidence `docs/deployments/a3b-staging-071.json`; 069/070 markers confirmed).
+New table only, nothing else touched. **Rollback order is now 071 → 070 → 069 → 065/061.**
 
 ## Codex review round 1 (2026-10-09) — what changed
 
@@ -258,3 +285,15 @@ calls and the `record_pre_make_adjusts` call in `ticket_actions.post`.
    `record_pre_make_adjusts()` + migration 070 (§5 R3); `RESOLUTION_KINDS['PRE_MAKE_ADJUST'] =
    ('acknowledged',)`, owner kind.
 6. **FOLLOWUPS P1.13** marked pilot-blocking (A6 must validate `attachment_ref` ownership/existence).
+
+## Codex re-check (2026-10-09) — P1 / P2
+
+- **P1 receipt evidence is not reusable** — `shortage_evidence_claims` (071) + `shortage_evidence()`:
+  lock the receipt's ticket `FOR UPDATE`, `available = added on this lot − already claimed on this lot`,
+  `remaining = short_lb − already claimed for this shortage`, claim `min(available, remaining)`; closes
+  only when the remainder is 0, otherwise the exception and flag stay open (`closes=False`). Spent
+  receipt → 409 `RECEIPT_NOT_MATCHING` with `receipt_added_lb` / `receipt_used_lb` / `remaining_lb`.
+  `GET /exceptions/{id}` shows `evidence: {claimed_lb, remaining_lb, claims[]}` on shortage kinds.
+- **P2 `counted_lb` finite** — `Field(ge=0, le=MAX_COUNTED_LB, allow_inf_nan=False)` and the
+  `RequestValidationError` handler in `main.py` (non-finite `input` rendered as text) so the answer is
+  422, never 500.

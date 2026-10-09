@@ -421,6 +421,7 @@ def isolated_database(_db_connection):
             cur.execute(reference_seed_sql())
             cur.execute((ROOT/'migrations/069_exceptions_enforcement.sql').read_text())
             cur.execute((ROOT/'migrations/070_pre_make_adjust.sql').read_text())
+            cur.execute((ROOT/'migrations/071_shortage_evidence_claims.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:
@@ -446,8 +447,11 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
     down_069 = (ROOT/'migrations/down/069_exceptions_enforcement_down.sql').read_text()
     up_070 = (ROOT/'migrations/070_pre_make_adjust.sql').read_text()
     down_070 = (ROOT/'migrations/down/070_pre_make_adjust_down.sql').read_text()
+    up_071 = (ROOT/'migrations/071_shortage_evidence_claims.sql').read_text()
+    down_071 = (ROOT/'migrations/down/071_shortage_evidence_claims_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
+        cur.execute(down_071)
         cur.execute(down_070)
         cur.execute(down_069)
         cur.execute('SELECT oid FROM pg_class WHERE relname IN (%s,%s) ORDER BY oid',
@@ -470,6 +474,7 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         cur.execute(up_062)
         cur.execute(up_069)
         cur.execute(up_070)
+        cur.execute(up_071)
         cur.execute("SELECT to_regclass('public.lot_moves') IS NOT NULL")
         assert cur.fetchone()[0]
         cur.execute('SELECT oid FROM pg_class WHERE relname IN (%s,%s) ORDER BY oid',

@@ -835,15 +835,21 @@ def test_counted_resolution_over_500_lb_needs_a_photo(client, db_cursor, items, 
     assert main.lot_on_hand(db_cursor, lot_id) == 600.0
 
 
-def receive_onto(client_, db_cursor, items_, key, cases, case_size_lb):
+def ensure_supplier(cur, items_):
+    """One supplier per fixture lot, as A5 requires for repeat receives onto the same lot."""
+    cur.execute('SELECT id FROM suppliers WHERE name=%s', ('A3b supplier ' + items_['ingredient']['lot_code'],))
+    supplier = cur.fetchone()
+    if not supplier:
+        cur.execute('INSERT INTO suppliers(name) VALUES (%s) RETURNING id', ('A3b supplier ' + items_['ingredient']['lot_code'],))
+        supplier = cur.fetchone()
+    return supplier['id']
+
+
+def receive_onto(client_, db_cursor, items_, key, cases, case_size_lb, supplier_id=None):
     """A receive ticket onto the fixture ingredient lot (the movement that was never entered);
     one supplier and one supplier lot code per lot, as A5 requires."""
-    db_cursor.execute('SELECT id FROM suppliers WHERE name=%s', ('A3b supplier ' + items_['ingredient']['lot_code'],))
-    supplier = db_cursor.fetchone()
-    if not supplier:
-        db_cursor.execute('INSERT INTO suppliers(name) VALUES (%s) RETURNING id', ('A3b supplier ' + items_['ingredient']['lot_code'],))
-        supplier = db_cursor.fetchone()
-    payload = {'product_id': items_['ingredient']['id'], 'supplier_id': supplier['id'], 'cases': cases,
+    supplier_id = supplier_id or ensure_supplier(db_cursor, items_)
+    payload = {'product_id': items_['ingredient']['id'], 'supplier_id': supplier_id, 'cases': cases,
                'case_size_lb': case_size_lb, 'bol_reference': 'A3B-' + uuid4().hex[:8], 'lot_code': items_['ingredient']['lot_code'],
                'supplier_lot_code': 'SUP-' + items_['ingredient']['lot_code'], 'occurred_at': main.get_plant_now().isoformat()}
     prepared = client_.post('/receive/prepare', json=payload, headers=headers(key))
@@ -863,24 +869,30 @@ def test_missing_movement_needs_the_matching_receipt(client, db_cursor, items, a
     refused = resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number=result['receipt_number'], note='x')
     error(refused, 409, 'RECEIPT_NOT_MATCHING')
     assert 'same lot' in refused.json()['detail']['problems'][0]
-    # A receive onto the lot that is too small to cover the shortage — not matching either.
+    # A receive onto the lot that is too small to cover the shortage: claimed in part, still open.
     small = receive_onto(client, db_cursor, items, key, cases=1, case_size_lb=2)
-    refused = resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number=small['receipt_number'], note='x')
-    error(refused, 409, 'RECEIPT_NOT_MATCHING')
-    assert refused.json()['detail']['problems'] == ['it adds 2.0 lb but the shortage is 6.0 lb']
-    [exc] = exceptions_for(db_cursor, id=exception_id)
-    assert exc['status'] == 'open'
+    partial = resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number=small['receipt_number'], note='x')
+    assert partial.status_code == 200, partial.text
+    assert partial.json()['status'] == 'open' and partial.json()['shortage_flag']['status'] == 'open'
+    assert partial.json()['evidence']['claimed_lb'] == 2.0 and partial.json()['evidence']['remaining_lb'] == 4.0
+    assert partial.json()['detail']['last_claim']['closes'] is False and 'resolution' not in partial.json()['detail']
     error(client.post('/adjust/prepare', json=adjust(items, 1, 'missing_receipt'), headers=headers(key)), 409, 'SHORTAGE_OPEN_RESOLVE_INSTEAD')
-    # The receive that was never entered: same lot, after the shortage opened, covers it.
+    # The same receipt cannot be spent twice.
+    reused = resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number=small['receipt_number'], note='x')
+    error(reused, 409, 'RECEIPT_NOT_MATCHING')
+    assert 'already used' in reused.json()['detail']['problems'][0] and reused.json()['detail']['remaining_lb'] == 4.0
+    # The receive that was never entered: same lot, after the shortage opened, covers the remainder.
     covering = receive_onto(client, db_cursor, items, key, cases=2, case_size_lb=5)
     ok = resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number=covering['receipt_number'],
                  note='Receive from Tuesday was never entered')
     assert ok.status_code == 200, ok.text
     view = ok.json()
-    assert view['resolution_ticket_id'] == covering['ticket_id'] and view['shortage_flag']['status'] == 'resolved'
-    assert view['detail']['resolution'] == {'kind': 'missing_movement', 'receipt_number': covering['receipt_number'],
-                                            'transaction_ids': [covering['transaction_id']], 'added_lb': 10.0, 'short_lb': 6.0,
-                                            'balance_now_lb': 6.0}
+    assert view['status'] == 'resolved' and view['resolution_ticket_id'] == covering['ticket_id'] and view['shortage_flag']['status'] == 'resolved'
+    res = view['detail']['resolution']
+    assert (res['kind'], res['receipt_number'], res['transaction_ids'], res['added_lb'], res['receipt_used_before_lb'], res['claimed_lb'],
+            res['claimed_total_lb'], res['short_lb'], res['remaining_lb'], res['closes'], res['balance_now_lb']) == \
+        ('missing_movement', covering['receipt_number'], [covering['transaction_id']], 10.0, 0.0, 4.0, 6.0, 6.0, 0.0, True, 6.0)
+    assert view['evidence']['claimed_lb'] == 6.0 and [c['claimed_lb'] for c in view['evidence']['claims']] == [2.0, 4.0]
     assert prepare(client, 'adjust', adjust(items, 1, 'missing_receipt'), key)['can_commit']
 
 
@@ -1121,4 +1133,124 @@ def test_migration_070_rerunnable_down_and_up(isolated_database):
         cur.execute('ROLLBACK TO SAVEPOINT narrowed')
         cur.execute(up)
         assert state(cur) == (True, 1, 1)
+        conn.rollback()
+
+
+# ── Codex re-check of PR #94 (2026-10-09): P1 receipt evidence is consumed, P2 finite counts ──
+
+def second_short_make(client_, items_, key):
+    """A second, different make (2 batches) on the already-short ingredient lot: short 20 lb."""
+    prepared = prepare(client_, 'make', body('make', items_) | {'batches': 2}, key)
+    response = commit(client_, prepared, key, acknowledged_warnings=[w['code'] for w in prepared['warnings'] if w.get('requires_ack')])
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def claims_by_receipt(cur, ticket_id):
+    cur.execute('SELECT COALESCE(SUM(claimed_lb), 0) AS used, count(*) AS n FROM shortage_evidence_claims WHERE evidence_ticket_id=%s', (ticket_id,))
+    row = cur.fetchone()
+    return float(row['used']), row['n']
+
+
+def test_one_receipt_cannot_close_more_shortage_than_it_delivered(client, db_cursor, items, actors):
+    key = actors['floor']['key']
+    first_id, _ = open_shortage(client, db_cursor, items, actors)                        # short 6 (lot −6)
+    second_id = second_short_make(client, items, key)['shortages'][0]['exception_id']    # short 20 (lot −26)
+    twenty = receive_onto(client, db_cursor, items, key, cases=4, case_size_lb=5)        # 20 lb → lot −6
+    # 6 of 20 close the first shortage.
+    first = resolve(client, first_id, key, resolution_kind='missing_movement', receipt_number=twenty['receipt_number'], note='late receive')
+    assert first.status_code == 200 and first.json()['status'] == 'resolved', first.text
+    assert claims_by_receipt(db_cursor, twenty['ticket_id']) == (6.0, 1)
+    # The remaining 14 of 20 cover the second shortage only in part: it stays open for 6.
+    second = resolve(client, second_id, key, resolution_kind='missing_movement', receipt_number=twenty['receipt_number'], note='same receive')
+    assert second.status_code == 200, second.text
+    assert second.json()['status'] == 'open' and second.json()['shortage_flag']['status'] == 'open'
+    assert second.json()['evidence'] == {'claimed_lb': 14.0, 'remaining_lb': 6.0, 'claims': second.json()['evidence']['claims']}
+    assert claims_by_receipt(db_cursor, twenty['ticket_id']) == (20.0, 2)
+    # The 20 lb receipt is spent: it cannot be used again, and stock still cannot be added.
+    spent = resolve(client, second_id, key, resolution_kind='missing_movement', receipt_number=twenty['receipt_number'], note='again')
+    error(spent, 409, 'RECEIPT_NOT_MATCHING')
+    assert spent.json()['detail']['receipt_used_lb'] == 20.0 and spent.json()['detail']['receipt_added_lb'] == 20.0
+    error(client.post('/adjust/prepare', json=adjust(items, 1, 'missing_receipt'), headers=headers(key)), 409, 'SHORTAGE_OPEN_RESOLVE_INSTEAD')
+    assert exceptions_for(db_cursor, id=second_id)[0]['status'] == 'open'
+    # A further 6 lb receive closes the remainder; the ledger of claims adds up to 26 = 20 + 6.
+    six = receive_onto(client, db_cursor, items, key, cases=3, case_size_lb=2)
+    closed = resolve(client, second_id, key, resolution_kind='missing_movement', receipt_number=six['receipt_number'], note='second late receive')
+    assert closed.status_code == 200 and closed.json()['status'] == 'resolved', closed.text
+    assert closed.json()['evidence']['claimed_lb'] == 20.0 and closed.json()['evidence']['remaining_lb'] == 0.0
+    assert claims_by_receipt(db_cursor, six['ticket_id']) == (6.0, 1)
+    db_cursor.execute('SELECT COALESCE(SUM(claimed_lb), 0) AS total FROM shortage_evidence_claims WHERE exception_id IN (%s, %s)', (first_id, second_id))
+    assert float(db_cursor.fetchone()['total']) == 26.0
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 0.0
+    assert prepare(client, 'adjust', adjust(items, 1, 'missing_receipt'), key)['can_commit']
+
+
+def test_concurrent_resolutions_cannot_spend_the_same_receipt_twice(isolated_database, monkeypatch):
+    keys, items_, ids = race_actors(isolated_database)
+    with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        set_balance(cur, items_, 'ingredient', 4.0)
+        supplier_id = ensure_supplier(cur, items_)
+    race = Race(isolated_database)
+    monkeypatch.setattr(main, 'get_db_connection', race.connection)
+    main._reset_actor_cache()
+    with TestClient(main.app) as http:
+        floor = keys['floor']
+        first = commit(http, prepare(http, 'make', body('make', items_), floor), floor).json()
+        shortages = [first['shortages'][0]['exception_id'], second_short_make(http, items_, floor)['shortages'][0]['exception_id']]
+        twenty = receive_onto(http, None, items_, floor, cases=4, case_size_lb=5, supplier_id=supplier_id)
+        race.on = True
+        calls = [lambda i=i: resolve(http, i, floor, resolution_kind='missing_movement', receipt_number=twenty['receipt_number'], note='late')
+                 for i in shortages]
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = [f.result(timeout=30) for f in [executor.submit(call) for call in calls]]
+        race.on = False
+        assert all(r.status_code in (200, 409) for r in results), [r.text for r in results]
+        with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+            assert claims_by_receipt(cur, twenty['ticket_id'])[0] == 20.0            # never 26
+            cur.execute('SELECT status FROM exceptions WHERE id=ANY(%s) ORDER BY id', (shortages,))
+            statuses = [r['status'] for r in cur.fetchall()]
+            assert statuses.count('resolved') == 1 and statuses.count('open') == 1, statuses
+
+
+@pytest.mark.parametrize('raw', ['NaN', 'Infinity', '-Infinity', '1e400', '1000000000', '-1', '"two"'])
+def test_counted_lb_must_be_a_finite_sane_number(client, db_cursor, items, actors, raw):
+    key = actors['floor']['key']
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    response = client.post(f'/exceptions/{exception_id}/resolve', headers={**headers(key), 'Content-Type': 'application/json'},
+                           content=f'{{"resolution_kind": "counted", "counted_lb": {raw}, "note": "counted"}}')
+    assert response.status_code == 422, response.text
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == -6.0
+    db_cursor.execute("SELECT count(*) AS n FROM transactions WHERE type='adjust' AND notes LIKE %s", (f'%Shortage #{exception_id}%',))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+def test_migration_071_rerunnable_down_and_up(isolated_database):
+    up = (ROOT / 'migrations/071_shortage_evidence_claims.sql').read_text()
+    down = (ROOT / 'migrations/down/071_shortage_evidence_claims_down.sql').read_text()
+
+    def state(cur):
+        cur.execute("SELECT to_regclass('shortage_evidence_claims') IS NOT NULL")
+        table = cur.fetchone()[0]
+        cur.execute("SELECT count(*) FROM pg_indexes WHERE indexname IN ('shortage_evidence_claims_receipt_idx','shortage_evidence_claims_exception_idx')")
+        indexes = cur.fetchone()[0]
+        cur.execute("SELECT count(*) FROM migration_markers WHERE name='071_shortage_evidence_claims'")
+        return table, indexes, cur.fetchone()[0]
+
+    with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
+        cur.execute('SET LOCAL search_path TO public')
+        assert state(cur) == (True, 2, 1)      # fixture applied it
+        cur.execute(up)                        # rerun: no-op
+        assert state(cur) == (True, 2, 1)
+        cur.execute('SELECT count(*) FROM shortage_evidence_claims')
+        if cur.fetchone()[0]:                  # claims from the tests above refuse the down until the export is confirmed
+            cur.execute('SAVEPOINT refused')
+            with pytest.raises(psycopg2.errors.RaiseException, match='071 down refused'):
+                cur.execute(down)
+            cur.execute('ROLLBACK TO SAVEPOINT refused')
+        cur.execute("SET LOCAL factory_ledger.confirm_exceptions_export = 'yes'")
+        cur.execute(down)
+        assert state(cur) == (False, 0, 0)
+        cur.execute(up)
+        assert state(cur) == (True, 2, 1)
         conn.rollback()

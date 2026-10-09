@@ -80,6 +80,7 @@ DEFAULT_RESOLUTIONS = ('resolved', 'waived')
 WAIVE_KINDS = frozenset({'waived', 'written_off'})
 OWNER_RESOLUTIONS = WAIVE_KINDS            # closing without evidence is the owner's call (any role may list)
 EVIDENCE_KINDS = frozenset({'SHORTAGE', 'NEGATIVE_BALANCE'})   # closing needs a matching correction or receipt
+MAX_COUNTED_LB = 100_000.0                 # a physical count above this is a typo, not a count (P2: finite, sane, 422)
 UNIT_TO_LB = {'lb': 1.0, 'lbs': 1.0, 'pound': 1.0, 'pounds': 1.0,
               'kg': 2.20462262185, 'kgs': 2.20462262185, 'kilogram': 2.20462262185, 'kilograms': 2.20462262185,
               'g': 1 / 453.59237, 'gram': 1 / 453.59237, 'grams': 1 / 453.59237,
@@ -558,7 +559,8 @@ class ResolveRequest(BaseModel):
     resolution_kind: str = Field(min_length=1, max_length=40)
     note: str = Field(min_length=1, max_length=2000)
     receipt_number: Optional[str] = Field(None, max_length=40)
-    counted_lb: Optional[float] = Field(None, ge=0)                       # 'counted': what is physically on the lot now
+    # 'counted': what is physically on the lot now — finite and sane, or 422 (NaN/±inf/1e400/absurd never reach SQL).
+    counted_lb: Optional[float] = Field(None, ge=0, le=MAX_COUNTED_LB, allow_inf_nan=False)
     attachment_ref: Optional[str] = Field(None, min_length=1, max_length=500)   # photo for a > 500 lb counted correction
 
     _strip = field_validator('note', 'receipt_number', 'attachment_ref')(_non_blank)
@@ -596,11 +598,17 @@ def shortage_evidence(api, cur, request, actor, row, body):
                        positive adjust ever reaches a lot with an open shortage. Over
                        500 lb it needs `attachment_ref` like any correction.
     missing_movement — `receipt_number` of a COMMITTED receipt whose still-effective
-                       posting put at least the short pounds on the SAME lot, entered
-                       after the shortage opened. Anything else is RECEIPT_NOT_MATCHING.
+                       posting put stock on the SAME lot after the shortage opened. Its
+                       pounds are CONSUMED: `shortage_evidence_claims` (071) records how
+                       much of each receipt every resolution used, under FOR UPDATE on the
+                       receipt's ticket, so one 20 lb receipt can never close 26 lb of
+                       shortages. A receipt that covers less than what is still open is
+                       claimed in part and the shortage STAYS OPEN for the remainder
+                       (returns closes=False). Anything else is RECEIPT_NOT_MATCHING.
     voided           — the short posting itself is no longer effective (voided).
+    Returns (resolution_ticket_id, detail patch, closes).
     """
-    cur.execute('SELECT short_lb FROM shortage_flags WHERE exception_id=%s', (row['id'],))
+    cur.execute('SELECT id, short_lb FROM shortage_flags WHERE exception_id=%s', (row['id'],))
     flag = cur.fetchone()
     short_lb = float(flag['short_lb']) if flag else None
     kind = body.resolution_kind
@@ -640,12 +648,15 @@ def shortage_evidence(api, cur, request, actor, row, body):
                 fail(409, 'CORRECTION_BLOCKED', 'The counted correction is blocked by the product rules.',
                      blocked=json.loads(bytes(posted.body).decode()))
             resolution.update(transaction_id=posted['transaction_id'], new_balance_lb=float(posted['new_balance_lb']))
-        return None, {'resolution': resolution}
+        return None, {'resolution': resolution}, True
     if kind == 'missing_movement':
         if not body.receipt_number:
             fail(422, 'RECEIPT_REQUIRED', "Resolving as 'missing_movement' needs receipt_number: the receive/make that was never entered.",
                  message_es="Para resolver como 'movimiento faltante' indique receipt_number del movimiento que faltaba.")
         ticket = _receipt_ticket(cur, body.receipt_number)
+        # Every claim on this receipt is serialized on its ticket row (lock held to COMMIT),
+        # so two resolutions cannot both spend the same pounds.
+        cur.execute('SELECT id FROM write_tickets WHERE id=%s FOR UPDATE', (ticket['id'],))
         problems = []
         if ticket['status'] != 'committed':
             problems.append(f'receipt {body.receipt_number} is {ticket["status"]}, not committed')
@@ -657,21 +668,42 @@ def shortage_evidence(api, cur, request, actor, row, body):
                        GROUP BY t.id, t.created_at ORDER BY t.id''', (ticket['id'], row['lot_id']))
         lines = cur.fetchall()
         added = sum(float(line['added_lb']) for line in lines)
+        cur.execute('SELECT COALESCE(SUM(claimed_lb), 0) AS used FROM shortage_evidence_claims WHERE evidence_ticket_id=%s AND lot_id=%s',
+                    (ticket['id'], row['lot_id']))
+        used = float(cur.fetchone()['used'])
+        available = round(added - used, 4)
+        cur.execute('SELECT COALESCE(SUM(claimed_lb), 0) AS claimed FROM shortage_evidence_claims WHERE exception_id=%s', (row['id'],))
+        already = float(cur.fetchone()['claimed'])
+        remaining = None if short_lb is None else round(short_lb - already, 4)
         if not lines:
             problems.append('it puts no stock on the short lot (same lot required)')
         else:
             if any(line['created_at'] < row['opened_at'] for line in lines):
                 problems.append('it was entered before the shortage opened, so it was already counted')
-            if short_lb is not None and added + EPSILON < short_lb:
-                problems.append(f'it adds {added} lb but the shortage is {short_lb} lb')
+            if available <= EPSILON:
+                problems.append(f'its {added} lb on this lot are already used by other shortage resolutions ({used} lb claimed)')
         if problems:
             fail(409, 'RECEIPT_NOT_MATCHING',
                  f'Receipt {body.receipt_number} does not explain shortage #{row["id"]}: ' + '; '.join(problems) + '.',
                  message_es=f'El recibo {body.receipt_number} no explica el faltante #{row["id"]}.',
-                 problems=problems, receipt_number=body.receipt_number, short_lb=short_lb)
-        return ticket['id'], {'resolution': {'kind': 'missing_movement', 'receipt_number': body.receipt_number,
-                                             'transaction_ids': [line['id'] for line in lines], 'added_lb': added,
-                                             'short_lb': short_lb, 'balance_now_lb': float(api.lot_on_hand(cur, row['lot_id']))}}
+                 problems=problems, receipt_number=body.receipt_number, short_lb=short_lb,
+                 receipt_added_lb=added, receipt_used_lb=used, remaining_lb=remaining)
+        claim = available if remaining is None else min(available, remaining)
+        claim_id = None
+        if claim > EPSILON:
+            cur.execute('''INSERT INTO shortage_evidence_claims(exception_id, shortage_flag_id, evidence_ticket_id, evidence_receipt_number,
+                               lot_id, claimed_lb, claimed_by_actor_id)
+                           VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id''',
+                        (row['id'], flag['id'] if flag else None, ticket['id'], body.receipt_number, row['lot_id'], claim, actor['id']))
+            claim_id = cur.fetchone()['id']
+        left = None if remaining is None else round(remaining - claim, 4)
+        closes = left is None or left <= EPSILON
+        resolution = {'kind': 'missing_movement', 'receipt_number': body.receipt_number,
+                      'transaction_ids': [line['id'] for line in lines], 'added_lb': added, 'receipt_used_before_lb': used,
+                      'claimed_lb': claim, 'claim_id': claim_id, 'claimed_total_lb': round(already + claim, 4),
+                      'short_lb': short_lb, 'remaining_lb': left, 'closes': closes,
+                      'balance_now_lb': float(api.lot_on_hand(cur, row['lot_id']))}
+        return ticket['id'], {'resolution' if closes else 'last_claim': resolution}, closes
     if kind == 'voided':
         status = None
         if row['transaction_id'] is not None:
@@ -684,8 +716,8 @@ def shortage_evidence(api, cur, request, actor, row, body):
                  message_es='El registro con faltante no está anulado; anúlelo primero.',
                  transaction_id=row['transaction_id'], effective_status=status)
         ticket_id = _receipt_ticket(cur, body.receipt_number)['id'] if body.receipt_number else None
-        return ticket_id, {'resolution': {'kind': 'voided', 'transaction_id': row['transaction_id'], 'effective_status': status}}
-    return None, {}
+        return ticket_id, {'resolution': {'kind': 'voided', 'transaction_id': row['transaction_id'], 'effective_status': status}}, True
+    return None, {}, True
 
 
 def identified_evidence(cur, row):
@@ -712,10 +744,16 @@ def _view(cur, row):
     _nest(item, 'lot_id', 'lot_code', 'lot', 'lot_code')
     _nest(item, 'owner_actor_id', 'owner_name', 'owner')
     _nest(item, 'resolved_by_actor_id', 'resolved_by_name', 'resolved_by')
-    if item['kind'] == 'SHORTAGE':
+    if item['kind'] in EVIDENCE_KINDS:
         cur.execute('SELECT id,short_lb,status,resolution_kind,resolved_at,due_at FROM shortage_flags WHERE exception_id=%s', (item['id'],))
         flag = cur.fetchone()
         item['shortage_flag'] = dict(flag) if flag else None
+        cur.execute('''SELECT id, evidence_ticket_id, evidence_receipt_number, lot_id, claimed_lb, claimed_at, claimed_by_actor_id
+                       FROM shortage_evidence_claims WHERE exception_id=%s ORDER BY id''', (item['id'],))
+        claims = [dict(c) for c in cur.fetchall()]
+        claimed = round(sum(float(c['claimed_lb']) for c in claims), 4)
+        short = float(flag['short_lb']) if flag else None
+        item['evidence'] = {'claimed_lb': claimed, 'remaining_lb': None if short is None else round(short - claimed, 4), 'claims': claims}
     return item
 
 
@@ -800,13 +838,19 @@ def register_routes(app, api):
             if body.resolution_kind in OWNER_RESOLUTIONS:
                 permissions.require('approve_exception', actor)     # written_off / waived: owner only
             # Evidence: a shortage closes on a matching correction or receipt, never on a note alone.
-            resolution_ticket_id, patch = None, {}
+            resolution_ticket_id, patch, closes = None, {}, True
             if row['kind'] in EVIDENCE_KINDS:
-                resolution_ticket_id, patch = shortage_evidence(api, cur, request, actor, row, body)
+                resolution_ticket_id, patch, closes = shortage_evidence(api, cur, request, actor, row, body)
             elif row['kind'] == 'UNIDENTIFIED_LOT' and body.resolution_kind == 'identified':
                 patch = identified_evidence(cur, row)
             if body.receipt_number and resolution_ticket_id is None:
                 resolution_ticket_id = _receipt_ticket(cur, body.receipt_number)['id']
+            if not closes:
+                # Partial coverage: the claim is recorded, the shortage stays open for the remainder.
+                cur.execute('UPDATE exceptions SET detail = detail || %s::jsonb WHERE id=%s',
+                            (json.dumps(patch, default=str), exception_id))
+                api._record_actor_write(cur, request, 'exceptions', exception_id)
+                return _view(cur, _one(cur, exception_id))
             new_status = 'waived' if body.resolution_kind in WAIVE_KINDS else 'resolved'
             cur.execute('''UPDATE exceptions SET status=%s, resolved_at=clock_timestamp(), resolved_by_actor_id=%s,
                                resolution_kind=%s, resolution_note=%s, resolution_ticket_id=%s,
