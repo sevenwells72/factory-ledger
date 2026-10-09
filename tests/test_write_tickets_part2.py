@@ -64,8 +64,9 @@ def body(action, items):
     data = {
         'make': {'product_id': items['batch']['id'], 'batches': 1},
         'pack': {'source_product_id': items['batch']['id'], 'target_product_id': items['finished']['id'], 'cases': 2},
+        # A3b: a legacy adjust code is translated through the 061 map (→ physical_count).
         'adjust': {'lot_id': items['ingredient']['lot_id'], 'delta_lb': -2,
-                   'reason': 'Count correction', 'reason_es': 'Corrección de conteo'},
+                   'reason': 'count_correction', 'reason_es': 'Corrección de conteo'},
         'found': {'product_id': items['ingredient']['id'], 'quantity': 2, 'reason_code': 'physical_count'},
     }
     return common | data[action]
@@ -254,19 +255,20 @@ def test_stock_revalidation_keeps_pinned_inputs(client, db_cursor, items, action
     txn = db_cursor.fetchone()['id']
     db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) SELECT %s,product_id,id,%s FROM lots WHERE id=%s', (txn, remaining-100, lid))
     result = commit(client, prepared)
+    assert result.status_code == 200, result.text
+    assert result.json()['state_changed'] is True
+    db_cursor.execute('SELECT lot_id FROM transaction_lines WHERE transaction_id=%s AND quantity_lb<0', (result.json()['transaction_id'],))
+    assert db_cursor.fetchone()['lot_id'] == lid
+    db_cursor.execute("SELECT short_lb FROM shortage_flags WHERE transaction_id=%s", (result.json()['transaction_id'],))
+    flags = [float(r['short_lb']) for r in db_cursor.fetchall()]
     if remaining == 1:
-        error(result, 409, 'TICKET_STALE')
+        # A3b (R3): the pinned lot went short between prepare and commit → posted + flagged, never blocked.
         expected = items['ingredient' if action == 'make' else 'batch']
-        message = result.json()['detail']['blockers'][0]['message']
-        assert expected['name'] in message
-        assert expected['lot_code'] in message
-        assert str(expected['id']) not in message
-        assert posted_count(db_cursor, prepared) == 0
+        assert flags == [9.0]
+        assert result.json()['shortages'][0]['lot_code'] == expected['lot_code']
+        assert main.lot_on_hand(db_cursor, lid) == -9.0
     else:
-        assert result.status_code == 200, result.text
-        assert result.json()['state_changed'] is True
-        db_cursor.execute('SELECT lot_id FROM transaction_lines WHERE transaction_id=%s AND quantity_lb<0', (result.json()['transaction_id'],))
-        assert db_cursor.fetchone()['lot_id'] == lid
+        assert flags == [] and result.json()['shortages'] == []
 
 
 @pytest.mark.parametrize('action', ACTIONS)
@@ -415,14 +417,14 @@ def test_pack_add_ins_are_pinned_revalidated_and_traced(client, db_cursor, items
         cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,-99)',
                     (txn, items['ingredient']['id'], items['ingredient']['lot_id']))
     response = commit(client, prepared)
-    if shortage:
-        error(response, 409, 'TICKET_STALE')
-        assert posted_count(cur, prepared) == 0
-    else:
-        assert response.status_code == 200, response.text
-        cur.execute('SELECT quantity_lb FROM transaction_lines WHERE transaction_id=%s ORDER BY id', (response.json()['transaction_id'],))
-        assert [float(r['quantity_lb']) for r in cur.fetchall()] == [10, -10, -2]
-        assert response.json()['add_in_ingredients_consumed'][0]['lot_id'] == items['ingredient']['lot_id']
+    assert response.status_code == 200, response.text
+    cur.execute('SELECT quantity_lb FROM transaction_lines WHERE transaction_id=%s ORDER BY id', (response.json()['transaction_id'],))
+    assert [float(r['quantity_lb']) for r in cur.fetchall()] == [10, -10, -2]
+    assert response.json()['add_in_ingredients_consumed'][0]['lot_id'] == items['ingredient']['lot_id']
+    cur.execute('SELECT lot_id, short_lb FROM shortage_flags WHERE transaction_id=%s', (response.json()['transaction_id'],))
+    flags = [(r['lot_id'], float(r['short_lb'])) for r in cur.fetchall()]
+    # A3b (R3): an add-in that went short after prepare posts against the pinned lot and is flagged.
+    assert flags == ([(items['ingredient']['lot_id'], 1.0)] if shortage else [])
 
 
 @pytest.mark.parametrize('action', ['make', 'pack', 'found'])
@@ -523,20 +525,24 @@ def test_adjust_persists_canonical_reason_code_and_replays(client, db_cursor, it
     import write_tickets
     payload = body('adjust', items)
     payload.pop('reason')
-    # A3 owns catalog validation: a free-form value must still work here.
-    payload[input_key] = 'Count correction outside the future catalog'
+    # A3b owns catalog validation: the payload keeps what the client sent (hash
+    # stability), the draft/receipt carry the fixed-list code it maps to.
+    payload[input_key] = 'Damage'
     prepared = prepare(client, 'adjust', payload)
     assert prepared['can_commit'], prepared
     row = ticket_row(db_cursor, prepared)
     assert row['payload']['reason_code'] == payload[input_key]
     assert 'reason' not in row['payload']
     assert row['payload_hash'] == write_tickets.canonical_hash(row['payload'])
-    assert prepared['draft']['reason_code'] == payload[input_key]
+    assert prepared['draft']['reason_code'] == 'damage_disposal'
+    assert prepared['draft']['reason']['legacy_code'] == 'damage'
     response = commit(client, prepared)
     assert response.status_code == 200, response.text
     assert commit(client, prepared).json() == response.json() | {'replayed': True}
     detail = client.get('/receipts/' + response.json()['receipt_number'], headers=headers()).json()
-    assert detail['draft']['reason_code'] == payload[input_key]
+    assert detail['draft']['reason_code'] == 'damage_disposal'
+    db_cursor.execute('SELECT reason_code, adjust_reason FROM transactions WHERE id=%s', (response.json()['transaction_id'],))
+    assert dict(db_cursor.fetchone()) == {'reason_code': 'damage_disposal', 'adjust_reason': 'Damage/disposal'}
 
 
 def test_adjust_reason_aliases_share_hash_and_supersession(client, db_cursor, items):
@@ -562,12 +568,15 @@ def test_make_shortage_names_product_and_selected_lot(client, db_cursor, items, 
     if override:
         payload['ingredient_lots'] = [{'ingredient_product_id': ing['id'], 'lot_id': ing['lot_id']}]
     prepared = prepare(client, 'make', payload)
-    assert not prepared['can_commit']
-    message = prepared['blockers'][0]['message']
-    assert message.startswith('Oats 50 lb needs 10.0 lb')
-    assert str(ing['id']) not in message
-    if override:
-        assert ing['lot_code'] in message
+    # A3b (R3): insufficient stock warns and pins the shortfall on the lot; it never blocks.
+    assert prepared['can_commit'], prepared
+    assert prepared['blockers'] == []
+    warning = next(w for w in prepared['warnings'] if w['code'] == 'WILL_CREATE_SHORTAGE')
+    assert warning['requires_ack'] is False
+    assert warning['message'].startswith('Oats 50 lb lot ' + ing['lot_code'])
+    assert str(ing['id']) not in warning['message']
+    assert warning['refs'] == {'lot_id': ing['lot_id'], 'short_lb': 9.0, 'on_hand_lb': 1.0}
+    assert prepared['draft']['input_plan'][0]['short_lb'] == 9.0
     assert posted_count(db_cursor, prepared) == 0
 
 

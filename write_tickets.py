@@ -10,6 +10,7 @@ import secrets
 import permissions
 import ticket_actions as actions
 import lot_confirmation as a5
+import exceptions_enforcement as a3b
 from datetime import date, datetime
 from typing import List, Literal, Optional
 
@@ -147,6 +148,10 @@ class AdjustPrepareRequest(ActionPrepareRequest):
     delta_lb: float
     reason_code: str = Field(min_length=1)
     reason_es: Optional[str] = None
+    # A3b: `note` is required for reason 'unknown'; `attachment_ref` is the photo
+    # evidence a > 500 lb correction needs (a storage key/URL — see the A6 dependency).
+    note: Optional[str] = Field(None, max_length=2000)
+    attachment_ref: Optional[str] = Field(None, min_length=1, max_length=500)
 
     @root_validator(pre=True)
     def reason_alias(cls, values):
@@ -172,12 +177,16 @@ class FoundPrepareRequest(ActionPrepareRequest):
     supplier_lot_code: Optional[str] = None
     notes: Optional[str] = None
     notes_es: Optional[str] = None
+    attachment_ref: Optional[str] = Field(None, min_length=1, max_length=500)   # A3b photo evidence
 
 
 class CommitRequest(BaseModel):
     lot_confirmations: List[a5.LotConfirmation] = Field(default_factory=list)
     payload_hash: str
     acknowledged_warnings: List[str] = Field(default_factory=list)
+    # A3b: a photo attached after prepare releases a > 500 lb hold without
+    # changing the signed payload (same idea as late lot confirmations).
+    attachment_ref: Optional[str] = Field(None, min_length=1, max_length=500)
 
     class Config:
         extra = 'forbid'
@@ -361,6 +370,122 @@ def receipt_detail(api, cur, number):
             'transactions': transactions, 'lots': lots}
 
 
+def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowledged, attachment_ref=None,
+                   approval=None, preparer_inactive=False):
+    """Re-validate under lock and post the stored payload; the one commit path.
+
+    Shared by `POST /tickets/{ticket}/commit` and by A3b's owner approval of a
+    held correction (`approval` set: the ticket's preparer is `actor`/`request`,
+    the owner is recorded on the response, and a stale draft is reported without
+    rejecting the ticket so the hold stays the owner's decision). Returns the
+    posted response dict, or a JSONResponse for the terminal non-post outcomes
+    (evidence 422, TICKET_STALE 409, A3b hold 202) — those must COMMIT.
+    """
+    entry_timing = permissions.require_backdating(
+        approval['approved_by'] | {'key_kind': 'actor'} if approval else actor,
+        datetime.fromisoformat(row['payload']['occurred_at']), api.get_plant_now())
+    cur.execute('SAVEPOINT ticket_post')
+    try:
+        # Reuse the legacy lot-sequence locks before validation/posting.
+        action_lock = {'receive': 1, 'found': 2, 'make': 3}.get(row['action'])
+        if action_lock:
+            cur.execute('SELECT pg_advisory_xact_lock(%s)', (action_lock,))
+        if preparer_inactive:
+            # Same locked actors row as the role check in the route.
+            fail(403, 'ACTOR_INACTIVE', 'The preparing actor is no longer active.')
+        if row['action'] == 'receive':
+            draft, state, req, product, occurred_at, source, er_id = validate_receive(
+                api, cur, row['payload'], lock=True)
+        else:
+            validated = actions.validate(api, cur, row['action'], effective_payload, lock=True)
+            draft, state, _, _, occurred_at, source, _, _ = validated
+        unresolved = [b for b in row['draft'].get('blockers', []) if b['code'] != 'LOT_NOT_CONFIRMED']
+        if unresolved:
+            fail(409, 'DRAFT_BLOCKED', 'Prepare again after resolving the draft blockers.',
+                 blockers=unresolved)
+        # A draft promising a new lot cannot silently add to a lot
+        # created after prepare. This runs under the receive lock.
+        if not row['draft'].get('lot_exists') and draft.get('lot_exists'):
+            name = draft.get('product_name') or draft.get('target_product_name')
+            code = draft.get('lot_code') or draft.get('output_lot_code')
+            fail(409, 'LOT_CODE_TAKEN',
+                 f'{name} lot {code} is now in use; prepare again for a fresh draft.')
+        # A3b hook (R2, owner decision 7): > 500 lb corrections need a photo. With
+        # one (prepared or attached now) they post, highlighted; without one the
+        # ticket is HELD — nothing posts until the owner approves or a photo arrives.
+        photo = attachment_ref or row['payload'].get('attachment_ref')
+        if row['action'] in ('adjust', 'found'):
+            draft['attachment_ref'] = photo
+            if draft['correction_review']['photo_required'] and not photo and not approval:
+                cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
+                return api.JSONResponse(status_code=202, content=json_value(api, a3b.hold_ticket(
+                    api, cur, row, actor, draft, acknowledged, row['payload_hash'])))
+        state_changed = canonical_hash(json_value(api, state)) != row['state_hash']
+        receipt = allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
+        if row['action'] == 'receive':
+            req.mode = 'commit'
+            response = api._receive_commit_core(cur, req, request, occurred_at, source,
+                product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id, supplier_id=row['payload']['supplier_id'])
+            a5.record_identity(cur, row['payload'], response, row['id'], receipt)
+            a5.supplier_receipt(cur, response)
+        else:
+            response = actions.post(api, cur, row['action'], validated, effective_payload, request,
+                row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
+        response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
+                        state_changed=state_changed)
+        # A2: 48 h–14 d late entries open exceptions(LATE_ENTRY) for the
+        # owner to acknowledge (§6.3) in the same transaction as the post.
+        cur.execute('SELECT COALESCE((SELECT created_at FROM transactions WHERE id=%s), clock_timestamp()) AS at',
+                    (response.get('transaction_id'),))
+        entered_at = cur.fetchone()['at']
+        exception_id = None
+        if permissions.opens_late_entry(actor, entry_timing):
+            exception_id = permissions.open_late_entry(
+                cur, identity=actor, info=entry_timing, action=row['action'],
+                transaction_id=response.get('transaction_id'), receipt_number=receipt,
+                ticket_id=row['id'], entered_at=entered_at,
+                product_id=row['payload'].get('product_id') or row['payload'].get('target_product_id'),
+                lot_id=response.get('lot_id') or response.get('output_lot_id'),
+                client_source=row['client_source'])
+        response['entry_timing'] = {**entry_timing, 'entered_at': entered_at,
+                                    'entered_by': actor, 'late_entry_exception_id': exception_id}
+        if approval:
+            response['approval'] = {**approval, 'approved_at': entered_at}
+        elif row['status'] == a3b.HELD:
+            # A photo released the hold on the normal commit path.
+            a3b.release_hold(cur, row['id'], resolution_kind='photo_attached', actor_id=actor['id'], note=None,
+                             response={**response, 'receipt_number': receipt}, attachment_ref=photo)
+        response = json_value(api, response)
+    except HTTPException as exc:
+        if exc.status_code >= 500:
+            raise
+        cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
+        errors = exc.detail.get('blockers') if isinstance(exc.detail, dict) else None
+        errors = errors or [blocker(exc)]
+        if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION'):
+            return api.JSONResponse(status_code=422, content={'detail': {
+                'error_code': errors[0]['code'], 'message': errors[0]['message'], 'blockers': errors}})
+        if not approval:
+            # A3b: an approval that finds a stale draft leaves the hold for the owner
+            # to reject explicitly; the plain commit path rejects as A1 always did.
+            cur.execute("UPDATE write_tickets SET status='rejected',reject_reason=%s WHERE id=%s",
+                        (json.dumps(errors), row['id']))
+        return api.JSONResponse(status_code=409, content={'detail': {
+            'error_code': 'TICKET_STALE', 'message': 'Draft no longer valid; prepare again.',
+            'blockers': errors}})
+    cur.execute('RELEASE SAVEPOINT ticket_post')
+    cur.execute('SELECT DISTINCT lot_id FROM transaction_lines WHERE transaction_id=%s AND lot_id IS NOT NULL ORDER BY lot_id',
+                (response.get('transaction_id'),))
+    result_ref = {'transaction_ids': [response['transaction_id']] if response.get('transaction_id') else [],
+                  'lot_ids': [line['lot_id'] for line in cur.fetchall()]}
+    if row['action'] == 'move_lot':
+        result_ref['lot_ids'] = [response['lot_id']]
+    cur.execute('''UPDATE write_tickets SET status='committed',committed_at=clock_timestamp(),
+        receipt_number=%s,result_ref=%s,response=%s,acknowledged=%s WHERE id=%s''',
+        (receipt, Json(result_ref), Json(response), Json(sorted(set(acknowledged))), row['id']))
+    return response
+
+
 def register_routes(app, api):
     def prepare(action, req, request, *, lot_id=None):
         actor = identity(api, request)
@@ -409,6 +534,9 @@ def register_routes(app, api):
                 # A5 §5.2: choose a real resolved supplier before issuing a receipt draft.
                 if action == 'receive' and isinstance(exc.detail, dict) and exc.detail.get('error_code') == 'SUPPLIER_REQUIRED':
                     raise
+                # A3b: a bad reason or a shortage cover-up is refused, not drafted.
+                if isinstance(exc.detail, dict) and exc.detail.get('error_code') in a3b.PREPARE_REFUSALS:
+                    raise
                 blockers = [blocker(exc)]
             blockers = blockers or draft.get('blockers', [])
             warnings = (receive_duplicates(cur, payload) if action == 'receive' else
@@ -416,6 +544,7 @@ def register_routes(app, api):
             late = permissions.late_entry_warning(actor, entry_timing)   # A2 hook
             if late:
                 warnings.append(late)
+            warnings.extend(a3b.shortage_warnings(draft))   # A3b hook (R3): warns, never blocks
             draft['entry_timing'] = entry_timing
             payload_hash = canonical_hash(payload)
             draft.update(actor=actor, happened_at=payload['occurred_at'],
@@ -500,14 +629,17 @@ def register_routes(app, api):
             permissions.require(row['action'], actor)
             entry_timing = permissions.require_backdating(
                 actor, datetime.fromisoformat(row['payload']['occurred_at']), api.get_plant_now())
-            if row['status'] != 'prepared':
+            # A3b: a held correction (awaiting_approval) is committable again — with a
+            # photo it posts, without one it stays held; it never expires.
+            if row['status'] not in ('prepared', a3b.HELD):
                 fail(409, 'TICKET_NOT_COMMITTABLE', 'Prepare a new ticket.', status=row['status'])
-            cur.execute('SELECT clock_timestamp() > %s AS expired', (row['expires_at'],))
-            if cur.fetchone()['expired']:
-                cur.execute("UPDATE write_tickets SET status='expired' WHERE id=%s", (row['id'],))
-                # Return, rather than raise: the terminal state must COMMIT.
-                return api.JSONResponse(status_code=409, content={'detail': {
-                    'error_code': 'TICKET_EXPIRED', 'message': 'Ticket expired; prepare again.'}})
+            if row['status'] == 'prepared':
+                cur.execute('SELECT clock_timestamp() > %s AS expired', (row['expires_at'],))
+                if cur.fetchone()['expired']:
+                    cur.execute("UPDATE write_tickets SET status='expired' WHERE id=%s", (row['id'],))
+                    # Return, rather than raise: the terminal state must COMMIT.
+                    return api.JSONResponse(status_code=409, content={'detail': {
+                        'error_code': 'TICKET_EXPIRED', 'message': 'Ticket expired; prepare again.'}})
             missing = sorted({w['code'] for w in row['warnings'] if w.get('requires_ack')} -
                              set(body.acknowledged_warnings))
             if missing:
@@ -517,88 +649,12 @@ def register_routes(app, api):
             # A5 hook: late evidence never mutates the signed draft payload.
             if body.lot_confirmations and row['action'] not in ('make', 'pack'):
                 fail(422, 'UNUSED_LOT_CONFIRMATION', 'This action does not consume ingredient lots.')
+            if body.attachment_ref and row['action'] not in ('adjust', 'found'):
+                fail(422, 'UNUSED_ATTACHMENT', 'Only corrections (adjust, found) take photo evidence.')
             effective_payload = a5.merge_confirmations(row['payload'], [e.dict() for e in body.lot_confirmations])
-            cur.execute('SAVEPOINT ticket_post')
-            try:
-                # Reuse the legacy lot-sequence locks before validation/posting.
-                action_lock = {'receive': 1, 'found': 2, 'make': 3}.get(row['action'])
-                if action_lock:
-                    cur.execute('SELECT pg_advisory_xact_lock(%s)', (action_lock,))
-                if actor['id'] is not None and not (current_actor and current_actor['active']):
-                    # Same locked row as the role check above.
-                    fail(403, 'ACTOR_INACTIVE', 'The preparing actor is no longer active.')
-                if row['action'] == 'receive':
-                    draft, state, req, product, occurred_at, source, er_id = validate_receive(
-                        api, cur, row['payload'], lock=True)
-                else:
-                    validated = actions.validate(api, cur, row['action'], effective_payload, lock=True)
-                    draft, state, _, _, occurred_at, source, _, _ = validated
-                unresolved = [b for b in row['draft'].get('blockers', []) if b['code'] != 'LOT_NOT_CONFIRMED']
-                if unresolved:
-                    fail(409, 'DRAFT_BLOCKED', 'Prepare again after resolving the draft blockers.',
-                         blockers=unresolved)
-                # A draft promising a new lot cannot silently add to a lot
-                # created after prepare. This runs under the receive lock.
-                if not row['draft'].get('lot_exists') and draft.get('lot_exists'):
-                    name = draft.get('product_name') or draft.get('target_product_name')
-                    code = draft.get('lot_code') or draft.get('output_lot_code')
-                    fail(409, 'LOT_CODE_TAKEN',
-                         f'{name} lot {code} is now in use; prepare again for a fresh draft.')
-                state_changed = canonical_hash(json_value(api, state)) != row['state_hash']
-                receipt = allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
-                if row['action'] == 'receive':
-                    req.mode = 'commit'
-                    response = api._receive_commit_core(cur, req, request, occurred_at, source,
-                        product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id, supplier_id=row['payload']['supplier_id'])
-                    a5.record_identity(cur, row['payload'], response, row['id'], receipt)
-                    a5.supplier_receipt(cur, response)
-                else:
-                    response = actions.post(api, cur, row['action'], validated, effective_payload, request,
-                        row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
-                response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
-                                state_changed=state_changed)
-                # A2: 48 h–14 d late entries open exceptions(LATE_ENTRY) for the
-                # owner to acknowledge (§6.3) in the same transaction as the post.
-                cur.execute('SELECT COALESCE((SELECT created_at FROM transactions WHERE id=%s), clock_timestamp()) AS at',
-                            (response.get('transaction_id'),))
-                entered_at = cur.fetchone()['at']
-                exception_id = None
-                if permissions.opens_late_entry(actor, entry_timing):
-                    exception_id = permissions.open_late_entry(
-                        cur, identity=actor, info=entry_timing, action=row['action'],
-                        transaction_id=response.get('transaction_id'), receipt_number=receipt,
-                        ticket_id=row['id'], entered_at=entered_at,
-                        product_id=row['payload'].get('product_id') or row['payload'].get('target_product_id'),
-                        lot_id=response.get('lot_id') or response.get('output_lot_id'),
-                        client_source=row['client_source'])
-                response['entry_timing'] = {**entry_timing, 'entered_at': entered_at,
-                                            'entered_by': actor, 'late_entry_exception_id': exception_id}
-                response = json_value(api, response)
-            except HTTPException as exc:
-                if exc.status_code >= 500:
-                    raise
-                cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
-                errors = exc.detail.get('blockers') if isinstance(exc.detail, dict) else None
-                errors = errors or [blocker(exc)]
-                if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION'):
-                    return api.JSONResponse(status_code=422, content={'detail': {
-                        'error_code': errors[0]['code'], 'message': errors[0]['message'], 'blockers': errors}})
-                cur.execute("UPDATE write_tickets SET status='rejected',reject_reason=%s WHERE id=%s",
-                            (json.dumps(errors), row['id']))
-                return api.JSONResponse(status_code=409, content={'detail': {
-                    'error_code': 'TICKET_STALE', 'message': 'Draft no longer valid; prepare again.',
-                    'blockers': errors}})
-            cur.execute('RELEASE SAVEPOINT ticket_post')
-            cur.execute('SELECT DISTINCT lot_id FROM transaction_lines WHERE transaction_id=%s AND lot_id IS NOT NULL ORDER BY lot_id',
-                        (response.get('transaction_id'),))
-            result_ref = {'transaction_ids': [response['transaction_id']] if response.get('transaction_id') else [],
-                          'lot_ids': [line['lot_id'] for line in cur.fetchall()]}
-            if row['action'] == 'move_lot':
-                result_ref['lot_ids'] = [response['lot_id']]
-            cur.execute('''UPDATE write_tickets SET status='committed',committed_at=clock_timestamp(),
-                receipt_number=%s,result_ref=%s,response=%s,acknowledged=%s WHERE id=%s''',
-                (receipt, Json(result_ref), Json(response), Json(sorted(set(body.acknowledged_warnings))), row['id']))
-            return response
+            return execute_commit(api, cur, row, actor, request, effective_payload=effective_payload,
+                                  acknowledged=body.acknowledged_warnings, attachment_ref=body.attachment_ref,
+                                  preparer_inactive=actor['id'] is not None and not (current_actor and current_actor['active']))
 
     @app.get('/receipts')
     def list_receipts(date: Optional[date] = Query(None), actor: Optional[str] = None,

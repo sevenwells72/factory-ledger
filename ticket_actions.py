@@ -4,6 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import json
 
 import lot_confirmation as a5
+import exceptions_enforcement as a3b
 
 from fastapi import HTTPException
 
@@ -61,9 +62,13 @@ def choose_inputs(api, cur, requirements, overrides):
                 plan.append({'product_id': pid, 'lot_id': row['id'], 'quantity_lb': take})
                 remaining -= take
         if remaining > api.BALANCE_EPSILON:
-            name = product(api, cur, pid)['name']
-            selected = f' from lot {rows[0]["lot_code"]}' if pid in overrides else ''
-            fail('INSUFFICIENT_STOCK', f'{name} needs {float(needed)} lb{selected}; prepare again after resolving the shortage.')
+            # A3b hook (R3): insufficient stock is NOT a blocker. The shortfall is
+            # pinned on one lot (the override, the lot that ran out, or the newest)
+            # so the post balances and the shortage flag names a lot. Only a
+            # product with no lot at all still blocks: nothing can go negative.
+            if a3b.assign_shortfall(plan, pid, remaining, rows, overrides.get(pid)) is None:
+                name = product(api, cur, pid)['name']
+                fail('INSUFFICIENT_STOCK', f'{name} needs {float(needed)} lb and has no lot to record the shortage against; receive it first.')
     return plan
 
 
@@ -133,11 +138,18 @@ def validate(api, cur, action, payload, lock=False):
         draft = response_dict(api._pack_preview_core(cur, req, source=source, target=target))
         primary = [{'product_id': source['id'], 'lot_id': a['lot_id'], 'quantity_lb': a['allocated_lb']}
                    for a in draft['allocations'] if a.get('lot_id')]
-        if (not draft['all_lots_sufficient'] or
+        if input_plan is not None:
+            # Commit: the pinned plan (quantities including any shortfall) is authoritative;
+            # the preview cannot see a pinned lot that is at or below zero.
+            primary = [{'product_id': source['id'], 'lot_id': a['lot_id'], 'quantity_lb': a['quantity_lb']} for a in allocations]
+        elif (not draft['all_lots_sufficient'] or
                 abs(sum(a['quantity_lb'] for a in primary) - draft['total_lb']) > api.BALANCE_EPSILON):
-            codes = ', '.join(a['lot_code'] for a in draft['allocations'])
-            selected = f' from lots {codes}' if codes else ''
-            fail('INSUFFICIENT_STOCK', f'{source["name"]} needs {draft["total_lb"]} lb{selected} to pack {target["name"]}; resolve the shortage and prepare again.')
+            # A3b hook (R3): insufficient batch stock is not a blocker — the uncovered
+            # pounds are pinned on a lot (explicit allocation, the FIFO lot that ran
+            # out, or the newest lot) and flagged at commit.
+            primary = a3b.pack_shortfall(cur, source, draft, bool(allocations), primary)
+        if abs(sum(a['quantity_lb'] for a in primary) - draft['total_lb']) > api.BALANCE_EPSILON:
+            fail('INPUT_PLAN_CHANGED', f'{source["name"]} allocations do not add up to {draft["total_lb"]} lb; prepare again.')
         for ingredient in draft.get('add_in_ingredients', []):
             requirements[ingredient['ingredient_id']] = ingredient['needed_lb']
         if input_plan is None:
@@ -155,8 +167,11 @@ def validate(api, cur, action, payload, lock=False):
         current = lot(api, cur, payload['lot_id'], payload.get('product_id'), lock)
         p = product(api, cur, current['product_id'], lock)
         products.append(p)
+        # A3b hook (R2/R3): fixed-list reason, no covering an open shortage, review facts.
+        reason = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'), delta_lb=payload['delta_lb'])
+        a3b.refuse_cover_up(cur, 'adjust', p['id'], current['id'], payload['delta_lb'])
         req = api.AdjustRequest(**common, product_name=p['name'], lot_code=current['lot_code'],
-            adjustment_lb=payload['delta_lb'], reason=payload['reason_code'], reason_es=payload.get('reason_es'))
+            adjustment_lb=payload['delta_lb'], reason=reason['label_en'], reason_es=payload.get('reason_es') or reason['label_es'])
         api.validate_bilingual(req.reason, req.reason_es, 'reason')
         warning = api.check_private_label_merge(p['name'], p.get('label_type') or 'house', req.reason, req.adjustment_lb)
         if warning:
@@ -164,15 +179,24 @@ def validate(api, cur, action, payload, lock=False):
         draft = {'product_id': p['id'], 'product_name': p['name'], 'lot_id': current['id'],
                  'lot_code': current['lot_code'], 'current_quantity_lb': current['on_hand_lb'],
                  'delta_lb': req.adjustment_lb, 'new_balance_lb': float(current['on_hand_lb']) + req.adjustment_lb,
-                 'reason_code': req.reason, 'reason_es': req.reason_es}
+                 'reason_code': reason['code'], 'reason': reason, 'reason_es': req.reason_es, 'note': reason['note'],
+                 'attachment_ref': payload.get('attachment_ref'),
+                 'correction_review': a3b.correction_review(api, 'adjust', p, req.adjustment_lb,
+                                                            book_balance_before=current['on_hand_lb'])}
         if draft['new_balance_lb'] < 0:
             draft['balance_warning'] = f'{p["name"]} lot {current["lot_code"]} will have negative inventory ({draft["new_balance_lb"]} lb).'
-        options = {'product': p, 'lot_id': payload['lot_id']}
+        options = {'product': p, 'lot_id': payload['lot_id'], 'reason_code': reason['code'], 'note': reason['note']}
         specification = {'product_id': p['id'], 'lot_id': current['id'], 'delta_lb': req.adjustment_lb}
     elif action == 'found':
         p = product(api, cur, payload['product_id'], lock)
         products.append(p)
-        fields = {k: v for k, v in payload.items() if k not in ('specification', 'input_plan', 'existing_output_lot_id')}
+        # A3b hook (R2/R3): fixed-list reason (the note is `notes`), no found stock
+        # for a product with an open shortage, 500 lb review.
+        reason = a3b.resolve_reason(cur, 'found', payload['reason_code'], note=payload.get('notes'), delta_lb=payload['quantity'])
+        a3b.refuse_cover_up(cur, 'found', p['id'], None, payload['quantity'])
+        fields = {k: v for k, v in payload.items()
+                  if k not in ('specification', 'input_plan', 'existing_output_lot_id', 'attachment_ref')}
+        fields['reason_code'] = reason['code']
         req = api.AddFoundInventoryRequest(**fields)
         api.validate_bilingual(req.notes, req.notes_es, 'notes')
         output_code = req.lot_code
@@ -181,9 +205,12 @@ def validate(api, cur, action, payload, lock=False):
             output_code = f'{prefix}{api.next_lot_sequence(cur, prefix + "%"):03d}'
         output_product = p
         draft = {'product_id': p['id'], 'product_name': p['name'], 'quantity': req.quantity,
-                 'uom': req.uom, 'lot_code': output_code, 'reason_code': req.reason_code,
+                 'uom': req.uom, 'lot_code': output_code, 'reason_code': req.reason_code, 'reason': reason,
                  'notes': req.notes, 'notes_es': req.notes_es, 'found_location': req.found_location,
-                 'estimated_age': req.estimated_age, 'suspected_supplier': req.suspected_supplier}
+                 'estimated_age': req.estimated_age, 'suspected_supplier': req.suspected_supplier,
+                 'attachment_ref': payload.get('attachment_ref'),
+                 'correction_review': a3b.correction_review(api, 'found', p, req.quantity, uom=req.uom)}
+        options = {'reason_code': reason['code']}
         specification = {'product_id': p['id'], 'quantity_lb': req.quantity}
     else:
         fail('TICKET_ACTION_UNAVAILABLE', 'Unsupported action.')
@@ -202,11 +229,13 @@ def validate(api, cur, action, payload, lock=False):
     for item in sorted(input_plan or [], key=lambda i: i['lot_id']):
         current = lot(api, cur, item['lot_id'], item['product_id'], lock)
         totals[item['product_id']] = totals.get(item['product_id'], 0) + item['quantity_lb']
-        if float(current['on_hand_lb']) + api.BALANCE_EPSILON < item['quantity_lb']:
-            fail('INSUFFICIENT_STOCK', f'{current["product_name"]} lot {current["lot_code"]} needs {item["quantity_lb"]} lb; only {float(current["on_hand_lb"])} lb remains.')
         states.append(current)
     if any(abs(totals.get(pid, 0) - qty) > api.BALANCE_EPSILON for pid, qty in requirements.items()):
         fail('INPUT_PLAN_CHANGED', 'The pinned input quantities do not match current requirements.')
+    # A3b hook (R3): the shortfall is measured against the balances just read —
+    # at commit under FOR UPDATE — and posted + flagged instead of blocking.
+    if action in ('make', 'pack'):
+        draft['shortages'] = a3b.shortfalls(input_plan, states)
     if action == 'adjust':
         states.append(current)
     if output_product:
@@ -257,12 +286,20 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
             a5.record_substitutions(cur, response['transaction_id'], payload, actor['id'] if actor else None)
             response['substitutions'] = draft['substitutions']
             response['exclusion_reason_code'] = draft['exclusion_reason_code']
+        # A3b hook (R3): shortage flag + SHORTAGE exception in the posting transaction.
+        response['shortages'] = a3b.record_shortages(
+            cur, response['transaction_id'], draft.get('shortages'), ticket_id=ticket_id,
+            receipt_number=receipt_number, action=action, actor_id=actor['id'] if actor else None)
     if action == 'pack':
         response['lot_id'] = response['output_lot_id']
     elif action == 'found':
         a5.record_identity(cur, payload, response, ticket_id, receipt_number)
     elif action == 'adjust':
         response['lot_id'] = payload['lot_id']
+    if action in ('adjust', 'found'):
+        # A3b hook (R2): the review facts travel on the receipt for the weekly view.
+        response['reason_code'] = draft['reason_code']
+        response['correction_review'] = dict(draft['correction_review'], attachment_ref=draft.get('attachment_ref'))
     return response
 
 

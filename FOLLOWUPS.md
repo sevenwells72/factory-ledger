@@ -114,6 +114,45 @@ only visible in the jsonb blob — A3b/A9 must add `reason_code` to the view (an
 `_TRANSACTION_AMENDABLE_FIELDS` if a reason may be amended) before reading it through
 effective rows. The §7.3 contract (`docs/contracts/shift-summary.md` §2.2.1) reads
 `reason_code` from the receipt's transaction, so this is on A9's path.
+**CLOSED by A3b (branch `feat/exceptions-enforcement`, migration 069, 2026-10-08):** every
+adjust/found INSERT now writes `reason_code` (ticket: the validated fixed-list code; direct
+legacy routes: the 061 mapping of the free text, never NULL while the seed exists); 069 §4
+re-runs the 061 sweep once for rows inserted in the window; `ledger_current_transactions`
+gains `reason_code` and `entered_by_actor_id` as trailing columns (P1.11a). Still open:
+`_TRANSACTION_AMENDABLE_FIELDS` does not list `reason_code` — a reason cannot be amended
+through a `ledger_corrections` row; decide with A9/F3 whether it should be.
+
+---
+
+**P1.12 Plant-closure days for business-day deadlines (A3b, 2026-10-08).**
+`exceptions_enforcement.business_deadline()` (shortage 2 days, unidentified lot 7 days)
+counts Mon–Fri after the entry day, due 23:59 America/New_York, and skips no holidays. Add a
+`plant_closure_days (day date PRIMARY KEY, reason text)` table (migration) + one lookup in
+the helper so Thanksgiving / Christmas week / planned shutdowns do not eat a shortage's two
+days; seed from CNS's calendar before the Nov 2 pilot. Both A3b and A5 (which delegates to
+the same helper) pick it up at once.
+
+---
+
+**P1.13 Attachment storage for correction photos (A3b depends on A6/F1, 2026-10-08).**
+A3b's > 500 lb photo rule takes an **`attachment_ref`** string (storage key or URL, ≤ 500
+chars) on `adjust/prepare`, `found/prepare` and `POST /tickets/{t}/commit`; it is stored on
+the ticket draft/response and on the LARGE_CORRECTION exception's `detail`, never
+dereferenced. The design's `attachments` table (§8.1, A6) does not exist yet — when it
+lands, FL should (a) accept an `attachment_id` alongside/instead of the ref, (b) verify the
+row exists and belongs to the same actor/ticket at commit, (c) have F1 upload the photo
+first and pass the id. Until then a ref is trusted as evidence that a photo was taken; the
+hold + owner approval path does not depend on it.
+
+---
+
+**P1.14 Nightly sweep scope (A3b, 2026-10-08).** `scripts/exceptions_sweep.py` escalates
+overdue open exceptions and shortage flags (idempotent). The design's other nightly openers —
+`SHIPMENT_PROOF_MISSING` for the day's shipments without a photo (A6), `NEGATIVE_BALANCE` for
+any lot `lot_on_hand() < 0` without an open shortage (A9/weekly view), `UNSHIPPED_PAST_DUE`
+(A6/A7) — belong in the same script once those features exist. Railway cron for the sweep:
+same recipe as P1.9 (`python scripts/exceptions_sweep.py`, e.g. `30 7 * * *`), documented in
+`docs/deployments/a3b-exceptions-enforcement.md`; **not created yet**.
 
 ---
 

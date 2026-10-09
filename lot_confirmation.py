@@ -221,19 +221,10 @@ def record_substitutions(cur, transaction_id, payload, actor_id):
 
 
 # R8 counts seven weekdays AFTER the local entry date; holidays are not skipped.
+# A3b hook: the same clock serves shortages (2 days) — one helper, one rule.
 def identification_deadline(entered_at):
-    from datetime import timedelta, time
-    from zoneinfo import ZoneInfo
-    if entered_at.tzinfo is None:
-        raise ValueError('entered_at must have a timezone')
-    zone = ZoneInfo('America/New_York')
-    day = entered_at.astimezone(zone).date()
-    remaining = 7
-    while remaining:
-        day += timedelta(days=1)
-        if day.weekday() < 5:
-            remaining -= 1
-    return datetime.combine(day, time(23, 59), tzinfo=zone)
+    from exceptions_enforcement import business_deadline, BUSINESS_DAYS
+    return business_deadline(entered_at, BUSINESS_DAYS['UNIDENTIFIED_LOT'])
 
 
 def unidentified(payload):

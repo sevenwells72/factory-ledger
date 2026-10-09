@@ -76,6 +76,9 @@ _LABELS = {
     'pack': ('record a pack', 'registrar un empaque'),
     'adjust': ('adjust inventory', 'ajustar inventario'),
     'found': ('record found inventory', 'registrar inventario encontrado'),
+    'list_exceptions': ('view the exceptions queue', 'ver la cola de excepciones'),
+    'resolve_exception': ('resolve an exception', 'resolver una excepción'),
+    'approve_exception': ('approve or decline a held correction', 'aprobar o rechazar una corrección retenida'),
     'void': ('void a posting', 'anular un registro'),
     'move_lot': ('move a lot', 'mover un lote'),
     'backdate_over_14d': ('record an entry more than 14 days old', 'registrar una entrada de más de 14 días'),
@@ -168,6 +171,10 @@ ROUTE_ACTIONS = {
     ('POST', '/expected-receipts/extract/approve'): 'create_expected_receipt',
     ('POST', '/customers'): 'manage_customers',
     ('PATCH', '/customers/{customer_id}'): 'manage_customers',
+    # A3b /exceptions writes (named actors only; kind-specific owner checks in the handler)
+    ('POST', '/exceptions/{exception_id}/resolve'): 'resolve_exception',
+    ('POST', '/exceptions/{exception_id}/approve'): 'approve_exception',
+    ('POST', '/exceptions/{exception_id}/reject'): 'approve_exception',
 }
 # Actor-reachable writes with no §4.3 row. Listed so the completeness test
 # names every exemption; each stays open to every named role as today.
