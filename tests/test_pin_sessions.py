@@ -203,3 +203,29 @@ def test_parallel_requests_share_atomic_global_limit(isolated_database, monkeypa
     with transaction() as cur:
         cur.execute("SELECT count(*) FILTER (WHERE NOT blocked) AS tried,count(*) FILTER (WHERE blocked) AS blocked FROM pin_attempts")
         assert dict(cur.fetchone()) == {'tried':50,'blocked':25}
+
+
+def test_malformed_auth_never_echoes_input(client, people):
+    candidate = int(people['owner']['pin'])
+    response = client.post('/auth/session', json={'pin':candidate})
+    assert response.status_code == 422
+    assert str(candidate) not in response.text
+
+
+def test_backdated_ticket_requires_pin_on_commit(client, db_cursor, people, payload):
+    token = login(client, people['owner'])
+    prepared = prepare(client, payload | {'occurred_at': (main.get_plant_now()-timedelta(days=16)).isoformat(), 'backfill':True}, token)
+    error(commit(client, prepared, token), 403, 'OWNER_PIN_REQUIRED')
+    assert posted_count(db_cursor, prepared) == 0
+    response = client.post('/tickets/'+prepared['ticket']+'/commit', json={'payload_hash':prepared['payload_hash']},
+                           headers=headers(token)|{'X-FL-Owner-PIN':people['owner']['pin']})
+    assert response.status_code == 200
+    assert posted_count(db_cursor, prepared) == 1
+
+
+def test_migration_replay_preserves_sessions_and_protects_actor_hashes(client, db_cursor, people):
+    token = login(client, people['owner'])
+    db_cursor.execute((ROOT/'migrations/072_pin_sessions.sql').read_text())
+    assert client.get('/auth/session', headers=headers(token)).status_code == 200
+    db_cursor.execute("SELECT relrowsecurity FROM pg_class WHERE relname IN ('actors','actor_sessions','pin_attempts','pin_rate_limits','pin_management_audit')")
+    assert all(r['relrowsecurity'] for r in db_cursor.fetchall())

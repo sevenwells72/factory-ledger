@@ -35,7 +35,7 @@
   };
   async function request(route,method='GET',body) {
     try {
-      const response = await FL.fetchWithTimeout(API+route,{method,headers:{'X-API-Key':'dashboard-key-2026',...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+      const response = await FL.fetchWithTimeout(API+route,{method,headers:{'X-FL-Client': 'dashboard',...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
       const data = await response.json().catch(()=>({}));
       if (!response.ok) { const detail=data.detail||{}; const e=new Error(errors[detail.error_code] || (response.status===401||response.status===403?'Access is unavailable. Contact the dashboard administrator.':'Could not reach the ledger. Please try again.')); e.detail=detail; throw e; }
       return data;

@@ -1,5 +1,68 @@
 # Change Log
 
+## 2026-10-09 10:27 — A11: document session contract, staging onboarding and exact F1 integration handoff
+- **File(s) changed:** docs/deployments/a11-pin-sessions.md, docs/validation/a11-login-mobile.png, docs/validation/a11-pin-admin-desktop.png, dashboard/session.js
+- **What changed:** A11: document session contract, staging onboarding and exact F1 integration handoff
+- **Why:** Make the completed implementation reviewable for Claude Code and Michael; preserve F1 isolation and cover nested F1 authentication errors.
+
+---
+
+## 2026-10-09 10:25 — A11: isolate staging acceptance in a private namespace and exercise concurrent durable lockouts
+- **File(s) changed:** scripts/check_pin_sessions_staging.py
+- **What changed:** A11: isolate staging acceptance in a private namespace and exercise concurrent durable lockouts
+- **Why:** Run all 10,000 HTTP candidates efficiently without touching real people or live rate limits; retain staging actor RLS and verify the backend owns actors.
+
+---
+
+## 2026-10-09 10:24 — A11: verify the documented backend owns credential tables and outsiders cannot read them
+- **File(s) changed:** tests/test_named_actor_writes.py
+- **What changed:** A11: verify the documented backend owns credential tables and outsiders cannot read them
+- **Why:** Keep actor RLS enabled and test the intended application-role ownership, including a denial despite outsider table grants.
+
+---
+
+## 2026-10-09 10:23 — A11: make locked PIN requests a cheap deny-only path while retaining actor RLS
+- **File(s) changed:** pin_sessions.py
+- **What changed:** A11: make locked PIN requests a cheap deny-only path while retaining actor RLS
+- **Why:** Avoid serialized PIN lookup work during a blocked sweep; keep credential-table protections after automatic review rejected weakening staging RLS.
+
+---
+
+## 2026-10-09 10:19 — A11: add guarded staging acceptance sweep and first-person bootstrap tooling
+- **File(s) changed:** scripts/check_pin_sessions_staging.py, scripts/bootstrap_pin_staging.py
+- **What changed:** A11: add guarded staging acceptance sweep and first-person bootstrap tooling
+- **Why:** Run real staging HTTP/SQL security checks without retaining synthetic lockouts; let Michael choose the first personal PINs privately.
+
+---
+
+## 2026-10-09 10:17 — A11: protect actor credential columns and add backdate/redaction/migration acceptance checks
+- **File(s) changed:** migrations/072_pin_sessions.sql, pin_sessions.py, tests/test_pin_sessions.py
+- **What changed:** A11: protect actor credential columns and add backdate/redaction/migration acceptance checks
+- **Why:** Keep PIN hashes inaccessible through public database roles; preserve data on migration replay and require fresh proof on old ticket commits.
+
+---
+
+## 2026-10-09 10:14 — A11: update prior owner-action regression fixtures to supply real PIN proof
+- **File(s) changed:** tests/pin_test_support.py, tests/test_actor_attribution.py, tests/test_roles_a2.py, tests/test_exceptions_enforcement.py, pin_sessions.py
+- **What changed:** A11: update prior owner-action regression fixtures to supply real PIN proof
+- **Why:** Preserve existing business/concurrency assertions under the new step-up contract and reject stale or demoted owners before accepting proof.
+
+---
+
+## 2026-10-09 10:13 — A11: remove remaining case-variant dashboard key headers and add browser acceptance coverage
+- **File(s) changed:** dashboard/process-flow.html, dashboard/sankey.html, dashboard/traceability.html, tests/visual/run-pin-sessions.mjs
+- **What changed:** A11: remove remaining case-variant dashboard key headers and add browser acceptance coverage
+- **Why:** Verify keypad/admin layouts, session-only storage, per-action PIN, exact request retry, handover denial and idle clearing at phone and desktop widths.
+
+---
+
+## 2026-10-09 10:11 — A11: wire dashboard requests to PIN sessions and add personal/owner PIN screens
+- **File(s) changed:** dashboard/session.js, dashboard/session.css, dashboard/pin-management.html, dashboard/pin-management.js, dashboard/index.html, dashboard/runs.html, dashboard/history.html, dashboard/process-flow.html, dashboard/sankey.html, dashboard/traceability.html, dashboard/dashboard.js, dashboard/runs.js, dashboard/history.js, dashboard/mini-calendar.js
+- **What changed:** A11: wire dashboard requests to PIN sessions and add personal/owner PIN screens
+- **Why:** Remove shipped dashboard credentials, attribute writes to the signed-in person, stop idle polling from extending sessions and provide first-PIN setup.
+
+---
+
 ## 2026-10-09 10:09 — A11: prevent auth validation from echoing secrets and use explicit credentialed CORS origins
 - **File(s) changed:** main.py
 - **What changed:** A11: prevent auth validation from echoing secrets and use explicit credentialed CORS origins

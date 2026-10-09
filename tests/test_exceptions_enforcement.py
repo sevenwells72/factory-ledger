@@ -26,6 +26,8 @@ from tests.test_write_tickets import (headers, commit, ticket_row, posted_count,
                                       isolated_database)  # noqa: F401
 from tests.test_write_tickets_part2 import items, body, prepare, seed as seed_items  # noqa: F401
 
+from tests.pin_test_support import headers, commit  # A11: real per-request owner proof
+
 ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.db
 NY = a3b.PLANT_TIMEZONE
@@ -378,6 +380,11 @@ def race_actors(isolated_database):
             cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES (%s,%s,%s,true) RETURNING id",
                         (f'ACT {role} {token}', role, sha256(key.encode()).hexdigest()))
             ids[role] = cur.fetchone()['id']
+        import os, secrets
+        from tests.pin_test_support import seed_owner_pin
+        os.environ.setdefault('PIN_PEPPER', secrets.token_hex(32))
+        cur.execute((ROOT / 'migrations/072_pin_sessions.sql').read_text())
+        seed_owner_pin(cur, ids['owner'], keys['owner'])
     return keys, items_, ids
 
 

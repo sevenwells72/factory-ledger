@@ -75,14 +75,27 @@ def verify_pin(api, request, pin, *, purpose, actor_id=None, owner=False):
     device, ip_key, device_key = sources(request)
     result, error, alert = None, None, False
     with api.get_transaction() as cur:
+        # This fast path ONLY denies and logs. Misses take the serialized
+        # path below, which re-checks all locks before looking up any PIN.
+        cur.execute('''WITH gate AS (
+                         SELECT max(locked_until) AS until FROM pin_rate_limits
+                         WHERE source=ANY(%s) AND locked_until>clock_timestamp())
+                       INSERT INTO pin_attempts(source,device_hash,purpose,ok,blocked)
+                       SELECT %s,%s,%s,false,true FROM gate WHERE until IS NOT NULL
+                       RETURNING (SELECT until FROM gate) AS until,clock_timestamp() AS now''',
+                    (['global', ip_key, device_key], ip_key, device_key, purpose))
+        locked = cur.fetchone()
+        if locked:
+            retry = max(1, int((locked['until']-locked['now']).total_seconds())+1)
+            return None, HTTPException(401, {'error_code': 'PIN_INVALID',
+                'message': 'PIN not accepted. Try again or contact Michael.'},
+                headers={'Retry-After': str(retry)}), device
         cur.execute('SELECT pg_advisory_xact_lock(724110)')
-        cur.execute('SELECT clock_timestamp() AS now')
-        now = cur.fetchone()['now']
         keys = ['global', ip_key, device_key]
-        for key in keys:
-            cur.execute('INSERT INTO pin_rate_limits(source) VALUES (%s) ON CONFLICT DO NOTHING', (key,))
-        cur.execute('SELECT * FROM pin_rate_limits WHERE source=ANY(%s) FOR UPDATE', (keys,))
+        cur.execute('INSERT INTO pin_rate_limits(source) SELECT unnest(%s::text[]) ON CONFLICT DO NOTHING', (keys,))
+        cur.execute('SELECT *,clock_timestamp() AS now FROM pin_rate_limits WHERE source=ANY(%s) FOR UPDATE', (keys,))
         buckets = {row['source']: row for row in cur.fetchall()}
+        now = buckets['global']['now']
         locked = [r['locked_until'] for r in buckets.values() if r['locked_until'] and r['locked_until'] > now]
         blocked = bool(locked)
         if not blocked:
@@ -172,6 +185,11 @@ def require_owner_pin(api, request, *, purpose, allow_other_owner=False):
     actor = api.request_actor(request)
     if not actor or (not allow_other_owner and actor['role'] != 'owner'):
         fail(403, 'ROLE_NOT_ALLOWED', 'This action requires the owner.')
+    with api.get_transaction() as cur:
+        cur.execute('SELECT active,role FROM actors WHERE id=%s', (actor['id'],))
+        current = cur.fetchone()
+        if not current or not current['active'] or (not allow_other_owner and current['role'] != 'owner'):
+            fail(403, 'ROLE_NOT_ALLOWED', 'This action requires an active owner.')
     # Cache only inside this Request, so nested validation of the same action
     # does not double-count. There is no cross-request step-up grace period.
     verified = getattr(request.state, 'pin_owner', None)

@@ -10,7 +10,7 @@
     const url=new URL(location.href);url.searchParams.set('day',day.value);if(kind.value)url.searchParams.set('type',kind.value);else url.searchParams.delete('type');history.replaceState({},'',url);
     try{
       const q=new URLSearchParams({since:day.value,until:day.value,limit:1000});if(kind.value)q.set('transaction_type',kind.value);
-      const response=await FL.fetchWithTimeout('https://fastapi-production-b73a.up.railway.app/transactions/history?'+q,{headers:{'X-API-Key':'dashboard-key-2026'}});if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();if(request!==generation)return;
+      const response=await FL.fetchWithTimeout('https://fastapi-production-b73a.up.railway.app/transactions/history?'+q,{headers:{'X-FL-Client': 'dashboard'}});if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();if(request!==generation)return;
       const records=data.transactions||[],selected=new URL(location.href).searchParams.get('transaction');
       status.textContent=records.length+' transactions for '+FLDesign.date(day.value)+(records.length>=1000?'. Limit reached: narrow by type; older records may be omitted.':'.');
       records.forEach(tx=>{const article=document.createElement('article');article.className='recent-entry-card';article.id='transaction-'+tx.id;const details=document.createElement('details');details.className='record-details';details.open=String(tx.id)===selected;const title=document.createElement('summary');title.textContent='TX-'+tx.id+' · '+(names[tx.type]||tx.type)+' · '+(tx.status||'Status unavailable');details.append(title);const p=text('p','Occurred: '+FLDesign.time(tx.occurred_at || (tx.date+' '+tx.time))+' · Entered: '+FLDesign.time(tx.created_at),details);

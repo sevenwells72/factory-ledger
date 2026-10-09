@@ -21,6 +21,8 @@ from tests.test_write_tickets import (headers, commit, ticket_row, posted_count,
                                       isolated_database, seed as seed_receive)  # noqa: F401
 from tests.test_write_tickets_part2 import items, body, prepare, seed as seed_items  # noqa: F401
 
+from tests.pin_test_support import headers, commit  # A11: real per-request owner proof
+
 ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.db
 TICKET_ACTIONS = ['receive', 'make', 'pack', 'adjust', 'found']

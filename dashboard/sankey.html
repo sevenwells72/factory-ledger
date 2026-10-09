@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Ledger — Product Flow (Sankey)</title>
 <link rel="stylesheet" href="mini-calendar.css?v=5">
-<script src="fetch-timeout.js?v=1"></script>
+<script src="fetch-timeout.js?v=1"></script><link rel="stylesheet" href="session.css?v=1"><script src="session.js?v=1"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
 <script>
@@ -475,7 +475,7 @@
   'use strict';
 
   const API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-  const API_KEY = 'dashboard-key-2026';
+
   const LIMIT = 500;
   const MIN_FLOW_LB = 50;
 
@@ -530,7 +530,7 @@
   // failed, and the banner shows it verbatim so it can be pasted as-is.
   async function apiFetch(path) {
     const res = await FL.fetchWithTimeout(API_BASE + path, {
-      headers: { 'X-Api-Key': API_KEY }
+      headers: { 'X-FL-Client': 'dashboard' }
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');

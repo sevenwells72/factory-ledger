@@ -42,15 +42,16 @@ CREATE TABLE IF NOT EXISTS pin_management_audit (
     changed_by_actor_id integer NOT NULL REFERENCES actors(id),
     at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
+ALTER TABLE actors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE actor_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pin_rate_limits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pin_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pin_management_audit ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON actor_sessions, pin_rate_limits, pin_attempts, pin_management_audit FROM PUBLIC;
+REVOKE ALL ON actors, actor_sessions, pin_rate_limits, pin_attempts, pin_management_audit FROM PUBLIC;
 DO $$ DECLARE r text; BEGIN
     FOREACH r IN ARRAY ARRAY['anon','authenticated'] LOOP
         IF EXISTS(SELECT FROM pg_roles WHERE rolname=r) THEN
-            EXECUTE format('REVOKE ALL ON actor_sessions, pin_rate_limits, pin_attempts, pin_management_audit FROM %I',r);
+            EXECUTE format('REVOKE ALL ON actors, actor_sessions, pin_rate_limits, pin_attempts, pin_management_audit FROM %I',r);
         END IF;
     END LOOP;
 END $$;
