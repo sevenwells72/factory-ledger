@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-09 10:52 — A11: forbid shared-key exchange even when an actor hash is misprovisioned
+- **File(s) changed:** pin_sessions.py, tests/test_pin_sessions.py
+- **What changed:** A11: forbid shared-key exchange even when an actor hash is misprovisioned
+- **Why:** Shared/master keys must never gain a personal session through the office/owner sign-in path, including an accidental duplicate hash in actors.
+
+---
+
+## 2026-10-09 10:50 — A11: upload the final tested code and browser handover fix to staging
+- **File(s) changed:** FastAPI-staging deployment (code 9b872d1, migration 073)
+- **What changed:** A11: upload the final tested code and browser handover fix to staging
+- **Why:** Deploy the actor-key precedence fix and final UI state clearing from a clean Git archive; no production or other worktree changes.
+
+---
+
 ## 2026-10-09 10:48 — A11: preserve actor-key lookup precedence before recognizing a session token
 - **File(s) changed:** main.py, tests/test_pin_sessions.py
 - **What changed:** A11: preserve actor-key lookup precedence before recognizing a session token

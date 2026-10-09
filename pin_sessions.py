@@ -240,7 +240,12 @@ def register_routes(app, api):
     @app.post('/auth/session/key')
     def key_login(body: KeyLogin):
         pepper()  # don't offer sessions before PIN support is configured
-        actor = api._resolve_actor(body.actor_key.get_secret_value())
+        key = body.actor_key.get_secret_value()
+        # Shared credentials cannot turn into personal sessions, even if an
+        # actor row was mistakenly provisioned with the same hash.
+        if secrets.compare_digest(key, api.API_KEY) or (api.DASHBOARD_API_KEY and secrets.compare_digest(key, api.DASHBOARD_API_KEY)):
+            fail(401, 'SIGN_IN_INVALID', 'Personal sign-in not accepted.')
+        actor = api._resolve_actor(key)
         if not actor or actor['role'] not in ('owner', 'office'):
             fail(401, 'SIGN_IN_INVALID', 'Personal sign-in not accepted.')
         return JSONResponse(issue(api, actor, 'actor_key'), headers={'Cache-Control': 'no-store'})

@@ -257,3 +257,14 @@ def test_existing_actor_key_precedes_the_session_namespace(client, db_cursor, pe
     assert response.status_code == 200
     assert response.json()['key_kind'] == 'actor'
     assert response.json()['actor']['id'] == people['owner']['id']
+
+
+@pytest.mark.parametrize('kind', ['API_KEY','DASHBOARD_API_KEY'])
+def test_shared_key_cannot_exchange_even_with_misprovisioned_actor_hash(client, db_cursor, people, kind):
+    shared = getattr(main,kind)
+    db_cursor.execute('UPDATE actors SET key_hash=%s WHERE id=%s', (pins.digest(shared),people['owner']['id']))
+    main._reset_actor_cache()
+    response = client.post('/auth/session/key',json={'actor_key':shared})
+    error(response,401,'SIGN_IN_INVALID')
+    db_cursor.execute('SELECT count(*) AS n FROM actor_sessions')
+    assert db_cursor.fetchone()['n'] == 0
