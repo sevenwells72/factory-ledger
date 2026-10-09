@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-09 10:04 — A11: reserve additive migration 072 and document isolated build scope
+- **File(s) changed:** migrations/072_pin_sessions.sql, docs/deployments/a11-pin-sessions.md
+- **What changed:** A11: reserve additive migration 072 and document isolated build scope
+- **Why:** Implement Michael’s PIN-only identity decision on an isolated branch; no production actions.
+
+---
+
 ## 2026-10-09 09:35 — Post-A3b housekeeping: production schema re-dump (069–071 in the dump, pending \ir tails gone), FL changelog row 170, rollout section in the A3b deployment doc (branch chore/post-a3b)
 - **File(s) changed:** `tests/schema/schema.sql`, `tests/test_write_tickets.py`, `tests/test_exceptions_tables_061.py`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a3b-exceptions-enforcement.md`, `CHANGE_LOG.md`
 - **What changed:** `scripts/dump_prod_schema.sh` re-run against production (read-only pg_dump, port 5432) after 069/070/071 were applied at 13:27Z: the dump now carries `write_tickets.status` with `awaiting_approval`, `exceptions.kind` with `PRE_MAKE_ADJUST`, `actor_write_audit` target `'exceptions'`, `ledger_current_transactions` with trailing `reason_code` / `entered_by_actor_id`, the nine A3b indexes and `shortage_evidence_claims`; the three pending `\ir` tails are gone (0 `\ir` lines). `tests/test_write_tickets.py` isolated-DB fixture: comments rewritten — the 058/064/065/069/070/071 re-applies stay because the schema-only dump has no `migration_markers` rows and the up/down tests assert the markers (idempotent no-ops on the DDL); no code change. `tests/test_exceptions_tables_061.py` fixture: a fresh dump now carries 069–071, which depend on 061 (view columns, `shortage_evidence_claims` FKs), so the fixture rolls back 071 → 070 → 069 before the 061 down (the documented order; empty tables need no export confirmation) — without it three 061 tests errored with `DependentObjectsStillExist`. FACTORY_LEDGER_CHANGELOG row 170 (A3b production rollout: PR #94 → c66d676, migrations 069/070/071 applied prod + staging, Railway 8a3a429f/eba8e534, checks). Deployment doc gains a "Production rollout" section. Sweep cron still deliberately NOT created (FOLLOWUPS P1.14).
