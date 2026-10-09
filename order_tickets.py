@@ -27,12 +27,15 @@ from pydantic import Field, confloat, root_validator, validator
 import permissions
 import ticket_actions
 import write_tickets as wt
+import expected_receipt_tickets as er_tickets
 
 ACTIONS = wt.ORDER_ACTIONS
 PositiveId = wt.PositiveId
 fail = wt.fail
 DUPLICATE_WINDOW = '24 hours'
-REFERENCE_CONSTRAINTS = ('sales_orders_customer_external_reference_uniq', 'sales_order_create_receipts_pkey')
+REFERENCE_CONSTRAINTS = ('sales_orders_customer_external_reference_uniq', 'sales_order_create_receipts_pkey',
+                         'sales_orders_external_reference_uniq', 'sales_order_receipts_reference_uniq',
+                         'write_tickets_order_reference_uniq')
 
 
 # ---------------------------------------------------------------------------
@@ -184,15 +187,31 @@ def customer(cur, customer_id, *, lock=False):
     return dict(row)
 
 
-def reference_order(cur, customer_id, reference):
-    cur.execute('''SELECT id, order_number FROM sales_orders WHERE customer_id=%s AND external_order_reference=%s
+def reference_order(cur, reference):
+    cur.execute('''SELECT id, order_number FROM sales_orders WHERE external_order_reference=%s
                    UNION ALL
                    SELECT so.id, so.order_number FROM sales_order_create_receipts r
                    JOIN sales_orders so ON so.id=r.order_id
-                   WHERE r.customer_id=%s AND r.external_order_reference=%s
-                   LIMIT 1''', (customer_id, reference, customer_id, reference))
+                   WHERE r.external_order_reference=%s
+                   LIMIT 1''', (reference, reference))
     row = cur.fetchone()
     return dict(row) if row else None
+
+
+def create_intent(payload):
+    # The original immutable request, independent of entry day and current order/customer fields.
+    return wt.canonical_hash({k: v for k, v in payload.items() if k not in ('occurred_at', 'allow_duplicate_po')})
+
+
+def reference_receipt(cur, reference, payload):
+    cur.execute('''SELECT id, payload, response, result_ref FROM write_tickets
+                   WHERE action='create_order' AND status='committed' AND receipt_number IS NOT NULL
+                     AND COALESCE(payload->>'external_order_reference', receipt_number)=%s''', (reference,))
+    original = cur.fetchone()
+    if original and create_intent(original['payload']) != create_intent(payload):
+        fail(409, 'EXTERNAL_ORDER_REFERENCE_CONFLICT',
+             'This reference belongs to a different create request; retry the original request.')
+    return dict(original) if original else None
 
 
 def order_snapshot(order, lines):
@@ -236,8 +255,17 @@ def require_reason_permissions(api, cur, action, payload, actor):
 # ---------------------------------------------------------------------------
 def validate(api, cur, action, payload, *, lock=False):
     """Pre-checks the cores do not make, plus the state snapshot. Returns context."""
+    if action in er_tickets.ACTIONS:
+        return er_tickets.validate(api, cur, action, payload, lock=lock)
     ctx = {'blockers': []}
     if action == 'create_order':
+        reference = payload.get('external_order_reference')
+        if reference:
+            if lock:
+                api._lock_order_reference(cur, None, reference)
+            original = reference_receipt(cur, reference, payload)
+            if original:
+                return {'blockers': [], 'replay': original, 'state': {'original_ticket_id': original['id']}}
         cust = customer(cur, payload['customer_id'], lock=lock)
         api.validate_bilingual(payload.get('notes'), payload.get('notes_es'), 'notes')
         products = {}
@@ -248,7 +276,7 @@ def validate(api, cur, action, payload, *, lock=False):
         if reference:
             if lock:
                 api._lock_order_reference(cur, cust['id'], reference)
-            existing = reference_order(cur, cust['id'], reference)
+            existing = reference_order(cur, reference)
             if existing:
                 fail(409, 'EXTERNAL_ORDER_REFERENCE_EXISTS',
                      f"Order {existing['order_number']} already carries reference '{reference}' for "
@@ -312,6 +340,11 @@ def validate(api, cur, action, payload, *, lock=False):
 
 def post(api, cur, action, payload, request, ctx, *, ticket_id, receipt, allow_duplicate_po):
     """Run the live core for real. ticket_id/receipt are None on the prepare dry run."""
+    if action in er_tickets.ACTIONS:
+        return er_tickets.post(api, cur, action, payload, request, ctx, ticket_id=ticket_id,
+                               allow_duplicate=allow_duplicate_po)
+    if ctx.get('replay'):
+        return {**ctx['replay']['response'], 'replayed': True}
     order_id = payload.get('order_id')
     if action == 'create_order':
         cust = ctx['customer']
@@ -389,7 +422,13 @@ def _lb(value):
 
 
 def draft_from(action, payload, response, ctx):
+    if action in er_tickets.ACTIONS:
+        return er_tickets.draft_from(action, response)
     draft = dict(response)
+    if ctx.get('replay'):
+        draft['summary'] = f"Return original order {response['order_number']} / {response['receipt_number']}"
+        draft['summary_es'] = f"Devolver pedido original {response['order_number']} / {response['receipt_number']}"
+        return draft
     if action == 'create_order':
         cust = ctx['customer']
         draft.pop('order_id', None)
@@ -467,7 +506,10 @@ def duplicate_po_warning(customer_po, duplicates, allow_duplicate_po):
 
 
 def canonical_lines(lines):
-    return sorted((l['product_id'], l.get('quantity'), l.get('unit'), l.get('quantity_lb')) for l in lines)
+    # JSON strings give a total ordering even when the same product mixes
+    # quantity/unit and quantity_lb. Preserve duplicate multiplicity and nulls.
+    return sorted(json.dumps([l['product_id'], l.get('quantity'), l.get('unit'), l.get('quantity_lb')],
+                             separators=(',', ':')) for l in lines)
 
 
 def possible_duplicate(cur, action, payload, key_field):
@@ -477,7 +519,7 @@ def possible_duplicate(cur, action, payload, key_field):
                            payload->'lines' AS lines,
                            EXTRACT(EPOCH FROM (clock_timestamp()-committed_at))/60 AS minutes_ago
                     FROM write_tickets
-                    WHERE action=%s AND status='committed'
+                    WHERE action=%s AND status='committed' AND receipt_number IS NOT NULL
                       AND committed_at >= clock_timestamp()-interval '{DUPLICATE_WINDOW}'
                       AND (payload->>%s)::bigint=%s
                     ORDER BY committed_at DESC, id DESC''',
@@ -500,6 +542,10 @@ def possible_duplicate(cur, action, payload, key_field):
 
 
 def warnings_for(cur, action, payload, ctx):
+    if action in er_tickets.ACTIONS:
+        return er_tickets.warnings_for(cur, action, payload, ctx)
+    if ctx.get('replay'):
+        return []
     warnings = []
     if action == 'create_order':
         if payload.get('customer_po') is None:
@@ -524,6 +570,8 @@ def warnings_for(cur, action, payload, ctx):
 def commit(api, cur, row, body, actor, request, entry_timing):
     if body.lot_confirmations:
         fail(422, 'UNUSED_LOT_CONFIRMATION', 'This action does not consume ingredient lots.')
+    if body.attachment_ref:
+        fail(422, 'UNUSED_ATTACHMENT', 'Only corrections (adjust, found) take photo evidence.')
     action, payload = row['action'], row['payload']
     acknowledged = set(body.acknowledged_warnings)
     # Reason-dependent roles, re-checked now: a plain 403, the ticket stays prepared.
@@ -542,9 +590,20 @@ def commit(api, cur, row, body, actor, request, entry_timing):
         if ctx['blockers']:
             fail(409, ctx['blockers'][0]['code'], ctx['blockers'][0]['message'], blockers=ctx['blockers'])
         state_changed = wt.canonical_hash(wt.json_value(api, ctx['state'])) != row['state_hash']
+        if ctx.get('replay'):
+            original = ctx['replay']
+            response = {**original['response'], 'replayed': True}
+            # Alias ticket: keep the original receipt number uniquely attached
+            # to its original ticket, and persist the identical replay result.
+            cur.execute('''UPDATE write_tickets SET status='committed',committed_at=clock_timestamp(),
+                           result_ref=%s,response=%s,acknowledged=%s WHERE id=%s''',
+                        (Json(original['result_ref']), Json(response), Json(sorted(acknowledged)), row['id']))
+            cur.execute('RELEASE SAVEPOINT ticket_post')
+            return response
         business_date = datetime.fromisoformat(payload['occurred_at']).astimezone(api.PLANT_TIMEZONE).date()
         receipt = wt.allocate_receipt(cur, action, business_date)
-        allow_po = bool(payload.get('allow_duplicate_po')) or 'DUPLICATE_CUSTOMER_PO' in acknowledged
+        allow_po = (bool(payload.get('allow_duplicate_po') or payload.get('force'))
+                    or bool({'DUPLICATE_CUSTOMER_PO', 'DUPLICATE_REFERENCE'} & acknowledged))
         response = post(api, cur, action, payload, request, ctx, ticket_id=row['id'], receipt=receipt,
                         allow_duplicate_po=allow_po)
         # The envelope middleware adds success=true on the wire; store it too so
@@ -563,7 +622,7 @@ def commit(api, cur, row, body, actor, request, entry_timing):
             errors = errors or [wt.blocker(exc)]
         elif exc.diag.constraint_name in REFERENCE_CONSTRAINTS:
             errors = [{'code': 'EXTERNAL_ORDER_REFERENCE_CONFLICT',
-                       'message': 'This customer already has an order with this external_order_reference.'}]
+                       'message': 'An order already has this external_order_reference.'}]
         else:
             raise
         cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
@@ -575,6 +634,8 @@ def commit(api, cur, row, body, actor, request, entry_timing):
     cur.execute('RELEASE SAVEPOINT ticket_post')
     result_ref = {'order_id': response.get('order_id'), 'order_number': response.get('order_number'),
                   'line_ids': result_line_ids(action, payload, response), 'transaction_ids': [], 'lot_ids': []}
+    if action in er_tickets.ACTIONS:
+        result_ref = {'expected_receipt_ids': er_tickets.result_ids(response), 'transaction_ids': [], 'lot_ids': []}
     cur.execute('''UPDATE write_tickets SET status='committed',committed_at=clock_timestamp(),
         receipt_number=%s,result_ref=%s,response=%s,acknowledged=%s WHERE id=%s''',
         (receipt, Json(result_ref), Json(response), Json(sorted(acknowledged)), row['id']))
@@ -616,7 +677,7 @@ def register_routes(app, api):
         actor = wt.identity(api, request)
         permissions.require(action, actor)   # matrix row on the ticket action, before any row exists
         payload = json.loads(req.json(exclude={'client_source'}))
-        if action == 'update_order_header':
+        if action in ('update_order_header', 'update_expected_receipt'):
             payload['fields'] = sorted(req.__fields_set__ - {'client_source'})
             if not payload['fields']:
                 fail(422, 'NO_FIELDS_TO_UPDATE', 'Give at least one header field to change.')
@@ -649,6 +710,8 @@ def register_routes(app, api):
             return wt.issue_ticket(api, cur, actor=actor, action=action, payload=payload, draft=draft,
                                    state=state, warnings=warnings, blockers=blockers,
                                    client_source=req.client_source, event_time=now)
+
+    er_tickets.register_routes(app, api, prepare)
 
     # verify_api_key is listed first so an unknown key is refused before the
     # order id is even resolved.

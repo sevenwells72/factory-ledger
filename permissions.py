@@ -59,6 +59,8 @@ ROLE_PERMISSIONS = {
     'close_order_shipped_not_recorded': frozenset({OWNER, LEGACY_LEDGER}),
     'reopen_order': frozenset({OWNER, LEGACY_LEDGER}),
     'create_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
+    'update_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
+    'cancel_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
     'manage_customers': _NAMED_AND_MASTER - {FLOOR},
     # New in Phase 1 — no shared key reaches any of these.
     'manage_aliases': frozenset({OWNER, OFFICE}),

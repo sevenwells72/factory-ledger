@@ -6239,3 +6239,4 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- pg_dump leaves search_path empty; restore it for standalone DDL.
 SET search_path TO public;
 \ir ../../migrations/067_order_tickets.sql
+\ir ../../migrations/072_order_ticket_review_fixes.sql

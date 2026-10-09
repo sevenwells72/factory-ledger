@@ -247,14 +247,12 @@ def test_service_line_has_zero_weight_and_priced_amount(client, db_cursor, catal
     assert pallet['is_service'] is True and receipt['total_lb'] == 50
 
 
-def test_client_external_reference_is_kept_and_a_second_create_is_refused(client, db_cursor, catalog):
+def test_client_external_reference_is_kept_and_original_create_replays(client, db_cursor, catalog):
     receipt = create_order(client, catalog, external_order_reference='EXT-' + catalog['suffix'])
     assert receipt['external_order_reference'] == 'EXT-' + catalog['suffix']
     prepared = prepare(client, '/sales/orders/prepare', create_body(catalog, external_order_reference='EXT-' + catalog['suffix']))
-    assert prepared['can_commit'] is False
-    assert prepared['blockers'][0]['code'] == 'EXTERNAL_ORDER_REFERENCE_EXISTS'
-    assert prepared['blockers'][0]['message'].startswith(f"Order {receipt['order_number']} already carries")
-    error(commit(client, prepared), 409, 'TICKET_STALE')
+    assert prepared['can_commit'] is True
+    assert commit(client, prepared).json() == {**receipt, 'replayed': True}
     # The direct route's PR #67 rule still sees the ticket-created order.
     direct = client.post('/sales/orders', json={**create_body(catalog), 'external_order_reference': 'EXT-' + catalog['suffix']},
                          headers=headers())
