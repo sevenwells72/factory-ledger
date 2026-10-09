@@ -837,6 +837,7 @@ def register_routes(app, api):
                      allowed=list(allowed))
             if body.resolution_kind in OWNER_RESOLUTIONS:
                 permissions.require('approve_exception', actor)     # written_off / waived: owner only
+                api.pin_sessions.require_owner_pin(api, request, purpose='resolve_exception')
             # Evidence: a shortage closes on a matching correction or receipt, never on a note alone.
             resolution_ticket_id, patch, closes = None, {}, True
             if row['kind'] in EVIDENCE_KINDS:
@@ -924,6 +925,7 @@ def register_routes(app, api):
     def approve_exception(exception_id: int, body: DecisionRequest, request: Request, _: bool = Depends(api.verify_api_key)):
         owner = who(request)
         permissions.require('approve_exception', owner)
+        api.pin_sessions.require_owner_pin(api, request, purpose='approve_exception')
         with api.get_transaction() as cur:
             row, ticket = _held(cur, exception_id)
             owner = _current_approver(cur, owner)
@@ -959,6 +961,7 @@ def register_routes(app, api):
     def reject_exception(exception_id: int, body: ResolveRequest, request: Request, _: bool = Depends(api.verify_api_key)):
         owner = who(request)
         permissions.require('approve_exception', owner)
+        api.pin_sessions.require_owner_pin(api, request, purpose='reject_exception')
         if body.resolution_kind != 'declined':
             fail(422, 'RESOLUTION_KIND_INVALID', "Rejecting a held correction uses resolution_kind 'declined'.", allowed=['declined'])
         with api.get_transaction() as cur:

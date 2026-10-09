@@ -11,13 +11,14 @@ LAUNCH = '''
 if os.getenv("ENVIRONMENT", "").strip().lower() != "staging":
     raise RuntimeError("This launcher requires ENVIRONMENT=staging")
 assert_staging_database(os.getenv("DATABASE_URL", ""))
-import uvicorn
-uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", "8000")))
+run()
 '''
 
 
 def start_command():
-    source = (ROOT / "staging_safety.py").read_text() + LAUNCH
+    # Embed the launcher as well: staging may still run an older snapshot.
+    proxy = (ROOT / "proxy_server.py").read_text().split("if __name__ == '__main__':")[0]
+    source = (ROOT / "staging_safety.py").read_text() + "\n" + proxy + LAUNCH
     return "python -c " + shlex.quote(source)
 
 

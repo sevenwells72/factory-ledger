@@ -1100,7 +1100,7 @@
       panel.setAttribute('aria-busy', 'true');
       try {
         const data = await fetchAPI('/production/trace?' + params, {
-          headers: { 'X-API-Key': SALES_API_KEY }
+          headers: { 'X-FL-Client': 'dashboard' }
         });
         renderProductionTrace(panel, data, packedBatch);
         loaded = true;
@@ -1953,7 +1953,7 @@
         try {
           await FL.fetchWithTimeout(API_BASE + '/notes/' + id + '/toggle', {
             method: 'PUT',
-            headers: { 'X-API-Key': SALES_API_KEY },
+            headers: { 'X-FL-Client': 'dashboard' },
           });
           refreshNotes();
         } catch (err) {
@@ -1983,7 +1983,7 @@
         try {
           await FL.fetchWithTimeout(API_BASE + '/notes/' + id, {
             method: 'DELETE',
-            headers: { 'X-API-Key': SALES_API_KEY },
+            headers: { 'X-FL-Client': 'dashboard' },
           });
           refreshNotes();
         } catch (err) {
@@ -2093,7 +2093,7 @@
         // Update
         await FL.fetchWithTimeout(API_BASE + '/notes/' + state.editingNoteId, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'X-API-Key': SALES_API_KEY },
+          headers: { 'Content-Type': 'application/json', 'X-FL-Client': 'dashboard' },
           body: JSON.stringify(payload),
         });
       } else {
@@ -2101,7 +2101,7 @@
         payload.category = category;
         await FL.fetchWithTimeout(API_BASE + '/notes', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-API-Key': SALES_API_KEY },
+          headers: { 'Content-Type': 'application/json', 'X-FL-Client': 'dashboard' },
           body: JSON.stringify(payload),
         });
       }
@@ -2147,7 +2147,7 @@
   // ── Sales Orders ──
 
   const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-  const SALES_API_KEY = 'dashboard-key-2026';
+
   const ALLOCATION_INVENTORY_LIMIT = 500;
 
   // Orders sub-state
@@ -2165,7 +2165,7 @@
   state.allocationCountdownTimer = null;
 
   async function fetchSalesAPI(path, options = {}) {
-    const headers = { 'X-API-Key': SALES_API_KEY, ...(options.headers || {}) };
+    const headers = { 'X-FL-Client': 'dashboard', ...(options.headers || {}) };
     const res = await FL.fetchWithTimeout(SALES_API_BASE + path, { ...options, headers });
     if (!res.ok) {
       const body = await res.text();
@@ -2337,7 +2337,7 @@
 
     try {
       const response = await FL.fetchWithTimeout(SALES_API_BASE + '/export/orders-matrix.xlsx', {
-        headers: { 'X-API-Key': SALES_API_KEY }
+        headers: { 'X-FL-Client': 'dashboard' }
       });
       if (!response.ok) {
         const body = await response.text();

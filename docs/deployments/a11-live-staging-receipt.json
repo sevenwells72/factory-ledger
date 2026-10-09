@@ -1,0 +1,21 @@
+{
+  "environment": "staging",
+  "api": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "checks": [
+    "live PIN-to-person login",
+    "live session whoami",
+    "floor admin denial",
+    "fresh owner step-up",
+    "wrong-person PIN denial",
+    "weak PIN refusal",
+    "idle expiry",
+    "logout invalidation",
+    "served dashboard/session assets",
+    "Michael bootstrap sign-in",
+    "four people ready with no PINs set"
+  ],
+  "synthetic_actors": "deactivated; PIN hashes cleared; sessions revoked",
+  "production_touched": false,
+  "source_commit": "847fb6cec9f80bf9a2598f462b99a3c61f6ef24f",
+  "deployment_id": "046d335b-ea9c-47f3-8a8a-36b401ad6dc3"
+}

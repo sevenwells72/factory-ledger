@@ -279,7 +279,7 @@
   }
 </style>
 <link rel="stylesheet" href="interaction.css?v=2">
-<script src="fetch-timeout.js?v=1"></script>
+<script src="fetch-timeout.js?v=1"></script><link rel="stylesheet" href="session.css?v=1"><script src="session.js?v=2"></script>
   <link rel="stylesheet" href="shell-layout.css?v=6">
 <script src="design-controls.js?v=3"></script>
 </head>
@@ -322,7 +322,7 @@
   'use strict';
 
   const API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-  const API_KEY = 'dashboard-key-2026';
+
   const REFRESH_MS = 60000;
 
   // --- Production line definitions ---
@@ -393,7 +393,7 @@
   // failed, and the banner shows it verbatim so it can be pasted as-is.
   async function apiFetch(path) {
     const res = await FL.fetchWithTimeout(API_BASE + path, {
-      headers: { 'X-Api-Key': API_KEY }
+      headers: { 'X-FL-Client': 'dashboard' }
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');

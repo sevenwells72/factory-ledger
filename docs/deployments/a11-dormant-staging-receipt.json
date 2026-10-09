@@ -1,0 +1,51 @@
+{
+  "verified_at": "2026-10-09T16:17:11.868927+00:00",
+  "environment": "staging",
+  "service_id": "0d957be1-8787-41e5-ab38-de71287c30ce",
+  "deployment_id": "a38c1cbc-ac8e-4437-acc7-117d18cb7f00",
+  "status": "SUCCESS",
+  "pin_login_enabled": true,
+  "forwarded_allow_ips": "*",
+  "application_role_checks": {
+    "actors": {
+      "owned_by_app": true,
+      "rls_enabled": true
+    },
+    "actor_sessions": {
+      "owned_by_app": true,
+      "rls_enabled": true
+    },
+    "pin_rate_limits": {
+      "owned_by_app": true,
+      "rls_enabled": true
+    },
+    "pin_attempts": {
+      "owned_by_app": true,
+      "rls_enabled": true
+    },
+    "pin_management_audit": {
+      "owned_by_app": true,
+      "rls_enabled": true
+    }
+  },
+  "proxy_smoke": {
+    "attempts": 2,
+    "unique_devices": 2,
+    "real_public_client_ip_verified": true,
+    "spoofed_forwarded_and_real_ip_ignored": true,
+    "security_evidence_retained": true
+  },
+  "served_asset_sha256": {
+    "dashboard/session.js": "c4911c2cd89b42155f2ce610daf036b91db2dc786b3a3ad40921d6da9c62f12b",
+    "dashboard/pin-management.js": "8997024912b34a5b784d6ab0f4feec207889be5762d3a98c4e9c8206003a566b",
+    "dashboard/pin-management.html": "87a5a27438b7fc9c071e161e05c808ad93e9004c0690dcc0e57e0efde6a2d943"
+  },
+  "fresh_database_python_passed": 2280,
+  "javascript_passed": 69,
+  "dormant_browser_checks": 93,
+  "enabled_browser_checks": 22,
+  "production_touched": false,
+  "netlify_deployed": false,
+  "merged": false,
+  "source_manifest_sha256": "802544bef3370e7752ba9b986d8034133939e07ba3add69645fcd863a17ce253"
+}

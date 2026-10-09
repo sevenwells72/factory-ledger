@@ -93,7 +93,7 @@ def fail(http_status, code, message, **extra):
 
 def role_of(identity):
     """`write_tickets.identity()` shape: {id, name, role, key_kind}. Unknown → None (denied)."""
-    if identity.get('key_kind') == 'actor':
+    if identity.get('key_kind') in ('actor', 'session'):
         return identity.get('role') if identity.get('role') in NAMED else None
     return identity.get('key_kind') if identity.get('key_kind') in (LEGACY_LEDGER, LEGACY_DASHBOARD) else None
 
@@ -206,7 +206,7 @@ UNGATED_ROUTES = frozenset({
 
 def require_route(route_key, identity):
     """Apply the matrix to a direct route for a NAMED actor; shared keys pass through."""
-    if identity.get('key_kind') != 'actor':
+    if identity.get('key_kind') not in ('actor', 'session'):
         return None
     action = ROUTE_ACTIONS.get(route_key)
     return require(action, identity) if action else None

@@ -584,6 +584,8 @@ def test_audit_table_rls_blocks_other_roles_but_not_the_owning_backend_role(
         db_cursor.execute(f'GRANT ALL ON ALL TABLES IN SCHEMA public TO {role}')
         db_cursor.execute(f'GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO {role}')
     db_cursor.execute(f'ALTER TABLE public.actor_write_audit OWNER TO {owner}')
+    # A11: the documented backend owns the credential table as well.
+    db_cursor.execute(f'ALTER TABLE public.actors OWNER TO {owner}')
     try:
         # The real app write path, running as the non-superuser owning role.
         db_cursor.execute(f'SET LOCAL ROLE {owner}')
@@ -597,6 +599,8 @@ def test_audit_table_rls_blocks_other_roles_but_not_the_owning_backend_role(
         assert [r['operator_id'] for r in db_cursor.fetchall()] == ['Miriam']
 
         db_cursor.execute(f'SET LOCAL ROLE {outsider}')
+        db_cursor.execute('SELECT count(*) AS n FROM actors')
+        assert db_cursor.fetchone()['n'] == 0  # A11 hashes remain hidden even with table grants
         db_cursor.execute('SELECT count(*) AS n FROM actor_write_audit')
         assert db_cursor.fetchone()['n'] == 0
         db_cursor.execute('SAVEPOINT rls_insert_check')

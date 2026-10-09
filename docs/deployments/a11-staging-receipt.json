@@ -1,0 +1,28 @@
+{
+  "environment": "staging",
+  "mode": "actual FastAPI HTTP routes; committed concurrent transactions in private namespace on real staging Postgres",
+  "migration": "072_pin_sessions",
+  "sweep_attempts": 10000,
+  "sweep_authenticated": 0,
+  "source_lock_at_attempt": 5,
+  "blocked_before_PIN_lookup": 9995,
+  "global_failures_before_lock": 50,
+  "checks": [
+    "PIN identity",
+    "weak PIN refusal",
+    "owner-only PIN administration",
+    "fresh owner proof",
+    "wrong-person PIN denial",
+    "idle expiry",
+    "full concurrent sweep",
+    "distributed global lock"
+  ],
+  "elapsed_seconds": 240.7,
+  "cleanup": "private acceptance namespace removed; public people/PINs/sessions/limits untouched",
+  "final_migration": "073_pin_sessions",
+  "migration_renumber_only": true,
+  "staging_markers_after_renumber": [
+    "072_pin_sessions",
+    "073_pin_sessions"
+  ]
+}

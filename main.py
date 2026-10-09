@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Reques
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool, Field
 from typing import Optional, List, Dict, Union, Literal, Callable, Any
 import json
@@ -38,6 +37,7 @@ import lot_confirmation
 import exceptions_enforcement
 import resolution
 import permissions
+import pin_sessions
 import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
@@ -148,15 +148,7 @@ class DecimalSafeJSONResponse(JSONResponse):
         ).encode("utf-8")
 
 app = FastAPI(title="Factory Ledger System", version="3.1.1", default_response_class=DecimalSafeJSONResponse)
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(pin_sessions.ModeCORSMiddleware)
 
 # ═══════════════════════════════════════════════════════════════
 # UNIFORM WRITE-RESPONSE CONTRACT (additive envelope)
@@ -305,6 +297,10 @@ def _json_finite(value):
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_handler(request: Request, exc: RequestValidationError):
+    # Auth bodies must never echo a malformed PIN or personal key.
+    if request.url.path.startswith('/auth/session') or re.fullmatch(r'/actors/[^/]+/pin', request.url.path):
+        return JSONResponse(status_code=422, content={'detail': {'error_code': 'AUTH_INPUT_INVALID',
+                            'message': 'Check the sign-in fields and try again.'}}, headers={'Cache-Control': 'no-store'})
     # Same body as FastAPI's default ({"detail": errors}), but a body that carried
     # NaN / Infinity (json.loads accepts them) must still get its 422: the default
     # handler echoes the offending `input` and the strict encoder then raises → 500
@@ -3189,12 +3185,16 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     actor = _resolve_actor(provided_key)
+    session_key = pin_sessions.enabled() and actor is None and provided_key.startswith(pin_sessions.SESSION_PREFIX)
+    if session_key:
+        actor = pin_sessions.resolve(sys.modules[__name__], request, provided_key)
     if actor is not None:
         request.state.actor = actor
-        request.state.key_kind = "actor"
-        _touch_actor_last_used(actor)
+        request.state.key_kind = "session" if session_key else "actor"
+        if not session_key:
+            _touch_actor_last_used(actor)
         route_key = _route_key(request)
-        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
+        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST | (pin_sessions.AUTH_ROUTES if pin_sessions.enabled() else frozenset())):
             # A2: the §4.3 matrix on the direct routes too, so an office key
             # cannot post `POST /make` while `/make/prepare` denies it. 403
             # ROLE_NOT_ALLOWED before the handler, before any body is read.
@@ -3219,6 +3219,7 @@ def verify_api_key_flexible(
 
 # A4 is isolated from ticket/write handlers; defer transaction lookup for tests.
 app.include_router(resolution.build_router(lambda: get_transaction(), verify_api_key))
+pin_sessions.register_routes(app, sys.modules[__name__])
 
 
 @app.get("/auth/whoami")
@@ -3326,7 +3327,9 @@ def validate_inventory_occurred_at(
             },
         )
     if request_actor(request) is not None:
-        permissions.require_backdating(_actor_identity(request), event_time, now)
+        info = permissions.require_backdating(_actor_identity(request), event_time, now)
+        if info['status'] == 'backfill':
+            pin_sessions.require_owner_pin(sys.modules[__name__], request, purpose='backdate_over_14d')
     if elapsed > INVENTORY_OCCURRED_AT_STANDARD_WINDOW and not backfill:
         raise HTTPException(
             status_code=400,
@@ -20666,7 +20669,7 @@ def audit_integrity():
 
 _dashboard_dir = pathlib.Path(__file__).parent / "dashboard"
 if _dashboard_dir.is_dir():
-    app.mount("/dashboard", StaticFiles(directory=str(_dashboard_dir), html=True), name="dashboard-ui")
+    app.mount("/dashboard", pin_sessions.DashboardFiles(directory=str(_dashboard_dir), html=True), name="dashboard-ui")
 
 
 # A1: plain HTTP ticket/receipt routes share the same FL action cores.

@@ -4,9 +4,13 @@
   "private": true,
   "description": "Node-side test tooling for the Factory Ledger dashboard (visual/mechanical design audit).",
   "scripts": {
-    "test:visual": "node tests/visual/run-visual-audit.mjs"
+    "test:visual": "node tests/visual/run-visual-audit.mjs",
+    "test:pin-dormant": "node tests/visual/run-pin-dormant.mjs",
+    "test:pin-sessions": "node tests/visual/run-pin-sessions.mjs"
   },
   "devDependencies": {
-    "playwright": "^1.47.0"
+    "playwright": "^1.47.0",
+    "d3": "7.9.0",
+    "d3-sankey": "0.12.3"
   }
 }
