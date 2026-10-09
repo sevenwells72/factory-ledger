@@ -71,6 +71,7 @@ try {
     await page.getByRole('dialog').getByLabel('Personal PIN',{exact:true}).fill(testValue);
     await page.getByRole('button',{name:'Sign in',exact:true}).click();
     assert.match(await page.evaluate(()=>window.pending),/belongs to Michael/);assert.equal(protectedCalls.length,before+1);checks++;
+    assert.equal(await page.locator('#admin-pin').isVisible(),false);assert.equal(await page.locator('#pin-person option').count(),0);checks++;
     // Advancing the clock ends the tab's credential before user interaction can renew it.
     await page.evaluate(()=>{const realNow=Date.now;Date.now=()=>realNow()+600001;});
     await page.waitForFunction(()=>sessionStorage.getItem('fl-session-v1')===null);

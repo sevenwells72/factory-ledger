@@ -50,7 +50,7 @@ def check(apply_migration=False):
         with admin, admin.cursor() as cur:
             cur.execute("SET LOCAL search_path=public; SET LOCAL lock_timeout='5s'")
             if apply_migration:
-                cur.execute((ROOT/'migrations/072_pin_sessions.sql').read_text())
+                cur.execute((ROOT/'migrations/073_pin_sessions.sql').read_text())
             cur.execute("SELECT current_user=pg_get_userbyid(relowner) FROM pg_class WHERE oid='public.actors'::regclass")
             assert cur.fetchone()[0], 'Staging backend must own its actors table'
             # A private, uniquely named acceptance namespace on REAL staging
@@ -59,21 +59,20 @@ def check(apply_migration=False):
             cur.execute(sql.SQL('SET LOCAL search_path={},public').format(sql.Identifier(schema)))
             cur.execute('CREATE TABLE actors (LIKE public.actors INCLUDING ALL)')
             cur.execute('CREATE TABLE migration_markers (name text PRIMARY KEY,applied_at timestamptz DEFAULT clock_timestamp())')
-            cur.execute((ROOT/'migrations/072_pin_sessions.sql').read_text())
+            cur.execute((ROOT/'migrations/073_pin_sessions.sql').read_text())
         os.environ.update(DATABASE_URL=uri, ENVIRONMENT='staging', PRODUCTION_DATABASE_HOST=PRODUCTION_DATABASE_HOST,
                           PIN_PEPPER=secrets.token_hex(32), API_KEY=secrets.token_urlsafe(40), DASHBOARD_API_KEY=secrets.token_urlsafe(40))
         logging.disable(logging.CRITICAL)
         import main
         import pin_sessions as pins
-        pool = ThreadedConnectionPool(1,12,uri,port=5432,sslmode='require',connect_timeout=15)
+        pool = ThreadedConnectionPool(8,8,uri,port=5432,sslmode='require',connect_timeout=15)
         @contextmanager
         def connection():
             conn=pool.getconn()
             try:
                 with conn:
                     with conn.cursor() as cur:
-                        cur.execute(sql.SQL('SET LOCAL search_path={},public').format(sql.Identifier(schema)))
-                        cur.execute("SET LOCAL lock_timeout='30s'; SET LOCAL statement_timeout='60s'")
+                        cur.execute(sql.SQL("SET LOCAL search_path={},public; SET LOCAL lock_timeout='30s'; SET LOCAL statement_timeout='60s'").format(sql.Identifier(schema)))
                     yield conn
             finally:pool.putconn(conn)
         main.get_db_connection = connection
@@ -137,7 +136,7 @@ def check(apply_migration=False):
         actor,err,_=pins.verify_pin(main,req,people['owner']['pin'],purpose='staging-distributed')
         assert actor is None and err.headers.get('Retry-After')
         return {'environment':'staging','mode':'actual FastAPI HTTP routes; committed concurrent transactions in private namespace on real staging Postgres',
-                'migration':'072_pin_sessions','sweep_attempts':attempts,'sweep_authenticated':0,
+                'migration':'073_pin_sessions','sweep_attempts':attempts,'sweep_authenticated':0,
                 'source_lock_at_attempt':5,'blocked_before_PIN_lookup':blocked,'global_failures_before_lock':50,
                 'checks':['PIN identity','weak PIN refusal','owner-only PIN administration','fresh owner proof','wrong-person PIN denial','idle expiry','full concurrent sweep','distributed global lock'],
                 'elapsed_seconds':round(time.monotonic()-started,1),'cleanup':'private acceptance namespace removed; public people/PINs/sessions/limits untouched'}
@@ -160,6 +159,8 @@ if __name__=='__main__':
         if args.output:args.output.write_text(encoded)
         print(encoded)
     except BaseException as exc:
-        # Raw psycopg error/query context might include credential hashes.
-        print('A11 staging acceptance failed: '+type(exc).__name__,file=sys.stderr)
+        # Report only recognized constant failure labels, never raw DB errors.
+        labels=['MaxClientsInSessionMode','max clients reached','too many clients','timeout expired','SSL connection has been closed','server closed the connection','connection pool exhausted']
+        reason=next((label for label in labels if label in str(exc)), type(exc).__name__)
+        print('A11 staging acceptance failed: '+reason,file=sys.stderr)
         sys.exit(1)

@@ -55,4 +55,4 @@ DO $$ DECLARE r text; BEGIN
         END IF;
     END LOOP;
 END $$;
-INSERT INTO migration_markers(name) VALUES ('072_pin_sessions') ON CONFLICT DO NOTHING;
+INSERT INTO migration_markers(name) VALUES ('073_pin_sessions') ON CONFLICT DO NOTHING;

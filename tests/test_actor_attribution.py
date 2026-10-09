@@ -106,7 +106,7 @@ def actors(db_cursor, monkeypatch):
     import secrets
     from tests.pin_test_support import seed_owner_pin, OWNER_PINS
     monkeypatch.setenv('PIN_PEPPER', secrets.token_hex(32))
-    db_cursor.execute((ROOT / 'migrations/072_pin_sessions.sql').read_text())
+    db_cursor.execute((ROOT / 'migrations/073_pin_sessions.sql').read_text())
     token = uuid4().hex[:8].upper()
     made = {}
     seeds = [

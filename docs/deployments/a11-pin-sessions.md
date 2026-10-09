@@ -1,8 +1,10 @@
 # A11 PIN login and FL sessions
 
 Builder: Codex. Reviewer: Claude Code. Draft PR #96; **do not merge or deploy to
-production**. Base `origin/main` at `ce7bb57`. Migration **072** was selected after
-checking open PRs: 066 #91 held, 067 #93 A7, 068 #90 F1; 069–071 on main.
+production**. Base `origin/main` at `ce7bb57`. Migration **073** is the next free number. Initial checks reserved 072; the final
+open-PR check found A7 #93 had added `072_order_ticket_review_fixes.sql` during
+this build, so A11 moved to 073. 066 #91 remains held; 067/072 belong to A7,
+068 #90 to F1, and 069–071 are on main.
 
 ## Identity and security contract
 
@@ -59,7 +61,7 @@ The staging service is **FastAPI-staging**, service
 `production`, but its application `ENVIRONMENT=staging` and database project
 `jygmyvxnxdjiiilhxseq` are separately checked. Never target the production service.
 
-1. Apply `migrations/072_pin_sessions.sql` to **staging** as the application/table
+1. Apply `migrations/073_pin_sessions.sql` to **staging** as the application/table
    owner, using port 5432, `ON_ERROR_STOP`, an explicit transaction and
    `SET LOCAL search_path=public; SET LOCAL lock_timeout='5s'`. It is rerunnable,
    additive, does not alter ledger rows, and does not auto-run at startup.
@@ -131,8 +133,9 @@ relays `X-API-Key`, so sessions pass the same actor/ticket checks. Required chan
 
 ## Validation and rollout evidence
 
-- Fresh disposable local PostgreSQL: **2,232 Python tests passed**, zero skips.
-- **69 JavaScript tests passed**; **20 browser checks passed** at 390 and 1440 px.
+- Fresh disposable local PostgreSQL: **2,232 Python tests passed**, zero skips;
+  the final locked-role follow-up passed all **16 focused security tests**.
+- **69 JavaScript tests passed**; **22 browser checks passed** at 390 and 1440 px.
 - Real Postgres tests cover obvious PINs, uniqueness, independent IP/device locks,
   distributed and concurrent global limits, 10,000-candidate sweep, idle/passive
   reads, immediate revocation, bootstrap, own change, hashed storage, backdated
@@ -140,11 +143,26 @@ relays `X-API-Key`, so sessions pass the same actor/ticket checks. Required chan
 - `scripts/check_pin_sessions_staging.py` runs actual HTTP handlers and concurrent
   committed transactions in a private UUID namespace on real staging Postgres.
   The namespace is removed afterward; real people, PINs and live lockouts are
-  untouched. `--apply-migration` separately applies public migration 072.
-- Staging receipt: `docs/deployments/a11-staging-receipt.json` (when completed).
+  untouched. `--apply-migration` separately applies public migration 073.
+- Staging receipt: `docs/deployments/a11-staging-receipt.json`: **10,000 HTTP
+  candidates, zero sign-ins, 9,995 blocked before PIN lookup**, distributed global
+  ceiling after 50 failures; 240.7 seconds. The tested table definitions are
+  unchanged by the 072→073 rename. Migration 073 was then idempotently applied;
+  the historical `072_pin_sessions` marker remains as staging apply evidence.
+- Deployed HTTP smoke: `docs/deployments/a11-live-staging-receipt.json`, including
+  Michael's real bootstrap sign-in and all four named people with PINs unset.
+  Temporary smoke accounts were deactivated and their PIN hashes cleared.
 - Browser evidence: `docs/validation/a11-login-mobile.png` and
   `docs/validation/a11-pin-admin-desktop.png` (synthetic people, empty PIN fields).
 
 Rollback application code first and retain all security evidence tables and
 actor RLS. There is no destructive down migration. No production deployment,
 production queries, merges, or changes to other worktrees are part of A11.
+
+
+Staging rollout on 2026-10-09: server-only pepper configured without output;
+public migration applied and then renumbered to 073; four people initialized
+without PINs; protected owner sign-in file created with mode 0600. Backend
+snapshot `1de4053` was verified live at deployment
+`95d4308b-e6a0-40e0-8f8b-eed90714de92`. Final browser handover changes and the
+073 filename/marker are included in the final deployment recorded in the PR.

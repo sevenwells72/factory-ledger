@@ -383,7 +383,7 @@ def race_actors(isolated_database):
         import os, secrets
         from tests.pin_test_support import seed_owner_pin
         os.environ.setdefault('PIN_PEPPER', secrets.token_hex(32))
-        cur.execute((ROOT / 'migrations/072_pin_sessions.sql').read_text())
+        cur.execute((ROOT / 'migrations/073_pin_sessions.sql').read_text())
         seed_owner_pin(cur, ids['owner'], keys['owner'])
     return keys, items_, ids
 

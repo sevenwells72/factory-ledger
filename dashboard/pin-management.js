@@ -3,12 +3,14 @@
   const status = document.getElementById('pin-status'), own = document.getElementById('own-pin'), admin = document.getElementById('admin-pin');
   let actor;
   async function load() {
-    actor = await FLSession.requireSession();
+    const person = await FLSession.requireSession();
+    actor = person;
     own.hidden = false; admin.hidden = actor.role !== 'owner';
     if (actor.role !== 'owner') return;
     const response = await FLSession.fetch(FLSession.base + '/actors/pins');
     if (!response.ok) { status.textContent = 'PIN administration is unavailable.'; return; }
     const data = await response.json(), picker = document.getElementById('pin-person');
+    if (FLSession.actor()?.id !== person.id) return;
     picker.replaceChildren();
     data.actors.filter(p => p.active).forEach(person => {
       const option = document.createElement('option'); option.value = person.id;
@@ -38,4 +40,11 @@
   }
   own.onsubmit = event => void save(event, false); admin.onsubmit = event => void save(event, true);
   await load();
+  window.addEventListener('fl-session-change', event => {
+    own.hidden = admin.hidden = true;
+    document.querySelectorAll('input[type=password]').forEach(input => { input.value = ''; });
+    document.getElementById('pin-person').replaceChildren();
+    if (!event.detail) { status.textContent = 'Signed out. Enter your PIN to continue.'; return; }
+    void load().catch(() => { status.textContent = 'PIN settings could not be loaded. Refresh and try again.'; });
+  });
 })();

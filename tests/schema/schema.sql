@@ -6236,4 +6236,4 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 
 -- A11 additive identity/session storage (not yet in production dump).
 SET search_path TO public;
-\ir ../../migrations/072_pin_sessions.sql
+\ir ../../migrations/073_pin_sessions.sql

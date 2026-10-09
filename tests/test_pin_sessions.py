@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.fixture
 def people(db_cursor, actors, monkeypatch):
     monkeypatch.setenv('PIN_PEPPER', secrets.token_hex(32))
-    db_cursor.execute((ROOT/'migrations/072_pin_sessions.sql').read_text())
+    db_cursor.execute((ROOT/'migrations/073_pin_sessions.sql').read_text())
     for label, person in actors.items():
         while True:
             value = str(secrets.randbelow(8000)+2000)
@@ -191,7 +191,7 @@ def test_unconfigured_pepper_fails_closed(client, monkeypatch):
 def test_parallel_requests_share_atomic_global_limit(isolated_database, monkeypatch):
     monkeypatch.setenv('PIN_PEPPER', secrets.token_hex(32))
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
-        cur.execute((ROOT/'migrations/072_pin_sessions.sql').read_text())
+        cur.execute((ROOT/'migrations/073_pin_sessions.sql').read_text())
     @contextmanager
     def transaction():
         with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -225,7 +225,7 @@ def test_backdated_ticket_requires_pin_on_commit(client, db_cursor, people, payl
 
 def test_migration_replay_preserves_sessions_and_protects_actor_hashes(client, db_cursor, people):
     token = login(client, people['owner'])
-    db_cursor.execute((ROOT/'migrations/072_pin_sessions.sql').read_text())
+    db_cursor.execute((ROOT/'migrations/073_pin_sessions.sql').read_text())
     assert client.get('/auth/session', headers=headers(token)).status_code == 200
     db_cursor.execute("SELECT relrowsecurity FROM pg_class WHERE relname IN ('actors','actor_sessions','pin_attempts','pin_rate_limits','pin_management_audit')")
     assert all(r['relrowsecurity'] for r in db_cursor.fetchall())

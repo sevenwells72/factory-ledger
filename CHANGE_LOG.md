@@ -1,5 +1,54 @@
 # Change Log
 
+## 2026-10-09 10:46 — A11: record staging rollout, successful acceptance and protected first-PIN readiness
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/deployments/a11-pin-sessions.md, docs/deployments/a11-staging-receipt.json, docs/deployments/a11-live-staging-receipt.json
+- **What changed:** A11: record staging rollout, successful acceptance and protected first-PIN readiness
+- **Why:** Maintain the regression guard after the staging-only deployment and preserve the exact validation/onboarding evidence for Claude Code review.
+
+---
+
+## 2026-10-09 10:43 — A11: apply the final 073 marker on staging and preserve the successful sweep/live receipts
+- **File(s) changed:** docs/deployments/a11-staging-receipt.json, docs/deployments/a11-live-staging-receipt.json; staging migration markers
+- **What changed:** A11: apply the final 073 marker on staging and preserve the successful sweep/live receipts
+- **Why:** Record the successful 10,000-candidate sweep and live authentication checks honestly, including the migration’s original tested number and its collision-free final number.
+
+---
+
+## 2026-10-09 10:43 — A11: move the migration to 073 after a final open-PR check found A7 now reserves 072
+- **File(s) changed:** migrations/073_pin_sessions.sql (renamed from 072), tests/schema/schema.sql, tests/test_actor_attribution.py, tests/test_exceptions_enforcement.py, tests/test_pin_sessions.py, scripts/check_pin_sessions_staging.py, docs/deployments/a11-pin-sessions.md
+- **What changed:** A11: move the migration to 073 after a final open-PR check found A7 now reserves 072
+- **Why:** Avoid a concurrent migration-number collision without touching A7. Table definitions and runtime lock identifiers are unchanged; retain the original staging marker as history.
+
+---
+
+## 2026-10-09 10:38 — A11: bound the warm staging test pool to eight persistent connections
+- **File(s) changed:** scripts/check_pin_sessions_staging.py
+- **What changed:** A11: bound the warm staging test pool to eight persistent connections
+- **Why:** The session pooler limits client connections below Postgres max_connections; keep accepted connections warm without saturating that boundary, and classify failures without printing secrets.
+
+---
+
+## 2026-10-09 10:37 — A11: clear PIN administration state on shared-device handover
+- **File(s) changed:** dashboard/pin-management.js, tests/visual/run-pin-sessions.mjs
+- **What changed:** A11: clear PIN administration state on shared-device handover
+- **Why:** An owner’s person list and PIN inputs disappear on sign-out or a switch to a floor session; late owner responses cannot restore them.
+
+---
+
+## 2026-10-09 10:35 — A11: deploy the locked-role fix and add redacted live staging acceptance
+- **File(s) changed:** scripts/check_pin_live_staging.py; FastAPI-staging deployment; staging actor bootstrap
+- **What changed:** A11: deploy the locked-role fix and add redacted live staging acceptance
+- **Why:** Verify actual deployed authentication, expiry, step-up and Michael’s bootstrap while leaving the four real staging PINs unset; synthetic accounts are deactivated afterward.
+
+---
+
+## 2026-10-09 10:33 — A11: keep staging acceptance connections warm for the full PIN sweep
+- **File(s) changed:** scripts/check_pin_sessions_staging.py; temporary A11 staging acceptance namespace
+- **What changed:** A11: keep staging acceptance connections warm for the full PIN sweep
+- **Why:** Avoid recreating SSL database connections per candidate; the isolated 16-connection test pool stays within staging’s verified 60-connection limit. Remove only the stopped test namespace.
+
+---
+
 ## 2026-10-09 10:31 — A11: cover demotion between owner proof and PIN mutation
 - **File(s) changed:** tests/test_pin_sessions.py
 - **What changed:** A11: cover demotion between owner proof and PIN mutation
