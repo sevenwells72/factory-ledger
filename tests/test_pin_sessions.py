@@ -247,3 +247,13 @@ def test_demotion_between_owner_proof_and_pin_write_denies(client, db_cursor, pe
     error(response,403,'ROLE_NOT_ALLOWED')
     db_cursor.execute('SELECT pin_hash FROM actors WHERE id=%s',(target,))
     assert db_cursor.fetchone()['pin_hash'] == before
+
+
+def test_existing_actor_key_precedes_the_session_namespace(client, db_cursor, people):
+    existing_key = pins.SESSION_PREFIX + secrets.token_urlsafe(32)
+    db_cursor.execute('UPDATE actors SET key_hash=%s WHERE id=%s', (pins.digest(existing_key),people['owner']['id']))
+    main._reset_actor_cache()
+    response = client.get('/auth/whoami', headers=headers(existing_key))
+    assert response.status_code == 200
+    assert response.json()['key_kind'] == 'actor'
+    assert response.json()['actor']['id'] == people['owner']['id']

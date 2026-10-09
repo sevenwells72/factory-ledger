@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-09 10:48 — A11: preserve actor-key lookup precedence before recognizing a session token
+- **File(s) changed:** main.py, tests/test_pin_sessions.py
+- **What changed:** A11: preserve actor-key lookup precedence before recognizing a session token
+- **Why:** Honor §4.4 compatibility even if an existing personal key happens to start with the new session prefix; the two legacy-key checks still come first.
+
+---
+
 ## 2026-10-09 10:46 — A11: record staging rollout, successful acceptance and protected first-PIN readiness
 - **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/deployments/a11-pin-sessions.md, docs/deployments/a11-staging-receipt.json, docs/deployments/a11-live-staging-receipt.json
 - **What changed:** A11: record staging rollout, successful acceptance and protected first-PIN readiness

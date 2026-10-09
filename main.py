@@ -3194,8 +3194,10 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
         if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
-    session_key = provided_key.startswith(pin_sessions.SESSION_PREFIX)
-    actor = pin_sessions.resolve(sys.modules[__name__], request, provided_key) if session_key else _resolve_actor(provided_key)
+    actor = _resolve_actor(provided_key)
+    session_key = actor is None and provided_key.startswith(pin_sessions.SESSION_PREFIX)
+    if session_key:
+        actor = pin_sessions.resolve(sys.modules[__name__], request, provided_key)
     if actor is not None:
         request.state.actor = actor
         request.state.key_kind = "session" if session_key else "actor"
