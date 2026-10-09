@@ -173,6 +173,12 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/exceptions/{exception_id}/resolve'),
         ('POST', '/exceptions/{exception_id}/approve'),
         ('POST', '/exceptions/{exception_id}/reject'),
+        ('GET', '/correction-reasons'),
+        ('POST', '/assistant/session'), ('POST', '/assistant/resume'),
+        ('POST', '/assistant/turn'), ('POST', '/assistant/record'),
+        ('POST', '/assistant/cancel'), ('POST', '/assistant/attachment'),
+        ('POST', '/assistant/confirm-sku'),
+        ('POST', '/assistant/attachment/read'), ('POST', '/assistant/transcribe'),
     }
     assert ('POST', '/products/resolve') not in main.DASHBOARD_KEY_ALLOWLIST
 

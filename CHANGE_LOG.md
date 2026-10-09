@@ -1,5 +1,82 @@
 # Change Log
 
+## 2026-10-09 10:20 — Complete five-action A3b staging acceptance and save evidence
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Staging ca201d8/3ef82577 passed receive002, make001, pack001, adjust001, found001; shortage warnings/receipts, zero-post hold then owner approval, concurrent same-ticket replay, actor attribution, lot evidence and inactive temporary actors verified. Health/assets match. Preserve provider-503 recovery history. Final local result 2272 Python / 73 JS and browser pass; no production or merge.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:17 — Retry transient model unavailability during hosted acceptance
+- **File(s) changed:** `scripts/check_assistant_staging.py`
+- **What changed:** First staging run recorded receive RCV-261009-001, then OpenAI returned HTTP 503 before make; assistant safely returned 502 and both temporary actors were deactivated. Add at most two retries of the identical turn ID/body only for OPENAI_UNAVAILABLE. No application change or production access.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:14 — Deploy rebased F1 successfully to isolated staging
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** FastAPI-staging deployment 3ef82577-7bcf-47dc-9591-4715b58bee17 is SUCCESS from ca201d8. Add regression row 173 immediately. No production access, migration or merge; proceed to authorized five-action live acceptance.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:12 — Record full fresh-database and browser validation after A3b
+- **File(s) changed:** `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`
+- **What changed:** 2272 Python / 73 JavaScript passed, zero failures/skips, plus browser checks. Staging identity/configuration and all eight prerequisite markers verified without printing secrets; no migration needed. GPT schema remains 30 operations and merged changelog history is intact.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:10 — Extend hosted acceptance to merged A3b outcomes
+- **File(s) changed:** `scripts/check_assistant_staging.py`
+- **What changed:** Five real-model actions now exercise make/pack shortages, held adjust with zero posts before owner approval, hold replay/resume/no-Cancel and final receipt replay. Synthetic found uses finished goods to avoid covering up the deliberate ingredient shortage. Verify A2 attribution and A5 evidence; deactivate both temporary actors; log only safe failure types.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:10 — Enable Record when a completed chat turn releases its busy state
+- **File(s) changed:** `dashboard/fl-assistant.js`
+- **What changed:** Browser held-correction scenario exposed that drafts without lot inputs or acknowledgement boxes remained disabled after a turn. Recompute existing Record controls whenever busy state changes, retaining all FL blockers and evidence checks.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:09 — Use the A3b rejection contract in assistant regressions
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Owner-rejection cases now supply the required declined resolution kind; approval and actual hold/shortage cases already passed.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:08 — Exercise A5 prompts and A3b outcomes in the browser
+- **File(s) changed:** `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Browser harness checks -004 evidence, empty physical-tag input, pallet full-code hint, draft and receipt shortages, held correction without Cancel/receipt, restored hold, bilingual approval message and same-ticket approved receipt.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:08 — Cover A3b assistant holds, shortages and photo-evidence custody
+- **File(s) changed:** `tests/test_fl_assistant.py`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Add actual FL make/pack shortage warning and replay tests, held adjust/found resume/no-Cancel/owner approve-or-reject tests, and model photo-evidence exclusion. Explicit holds cannot render as receipts.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:07 — Show A5 tag prompts and A3b shortage/approval outcomes
+- **File(s) changed:** `dashboard/fl-assistant.js`
+- **What changed:** Last-four prompt includes hyphen example -004; scan/full-code and pallet evidence controls explain the full physical lot code and recent production move. Draft shortage warnings switch EN/ES, receipt shortages remain visible, and held corrections show waiting for owner approval with a same-ticket status check and resume recovery.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:06 — Rebase F1 onto merged A5/A2/A3b and preserve held corrections
+- **File(s) changed:** `main.py`, `tests/schema/schema.sql`, `tests/test_named_actor_writes.py`, `assistant_tools.py`, `fl_assistant.py`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/f1-assistant.md`
+- **What changed:** Rebase onto ce7bb57 preserving both route registrations and all upstream history; schema include 068 only; renumber F1 rows 171–172 after merged rollouts. Relay and durably restore A3b 202 holds without receipts or Cancel. Exclude model-invented attachment_ref from tools/evidence so the photo gate cannot be bypassed. Production manual migration timeouts and read-only correction-catalog reachability retained.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
 ## 2026-10-09 09:35 — Post-A3b housekeeping: production schema re-dump (069–071 in the dump, pending \ir tails gone), FL changelog row 170, rollout section in the A3b deployment doc (branch chore/post-a3b)
 - **File(s) changed:** `tests/schema/schema.sql`, `tests/test_write_tickets.py`, `tests/test_exceptions_tables_061.py`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a3b-exceptions-enforcement.md`, `CHANGE_LOG.md`
 - **What changed:** `scripts/dump_prod_schema.sh` re-run against production (read-only pg_dump, port 5432) after 069/070/071 were applied at 13:27Z: the dump now carries `write_tickets.status` with `awaiting_approval`, `exceptions.kind` with `PRE_MAKE_ADJUST`, `actor_write_audit` target `'exceptions'`, `ledger_current_transactions` with trailing `reason_code` / `entered_by_actor_id`, the nine A3b indexes and `shortage_evidence_claims`; the three pending `\ir` tails are gone (0 `\ir` lines). `tests/test_write_tickets.py` isolated-DB fixture: comments rewritten — the 058/064/065/069/070/071 re-applies stay because the schema-only dump has no `migration_markers` rows and the up/down tests assert the markers (idempotent no-ops on the DDL); no code change. `tests/test_exceptions_tables_061.py` fixture: a fresh dump now carries 069–071, which depend on 061 (view columns, `shortage_evidence_claims` FKs), so the fixture rolls back 071 → 070 → 069 before the 061 down (the documented order; empty tables need no export confirmation) — without it three 061 tests errored with `DependentObjectsStillExist`. FACTORY_LEDGER_CHANGELOG row 170 (A3b production rollout: PR #94 → c66d676, migrations 069/070/071 applied prod + staging, Railway 8a3a429f/eba8e534, checks). Deployment doc gains a "Production rollout" section. Sweep cron still deliberately NOT created (FOLLOWUPS P1.14).
@@ -32,9 +109,213 @@
 - **File(s) changed:** `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_write_tickets.py`, `CHANGE_LOG.md`
 - **What changed:** `scripts/dump_prod_schema.sh` re-run against production after 062–065 were applied (19:29–19:33Z): the pending `\ir` tail is gone and the dump now carries `lot_moves`, `transaction_lot_confirmations`, `transaction_substitutions`, `a5_lot_supplier_immutable`, the `move_lot` action CHECK, `lots.identity_status/identify_by/supplier_id`, `transactions.supplier_id/entered_by_actor_id`, `ledger_corrections.entered_by_actor_id`, `suppliers.short_code`. FACTORY_LEDGER_CHANGELOG rows 168 (A5 rollout: PR #88 → 7580338, 062/063/064 applied, Railway fb4d3912/db939e88) and 169 (A2 rollout: PR #89 → de31023, 065 applied staging+prod, Railway 9a5948bd/6c838631). `test_migration_up_down_up_and_marker_stability` drops the two 062 tables (whose `lot_moves.ticket_id` FK now blocks the 058 down) before the 061/058 down and re-runs the idempotent 062 after 058 is back — the pending-include era hid this because the fixture strips `\ir` lines. Fresh DB from the new dump: Python 2138 passed, Node 69/69.
 - **Why:** Same housekeeping as PRs #82/#86 after a production migration; keeps the local test schema identical to prod and the regression-guard changelog current.
+## 2026-10-08 15:44 — F1 reviewed staging acceptance passed all five actions
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Preserve initial evidence and append reviewed-code acceptance: receive009, make009, pack005, adjust004, found004; real OpenAI drafts, same-ticket replay yields one post, A2 actor attribution and A5 lot confirmations verified directly in staging, temporary actor inactive, health/assets verified. No production access or merge.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
 
 ---
 
+## 2026-10-08 15:42 — F1 review code deployed successfully to isolated staging
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** FastAPI-staging e922cda2-182a-4fb8-b558-48c98f34a031 SUCCESS from 04f42a0. Add deployment regression row 169 immediately; F1 original row 168 is preserved. No production access or migration. Proceed to authorized live synthetic receive/make/pack/adjust/found acceptance.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:39 — F1 review fixes pass full fresh-database and browser validation
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/contracts/fl-assistant-part1.md`
+- **What changed:** 2186 Python / 72 JavaScript passed, zero failures/skips, against fresh localhost PostgreSQL 17 fl_f1_full; browser harness passed. All upstream changelog lines preserved and GPT OpenAPI remains 30 operations. Final merged-main recheck has maximum row 167, so F1 uses next row 168 (correcting the provisional 169 reservation). Staging prerequisites 062–065/068 already exist; no migration needed.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:38 — Align F1 lot-evidence regression with A5 HTTP 422
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Assert the real LOT_NOT_CONFIRMED error code and HTTP 422 before supplying explicit human lot evidence; focused run otherwise passed all new recovery and A2 checks.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:37 — Document F1 merge order and manual production migration prerequisite
+- **File(s) changed:** `docs/deployments/f1-assistant.md`, `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Document A5 → A2 → F1, merged schema includes 062–065/068 with unmerged 066 excluded, manual owner/5432/ON_ERROR_STOP migration 068 with lock and statement timeouts before production enablement, read-only correction-catalog reachability, exact staging target, and conservative cancellation/crash recovery. Production remains untouched.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:37 — F1 regression and hosted acceptance checks cover merged A2/A5
+- **File(s) changed:** `tests/test_fl_assistant.py`, `scripts/check_assistant_staging.py`
+- **What changed:** Add disabled-page flag matrix, status-only logging, real expired/role-denied cancellation, uncertain-attempt fencing, crashed-chat recovery/renewal and stale-worker protection tests. Exercise A5 denial before explicit operator lot evidence; update live acceptance with human-style full-code confirmations. Fix replay test to prepare a real supplier-bound draft after A5.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:35 — F1 rebased onto merged A5/A2 and review fixes applied
+- **File(s) changed:** `permissions.py`, `fl_assistant.py`, `main.py`, `tests/schema/schema.sql`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Rebase onto de31023 with both imports and all history retained; nine explicitly ungated transport routes preserve per-request and relayed checks; disabled page returns 404; OpenAI errors log status only; two-minute renewed chat lease; definitive first-attempt 4xx clears its marker using a timestamp fence, preserving prior/concurrent uncertainty. F1 row moves to 169 (after A5 167, reserving 168 for A2); schema includes 062–065 and 068, excludes unmerged 066. Prepared isolated local Python/Node/Postgres test tooling.
+- **Why:** PR #90 review fixes after A5 #88 and A2 #89; staging only, no merge or production access.
+
+---
+
+## 2026-10-08 15:13 — F1 final hosted smoke and handoff
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Final deployment 6117e0d1 serves code 337ea51 and exact JavaScript bytes; real Responses read and editable/unsent transcription pass again. Final temporary actor deactivated. Record dependency follow-up ID; PR 90 remains OPEN/DRAFT.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:11 — F1 final staging deployment and dependency follow-up
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record successful staging deployment 6117e0d1 from verified code 337ea51, unchanged production, and the requested quiet hourly rebase follow-up for PRs 88/89; both integrations remain draft for Claude Code review.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:07 — F1 final code checkpoint verified
+- **File(s) changed:** `fl_assistant.py`, `tests/test_fl_assistant.py`, `dashboard/fl-assistant.html`, `dashboard/fl-assistant.js`, `scripts/check_assistant_staging.py`, `docs/contracts/fl-assistant-part1.md`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/fl-assistant-*`
+- **What changed:** Final code: 1829 Python tests passed on fresh fl_f1_final, 72 JavaScript passed, browser harness passed, all five hosted staging write flows and real transcription passed. Includes plant-clock context and navigation isolated from legacy production dashboard URLs.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:06 — F1 live validation recorded
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Append row-167 live verification with all five real receipts, one post per ticket, editable unsent transcription, retained synthetic stock and deactivated actor; document minimal A2/A5 merge conflicts and screenshots.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:05 — F1 hosted acceptance evidence
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/validation/fl-assistant-desktop.png`, `docs/validation/fl-assistant-mobile.png`
+- **What changed:** Persist real staging receipts RCV-261008-008, MK-261008-008, PK-261008-004, ADJ-261008-003 and FND-261008-003: one post per ticket under concurrent replay, real editable/unsent transcription and named actor deactivation. Include verified browser screenshots.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:04 — F1 navigation stays within staging assistant
+- **File(s) changed:** `dashboard/fl-assistant.html`, `dashboard/fl-assistant.js`
+- **What changed:** Keep navigation on the assistant origin and add today-entries shortcut; avoid routing the staging assistant into legacy dashboard pages whose API base is production.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:02 — F1 live acceptance choice handling
+- **File(s) changed:** `scripts/check_assistant_staging.py`
+- **What changed:** First live run recorded receive/make/pack and correctly stopped for an ambiguous adjust-product choice. Update the test operator to press the known synthetic fixture candidate explicitly; no application auto-selection change. Temporary actor was deactivated.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 15:01 — F1 validation and operating contract
+- **File(s) changed:** `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Document verified local/browser coverage, staging-only rollout and durable retry/cancellation rules, private photo storage, rollback preservation, and A2/A3b/A5/A6/A11 integration boundaries.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:59 — F1 staging deployment successful
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record row 167 immediately after FastAPI-staging deployment 7c03a200 succeeded from deec0da. Migration 068 and OpenAI feature configuration are staging-only; no production changes. Live acceptance is next.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:59 — F1 model clock context
+- **File(s) changed:** `fl_assistant.py`, `tests/test_fl_assistant.py`
+- **What changed:** Provide the real FL plant clock in America/New_York for relative-date interpretation; no time or backdating rule is duplicated in the assistant.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:56 — F1 page checkpoint verified
+- **File(s) changed:** `dashboard/fl-assistant.html`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`, `tests/test_fl_assistant_ui.js`, `tests/visual/run-fl-assistant.mjs`, `scripts/check_assistant_staging.py`
+- **What changed:** Desktop and 390px light/dark checks passed: exact-draft retry, manual lot evidence, warnings, editable unsent dictation, attachment-only upload, choices/XSS, Spanish and reload recovery. Add guarded hosted-staging acceptance runner.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:55 — F1 backend checkpoint verified
+- **File(s) changed:** `assistant_tools.py`, `fl_assistant.py`, `main.py`, `migrations/068_fl_assistant.sql`, `tests/schema/schema.sql`, `tests/test_fl_assistant.py`, `tests/test_named_actor_writes.py`
+- **What changed:** Fresh PostgreSQL full suite: 1829 Python passed, zero failures/skips; 72 JavaScript passed. Real concurrent commits and lost-response retries post once; original ticket/hash remain server-only. GPT OpenAPI remains 30 operations.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:55 — F1 SKU evidence regression coverage
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Prove a user SKU-confirmation button creates a distinct committable FL ticket and leaves the original blocked draft unrecordable. Full-suite rerun uses a fresh local DB because prior suite seeding advances persistent sequences.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:53 — F1 staging acceptance runner
+- **File(s) changed:** `scripts/check_assistant_staging.py`
+- **What changed:** Add explicit guarded migration and hosted acceptance for five synthetic named-actor writes, concurrent replay, reads, attachment-only photos, optional real transcription and actor deactivation in finally.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:51 — F1 explicit output-SKU confirmation
+- **File(s) changed:** `fl_assistant.py`, `dashboard/fl-assistant.js`, `migrations/068_fl_assistant.sql`, `tests/test_named_actor_writes.py`
+- **What changed:** Expose the existing FL SKU-confirmation request as a human button that re-prepares the stored input; confirmed_sku remains excluded from model tools, and recording still requires the new draft ticket.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:50 — F1 committed retry races and bilingual card refresh
+- **File(s) changed:** `tests/test_fl_assistant.py`, `tests/test_named_actor_writes.py`, `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`
+- **What changed:** Pin the narrow new actor-only routes; test concurrent real commits and post-commit lost replies with cancellation refusal. Refresh existing card labels on language change and prevent sending while dictation is active.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:48 — F1 browser interaction acceptance harness
+- **File(s) changed:** `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Add desktop/mobile light/dark browser checks for lost-response retry, typed lot evidence, warning acknowledgement, editable dictation without send, attachments, candidate escaping, Spanish labels and saved-receipt recovery.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:45 — F1 durable Record-attempt recovery
+- **File(s) changed:** `fl_assistant.py`, `migrations/068_fl_assistant.sql`, `tests/test_fl_assistant.py`
+- **What changed:** Persist Record attempts before FL commit so a lost receipt cannot be cancelled as unrecorded; fix tests to account for the existing FL response envelope and seed the actual A3a reason catalog.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:44 — F1 bilingual chat and dictation interface
+- **File(s) changed:** `dashboard/fl-assistant.html`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`, `tests/test_fl_assistant_ui.js`, `assistant_tools.py`
+- **What changed:** Add responsive English/Spanish chat, editable hold-to-talk transcription, private attachment uploads, FL choice/draft cards and human Record/Cancel with persistent recovery and A5 evidence inputs; support Pydantic v1/v2 schema definitions.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:38 — F1 safety boundary tests
+- **File(s) changed:** `tests/test_fl_assistant.py`, `tests/schema/schema.sql`, `assistant_tools.py`
+- **What changed:** Exercise real ticket handlers for all five writes, exact replay, cross-person refusal, model/tool separation, A5 evidence passthrough, fixed reasons, photo isolation and unsent transcription.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:36 — F1 FastAPI transport and human recording
+- **File(s) changed:** `fl_assistant.py`, `main.py`, `migrations/068_fl_assistant.sql`
+- **What changed:** Add authenticated function-tool chat, persistent draft custody and exact-ticket Record/replay, attachment-only photo storage, editable dictation and FL correction-catalog read. Feature defaults disabled.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:33 — F1 durable state and function schemas
+- **File(s) changed:** `migrations/068_fl_assistant.sql`, `assistant_tools.py`
+- **What changed:** Add actor-owned private sessions, drafts, attachments and unmatched-query state; derive function schemas from FL request models with no commit or free-text tool.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
+
+---
+
+## 2026-10-08 14:31 — F1 contract and delivery checkpoints
+- **File(s) changed:** `docs/contracts/fl-assistant-part1.md`
+- **What changed:** Document tool/commit separation, server ticket custody, durable retries, attachment-only photos and A2/A5 interfaces.
+- **Why:** F1 part 1, staging only; Codex builds and Claude Code reviews.
 ## 2026-10-08 15:24 — A2 rebased onto A5 (c532b4b): test interactions only, no app-logic change (branch feat/roles)
 - **File(s) changed:** `main.py` (conflict resolution only), `tests/schema/schema.sql`, `tests/test_write_tickets.py`, `tests/test_lot_confirmation.py`, `tests/test_roles_a2.py`, `CHANGE_LOG.md`
 - **What changed:** Merge worktree `~/dev/fl-merge-wt`. `feat/roles` (ef03576) rebased onto `feat/lot-confirmation` c532b4b (= PR #88, which is already directly on `origin/main` 1f3f098). Conflicts resolved: the receive `transactions` INSERT keeps both A5 `supplier_id` and A2 `entered_by_actor_id` (14 placeholders); `schema.sql` pending tail lists 062→063→064→065; `isolated_database` fixture applies 058, 064, 065; CHANGE_LOG blocks kept from both sides, newest-first. Test-only follow-ups for feature interaction: A5's `move()` helper in `test_lot_confirmation.py` now takes a floor actor key (A2 made `move_lot` NAMED-only, so the master key gets 403), and the replay commit uses the same key; `test_unidentified_receive_exception_uses_entry_not_happened` filters by `kind='UNIDENTIFIED_LOT'` and additionally asserts the A2 `LATE_ENTRY` exception on the 3-day-old floor entry; `test_prepare_enforces_the_matrix_per_key` re-prepares make/pack with `full_code` confirmations when the only blockers are `LOT_NOT_CONFIRMED` (same pattern A5 added to `test_write_tickets_part2.prepare`). Fresh DB from schema.sql (062–065): Python 2138 passed, Node 69/69.
