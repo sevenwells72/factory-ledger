@@ -15,5 +15,7 @@
     "four people ready with no PINs set"
   ],
   "synthetic_actors": "deactivated; PIN hashes cleared; sessions revoked",
-  "production_touched": false
+  "production_touched": false,
+  "source_commit": "847fb6cec9f80bf9a2598f462b99a3c61f6ef24f",
+  "deployment_id": "046d335b-ea9c-47f3-8a8a-36b401ad6dc3"
 }

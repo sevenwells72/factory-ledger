@@ -1,0 +1,44 @@
+{
+  "environment": "staging",
+  "api": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "verified_at": "2026-10-09T15:00:15.296505+00:00",
+  "source_commit": "847fb6cec9f80bf9a2598f462b99a3c61f6ef24f",
+  "service_id": "0d957be1-8787-41e5-ab38-de71287c30ce",
+  "deployment_id": "046d335b-ea9c-47f3-8a8a-36b401ad6dc3",
+  "status": "SUCCESS",
+  "health_http_status": 200,
+  "public_migration_markers": [
+    "072_pin_sessions",
+    "073_pin_sessions"
+  ],
+  "security_tables": {
+    "actor_sessions": {
+      "enabled": true,
+      "owned_by_backend": true
+    },
+    "actors": {
+      "enabled": true,
+      "owned_by_backend": true
+    },
+    "pin_attempts": {
+      "enabled": true,
+      "owned_by_backend": true
+    },
+    "pin_management_audit": {
+      "enabled": true,
+      "owned_by_backend": true
+    },
+    "pin_rate_limits": {
+      "enabled": true,
+      "owned_by_backend": true
+    }
+  },
+  "served_asset_sha256": {
+    "dashboard/session.js": "c0d8195123a968027633ca721a40fedd601554a83a8a6e37e794d2be9631db90",
+    "dashboard/session.css": "0c94218e74b7d52502ad4fb2c610625f5b791cd61cab2b0c1e46c266712effa4",
+    "dashboard/pin-management.html": "96ad500707edcad2407436b5996c8000fefe9c3109875b7f7c67193502abcc54",
+    "dashboard/pin-management.js": "6c9ffec7eeec79e222c69651a7d8a10ddd8086f6261d4ea5c9c333dbd67e384a"
+  },
+  "acceptance_namespaces_remaining": 0,
+  "production_touched": false
+}

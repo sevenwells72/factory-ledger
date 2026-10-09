@@ -134,7 +134,8 @@ relays `X-API-Key`, so sessions pass the same actor/ticket checks. Required chan
 ## Validation and rollout evidence
 
 - Fresh disposable local PostgreSQL: **2,232 Python tests passed**, zero skips;
-  the final locked-role follow-up passed all **16 focused security tests**.
+  the final role/key-precedence/shared-key follow-up passed all **115 focused
+  authentication and permission tests**.
 - **69 JavaScript tests passed**; **22 browser checks passed** at 390 and 1440 px.
 - Real Postgres tests cover obvious PINs, uniqueness, independent IP/device locks,
   distributed and concurrent global limits, 10,000-candidate sweep, idle/passive
@@ -163,6 +164,10 @@ production queries, merges, or changes to other worktrees are part of A11.
 Staging rollout on 2026-10-09: server-only pepper configured without output;
 public migration applied and then renumbered to 073; four people initialized
 without PINs; protected owner sign-in file created with mode 0600. Backend
-snapshot `1de4053` was verified live at deployment
-`95d4308b-e6a0-40e0-8f8b-eed90714de92`. Final browser handover changes and the
-073 filename/marker are included in the final deployment recorded in the PR.
+snapshot `847fb6c` is live at successful staging deployment
+`046d335b-ea9c-47f3-8a8a-36b401ad6dc3`. This includes the final browser handover,
+actor-key precedence and shared-key exclusion changes, plus migration 073.
+The 10,000-candidate acceptance receipt predates those narrow follow-ups; the
+final deployed HTTP smoke is in `a11-live-staging-receipt.json`; deployment,
+public migration/RLS checks and matching static-asset hashes are in
+`a11-staging-rollout.json`.

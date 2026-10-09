@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-09 11:01 — Finish A11 staging evidence and clean up temporary local test links
+- **File(s) changed:** `.venv-test` and `node_modules` worktree symlinks (removed); temporary PostgreSQL test cluster (stopped); PR #96 description
+- **What changed:** Finish A11 staging evidence and clean up temporary local test links
+- **Why:** All requested build checks and staging smoke passed; remove only this worktree’s helper links and stop only its dedicated port-57411 test server before handing the draft to Claude Code.
+
+---
+
+## 2026-10-09 11:00 — Verify final staging HTTP smoke, deployed assets and migration security evidence
+- **File(s) changed:** `docs/deployments/a11-live-staging-receipt.json`, `docs/deployments/a11-staging-rollout.json`, `docs/deployments/a11-pin-sessions.md`
+- **What changed:** Verify final staging HTTP smoke, deployed assets and migration security evidence
+- **Why:** Record the exact deployed source, successful real owner bootstrap, matching browser assets, additive 073 marker, retained RLS and private acceptance namespace cleanup without printing credentials.
+
+---
+
+## 2026-10-09 10:59 — Record the successful final A11 staging deployment and focused authentication checks
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a11-pin-sessions.md`, staging release archive, draft PR description
+- **What changed:** Record the successful final A11 staging deployment and focused authentication checks
+- **Why:** Final committed application snapshot is running only on the authorized isolated staging service; preserve deployment and migration evidence for Claude Code review.
+
+---
+
 ## 2026-10-09 10:52 — A11: forbid shared-key exchange even when an actor hash is misprovisioned
 - **File(s) changed:** pin_sessions.py, tests/test_pin_sessions.py
 - **What changed:** A11: forbid shared-key exchange even when an actor hash is misprovisioned
