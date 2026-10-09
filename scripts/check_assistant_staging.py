@@ -81,7 +81,17 @@ def check(audio_file=None):
                 time.sleep(5)
             assert who.status_code == 200, 'Staging actor authentication failed'
             def post(path, **kwargs):
-                response = http.post(path, **kwargs)
+                for attempt in range(3):
+                    response = http.post(path, **kwargs)
+                    if (path == '/assistant/turn' and response.status_code == 502
+                            and response.json().get('detail', {}).get('error_code') == 'OPENAI_UNAVAILABLE'
+                            and attempt < 2):
+                        # Same turn_id/body: exercise the user-visible retry
+                        # without creating another session or ledger draft.
+                        print('Model temporarily unavailable; retrying the same turn.', flush=True)
+                        time.sleep(5 * (attempt + 1))
+                        continue
+                    break
                 assert response.status_code in (200, 202), f'{path} HTTP {response.status_code}'
                 return response.json()
             def conversation(text, action, attachments=None):

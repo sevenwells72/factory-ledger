@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-09 10:20 — Complete five-action A3b staging acceptance and save evidence
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Staging ca201d8/3ef82577 passed receive002, make001, pack001, adjust001, found001; shortage warnings/receipts, zero-post hold then owner approval, concurrent same-ticket replay, actor attribution, lot evidence and inactive temporary actors verified. Health/assets match. Preserve provider-503 recovery history. Final local result 2272 Python / 73 JS and browser pass; no production or merge.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:17 — Retry transient model unavailability during hosted acceptance
+- **File(s) changed:** `scripts/check_assistant_staging.py`
+- **What changed:** First staging run recorded receive RCV-261009-001, then OpenAI returned HTTP 503 before make; assistant safely returned 502 and both temporary actors were deactivated. Add at most two retries of the identical turn ID/body only for OPENAI_UNAVAILABLE. No application change or production access.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
+## 2026-10-09 10:14 — Deploy rebased F1 successfully to isolated staging
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** FastAPI-staging deployment 3ef82577-7bcf-47dc-9591-4715b58bee17 is SUCCESS from ca201d8. Add regression row 173 immediately. No production access, migration or merge; proceed to authorized five-action live acceptance.
+- **Why:** PR #90 merge-after-fixes review; A5/A2/A3b integration, staging only, no merge or production access.
+
+---
+
 ## 2026-10-09 10:12 — Record full fresh-database and browser validation after A3b
 - **File(s) changed:** `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`
 - **What changed:** 2272 Python / 73 JavaScript passed, zero failures/skips, plus browser checks. Staging identity/configuration and all eight prerequisite markers verified without printing secrets; no migration needed. GPT schema remains 30 operations and merged changelog history is intact.
