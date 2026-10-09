@@ -4420,6 +4420,10 @@ def test_so_write_paths_take_the_same_locks_in_the_same_order(handler_name):
     import inspect
 
     src = inspect.getsource(getattr(main, handler_name))
+    # A7 moved several handler bodies verbatim into `_<name>_core(cur, request, …)`
+    # so the order tickets share them; the lock sequence is pinned on the pair.
+    for core in sorted(set(re.findall(r"\b(_\w+_core)\(", src))):
+        src += inspect.getsource(getattr(main, core))
     if handler_name == "ship_order":
         # Only the commit branch takes locks; the preview branch deliberately
         # takes none (see its comment) and has no sequence to pin.

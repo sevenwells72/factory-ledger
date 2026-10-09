@@ -6233,3 +6233,9 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 --
 
 \unrestrict XaPsfTXvQYUEHaAzVXcRiJVaN9zvto2nZ7sBb7XwOOZm9mfHMGuOyxJCLf8SPIy
+
+
+-- Pending A7 migration (remove after prod migration + scripts/dump_prod_schema.sh).
+-- pg_dump leaves search_path empty; restore it for standalone DDL.
+SET search_path TO public;
+\ir ../../migrations/067_order_tickets.sql

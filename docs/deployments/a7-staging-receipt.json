@@ -1,0 +1,181 @@
+{
+  "reference": "STG-A7-E5A62D939A90",
+  "mode": "local branch HTTP routes against STAGING; no hosted deployment",
+  "migration_067_applied_separately": true,
+  "customer_id": 1000000002,
+  "products": {
+    "granola": 1000000025,
+    "pallet charge": 1000000026
+  },
+  "order_id": 1000000004,
+  "order_number": "SO-261009-001",
+  "create_receipt": "ORD-261008-001",
+  "add_lines_receipt": "ORD-261008-002",
+  "ready_receipt": "ORD-261008-003",
+  "duplicate_ticket_id": 37,
+  "actor_ids": {
+    "office": 1000000013,
+    "floor": 1000000014
+  },
+  "actors_deactivated_after_check": true,
+  "receipt": {
+    "receipt_number": "ORD-261008-001",
+    "action": "create_order",
+    "status": "committed",
+    "order": {
+      "id": 1000000004,
+      "order_number": "SO-261009-001",
+      "status": "confirmed",
+      "state": "open",
+      "state_reason": null,
+      "customer_id": 1000000002,
+      "customer": "STG-A7-E5A62D939A90 customer",
+      "customer_po": "STG-A7-E5A62D939A90",
+      "external_order_reference": "ORD-261008-001",
+      "ticket_id": 36,
+      "line_ids": [
+        1000000007,
+        1000000008
+      ]
+    },
+    "actor": {
+      "id": 1000000013,
+      "name": "STG-A7-E5A62D939A90 office",
+      "role": "office",
+      "key_kind": "actor"
+    },
+    "operator_id": "STG-A7-E5A62D939A90 office",
+    "client_source": "fl_assistant",
+    "happened_at": "2026-10-08T00:00:00-04:00",
+    "entered_at": "2026-10-09T00:51:33.083241+00:00",
+    "late_entry": false,
+    "draft": {
+      "note": "order_id, line ids and the order number are assigned at commit.",
+      "actor": {
+        "id": 1000000013,
+        "name": "STG-A7-E5A62D939A90 office",
+        "role": "office",
+        "key_kind": "actor"
+      },
+      "lines": [
+        {
+          "unit": "cases",
+          "amount": 60.0,
+          "product": "STG-A7-E5A62D939A90 granola",
+          "quantity": 2.0,
+          "is_service": false,
+          "product_id": 1000000025,
+          "unit_price": 30.0,
+          "quantity_lb": 50.0,
+          "original_unit": "cases",
+          "case_weight_lb": 25.0,
+          "original_quantity": 2.0
+        },
+        {
+          "unit": "each",
+          "amount": 37.5,
+          "product": "STG-A7-E5A62D939A90 pallet charge",
+          "quantity": 3.0,
+          "is_service": true,
+          "product_id": 1000000026,
+          "unit_price": 12.5,
+          "quantity_lb": 0.0,
+          "original_unit": "each",
+          "case_weight_lb": null,
+          "original_quantity": 3.0
+        }
+      ],
+      "total": 97.5,
+      "status": "confirmed",
+      "message": "Order SO-261009-001 created with 2 line(s)",
+      "summary": "Create order for STG-A7-E5A62D939A90 customer: 2 line(s), 50 lb, PO STG-A7-E5A62D939A90",
+      "blockers": [],
+      "customer": "STG-A7-E5A62D939A90 customer",
+      "total_lb": 50.0,
+      "warnings": null,
+      "summary_es": "Crear pedido para STG-A7-E5A62D939A90 customer: 2 línea(s), 50 lb, PO STG-A7-E5A62D939A90",
+      "customer_id": 1000000002,
+      "customer_po": "STG-A7-E5A62D939A90",
+      "happened_at": "2026-10-08T00:00:00-04:00",
+      "entry_timing": {
+        "status": "normal",
+        "days_late": 0,
+        "hours_late": 0.0,
+        "happened_at": "2026-10-08T20:51:29.612932-04:00"
+      },
+      "customer_po_status": "PO provided",
+      "requested_ship_date": "2026-11-02",
+      "happened_vs_now_minutes": 0.0,
+      "external_order_reference": null,
+      "order_number_provisional": "SO-261009-001"
+    },
+    "response": {
+      "lines": [
+        {
+          "unit": "cases",
+          "amount": 60.0,
+          "line_id": 1000000007,
+          "product": "STG-A7-E5A62D939A90 granola",
+          "quantity": 2.0,
+          "is_service": false,
+          "product_id": 1000000025,
+          "unit_price": 30.0,
+          "quantity_lb": 50.0,
+          "original_unit": "cases",
+          "case_weight_lb": 25.0,
+          "original_quantity": 2.0
+        },
+        {
+          "unit": "each",
+          "amount": 37.5,
+          "line_id": 1000000008,
+          "product": "STG-A7-E5A62D939A90 pallet charge",
+          "quantity": 3.0,
+          "is_service": true,
+          "product_id": 1000000026,
+          "unit_price": 12.5,
+          "quantity_lb": 0.0,
+          "original_unit": "each",
+          "case_weight_lb": null,
+          "original_quantity": 3.0
+        }
+      ],
+      "total": 97.5,
+      "status": "confirmed",
+      "message": "Order SO-261009-001 created with 2 line(s)",
+      "success": true,
+      "customer": "STG-A7-E5A62D939A90 customer",
+      "order_id": 1000000004,
+      "replayed": false,
+      "total_lb": 50.0,
+      "warnings": null,
+      "ticket_id": 36,
+      "customer_id": 1000000002,
+      "customer_po": "STG-A7-E5A62D939A90",
+      "entry_timing": {
+        "status": "normal",
+        "days_late": 0,
+        "entered_at": "2026-10-09T00:51:33.019240+00:00",
+        "entered_by": {
+          "id": 1000000013,
+          "name": "STG-A7-E5A62D939A90 office",
+          "role": "office",
+          "key_kind": "actor"
+        },
+        "hours_late": 20.86,
+        "happened_at": "2026-10-08T00:00:00-04:00",
+        "late_entry_exception_id": null
+      },
+      "order_number": "SO-261009-001",
+      "state_changed": false,
+      "receipt_number": "ORD-261008-001",
+      "customer_po_status": "PO provided",
+      "requested_ship_date": "2026-11-02",
+      "external_order_reference": "ORD-261008-001"
+    },
+    "warnings": [],
+    "acknowledged": [],
+    "transactions": [],
+    "lots": []
+  }
+}
