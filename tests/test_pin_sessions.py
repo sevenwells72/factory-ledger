@@ -20,6 +20,11 @@ from tests.test_write_tickets import isolated_database, payload, prepare, commit
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.fixture(autouse=True)
+def pin_mode(monkeypatch):
+    monkeypatch.setenv('PIN_LOGIN_ENABLED', '1')
+
+
 @pytest.fixture
 def people(db_cursor, actors, monkeypatch):
     monkeypatch.setenv('PIN_PEPPER', secrets.token_hex(32))

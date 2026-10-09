@@ -1,5 +1,103 @@
 # Change Log
 
+## 2026-10-09 12:17 — Stop the dedicated A11 review test database after completed validation
+- **File(s) changed:** `disposable local PostgreSQL cluster (port 57496)`
+- **What changed:** Stopped only the dedicated test cluster created for this review, after the final fresh-database suite passed. Test logs and redacted validation receipts retained.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:17 — Record successful staging acceptance and prepare PR #96 review handoff
+- **File(s) changed:** `docs/deployments/a11-dormant-staging-receipt.json`, `docs/deployments/a11-pin-sessions.md`, `FACTORY_LEDGER_CHANGELOG.md`, `node_modules (temporary link removed)`, `PR #96 description`
+- **What changed:** Append regression row 173 immediately after successful staging verification; record tested source hash and proxy/ownership receipt; remove only this worktree’s temporary tooling link. PR description will describe dormant delivery, deferred activation and completed validation. No merge, production or Netlify changes.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:17 — Verify staging dormant-A11 build and real proxy client IP
+- **File(s) changed:** `docs/deployments/a11-dormant-staging-receipt.json`
+- **What changed:** Staging deployment healthy; actual backend role owns actors and all four security tables with RLS enabled. Flag ON config and served assets match tested source. Two negative attempts from distinct synthetic devices with spoofed XFF/X-Real-IP resolve to the independently verified real public client IP; audit evidence retained. No real PIN entered, production/Netlify untouched, no merge.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:16 — Record complete fresh-database and browser review validation
+- **File(s) changed:** `docs/deployments/a11-pin-sessions.md`
+- **What changed:** Final source passed 2,280 Python tests with zero failures/skips, 69 JS tests, 93 dormant main-parity browser checks across nine pages at two widths, and 22 enabled-session browser checks. Current main ce7bb57 verified via GitHub. Only disposable local DBs and mocked browser traffic used for these suites.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:13 — Deploy validated dormant-A11 snapshot to FastAPI-staging only
+- **File(s) changed:** `FastAPI-staging deployment (remote)`
+- **What changed:** Uploaded the validated source snapshot after 2,280 fresh-DB Python tests, 69 JS tests, 93 main-parity browser checks and 22 enabled-session browser checks. Exact staging service only; production/Netlify untouched. Awaiting health and proxy smoke verification.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:12 — Revoke any prior owner sessions during private first-PIN bootstrap
+- **File(s) changed:** `scripts/bootstrap_owner_pin.py`, `tests/test_pin_dormant.py`
+- **What changed:** Match online PIN setup: revoke any existing owner-key sessions in the same transaction as the first PIN and management audit. Regression verifies revocation while HTTP PIN login remains disabled.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:11 — Configure reviewed PIN proxy trust on FastAPI-staging only
+- **File(s) changed:** `FastAPI-staging variables/start command (remote)`
+- **What changed:** Verified exact staging service/environment/database identity; set PIN_LOGIN_ENABLED=1 and FORWARDED_ALLOW_IPS=* with skip-deploys, and installed the database-guarded uvicorn/Railway edge launcher. Production and Netlify configuration untouched; new snapshot deployment follows separately.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:09 — Align regression harness with actor RLS and the trusted launcher
+- **File(s) changed:** `tests/test_named_actor_writes.py`, `tests/test_staging_safety.py`, `tests/test_pin_dormant.py`, `package.json`, `main.py`
+- **What changed:** Retain the prior A11 RLS test’s app ownership of actors (required by 073); update the staging guard stub for uvicorn.Config/Server and assert proxy settings. Add no-PIN-schema and prefixed-actor-key dormant tests; declare local browser fixture dependencies and test scripts.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:07 — Document dormant merge and separately deferred activation
+- **File(s) changed:** `docs/deployments/a11-pin-sessions.md`, `FOLLOWUPS.md`
+- **What changed:** Two-phase runbook preserves current Netlify/backend behavior after 073 ownership preflight; later pepper, Michael’s private first PIN, explicit flag/backend activation, Netlify last. Track owner-email alert and read-only sign-in decision before activation; document staging-only proxy trust and historical evidence separately.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:05 — Add browser parity against main across all dashboard pages
+- **File(s) changed:** `tests/test_pin_dormant.py`, `tests/visual/run-pin-dormant.mjs`, `node_modules (temporary ignored link)`
+- **What changed:** Compare rendered page text and API methods/headers with ce7bb57 at mobile/desktop widths using local fixtures only; assert dormant storage preservation, no sign-in, hidden administration, enabled sign-in and fail-closed config errors. Correct reject request fixture.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:04 — Correct parity harness CORS and TestClient lifecycle expectations
+- **File(s) changed:** `tests/test_pin_dormant.py`
+- **What changed:** Match main’s reject-note requirement and preflight headers; keep proxy tests from closing the suite’s shared connection pool via lifespan teardown.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:03 — Prove dormant parity and trusted per-client PIN buckets
+- **File(s) changed:** `tests/test_actor_attribution.py`, `tests/test_exceptions_enforcement.py`, `tests/test_named_actor_writes.py`, `tests/test_roles_a2.py`, `tests/pin_test_support.py`, `tests/test_pin_dormant.py`
+- **What changed:** Restore pre-A11 actor/A2/A3b regression tests unchanged from main; add flag parsing, public dashboard pages, hidden PIN routes, both CORS policies, browser/actor keys, owner actions without step-up, private bootstrap, migration owner guard and real uvicorn/Railway proxy tests.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:01 — Add trusted Railway proxy launcher and private pre-activation bootstrap
+- **File(s) changed:** `proxy_server.py`, `scripts/staging_start_command.py`, `scripts/bootstrap_owner_pin.py`
+- **What changed:** Uvicorn explicitly enables proxy headers with FORWARDED_ALLOW_IPS from the environment. Railway adapter uses edge-overwritten X-Real-IP before uvicorn, ignoring spoofable XFF. Staging launcher embeds the adapter. Offline getpass bootstrap sets only an existing owner’s first PIN while HTTP PIN routes stay dormant.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
+## 2026-10-09 12:00 — Keep A11 dormant behind explicit PIN_LOGIN_ENABLED opt-in
+- **File(s) changed:** `dashboard/history.html`, `dashboard/index.html`, `dashboard/pin-management.html`, `dashboard/pin-management.js`, `dashboard/process-flow.html`, `dashboard/runs.html`, `dashboard/sankey.html`, `dashboard/session.js`, `dashboard/traceability.html`, `main.py`, `migrations/073_pin_sessions.sql`, `pin_sessions.py`, `tests/test_pin_sessions.py`, `tests/visual/run-pin-sessions.mjs`
+- **What changed:** Gate sessions, PIN routes/screens and owner step-up; preserve legacy CORS and browser dashboard-key requests while off; defer session storage/UI side effects until enabled; guard migration 073 actor ownership. PIN tests opt in explicitly.
+- **Why:** PR #96 review fixes and Michael’s decision to defer PIN activation. No merge or production changes.
+
+---
+
 ## 2026-10-09 11:01 — Finish A11 staging evidence and clean up temporary local test links
 - **File(s) changed:** `.venv-test` and `node_modules` worktree symlinks (removed); temporary PostgreSQL test cluster (stopped); PR #96 description
 - **What changed:** Finish A11 staging evidence and clean up temporary local test links

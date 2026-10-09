@@ -98,15 +98,11 @@ def _apply_052(cur):
 
 
 @pytest.fixture
-def actors(db_cursor, monkeypatch):
+def actors(db_cursor):
     """Four actors, one per role plus a deactivated one, on the test
     transaction's connection so the app (proxied onto the same connection)
     can see them. All rolled back on teardown."""
     _apply_052(db_cursor)
-    import secrets
-    from tests.pin_test_support import seed_owner_pin, OWNER_PINS
-    monkeypatch.setenv('PIN_PEPPER', secrets.token_hex(32))
-    db_cursor.execute((ROOT / 'migrations/073_pin_sessions.sql').read_text())
     token = uuid4().hex[:8].upper()
     made = {}
     seeds = [
@@ -130,12 +126,10 @@ def actors(db_cursor, monkeypatch):
             "key": key,
             "active": active,
         }
-    seed_owner_pin(db_cursor, made['owner']['id'], made['owner']['key'])
     # The cache is module state and survives between tests; a stale entry from
     # a previous test's rolled-back rows would make this one nondeterministic.
     main._reset_actor_cache()
     yield made
-    OWNER_PINS.pop(made['owner']['key'], None)
     main._reset_actor_cache()
 
 

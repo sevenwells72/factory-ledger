@@ -7,6 +7,38 @@
   const production = 'https://fastapi-production-b73a.up.railway.app';
   const base = (location.hostname.endsWith('.up.railway.app') || ['localhost', '127.0.0.1'].includes(location.hostname)) ? location.origin : production;
   const transport = root.FL.fetchWithTimeout;
+  const scriptURL = document.currentScript.src;
+  let clientFetch = transport, clientSession = null;
+  const ready = transport(base + '/auth/config', {cache:'no-store'}).then(async response => {
+    if (!response.ok) throw new Error('Dashboard configuration is unavailable. Refresh to retry.');
+    const config = await response.json();
+    if (config.pin_login_enabled === true) {
+      activate();
+    } else if (config.pin_login_enabled === false && typeof config.dashboard_key === 'string') {
+      clientFetch = (url, options = {}) => {
+        const parsed = new URL(url, location.href);
+        if (parsed.origin !== production && parsed.origin !== base) return transport(url, options);
+        const headers = new Headers(options.headers || {});
+        if (headers.get('X-FL-Client') === 'dashboard') {
+          headers.delete('X-FL-Client');
+          headers.set('X-API-Key', config.dashboard_key);
+        }
+        return transport(url, {...options, headers});
+      };
+    } else throw new Error('Dashboard configuration is unavailable. Refresh to retry.');
+    return config.pin_login_enabled;
+  });
+  // A rejected config must not silently downgrade an enabled deployment.
+  ready.catch(() => {});
+  root.FL.fetchWithTimeout = async (url, options) => { await ready; return clientFetch(url, options); };
+  root.FLSession = {
+    base, ready, fetch:root.FL.fetchWithTimeout,
+    requireSession:async () => { await ready; return clientSession ? clientSession.requireSession() : null; },
+    signOut:async () => { await ready; if (clientSession) return clientSession.signOut(); },
+    ownerPIN:async () => { await ready; if (clientSession) return clientSession.ownerPIN(); },
+    actor:() => clientSession?.actor() || null, idle:() => clientSession?.idle() ?? true
+  };
+  function activate() {
   let state = null, lastActivity = Date.now(), lastSentActivity = 0, pendingLogin = null;
   try {
     state = JSON.parse(sessionStorage.getItem(STORAGE) || 'null');
@@ -154,16 +186,17 @@
       return response;
     }
   }
-  root.FLSession = {base, fetch:authenticatedFetch, requireSession, signOut, ownerPIN,
+  clientSession = {base, fetch:authenticatedFetch, requireSession, signOut, ownerPIN,
     actor:() => state?.actor || null, idle};
-  root.FL.fetchWithTimeout = authenticatedFetch;
+  clientFetch = authenticatedFetch;
   function header() {
     const bar = el('div'); bar.className = 'fl-person-bar';
     const label = el('span', '', bar); label.id = 'fl-person'; label.setAttribute('role','status');
     const pins = el('a', 'My PIN / PIN administration', bar);
-    pins.href = new URL('pin-management.html', document.currentScript?.src || document.querySelector('script[src*="session.js"]').src).href;
+    pins.href = new URL('pin-management.html', scriptURL).href;
     const signout = el('button', 'Sign out', bar); signout.type = 'button'; signout.onclick = async () => { await signOut(); await requireSession(); };
     document.body.prepend(bar); changed();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', header); else header();
+  }
 })(window);

@@ -11,7 +11,9 @@ import os
 import re
 import secrets
 
-from fastapi import Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, SecretStr
 
@@ -24,6 +26,37 @@ SESSION_PREFIX = 'fls_'
 AUTH_ROUTES = frozenset({('GET', '/auth/session'), ('DELETE', '/auth/session'),
                          ('GET', '/actors/pins'), ('POST', '/actors/{actor_id}/pin')})
 log = logging.getLogger(__name__)
+
+
+def enabled():
+    """Explicit opt-in only. Pepper and existing PINs never activate login."""
+    return os.environ.get('PIN_LOGIN_ENABLED', '0') == '1'
+
+
+class ModeCORSMiddleware:
+    """Keep the exact pre-A11 CORS policy while the feature is dormant."""
+    def __init__(self, app):
+        common = dict(allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+        self.legacy = CORSMiddleware(app, allow_origins=['*'], **common)
+        origins = [o.strip() for o in os.getenv('DASHBOARD_ORIGINS',
+                   'https://cns-factory-ledger.netlify.app').split(',') if o.strip()]
+        self.active = CORSMiddleware(app, allow_origins=origins,
+                                    expose_headers=['Retry-After', 'Content-Disposition'], **common)
+
+    async def __call__(self, scope, receive, send):
+        await (self.active if enabled() else self.legacy)(scope, receive, send)
+
+
+class DashboardFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        if not enabled() and os.path.basename(path) in ('pin-management.html', 'pin-management.js'):
+            raise HTTPException(404, 'Not Found')
+        return await super().get_response(path, scope)
+
+
+def require_enabled():
+    if not enabled():
+        raise HTTPException(404, 'Not Found')
 
 
 def fail(status, code, message, headers=None):
@@ -182,6 +215,8 @@ def require_owner_pin(api, request, *, purpose, allow_other_owner=False):
     the returned owner id must be stored on that exact ticket in its transaction.
     Ordinary owner actions must match the currently authenticated owner.
     """
+    if not enabled():
+        return None  # Callers retain the existing A2/A3b owner checks.
     actor = api.request_actor(request)
     if not actor or (not allow_other_owner and actor['role'] != 'owner'):
         fail(403, 'ROLE_NOT_ALLOWED', 'This action requires the owner.')
@@ -224,7 +259,18 @@ class SetPin(BaseModel):
 
 
 def register_routes(app, api):
-    @app.post('/auth/session')
+    @app.get('/auth/config')
+    def config():
+        data = {'pin_login_enabled': enabled()}
+        if not enabled():
+            # This is the existing PUBLIC dashboard credential, still used in
+            # browsers while dormant. Never return a master key or actor key.
+            data['dashboard_key'] = api.DASHBOARD_API_KEY
+        return JSONResponse(data, headers={'Cache-Control': 'no-store'})
+
+    router = APIRouter(dependencies=[Depends(require_enabled)], include_in_schema=enabled())
+
+    @router.post('/auth/session')
     def login(body: Login, request: Request):
         actor, error, device = verify_pin(api, request, body.pin.get_secret_value(), purpose='login')
         if error:
@@ -237,7 +283,7 @@ def register_routes(app, api):
         response.set_cookie('fl_device', device, max_age=31536000, secure=True, httponly=True, samesite='none')
         return response
 
-    @app.post('/auth/session/key')
+    @router.post('/auth/session/key')
     def key_login(body: KeyLogin):
         pepper()  # don't offer sessions before PIN support is configured
         key = body.actor_key.get_secret_value()
@@ -250,7 +296,7 @@ def register_routes(app, api):
             fail(401, 'SIGN_IN_INVALID', 'Personal sign-in not accepted.')
         return JSONResponse(issue(api, actor, 'actor_key'), headers={'Cache-Control': 'no-store'})
 
-    @app.get('/auth/session')
+    @router.get('/auth/session')
     def session(request: Request, _: bool = Depends(api.verify_api_key)):
         row = getattr(request.state, 'session', None)
         if not row:
@@ -260,7 +306,7 @@ def register_routes(app, api):
                              'permissions': api.permissions.permissions_for(api._actor_identity(request))},
                             headers={'Cache-Control': 'no-store'})
 
-    @app.delete('/auth/session')
+    @router.delete('/auth/session')
     def logout(request: Request, _: bool = Depends(api.verify_api_key)):
         row = getattr(request.state, 'session', None)
         if not row:
@@ -269,7 +315,7 @@ def register_routes(app, api):
             cur.execute("UPDATE actor_sessions SET ended_at=clock_timestamp(),ended_reason='logout' WHERE id=%s", (row['id'],))
         return {'signed_out': True}
 
-    @app.get('/actors/pins')
+    @router.get('/actors/pins')
     def actors(request: Request, _: bool = Depends(api.verify_api_key)):
         actor = api.request_actor(request)
         if not actor or actor['role'] != 'owner' or not getattr(request.state, 'session', None):
@@ -283,7 +329,7 @@ def register_routes(app, api):
             failures = cur.fetchone()['failures']
         return {'actors': people, 'global_locked_until': lock['locked_until'] if lock else None, 'failures_last_hour': failures}
 
-    @app.post('/actors/{actor_id}/pin')
+    @router.post('/actors/{actor_id}/pin')
     def set_pin(actor_id: int, body: SetPin, request: Request, _: bool = Depends(api.verify_api_key)):
         actor = api.request_actor(request)
         session = getattr(request.state, 'session', None)
@@ -328,3 +374,5 @@ def register_routes(app, api):
                            WHERE actor_id=%s AND ended_at IS NULL""", (actor_id,))
             cur.execute('INSERT INTO pin_management_audit(actor_id,changed_by_actor_id) VALUES (%s,%s)', (actor_id, actor['id']))
         return {'pin_set': True, 'sessions_revoked': True, 'sign_in_again': actor_id == actor['id']}
+
+    app.include_router(router)

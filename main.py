@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException, Header, Query, Depends, Path, Reques
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator, root_validator, StrictStr, StrictBool, Field
 from typing import Optional, List, Dict, Union, Literal, Callable, Any
 import json
@@ -149,16 +148,7 @@ class DecimalSafeJSONResponse(JSONResponse):
         ).encode("utf-8")
 
 app = FastAPI(title="Factory Ledger System", version="3.1.1", default_response_class=DecimalSafeJSONResponse)
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[origin.strip() for origin in os.getenv("DASHBOARD_ORIGINS", "https://cns-factory-ledger.netlify.app").split(",") if origin.strip()],
-    expose_headers=["Retry-After", "Content-Disposition"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(pin_sessions.ModeCORSMiddleware)
 
 # ═══════════════════════════════════════════════════════════════
 # UNIFORM WRITE-RESPONSE CONTRACT (additive envelope)
@@ -3195,7 +3185,7 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     actor = _resolve_actor(provided_key)
-    session_key = actor is None and provided_key.startswith(pin_sessions.SESSION_PREFIX)
+    session_key = pin_sessions.enabled() and actor is None and provided_key.startswith(pin_sessions.SESSION_PREFIX)
     if session_key:
         actor = pin_sessions.resolve(sys.modules[__name__], request, provided_key)
     if actor is not None:
@@ -3204,7 +3194,7 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
         if not session_key:
             _touch_actor_last_used(actor)
         route_key = _route_key(request)
-        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST | pin_sessions.AUTH_ROUTES):
+        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST | (pin_sessions.AUTH_ROUTES if pin_sessions.enabled() else frozenset())):
             # A2: the §4.3 matrix on the direct routes too, so an office key
             # cannot post `POST /make` while `/make/prepare` denies it. 403
             # ROLE_NOT_ALLOWED before the handler, before any body is read.
@@ -20679,7 +20669,7 @@ def audit_integrity():
 
 _dashboard_dir = pathlib.Path(__file__).parent / "dashboard"
 if _dashboard_dir.is_dir():
-    app.mount("/dashboard", StaticFiles(directory=str(_dashboard_dir), html=True), name="dashboard-ui")
+    app.mount("/dashboard", pin_sessions.DashboardFiles(directory=str(_dashboard_dir), html=True), name="dashboard-ui")
 
 
 # A1: plain HTTP ticket/receipt routes share the same FL action cores.

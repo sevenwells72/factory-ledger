@@ -104,11 +104,17 @@ def test_exact_railway_launcher_before_uvicorn(environment, url, allowed):
     launcher = shlex.split(start_command())[2]
     stub = ('import sys,types\n'
             'u=types.ModuleType("uvicorn")\n'
-            'u.run=lambda *a,**k: print("UVICORN_REACHED")\n'
+            'class Config:\n'
+            ' def __init__(self,*a,**k):\n'
+            '  assert k["proxy_headers"] is True\n'
+            '  assert k["forwarded_allow_ips"] == "192.0.2.10"\n'
+            ' def load(self): self.loaded_app=object()\n'
+            'u.Config=Config\n'
+            'u.Server=lambda config: types.SimpleNamespace(run=lambda: print("UVICORN_REACHED"))\n'
             'sys.modules["uvicorn"]=u\n')
     env = {k:v for k,v in os.environ.items()
            if k not in ("DATABASE_URL", "TEST_DATABASE_URL")}
-    env.update(ENVIRONMENT=environment,DATABASE_URL=url)
+    env.update(ENVIRONMENT=environment,DATABASE_URL=url,FORWARDED_ALLOW_IPS="192.0.2.10")
     result = subprocess.run([sys.executable,"-c",stub+launcher],
                             env=env,capture_output=True,text=True)
     assert ("UVICORN_REACHED" in result.stdout) is allowed

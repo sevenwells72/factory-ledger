@@ -1,6 +1,14 @@
 -- A11: additive identity/session storage. Apply as app owner, staging first,
 -- in an explicit transaction with ON_ERROR_STOP and SET LOCAL lock_timeout='5s'.
 -- No PINs, credentials, actor seeds, ledger writes or startup auto-apply.
+-- Execute with the SAME role used by DATABASE_URL, not a separate migrator.
+-- Owner RLS bypass is required to preserve existing actor-key authentication.
+DO $$ BEGIN
+    IF (SELECT relowner FROM pg_class WHERE oid='actors'::regclass)
+       <> (SELECT oid FROM pg_roles WHERE rolname=current_user) THEN
+        RAISE EXCEPTION '073 requires the application role to own actors; verify DATABASE_URL role before applying';
+    END IF;
+END $$;
 ALTER TABLE actors ADD COLUMN IF NOT EXISTS pin_hash text,
     ADD COLUMN IF NOT EXISTS pin_set_at timestamptz,
     ADD COLUMN IF NOT EXISTS pin_locked_until timestamptz,

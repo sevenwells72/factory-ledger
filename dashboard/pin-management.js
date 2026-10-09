@@ -1,5 +1,11 @@
 (async function () {
   'use strict';
+  if (!await FLSession.ready) {
+    document.querySelector('main').replaceChildren();
+    location.replace(new URL('index.html', location.href));
+    return;
+  }
+  document.querySelector('main').hidden = false;
   const status = document.getElementById('pin-status'), own = document.getElementById('own-pin'), admin = document.getElementById('admin-pin');
   let actor;
   async function load() {

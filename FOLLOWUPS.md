@@ -1,5 +1,22 @@
 # Followups
 
+## A11 activation — DEFERRED by Michael (2026-10-09)
+
+PR #96 ships DORMANT: `PIN_LOGIN_ENABLED` defaults OFF. Merging migration 073 and
+the backend does not authorize activation or a Netlify rollout. Before Michael
+chooses an activation date:
+
+- Deliver and test **owner email notification for global PIN lockout**. The
+  current credential-free error event/admin indicator is not email delivery.
+- Decide **whether read-only dashboard pages require sign-in**. Preserve all
+  existing public-page behavior while OFF; the current ON client requires a
+  session for API-backed dashboard reads, pending this explicit decision.
+- Follow the [two-phase activation runbook](docs/deployments/a11-pin-sessions.md):
+  app-role ownership check before 073; later pepper → Michael's first PIN →
+  `PIN_LOGIN_ENABLED=1`/backend verification → Netlify last. F1/A12 acceptance
+  stays in their integration work. No activation is scheduled.
+
+
 Deferred work from Pass 1 (2026-04-20). Not shipped in Pass 1 — tracked here for a
 future PR.
 

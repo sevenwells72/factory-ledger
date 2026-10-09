@@ -18,6 +18,7 @@ try {
     const respond = (route, data, status=200) => route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
     await context.route('**/*', async route => {
       const req = route.request(), url = new URL(req.url());
+      if (url.pathname === '/auth/config') return respond(route,{pin_login_enabled:true});
       if (url.pathname === '/auth/session' && req.method()==='POST') {
         logins++; return respond(route,{session_token:token,actor:nextPerson,expires_at:new Date(Date.now()+600000).toISOString()});
       }

@@ -1,12 +1,121 @@
-# A11 PIN login and FL sessions
+# A11 PIN login and FL sessions — DORMANT delivery
 
-Builder: Codex. Reviewer: Claude Code. Draft PR #96; **do not merge or deploy to
-production**. Base `origin/main` at `ce7bb57`. Migration **073** is the next free number. Initial checks reserved 072; the final
-open-PR check found A7 #93 had added `072_order_ticket_review_fixes.sql` during
-this build, so A11 moved to 073. 066 #91 remains held; 067/072 belong to A7,
-068 #90 to F1, and 069–071 are on main.
+Michael deferred activation on 2026-10-09. PR #96 may be merged **only after review
+fixes are approved**, with `PIN_LOGIN_ENABLED` unset or `0`. This work does not
+merge, deploy production, change production variables or publish Netlify.
+Only the exact value `1` enables A11; having a pepper, PINs or migration 073 does
+not activate it. Staging may remain ON for acceptance testing.
 
-## Identity and security contract
+## Phase A — later approved merge, flag OFF
+
+1. Leave the current Netlify production publish in place. Hold automatic Netlify
+   production publishing for this merge; no frontend rollout is part of phase A.
+   Check that the backend flag is unset or `0`. Do not set `PIN_PEPPER` yet.
+2. **Before migration 073, connect with the actual backend `DATABASE_URL` role**
+   (port 5432, privately supplied; never print the URL). Verify:
+
+   ```sql
+   BEGIN TRANSACTION READ ONLY;
+   SELECT current_user AS application_role,
+          pg_get_userbyid(relowner) AS actors_owner,
+          relowner = (SELECT oid FROM pg_roles WHERE rolname=current_user) AS owned_by_app
+   FROM pg_class WHERE oid='public.actors'::regclass;
+   COMMIT;
+   ```
+
+   `owned_by_app` must be true. **Stop if not**; review ownership/RLS permissions
+   before proceeding. A separate migrator being owner is not sufficient. 073
+   enables RLS on `actors`, which would otherwise break existing actor-key
+   lookup. The migration now also refuses a non-owning applying role before
+   changing anything. No production role check was performed in this PR.
+3. Apply `migrations/073_pin_sessions.sql` as that same app/table owner using
+   `psql -v ON_ERROR_STOP=1`, port 5432 and one explicit transaction:
+   `BEGIN; SET LOCAL search_path=public; SET LOCAL lock_timeout='5s';` then the
+   migration and `COMMIT;`. It is additive/rerunnable; it is never run at startup.
+   Retain actor/security-table RLS and revoked public/anon/authenticated grants.
+4. Deploy the reviewed backend with the flag still OFF. Nothing else changes:
+   the existing browser dashboard key, wildcard CORS policy, anonymous dashboard
+   pages, shared-key allowlists, actor keys, owner checks and backdating work as
+   main. No PIN re-entry. PIN session/admin APIs and backend admin assets return
+   404; their API schema entries are hidden at startup.
+5. Smoke the current Netlify pages and actor/shared-key routes without a pepper.
+   Do not bootstrap PINs, enable the flag or deploy Netlify in phase A.
+
+For the new dashboard assets, `/auth/config` returns a no-store mode response.
+OFF keeps the existing public dashboard credential in the browser and sends it
+on exactly the legacy keyed calls; public reads remain public. No actor-key or
+session storage is deleted, no idle timers/login UI start, and no page asks for
+sign-in. ON returns only the mode (no dashboard credential) and starts the full
+A11 session client. A failed config request does not silently downgrade to a
+shared credential. A separately hosted PIN admin URL remains hidden and returns
+to the dashboard while OFF; backend-hosted PIN admin assets return 404.
+
+## Phase B — future activation, separately authorized by Michael
+
+Activation is deferred, with no scheduled date. Complete both FOLLOWUPS first:
+**deliver and test an owner email alert for global PIN lockout**, and **decide
+whether read-only dashboard pages should require sign-in**. Current ON browser
+behavior requires sign-in for API-backed pages; this is not a settled rollout
+policy. F1/A12 integration acceptance also belongs to that future rollout.
+
+1. Set a random server-only `PIN_PEPPER` of at least 32 characters privately.
+   Keep `PIN_LOGIN_ENABLED=0`. Never put the pepper/PIN in shell arguments,
+   screenshots, logs or the browser. Pepper rotation requires resetting PINs.
+2. **Michael bootstraps his own first PIN while the flag is still OFF.** On a
+   private interactive shell with the backend DB role and pepper in the process
+   environment, run `python scripts/bootstrap_owner_pin.py --actor-id <Michael-id>`.
+   Resolve the existing Michael owner record first; do not create/reassign people.
+   The command uses non-echoing prompts, refuses a noninteractive echo fallback,
+   permits only an existing active owner with no PIN, verifies table ownership,
+   serializes uniqueness and writes a management audit row. It cannot reset a
+   PIN or turn on login. HTTP PIN routes remain 404 throughout bootstrap.
+3. Configure the trusted Railway HTTP proxy launcher below; verify approved
+   `DASHBOARD_ORIGINS`. Set **`PIN_LOGIN_ENABLED=1`**, deploy backend, and verify
+   Michael's PIN/session, source/global limits and fresh protected-action proof
+   privately against the Railway dashboard. Set other people’s PINs via owner
+   administration; never publish or select PINs in this document.
+4. **Deploy Netlify last**, after backend readiness and the read-only-page policy
+   are signed off. Check every dashboard page, login/idle/logout, actor-key
+   integrations, same-person ticket resume and protected owner actions.
+
+Rollback: set the flag OFF and redeploy the backend, then reload dashboard tabs
+so they read the no-store mode again. Keep migration/security audit tables and
+RLS. Do not erase PIN/session evidence or run a destructive down migration.
+
+## Railway proxy configuration — staging only now
+
+`proxy_server.py` explicitly enables uvicorn `proxy_headers=True` and reads
+`FORWARDED_ALLOW_IPS` from the environment (local default `127.0.0.1`). On Railway,
+its outer adapter accepts the edge's overwritten `X-Real-IP` from a trusted socket
+peer and normalizes it to XFF **before** uvicorn rewrites `request.client`.
+Client-supplied XFF cannot choose a rate-limit bucket. Missing/malformed edge
+identity falls back to the peer. The PIN verifier still hashes only the ASGI
+client address and the independent device cookie; it does not parse raw headers.
+
+Railway documents [X-Real-IP as the edge client address](https://docs.railway.com/networking/public-networking/specs-and-limits),
+and [Railway staff confirm overwrite and no direct public bypass](https://station.railway.com/questions/need-authoritative-railway-client-ip-p-b7a7b4bd).
+[Uvicorn proxy settings](https://www.uvicorn.org/settings/) accept an explicit
+trusted-peer list or `*`. Railway does not publish stable proxy IPs: use
+`FORWARDED_ALLOW_IPS=*` **only on this HTTP-edge-only Railway service**. Do not
+expose it through a TCP proxy or an untrusted private caller. Local/direct
+listeners keep a narrow peer allowlist. IP buckets distinguish public client IPs;
+devices sharing a NAT still share an IP bucket and each retains its device bucket.
+
+Only **FastAPI-staging** is configured now: service
+`0d957be1-8787-41e5-ab38-de71287c30ce`, environment
+`f4d219df-2fea-45e8-85de-466b36a86c07`, project
+`2206e070-d160-4528-a4f1-86a587ad88c3`; verify `ENVIRONMENT=staging`, service name and
+DB project `jygmyvxnxdjiiilhxseq` before every action. The platform environment is
+named `production`; that label does not change the pinned staging service scope.
+Generate its start command with `python scripts/staging_start_command.py`; it
+embeds the database guard and proxy launcher and works with an older snapshot.
+Use `PIN_LOGIN_ENABLED=1` and `FORWARDED_ALLOW_IPS=*` for staging acceptance.
+No production variables, start command, Railway config file or Netlify settings
+are changed by this PR. At future production activation, set the same reviewed
+proxy environment and start with `python -m proxy_server` **on that separately
+approved service only**. Do not change shared `railway.json` to force this now.
+
+## Identity and security contract — flag ON only
 
 - `POST /auth/session {pin}` identifies a person without a name picker. PINs are
   four ASCII digits; all-same digits, ascending/descending runs (including wrap),
@@ -52,52 +161,21 @@ this build, so A11 moved to 073. 066 #91 remains held; 067/072 belong to A7,
   gain no session/PIN administration rights. A2's grandfathered master-key
   backfill route stays as specified until A10 closes legacy direct writes.
 
-## First PINs on staging
+## Staging people and first PINs
 
-The staging service is **FastAPI-staging**, service
-`0d957be1-8787-41e5-ab38-de71287c30ce`, environment
-`f4d219df-2fea-45e8-85de-466b36a86c07` in project
-`2206e070-d160-4528-a4f1-86a587ad88c3`. Its platform environment name is
-`production`, but its application `ENVIRONMENT=staging` and database project
-`jygmyvxnxdjiiilhxseq` are separately checked. Never target the production service.
-
-1. Apply `migrations/073_pin_sessions.sql` to **staging** as the application/table
-   owner, using port 5432, `ON_ERROR_STOP`, an explicit transaction and
-   `SET LOCAL search_path=public; SET LOCAL lock_timeout='5s'`. It is rerunnable,
-   additive, does not alter ledger rows, and does not auto-run at startup.
-   The application must own `actors` and the new security tables (or have an
-   explicitly reviewed RLS policy); public/anonymous/authenticated access is
-   revoked. Keep actor RLS enabled.
-2. Set a random server-only `PIN_PEPPER` of at least 32 characters on
-   **FastAPI-staging**, before deploying A11. Do not print it. Rotating it makes
-   all PIN hashes unresolvable; plan a full PIN reset when rotating it.
-3. Run `python scripts/bootstrap_pin_staging.py` once. It verifies the exact
-   staging database, creates **Michael / Arturo / Luz / Miriam with no PINs**, and
-   saves Michael's random initial sign-in key, mode 0600, at
-   `~/Documents/fl-secrets/staging-pin-owner-key.txt`. It never prints the key,
-   overwrites an existing file, reactivates people or resets existing credentials.
-4. Open [staging PIN administration](https://fastapi-staging-production-dd7b.up.railway.app/dashboard/pin-management.html).
-   Expand **Office / owner sign-in**, paste the key from that private file, and
-   choose **Use personal sign-in**. Set **Michael's first PIN**. This one bootstrap
-   operation is allowed only for an owner key session whose own PIN is still unset.
-5. Sign in with Michael's new PIN. In **Set or reset a person's PIN**, select
-   Arturo, Luz or Miriam and set their unique PIN; re-enter Michael's PIN when
-   prompted. Each person can then use **Change my PIN** with their current PIN.
-   Reset/change signs that person out everywhere. The login screen never has a
-   person picker; the name list exists only inside owner administration.
-
-Dashboard writes use the shared session client on every existing dashboard page;
-[staging dashboard](https://fastapi-staging-production-dd7b.up.railway.app/dashboard/index.html).
-For a separately hosted dashboard set `DASHBOARD_ORIGINS` to its exact approved
-origins (comma separated). The default is the existing Netlify dashboard. The
-Railway-served staging dashboard uses the same staging origin. No production
-Netlify deployment is performed by this PR. Uvicorn must trust only the actual
-platform proxy when using forwarded client addresses; the code never trusts an
-arbitrary `X-Forwarded-For` header itself.
+The previous staging bootstrap created Michael / Arturo / Luz / Miriam without
+PINs and placed Michael's initial personal key in a private mode-0600 file. Do
+not rerun it or overwrite that file. Staging may use its ON-only personal-key
+bootstrap screen at [PIN administration](https://fastapi-staging-production-dd7b.up.railway.app/dashboard/pin-management.html).
+Michael sets his own PIN there, signs in again, then sets other people’s unique
+PINs. This staging-only convenience does not change the production sequence:
+production uses the private offline first-owner bootstrap before enabling A11.
 
 ## F1 PR #90 handoff — no edits to feat/fl-assistant
 
-Rebase F1 onto A11 after review. Its backend already uses `request_actor()` and
+At future activation, rebase F1 onto A11 after review. Honor `FLSession.ready` /
+`PIN_LOGIN_ENABLED`; keep its existing key behavior while dormant and only require
+a session after explicit opt-in. Its backend already uses `request_actor()` and
 relays `X-API-Key`, so sessions pass the same actor/ticket checks. Required changes:
 
 1. Load `/dashboard/fetch-timeout.js`, `/dashboard/session.css`, and
@@ -131,7 +209,44 @@ relays `X-API-Key`, so sessions pass the same actor/ticket checks. Required chan
    survive the rebase. A7/A6 backdated commit paths must call the same owner-PIN
    verifier before their eventual post (main's direct validator already does).
 
-## Validation and rollout evidence
+## Review-fix validation (2026-10-09)
+
+- Full release suite on a **fresh disposable PostgreSQL 17 database** at local
+  port 57496: **2,280 Python tests passed, zero failures/skips**. Default OFF;
+  the A11 security suite opts in explicitly. Existing actor/A2/A3b business
+  regressions no longer seed PINs or attach step-up headers. The RLS fixture
+  retains the documented requirement that the app owns `actors`.
+- **69 JavaScript tests passed**. **93 browser checks passed** against current
+  main `ce7bb57` across **all nine pre-existing HTML pages**, at 390/1440 px:
+  identical rendered text and API requests/credential use; no sign-in UI or
+  credential-storage deletion while dormant. All API/CDN calls used local
+  fixtures; zero production requests. Config failure refuses silent downgrade.
+- **22 enabled-session browser checks passed**, including login, protected
+  owner actions, expiry retry/person binding, and admin handover.
+- New DB/proxy cases cover disabled PIN surfaces with malformed/missing input,
+  unchanged CORS preflights and browser/actor keys, prefixed actor-key priority,
+  legacy owner actions/backdated commits with no PIN, auth without any PIN
+  tables/columns, migration nonowner refusal, private pre-activation bootstrap
+  and revocation, separate forwarded IP buckets and spoof-resistant Railway
+  header normalization. `git diff --check` passes.
+- Reproduce: load `tests/schema/schema.sql` into a fresh local PostgreSQL 17 DB,
+  run Python 3.12 `pytest` with only its `TEST_DATABASE_URL`; run
+  `node --test tests/test_*.js`, `npm run test:pin-dormant` (requires the baseline
+  Git object `ce7bb57`) and `npm run test:pin-sessions` after `npm install` and
+  Playwright Chromium setup. Historical PDF tests use ReportLab 4.4.9 plus
+  pdfplumber, matching the committed historical fixture.
+
+Staging review-fix deployment **`a38c1cbc-ac8e-4437-acc7-117d18cb7f00`** is
+SUCCESS with the flag ON and trusted proxy launcher. The actual backend role
+owns `actors` and all four security tables; all have RLS enabled. Live asset
+hashes match the release-tested snapshot. Two failed requests from distinct
+synthetic devices, each supplying forged XFF and X-Real-IP, were recorded under
+the independently verified real public client IP. Security evidence is retained;
+no real PIN was entered. See [the redacted staging receipt](a11-dormant-staging-receipt.json).
+Production was not queried, configured, migrated or deployed; Netlify was not
+published and PR #96 was not merged.
+
+## Historical pre-review validation and staging rollout evidence
 
 - Fresh disposable local PostgreSQL: **2,232 Python tests passed**, zero skips;
   the final role/key-precedence/shared-key follow-up passed all **115 focused
